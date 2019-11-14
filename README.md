@@ -4,10 +4,8 @@ Setup:
 
   $> ./createvenv
 
-Steps:
+* The file /output/issues.txt lists the GitHub issues related to flaky tests downloaded with the script mine.py. You don't need to run this script again unless you want to change the selection criterion.
 
-1. The file /output/issues.txt lists the GitHub issues related to flaky tests that we downloaded with the script mine.py. 
+* The files under the directory /data correspond to the body of the flaky tests for the issues from /output/issues.txt. These files were extracted manually.
 
-2. The files under the directory /data correspond to the body of the flaky tests for the issues from /output/issues.txt. These files were extracted manually.
-
-3. The script find_features.py processes the files under the directory data to produce a list of words which are more common across tests.
+* The script find_features.py processes the files under the directory data to produce a list of words which are more common across tests.
