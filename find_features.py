@@ -1,10 +1,11 @@
 import glob
 import os
 from nltk import sent_tokenize, word_tokenize, PorterStemmer, download
-from nltk.corpus import stopwords    
+from nltk.corpus import stopwords
 
 # tokenization, lemmatization, stop word removal
 download('punkt')
+download('stopwords')
 stop_words = set(stopwords.words('english'))
 other_stop_words = [",","?","-","_",";","\"","—","\\n","==","1","-c","got","run","func","end","404","-d","break","}","[","]","error","get","rm","sh","''",">","<",">=","<=","//","c","``","&","OK",")","(","'","=","0","main","function","output","then",":","!"]
 stop_words = stop_words.union(set(other_stop_words))
@@ -14,11 +15,11 @@ def basic_words(text):
     words = word_tokenize(text)
     #print(words)
     #print(len(words))
-    
+
     ## stemm
     stemmer = PorterStemmer()
     stems = set()
-    for w in words: 
+    for w in words:
         stems.add(stemmer.stem(w))
     #print(stems)
     #print(len(stems))
