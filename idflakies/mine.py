@@ -75,7 +75,7 @@ def main():
                 tmp.write(stdout.decode("utf-8"))
 
             # extract actual test from files
-            myprocess = subprocess.Popen(['java', '-jar', basedir+'/methodvis/build/libs/methodvis.jar', tmpfile, testname], 
+            myprocess = subprocess.Popen(['java', '-jar', basedir+'/vis_method/build/libs/vis_method.jar', tmpfile, testname], 
                     stdout=subprocess.PIPE, 
                     stderr=subprocess.STDOUT)
             mbody,stderr = myprocess.communicate()
