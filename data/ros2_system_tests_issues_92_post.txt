@@ -1,0 +1,92 @@
+static inline void multi_consumer_pub_sub_test(bool intra_process)
+{
+  std::string node_topic_name = "multi_consumer";
+  if (intra_process) {
+    node_topic_name += "_intra_process";
+  }
+
+  auto node = rclcpp::Node::make_shared(node_topic_name, intra_process);
+  auto callback_group = node->create_callback_group(
+    rclcpp::callback_group::CallbackGroupType::Reentrant);
+  auto pub = node->create_publisher<test_rclcpp::msg::UInt32>(node_topic_name, 16);
+
+  std::vector<rclcpp::Subscription<test_rclcpp::msg::UInt32>::SharedPtr> subscriptions;
+  std::atomic_uint counter(0);
+
+  auto callback =
+    [&counter, &intra_process](test_rclcpp::msg::UInt32::ConstSharedPtr msg,
+      const rmw_message_info_t & info) -> void
+    {
+      counter.fetch_add(1);
+      printf("callback() %4u with message data %u\n", counter.load(), msg->data);
+      ASSERT_EQ(intra_process, info.from_intra_process);
+    };
+
+  rclcpp::executors::MultiThreadedExecutor executor;
+  // Try to saturate the MultithreadedExecutor's thread pool with subscriptions
+  for (uint32_t i = 0; i < executor.get_number_of_threads(); i++) {
+    auto sub = node->create_subscription<test_rclcpp::msg::UInt32>(node_topic_name, 16, callback,
+        callback_group);
+    subscriptions.push_back(sub);
+  }
+
+  executor.add_node(node);
+  auto msg = std::make_shared<test_rclcpp::msg::UInt32>();
+  msg->data = 0;
+
+  // wait a moment for everything to initialize
+  // TODO(jacquelinekay): fix nondeterministic startup behavior
+  rclcpp::utilities::sleep_for(1_ms);
+
+  // sanity check that no callbacks have fired
+  EXPECT_EQ(0, counter.load());
+
+  ++msg->data;
+  pub->publish(msg);
+
+  // test spin_some
+  // Expectation: The message was published and all subscriptions fired the callback.
+  // Use spin_once to block until published message triggers an event
+  // Note that we have no guarantee that spinning once will deliver all
+  // messages. So we put a heuristic upper bound (2s) on how long we're willing to
+  // wait for delivery to occur.
+  const std::chrono::milliseconds sleep_per_loop(10);
+  const int max_loops = 200;
+  int loop = 0;
+  while ((counter.load() != subscriptions.size()) && (loop++ < max_loops)) {
+    rclcpp::utilities::sleep_for(sleep_per_loop);
+    executor.spin_some();
+  }
+  EXPECT_EQ(counter.load(), subscriptions.size());
+
+  // Expectation: no further messages were received.
+  executor.spin_once(std::chrono::milliseconds(0));
+  EXPECT_EQ(counter.load(), subscriptions.size());
+
+  // reset counter
+  counter.store(0);
+  msg->data = 0;
+
+  auto publish_callback = [
+    msg, &pub, &executor, &counter, &subscriptions, &sleep_per_loop, &max_loops](
+    rclcpp::timer::TimerBase & timer) -> void
+    {
+      ++msg->data;
+      if (msg->data > 5) {
+        timer.cancel();
+        // wait for the last callback to fire before cancelling
+        // Wait for pending subscription callbacks to trigger.
+        int loop = 0;
+        while ((counter.load() != (5 * subscriptions.size())) && (loop++ < max_loops)) {
+          std::this_thread::sleep_for(sleep_per_loop);
+        }
+        executor.cancel();
+        return;
+      }
+      pub->publish(msg);
+    };
+  auto timer = node->create_wall_timer(std::chrono::milliseconds(1), publish_callback);
+
+  executor.spin();
+  EXPECT_EQ(counter.load(), 5 * subscriptions.size());
+}

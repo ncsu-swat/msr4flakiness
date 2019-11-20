@@ -1,0 +1,26 @@
+@Test
+@TestDir
+@TestJetty
+@TestHdfs
+public void testGetSnapshotDiffIllegalParam() throws Exception {
+    createHttpFSServer(false, false);
+    // Create a test directory
+    String pathStr = "/tmp/tmp-snap-diff-exc-test";
+    createDirWithHttp(pathStr, "700", null);
+    Path path = new Path(pathStr);
+    DistributedFileSystem dfs = (DistributedFileSystem) FileSystem.get(path.toUri(), TestHdfsHelper.getHdfsConf());
+    // Enable snapshot
+    dfs.allowSnapshot(path);
+    Assert.assertTrue(dfs.getFileStatus(path).isSnapshotEnabled());
+    // Snapshots snap1 and snap2 are not created, expect failures but not NPE
+    HttpURLConnection conn = sendRequestGetSnapshotDiff(pathStr, "", "");
+    Assert.assertNotEquals(conn.getResponseCode(), HttpURLConnection.HTTP_OK);
+    sendRequestGetSnapshotDiff(pathStr, "snap1", "");
+    Assert.assertNotEquals(conn.getResponseCode(), HttpURLConnection.HTTP_OK);
+    sendRequestGetSnapshotDiff(pathStr, "", "snap2");
+    Assert.assertNotEquals(conn.getResponseCode(), HttpURLConnection.HTTP_OK);
+    sendRequestGetSnapshotDiff(pathStr, "snap1", "snap2");
+    Assert.assertNotEquals(conn.getResponseCode(), HttpURLConnection.HTTP_OK);
+    // Clean up
+    dfs.delete(path, true);
+}

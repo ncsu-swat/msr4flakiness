@@ -9,7 +9,7 @@ from operator import itemgetter
 download('punkt')
 download('stopwords')
 stop_words = set(stopwords.words('english'))
-other_stop_words = [",","?","-","_",";","\"","—","\\n","==","1","-c","got","run","func","end","404","-d","break","}","[","]","error","get","rm","sh","''",">","<",">=","<=","//","c","``","&","OK",")","(","'","=","0","main","function","output","then",":","!","{", "}", "%","r","def", ".", "#", "self", "test", "We", "'get", "fields", "field", "n't", "'/", "", "b","true","return","i++","*","see","second"]
+other_stop_words = [",","?","-","_",";","\"","—","\\n","==","1","-c","got","run","func","end","404","-d","break","}","[","]","error","get","rm","sh","''",">","<",">=","<=","//","c","``","&","OK",")","(","'","=","0","main","function","output","then",":","!","{", "}", "%","r","def", ".", "#", "self", "test", "We", "'get", "fields", "field", "n't", "'/", "", "b","true","return","i++","*","see","second","void","todo","fn","the","std","counter","count","pending","static","The","Test","+","4u","data","uint32_t",":SharedPtr","printf","u\\n","auto","ASSERT_EQ","||","behavior","test_rclcpp","rclcpp"]
 stop_words = stop_words.union(set(other_stop_words))
 
 def read_words(text):
@@ -17,15 +17,24 @@ def read_words(text):
     words = word_tokenize(text)
     for a in [w for w in words if "=" in w]:
         words.remove(a)
-        words.extend(a.split("="))
-    ## stemm
+        parts = a.split("=")
+        words.extend(parts)
+
+    ## Commented this for now as we may be unable to understand the outputs...
+    ## 
+    # stemming
     stemmer = PorterStemmer()
     stems = set()
     for w in words:
+        #print(w, " : ", stemmer.stem(w)) 
         stems.add(stemmer.stem(w))
     ## remove stop words
     filtered_stems = [w for w in stems if not w in stop_words]
-    return filtered_stems
+    return set(filtered_stems)
+
+    # ## remove stop words
+    # filtered_stems = [w for w in words if not w in stop_words]
+    # return set(filtered_stems)
 
 def compute_frequency(test_words):
     # calculate frequency of words
@@ -48,11 +57,11 @@ if __name__ == '__main__':
     for filename in glob.glob(dir_path + "/data/*.txt"):
         with open(filename, 'r') as file:
             data = file.read().replace('\n', '')
-            print (filename)
+            #print (filename)
             test_words[filename] = read_words(data)
     
     word_frequency = compute_frequency(test_words)
     sorted_word_frequency = sorted(word_frequency.items(), key=lambda x: x[1], reverse=True)
     #print(sorted_word_frequency)
-    for elem in sorted_word_frequency[:30]:
+    for elem in sorted_word_frequency[:50]:
         print(elem)        
