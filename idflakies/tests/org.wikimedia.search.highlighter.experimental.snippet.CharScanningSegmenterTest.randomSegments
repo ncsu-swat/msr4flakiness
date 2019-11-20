@@ -1,0 +1,21 @@
+@Test
+@Repeat(iterations = 1000)
+public void randomSegments() {
+    int minStart = between(-100, 400);
+    int maxStart = Math.max(0, minStart) + between(0, 400);
+    int minEnd = maxStart + between(0, 400);
+    int maxEnd = minEnd + between(0, 400);
+    int length = minEnd + between(0, 800);
+    StringBuilder b = new StringBuilder(length);
+    for (int i = 0; i < length; i++) {
+        b.append(rarely() ? ' ' : 'a');
+    }
+    setup(b.toString());
+    Segment bounds = segmenter.memo(maxStart, minEnd).pickBounds(minStart, maxEnd);
+    assertThat(bounds.startOffset(), lessThanOrEqualTo(maxStart));
+    assertThat(bounds.endOffset(), greaterThanOrEqualTo(minEnd));
+    if (segmenter.acceptable(maxStart, minEnd)) {
+        // 240 = the max size + twice the scan
+        assertThat(bounds.endOffset() - bounds.startOffset(), lessThanOrEqualTo(240));
+    }
+}

@@ -49,6 +49,7 @@ def main():
             sha = row["SHA"]
             # get test file name
             testcase = row["Test Name"]
+            testcase = testcase.split()[0]
             parts = testcase.split(".")
             testname = parts[len(parts)-1]
             testfile = parts[len(parts)-2]
@@ -79,7 +80,7 @@ def main():
                     stderr=subprocess.STDOUT)
             mbody,stderr = myprocess.communicate()
             # create a file with the test case
-            with open(basedir+"/"+testcase, "wt+") as testfile:
+            with open(basedir+"/tests/"+testcase, "wt+") as testfile:
                 testfile.write(mbody.decode("utf-8"))
 
 if __name__ == "__main__":
