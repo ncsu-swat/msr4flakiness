@@ -1,18 +1,19 @@
-import japa.parser.ASTHelper;
-import japa.parser.JavaParser;
-import japa.parser.ast.CompilationUnit;
-import japa.parser.ast.PackageDeclaration;
-import japa.parser.ast.body.ClassOrInterfaceDeclaration;
-import japa.parser.ast.body.MethodDeclaration;
-import japa.parser.ast.body.VariableDeclaratorId;
-import japa.parser.ast.body.ModifierSet;
-import japa.parser.ast.body.Parameter;
-import japa.parser.ast.expr.FieldAccessExpr;
-import japa.parser.ast.expr.MethodCallExpr;
-import japa.parser.ast.expr.NameExpr;
-import japa.parser.ast.expr.StringLiteralExpr;
-import japa.parser.ast.stmt.BlockStmt;
-import japa.parser.ast.visitor.VoidVisitorAdapter;
+import com.github.javaparser.StaticJavaParser;
+import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
+import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.PackageDeclaration;
+import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.body.VariableDeclarator;
+import com.github.javaparser.ast.body.Parameter;
+import com.github.javaparser.ast.expr.FieldAccessExpr;
+import com.github.javaparser.ast.expr.MethodCallExpr;
+import com.github.javaparser.ast.expr.NameExpr;
+import com.github.javaparser.ast.expr.StringLiteralExpr;
+import com.github.javaparser.ast.stmt.BlockStmt;
+import com.github.javaparser.ast.comments.LineComment;
+import com.github.javaparser.ast.comments.BlockComment;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -33,31 +34,43 @@ public class Main {
         HashSet<String> ids = new HashSet<String>();
         class IdentifierVisitor extends VoidVisitorAdapter<Void> {
             @Override
-            public void visit(VariableDeclaratorId vd, Void ignore) {
+            public void visit(VariableDeclarator vd, Void ignore) {
                 super.visit(vd, ignore);
-                ids.add(vd.getName());
+                ids.add(vd.getName().getIdentifier());
             }
             @Override
             public void visit(NameExpr ne, Void ignore) {
                 super.visit(ne, ignore);
-                ids.add(ne.getName());
+                ids.add(ne.getName().getIdentifier());
             }
             @Override
             public void visit(MethodDeclaration md, Void ignore) {
                 super.visit(md, ignore);
-                ids.add(md.getName());
+                ids.add(md.getNameAsString());
             }
 
             @Override
             public void visit(MethodCallExpr mc, Void ignore) {
                 super.visit(mc, ignore);
-                ids.add(mc.getName());
+                ids.add(mc.getName().getIdentifier());
             }
 
             @Override
             public void visit(StringLiteralExpr sl, Void ignore) {
                 super.visit(sl, ignore);
-                ids.add(sl.getValue());
+                ids.add(sl.asString());
+            }
+
+            @Override
+            public void visit(BlockComment bc, Void ignore) {
+                super.visit(bc, ignore);
+                ids.add(bc.getContent());
+            }                                                
+
+            @Override
+            public void visit(LineComment lc, Void ignore) {
+                super.visit(lc, ignore);
+                ids.add(lc.getContent());
             }                                                
         }
         
@@ -82,7 +95,7 @@ public class Main {
         FileInputStream in = new FileInputStream(temp.getAbsolutePath());
         CompilationUnit compUnit;
         try {
-            compUnit = JavaParser.parse(in);
+            compUnit = StaticJavaParser.parse(in);
             compUnit.accept(new IdentifierVisitor(), null);
             List<String> stopWords = java.util.Arrays.asList(new String[]{"println","java","japa","org","Override","Exception","x","i","s","hello"});
             for (String s : ids) {
