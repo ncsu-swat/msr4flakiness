@@ -1,0 +1,43 @@
+@Test
+public void testBulkClusterJoining() throws Exception {
+    Map<String, Endpoint> endpointMap = Maps.newConcurrentMap();
+    DiscoveryListener discoveryListener = new DiscoveryListener() {
+
+        @Override
+        public void onJoin(Endpoint endpoint) {
+            endpointMap.put(endpoint.getAddress(), endpoint);
+        }
+
+        @Override
+        public void onLeave(Endpoint endpoint) {
+            endpointMap.remove(endpoint.getAddress());
+        }
+    };
+    ZKDiscovery zkDiscovery = (ZKDiscovery) discoveryFactory.create(cluster, discoveryListener);
+    AtomicLong onChildrenCalls = new AtomicLong(0);
+    zkDiscovery.setZkDiscoveryStateListener(children -> onChildrenCalls.getAndIncrement());
+    Membership membership = membershipFactory.create(cluster);
+    Stopwatch stopwatch = Stopwatch.createStarted();
+    // setting this to 100k takes about 1.5 minutes to register them all
+    int nrRecords = 10_000;
+    List<Endpoint> endpoints = Lists.newArrayList();
+    System.out.printf("Joining nodes...\n");
+    for (int i = 0; i < nrRecords; i++) {
+        Endpoint endpoint = new Endpoint("localhost:" + (1000 + i), "localhost", EndpointType.WEBSERVER, datacenter);
+        membership.join(endpoint);
+        endpoints.add(endpoint);
+    }
+    System.out.printf("Leaving nodes...\n");
+    await().timeout(60, TimeUnit.SECONDS).until(() -> {
+        assertEquals(nrRecords, endpointMap.size());
+    });
+    for (Endpoint endpoint : endpoints) {
+        membership.leave(endpoint);
+    }
+    await().timeout(60, TimeUnit.SECONDS).until(() -> {
+        assertEquals(0, endpointMap.size());
+    });
+    System.out.printf("NR getChildren calls: %s\n", onChildrenCalls.get());
+    assertTrue(onChildrenCalls.get() < 100);
+    System.out.printf("Took: %s\n", stopwatch.stop());
+}

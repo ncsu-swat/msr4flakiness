@@ -9,7 +9,7 @@ JAR=$DIR/vis_ids/build/libs/vis_ids.jar
 
 for x in `ls tests/*`
 do
-    echo $x
-    java -jar $JAR $DIR/$x
-    echo "---"
+    FILENAME=$DIR/tests_tokens/$(basename $x)
+    echo $FILENAME
+    java -jar $JAR $DIR/$x > $FILENAME
 done

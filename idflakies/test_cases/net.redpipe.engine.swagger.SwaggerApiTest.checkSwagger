@@ -1,0 +1,29 @@
+@Test
+public void checkSwagger(TestContext context) {
+    Async async = context.async();
+    webClient.get("/swagger.json").as(BodyCodec.jsonObject()).rxSend().map(r -> {
+        context.assertEquals(200, r.statusCode());
+        JsonObject swaggerDef = r.body();
+        context.assertNotNull(swaggerDef);
+        // general
+        context.assertEquals("2.0", swaggerDef.getString("swagger"));
+        // version
+        JsonObject info = swaggerDef.getJsonObject("info");
+        context.assertNotNull(info);
+        context.assertEquals("1.0", info.getString("version"));
+        // paths
+        JsonObject paths = swaggerDef.getJsonObject("paths");
+        context.assertNotNull(paths);
+        context.assertTrue(paths.size() > 0);
+        // host
+        context.assertNotNull(swaggerDef.getString("host"));
+        // definitions
+        JsonObject definitions = swaggerDef.getJsonObject("definitions");
+        context.assertNotNull(definitions);
+        context.assertTrue(definitions.size() == 1, "There should only be one definition. No Observable / Single / etc.");
+        JsonObject dogDef = definitions.getJsonObject("Dog");
+        context.assertNotNull(dogDef);
+        context.assertEquals("object", dogDef.getString("type"));
+        return r;
+    }).subscribe(response -> async.complete());
+}

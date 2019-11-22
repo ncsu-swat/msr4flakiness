@@ -1,0 +1,28 @@
+@Test
+public void pauseAndResumeShouldWork(TestContext ctx) throws Exception {
+    int count = 1;
+    Set<String> messages = createMessages(count);
+    String q = setupQueue(ctx, messages);
+    Async paused = ctx.async();
+    Async resumed = ctx.async();
+    Async messageReceived = ctx.async();
+    client.basicConsumer(q, new QueueOptions(), ctx.asyncAssertSuccess(consumer -> {
+        consumer.pause();
+        consumer.handler(msg -> {
+            ctx.assertNotNull(msg);
+            // if not resumed, test should fail
+            if (resumed.count() == 1) {
+                ctx.fail();
+            } else {
+                messageReceived.complete();
+            }
+        });
+        paused.complete();
+        // wait for resume command
+        resumed.await();
+        consumer.resume();
+    }));
+    paused.awaitSuccess(15000);
+    // wait some time to ensure that handler will not receive any messages when it is paused
+    vertx.setTimer(1000, t -> resumed.complete());
+}

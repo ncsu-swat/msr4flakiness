@@ -1,0 +1,27 @@
+@Test
+public void testMultipleExceptions() throws InterruptedException {
+    republisher.start();
+    Object publishedObject1 = new Object();
+    CountDownLatch latch = new CountDownLatch(11);
+    // republication succeeds
+    // failure
+    publisher.publish(publishedObject1);
+    // should re-attempt publication every 100ms
+    EasyMock.expectLastCall().andAnswer(() -> {
+        latch.countDown();
+        throw new UncategorizedJmsException("");
+    }).times(10);
+    // success
+    publisher.publish(publishedObject1);
+    EasyMock.expectLastCall().andAnswer(() -> {
+        latch.countDown();
+        return null;
+    });
+    control.replay();
+    republisher.publicationFailed(publishedObject1);
+    // Thread.sleep(2000);
+    latch.await();
+    assertEquals(11, republisher.getNumberFailedPublications());
+    assertEquals(0, republisher.getSizeUnpublishedList());
+    control.verify();
+}

@@ -1,17 +1,18 @@
-import japa.parser.ASTHelper;
-import japa.parser.JavaParser;
-import japa.parser.ast.CompilationUnit;
-import japa.parser.ast.PackageDeclaration;
-import japa.parser.ast.body.ClassOrInterfaceDeclaration;
-import japa.parser.ast.body.MethodDeclaration;
-import japa.parser.ast.body.ModifierSet;
-import japa.parser.ast.body.Parameter;
-import japa.parser.ast.expr.FieldAccessExpr;
-import japa.parser.ast.expr.MethodCallExpr;
-import japa.parser.ast.expr.NameExpr;
-import japa.parser.ast.expr.StringLiteralExpr;
-import japa.parser.ast.stmt.BlockStmt;
-import japa.parser.ast.visitor.VoidVisitorAdapter;
+import com.github.javaparser.StaticJavaParser;
+import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
+import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.PackageDeclaration;
+import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.body.VariableDeclarator;
+import com.github.javaparser.ast.body.Parameter;
+import com.github.javaparser.ast.expr.FieldAccessExpr;
+import com.github.javaparser.ast.expr.MethodCallExpr;
+import com.github.javaparser.ast.expr.NameExpr;
+import com.github.javaparser.ast.expr.StringLiteralExpr;
+import com.github.javaparser.ast.stmt.BlockStmt;
+import com.github.javaparser.ast.comments.LineComment;
+import com.github.javaparser.ast.comments.BlockComment;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -25,21 +26,21 @@ import java.nio.charset.StandardCharsets;
 
 public class Main {
 
-    public static void listMethods(String contents, String target) throws Exception {
+    public static void listMethods(String fileName, String target) throws Exception {
         class MethodVisitor extends VoidVisitorAdapter<String> {
             @Override
             public void visit(MethodDeclaration md, String target) {
                 super.visit(md, target);
-                if (md.getName().equals(target)) {
+                String s1 = md.getName().asString();
+                if (s1.equals(target)) {
                     System.out.println(md);                    
                 }
             }
         }
-        FileInputStream in = new FileInputStream(contents);
-        //InputStream in = new ByteArrayInputStream(contents.getBytes(StandardCharsets.UTF_8));
+        FileInputStream in = new FileInputStream(fileName);
         CompilationUnit compUnit;
         try {
-            compUnit = JavaParser.parse(in);
+            compUnit = StaticJavaParser.parse(in);
             compUnit.accept(new MethodVisitor(), target);
         } finally {
             in.close();
@@ -48,7 +49,6 @@ public class Main {
     
 
     public static void main(String[] args) throws Exception {
-        //"/tmp/A.java", "allocateChars"        
         Main.listMethods(args[0], args[1]);
     }
 }
