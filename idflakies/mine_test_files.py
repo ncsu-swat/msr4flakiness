@@ -5,6 +5,7 @@ import shutil
 import tempfile
 import sys
 import re
+from shutil import copyfile
 
 def main():
     basedir = os.getcwd()
@@ -45,20 +46,26 @@ def main():
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT)
                     stdout,stderr = myprocess.communicate()
-                    # change directory to this project
+                    sha = row["SHA"]
+                    print("checking out revision {}".format(sha))
+                    myprocess = subprocess.Popen(['git', 'checkout', sha],
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT)
+                    stdout,stderr = myprocess.communicate()
+                # change directory to this project
                 os.chdir(dir)
                 # add url to the list of urls
                 urls.add(url)
             # process each test on that directory
-            sha = row["SHA"]
             # get test file name
             testcase = row["Test Name"]
             testcase = testcase.split()[0]
             parts = testcase.split(".")
-            testname = parts[len(parts)-1]
+            # testname = parts[len(parts)-1]
             testfile = parts[len(parts)-2]
+            
             # find location where the test file is
-            myprocess = subprocess.Popen(['find', '.', '-name', "{}.java".format(testfile)],
+            myprocess = subprocess.Popen(['find', '.', '-name', "{}.*".format(testfile)],
                         stdout=subprocess.PIPE,
                         stderr=subprocess.STDOUT)
             stdout,stderr = myprocess.communicate()
@@ -66,43 +73,70 @@ def main():
 
             result = stdout.decode("utf-8")
 
+            if (len(stdout)==0):
+                print("  empty file {}:{}:{}".format(dir, sha, testfile))
+                continue                
+
             ## Marcelo wrote --> Is this to handle multiple answers? are we picking the first entry? are you sure this is correct?
             if(len(re.findall('un', result)) == 1):
                 path_to_testfile = result.strip(" \n")
             else:
                 path_to_testfile = result.split("\n")[0] 
+            
+            testfile=basedir+"/test_files/"+testcase
+            copyfile(path_to_testfile, testfile)
 
-            myprocess = subprocess.Popen(['git', 'show', "{}:{}".format(sha, path_to_testfile)],
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.STDOUT)
-            stdout,stderr = myprocess.communicate()
+            # myprocess = subprocess.Popen(['git', 'show', "{}:{}".format(sha, path_to_testfile)],
+            #             stdout=subprocess.PIPE,
+            #             stderr=subprocess.STDOUT)
+            # stdout,stderr = myprocess.communicate()
 
             # Marcelo wrote --> I guess it is OK in this case to retrieve the file anyways. It should not matter as we are looking at the identifiers...
-            if (b"exists on disk, but not in" in stdout):
-                print("  exists on disk, but not in...{}:{}".format(sha,testcase))
-                continue
+            # if (b"exists on disk, but not in" in stdout):
+            #     print("  exists on disk, but not in...{}:{}".format(sha,testcase))
+            #     continue
+            #     # trying to checkout the branch
+            #     myprocess = subprocess.Popen(['git', 'checkout', sha],
+            #                 stdout=subprocess.PIPE,
+            #                 stderr=subprocess.STDOUT)
+            #     stdout,stderr = myprocess.communicate()
+            #     # find location where the test file is
+            #     myprocess = subprocess.Popen(['find', '.', '-name', "{}.java".format(testfile)],
+            #                stdout=subprocess.PIPE,
+            #               stderr=subprocess.STDOUT)
+            #     stdout,stderr = myprocess.communicate()
+            #     # download file at a given revision
+
+            #     result = stdout.decode("utf-8")
+            #     ## Marcelo wrote --> Is this to handle multiple answers? are we picking the first entry? are you sure this is correct?
+            #     if(len(re.findall('un', result)) == 1):
+            #         path_to_testfile = result.strip(" \n")
+            #     else:
+            #         path_to_testfile = result.split("\n")[0]
+
+            #     print("read from here --> {}".format(path_to_testfile))
+
+            #     testfile=basedir+"/test_files/"+testcase
+            #     copyfile(path_to_testfile, testfile)
 
             # Marcelo wrote --> From what I observed, the are only two cases of this error. So, it is not as critical.
-            if (b"fatal" in stdout):
-                print("  fatal error in git show...{}:{}:{}".format(dir, sha, path_to_testfile))
-                continue
+            # if (b"fatal" in stdout):
+            #     print("  fatal error in git show...{}:{}:{}".format(dir, sha, path_to_testfile))
+            #     continue
 
-            if (len(stdout)==0):
-                print("  empty file {}:{}:{}".format(dir, sha, path_to_testfile))
-                continue                
+            # if (len(stdout)==0):
+            #     print("  empty file {}:{}:{}".format(dir, sha, path_to_testfile))
+            #     continue                
 
             #print("  processing file {}:{}:{}".format(dir, sha, path_to_testfile))            
-            testfile=basedir+"/test_files/"+testcase
-            with open(testfile, "w") as tmp:
-                tmp.write(stdout.decode("utf-8"))
+            # testfile=basedir+"/test_files/"+testcase
+            # with open(testfile, "w") as tmp:
+            #     tmp.write(stdout.decode("utf-8"))
 
         # after processing the last line, delete the dir of last repo
-        print(">>>"+dir)
-        print(os.path.exists(dir))
+        os.chdir(basedir)
         if (os.path.exists(dir)):
-            print("oh boy")
             shutil.rmtree(dir, ignore_errors=True)
 
 if __name__ == "__main__":
     main()
-
