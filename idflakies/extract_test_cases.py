@@ -17,6 +17,7 @@ def main():
         if (not stderr is None):
             print("fatal error")
             continue
+        print(mbody)
         # create a file with the test case
         if len(mbody) > 400:
             with open(basedir+"/test_cases/"+os.path.basename(filename), "wt+") as testfile:
