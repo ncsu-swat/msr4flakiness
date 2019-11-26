@@ -14,12 +14,9 @@ def main():
                     stdout=subprocess.PIPE, 
                     stderr=subprocess.STDOUT)
         mbody,stderr = myprocess.communicate()
-        if (not stderr is None):
-            print("fatal error")
-            continue
-        print(mbody)
+        parseError = b'com.github.javaparser.ParseProblemException' in mbody
         # create a file with the test case
-        if len(mbody) > 400:
+        if not parseError and len(mbody) > 400:
             with open(basedir+"/test_cases/"+os.path.basename(filename), "wt+") as testfile:
                 testfile.write(mbody.decode("utf-8"))
         else:
