@@ -1,0 +1,18 @@
+  @Test
+  public void testBasicConsumer(TestContext ctx) throws Exception {
+    int count = 3;
+    Set<String> messages = createMessages(count);
+    String q = setupQueue(ctx, messages);
+
+    Async latch = ctx.async(count);
+
+    client.basicConsumer(q, ctx.asyncAssertSuccess(consumer -> {
+      consumer.handler(msg -> {
+        ctx.assertNotNull(msg);
+        String body = msg.body().toString();
+        ctx.assertNotNull(body);
+        ctx.assertTrue(messages.contains(body));
+        latch.countDown();
+      });
+    }));
+  }
