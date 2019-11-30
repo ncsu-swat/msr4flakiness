@@ -1,9 +1,7 @@
-# msr4flakiness
+deflaker is the dataset of the deflaker paper "DeFlaker: Automatically
+Detecting Flaky Tests"
 
-Obs. if you need to run any of the python scripts listed in this repo, please run first the script "createvenv". It will load all necessary dependencies.
+idflakies is the dataset of the idflakies paper "iDFlakies: A
+Framework for Detecting and Partially Classifying ..."
 
-* The file /output/issues.txt lists the GitHub issues related to flaky tests downloaded with the script mine.py. You don't need to run this script again unless you want to change the selection criterion.
-
-* The files under the directory /data correspond to the body of the flaky tests for the issues from /output/issues.txt. These files were extracted manually.
-
-* The script find_features.py processes the files under the directory data <b><i>to produce a list of words which are more common across tests</i></b>. 
+own_dataset is the dataset that we started to mine from github.
