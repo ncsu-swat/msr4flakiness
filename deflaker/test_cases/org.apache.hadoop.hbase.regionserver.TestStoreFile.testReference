@@ -1,0 +1,36 @@
+/**
+ * Test that our mechanism of writing store files in one region to reference
+ * store files in other regions works.
+ * @throws IOException
+ */
+public void testReference() throws IOException {
+    Path storedir = new Path(new Path(this.testDir, "regionname"), "familyname");
+    Path dir = new Path(storedir, "1234567890");
+    // Make a store file and write data to it.
+    HFile.Writer writer = StoreFile.createWriter(this.fs, dir, 8 * 1024);
+    writeStoreFile(writer);
+    StoreFile hsf = new StoreFile(this.fs, writer.getPath(), true, conf, StoreFile.BloomType.NONE, false);
+    HFile.Reader reader = hsf.createReader();
+    // Split on a row, not in middle of row.  Midkey returned by reader
+    // may be in middle of row.  Create new one with empty column and
+    // timestamp.
+    KeyValue kv = KeyValue.createKeyValueFromKey(reader.midkey());
+    byte[] midRow = kv.getRow();
+    kv = KeyValue.createKeyValueFromKey(reader.getLastKey());
+    byte[] finalRow = kv.getRow();
+    // Make a reference
+    Path refPath = StoreFile.split(fs, dir, hsf, midRow, Range.top);
+    StoreFile refHsf = new StoreFile(this.fs, refPath, true, conf, StoreFile.BloomType.NONE, false);
+    // Now confirm that I can read from the reference and that it only gets
+    // keys from top half of the file.
+    HFileScanner s = refHsf.createReader().getScanner(false, false);
+    for (boolean first = true; (!s.isSeeked() && s.seekTo()) || s.next(); ) {
+        ByteBuffer bb = s.getKey();
+        kv = KeyValue.createKeyValueFromKey(bb);
+        if (first) {
+            assertTrue(Bytes.equals(kv.getRow(), midRow));
+            first = false;
+        }
+    }
+    assertTrue(Bytes.equals(kv.getRow(), finalRow));
+}

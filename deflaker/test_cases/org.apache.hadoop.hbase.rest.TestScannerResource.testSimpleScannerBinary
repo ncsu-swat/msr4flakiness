@@ -1,0 +1,32 @@
+public void testSimpleScannerBinary() throws IOException {
+    // new scanner
+    ScannerModel model = new ScannerModel();
+    model.setBatch(1);
+    model.addColumn(Bytes.toBytes(COLUMN_1));
+    Response response = client.put("/" + TABLE + "/scanner", MIMETYPE_PROTOBUF, model.createProtobufOutput());
+    assertEquals(response.getCode(), 201);
+    String scannerURI = response.getLocation();
+    assertNotNull(scannerURI);
+    // get a cell
+    response = client.get(scannerURI, MIMETYPE_BINARY);
+    assertEquals(response.getCode(), 200);
+    // verify that data was returned
+    assertTrue(response.getBody().length > 0);
+    // verify that the expected X-headers are present
+    boolean foundRowHeader = false, foundColumnHeader = false, foundTimestampHeader = false;
+    for (Header header : response.getHeaders()) {
+        if (header.getName().equals("X-Row")) {
+            foundRowHeader = true;
+        } else if (header.getName().equals("X-Column")) {
+            foundColumnHeader = true;
+        } else if (header.getName().equals("X-Timestamp")) {
+            foundTimestampHeader = true;
+        }
+    }
+    assertTrue(foundRowHeader);
+    assertTrue(foundColumnHeader);
+    assertTrue(foundTimestampHeader);
+    // delete the scanner
+    response = client.delete(scannerURI);
+    assertEquals(response.getCode(), 200);
+}

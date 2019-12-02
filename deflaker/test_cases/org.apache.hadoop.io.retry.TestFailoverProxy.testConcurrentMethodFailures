@@ -1,0 +1,20 @@
+/**
+ * Test that concurrent failed method invocations only result in a single
+ * failover.
+ */
+@Test
+public void testConcurrentMethodFailures() throws InterruptedException {
+    FlipFlopProxyProvider proxyProvider = new FlipFlopProxyProvider(UnreliableInterface.class, new UnreliableImplementation("impl1", TypeOfExceptionToFailWith.STANDBY_EXCEPTION), new UnreliableImplementation("impl2", TypeOfExceptionToFailWith.STANDBY_EXCEPTION), 2);
+    final UnreliableInterface unreliable = (UnreliableInterface) RetryProxy.create(UnreliableInterface.class, proxyProvider, RetryPolicies.failoverOnNetworkException(10));
+    ConcurrentMethodThread t1 = new ConcurrentMethodThread(unreliable);
+    ConcurrentMethodThread t2 = new ConcurrentMethodThread(unreliable);
+    // Getting a proxy will now wait on a latch.
+    proxyProvider.setLatchEnabled(true);
+    t1.start();
+    t2.start();
+    t1.join();
+    t2.join();
+    assertEquals("impl2", t1.result);
+    assertEquals("impl2", t2.result);
+    assertEquals(1, proxyProvider.getFailoversOccurred());
+}

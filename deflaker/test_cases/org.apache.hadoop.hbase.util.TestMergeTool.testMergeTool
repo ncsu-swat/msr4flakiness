@@ -1,0 +1,38 @@
+/**
+ * Test merge tool.
+ * @throws Exception
+ */
+public void testMergeTool() throws Exception {
+    // First verify we can read the rows from the source regions and that they
+    // contain the right data.
+    for (int i = 0; i < regions.length; i++) {
+        for (int j = 0; j < rows[i].length; j++) {
+            Get get = new Get(rows[i][j]);
+            get.addFamily(FAMILY);
+            Result result = regions[i].get(get, null);
+            byte[] bytes = result.sorted()[0].getValue();
+            assertNotNull(bytes);
+            assertTrue(Bytes.equals(bytes, rows[i][j]));
+        }
+        // Close the region and delete the log
+        regions[i].close();
+        regions[i].getLog().closeAndDelete();
+    }
+    // Create a log that we can reuse when we need to open regions
+    Path logPath = new Path("/tmp", HConstants.HREGION_LOGDIR_NAME + "_" + System.currentTimeMillis());
+    LOG.info("Creating log " + logPath.toString());
+    Path oldLogDir = new Path("/tmp", HConstants.HREGION_OLDLOGDIR_NAME);
+    HLog log = new HLog(this.fs, logPath, oldLogDir, this.conf, null);
+    try {
+        // Merge Region 0 and Region 1
+        HRegion merged = mergeAndVerify("merging regions 0 and 1", this.sourceRegions[0].getRegionNameAsString(), this.sourceRegions[1].getRegionNameAsString(), log, 2);
+        // Merge the result of merging regions 0 and 1 with region 2
+        merged = mergeAndVerify("merging regions 0+1 and 2", merged.getRegionInfo().getRegionNameAsString(), this.sourceRegions[2].getRegionNameAsString(), log, 3);
+        // Merge the result of merging regions 0, 1 and 2 with region 3
+        merged = mergeAndVerify("merging regions 0+1+2 and 3", merged.getRegionInfo().getRegionNameAsString(), this.sourceRegions[3].getRegionNameAsString(), log, 4);
+        // Merge the result of merging regions 0, 1, 2 and 3 with region 4
+        merged = mergeAndVerify("merging regions 0+1+2+3 and 4", merged.getRegionInfo().getRegionNameAsString(), this.sourceRegions[4].getRegionNameAsString(), log, rows.length);
+    } finally {
+        log.closeAndDelete();
+    }
+}

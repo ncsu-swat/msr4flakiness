@@ -1,0 +1,41 @@
+public void testDagCommand() throws Exception {
+    XLog.Info.get().clear();
+    XLog.Info.get().setParameter(DagXLogInfoService.JOB, "job");
+    XLog.Info.get().setParameter(DagXLogInfoService.ACTION, "action");
+    Command command = new MyCommand(false);
+    XLog.Info.get().clear();
+    command.call();
+    assertTrue(XLog.Info.get().createPrefix().contains("JOB[job]"));
+    assertTrue(XLog.Info.get().createPrefix().contains("ACTION[action]"));
+    command.resetLogInfoWorkflow();
+    assertTrue(XLog.Info.get().createPrefix().contains("JOB[-]"));
+    assertTrue(XLog.Info.get().createPrefix().contains("ACTION[action]"));
+    command.resetLogInfoAction();
+    assertTrue(XLog.Info.get().createPrefix().contains("ACTION[-]"));
+    waitFor(2000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            return EXECUTED.size() == 6;
+        }
+    });
+    assertEquals(6, EXECUTED.size());
+    assertEquals(Arrays.asList("a", "b", "c", "d", "e", "f"), EXECUTED);
+    EXECUTED.clear();
+    XLog.Info.get().setParameter(DagXLogInfoService.JOB, "job");
+    XLog.Info.get().setParameter(DagXLogInfoService.ACTION, "action");
+    command = new MyCommand(true);
+    try {
+        command.call();
+        fail();
+    } catch (CommandException ex) {
+    // nop
+    }
+    waitFor(200, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            return EXECUTED.size() == 2;
+        }
+    });
+    assertEquals(1, EXECUTED.size());
+    assertEquals(Arrays.asList("ex"), EXECUTED);
+}

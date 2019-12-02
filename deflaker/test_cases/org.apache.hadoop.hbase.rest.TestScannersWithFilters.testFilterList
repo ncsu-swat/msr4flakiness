@@ -1,0 +1,25 @@
+public void testFilterList() throws Exception {
+    // Test getting a single row, single key using Row, Qualifier, and Value
+    // regular expression and substring filters
+    // Use must pass all
+    List<Filter> filters = new ArrayList<Filter>();
+    filters.add(new RowFilter(CompareOp.EQUAL, new RegexStringComparator(".+-2")));
+    filters.add(new QualifierFilter(CompareOp.EQUAL, new RegexStringComparator(".+-2")));
+    filters.add(new ValueFilter(CompareOp.EQUAL, new SubstringComparator("One")));
+    Filter f = new FilterList(Operator.MUST_PASS_ALL, filters);
+    Scan s = new Scan();
+    s.addFamily(FAMILIES[0]);
+    s.setFilter(f);
+    KeyValue[] kvs = { new KeyValue(ROWS_ONE[2], FAMILIES[0], QUALIFIERS_ONE[2], VALUES[0]) };
+    verifyScanFull(s, kvs);
+    // Test getting everything with a MUST_PASS_ONE filter including row, qf, val
+    // regular expression and substring filters
+    filters.clear();
+    filters.add(new RowFilter(CompareOp.EQUAL, new RegexStringComparator(".+Two.+")));
+    filters.add(new QualifierFilter(CompareOp.EQUAL, new RegexStringComparator(".+-2")));
+    filters.add(new ValueFilter(CompareOp.EQUAL, new SubstringComparator("One")));
+    f = new FilterList(Operator.MUST_PASS_ONE, filters);
+    s = new Scan();
+    s.setFilter(f);
+    verifyScanNoEarlyOut(s, this.numRows, this.colsPerRow);
+}

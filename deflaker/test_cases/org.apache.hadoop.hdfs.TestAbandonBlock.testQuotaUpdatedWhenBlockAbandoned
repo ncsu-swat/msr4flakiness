@@ -1,0 +1,24 @@
+@Test
+public /**
+ * Make sure that the quota is decremented correctly when a block is abandoned
+ */
+void testQuotaUpdatedWhenBlockAbandoned() throws IOException {
+    DistributedFileSystem dfs = (DistributedFileSystem) fs;
+    // Setting diskspace quota to 3MB
+    dfs.setQuota(new Path("/"), HdfsConstants.QUOTA_DONT_SET, 3 * 1024 * 1024);
+    // Start writing a file with 2 replicas to ensure each datanode has one.
+    // Block Size is 1MB.
+    String src = FILE_NAME_PREFIX + "test_quota1";
+    FSDataOutputStream fout = fs.create(new Path(src), true, 4096, (short) 2, 1024 * 1024);
+    for (int i = 0; i < 1024; i++) {
+        fout.writeByte(123);
+    }
+    // Shutdown one datanode, causing the block abandonment.
+    cluster.getDataNodes().get(0).shutdown();
+    // Close the file, new block will be allocated with 2MB pending size.
+    try {
+        fout.close();
+    } catch (QuotaExceededException e) {
+        fail("Unexpected quota exception when closing fout");
+    }
+}

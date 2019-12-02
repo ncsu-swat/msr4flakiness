@@ -1,0 +1,46 @@
+/**
+ * Tests recommission for non federated cluster
+ */
+@Test
+public void testRecommission() throws IOException {
+    testRecommission(1, 6);
+}
+private void testRecommission(int numNamenodes, int numDatanodes) throws IOException {
+    LOG.info("Starting test testRecommission");
+    startCluster(numNamenodes, numDatanodes, conf);
+    ArrayList<ArrayList<DatanodeInfo>> namenodeDecomList = new ArrayList<ArrayList<DatanodeInfo>>(numNamenodes);
+    for (int i = 0; i < numNamenodes; i++) {
+        namenodeDecomList.add(i, new ArrayList<DatanodeInfo>(numDatanodes));
+    }
+    Path file1 = new Path("testDecommission.dat");
+    int replicas = numDatanodes - 1;
+    for (int i = 0; i < numNamenodes; i++) {
+        ArrayList<DatanodeInfo> decommissionedNodes = namenodeDecomList.get(i);
+        FileSystem fileSys = cluster.getFileSystem(i);
+        writeFile(fileSys, file1, replicas);
+        // Decommission one node. Verify that node is decommissioned.
+        DatanodeInfo decomNode = decommissionNode(i, decommissionedNodes, AdminStates.DECOMMISSIONED);
+        decommissionedNodes.add(decomNode);
+        // Ensure decommissioned datanode is not automatically shutdown
+        DFSClient client = getDfsClient(cluster.getNameNode(i), conf);
+        assertEquals("All datanodes must be alive", numDatanodes, client.datanodeReport(DatanodeReportType.LIVE).length);
+        assertNull(checkFile(fileSys, file1, replicas, decomNode.getName(), numDatanodes));
+        // stop decommission and check if the new replicas are removed
+        recomissionNode(decomNode);
+        // wait for the block to be deleted
+        int tries = 0;
+        while (tries++ < 20) {
+            try {
+                Thread.sleep(1000);
+                if (checkFile(fileSys, file1, replicas, null, numDatanodes) == null) {
+                    break;
+                }
+            } catch (InterruptedException ie) {
+            }
+        }
+        cleanupFile(fileSys, file1);
+        assertTrue("Checked if node was recommissioned " + tries + " times.", tries < 20);
+        LOG.info("tried: " + tries + " times before recommissioned");
+    }
+    cluster.shutdown();
+}

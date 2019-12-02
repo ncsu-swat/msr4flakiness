@@ -1,0 +1,25 @@
+/**
+ * Test : kill job and action (READY) successfully
+ *
+ * @throws Exception
+ */
+public void testCoordKillSuccess1() throws Exception {
+    String currentDatePlusMonth = XDataTestCase.getCurrentDateafterIncrementingInMonths(1);
+    Date start = DateUtils.parseDateOozieTZ(currentDatePlusMonth);
+    Date end = DateUtils.parseDateOozieTZ(currentDatePlusMonth);
+    CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, start, end, false, true, 0);
+    CoordinatorActionBean action = addRecordToCoordActionTable(job.getId(), 1, CoordinatorAction.Status.READY, "coord-action-get.xml", 0);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    CoordJobGetJPAExecutor coordJobGetCmd = new CoordJobGetJPAExecutor(job.getId());
+    CoordActionGetJPAExecutor coordActionGetCmd = new CoordActionGetJPAExecutor(action.getId());
+    job = jpaService.execute(coordJobGetCmd);
+    action = jpaService.execute(coordActionGetCmd);
+    assertEquals(job.getStatus(), CoordinatorJob.Status.RUNNING);
+    assertEquals(action.getStatus(), CoordinatorAction.Status.READY);
+    new CoordKillXCommand(job.getId()).call();
+    job = jpaService.execute(coordJobGetCmd);
+    action = jpaService.execute(coordActionGetCmd);
+    assertEquals(job.getStatus(), CoordinatorJob.Status.KILLED);
+    assertEquals(action.getStatus(), CoordinatorAction.Status.KILLED);
+}

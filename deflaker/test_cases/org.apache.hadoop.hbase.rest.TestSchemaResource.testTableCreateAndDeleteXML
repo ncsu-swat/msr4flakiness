@@ -1,0 +1,22 @@
+public void testTableCreateAndDeleteXML() throws IOException, JAXBException {
+    String schemaPath = "/" + TABLE1 + "/schema";
+    TableSchemaModel model;
+    Response response;
+    assertFalse(admin.tableExists(TABLE1));
+    // create the table
+    model = TestTableSchemaModel.buildTestModel(TABLE1);
+    TestTableSchemaModel.checkModel(model, TABLE1);
+    response = client.put(schemaPath, MIMETYPE_XML, toXML(model));
+    assertEquals(response.getCode(), 201);
+    // make sure HBase concurs, and wait for the table to come online
+    admin.enableTable(TABLE1);
+    // retrieve the schema and validate it
+    response = client.get(schemaPath, MIMETYPE_XML);
+    assertEquals(response.getCode(), 200);
+    model = fromXML(response.getBody());
+    TestTableSchemaModel.checkModel(model, TABLE1);
+    // delete the table
+    client.delete(schemaPath);
+    // make sure HBase concurs
+    assertFalse(admin.tableExists(TABLE1));
+}

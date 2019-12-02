@@ -1,0 +1,32 @@
+@Test
+public void testMkdirsFailsForSubdirectoryOfExistingFile() throws Exception {
+    Path testDir = getTestRootPath(fSys, "test/hadoop");
+    Assert.assertFalse(exists(fSys, testDir));
+    fSys.mkdirs(testDir);
+    Assert.assertTrue(exists(fSys, testDir));
+    createFile(getTestRootPath(fSys, "test/hadoop/file"));
+    Path testSubDir = getTestRootPath(fSys, "test/hadoop/file/subdir");
+    try {
+        fSys.mkdirs(testSubDir);
+        Assert.fail("Should throw IOException.");
+    } catch (IOException e) {
+    // expected
+    }
+    try {
+        Assert.assertFalse(exists(fSys, testSubDir));
+    } catch (AccessControlException e) {
+    // also okay for HDFS.
+    }
+    Path testDeepSubDir = getTestRootPath(fSys, "test/hadoop/file/deep/sub/dir");
+    try {
+        fSys.mkdirs(testDeepSubDir);
+        Assert.fail("Should throw IOException.");
+    } catch (IOException e) {
+    // expected
+    }
+    try {
+        Assert.assertFalse(exists(fSys, testDeepSubDir));
+    } catch (AccessControlException e) {
+    // also okay for HDFS.
+    }
+}

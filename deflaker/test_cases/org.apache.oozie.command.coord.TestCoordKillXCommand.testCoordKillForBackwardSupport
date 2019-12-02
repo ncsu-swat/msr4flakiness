@@ -1,0 +1,30 @@
+/**
+ * Test : kill SUCCEEDED job successfully when CONF_BACKWARD_SUPPORT_FOR_COORD_STATUS is true and coordinator schema
+ * is 0.1
+ *
+ * @throws Exception
+ */
+public void testCoordKillForBackwardSupport() throws Exception {
+    Services.get().destroy();
+    setSystemProperty(StatusTransitService.CONF_BACKWARD_SUPPORT_FOR_COORD_STATUS, "true");
+    services = new Services();
+    setClassesToBeExcluded(services.getConf(), excludedServices);
+    services.init();
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.SUCCEEDED, false, true);
+    CoordinatorActionBean action = addRecordToCoordActionTable(job.getId(), 1, CoordinatorAction.Status.RUNNING, "coord-action-get.xml", 0);
+    job.setAppNamespace(SchemaService.COORDINATOR_NAMESPACE_URI_1);
+    jpaService.execute(new CoordJobUpdateJPAExecutor(job));
+    CoordJobGetJPAExecutor coordJobGetCmd = new CoordJobGetJPAExecutor(job.getId());
+    CoordActionGetJPAExecutor coordActionGetCmd = new CoordActionGetJPAExecutor(action.getId());
+    job = jpaService.execute(coordJobGetCmd);
+    action = jpaService.execute(coordActionGetCmd);
+    assertEquals(CoordinatorJob.Status.SUCCEEDED, job.getStatus());
+    assertEquals(CoordinatorAction.Status.RUNNING, action.getStatus());
+    new CoordKillXCommand(job.getId()).call();
+    job = jpaService.execute(coordJobGetCmd);
+    action = jpaService.execute(coordActionGetCmd);
+    assertEquals(CoordinatorJob.Status.KILLED, job.getStatus());
+    assertEquals(CoordinatorAction.Status.KILLED, action.getStatus());
+}

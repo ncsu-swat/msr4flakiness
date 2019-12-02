@@ -1,0 +1,28 @@
+public void testLatest() throws Exception {
+    init("coord-action-start");
+    String expr = "${coord:latest(0)}";
+    Configuration conf = new Configuration();
+    // TODO:Set hadoop properties
+    eval.setVariable(CoordELFunctions.CONFIGURATION, conf);
+    String testDir = getTestCaseDir();
+    // ds.setUriTemplate("file:///tmp/coord/${YEAR}/${MONTH}/${DAY}");
+    ds.setUriTemplate("file://" + testDir + "/${YEAR}/${MONTH}/${DAY}");
+    createDir(testDir + "/2009/09/10");
+    // TODO: Create the directories
+    assertEquals("2009-09-10T23:59Z", CoordELFunctions.evalAndWrap(eval, expr));
+    createDir(testDir + "/2009/09/09");
+    expr = "${coord:latest(-1)}";
+    assertEquals("2009-09-09T23:59Z", CoordELFunctions.evalAndWrap(eval, expr));
+    createDir(testDir + "/2009/09/08");
+    expr = "${coord:latest(-2)}";
+    assertEquals("2009-09-08T23:59Z", CoordELFunctions.evalAndWrap(eval, expr));
+    expr = "${coord:latest(-100)}";
+    assertEquals(expr, CoordELFunctions.evalAndWrap(eval, expr));
+    expr = "${coord:latest(1)}";
+    try {
+        assertEquals(expr, CoordELFunctions.evalAndWrap(eval, expr));
+        fail("Should throw exception, because latest for +ve instance is not valid");
+    } catch (Exception ex) {
+    }
+// Add test cases with EOM and EOD option
+}

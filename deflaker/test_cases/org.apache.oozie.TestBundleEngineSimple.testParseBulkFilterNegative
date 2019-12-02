@@ -1,0 +1,48 @@
+/**
+ * Test negative cases of method
+ * {@link BundleEngine#parseBulkFilter(String)}
+ */
+public void testParseBulkFilterNegative() {
+    // incorrect key=value pair syntax:
+    try {
+        BundleEngine.parseBulkFilter("xx=yy=zz");
+        fail("BundleEngineException expected.");
+    } catch (BundleEngineException bee) {
+        assertEquals(bee.toString(), ErrorCode.E0420, bee.getErrorCode());
+    }
+    // no eq sign in token:
+    try {
+        BundleEngine.parseBulkFilter("winniethepooh");
+        fail("BundleEngineException expected.");
+    } catch (BundleEngineException bee) {
+        assertEquals(bee.toString(), ErrorCode.E0420, bee.getErrorCode());
+    }
+    // one of the values is a whitespace:
+    try {
+        BundleEngine.parseBulkFilter(BulkResponseImpl.BULK_FILTER_BUNDLE_NAME + "=aaa, ,bbb");
+        fail("BundleEngineException expected.");
+    } catch (BundleEngineException bee) {
+        assertEquals(bee.toString(), ErrorCode.E0420, bee.getErrorCode());
+    }
+    // unparseable time value:
+    try {
+        BundleEngine.parseBulkFilter(BulkResponseImpl.BULK_FILTER_START_CREATED_EPOCH + "=blah-blah");
+        fail("BundleEngineException expected.");
+    } catch (BundleEngineException bee) {
+        assertEquals(bee.toString(), ErrorCode.E0420, bee.getErrorCode());
+    }
+    // incorrect status:
+    try {
+        BundleEngine.parseBulkFilter(BulkResponseImpl.BULK_FILTER_STATUS + "=foo");
+        fail("BundleEngineException expected.");
+    } catch (BundleEngineException bee) {
+        assertEquals(bee.toString(), ErrorCode.E0420, bee.getErrorCode());
+    }
+    // filter does not contain "BulkResponseImpl.BULK_FILTER_BUNDLE_NAME" field:
+    try {
+        BundleEngine.parseBulkFilter(BulkResponseImpl.BULK_FILTER_LEVEL + "=foo");
+        fail("BundleEngineException expected.");
+    } catch (BundleEngineException bee) {
+        assertEquals(bee.toString(), ErrorCode.E0305, bee.getErrorCode());
+    }
+}

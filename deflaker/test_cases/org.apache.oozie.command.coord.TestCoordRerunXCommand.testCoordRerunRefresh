@@ -1,0 +1,58 @@
+/**
+ * Test : rerun <jobId> -action 1 -nocleanup -refresh
+ *
+ * @throws Exception
+ */
+public void testCoordRerunRefresh() throws Exception {
+    final String jobId = "0000000-" + new Date().getTime() + "-testCoordRerun-C";
+    final int actionNum = 1;
+    final String actionId = jobId + "@" + actionNum;
+    CoordinatorStore store = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
+    store.beginTrx();
+    try {
+        addRecordToJobTable(jobId, store, CoordinatorJob.Status.SUCCEEDED);
+        addRecordToActionTable(jobId, actionNum, actionId, store, CoordinatorAction.Status.SUCCEEDED, "coord-rerun-action1.xml");
+        store.commitTrx();
+    } catch (Exception e) {
+        e.printStackTrace();
+        fail("Could not update db.");
+    } finally {
+        store.closeTrx();
+    }
+    Path appPath = new Path(getFsTestCaseDir(), "coord");
+    String inputDir = appPath.toString() + "/coord-input/2010/07/09/01/00";
+    FileSystem fs = getFileSystem();
+    fs.mkdirs(new Path(inputDir));
+    fs.create(new Path(inputDir, "_SUCCESS"), true);
+    final OozieClient coordClient = LocalOozie.getCoordClient();
+    coordClient.reRunCoord(jobId, RestConstants.JOB_COORD_RERUN_ACTION, Integer.toString(actionNum), true, true);
+    CoordinatorStore store2 = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
+    store2.beginTrx();
+    CoordinatorActionBean action2 = store2.getCoordinatorAction(actionId, false);
+    assertNotSame(action2.getStatus(), CoordinatorAction.Status.SUCCEEDED);
+    store2.commitTrx();
+    store2.closeTrx();
+    waitFor(120 * 1000, new Predicate() {
+
+        @Override
+        public boolean evaluate() throws Exception {
+            CoordinatorAction bean = coordClient.getCoordActionInfo(actionId);
+            return (bean.getStatus() == CoordinatorAction.Status.READY || bean.getStatus() == CoordinatorAction.Status.SUBMITTED);
+        }
+    });
+    CoordinatorStore store3 = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
+    store3.beginTrx();
+    CoordinatorActionBean action3 = store3.getCoordinatorAction(actionId, false);
+    String actionXml = action3.getActionXml();
+    System.out.println("After refresh, action xml= " + actionXml);
+    Element eAction = XmlUtils.parseXml(actionXml);
+    String[] urls = getActionXmlUrls(eAction, getTestUser(), getTestGroup());
+    store3.commitTrx();
+    store3.closeTrx();
+/*        if (urls != null) {
+                    assertEquals(inputDir, urls[0]);
+                }
+                else {
+                    fail("After refresh, latest() should get the inputDir:" + inputDir);
+                }*/
+}

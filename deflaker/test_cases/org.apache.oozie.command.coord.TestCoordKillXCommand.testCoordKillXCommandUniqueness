@@ -1,0 +1,23 @@
+public void testCoordKillXCommandUniqueness() throws Exception {
+    String currentDatePlusMonth = XDataTestCase.getCurrentDateafterIncrementingInMonths(1);
+    Date start = DateUtils.parseDateOozieTZ(currentDatePlusMonth);
+    Date end = DateUtils.parseDateOozieTZ(currentDatePlusMonth);
+    CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, start, end, false, false, 0);
+    final MyCoordKillXCommand callable1 = new MyCoordKillXCommand(job.getId(), 100);
+    final MyCoordKillXCommand callable2 = new MyCoordKillXCommand(job.getId(), 100);
+    final MyCoordKillXCommand callable3 = new MyCoordKillXCommand(job.getId(), 100);
+    List<MyCoordKillXCommand> callables = Arrays.asList(callable1, callable2, callable3);
+    CallableQueueService queueservice = services.get(CallableQueueService.class);
+    for (MyCoordKillXCommand c : callables) {
+        queueservice.queue(c);
+    }
+    waitFor(1000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            return callable1.executed != 0 && callable2.executed == 0 && callable3.executed == 0;
+        }
+    });
+    assertTrue(callable1.executed != 0);
+    assertTrue(callable2.executed == 0);
+    assertTrue(callable3.executed == 0);
+}

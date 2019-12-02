@@ -1,0 +1,36 @@
+/**
+ * Test : rerun <jobId> -action 1 -nocleanup
+ *
+ * @throws Exception
+ */
+public void testCoordRerunActions1() throws Exception {
+    final String jobId = "0000000-" + new Date().getTime() + "-testCoordRerun-C";
+    final int actionNum = 1;
+    final String actionId = jobId + "@" + actionNum;
+    CoordinatorStore store = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
+    store.beginTrx();
+    try {
+        addRecordToJobTable(jobId, store, CoordinatorJob.Status.SUCCEEDED);
+        addRecordToActionTable(jobId, actionNum, actionId, store, CoordinatorAction.Status.SUCCEEDED, "coord-rerun-action1.xml");
+        store.commitTrx();
+    } catch (Exception e) {
+        e.printStackTrace();
+        fail("Could not update db.");
+    } finally {
+        store.closeTrx();
+    }
+    CoordinatorStore store1 = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
+    store1.beginTrx();
+    CoordinatorActionBean action1 = store1.getCoordinatorAction(actionId, false);
+    assertEquals(action1.getStatus(), CoordinatorAction.Status.SUCCEEDED);
+    store1.commitTrx();
+    store1.closeTrx();
+    final OozieClient coordClient = LocalOozie.getCoordClient();
+    coordClient.reRunCoord(jobId, RestConstants.JOB_COORD_RERUN_ACTION, Integer.toString(actionNum), false, true);
+    CoordinatorStore store2 = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
+    store2.beginTrx();
+    CoordinatorActionBean action2 = store2.getCoordinatorAction(actionId, false);
+    assertNotSame(action2.getStatus(), CoordinatorAction.Status.SUCCEEDED);
+    store2.commitTrx();
+    store2.closeTrx();
+}

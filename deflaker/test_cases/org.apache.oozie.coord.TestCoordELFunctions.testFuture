@@ -1,0 +1,22 @@
+public void testFuture() throws Exception {
+    init("coord-job-submit-instances");
+    String expr = "${coord:future(1, 20)}";
+    init("coord-action-start");
+    Configuration conf = new Configuration();
+    // TODO:Set hadoop properties
+    eval.setVariable(CoordELFunctions.CONFIGURATION, conf);
+    String testDir = getTestCaseDir();
+    ds.setUriTemplate("file://" + testDir + "/${YEAR}/${MONTH}/${DAY}");
+    createDir(testDir + "/2009/09/10");
+    createDir(testDir + "/2009/09/11");
+    assertEquals("2009-09-11T23:59Z", CoordELFunctions.evalAndWrap(eval, expr));
+    try {
+        expr = "${coord:future(-1, 3)}";
+        CoordELFunctions.evalAndWrap(eval, expr);
+        fail("Should fail for negative instance value");
+    } catch (Exception ex) {
+    }
+    expr = "${coord:future(4, 20)}";
+    String res = "${coord:future(4, 20)}";
+    assertEquals(res, CoordELFunctions.evalAndWrap(eval, expr));
+}

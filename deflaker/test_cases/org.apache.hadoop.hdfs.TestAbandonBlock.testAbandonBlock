@@ -1,0 +1,20 @@
+@Test
+public /**
+ * Abandon a block while creating a file
+ */
+void testAbandonBlock() throws IOException {
+    String src = FILE_NAME_PREFIX + "foo";
+    // Start writing a file but do not close it
+    FSDataOutputStream fout = fs.create(new Path(src), true, 4096, (short) 1, 512L);
+    for (int i = 0; i < 1024; i++) {
+        fout.write(123);
+    }
+    fout.hflush();
+    // Now abandon the last block
+    DFSClient dfsclient = DFSClientAdapter.getDFSClient((DistributedFileSystem) fs);
+    LocatedBlocks blocks = dfsclient.getNamenode().getBlockLocations(src, 0, 1);
+    LocatedBlock b = blocks.getLastLocatedBlock();
+    dfsclient.getNamenode().abandonBlock(b.getBlock(), src, dfsclient.clientName);
+    // And close the file
+    fout.close();
+}

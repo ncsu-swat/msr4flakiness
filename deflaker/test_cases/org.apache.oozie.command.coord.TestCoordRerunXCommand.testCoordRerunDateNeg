@@ -1,0 +1,34 @@
+/**
+ * Test : rerun <jobId> -date 2009-12-15T01:00Z,2009-12-16T01:00Z,2009-12-17T01:00Z -nocleanup 2009-12-17T01:00Z is
+ * not in the action list, Oozie will not tolerate this when comma is used.
+ *
+ * @throws Exception
+ */
+public void testCoordRerunDateNeg() throws Exception {
+    final String jobId = "0000000-" + new Date().getTime() + "-testCoordRerun-C";
+    final int actionNum1 = 1;
+    final int actionNum2 = 2;
+    final String actionId1 = jobId + "@" + actionNum1;
+    final String actionId2 = jobId + "@" + actionNum2;
+    CoordinatorStore store = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
+    store.beginTrx();
+    try {
+        addRecordToJobTable(jobId, store, CoordinatorJob.Status.SUCCEEDED);
+        addRecordToActionTable(jobId, actionNum1, actionId1, store, CoordinatorAction.Status.SUCCEEDED, "coord-rerun-action1.xml");
+        addRecordToActionTable(jobId, actionNum2, actionId2, store, CoordinatorAction.Status.SUCCEEDED, "coord-rerun-action2.xml");
+        store.commitTrx();
+    } catch (Exception e) {
+        e.printStackTrace();
+        fail("Could not update db.");
+    } finally {
+        store.closeTrx();
+    }
+    String rerunScope = "2009-12-15T01:00Z,2009-12-16T01:00Z,2009-12-17T01:00Z";
+    try {
+        final OozieClient coordClient = LocalOozie.getCoordClient();
+        coordClient.reRunCoord(jobId, RestConstants.JOB_COORD_RERUN_DATE, rerunScope, false, true);
+        fail("Exception expected because one action is missing from db.");
+    } catch (OozieClientException ex) {
+        assertTrue(ex.getErrorCode() == ErrorCode.E0605.toString());
+    }
+}

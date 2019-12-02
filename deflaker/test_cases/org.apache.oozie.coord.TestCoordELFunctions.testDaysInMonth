@@ -1,0 +1,75 @@
+public void testDaysInMonth() throws Exception {
+    init("coord-action-create");
+    String expr = "${coord:daysInMonth(1)}";
+    assertEquals("30", CoordELFunctions.evalAndWrap(eval, expr));
+    expr = "${coord:daysInMonth(coord:daysInMonth(1))}";
+    assertEquals("31", CoordELFunctions.evalAndWrap(eval, expr));
+    SyncCoordAction appInst = new SyncCoordAction();
+    SyncCoordDataset ds = new SyncCoordDataset();
+    ;
+    ds.setFrequency(1);
+    ds.setTimeUnit(TimeUnit.MONTH);
+    ds.setInitInstance(DateUtils.parseDateOozieTZ("2009-01-02T00:00Z"));
+    ds.setTimeZone(DateUtils.getTimeZone("UTC"));
+    ds.setName("test1");
+    ds.setType("SYNC");
+    appInst.setActualTime(DateUtils.parseDateOozieTZ("2009-09-10T23:59Z"));
+    appInst.setTimeZone(DateUtils.getTimeZone("UTC"));
+    ds.setInitInstance(DateUtils.parseDateOozieTZ("2009-01-01T00:00Z"));
+    appInst.setNominalTime(DateUtils.parseDateOozieTZ("2009-02-01T11:00Z"));
+    appInst.setActualTime(DateUtils.parseDateOozieTZ("2010-10-01T00:00Z"));
+    CoordELFunctions.configureEvaluator(eval, ds, appInst);
+    expr = "${coord:daysInMonth(0)}";
+    assertEquals("28", CoordELFunctions.evalAndWrap(eval, expr));
+    expr = "${coord:daysInMonth(-1)}";
+    assertEquals("31", CoordELFunctions.evalAndWrap(eval, expr));
+    expr = "${coord:daysInMonth(2)}";
+    assertEquals("30", CoordELFunctions.evalAndWrap(eval, expr));
+    expr = "${coord:daysInMonth(-3)}";
+    assertEquals("30", CoordELFunctions.evalAndWrap(eval, expr));
+    expr = "${coord:daysInMonth(3)}";
+    assertEquals("31", CoordELFunctions.evalAndWrap(eval, expr));
+    ds.setTimeZone(DateUtils.getTimeZone("America/Los_Angeles"));
+    // Feb
+    appInst.setNominalTime(DateUtils.parseDateOozieTZ("2009-02-01T11:00Z"));
+    appInst.setActualTime(DateUtils.parseDateOozieTZ("2010-10-01T00:00Z"));
+    CoordELFunctions.configureEvaluator(eval, ds, appInst);
+    expr = "${coord:daysInMonth(0)}";
+    // Jan
+    assertEquals("28", CoordELFunctions.evalAndWrap(eval, expr));
+    // 31
+    // End of Month
+    ds.setFrequency(1);
+    ds.setTimeUnit(TimeUnit.MONTH);
+    ds.setEndOfDuration(TimeUnit.END_OF_MONTH);
+    ds.setInitInstance(DateUtils.parseDateOozieTZ("2009-01-02T00:00Z"));
+    ds.setTimeZone(DateUtils.getTimeZone("UTC"));
+    ds.setName("test1");
+    ds.setType("SYNC");
+    appInst.setActualTime(DateUtils.parseDateOozieTZ("2009-09-10T23:59Z"));
+    appInst.setTimeZone(DateUtils.getTimeZone("UTC"));
+    // Case 1
+    ds.setInitInstance(DateUtils.parseDateOozieTZ("2009-01-01T00:00Z"));
+    appInst.setNominalTime(DateUtils.parseDateOozieTZ("2009-02-01T11:00Z"));
+    appInst.setActualTime(DateUtils.parseDateOozieTZ("2010-10-01T00:00Z"));
+    CoordELFunctions.configureEvaluator(eval, ds, appInst);
+    expr = "${coord:daysInMonth(0)}";
+    assertEquals("28", CoordELFunctions.evalAndWrap(eval, expr));
+    expr = "${coord:daysInMonth(-1)}";
+    assertEquals("31", CoordELFunctions.evalAndWrap(eval, expr));
+    expr = "${coord:daysInMonth(2)}";
+    assertEquals("30", CoordELFunctions.evalAndWrap(eval, expr));
+    expr = "${coord:daysInMonth(-3)}";
+    assertEquals("30", CoordELFunctions.evalAndWrap(eval, expr));
+    expr = "${coord:daysInMonth(3)}";
+    assertEquals("31", CoordELFunctions.evalAndWrap(eval, expr));
+    ds.setTimeZone(DateUtils.getTimeZone("America/Los_Angeles"));
+    // Feb
+    appInst.setNominalTime(DateUtils.parseDateOozieTZ("2009-02-01T11:00Z"));
+    appInst.setActualTime(DateUtils.parseDateOozieTZ("2010-10-01T00:00Z"));
+    CoordELFunctions.configureEvaluator(eval, ds, appInst);
+    expr = "${coord:daysInMonth(0)}";
+    // Jan
+    assertEquals("28", CoordELFunctions.evalAndWrap(eval, expr));
+// 31
+}

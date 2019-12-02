@@ -1,0 +1,43 @@
+/**
+ * In 2428, the meta region has just been set offline and then a close comes
+ * in.
+ * @see <a href="https://issues.apache.org/jira/browse/HBASE-2428">HBASE-2428</a>
+ */
+@Test(timeout = 300000)
+public void testRegionCloseWhenNoMetaHBase2428() throws Exception {
+    LOG.info("Running testRegionCloseWhenNoMetaHBase2428");
+    MiniHBaseCluster cluster = TEST_UTIL.getHBaseCluster();
+    final HMaster master = cluster.getMaster();
+    int metaIndex = cluster.getServerWithMeta();
+    // Figure the index of the server that is not server the .META.
+    int otherServerIndex = -1;
+    for (int i = 0; i < cluster.getRegionServerThreads().size(); i++) {
+        if (i == metaIndex)
+            continue;
+        otherServerIndex = i;
+        break;
+    }
+    final HRegionServer otherServer = cluster.getRegionServer(otherServerIndex);
+    final HRegionServer metaHRS = cluster.getRegionServer(metaIndex);
+    // Get a region out on the otherServer.
+    final HRegionInfo hri = otherServer.getOnlineRegions().iterator().next().getRegionInfo();
+    // Add our RegionServerOperationsListener
+    HBase2428Listener listener = new HBase2428Listener(cluster, metaHRS.getHServerInfo().getServerAddress(), hri, otherServerIndex);
+    master.getRegionServerOperationQueue().registerRegionServerOperationListener(listener);
+    try {
+        // Now close the server carrying meta.
+        cluster.abortRegionServer(metaIndex);
+        // First wait on receipt of meta server shutdown message.
+        while (!listener.metaShutdownReceived) Threads.sleep(100);
+        while (!listener.isDone()) Threads.sleep(10);
+        // We should not have retried the close more times than it took for the
+        // server shutdown message to exit the delay queue and get processed
+        // (Multiple by two to add in some slop in case of GC or something).
+        assertTrue(listener.getCloseCount() > 1);
+        assertTrue(listener.getCloseCount() < ((HBase2428Listener.SERVER_DURATION / HBase2428Listener.CLOSE_DURATION) * 2));
+        // Assert the closed region came back online
+        assertRegionIsBackOnline(hri);
+    } finally {
+        master.getRegionServerOperationQueue().unregisterRegionServerOperationListener(listener);
+    }
+}

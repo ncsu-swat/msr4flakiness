@@ -1,0 +1,23 @@
+public void testTableCreateAndDeletePB() throws IOException, JAXBException {
+    String schemaPath = "/" + TABLE2 + "/schema";
+    TableSchemaModel model;
+    Response response;
+    assertFalse(admin.tableExists(TABLE2));
+    // create the table
+    model = TestTableSchemaModel.buildTestModel(TABLE2);
+    TestTableSchemaModel.checkModel(model, TABLE2);
+    response = client.put(schemaPath, Constants.MIMETYPE_PROTOBUF, model.createProtobufOutput());
+    assertEquals(response.getCode(), 201);
+    // make sure HBase concurs, and wait for the table to come online
+    admin.enableTable(TABLE2);
+    // retrieve the schema and validate it
+    response = client.get(schemaPath, Constants.MIMETYPE_PROTOBUF);
+    assertEquals(response.getCode(), 200);
+    model = new TableSchemaModel();
+    model.getObjectFromMessage(response.getBody());
+    TestTableSchemaModel.checkModel(model, TABLE2);
+    // delete the table
+    client.delete(schemaPath);
+    // make sure HBase concurs
+    assertFalse(admin.tableExists(TABLE2));
+}

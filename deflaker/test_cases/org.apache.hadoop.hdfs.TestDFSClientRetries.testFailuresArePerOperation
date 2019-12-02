@@ -1,0 +1,56 @@
+/**
+ * This tests that DFSInputStream failures are counted for a given read
+ * operation, and not over the lifetime of the stream. It is a regression
+ * test for HDFS-127.
+ */
+public void testFailuresArePerOperation() throws Exception {
+    long fileSize = 4096;
+    Path file = new Path("/testFile");
+    // Set short retry timeout so this test runs faster
+    conf.setInt(DFSConfigKeys.DFS_CLIENT_RETRY_WINDOW_BASE, 10);
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).build();
+    try {
+        cluster.waitActive();
+        FileSystem fs = cluster.getFileSystem();
+        NamenodeProtocols preSpyNN = cluster.getNameNodeRpc();
+        NamenodeProtocols spyNN = spy(preSpyNN);
+        DFSClient client = new DFSClient(null, spyNN, conf, null);
+        int maxBlockAcquires = client.getMaxBlockAcquireFailures();
+        assertTrue(maxBlockAcquires > 0);
+        DFSTestUtil.createFile(fs, file, fileSize, (short) 1, 12345L);
+        // If the client will retry maxBlockAcquires times, then if we fail
+        // any more than that number of times, the operation should entirely
+        // fail.
+        doAnswer(new FailNTimesAnswer(preSpyNN, maxBlockAcquires + 1)).when(spyNN).getBlockLocations(anyString(), anyLong(), anyLong());
+        try {
+            IOUtils.copyBytes(client.open(file.toString()), new IOUtils.NullOutputStream(), conf, true);
+            fail("Didn't get exception");
+        } catch (IOException ioe) {
+            DFSClient.LOG.info("Got expected exception", ioe);
+        }
+        // If we fail exactly that many times, then it should succeed.
+        doAnswer(new FailNTimesAnswer(preSpyNN, maxBlockAcquires)).when(spyNN).getBlockLocations(anyString(), anyLong(), anyLong());
+        IOUtils.copyBytes(client.open(file.toString()), new IOUtils.NullOutputStream(), conf, true);
+        DFSClient.LOG.info("Starting test case for failure reset");
+        // Now the tricky case - if we fail a few times on one read, then succeed,
+        // then fail some more on another read, it shouldn't fail.
+        doAnswer(new FailNTimesAnswer(preSpyNN, maxBlockAcquires)).when(spyNN).getBlockLocations(anyString(), anyLong(), anyLong());
+        DFSInputStream is = client.open(file.toString());
+        byte[] buf = new byte[10];
+        IOUtils.readFully(is, buf, 0, buf.length);
+        DFSClient.LOG.info("First read successful after some failures.");
+        // Further reads at this point will succeed since it has the good block locations.
+        // So, force the block locations on this stream to be refreshed from bad info.
+        // When reading again, it should start from a fresh failure count, since
+        // we're starting a new operation on the user level.
+        doAnswer(new FailNTimesAnswer(preSpyNN, maxBlockAcquires)).when(spyNN).getBlockLocations(anyString(), anyLong(), anyLong());
+        is.openInfo();
+        // Seek to beginning forces a reopen of the BlockReader - otherwise it'll
+        // just keep reading on the existing stream and the fact that we've poisoned
+        // the block info won't do anything.
+        is.seek(0);
+        IOUtils.readFully(is, buf, 0, buf.length);
+    } finally {
+        cluster.shutdown();
+    }
+}

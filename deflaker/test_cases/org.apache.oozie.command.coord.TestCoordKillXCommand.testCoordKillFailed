@@ -1,0 +1,24 @@
+/**
+ * Test : kill job failed. Job does not exist.
+ *
+ * @throws Exception
+ */
+public void testCoordKillFailed() throws Exception {
+    final String testJobId = "0000001-" + new Date().getTime() + "-testCoordKill-C";
+    CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.SUCCEEDED, false, true);
+    CoordinatorActionBean action = addRecordToCoordActionTable(job.getId(), 1, CoordinatorAction.Status.READY, "coord-action-get.xml", 0);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    CoordJobGetJPAExecutor coordJobGetCmd = new CoordJobGetJPAExecutor(job.getId());
+    CoordActionGetJPAExecutor coordActionGetCmd = new CoordActionGetJPAExecutor(action.getId());
+    job = jpaService.execute(coordJobGetCmd);
+    action = jpaService.execute(coordActionGetCmd);
+    assertEquals(job.getStatus(), CoordinatorJob.Status.SUCCEEDED);
+    assertEquals(action.getStatus(), CoordinatorAction.Status.READY);
+    try {
+        new CoordKillXCommand(testJobId).call();
+        fail("Job doesn't exist. Should fail.");
+    } catch (CommandException ce) {
+    // Job doesn't exist. Exception is expected.
+    }
+}

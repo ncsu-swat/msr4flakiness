@@ -1,0 +1,30 @@
+public void testScanner() throws IOException {
+    List<Put> puts = new ArrayList<Put>();
+    Put put = new Put(ROW_1);
+    put.add(COLUMN_1, QUALIFIER_1, VALUE_1);
+    puts.add(put);
+    put = new Put(ROW_2);
+    put.add(COLUMN_1, QUALIFIER_1, VALUE_1);
+    puts.add(put);
+    put = new Put(ROW_3);
+    put.add(COLUMN_1, QUALIFIER_1, VALUE_1);
+    puts.add(put);
+    put = new Put(ROW_4);
+    put.add(COLUMN_1, QUALIFIER_1, VALUE_1);
+    puts.add(put);
+    remoteTable.put(puts);
+    ResultScanner scanner = remoteTable.getScanner(new Scan());
+    Result[] results = scanner.next(1);
+    assertNotNull(results);
+    assertEquals(1, results.length);
+    assertTrue(Bytes.equals(ROW_1, results[0].getRow()));
+    results = scanner.next(3);
+    assertNotNull(results);
+    assertEquals(3, results.length);
+    assertTrue(Bytes.equals(ROW_2, results[0].getRow()));
+    assertTrue(Bytes.equals(ROW_3, results[1].getRow()));
+    assertTrue(Bytes.equals(ROW_4, results[2].getRow()));
+    results = scanner.next(1);
+    assertNull(results);
+    scanner.close();
+}

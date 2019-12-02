@@ -1,0 +1,29 @@
+@Test
+public void testMaxElementsInMemory() throws Exception {
+    // maxElementsInMemory="500" overflowToDisk="false"
+    setupServices("testmaxelementsinmemory");
+    PartitionDependencyManagerService pdms = Services.get().get(PartitionDependencyManagerService.class);
+    int numItems = 1000;
+    for (int i = 0; i < numItems; i++) {
+        HCatURI dep = new HCatURI("hcat://hcat.server.com:5080/mydb/mytbl/id=" + i);
+        pdms.addMissingDependency(dep, "" + i);
+    }
+    // First 500 should have been evicted. But it is LRU and the last 200 removed is between 300 and 700.
+    for (int i = 0; i < 300; i++) {
+        assertNull(pdms.getWaitingActions(new HCatURI("hcat://hcat.server.com:5080/mydb/mytbl/id=" + "" + i)));
+    }
+    int evicted = 0;
+    for (int i = 300; i < 700; i++) {
+        if (pdms.getWaitingActions(new HCatURI("hcat://hcat.server.com:5080/mydb/mytbl/id=" + "" + i)) == null) {
+            evicted++;
+        }
+    }
+    assertEquals(200, evicted);
+    for (int i = 700; i < 1000; i++) {
+        String actionID = "" + i;
+        HCatURI dep = new HCatURI("hcat://hcat.server.com:5080/mydb/mytbl/id=" + actionID);
+        Collection<String> waitingActions = pdms.getWaitingActions(dep);
+        assertNotNull(dep.toURIString() + " is missing in cache", waitingActions);
+        assertTrue(dep.toURIString() + " is missing in cache", waitingActions.contains(actionID));
+    }
+}

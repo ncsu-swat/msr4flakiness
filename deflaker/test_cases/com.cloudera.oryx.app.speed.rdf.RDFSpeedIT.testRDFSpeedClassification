@@ -1,0 +1,51 @@
+@Test
+public void testRDFSpeedClassification() throws Exception {
+    Map<String, Object> overlayConfig = new HashMap<>();
+    overlayConfig.put("oryx.speed.model-manager-class", RDFSpeedModelManager.class.getName());
+    overlayConfig.put("oryx.speed.streaming.generation-interval-sec", 5);
+    overlayConfig.put("oryx.speed.streaming.block-interval-sec", 1);
+    overlayConfig.put("oryx.input-schema.feature-names", "[\"color\",\"fruit\"]");
+    overlayConfig.put("oryx.input-schema.numeric-features", "[]");
+    overlayConfig.put("oryx.input-schema.target-feature", "fruit");
+    Config config = ConfigUtils.overlayOn(overlayConfig, getConfig());
+    startMessaging();
+    List<Pair<String, String>> updates = startServerProduceConsumeTopics(config, new MockRDFClassificationInputGenerator(), new MockRDFClassificationModelGenerator(), NUM_INPUT, 1);
+    if (log.isDebugEnabled()) {
+        for (Pair<String, String> update : updates) {
+            log.debug("{}", update);
+        }
+    }
+    int numUpdates = updates.size();
+    // Model, and then pairs of positive / negative
+    assertTrue(numUpdates >= 3 && numUpdates % 2 != 0);
+    // Not testing the model much here:
+    assertEquals("MODEL", updates.get(0).getFirst());
+    PMML pmml = PMMLUtils.fromString(updates.get(0).getSecond());
+    CategoricalValueEncodings encodings = AppPMMLUtils.buildCategoricalValueEncodings(pmml.getDataDictionary());
+    log.info("{}", encodings);
+    Map<String, Integer> fruitEncoding = encodings.getValueEncodingMap(0);
+    String red = Integer.toString(fruitEncoding.get("red"));
+    String yellow = Integer.toString(fruitEncoding.get("yellow"));
+    for (int i = 1; i < numUpdates; i++) {
+        Pair<String, String> update = updates.get(i);
+        assertEquals("UP", update.getFirst());
+        List<?> fields = MAPPER.readValue(update.getSecond(), List.class);
+        int treeID = (Integer) fields.get(0);
+        String nodeID = fields.get(1).toString();
+        @SuppressWarnings("unchecked")
+        Map<String, Integer> countMap = (Map<String, Integer>) fields.get(2);
+        assertEquals(0, treeID);
+        assertTrue("r-".equals(nodeID) || "r+".equals(nodeID));
+        int yellowCount = countMap.get(yellow);
+        int redCount = countMap.get(red);
+        int count = yellowCount + redCount;
+        BinomialDistribution dist = new BinomialDistribution(count, 0.9);
+        if ("r+".equals(nodeID)) {
+            // Should be about 9x more yellow
+            checkProbability(yellowCount, count, dist);
+        } else {
+            // Should be about 9x more red
+            checkProbability(redCount, count, dist);
+        }
+    }
+}

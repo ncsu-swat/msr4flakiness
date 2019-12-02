@@ -1,0 +1,22 @@
+public void testMinimumServerCount() throws Exception {
+    HBaseAdmin admin = new HBaseAdmin(conf);
+    // create and disable table
+    admin.createTable(createTableDescriptor(TABLE_NAME));
+    admin.disableTable(TABLE_NAME);
+    assertFalse(admin.isTableEnabled(TABLE_NAME));
+    // reach in and set minimum server count
+    cluster.hbaseCluster.getMaster().getServerManager().setMinimumServerCount(2);
+    // now try to enable the table
+    try {
+        admin.enableTable(TABLE_NAME);
+    } catch (IOException ex) {
+    // ignore
+    }
+    Thread.sleep(10 * 1000);
+    assertFalse(admin.isTableAvailable(TABLE_NAME));
+    // now start another region server
+    cluster.startRegionServer();
+    // sleep a bit for assignment
+    Thread.sleep(10 * 1000);
+    assertTrue(admin.isTableAvailable(TABLE_NAME));
+}

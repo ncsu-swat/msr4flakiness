@@ -1,0 +1,21 @@
+/**
+ * Tests setting the rpc port to the same as the web port to test that
+ * an exception
+ * is thrown when trying to re-use the same port
+ */
+@Test
+public void testThatMatchingRPCandHttpPortsThrowException() throws IOException {
+    Configuration conf = new HdfsConfiguration();
+    // set both of these to port 9000, should fail
+    FileSystem.setDefaultUri(conf, "hdfs://localhost:9000");
+    conf.set(DFSConfigKeys.DFS_NAMENODE_HTTP_ADDRESS_KEY, "127.0.0.1:9000");
+    DFSTestUtil.formatNameNode(conf);
+    try {
+        NameNode nameNode = new NameNode(conf);
+        Assert.fail("Should have throw the exception since the ports match");
+    } catch (IOException e) {
+        // verify we're getting the right IOException
+        assertTrue(e.toString().contains("dfs.namenode.rpc-address ("));
+        System.out.println("Got expected exception: " + e.toString());
+    }
+}

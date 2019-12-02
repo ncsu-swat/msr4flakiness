@@ -1,0 +1,24 @@
+@Test(timeout = 100)
+public void testWatchForMultipleEventTypes() throws IOException, InterruptedException {
+    JimfsPath path = createDirectory();
+    watcher.register(path, ImmutableList.of(ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY));
+    Files.createDirectory(path.resolve("foo"));
+    Files.createFile(path.resolve("bar"));
+    assertWatcherHasEvents(watcher, new Event<>(ENTRY_CREATE, 1, fs.getPath("foo")), new Event<>(ENTRY_CREATE, 1, fs.getPath("bar")));
+    Files.createFile(path.resolve("baz"));
+    Files.delete(path.resolve("bar"));
+    Files.createFile(path.resolve("foo/bar"));
+    assertWatcherHasEvents(watcher, new Event<>(ENTRY_CREATE, 1, fs.getPath("baz")), new Event<>(ENTRY_DELETE, 1, fs.getPath("bar")), new Event<>(ENTRY_MODIFY, 1, fs.getPath("foo")));
+    Files.delete(path.resolve("foo/bar"));
+    // watcher polls, seeing modification, then polls again, seeing delete
+    ensureTimeToPoll();
+    Files.delete(path.resolve("foo"));
+    assertWatcherHasEvents(watcher, new Event<>(ENTRY_MODIFY, 1, fs.getPath("foo")), new Event<>(ENTRY_DELETE, 1, fs.getPath("foo")));
+    Files.createDirectories(path.resolve("foo/bar"));
+    assertWatcherHasEvents(watcher, new Event<>(ENTRY_CREATE, 1, fs.getPath("foo")));
+    Files.delete(path.resolve("foo/bar"));
+    Files.delete(path.resolve("foo"));
+    // foo should be deleted before polling detects its modification
+    // this could be flaky; may need to increase time between polling if so (or just not test it)
+    assertWatcherHasEvents(watcher, new Event<>(ENTRY_DELETE, 1, fs.getPath("foo")));
+}

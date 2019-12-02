@@ -1,0 +1,22 @@
+/**
+ * Test : kill job successfully but failed to kill an already successful action
+ *
+ * @throws Exception
+ */
+public void testCoordKillFailedOnAction() throws Exception {
+    CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.SUCCEEDED, false, true);
+    CoordinatorActionBean action = addRecordToCoordActionTable(job.getId(), 1, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    CoordJobGetJPAExecutor coordJobGetCmd = new CoordJobGetJPAExecutor(job.getId());
+    CoordActionGetJPAExecutor coordActionGetCmd = new CoordActionGetJPAExecutor(action.getId());
+    job = jpaService.execute(coordJobGetCmd);
+    action = jpaService.execute(coordActionGetCmd);
+    assertEquals(job.getStatus(), CoordinatorJob.Status.SUCCEEDED);
+    assertEquals(action.getStatus(), CoordinatorAction.Status.SUCCEEDED);
+    new CoordKillXCommand(job.getId()).call();
+    job = jpaService.execute(coordJobGetCmd);
+    action = jpaService.execute(coordActionGetCmd);
+    assertEquals(job.getStatus(), CoordinatorJob.Status.SUCCEEDED);
+    assertEquals(action.getStatus(), CoordinatorAction.Status.SUCCEEDED);
+}

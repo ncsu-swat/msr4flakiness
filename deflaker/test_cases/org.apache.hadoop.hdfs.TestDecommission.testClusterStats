@@ -1,0 +1,29 @@
+/**
+ * Tests cluster storage statistics during decommissioning for non
+ * federated cluster
+ */
+@Test
+public void testClusterStats() throws Exception {
+    testClusterStats(1);
+}
+public void testClusterStats(int numNameNodes) throws IOException, InterruptedException {
+    LOG.info("Starting test testClusterStats");
+    int numDatanodes = 1;
+    startCluster(numNameNodes, numDatanodes, conf);
+    for (int i = 0; i < numNameNodes; i++) {
+        FileSystem fileSys = cluster.getFileSystem(i);
+        Path file = new Path("testClusterStats.dat");
+        writeFile(fileSys, file, 1);
+        FSNamesystem fsn = cluster.getNamesystem(i);
+        NameNode namenode = cluster.getNameNode(i);
+        DatanodeInfo downnode = decommissionNode(i, null, AdminStates.DECOMMISSION_INPROGRESS);
+        // Check namenode stats for multiple datanode heartbeats
+        verifyStats(namenode, fsn, downnode, true);
+        // Stop decommissioning and verify stats
+        writeConfigFile(excludeFile, null);
+        refreshNodes(fsn, conf);
+        DatanodeInfo ret = NameNodeAdapter.getDatanode(fsn, downnode);
+        waitNodeState(ret, AdminStates.NORMAL);
+        verifyStats(namenode, fsn, ret, false);
+    }
+}

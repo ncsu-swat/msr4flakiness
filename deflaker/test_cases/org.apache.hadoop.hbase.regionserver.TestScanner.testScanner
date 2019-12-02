@@ -1,0 +1,75 @@
+/**
+ * The test!
+ * @throws IOException
+ */
+public void testScanner() throws IOException {
+    try {
+        r = createNewHRegion(TESTTABLEDESC, null, null);
+        region = new HRegionIncommon(r);
+        // Write information to the meta table
+        Put put = new Put(ROW_KEY, System.currentTimeMillis(), null);
+        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+        DataOutputStream s = new DataOutputStream(byteStream);
+        REGION_INFO.write(s);
+        put.add(HConstants.CATALOG_FAMILY, HConstants.REGIONINFO_QUALIFIER, byteStream.toByteArray());
+        region.put(put);
+        // What we just committed is in the memstore. Verify that we can get
+        // it back both with scanning and get
+        scan(false, null);
+        getRegionInfo();
+        // Close and re-open
+        r.close();
+        r = openClosedRegion(r);
+        region = new HRegionIncommon(r);
+        // Verify we can get the data back now that it is on disk.
+        scan(false, null);
+        getRegionInfo();
+        // Store some new information
+        HServerAddress address = new HServerAddress("foo.bar.com:1234");
+        put = new Put(ROW_KEY, System.currentTimeMillis(), null);
+        put.add(HConstants.CATALOG_FAMILY, HConstants.SERVER_QUALIFIER, Bytes.toBytes(address.toString()));
+        // put.add(HConstants.COL_STARTCODE, Bytes.toBytes(START_CODE));
+        region.put(put);
+        // Validate that we can still get the HRegionInfo, even though it is in
+        // an older row on disk and there is a newer row in the memstore
+        scan(true, address.toString());
+        getRegionInfo();
+        // flush cache
+        region.flushcache();
+        // Validate again
+        scan(true, address.toString());
+        getRegionInfo();
+        // Close and reopen
+        r.close();
+        r = openClosedRegion(r);
+        region = new HRegionIncommon(r);
+        // Validate again
+        scan(true, address.toString());
+        getRegionInfo();
+        // Now update the information again
+        address = new HServerAddress("bar.foo.com:4321");
+        put = new Put(ROW_KEY, System.currentTimeMillis(), null);
+        put.add(HConstants.CATALOG_FAMILY, HConstants.SERVER_QUALIFIER, Bytes.toBytes(address.toString()));
+        region.put(put);
+        // Validate again
+        scan(true, address.toString());
+        getRegionInfo();
+        // flush cache
+        region.flushcache();
+        // Validate again
+        scan(true, address.toString());
+        getRegionInfo();
+        // Close and reopen
+        r.close();
+        r = openClosedRegion(r);
+        region = new HRegionIncommon(r);
+        // Validate again
+        scan(true, address.toString());
+        getRegionInfo();
+        // clean up
+        r.close();
+        r.getLog().closeAndDelete();
+    } finally {
+        shutdownDfs(cluster);
+    }
+}

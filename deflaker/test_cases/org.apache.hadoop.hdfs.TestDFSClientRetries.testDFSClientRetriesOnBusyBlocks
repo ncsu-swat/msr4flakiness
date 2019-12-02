@@ -1,0 +1,69 @@
+/**
+ * Test that a DFSClient waits for random time before retry on busy blocks.
+ */
+public void testDFSClientRetriesOnBusyBlocks() throws IOException {
+    System.out.println("Testing DFSClient random waiting on busy blocks.");
+    // 
+    // Test settings:
+    // 
+    // xcievers    fileLen   #clients  timeWindow    #retries
+    // ========    =======   ========  ==========    ========
+    // Test 1:          2       6 MB         50      300 ms           3
+    // Test 2:          2       6 MB         50      300 ms          50
+    // Test 3:          2       6 MB         50     1000 ms           3
+    // Test 4:          2       6 MB         50     1000 ms          50
+    // 
+    // Minimum xcievers is 2 since 1 thread is reserved for registry.
+    // Test 1 & 3 may fail since # retries is low.
+    // Test 2 & 4 should never fail since (#threads)/(xcievers-1) is the upper
+    // bound for guarantee to not throw BlockMissingException.
+    // 
+    int xcievers = 2;
+    int fileLen = 6 * 1024 * 1024;
+    int threads = 50;
+    int retries = 3;
+    int timeWin = 300;
+    // 
+    // Test 1: might fail
+    // 
+    long timestamp = System.currentTimeMillis();
+    boolean pass = busyTest(xcievers, threads, fileLen, timeWin, retries);
+    long timestamp2 = System.currentTimeMillis();
+    if (pass) {
+        LOG.info("Test 1 succeeded! Time spent: " + (timestamp2 - timestamp) / 1000.0 + " sec.");
+    } else {
+        LOG.warn("Test 1 failed, but relax. Time spent: " + (timestamp2 - timestamp) / 1000.0 + " sec.");
+    }
+    // 
+    // Test 2: should never fail
+    // 
+    retries = 50;
+    timestamp = System.currentTimeMillis();
+    pass = busyTest(xcievers, threads, fileLen, timeWin, retries);
+    timestamp2 = System.currentTimeMillis();
+    assertTrue("Something wrong! Test 2 got Exception with maxmum retries!", pass);
+    LOG.info("Test 2 succeeded! Time spent: " + (timestamp2 - timestamp) / 1000.0 + " sec.");
+    // 
+    // Test 3: might fail
+    // 
+    retries = 3;
+    timeWin = 1000;
+    timestamp = System.currentTimeMillis();
+    pass = busyTest(xcievers, threads, fileLen, timeWin, retries);
+    timestamp2 = System.currentTimeMillis();
+    if (pass) {
+        LOG.info("Test 3 succeeded! Time spent: " + (timestamp2 - timestamp) / 1000.0 + " sec.");
+    } else {
+        LOG.warn("Test 3 failed, but relax. Time spent: " + (timestamp2 - timestamp) / 1000.0 + " sec.");
+    }
+    // 
+    // Test 4: should never fail
+    // 
+    retries = 50;
+    timeWin = 1000;
+    timestamp = System.currentTimeMillis();
+    pass = busyTest(xcievers, threads, fileLen, timeWin, retries);
+    timestamp2 = System.currentTimeMillis();
+    assertTrue("Something wrong! Test 4 got Exception with maxmum retries!", pass);
+    LOG.info("Test 4 succeeded! Time spent: " + (timestamp2 - timestamp) / 1000.0 + " sec.");
+}

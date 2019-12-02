@@ -1,0 +1,32 @@
+/**
+ * Negative Test : rerun <jobId> -action 1-3 -nocleanup. Only 2 actions is in db.
+ *
+ * @throws Exception
+ */
+public void testCoordRerunActionsNeg1() throws Exception {
+    final String jobId = "0000000-" + new Date().getTime() + "-testCoordRerun-C";
+    final int actionNum1 = 1;
+    final int actionNum2 = 2;
+    final String actionId1 = jobId + "@" + actionNum1;
+    final String actionId2 = jobId + "@" + actionNum2;
+    CoordinatorStore store = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
+    store.beginTrx();
+    try {
+        addRecordToJobTable(jobId, store, CoordinatorJob.Status.SUCCEEDED);
+        addRecordToActionTable(jobId, actionNum1, actionId1, store, CoordinatorAction.Status.SUCCEEDED, "coord-rerun-action1.xml");
+        addRecordToActionTable(jobId, actionNum2, actionId2, store, CoordinatorAction.Status.SUCCEEDED, "coord-rerun-action2.xml");
+        store.commitTrx();
+    } catch (Exception e) {
+        e.printStackTrace();
+        fail("Could not update db.");
+    } finally {
+        store.closeTrx();
+    }
+    String rerunScope = "1-3";
+    try {
+        final OozieClient coordClient = LocalOozie.getCoordClient();
+        coordClient.reRunCoord(jobId, RestConstants.JOB_COORD_RERUN_ACTION, rerunScope, false, true);
+        fail("Exception expected because one action is missing from db.");
+    } catch (OozieClientException ex) {
+    }
+}

@@ -1,0 +1,12 @@
+/**
+ * Test a coordinator job that will run in far future,
+ * materialization should not happen.
+ * @throws Exception
+ */
+public void testMatLookupCommand2() throws Exception {
+    Date startTime = DateUtils.parseDateOozieTZ("2099-02-01T01:00Z");
+    Date endTime = DateUtils.parseDateOozieTZ("2099-02-03T23:59Z");
+    CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.PREP, startTime, endTime, false, false, 0);
+    new CoordMaterializeTransitionXCommand(job.getId(), 3600).call();
+    checkCoordJobs(job.getId(), CoordinatorJob.Status.PREP);
+}

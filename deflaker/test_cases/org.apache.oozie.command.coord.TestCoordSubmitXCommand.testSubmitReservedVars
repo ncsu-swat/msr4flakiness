@@ -1,0 +1,20 @@
+/**
+ * Don't include controls in XML.
+ *
+ * @throws Exception
+ */
+public void testSubmitReservedVars() throws Exception {
+    Configuration conf = new XConfiguration();
+    String appPath = "file://" + getTestCaseDir() + File.separator + "coordinator.xml";
+    String appXml = "<coordinator-app name=\"NAME\" frequency=\"10\" start=\"2009-02-01T01:00Z\" end=\"2009-02-03T23:59Z\" timezone=\"UTC\" " + "xmlns=\"uri:oozie:coordinator:0.2\"> " + "<action> <workflow> <app-path>hdfs:///tmp/workflows/</app-path> " + "<configuration> <property> <name>inputA</name> <value>blah</value> </property> " + "</configuration> </workflow> </action> </coordinator-app>";
+    writeToFile(appXml, appPath);
+    conf.set(OozieClient.COORDINATOR_APP_PATH, appPath);
+    conf.set(OozieClient.USER_NAME, getTestUser());
+    conf.set("MINUTES", "1");
+    CoordSubmitXCommand sc = new CoordSubmitXCommand(conf, "UNIT_TESTING");
+    try {
+        sc.call();
+        fail("Coord job submission should fail with reserved variable definitions.");
+    } catch (CommandException ce) {
+    }
+}

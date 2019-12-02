@@ -1,0 +1,12 @@
+/**
+ * Test a coordinator job that will run within 5 minutes from now,
+ * materilization should happen.
+ * @throws Exception
+ */
+public void testMatLookupCommand3() throws Exception {
+    Date startTime = DateUtils.toDate(new Timestamp(System.currentTimeMillis() + 180 * 1000));
+    Date endTime = DateUtils.parseDateOozieTZ("2099-02-03T23:59Z");
+    CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.PREP, startTime, endTime, false, false, 0);
+    new CoordMaterializeTransitionXCommand(job.getId(), 3600).call();
+    checkCoordJobs(job.getId(), CoordinatorJob.Status.RUNNING);
+}

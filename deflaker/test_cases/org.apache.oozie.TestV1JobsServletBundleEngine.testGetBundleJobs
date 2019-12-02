@@ -1,0 +1,29 @@
+/**
+ * Tests method {@link BundleEngine#getBundleJobs(String, int, int)}. Also
+ * tests positive cases of the filter parsing by
+ * {@link BundleEngine#parseFilter(String)}.
+ */
+public void testGetBundleJobs() throws Exception {
+    final BundleJobBean bundleJobBean = xDataTestCase.addRecordToBundleJobTable(Job.Status.PREP, false);
+    runTest("/v1/jobs", V1JobsServlet.class, IS_SECURITY_ENABLED, new Callable<Void>() {
+
+        @Override
+        public Void call() throws Exception {
+            MockDagEngineService.reset();
+            Map<String, String> params = new HashMap<String, String>();
+            params.put(RestConstants.JOBTYPE_PARAM, "bundle");
+            params.put(RestConstants.JOBS_FILTER_PARAM, OozieClient.FILTER_STATUS + "=PREP;" + OozieClient.FILTER_NAME + "=BUNDLE-TEST;" + OozieClient.FILTER_USER + "=" + getTestUser());
+            URL url = createURL("", params);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            assertEquals(HttpServletResponse.SC_OK, conn.getResponseCode());
+            assertTrue(conn.getHeaderField("content-type").startsWith(RestConstants.JSON_CONTENT_TYPE));
+            JSONObject json = (JSONObject) JSONValue.parse(new InputStreamReader(conn.getInputStream()));
+            assertEquals(Long.valueOf(1L), json.get("total"));
+            JSONArray array = (JSONArray) json.get("bundlejobs");
+            JSONObject jo = (JSONObject) array.get(0);
+            assertEquals(bundleJobBean.getId(), jo.get("bundleJobId"));
+            return null;
+        }
+    });
+}
