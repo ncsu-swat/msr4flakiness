@@ -32,6 +32,8 @@ dict = {"achilles": "https://github.com/OHDSI/Achilles.git",
         "zxing": "https://github.com/zxing/zxing.git"}
 
 def main():
+    ##TODO: create test_files and test_cases directory if they do not exist
+    
     basedir = os.getcwd()
     ## assuming the rows are ordered per project
     with open('historical_rerun_flaky_tests.csv') as csv_file:
@@ -39,11 +41,15 @@ def main():
         #isFirstTime = True
         dir = None
         for row in csv_reader:
+            ## go back to base directory
+            os.chdir(basedir)
+
             project = row["\ufeffProject"]
             url = dict[project]
             
+            sha = row["sha"]
             # clone the repository
-            print("cloning project/checking out revision...{}".format(url))
+            print("checking out revision: {}:{}".format(url, sha))
             myprocess = subprocess.Popen(['git', 'clone', url],
                                          stdout=subprocess.PIPE,
                                          stderr=subprocess.STDOUT)
@@ -58,7 +64,6 @@ def main():
                 raise Exception("fatal error")
             os.chdir(dir)
 
-            sha = row["sha"]
             #print("checking out revision {}".format(sha))
             myprocess = subprocess.Popen(['git', 'checkout', sha],
                                          stdout=subprocess.PIPE,
@@ -66,7 +71,7 @@ def main():
             stdout,stderr = myprocess.communicate()
             tmp = stdout.decode("utf-8")
             if (not (tmp.startswith("HEAD is now at") or tmp.startswith("Note: checking out '{}'".format(sha)))):
-                print("could not checkout revision {}".format(sha))
+                print("......checkout aborted. could not find this revision: {}".format(sha))
                 continue
                 
             # get test file name
@@ -83,7 +88,7 @@ def main():
             result = stdout.decode("utf-8")
 
             if (len(stdout)==0):
-                print("  empty file {}:{}:{}".format(dir, sha, testfile))
+                print("......empty file {}:{}:{}".format(dir, sha, testfile))
                 continue                
 
             ## Marcelo wrote --> Is this to handle multiple answers? are we picking the first entry? are you sure this is correct?
@@ -91,17 +96,40 @@ def main():
                 path_to_testfile = result.strip(" \n")
             else:
                 path_to_testfile = result.split("\n")[0] 
-            
+
+            ## copying test file to test_files directory
             testfile=basedir+"/test_files/"+testcase
             copyfile(path_to_testfile, testfile)
 
-            ## go back to base directory and delete cloned repo
-            os.chdir("..")
+            ## copying test method to test_cases directory
+            testname = row["Test method"]
+            myprocess = subprocess.Popen(['java', '-jar', basedir+'/../utils/vis_method/build/libs/vis_method.jar', testfile, testname],
+                                         stdout=subprocess.PIPE, 
+                                         stderr=subprocess.STDOUT)
+            mbody,stderr = myprocess.communicate()
+            parseError = b'com.github.javaparser.ParseProblemException' in mbody
+            # create a file with the test case
+            pathto_testcase = basedir+"/test_cases/"+testcase
+            if not parseError and len(mbody) > 400:
+                with open(pathto_testcase, "wt+") as testfile:
+                    testfile.write(mbody.decode("utf-8"))
+            else:
+                print("......could not find this test case. It may be defined in a superclass.")
+                continue
 
-        # after processing the last line, delete the dir of last repo
-        os.chdir(basedir)
-        if (os.path.exists(dir)):
-            shutil.rmtree(dir, ignore_errors=True)
+            ## generating tokens for the test case
+            myprocess = subprocess.Popen(['java', '-jar', basedir+'/../utils/vis_ids/build/libs/vis_ids.jar', pathto_testcase],
+                                         stdout=subprocess.PIPE, 
+                                         stderr=subprocess.STDOUT)
+            mbody,stderr = myprocess.communicate()
+            parseError = b'com.github.javaparser.ParseProblemException' in mbody
+            if not parseError :
+                with open(basedir+"/test_tokens/"+testcase, "wt+") as testfile:
+                    testfile.write(mbody.decode("utf-8"))
+            else:
+                print("......problems when trying to generate tokens for test case.")
+                continue
+            
 
 if __name__ == "__main__":
     main()
