@@ -1,0 +1,113 @@
+@Test
+void empty() {
+  APLRecord ar = new APLRecord(m_an, DClass.IN, m_ttl, new ArrayList<>());
+  DNSOutput dout = new DNSOutput();
+
+  ar.rrToWire(dout, null, true);
+  assertArrayEquals(new byte[0], dout.toByteArray());
+}
+
+@Test
+void basic() {
+  APLRecord ar = new APLRecord(m_an, DClass.IN, m_ttl, m_elements);
+
+  byte[] exp =
+      new byte[] {
+        0,
+        1,
+        12,
+        (byte) 0x84,
+        m_addr4_bytes[0],
+        m_addr4_bytes[1],
+        m_addr4_bytes[2],
+        m_addr4_bytes[3],
+        0,
+        2,
+        64,
+        0x10,
+        m_addr6_bytes[0],
+        m_addr6_bytes[1],
+        m_addr6_bytes[2],
+        m_addr6_bytes[3],
+        m_addr6_bytes[4],
+        m_addr6_bytes[5],
+        m_addr6_bytes[6],
+        m_addr6_bytes[7],
+        m_addr6_bytes[8],
+        m_addr6_bytes[9],
+        m_addr6_bytes[10],
+        m_addr6_bytes[11],
+        m_addr6_bytes[12],
+        m_addr6_bytes[13],
+        m_addr6_bytes[14],
+        m_addr6_bytes[15]
+      };
+
+  DNSOutput dout = new DNSOutput();
+
+  ar.rrToWire(dout, null, true);
+  assertArrayEquals(exp, dout.toByteArray());
+}
+
+@Test
+void non_IP() throws IOException {
+  byte[] exp = new byte[] {0, 3, (byte) 130, (byte) 0x85, 1, 2, 3, 4, 5};
+
+  DNSInput di = new DNSInput(exp);
+  APLRecord ar = new APLRecord();
+  ar.rrFromWire(di);
+
+  DNSOutput dout = new DNSOutput();
+
+  ar.rrToWire(dout, null, true);
+  assertArrayEquals(exp, dout.toByteArray());
+}
+
+@Test
+void address_with_embedded_zero() throws UnknownHostException {
+  InetAddress a = InetAddress.getByName("232.0.11.1");
+  ArrayList<Element> elements = new ArrayList<>();
+  elements.add(new Element(true, a, 31));
+
+  APLRecord ar = new APLRecord(m_an, DClass.IN, m_ttl, elements);
+
+  byte[] exp = new byte[] {0, 1, 31, (byte) 0x84, (byte) 232, 0, 11, 1};
+
+  DNSOutput dout = new DNSOutput();
+
+  ar.rrToWire(dout, null, true);
+  assertArrayEquals(exp, dout.toByteArray());
+}
+
+@Test
+void short_address() throws UnknownHostException {
+  InetAddress a = InetAddress.getByName("232.0.11.0");
+  ArrayList<Element> elements = new ArrayList<>();
+  elements.add(new Element(true, a, 31));
+
+  APLRecord ar = new APLRecord(m_an, DClass.IN, m_ttl, elements);
+
+  byte[] exp = new byte[] {0, 1, 31, (byte) 0x83, (byte) 232, 0, 11};
+
+  DNSOutput dout = new DNSOutput();
+
+  ar.rrToWire(dout, null, true);
+  assertArrayEquals(exp, dout.toByteArray());
+}
+
+@Test
+void wildcard_address() throws UnknownHostException {
+  InetAddress a = InetAddress.getByName("0.0.0.0");
+  ArrayList<Element> elements = new ArrayList<>();
+  elements.add(new Element(true, a, 31));
+
+  APLRecord ar = new APLRecord(m_an, DClass.IN, m_ttl, elements);
+
+  byte[] exp = new byte[] {0, 1, 31, (byte) 0x80};
+
+  DNSOutput dout = new DNSOutput();
+
+  ar.rrToWire(dout, null, true);
+  assertArrayEquals(exp, dout.toByteArray());
+}
+}

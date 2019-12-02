@@ -1,0 +1,23 @@
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testStrictTyping() {
+        Map<String, String> config = createConfig();
+        config.put(GraphConfiguration.STRICT_TYPING, "true");
+        InMemoryGraph g = InMemoryGraph.create((Map) config);
+
+        g.defineProperty("prop1").dataType(String.class).define();
+
+        Vertex v = g.prepareVertex("v1", VISIBILITY_A)
+            .addPropertyValue("k1", "prop1", "value1", VISIBILITY_A)
+            .save(AUTHORIZATIONS_A);
+        try {
+            v.prepareMutation()
+                .addPropertyValue("k1", "prop2", "value1", VISIBILITY_A)
+                .save(AUTHORIZATIONS_A);
+            throw new RuntimeException("Expected a type exception");
+        } catch (VertexiumTypeException ex) {
+            assertEquals("prop2", ex.getName());
+            assertEquals(String.class, ex.getValueClass());
+        }
+    }

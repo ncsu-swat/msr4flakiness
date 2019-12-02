@@ -1,0 +1,182 @@
+@Test(timeout = 5000)
+public void testProtocolRejectionTestCase0() throws Exception {
+  testProtocolRejection( 0, new Draft_6455() );
+}
+
+@Test(timeout = 5000)
+public void testHandshakeRejectionTestCase1() throws Exception {
+  testProtocolRejection( 1, new Draft_6455() );
+}
+
+@Test(timeout = 5000)
+public void testHandshakeRejectionTestCase2() throws Exception {
+  testProtocolRejection( 2, new Draft_6455() );
+}
+
+@Test(timeout = 5000)
+public void testHandshakeRejectionTestCase3() throws Exception {
+  testProtocolRejection( 3, new Draft_6455() );
+}
+
+@Test(timeout = 5000)
+public void testHandshakeRejectionTestCase4() throws Exception {
+  testProtocolRejection( 4, new Draft_6455() );
+}
+
+@Test(timeout = 5000)
+public void testHandshakeRejectionTestCase5() throws Exception {
+  testProtocolRejection( 5, new Draft_6455( Collections.<IExtension>emptyList(), Collections.<IProtocol>singletonList( new Protocol( "chat" ) ) ) );
+}
+
+@Test(timeout = 5000)
+public void testHandshakeRejectionTestCase6() throws Exception {
+  testProtocolRejection( 6, new Draft_6455( Collections.<IExtension>emptyList(), Collections.<IProtocol>singletonList( new Protocol( "chat" ) ) ) );
+}
+
+@Test(timeout = 5000)
+public void testHandshakeRejectionTestCase7() throws Exception {
+  testProtocolRejection( 7, new Draft_6455( Collections.<IExtension>emptyList(), Collections.<IProtocol>singletonList( new Protocol( "chat" ) ) ) );
+}
+
+@Test(timeout = 5000)
+public void testHandshakeRejectionTestCase8() throws Exception {
+  testProtocolRejection( 8, new Draft_6455( Collections.<IExtension>emptyList(), Collections.<IProtocol>singletonList( new Protocol( "chat" ) ) ) );
+}
+
+@Test(timeout = 5000)
+public void testHandshakeRejectionTestCase9() throws Exception {
+  testProtocolRejection( 9, new Draft_6455( Collections.<IExtension>emptyList(), Collections.<IProtocol>singletonList( new Protocol( "chat" ) ) ) );
+}
+
+@Test(timeout = 5000)
+public void testHandshakeRejectionTestCase10() throws Exception {
+  testProtocolRejection( 10, new Draft_6455( Collections.<IExtension>emptyList(), Collections.<IProtocol>singletonList( new Protocol( "chat" ) ) ) );
+}
+
+@Test(timeout = 5000)
+public void testHandshakeRejectionTestCase11() throws Exception {
+  testProtocolRejection( 11, new Draft_6455( Collections.<IExtension>emptyList(), Collections.<IProtocol>singletonList( new Protocol( "chat" ) ) ) );
+}
+
+@Test(timeout = 5000)
+public void testHandshakeRejectionTestCase12() throws Exception {
+  testProtocolRejection( 12, new Draft_6455( Collections.<IExtension>emptyList(), Collections.<IProtocol>singletonList( new Protocol( "chat" ) ) ) );
+}
+
+@Test(timeout = 5000)
+public void testHandshakeRejectionTestCase13() throws Exception {
+  testProtocolRejection( 13, new Draft_6455( Collections.<IExtension>emptyList(), Collections.<IProtocol>singletonList( new Protocol( "chat" ) ) ) );
+}
+
+@Test(timeout = 5000)
+public void testHandshakeRejectionTestCase14() throws Exception {
+  ArrayList<IProtocol> protocols = new ArrayList<IProtocol>();
+  protocols.add( new Protocol( "chat" ) );
+  protocols.add( new Protocol( "chat2" ) );
+  testProtocolRejection( 14, new Draft_6455( Collections.<IExtension>emptyList(), protocols ) );
+}
+
+@Test(timeout = 5000)
+public void testHandshakeRejectionTestCase15() throws Exception {
+  ArrayList<IProtocol> protocols = new ArrayList<IProtocol>();
+  protocols.add( new Protocol( "chat" ) );
+  protocols.add( new Protocol( "chat2" ) );
+  testProtocolRejection( 15, new Draft_6455( Collections.<IExtension>emptyList(), protocols ) );
+}
+
+@Test(timeout = 5000)
+public void testHandshakeRejectionTestCase16() throws Exception {
+  ArrayList<IProtocol> protocols = new ArrayList<IProtocol>();
+  protocols.add( new Protocol( "chat" ) );
+  protocols.add( new Protocol( "chat2" ) );
+  testProtocolRejection( 16, new Draft_6455( Collections.<IExtension>emptyList(), protocols ) );
+}
+
+@Test(timeout = 5000)
+public void testHandshakeRejectionTestCase17() throws Exception {
+  ArrayList<IProtocol> protocols = new ArrayList<IProtocol>();
+  protocols.add( new Protocol( "chat" ) );
+  protocols.add( new Protocol( "" ) );
+  testProtocolRejection( 17, new Draft_6455( Collections.<IExtension>emptyList(), protocols ) );
+}
+
+@Test(timeout = 5000)
+public void testHandshakeRejectionTestCase18() throws Exception {
+  testProtocolRejection( 18, new Draft_6455() );
+}
+
+@Test(timeout = 5000)
+public void testHandshakeRejectionTestCase19() throws Exception {
+  testProtocolRejection( 19, new Draft_6455() );
+}
+
+private void testProtocolRejection( int i, Draft_6455 draft ) throws Exception {
+  final int finalI = i;
+  final boolean[] threadReturned = { false };
+  WebSocketClient webSocketClient = new WebSocketClient( new URI( "ws://localhost:" + port + "/" + finalI ), draft ) {
+    @Override
+    public void onOpen( ServerHandshake handshakedata ) {
+      switch(finalI) {
+        case 0:
+        case 6:
+        case 7:
+        case 8:
+        case 9:
+        case 13:
+        case 14:
+        case 17:
+          counter++;
+          threadReturned[0] = true;
+          closeConnection( CloseFrame.ABNORMAL_CLOSE, "Bye" );
+          break;
+        default:
+          fail( "There should not be a connection!" );
+      }
+    }
+
+    @Override
+    public void onMessage( String message ) {
+      fail( "There should not be a message!" );
+    }
+
+    @Override
+    public void onClose( int code, String reason, boolean remote ) {
+      if( code == CloseFrame.ABNORMAL_CLOSE ) {
+        switch(finalI) {
+          case 0:
+          case 6:
+          case 7:
+          case 8:
+          case 9:
+          case 13:
+          case 14:
+          case 17:
+            return;
+        }
+      }
+      if( code != CloseFrame.PROTOCOL_ERROR ) {
+        fail( "There should be a protocol error! " + finalI + " " + code );
+      } else if( reason.endsWith( "refuses handshake" ) ) {
+        if( debugPrintouts )
+          System.out.println( "Protocol error for test case: " + finalI );
+        threadReturned[0] = true;
+        counter++;
+      } else {
+        fail( "The reason should be included!" );
+      }
+    }
+
+    @Override
+    public void onError( Exception ex ) {
+      fail( "There should not be an exception" );
+    }
+  };
+  Thread finalThread = new Thread( webSocketClient );
+  finalThread.start();
+  finalThread.join();
+
+  if( !threadReturned[0] ) {
+    fail( "Error" );
+  }
+
+}

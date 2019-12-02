@@ -1,0 +1,99 @@
+@Test
+public void exists() {
+    assertTrue(query().where(user.emailAddress.eq("bob@example.com")).fetchCount() > 0);
+    assertFalse(query().where(user.emailAddress.eq("bobby@example.com")).fetchCount() > 0);
+}
+
+@Test
+public void notExists() {
+    assertFalse(query().where(user.emailAddress.eq("bob@example.com")).fetchCount() == 0);
+    assertTrue(query().where(user.emailAddress.eq("bobby@example.com")).fetchCount() == 0);
+}
+
+@Test
+public void count() {
+    BooleanExpression filter = user.emailAddress.eq("bob@example.com");
+    assertEquals(1, query().where(filter).fetchCount());
+}
+
+@Test
+public void uniqueResult() {
+    BooleanExpression filter = user.emailAddress.eq("bob@example.com");
+    User u = query().where(filter).fetchOne();
+    assertNotNull(u);
+    assertEquals("bob@example.com", u.getEmailAddress());
+}
+
+@Test
+public void list() {
+    BooleanExpression filter = user.emailAddress.eq("bob@example.com");
+    List<User> list = query().where(filter).fetch();
+    assertEquals(1, list.size());
+    User u = query().where(filter).fetchOne();
+    assertEquals(u, list.get(0));
+}
+
+@Test(expected = NonUniqueResultException.class)
+public void unique_result_throws_exception_on_multiple_results() {
+    query().where(user.middleName.eq("X")).fetchOne();
+}
+
+@Test
+public void singleResult() {
+    assertNotNull(query().where(user.middleName.eq("X")).fetchFirst());
+}
+
+@Test
+public void ordering() {
+    BooleanExpression filter = user.middleName.eq("X");
+    // asc
+    List<String> asc = getFirstNames(query().where(filter).orderBy(
+            user.firstName.asc()).fetch());
+    assertEquals(Arrays.asList("Anton", "Barbara", "John", "Robert"), asc);
+
+    // desc
+    List<String> desc = getFirstNames(query().where(filter).orderBy(
+            user.firstName.desc()).fetch());
+    assertEquals(Arrays.asList("Robert", "John", "Barbara", "Anton"), desc);
+}
+
+@Test
+public void paging() {
+    BooleanExpression filter = user.middleName.eq("X");
+    OrderSpecifier<?> order = user.firstName.asc();
+
+    // limit
+    List<String> limit = getFirstNames(query().where(filter).orderBy(order)
+            .limit(2).fetch());
+    assertEquals(Arrays.asList("Anton", "Barbara"), limit);
+
+    // offset
+    List<String> offset = getFirstNames(query().where(filter)
+            .orderBy(order).offset(1).fetch());
+    assertEquals(Arrays.asList("Barbara", "John", "Robert"), offset);
+
+    // limit + offset
+    List<String> limitAndOffset = getFirstNames(query().where(filter)
+            .orderBy(order).limit(2).offset(1).fetch());
+    assertEquals(Arrays.asList("Barbara", "John"), limitAndOffset);
+}
+
+@Test
+public void listResults() {
+    BooleanExpression filter = user.middleName.eq("X");
+    QueryResults<User> users = query().where(filter).orderBy(
+            user.firstName.asc()).limit(2).fetchResults();
+    List<String> asc = getFirstNames(users.getResults());
+    assertEquals(Arrays.asList("Anton", "Barbara"), asc);
+    assertEquals(4, users.getTotal());
+}
+
+@Test
+public void no_where() {
+    assertEquals(5, query().fetch().size());
+}
+
+@Test @Ignore // OufOfMemoryError
+public void limit_max_value() {
+    assertEquals(5, query().limit(Long.MAX_VALUE).fetch().size());
+}

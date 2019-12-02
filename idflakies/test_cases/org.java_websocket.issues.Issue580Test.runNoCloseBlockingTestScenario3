@@ -1,0 +1,69 @@
+private void runTestScenario(boolean closeBlocking) throws Exception {
+  final CountDownLatch countServerDownLatch = new CountDownLatch( 1 );
+  int port = SocketUtil.getAvailablePort();
+  WebSocketServer ws = new WebSocketServer( new InetSocketAddress( port ) ) {
+    @Override
+    public void onOpen( WebSocket conn, ClientHandshake handshake ) {
+
+    }
+
+    @Override
+    public void onClose( WebSocket conn, int code, String reason, boolean remote ) {
+
+    }
+
+    @Override
+    public void onMessage( WebSocket conn, String message ) {
+
+    }
+
+    @Override
+    public void onError( WebSocket conn, Exception ex ) {
+
+    }
+
+    @Override
+    public void onStart() {
+      countServerDownLatch.countDown();
+    }
+  };
+  ws.start();
+  countServerDownLatch.await();
+  WebSocketClient clt = new WebSocketClient( new URI( "ws://localhost:" + port ) ) {
+    @Override
+    public void onOpen( ServerHandshake handshakedata ) {
+
+    }
+
+    @Override
+    public void onMessage( String message ) {
+
+    }
+
+    @Override
+    public void onClose( int code, String reason, boolean remote ) {
+
+    }
+
+    @Override
+    public void onError( Exception ex ) {
+
+    }
+  };
+  clt.connectBlocking();
+  clt.send("test");
+  if (closeBlocking) {
+    clt.closeBlocking();
+  }
+  ws.stop();
+  Thread.sleep( 100 );
+}
+
+@Test
+public void runNoCloseBlockingTestScenario() throws Exception {
+  runTestScenario(false);
+}
+@Test
+public void runCloseBlockingTestScenario() throws Exception {
+  runTestScenario(true);
+}
