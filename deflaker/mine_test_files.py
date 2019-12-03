@@ -64,13 +64,15 @@ def main():
             dir = tmp.split(".git")[0]
             if dir == None:
                 raise Exception("fatal error")
-            os.chdir(dir)
-
+            
             ## delete previous project
             if ((lastdir is not None) and (not lastdir == dir)):
                 if (os.path.exists(lastdir)):
                     shutil.rmtree(lastdir, ignore_errors=True)
             lastdir = dir
+
+            ## cd to project directory
+            os.chdir(dir)
 
             #print("checking out revision {}".format(sha))
             myprocess = subprocess.Popen(['git', 'checkout', sha],
@@ -78,7 +80,7 @@ def main():
                                          stderr=subprocess.STDOUT)
             stdout,stderr = myprocess.communicate()
             tmp = stdout.decode("utf-8")
-            if (not (tmp.startswith("HEAD is now at") or tmp.startswith("Note: checking out '{}'".format(sha)))):
+            if tmp.startswith("error: pathspec"):
                 print("......checkout aborted. could not find this revision: {}".format(sha))
                 continue
                 
@@ -138,6 +140,8 @@ def main():
                 print("......problems when trying to generate tokens for test case.")
                 continue
 
+    # delete directory of last project
+    os.chdir(basedir)
     if (os.path.exists(lastdir)):
         shutil.rmtree(lastdir, ignore_errors=True)                
 
