@@ -1,0 +1,32 @@
+/**
+ * Testing a non existing namenode path
+ *
+ * @throws Exception
+ */
+public void testNonExistingNameNode() throws Exception {
+    String jobId = "0000000-" + new Date().getTime() + "-TestCoordActionInputCheckXCommand-C";
+    Date startTime = DateUtils.parseDateUTC("2009-02-01T23:59Z");
+    Date endTime = DateUtils.parseDateUTC("2009-02-02T23:59Z");
+    CoordinatorJobBean job = addRecordToCoordJobTable(jobId, startTime, endTime);
+    new CoordMaterializeTransitionXCommand(job.getId(), 3600).call();
+    CoordActionInputCheckXCommand caicc = new CoordActionInputCheckXCommand(job.getId() + "@1", job.getId());
+    caicc.loadState();
+    // Override the name node while list for testing purpose only.
+    String[] whiteList = new String[1];
+    whiteList[0] = "localhost:5330";
+    services.destroy();
+    setSystemProperty(HadoopAccessorService.NAME_NODE_WHITELIST, whiteList[0]);
+    services = new Services();
+    services.init();
+    // setting the test path with nonExistDir
+    Path appPath = new Path(getFsTestCaseDir(), "coord");
+    String inputDir = appPath.toString() + "/coord-input/2010/07/09/01/00";
+    String nonExistDir = inputDir.replaceFirst("localhost", "nonExist");
+    try {
+        caicc.pathExists(nonExistDir, new XConfiguration(), getTestUser());
+        fail("Should throw exception due to non-existent NN path. Therefore fail");
+    } catch (IOException ioe) {
+        assertEquals(caicc.getCoordActionErrorCode(), "E0901");
+        assertTrue(caicc.getCoordActionErrorMsg().contains("not in Oozies whitelist"));
+    }
+}

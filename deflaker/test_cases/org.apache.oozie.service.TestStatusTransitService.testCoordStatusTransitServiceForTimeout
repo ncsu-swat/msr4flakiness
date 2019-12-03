@@ -1,0 +1,23 @@
+/**
+ * Tests functionality of the StatusTransitService Runnable command. </p> Insert a coordinator job with RUNNING and
+ * pending true and coordinator actions with TIMEDOUT state. Then, runs the StatusTransitService runnable and
+ * ensures the job state changes to DONEWITHERROR.
+ *
+ * @throws Exception
+ */
+public void testCoordStatusTransitServiceForTimeout() throws Exception {
+    String currentDatePlusMonth = XDataTestCase.getCurrentDateafterIncrementingInMonths(1);
+    Date start = DateUtils.parseDateOozieTZ(currentDatePlusMonth);
+    Date end = DateUtils.parseDateOozieTZ(currentDatePlusMonth);
+    CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, start, end, true, true, 3);
+    addRecordToCoordActionTable(job.getId(), 1, CoordinatorAction.Status.TIMEDOUT, "coord-action-get.xml", 0);
+    addRecordToCoordActionTable(job.getId(), 2, CoordinatorAction.Status.TIMEDOUT, "coord-action-get.xml", 0);
+    addRecordToCoordActionTable(job.getId(), 3, CoordinatorAction.Status.TIMEDOUT, "coord-action-get.xml", 0);
+    Runnable runnable = new StatusTransitRunnable();
+    runnable.run();
+    sleep(1000);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    CoordJobGetJPAExecutor coordGetCmd = new CoordJobGetJPAExecutor(job.getId());
+    CoordinatorJobBean coordJob = jpaService.execute(coordGetCmd);
+    assertEquals(CoordinatorJob.Status.DONEWITHERROR, coordJob.getStatus());
+}

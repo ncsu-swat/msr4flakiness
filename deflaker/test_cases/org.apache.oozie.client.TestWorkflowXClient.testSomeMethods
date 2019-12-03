@@ -1,0 +1,31 @@
+/**
+ * Test some simple clint's methods
+ */
+public void testSomeMethods() throws Exception {
+    runTest(END_POINTS, SERVLET_CLASSES, IS_SECURITY_ENABLED, new Callable<Void>() {
+
+        public Void call() throws Exception {
+            String oozieUrl = getContextURL();
+            XOozieClient wc = new XOozieClient(oozieUrl);
+            Properties configuration = wc.createConfiguration();
+            try {
+                wc.addFile(configuration, null);
+            } catch (IllegalArgumentException e) {
+                assertEquals("file cannot be null or empty", e.getMessage());
+            }
+            wc.addFile(configuration, "file1");
+            wc.addFile(configuration, "file2");
+            assertEquals("file1,file2", configuration.get(XOozieClient.FILES));
+            // test archive
+            try {
+                wc.addArchive(configuration, null);
+            } catch (IllegalArgumentException e) {
+                assertEquals("file cannot be null or empty", e.getMessage());
+            }
+            wc.addArchive(configuration, "archive1");
+            wc.addArchive(configuration, "archive2");
+            assertEquals("archive1,archive2", configuration.get(XOozieClient.ARCHIVES));
+            return null;
+        }
+    });
+}

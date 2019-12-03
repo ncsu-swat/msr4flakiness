@@ -1,0 +1,25 @@
+public void testPrepare() throws Exception {
+    FileSystem fs = getFileSystem();
+    Path mkdir = new Path(getFsTestCaseDir(), "mkdir");
+    Path delete = new Path(getFsTestCaseDir(), "delete");
+    fs.mkdirs(delete);
+    String actionXml = "<java>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>" + "<name-node>" + getNameNodeUri() + "</name-node>" + "<prepare>" + "<mkdir path='" + mkdir + "'/>" + "<delete path='" + delete + "'/>" + "</prepare>" + "<main-class>" + LauncherMainTester.class.getName() + "</main-class>" + "</java>";
+    Context context = createContext(actionXml, null);
+    final RunningJob runningJob = submitAction(context);
+    waitFor(60 * 1000, new Predicate() {
+
+        @Override
+        public boolean evaluate() throws Exception {
+            return runningJob.isComplete();
+        }
+    });
+    assertTrue(runningJob.isSuccessful());
+    ActionExecutor ae = new JavaActionExecutor();
+    ae.check(context, context.getAction());
+    assertEquals("SUCCEEDED", context.getAction().getExternalStatus());
+    assertNull(context.getAction().getData());
+    ae.end(context, context.getAction());
+    assertEquals(WorkflowAction.Status.OK, context.getAction().getStatus());
+    assertTrue(fs.exists(mkdir));
+    assertFalse(fs.exists(delete));
+}

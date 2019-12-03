@@ -1,0 +1,57 @@
+/**
+ * Test that file data does not become corrupted even in the face of errors.
+ */
+public void testFileCreationError1() throws IOException {
+    Configuration conf = new HdfsConfiguration();
+    conf.setInt(DFS_NAMENODE_HEARTBEAT_RECHECK_INTERVAL_KEY, 1000);
+    conf.setInt(DFS_HEARTBEAT_INTERVAL_KEY, 1);
+    if (simulatedStorage) {
+        conf.setBoolean(SimulatedFSDataset.CONFIG_PROPERTY_SIMULATED, true);
+    }
+    // create cluster
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).build();
+    FileSystem fs = cluster.getFileSystem();
+    cluster.waitActive();
+    InetSocketAddress addr = new InetSocketAddress("localhost", cluster.getNameNodePort());
+    DFSClient client = new DFSClient(addr, conf);
+    try {
+        // create a new file.
+        // 
+        Path file1 = new Path("/filestatus.dat");
+        FSDataOutputStream stm = createFile(fs, file1, 1);
+        // verify that file exists in FS namespace
+        assertTrue(file1 + " should be a file", fs.getFileStatus(file1).isFile());
+        System.out.println("Path : \"" + file1 + "\"");
+        // kill the datanode
+        cluster.shutdownDataNodes();
+        // wait for the datanode to be declared dead
+        while (true) {
+            DatanodeInfo[] info = client.datanodeReport(HdfsConstants.DatanodeReportType.LIVE);
+            if (info.length == 0) {
+                break;
+            }
+            System.out.println("testFileCreationError1: waiting for datanode " + " to die.");
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+            }
+        }
+        // write 1 byte to file.
+        // This should fail because all datanodes are dead.
+        byte[] buffer = AppendTestUtil.randomBytes(seed, 1);
+        try {
+            stm.write(buffer);
+            stm.close();
+        } catch (Exception e) {
+            System.out.println("Encountered expected exception");
+        }
+        // verify that no blocks are associated with this file
+        // bad block allocations were cleaned up earlier.
+        LocatedBlocks locations = client.getNamenode().getBlockLocations(file1.toString(), 0, Long.MAX_VALUE);
+        System.out.println("locations = " + locations.locatedBlockCount());
+        assertTrue("Error blocks were not cleaned up", locations.locatedBlockCount() == 0);
+    } finally {
+        cluster.shutdown();
+        client.close();
+    }
+}

@@ -1,0 +1,134 @@
+/**
+ * Testing the Coordinator Change Commands with different combination of
+ * "Change Value"
+ * Changing the end time to be 20 minutes after the current time
+ * Changing the pause time to be 10 minutes after the current time
+ *
+ * @throws Exception
+ */
+public void testCoordChangeXCommand() throws StoreException, CommandException {
+    System.out.println("Running Test");
+    String jobId = "0000000-" + new Date().getTime() + "-testCoordChangeXCommand-C";
+    try {
+        addRecordToJobTable(jobId);
+    } catch (Exception ex) {
+        ex.printStackTrace();
+        fail("Exception thrown " + ex);
+    }
+    String pauseTime = convertDateToString(new Date().getTime() + 10 * 60 * 1000);
+    String endTime = convertDateToString(new Date().getTime() + 20 * 60 * 1000);
+    new CoordChangeXCommand(jobId, "endtime=" + endTime + ";concurrency=200").call();
+    try {
+        checkCoordJobs(jobId, DateUtils.parseDateOozieTZ(endTime), 200, null, false);
+    } catch (Exception ex) {
+        ex.printStackTrace();
+        fail("Invalid date" + ex);
+    }
+    String changeValue = "endtime=" + endTime + ";concurrency=200;pausetime=" + pauseTime;
+    new CoordChangeXCommand(jobId, changeValue).call();
+    try {
+        checkCoordJobs(jobId, DateUtils.parseDateOozieTZ(endTime), 200, DateUtils.parseDateOozieTZ(pauseTime), true);
+    } catch (Exception ex) {
+        ex.printStackTrace();
+        fail("Invalid date" + ex);
+    }
+    new CoordChangeXCommand(jobId, "endtime=" + endTime + ";concurrency=200;pausetime=").call();
+    try {
+        checkCoordJobs(jobId, DateUtils.parseDateOozieTZ(endTime), 200, null, true);
+    } catch (Exception ex) {
+        ex.printStackTrace();
+        fail("Invalid date" + ex);
+    }
+    new CoordChangeXCommand(jobId, "endtime=" + endTime + ";pausetime=;concurrency=200").call();
+    try {
+        checkCoordJobs(jobId, DateUtils.parseDateOozieTZ(endTime), 200, null, true);
+    } catch (Exception ex) {
+        ex.printStackTrace();
+        fail("Invalid date" + ex);
+    }
+    new CoordChangeXCommand(jobId, "endtime=2012-12-20T05:00Z;concurrency=-200").call();
+    try {
+        checkCoordJobs(jobId, DateUtils.parseDateOozieTZ("2012-12-20T05:00Z"), -200, null, false);
+    } catch (Exception ex) {
+        ex.printStackTrace();
+        fail("Invalid date" + ex);
+    }
+    new CoordChangeXCommand(jobId, "endtime=2012-12-20T05:00Z").call();
+    try {
+        checkCoordJobs(jobId, DateUtils.parseDateOozieTZ("2012-12-20T05:00Z"), null, null, false);
+    } catch (Exception ex) {
+        ex.printStackTrace();
+        fail("Invalid date" + ex);
+    }
+    new CoordChangeXCommand(jobId, "concurrency=-1").call();
+    try {
+        checkCoordJobs(jobId, null, -1, null, false);
+    } catch (Exception ex) {
+        ex.printStackTrace();
+        fail("Invalid date" + ex);
+    }
+    try {
+        new CoordChangeXCommand(jobId, "a=1;b=-200").call();
+        fail("Should not reach here.");
+    } catch (CommandException ex) {
+        if (ex.getErrorCode() != ErrorCode.E1015) {
+            fail("Error code should be E1015.");
+        }
+    }
+    try {
+        new CoordChangeXCommand(jobId, "endtime=2012-12-20T05:00;concurrency=-200").call();
+        fail("Should not reach here.");
+    } catch (CommandException ex) {
+        if (ex.getErrorCode() != ErrorCode.E1015) {
+            fail("Error code should be E1015.");
+        }
+    }
+    try {
+        new CoordChangeXCommand(jobId, "endtime=2012-12-20T05:00Z;concurrency=2ac").call();
+        fail("Should not reach here.");
+    } catch (CommandException ex) {
+        if (ex.getErrorCode() != ErrorCode.E1015) {
+            fail("Error code should be E1015.");
+        }
+    }
+    try {
+        new CoordChangeXCommand(jobId, "endtime=1900-12-20T05:00Z").call();
+        fail("Should not reach here.");
+    } catch (CommandException ex) {
+        if (ex.getErrorCode() != ErrorCode.E1015) {
+            fail("Error code should be E1015.");
+        }
+    }
+    try {
+        new CoordChangeXCommand(jobId, "pausetime=1900-12-20T05:00Z").call();
+        fail("Should not reach here.");
+    } catch (CommandException ex) {
+        if (ex.getErrorCode() != ErrorCode.E1015) {
+            fail("Error code should be E1015.");
+        }
+    }
+    try {
+        new CoordChangeXCommand(jobId, "pausetime=2009-02-01T01:03Z").call();
+        fail("Should not reach here.");
+    } catch (CommandException ex) {
+        if (ex.getErrorCode() != ErrorCode.E1015) {
+            fail("Error code should be E1015.");
+        }
+    }
+    try {
+        new CoordChangeXCommand(jobId, "pausetime=null").call();
+        fail("Should not reach here.");
+    } catch (CommandException ex) {
+        if (ex.getErrorCode() != ErrorCode.E1015) {
+            fail("Error code should be E1015.");
+        }
+    }
+    try {
+        new CoordChangeXCommand(jobId, "pausetime=2009-02-01T01:08Z").call();
+        fail("Should not reach here.");
+    } catch (CommandException ex) {
+        if (ex.getErrorCode() != ErrorCode.E1015) {
+            fail("Error code should be E1015.");
+        }
+    }
+}

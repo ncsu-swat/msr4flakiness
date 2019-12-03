@@ -1,0 +1,26 @@
+public void testCoordActionGet() throws Exception {
+    int actionNum = 1;
+    String resourceXmlName = "coord-action-get.xml";
+    Date dummyCreationTime = new Date();
+    CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, false, false);
+    CoordinatorActionBean action = createCoordAction(job.getId(), actionNum, CoordinatorAction.Status.WAITING, resourceXmlName, 0);
+    // Add some attributes
+    action.setConsoleUrl("consoleUrl");
+    action.setExternalStatus("externalStatus");
+    action.setErrorCode("errorCode");
+    action.setErrorMessage("errorMessage");
+    action.setTrackerUri("trackerUri");
+    action.setCreatedTime(dummyCreationTime);
+    String testDir = getTestCaseDir();
+    String missDeps = "file://#testDir/2009/29/_SUCCESS#file://#testDir/2009/22/_SUCCESS#file://#testDir/2009/15/_SUCCESS#file://#testDir/2009/08/_SUCCESS";
+    missDeps = missDeps.replaceAll("#testDir", testDir);
+    action.setMissingDependencies(missDeps);
+    action.setTimeOut(10);
+    // Insert the action
+    insertRecordCoordAction(action);
+    Path appPath = new Path(getFsTestCaseDir(), "coord");
+    String actionXml = getCoordActionXml(appPath, resourceXmlName);
+    String actionNominalTime = getActionNominalTime(actionXml);
+    // Pass expected values
+    _testGetActionsSubset(job.getId(), action.getId(), 1, 1, "consoleUrl", "errorCode", "errorMessage", action.getId() + "_E", "externalStatus", "trackerUri", dummyCreationTime, DateUtils.parseDateOozieTZ(actionNominalTime), missDeps, 10, CoordinatorAction.Status.WAITING);
+}

@@ -1,0 +1,20 @@
+/*
+   f->(2,3)
+   2->ok->j
+   2->fail->4
+   3->ok->4
+   3->fail->k
+   4->ok->j
+   4->fail->k
+   j->end
+  */
+public void testTransition3() throws WorkflowException {
+    LiteWorkflowAppParser parser = new LiteWorkflowAppParser(null, LiteWorkflowStoreService.LiteControlNodeHandler.class, LiteWorkflowStoreService.LiteDecisionHandler.class, LiteWorkflowStoreService.LiteActionHandler.class);
+    LiteWorkflowApp def = new LiteWorkflowApp("name", "def", new StartNodeDef(LiteWorkflowStoreService.LiteControlNodeHandler.class, "one")).addNode(new ActionNodeDef("one", dummyConf, TestActionNodeHandler.class, "f", "end")).addNode(new ForkNodeDef("f", LiteWorkflowStoreService.LiteControlNodeHandler.class, Arrays.asList(new String[] { "two", "three" }))).addNode(new ActionNodeDef("two", dummyConf, TestActionNodeHandler.class, "j", "four")).addNode(new ActionNodeDef("three", dummyConf, TestActionNodeHandler.class, "four", "k")).addNode(new ActionNodeDef("four", dummyConf, TestActionNodeHandler.class, "j", "k")).addNode(new JoinNodeDef("j", LiteWorkflowStoreService.LiteControlNodeHandler.class, "end")).addNode(new KillNodeDef("k", "kill", LiteWorkflowStoreService.LiteControlNodeHandler.class)).addNode(new EndNodeDef("end", LiteWorkflowStoreService.LiteControlNodeHandler.class));
+    try {
+        invokeForkJoin(parser, def);
+    } catch (Exception ex) {
+        ex.printStackTrace();
+        fail("Unexpected Exception");
+    }
+}

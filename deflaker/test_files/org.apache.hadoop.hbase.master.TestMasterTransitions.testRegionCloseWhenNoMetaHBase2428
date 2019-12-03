@@ -74,10 +74,6 @@ public class TestMasterTransitions {
    */
   @BeforeClass public static void beforeAllTests() throws Exception {
     TEST_UTIL.getConfiguration().setBoolean("dfs.support.append", true);
-    // Parcel out the regions, don't give them out in big lumps.  We've only
-    // a few in this test.  Let a couple of cycles pass is more realistic and
-    // gives stuff a chance to work.
-    TEST_UTIL.getConfiguration().setInt("hbase.regions.percheckin", 2);
     // Start a cluster of two regionservers.
     TEST_UTIL.startMiniCluster(2);
     // Create a table of three families.  This will assign a region.
@@ -93,7 +89,12 @@ public class TestMasterTransitions {
   }
 
   @Before public void setup() throws IOException {
-    TEST_UTIL.ensureSomeRegionServersAvailable(2);
+    if (TEST_UTIL.getHBaseCluster().getLiveRegionServerThreads().size() < 2) {
+      // Need at least two servers.
+      LOG.info("Started new server=" +
+        TEST_UTIL.getHBaseCluster().startRegionServer());
+      
+    }
   }
 
   /**
@@ -337,10 +338,10 @@ public class TestMasterTransitions {
       if (!incomingMsg.isType(HMsg.Type.MSG_REPORT_PROCESS_OPEN)) return true;
       // Save the region that is in transition so can test later it came back.
       this.regionToFind = incomingMsg.getRegionInfo();
-      String msg = "ABORTING " + this.victim + " because got a " +
+      LOG.info("ABORTING " + this.victim + " because got a " +
         HMsg.Type.MSG_REPORT_PROCESS_OPEN + " on this server for " +
-        incomingMsg.getRegionInfo().getRegionNameAsString();
-      this.victim.abort(msg);
+        incomingMsg.getRegionInfo().getRegionNameAsString());
+      this.victim.abort();
       this.abortSent = true;
       return true;
     }

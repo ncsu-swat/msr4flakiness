@@ -1,0 +1,12 @@
+@Test
+public void testSingleFailedEditsDirOnFlush() throws IOException {
+    assertTrue(doAnEdit());
+    // Invalidate one edits journal.
+    invalidateEditsDirAtIndex(0, true, false);
+    // Make sure runtime.exit(...) hasn't been called at all yet.
+    assertExitInvocations(0);
+    assertTrue(doAnEdit());
+    // A single journal failure should not result in a call to runtime.exit(...).
+    assertExitInvocations(0);
+    assertFalse(cluster.getNameNode().isInSafeMode());
+}

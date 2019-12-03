@@ -1,0 +1,17 @@
+// Test for mkdir as prepare action
+@Test
+public void testMkdir() throws Exception {
+    Path actionDir = getFsTestCaseDir();
+    FileSystem fs = getFileSystem();
+    Path newDir = new Path(actionDir, "newDir");
+    // Delete the file if it is already there
+    if (fs.exists(newDir)) {
+        fs.delete(newDir, true);
+    }
+    // Prepare block that contains mkdir action
+    String prepareXML = "<prepare>" + "<mkdir path='" + newDir + "'/>" + "</prepare>";
+    JobConf conf = createJobConf();
+    LauncherMapper.setupLauncherURIHandlerConf(conf);
+    PrepareActionsDriver.doOperations(prepareXML, conf);
+    assertTrue(fs.exists(newDir));
+}

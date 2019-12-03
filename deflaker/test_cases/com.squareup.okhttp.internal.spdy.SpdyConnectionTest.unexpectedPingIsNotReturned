@@ -1,0 +1,20 @@
+@Test
+public void unexpectedPingIsNotReturned() throws Exception {
+    // write the mocking script
+    peer.sendFrame().ping(false, 2, 0);
+    // PING
+    peer.acceptFrame();
+    // This ping will not be returned.
+    peer.sendFrame().ping(true, 3, 0);
+    peer.sendFrame().ping(false, 4, 0);
+    // PING
+    peer.acceptFrame();
+    peer.play();
+    // play it back
+    connection(peer, SPDY3);
+    // verify the peer received what was expected
+    MockSpdyPeer.InFrame ping2 = peer.takeFrame();
+    assertEquals(2, ping2.payload1);
+    MockSpdyPeer.InFrame ping4 = peer.takeFrame();
+    assertEquals(4, ping4.payload1);
+}

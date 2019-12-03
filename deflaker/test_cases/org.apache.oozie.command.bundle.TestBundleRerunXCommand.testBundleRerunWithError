@@ -1,0 +1,25 @@
+/**
+ * Test : Rerun a DONEWITHERROR bundle job. Status should
+ * change to RUNNINGWITHERROR
+ *
+ * @throws Exception
+ */
+public void testBundleRerunWithError() throws Exception {
+    Services.get().destroy();
+    setSystemProperty(StatusTransitService.CONF_BACKWARD_SUPPORT_FOR_STATES_WITHOUT_ERROR, "false");
+    services = new Services();
+    services.init();
+    BundleJobBean job = this.addRecordToBundleJobTable(Job.Status.DONEWITHERROR, false);
+    this.addRecordToBundleActionTable(job.getId(), "action1", 0, Job.Status.SUCCEEDED);
+    this.addRecordToBundleActionTable(job.getId(), "action2", 0, Job.Status.FAILED);
+    addRecordToCoordJobTable("action1", CoordinatorJob.Status.SUCCEEDED, false, false);
+    addRecordToCoordJobTable("action2", CoordinatorJob.Status.FAILED, false, false);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    BundleJobGetJPAExecutor bundleJobGetExecutor = new BundleJobGetJPAExecutor(job.getId());
+    job = jpaService.execute(bundleJobGetExecutor);
+    assertEquals(Job.Status.DONEWITHERROR, job.getStatus());
+    new BundleRerunXCommand(job.getId(), null, "2009-02-01T00:00Z", false, true).call();
+    job = jpaService.execute(bundleJobGetExecutor);
+    assertEquals(Job.Status.RUNNINGWITHERROR, job.getStatus());
+}

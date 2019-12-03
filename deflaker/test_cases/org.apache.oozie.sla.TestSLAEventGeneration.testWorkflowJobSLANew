@@ -1,0 +1,19 @@
+/**
+ * Test for SLA Events generated through Workflow Job Commands
+ *
+ * @throws Exception
+ */
+@Test
+public void testWorkflowJobSLANew() throws Exception {
+    EventHandlerService ehs = services.get(EventHandlerService.class);
+    assertNotNull(ehs);
+    SLAService slas = services.get(SLAService.class);
+    assertNotNull(slas);
+    String wfXml = IOUtils.getResourceAsString("wf-job-sla.xml", -1);
+    Path appPath = getFsTestCaseDir();
+    writeToFile(wfXml, appPath, "workflow.xml");
+    Configuration conf = new XConfiguration();
+    conf.set(OozieClient.APP_PATH, appPath.toString());
+    conf.set(OozieClient.USER_NAME, getTestUser());
+    _testWorkflowJobCommands(conf, ehs, slas, true);
+}

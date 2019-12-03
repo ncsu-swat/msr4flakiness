@@ -1,0 +1,36 @@
+/**
+ * Decommissioning using a pre-configured include hosts file
+ */
+@Test
+public void testDecommissionWithIncludeHosts() throws Exception {
+    writeToHostsFile("localhost", "host1", "host2");
+    Configuration conf = new Configuration();
+    conf.set(YarnConfiguration.RM_NODES_INCLUDE_FILE_PATH, hostFile.getAbsolutePath());
+    rm = new MockRM(conf);
+    rm.start();
+    MockNM nm1 = rm.registerNode("host1:1234", 5120);
+    MockNM nm2 = rm.registerNode("host2:5678", 10240);
+    MockNM nm3 = rm.registerNode("localhost:4433", 1024);
+    ClusterMetrics metrics = ClusterMetrics.getMetrics();
+    assert (metrics != null);
+    int metricCount = metrics.getNumDecommisionedNMs();
+    NodeHeartbeatResponse nodeHeartbeat = nm1.nodeHeartbeat(true);
+    Assert.assertTrue(NodeAction.NORMAL.equals(nodeHeartbeat.getNodeAction()));
+    nodeHeartbeat = nm2.nodeHeartbeat(true);
+    Assert.assertTrue(NodeAction.NORMAL.equals(nodeHeartbeat.getNodeAction()));
+    nodeHeartbeat = nm3.nodeHeartbeat(true);
+    Assert.assertTrue(NodeAction.NORMAL.equals(nodeHeartbeat.getNodeAction()));
+    // To test that IPs also work
+    String ip = NetUtils.normalizeHostName("localhost");
+    writeToHostsFile("host1", ip);
+    rm.getNodesListManager().refreshNodes(conf);
+    nodeHeartbeat = nm1.nodeHeartbeat(true);
+    Assert.assertTrue(NodeAction.NORMAL.equals(nodeHeartbeat.getNodeAction()));
+    Assert.assertEquals(0, ClusterMetrics.getMetrics().getNumDecommisionedNMs());
+    nodeHeartbeat = nm2.nodeHeartbeat(true);
+    Assert.assertTrue("Node is not decommisioned.", NodeAction.SHUTDOWN.equals(nodeHeartbeat.getNodeAction()));
+    checkDecommissionedNMCount(rm, ++metricCount);
+    nodeHeartbeat = nm3.nodeHeartbeat(true);
+    Assert.assertTrue(NodeAction.NORMAL.equals(nodeHeartbeat.getNodeAction()));
+    Assert.assertEquals(metricCount, ClusterMetrics.getMetrics().getNumDecommisionedNMs());
+}

@@ -1,0 +1,43 @@
+public void testFilePermissions() throws IOException {
+    Configuration conf = new HdfsConfiguration();
+    // test chmod on local fs
+    FileSystem fs = FileSystem.getLocal(conf);
+    testChmod(conf, fs, (new File(TEST_ROOT_DIR, "chmodTest")).getAbsolutePath());
+    conf.set(DFSConfigKeys.DFS_PERMISSIONS_ENABLED_KEY, "true");
+    // test chmod on DFS
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).numDataNodes(2).build();
+    fs = cluster.getFileSystem();
+    testChmod(conf, fs, "/tmp/chmodTest");
+    // test chown and chgrp on DFS:
+    FsShell shell = new FsShell();
+    shell.setConf(conf);
+    fs = cluster.getFileSystem();
+    /* For dfs, I am the super user and I can change owner of any file to
+     * anything. "-R" option is already tested by chmod test above.
+     */
+    String file = "/tmp/chownTest";
+    Path path = new Path(file);
+    Path parent = new Path("/tmp");
+    Path root = new Path("/");
+    TestDFSShell.writeFile(fs, path);
+    runCmd(shell, "-chgrp", "-R", "herbivores", "/*", "unknownFile*");
+    confirmOwner(null, "herbivores", fs, parent, path);
+    runCmd(shell, "-chgrp", "mammals", file);
+    confirmOwner(null, "mammals", fs, path);
+    runCmd(shell, "-chown", "-R", ":reptiles", "/");
+    confirmOwner(null, "reptiles", fs, root, parent, path);
+    runCmd(shell, "-chown", "python:", "/nonExistentFile", file);
+    confirmOwner("python", "reptiles", fs, path);
+    runCmd(shell, "-chown", "-R", "hadoop:toys", "unknownFile", "/");
+    confirmOwner("hadoop", "toys", fs, root, parent, path);
+    // Test different characters in names
+    runCmd(shell, "-chown", "hdfs.user", file);
+    confirmOwner("hdfs.user", null, fs, path);
+    runCmd(shell, "-chown", "_Hdfs.User-10:_hadoop.users--", file);
+    confirmOwner("_Hdfs.User-10", "_hadoop.users--", fs, path);
+    runCmd(shell, "-chown", "hdfs/hadoop-core@apache.org:asf-projects", file);
+    confirmOwner("hdfs/hadoop-core@apache.org", "asf-projects", fs, path);
+    runCmd(shell, "-chgrp", "hadoop-core@apache.org/100", file);
+    confirmOwner(null, "hadoop-core@apache.org/100", fs, path);
+    cluster.shutdown();
+}

@@ -1,0 +1,35 @@
+/**
+ * Create a cluster with even distribution, and a new empty node is added to
+ * the cluster, then test node-group locality for balancer policy.
+ */
+@Test(timeout = 60000)
+public void testBalancerWithNodeGroup() throws Exception {
+    Configuration conf = createConf();
+    long[] capacities = new long[] { CAPACITY, CAPACITY, CAPACITY, CAPACITY };
+    String[] racks = new String[] { RACK0, RACK0, RACK1, RACK1 };
+    String[] nodeGroups = new String[] { NODEGROUP0, NODEGROUP0, NODEGROUP1, NODEGROUP2 };
+    int numOfDatanodes = capacities.length;
+    assertEquals(numOfDatanodes, racks.length);
+    assertEquals(numOfDatanodes, nodeGroups.length);
+    MiniDFSCluster.Builder builder = new MiniDFSCluster.Builder(conf).numDataNodes(capacities.length).racks(racks).simulatedCapacities(capacities);
+    MiniDFSClusterWithNodeGroup.setNodeGroups(nodeGroups);
+    cluster = new MiniDFSClusterWithNodeGroup(builder);
+    try {
+        cluster.waitActive();
+        client = NameNodeProxies.createProxy(conf, cluster.getFileSystem(0).getUri(), ClientProtocol.class).getProxy();
+        long totalCapacity = TestBalancer.sum(capacities);
+        // fill up the cluster to be 20% full
+        long totalUsedSpace = totalCapacity * 2 / 10;
+        TestBalancer.createFile(cluster, filePath, totalUsedSpace / (numOfDatanodes / 2), (short) (numOfDatanodes / 2), 0);
+        long newCapacity = CAPACITY;
+        String newRack = RACK1;
+        String newNodeGroup = NODEGROUP2;
+        // start up an empty node with the same capacity and on NODEGROUP2
+        cluster.startDataNodes(conf, 1, true, null, new String[] { newRack }, new long[] { newCapacity }, new String[] { newNodeGroup });
+        totalCapacity += newCapacity;
+        // run balancer and validate results
+        runBalancer(conf, totalUsedSpace, totalCapacity);
+    } finally {
+        cluster.shutdown();
+    }
+}

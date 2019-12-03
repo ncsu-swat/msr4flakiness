@@ -1,0 +1,36 @@
+@Test
+public void testCoordinatorActionEventDependencies() throws Exception {
+    final CoordinatorJobBean coord = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, false, false);
+    final CoordinatorActionBean action = addRecordToCoordActionTable(coord.getId(), 1, CoordinatorAction.Status.RUNNING, "coord-action-get.xml", 0);
+    final JPAService jpaService = Services.get().get(JPAService.class);
+    CoordinatorXCommand<Void> myCmd = new CoordActionCheckXCommand(action.getId(), 0) {
+
+        @Override
+        protected Void execute() {
+            CoordinatorXCommand.generateEvent(action, coord.getUser(), coord.getAppName());
+            return null;
+        }
+    };
+    // CASE 1: Only pull missing deps
+    action.setMissingDependencies("pull");
+    jpaService.execute(new CoordActionUpdateJPAExecutor(action));
+    myCmd.call();
+    CoordinatorActionEvent event = (CoordinatorActionEvent) queue.poll();
+    assertNotNull(event);
+    assertEquals("pull", event.getMissingDeps());
+    // CASE 2: Only hcat (push) missing deps
+    action.setMissingDependencies(null);
+    action.setPushMissingDependencies("push");
+    jpaService.execute(new CoordActionUpdateJPAExecutor(action));
+    myCmd.call();
+    event = (CoordinatorActionEvent) queue.poll();
+    assertNotNull(event);
+    assertEquals("push", event.getMissingDeps());
+    // CASE 3: Both types
+    action.setMissingDependencies("pull");
+    jpaService.execute(new CoordActionUpdateJPAExecutor(action));
+    myCmd.call();
+    event = (CoordinatorActionEvent) queue.poll();
+    assertNotNull(event);
+    assertEquals("pull" + CoordELFunctions.INSTANCE_SEPARATOR + "push", event.getMissingDeps());
+}

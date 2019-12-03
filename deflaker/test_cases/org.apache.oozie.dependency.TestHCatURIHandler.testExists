@@ -1,0 +1,22 @@
+@Test
+public void testExists() throws Exception {
+    createTestTable();
+    addPartition(db, table, "year=2012;month=12;dt=02;country=us");
+    URI hcatURI = getHCatURI(db, table, "country=us;year=2012;month=12;dt=02");
+    URIHandler handler = uriService.getURIHandler(hcatURI);
+    assertTrue(handler.exists(hcatURI, conf, getTestUser()));
+    hcatURI = getHCatURI(db, table, "year=2012;month=12");
+    assertTrue(handler.exists(hcatURI, conf, getTestUser()));
+    addPartition(db, table, "year=2012;month=12;dt=03;country=us");
+    hcatURI = getHCatURI(db, table, "country=us;month=12");
+    assertTrue(handler.exists(hcatURI, conf, getTestUser()));
+    hcatURI = getHCatURI(db, table, "country=us");
+    assertTrue(handler.exists(hcatURI, conf, getTestUser()));
+    hcatURI = getHCatURI(db, table, "dt=02");
+    assertTrue(handler.exists(hcatURI, conf, getTestUser()));
+    hcatURI = getHCatURI(db, table, "dt=05");
+    assertFalse(handler.exists(hcatURI, conf, getTestUser()));
+    hcatURI = getHCatURI(db, table, "month=02;dt=02");
+    assertFalse(handler.exists(hcatURI, conf, getTestUser()));
+    dropTestTable();
+}

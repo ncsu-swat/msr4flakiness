@@ -1,0 +1,61 @@
+@Test
+public void testParseFilterNegative() throws CoordinatorEngineException {
+    final CoordinatorEngine ce = new CoordinatorEngine();
+    // null argument:
+    Map<String, List<String>> map = ce.parseFilter(null);
+    assertNotNull(map);
+    assertEquals(0, map.size());
+    // empty String:
+    map = ce.parseFilter("");
+    assertNotNull(map);
+    assertEquals(0, map.size());
+    // no eq sign in token:
+    try {
+        ce.parseFilter("winniethepooh");
+        fail("CoordinatorEngineException expected.");
+    } catch (CoordinatorEngineException bee) {
+        assertEquals(ErrorCode.E0420, bee.getErrorCode());
+    }
+    // incorrect k=v:
+    try {
+        map = ce.parseFilter("kk=vv=zz");
+        fail("CoordinatorEngineException expected.");
+    } catch (CoordinatorEngineException cee) {
+        assertEquals(ErrorCode.E0420, cee.getErrorCode());
+    }
+    // unknown key in key=value pair:
+    try {
+        ce.parseFilter("foo=moo");
+        fail("CoordinatorEngineException expected.");
+    } catch (CoordinatorEngineException bee) {
+        assertEquals(ErrorCode.E0420, bee.getErrorCode());
+    }
+    // incorrect "status" key value:
+    try {
+        ce.parseFilter("status=foo");
+        fail("CoordinatorEngineException expected.");
+    } catch (CoordinatorEngineException bee) {
+        assertEquals(ErrorCode.E0420, bee.getErrorCode());
+    }
+    // unparseable "frequency" value:
+    try {
+        ce.parseFilter("FreQuency=foo");
+        fail("CoordinatorEngineException expected.");
+    } catch (CoordinatorEngineException bee) {
+        assertEquals(ErrorCode.E0420, bee.getErrorCode());
+    }
+    // unparseable "unit" value:
+    try {
+        ce.parseFilter("UniT=foo");
+        fail("CoordinatorEngineException expected.");
+    } catch (CoordinatorEngineException bee) {
+        assertEquals(ErrorCode.E0420, bee.getErrorCode());
+    }
+    // "unit" specified, but "frequency" is not:
+    try {
+        ce.parseFilter("unit=minutes");
+        fail("CoordinatorEngineException expected.");
+    } catch (CoordinatorEngineException bee) {
+        assertEquals(ErrorCode.E0420, bee.getErrorCode());
+    }
+}

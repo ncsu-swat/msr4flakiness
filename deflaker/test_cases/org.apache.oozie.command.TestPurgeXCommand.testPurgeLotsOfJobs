@@ -1,0 +1,320 @@
+/**
+ * Test : Test purging a lot of jobs (with different parent-child relationships and purge-eligibility) in one go
+ *
+ * @throws Exception
+ */
+public void testPurgeLotsOfJobs() throws Exception {
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    /* Job relationships:
+        bundleJobA              yes     yes
+            coordJobA           yes     ^
+                wfJobA          yes     ^
+                    subwfJobA   yes     ^
+        bundleJobB              no      no
+            coordJobB           yes     ^
+                wfJobB          no      ^
+        coordJobC               no      no
+            wfJobC              no      ^
+                subwfJobC       yes     ^
+        coordJobD               yes     no
+            wfJobD              no      ^
+        wfJobE                  yes     yes
+        wfJobF                  yes     no
+            subwfJobF           no      ^
+        */
+    BundleJobBean bundleJobA = addRecordToBundleJobTable(Job.Status.SUCCEEDED, DateUtils.parseDateOozieTZ("2011-05-01T01:00Z"));
+    BundleJobBean bundleJobB = addRecordToBundleJobTable(Job.Status.SUCCEEDED, DateUtils.parseDateOozieTZ("2011-06-01T01:00Z"));
+    CoordinatorJobBean coordJobA = addRecordToCoordJobTable(CoordinatorJob.Status.SUCCEEDED, false, false);
+    setLastModifiedTime(coordJobA, "2011-03-01T01:00Z");
+    CoordinatorJobBean coordJobB = addRecordToCoordJobTable(CoordinatorJob.Status.SUCCEEDED, false, false);
+    setLastModifiedTime(coordJobB, "2011-03-01T01:00Z");
+    CoordinatorJobBean coordJobC = addRecordToCoordJobTable(CoordinatorJob.Status.SUCCEEDED, false, false);
+    setLastModifiedTime(coordJobC, "2011-07-01T01:00Z");
+    CoordinatorJobBean coordJobD = addRecordToCoordJobTable(CoordinatorJob.Status.SUCCEEDED, false, false);
+    setLastModifiedTime(coordJobD, "2011-06-01T01:00Z");
+    WorkflowJobBean wfJobA = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED);
+    setEndTime(wfJobA, "2011-02-01T01:00Z");
+    WorkflowJobBean wfJobB = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED);
+    setEndTime(wfJobB, "2011-03-01T01:00Z");
+    WorkflowJobBean wfJobC = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED);
+    setEndTime(wfJobC, "2011-06-01T01:00Z");
+    WorkflowJobBean wfJobD = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED);
+    setEndTime(wfJobD, "2011-06-01T01:00Z");
+    WorkflowJobBean wfJobE = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED);
+    setEndTime(wfJobE, "2011-01-01T01:00Z");
+    WorkflowJobBean wfJobF = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED);
+    setEndTime(wfJobF, "2011-01-01T01:00Z");
+    WorkflowActionBean wfActionA = addRecordToWfActionTable(wfJobA.getId(), "1", WorkflowAction.Status.OK);
+    WorkflowActionBean wfActionB = addRecordToWfActionTable(wfJobB.getId(), "1", WorkflowAction.Status.OK);
+    WorkflowActionBean wfActionC = addRecordToWfActionTable(wfJobC.getId(), "1", WorkflowAction.Status.OK);
+    WorkflowActionBean wfActionD = addRecordToWfActionTable(wfJobD.getId(), "1", WorkflowAction.Status.OK);
+    WorkflowActionBean wfActionE = addRecordToWfActionTable(wfJobE.getId(), "1", WorkflowAction.Status.OK);
+    WorkflowActionBean wfActionF = addRecordToWfActionTable(wfJobF.getId(), "1", WorkflowAction.Status.OK);
+    WorkflowJobBean subwfJobA = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED, wfJobA.getId());
+    setEndTime(subwfJobA, "2011-01-01T01:00Z");
+    WorkflowJobBean subwfJobC = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED, wfJobC.getId());
+    setEndTime(subwfJobC, "2011-01-01T01:00Z");
+    WorkflowJobBean subwfJobF = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED, wfJobF.getId());
+    setEndTime(subwfJobF, "2011-04-01T01:00Z");
+    WorkflowActionBean subwfActionA = addRecordToWfActionTable(subwfJobA.getId(), "1", WorkflowAction.Status.OK);
+    WorkflowActionBean subwfActionC = addRecordToWfActionTable(subwfJobC.getId(), "1", WorkflowAction.Status.OK);
+    WorkflowActionBean subwfActionF = addRecordToWfActionTable(subwfJobF.getId(), "1", WorkflowAction.Status.OK);
+    CoordinatorActionBean coordActionA = addRecordToCoordActionTable(coordJobA.getId(), 1, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", wfJobA.getId(), "SUCCEEDED", 0);
+    CoordinatorActionBean coordActionB = addRecordToCoordActionTable(coordJobB.getId(), 1, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", wfJobB.getId(), "SUCCEEDED", 0);
+    CoordinatorActionBean coordActionC = addRecordToCoordActionTable(coordJobC.getId(), 1, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", wfJobC.getId(), "SUCCEEDED", 0);
+    CoordinatorActionBean coordActionD = addRecordToCoordActionTable(coordJobD.getId(), 1, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", wfJobD.getId(), "SUCCEEDED", 0);
+    BundleActionBean bundleActionA = addRecordToBundleActionTable(bundleJobA.getId(), coordJobA.getId(), coordJobA.getAppName(), 0, Job.Status.SUCCEEDED);
+    BundleActionBean bundleActionB = addRecordToBundleActionTable(bundleJobB.getId(), coordJobB.getId(), coordJobB.getAppName(), 0, Job.Status.SUCCEEDED);
+    WorkflowJobGetJPAExecutor wfJobAGetCmd = new WorkflowJobGetJPAExecutor(wfJobA.getId());
+    WorkflowJobGetJPAExecutor wfJobBGetCmd = new WorkflowJobGetJPAExecutor(wfJobB.getId());
+    WorkflowJobGetJPAExecutor wfJobCGetCmd = new WorkflowJobGetJPAExecutor(wfJobC.getId());
+    WorkflowJobGetJPAExecutor wfJobDGetCmd = new WorkflowJobGetJPAExecutor(wfJobD.getId());
+    WorkflowJobGetJPAExecutor wfJobEGetCmd = new WorkflowJobGetJPAExecutor(wfJobE.getId());
+    WorkflowJobGetJPAExecutor wfJobFGetCmd = new WorkflowJobGetJPAExecutor(wfJobF.getId());
+    WorkflowActionGetJPAExecutor wfActionAGetCmd = new WorkflowActionGetJPAExecutor(wfActionA.getId());
+    WorkflowActionGetJPAExecutor wfActionBGetCmd = new WorkflowActionGetJPAExecutor(wfActionB.getId());
+    WorkflowActionGetJPAExecutor wfActionCGetCmd = new WorkflowActionGetJPAExecutor(wfActionC.getId());
+    WorkflowActionGetJPAExecutor wfActionDGetCmd = new WorkflowActionGetJPAExecutor(wfActionD.getId());
+    WorkflowActionGetJPAExecutor wfActionEGetCmd = new WorkflowActionGetJPAExecutor(wfActionE.getId());
+    WorkflowActionGetJPAExecutor wfActionFGetCmd = new WorkflowActionGetJPAExecutor(wfActionF.getId());
+    WorkflowJobGetJPAExecutor subwfJobAGetCmd = new WorkflowJobGetJPAExecutor(subwfJobA.getId());
+    WorkflowJobGetJPAExecutor subwfJobCGetCmd = new WorkflowJobGetJPAExecutor(subwfJobC.getId());
+    WorkflowJobGetJPAExecutor subwfJobFGetCmd = new WorkflowJobGetJPAExecutor(subwfJobF.getId());
+    WorkflowActionGetJPAExecutor subwfActionAGetCmd = new WorkflowActionGetJPAExecutor(subwfActionA.getId());
+    WorkflowActionGetJPAExecutor subwfActionCGetCmd = new WorkflowActionGetJPAExecutor(subwfActionC.getId());
+    WorkflowActionGetJPAExecutor subwfActionFGetCmd = new WorkflowActionGetJPAExecutor(subwfActionF.getId());
+    CoordJobGetJPAExecutor coordJobAGetCmd = new CoordJobGetJPAExecutor(coordJobA.getId());
+    CoordJobGetJPAExecutor coordJobBGetCmd = new CoordJobGetJPAExecutor(coordJobB.getId());
+    CoordJobGetJPAExecutor coordJobCGetCmd = new CoordJobGetJPAExecutor(coordJobC.getId());
+    CoordJobGetJPAExecutor coordJobDGetCmd = new CoordJobGetJPAExecutor(coordJobD.getId());
+    CoordActionGetJPAExecutor coordActionAGetCmd = new CoordActionGetJPAExecutor(coordActionA.getId());
+    CoordActionGetJPAExecutor coordActionBGetCmd = new CoordActionGetJPAExecutor(coordActionB.getId());
+    CoordActionGetJPAExecutor coordActionCGetCmd = new CoordActionGetJPAExecutor(coordActionC.getId());
+    CoordActionGetJPAExecutor coordActionDGetCmd = new CoordActionGetJPAExecutor(coordActionD.getId());
+    BundleJobGetJPAExecutor bundleJobAGetCmd = new BundleJobGetJPAExecutor(bundleJobA.getId());
+    BundleJobGetJPAExecutor bundleJobBGetCmd = new BundleJobGetJPAExecutor(bundleJobB.getId());
+    BundleActionGetJPAExecutor bundleActionAGetCmd = new BundleActionGetJPAExecutor(bundleJobA.getId(), coordJobA.getAppName());
+    BundleActionGetJPAExecutor bundleActionBGetCmd = new BundleActionGetJPAExecutor(bundleJobB.getId(), coordJobB.getAppName());
+    wfJobA = jpaService.execute(wfJobAGetCmd);
+    wfJobB = jpaService.execute(wfJobBGetCmd);
+    wfJobC = jpaService.execute(wfJobCGetCmd);
+    wfJobD = jpaService.execute(wfJobDGetCmd);
+    wfJobE = jpaService.execute(wfJobEGetCmd);
+    wfJobF = jpaService.execute(wfJobFGetCmd);
+    wfActionA = jpaService.execute(wfActionAGetCmd);
+    wfActionB = jpaService.execute(wfActionBGetCmd);
+    wfActionC = jpaService.execute(wfActionCGetCmd);
+    wfActionD = jpaService.execute(wfActionDGetCmd);
+    wfActionE = jpaService.execute(wfActionEGetCmd);
+    wfActionF = jpaService.execute(wfActionFGetCmd);
+    subwfJobA = jpaService.execute(subwfJobAGetCmd);
+    subwfJobC = jpaService.execute(subwfJobCGetCmd);
+    subwfJobF = jpaService.execute(subwfJobFGetCmd);
+    subwfActionA = jpaService.execute(subwfActionAGetCmd);
+    subwfActionC = jpaService.execute(subwfActionCGetCmd);
+    subwfActionF = jpaService.execute(subwfActionFGetCmd);
+    coordJobA = jpaService.execute(coordJobAGetCmd);
+    coordJobB = jpaService.execute(coordJobBGetCmd);
+    coordJobC = jpaService.execute(coordJobCGetCmd);
+    coordJobD = jpaService.execute(coordJobDGetCmd);
+    coordActionA = jpaService.execute(coordActionAGetCmd);
+    coordActionB = jpaService.execute(coordActionBGetCmd);
+    coordActionC = jpaService.execute(coordActionCGetCmd);
+    coordActionD = jpaService.execute(coordActionDGetCmd);
+    bundleJobA = jpaService.execute(bundleJobAGetCmd);
+    bundleJobB = jpaService.execute(bundleJobBGetCmd);
+    bundleActionA = jpaService.execute(bundleActionAGetCmd);
+    bundleActionB = jpaService.execute(bundleActionBGetCmd);
+    assertEquals(WorkflowJob.Status.SUCCEEDED, wfJobA.getStatus());
+    assertEquals(WorkflowJob.Status.SUCCEEDED, wfJobB.getStatus());
+    assertEquals(WorkflowJob.Status.SUCCEEDED, wfJobC.getStatus());
+    assertEquals(WorkflowJob.Status.SUCCEEDED, wfJobD.getStatus());
+    assertEquals(WorkflowJob.Status.SUCCEEDED, wfJobE.getStatus());
+    assertEquals(WorkflowJob.Status.SUCCEEDED, wfJobF.getStatus());
+    assertEquals(WorkflowAction.Status.OK, wfActionA.getStatus());
+    assertEquals(WorkflowAction.Status.OK, wfActionB.getStatus());
+    assertEquals(WorkflowAction.Status.OK, wfActionC.getStatus());
+    assertEquals(WorkflowAction.Status.OK, wfActionD.getStatus());
+    assertEquals(WorkflowAction.Status.OK, wfActionE.getStatus());
+    assertEquals(WorkflowAction.Status.OK, wfActionF.getStatus());
+    assertEquals(WorkflowJob.Status.SUCCEEDED, subwfJobA.getStatus());
+    assertEquals(WorkflowJob.Status.SUCCEEDED, subwfJobC.getStatus());
+    assertEquals(WorkflowJob.Status.SUCCEEDED, subwfJobF.getStatus());
+    assertEquals(WorkflowAction.Status.OK, subwfActionA.getStatus());
+    assertEquals(WorkflowAction.Status.OK, subwfActionC.getStatus());
+    assertEquals(WorkflowAction.Status.OK, subwfActionF.getStatus());
+    assertEquals(CoordinatorJob.Status.SUCCEEDED, coordJobA.getStatus());
+    assertEquals(CoordinatorJob.Status.SUCCEEDED, coordJobB.getStatus());
+    assertEquals(CoordinatorJob.Status.SUCCEEDED, coordJobC.getStatus());
+    assertEquals(CoordinatorJob.Status.SUCCEEDED, coordJobD.getStatus());
+    assertEquals(CoordinatorAction.Status.SUCCEEDED, coordActionA.getStatus());
+    assertEquals(CoordinatorAction.Status.SUCCEEDED, coordActionB.getStatus());
+    assertEquals(CoordinatorAction.Status.SUCCEEDED, coordActionC.getStatus());
+    assertEquals(CoordinatorAction.Status.SUCCEEDED, coordActionD.getStatus());
+    assertEquals(BundleJobBean.Status.SUCCEEDED, bundleJobA.getStatus());
+    assertEquals(BundleJobBean.Status.SUCCEEDED, bundleJobB.getStatus());
+    assertEquals(BundleJobBean.Status.SUCCEEDED, bundleActionA.getStatus());
+    assertEquals(BundleJobBean.Status.SUCCEEDED, bundleActionB.getStatus());
+    new PurgeXCommand(getNumDaysToNotBePurged(wfJobB.getEndTime()), getNumDaysToNotBePurged(coordJobC.getLastModifiedTime()), getNumDaysToNotBePurged(bundleJobB.getLastModifiedTime()), 10).call();
+    try {
+        jpaService.execute(bundleJobAGetCmd);
+        fail("Bundle Job A should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0604, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(bundleActionAGetCmd);
+        fail("Bundle Action A should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0605, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(bundleJobBGetCmd);
+    } catch (JPAExecutorException je) {
+        fail("Bundle Job B should not have been purged");
+    }
+    try {
+        jpaService.execute(bundleActionBGetCmd);
+    } catch (JPAExecutorException je) {
+        fail("Bundle Action B should not have been purged");
+    }
+    try {
+        jpaService.execute(coordJobAGetCmd);
+        fail("Coordinator Job A should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0604, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(coordActionAGetCmd);
+        fail("Coordinator Action A should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0605, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(coordJobBGetCmd);
+    } catch (JPAExecutorException je) {
+        fail("Coordinator Job B should not have been purged");
+    }
+    try {
+        jpaService.execute(coordActionBGetCmd);
+    } catch (JPAExecutorException je) {
+        fail("Coordinator Action B should not have been purged");
+    }
+    try {
+        jpaService.execute(coordJobCGetCmd);
+    } catch (JPAExecutorException je) {
+        fail("Coordinator Job C should not have been purged");
+    }
+    try {
+        jpaService.execute(coordActionCGetCmd);
+    } catch (JPAExecutorException je) {
+        fail("Coordinator Action C should not have been purged");
+    }
+    try {
+        jpaService.execute(coordJobDGetCmd);
+    } catch (JPAExecutorException je) {
+        fail("Coordinator Job D should not have been purged");
+    }
+    try {
+        jpaService.execute(coordActionDGetCmd);
+    } catch (JPAExecutorException je) {
+        fail("Coordinator Action D should not have been purged");
+    }
+    try {
+        jpaService.execute(wfJobAGetCmd);
+        fail("Workflow Job A should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0604, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(wfActionAGetCmd);
+        fail("Workflow Action A should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0605, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(wfJobBGetCmd);
+    } catch (JPAExecutorException je) {
+        fail("Workflow Job B should not have been purged");
+    }
+    try {
+        jpaService.execute(wfActionBGetCmd);
+    } catch (JPAExecutorException je) {
+        fail("Workflow Action B should not have been purged");
+    }
+    try {
+        jpaService.execute(wfJobCGetCmd);
+    } catch (JPAExecutorException je) {
+        fail("Workflow Job C should not have been purged");
+    }
+    try {
+        jpaService.execute(wfActionCGetCmd);
+    } catch (JPAExecutorException je) {
+        fail("Workflow Action C should not have been purged");
+    }
+    try {
+        jpaService.execute(wfJobDGetCmd);
+    } catch (JPAExecutorException je) {
+        fail("Workflow Job D should not have been purged");
+    }
+    try {
+        jpaService.execute(wfActionDGetCmd);
+    } catch (JPAExecutorException je) {
+        fail("Workflow Action D should not have been purged");
+    }
+    try {
+        jpaService.execute(wfJobEGetCmd);
+        fail("Workflow Job E should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0604, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(wfActionEGetCmd);
+        fail("Workflow Action E should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0605, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(wfJobFGetCmd);
+    } catch (JPAExecutorException je) {
+        fail("Workflow Job F should not have been purged");
+    }
+    try {
+        jpaService.execute(wfActionFGetCmd);
+    } catch (JPAExecutorException je) {
+        fail("Workflow Action F should not have been purged");
+    }
+    try {
+        jpaService.execute(subwfJobAGetCmd);
+        fail("SubWorkflow Job A should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0604, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(subwfActionAGetCmd);
+        fail("SubWorkflow Action A should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0605, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(subwfJobCGetCmd);
+    } catch (JPAExecutorException je) {
+        fail("SubWorkflow Job C should not have been purged");
+    }
+    try {
+        jpaService.execute(subwfActionCGetCmd);
+    } catch (JPAExecutorException je) {
+        fail("SubWorkflow Action C should not have been purged");
+    }
+    try {
+        jpaService.execute(subwfJobFGetCmd);
+    } catch (JPAExecutorException je) {
+        fail("SubWorkflow Job F should not have been purged");
+    }
+    try {
+        jpaService.execute(subwfActionFGetCmd);
+    } catch (JPAExecutorException je) {
+        fail("SubWorkflow Action F should not have been purged");
+    }
+}

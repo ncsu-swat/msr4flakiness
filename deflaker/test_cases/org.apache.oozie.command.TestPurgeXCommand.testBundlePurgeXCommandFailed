@@ -1,0 +1,37 @@
+/**
+ * Test : purge bundle job and action failed
+ *
+ * @throws Exception
+ */
+public void testBundlePurgeXCommandFailed() throws Exception {
+    BundleJobBean job = this.addRecordToBundleJobTable(Job.Status.RUNNING, DateUtils.parseDateOozieTZ("2011-01-01T01:00Z"));
+    this.addRecordToBundleActionTable(job.getId(), "action1", 0, Job.Status.RUNNING);
+    this.addRecordToBundleActionTable(job.getId(), "action2", 0, Job.Status.SUCCEEDED);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    BundleJobGetJPAExecutor bundleJobGetExecutor = new BundleJobGetJPAExecutor(job.getId());
+    job = jpaService.execute(bundleJobGetExecutor);
+    assertEquals(Job.Status.RUNNING, job.getStatus());
+    BundleActionGetJPAExecutor bundleActionGetExecutor1 = new BundleActionGetJPAExecutor(job.getId(), "action1");
+    BundleActionBean action1 = jpaService.execute(bundleActionGetExecutor1);
+    assertEquals(Job.Status.RUNNING, action1.getStatus());
+    BundleActionGetJPAExecutor bundleActionGetExecutor2 = new BundleActionGetJPAExecutor(job.getId(), "action2");
+    BundleActionBean action2 = jpaService.execute(bundleActionGetExecutor2);
+    assertEquals(Job.Status.SUCCEEDED, action2.getStatus());
+    new PurgeXCommand(1, 1, 7, 10).call();
+    try {
+        jpaService.execute(bundleJobGetExecutor);
+    } catch (JPAExecutorException je) {
+        fail("Bundle Job should not have been purged");
+    }
+    try {
+        jpaService.execute(bundleActionGetExecutor1);
+    } catch (JPAExecutorException je) {
+        fail("Bundle Action should not have been purged");
+    }
+    try {
+        jpaService.execute(bundleActionGetExecutor2);
+    } catch (JPAExecutorException je) {
+        fail("Bundle Action should not have been purged");
+    }
+}

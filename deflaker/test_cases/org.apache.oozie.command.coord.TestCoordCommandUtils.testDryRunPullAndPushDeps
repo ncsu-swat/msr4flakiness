@@ -1,0 +1,47 @@
+@Test
+public void testDryRunPullAndPushDeps() {
+    try {
+        CoordinatorJobBean job = addRecordToCoordJobTableForWaiting("coord-job-for-matd-hcat.xml", CoordinatorJob.Status.RUNNING, false, true);
+        Path appPath = new Path(getFsTestCaseDir(), "coord");
+        // actionXml only to check whether coord conf got resolved or not
+        String actionXml = getCoordActionXml(appPath, "coord-action-for-action-input-check.xml");
+        CoordinatorActionBean actionBean = createCoordinatorActionBean(job);
+        String testDir = getTestCaseDir();
+        String missDeps = getPullMissingDependencies(testDir);
+        actionBean.setMissingDependencies(missDeps);
+        String db = "default";
+        String table = "tablename";
+        String hcatDependency = getPushMissingDependencies(db, table);
+        actionBean.setPushMissingDependencies(hcatDependency);
+        // Make only pull dependencies available
+        createDir(getTestCaseDir() + "/2009/29/");
+        createDir(getTestCaseDir() + "/2009/22/");
+        createDir(getTestCaseDir() + "/2009/15/");
+        createDir(getTestCaseDir() + "/2009/08/");
+        sleep(1000);
+        Element eAction = createActionElement(actionXml);
+        String newactionXml = CoordCommandUtils.dryRunCoord(eAction, actionBean);
+        eAction = XmlUtils.parseXml(newactionXml);
+        Element configElem = eAction.getChild("action", eAction.getNamespace()).getChild("workflow", eAction.getNamespace()).getChild("configuration", eAction.getNamespace());
+        List<?> elementList = configElem.getChildren("property", configElem.getNamespace());
+        Element e1 = (Element) elementList.get(0);
+        Element e2 = (Element) elementList.get(1);
+        // Make sure conf is not resolved as pull dependencies are met but
+        // push deps are not met
+        assertEquals("${coord:dataIn('A')}", e1.getChild("value", e1.getNamespace()).getValue());
+        assertEquals("${coord:dataOut('LOCAL_A')}", e2.getChild("value", e2.getNamespace()).getValue());
+        populateTable(db, table);
+        newactionXml = CoordCommandUtils.dryRunCoord(eAction, actionBean);
+        eAction = XmlUtils.parseXml(newactionXml);
+        configElem = eAction.getChild("action", eAction.getNamespace()).getChild("workflow", eAction.getNamespace()).getChild("configuration", eAction.getNamespace());
+        elementList = configElem.getChildren("property", configElem.getNamespace());
+        e1 = (Element) elementList.get(0);
+        e2 = (Element) elementList.get(1);
+        // Check for resolved conf
+        assertEquals("file://,testDir/2009/29,file://,testDir/2009/22,file://,testDir/2009/15,file://,testDir/2009/08", e1.getChild("value", e1.getNamespace()).getValue());
+        assertEquals("file://,testDir/2009/29", e2.getChild("value", e1.getNamespace()).getValue());
+    } catch (Exception e) {
+        e.printStackTrace();
+        fail(e.getMessage());
+    }
+}

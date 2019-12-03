@@ -1,0 +1,27 @@
+public void testGenerateCreateScript() throws SQLException {
+    Connection conn = getDirectConnection();
+    prepareDB(conn);
+    ResultSet rs = conn.prepareStatement("SELECT COUNT(*) FROM " + TestTable.TEST_TABLE).executeQuery();
+    rs.next();
+    assertEquals(0, rs.getInt(1));
+    rs.close();
+    conn.prepareStatement("INSERT INTO " + TestTable.TEST_TABLE + "(" + TestColumns.TEST_LONG + ", " + TestColumns.TEST_STRING + ")" + " VALUES(1, 'abcd')").executeUpdate();
+    rs = conn.prepareStatement("SELECT COUNT(*) FROM " + TestTable.TEST_TABLE).executeQuery();
+    rs.next();
+    assertEquals(1, rs.getInt(1));
+    rs.close();
+    boolean pkeyTest = false;
+    try {
+        conn.prepareStatement("INSERT INTO " + TestTable.TEST_TABLE + "(" + TestColumns.TEST_LONG + ", " + TestColumns.TEST_STRING + ")" + " VALUES(1, 'abcd')").executeUpdate();
+    } catch (SQLException e) {
+        pkeyTest = true;
+    }
+    assertEquals(true, pkeyTest);
+    String indexStmt = Schema.generateCreateIndexScript(TestIndex.TEST_INDEX, DBType.HSQL);
+    // Will throw an exception if
+    conn.prepareStatement(indexStmt).execute();
+    // index cant be created
+    conn.prepareStatement("DROP TABLE " + TestTable.TEST_TABLE).execute();
+    dropSchema(conn);
+    conn.close();
+}

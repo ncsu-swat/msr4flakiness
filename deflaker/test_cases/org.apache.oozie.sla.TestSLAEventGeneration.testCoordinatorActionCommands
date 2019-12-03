@@ -1,0 +1,90 @@
+/**
+ * Test for SLA Events generated through Coordinator Action commands
+ *
+ * @throws Exception
+ */
+@Test
+public void testCoordinatorActionCommands() throws Exception {
+    EventHandlerService ehs = services.get(EventHandlerService.class);
+    assertNotNull(ehs);
+    // reduce noise from WF Job events (also default) by setting it to only
+    // coord action
+    ehs.setAppTypes(new HashSet<String>(Arrays.asList(new String[] { "coordinator_action" })));
+    SLAService slas = services.get(SLAService.class);
+    assertNotNull(slas);
+    String coordXml = IOUtils.getResourceAsString("coord-action-sla.xml", -1);
+    Path appPath = getFsTestCaseDir();
+    writeToFile(coordXml, appPath, "coordinator.xml");
+    Configuration conf = new XConfiguration();
+    conf.set(OozieClient.COORDINATOR_APP_PATH, appPath.toString());
+    String wfXml = IOUtils.getResourceAsString("wf-credentials.xml", -1);
+    writeToFile(wfXml, appPath, "workflow.xml");
+    conf.set("wfAppPath", appPath.toString());
+    conf.set(OozieClient.USER_NAME, getTestUser());
+    cal.setTime(new Date());
+    // for start_miss
+    cal.add(Calendar.MINUTE, -20);
+    Date nominal = cal.getTime();
+    String nominalTime = DateUtils.formatDateOozieTZ(nominal);
+    conf.set("nominal_time", nominalTime);
+    cal.setTime(nominal);
+    // as per the sla xml
+    cal.add(Calendar.MINUTE, 10);
+    String expectedStart = DateUtils.formatDateOozieTZ(cal.getTime());
+    cal.setTime(nominal);
+    // as per the sla xml
+    cal.add(Calendar.MINUTE, 30);
+    String expectedEnd = DateUtils.formatDateOozieTZ(cal.getTime());
+    String appName = "test-coord-sla";
+    // testing creation of new sla registration via Submit+Materialize
+    // command
+    CoordSubmitXCommand sc = new CoordSubmitXCommand(conf, "UNIT_TESTING");
+    String jobId = sc.call();
+    // waiting for materialize command to run
+    Thread.sleep(500);
+    final CoordActionGetJPAExecutor getCmd = new CoordActionGetJPAExecutor(jobId + "@1");
+    CoordinatorActionBean action = jpa.execute(getCmd);
+    String actionId = action.getId();
+    SLACalcStatus slaEvent = slas.getSLACalculator().get(actionId);
+    assertEquals(actionId, slaEvent.getJobId());
+    assertEquals(appName, slaEvent.getAppName());
+    assertEquals(AppType.COORDINATOR_ACTION, slaEvent.getAppType());
+    assertEquals(nominalTime, DateUtils.formatDateOozieTZ(slaEvent.getNominalTime()));
+    assertEquals(expectedStart, DateUtils.formatDateOozieTZ(slaEvent.getExpectedStart()));
+    assertEquals(expectedEnd, DateUtils.formatDateOozieTZ(slaEvent.getExpectedEnd()));
+    assertEquals(30 * 60 * 1000, slaEvent.getExpectedDuration());
+    assertEquals(alert_events, slaEvent.getAlertEvents());
+    // clear the coord-action WAITING event generated
+    ehs.getEventQueue().clear();
+    slas.runSLAWorker();
+    slaEvent = (SLACalcStatus) ehs.getEventQueue().poll();
+    assertEquals(SLAStatus.NOT_STARTED, slaEvent.getSLAStatus());
+    assertEquals(EventStatus.START_MISS, slaEvent.getEventStatus());
+    // test that sla processes the Job Event from Start command
+    action.setStatus(CoordinatorAction.Status.SUBMITTED);
+    final CoordActionUpdateJPAExecutor writeCmd = new CoordActionUpdateJPAExecutor(action);
+    jpa.execute(writeCmd);
+    new CoordActionStartXCommand(actionId, getTestUser(), appName, "authtoken", jobId).call();
+    slaEvent = slas.getSLACalculator().get(actionId);
+    // resetting flag for testing sla event
+    slaEvent.setStartProcessed(false);
+    ehs.new EventWorker().run();
+    // time for event listeners to run
+    Thread.sleep(300);
+    slaEvent = (SLACalcStatus) ehs.getEventQueue().poll();
+    assertEquals(actionId, slaEvent.getJobId());
+    assertNotNull(slaEvent.getActualStart());
+    assertEquals(SLAStatus.IN_PROCESS, slaEvent.getSLAStatus());
+    assertEquals(WorkflowJob.Status.RUNNING.name(), slaEvent.getJobStatus());
+    // test that sla processes the Job Event from Kill command
+    new CoordKillXCommand(jobId).call();
+    ehs.new EventWorker().run();
+    // time for event listeners to run
+    Thread.sleep(300);
+    slaEvent = (SLACalcStatus) ehs.getEventQueue().poll();
+    assertEquals(actionId, slaEvent.getJobId());
+    assertNotNull(slaEvent.getActualEnd());
+    assertEquals(EventStatus.END_MISS, slaEvent.getEventStatus());
+    assertEquals(SLAStatus.MISS, slaEvent.getSLAStatus());
+    assertEquals(WorkflowJob.Status.KILLED.name(), slaEvent.getJobStatus());
+}

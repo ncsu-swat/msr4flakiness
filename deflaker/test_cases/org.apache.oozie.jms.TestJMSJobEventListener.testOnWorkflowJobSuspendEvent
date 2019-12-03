@@ -1,0 +1,31 @@
+@Test
+public void testOnWorkflowJobSuspendEvent() throws ParseException {
+    JMSJobEventListener wfEventListener = new JMSJobEventListener();
+    wfEventListener.init(conf);
+    Date startDate = DateUtils.parseDateUTC("2012-07-22T00:00Z");
+    WorkflowJobEvent wfe = new WorkflowJobEvent("wfId1", "caId1", WorkflowJob.Status.SUSPENDED, "user1", "wf-app-name1", startDate, null);
+    ConnectionContext jmsContext = getConnectionContext();
+    try {
+        Session session = jmsContext.createSession(Session.AUTO_ACKNOWLEDGE);
+        MessageConsumer consumer = jmsContext.createConsumer(session, wfEventListener.getTopic(wfe));
+        wfEventListener.onWorkflowJobEvent(wfe);
+        TextMessage message = (TextMessage) consumer.receive(5000);
+        assertFalse(message.getText().contains("endTime"));
+        WorkflowJobMessage wfFailMessage = JMSMessagingUtils.getEventMessage(message);
+        assertEquals(WorkflowJob.Status.SUSPENDED, wfFailMessage.getStatus());
+        assertEquals(startDate, wfFailMessage.getStartTime());
+        assertEquals("wfId1", wfFailMessage.getId());
+        assertEquals("caId1", wfFailMessage.getParentId());
+        assertEquals(MessageType.JOB, wfFailMessage.getMessageType());
+        assertEquals(AppType.WORKFLOW_JOB, wfFailMessage.getAppType());
+        assertEquals(EventStatus.SUSPEND, wfFailMessage.getEventStatus());
+        assertEquals("user1", wfFailMessage.getUser());
+        assertEquals("wf-app-name1", wfFailMessage.getAppName());
+        assertNull(wfFailMessage.getErrorCode());
+        assertNull(wfFailMessage.getErrorMessage());
+        wfEventListener.destroy();
+    } catch (Exception e) {
+        e.printStackTrace();
+        fail(e.getMessage());
+    }
+}

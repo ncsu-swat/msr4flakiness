@@ -1,0 +1,15 @@
+/**
+ * The log streaming itself is tested in
+ * {@link org.apache.oozie.service.TestXLogService}. Here we test only the
+ * fields that are injected into
+ * {@link org.apache.oozie.util.XLogStreamer.Filter} upon
+ * {@link CoordinatorEngine#streamLog(String, Writer)} invocation.
+ */
+public void testStreamLog2() throws Exception {
+    CoordinatorEngine ce = createCoordinatorEngine();
+    String jobId = runJobsImpl(ce);
+    ce.streamLog(jobId, new StringWriter());
+    DummyXLogService service = (DummyXLogService) services.get(XLogService.class);
+    Filter filter = service.filter;
+    assertEquals(filter.getFilterParams().get(DagXLogInfoService.JOB), jobId);
+}

@@ -1,0 +1,27 @@
+@Test
+public void remoteSendsDataAfterInFinished() throws Exception {
+    // write the mocking script
+    // SYN_STREAM
+    peer.acceptFrame();
+    peer.sendFrame().synReply(false, 1, headerEntries("a", "android"));
+    peer.sendFrame().data(true, 1, new OkBuffer().writeUtf8("robot"));
+    // Ignored.
+    peer.sendFrame().data(true, 1, new OkBuffer().writeUtf8("c3po"));
+    // Ping just to make sure the stream was fastforwarded.
+    peer.sendFrame().ping(false, 2, 0);
+    // PING
+    peer.acceptFrame();
+    peer.play();
+    // play it back
+    SpdyConnection connection = connection(peer, SPDY3);
+    SpdyStream stream = connection.newStream(headerEntries("b", "banana"), true, true);
+    assertEquals(headerEntries("a", "android"), stream.getResponseHeaders());
+    assertStreamData("robot", stream.getSource());
+    // verify the peer received what was expected
+    MockSpdyPeer.InFrame synStream = peer.takeFrame();
+    assertEquals(TYPE_HEADERS, synStream.type);
+    assertEquals(HeadersMode.SPDY_SYN_STREAM, synStream.headersMode);
+    MockSpdyPeer.InFrame ping = peer.takeFrame();
+    assertEquals(TYPE_PING, ping.type);
+    assertEquals(2, ping.payload1);
+}

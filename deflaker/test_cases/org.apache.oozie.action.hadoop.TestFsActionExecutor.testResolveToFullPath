@@ -1,0 +1,48 @@
+public void testResolveToFullPath() throws Exception {
+    FsActionExecutor ae = new FsActionExecutor();
+    assertEquals(new Path("hdfs://x/bla"), ae.resolveToFullPath(null, new Path("hdfs://x/bla"), true));
+    assertEquals(new Path("bla"), ae.resolveToFullPath(null, new Path("bla"), false));
+    assertEquals(new Path("hdfs://x/bla"), ae.resolveToFullPath(new Path("hdfs://x"), new Path("/bla"), true));
+    assertEquals(new Path("hdfs://x/bla"), ae.resolveToFullPath(new Path("hdfs://x/ha"), new Path("/bla"), true));
+    assertEquals(new Path("hdfs://x/bla"), ae.resolveToFullPath(new Path("hdfs://z"), new Path("hdfs://x/bla"), true));
+    assertEquals(new Path("hdfs://x/bla"), ae.resolveToFullPath(new Path("hdfs://x"), new Path("hdfs://x/bla"), true));
+    try {
+        ae.resolveToFullPath(null, new Path("hdfs://x/bla"), false);
+        fail();
+    } catch (ActionExecutorException ex) {
+        assertEquals("FS002", ex.getErrorCode());
+    }
+    try {
+        ae.resolveToFullPath(null, new Path("bla"), true);
+        fail();
+    } catch (ActionExecutorException ex) {
+        assertEquals("FS001", ex.getErrorCode());
+    }
+    Services.get().destroy();
+    setSystemProperty(HadoopAccessorService.SUPPORTED_FILESYSTEMS, null);
+    new Services().init();
+    try {
+        ae.resolveToFullPath(null, new Path("file://bla"), true);
+        fail();
+    } catch (ActionExecutorException ex) {
+        assertTrue(ex.getMessage().contains("E0904"));
+    }
+    try {
+        ae.resolveToFullPath(new Path("hdfs://z"), new Path("hdfs://x/bla"), false);
+        fail();
+    } catch (ActionExecutorException ex) {
+        assertEquals("FS002", ex.getErrorCode());
+    }
+    try {
+        ae.resolveToFullPath(new Path("hdfs://z"), new Path("bla"), true);
+        fail();
+    } catch (ActionExecutorException ex) {
+        assertEquals("FS011", ex.getErrorCode());
+    }
+    try {
+        ae.resolveToFullPath(new Path("hdfs://z"), new Path("file://bla"), true);
+        fail();
+    } catch (ActionExecutorException ex) {
+        assertTrue(ex.getMessage().contains("E0904"));
+    }
+}

@@ -1,0 +1,21 @@
+/**
+ * Change the pause time and end time of a failed coordinator job. Check whether the status changes
+ * to RUNNINGWITHERROR
+ * @throws Exception
+ */
+public void testCoordChangeStatus() throws Exception {
+    Services.get().destroy();
+    setSystemProperty(StatusTransitService.CONF_BACKWARD_SUPPORT_FOR_STATES_WITHOUT_ERROR, "false");
+    services = new Services();
+    services.init();
+    Date startTime = new Date();
+    Date endTime = new Date(startTime.getTime() + (20 * 60 * 1000));
+    final CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.FAILED, startTime, endTime, true, true, 0);
+    String pauseTime = convertDateToString(startTime.getTime() + 10 * 60 * 1000);
+    String newEndTime = convertDateToString(startTime.getTime() + 40 * 60 * 1000);
+    new CoordChangeXCommand(job.getId(), "endtime=" + newEndTime + ";pausetime=" + pauseTime).call();
+    JPAService jpaService = Services.get().get(JPAService.class);
+    CoordJobGetJPAExecutor coordGetCmd = new CoordJobGetJPAExecutor(job.getId());
+    CoordinatorJobBean coordJob = jpaService.execute(coordGetCmd);
+    assertEquals(Job.Status.RUNNINGWITHERROR, coordJob.getStatus());
+}

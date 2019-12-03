@@ -1,0 +1,16 @@
+/**
+ * Test if replication can detect mismatched length on-disk blocks
+ * @throws Exception
+ */
+public void testReplicateLenMismatchedBlock() throws Exception {
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(new HdfsConfiguration()).numDataNodes(2).build();
+    try {
+        cluster.waitActive();
+        // test truncated block
+        changeBlockLen(cluster, -1);
+        // test extended block
+        changeBlockLen(cluster, 1);
+    } finally {
+        cluster.shutdown();
+    }
+}

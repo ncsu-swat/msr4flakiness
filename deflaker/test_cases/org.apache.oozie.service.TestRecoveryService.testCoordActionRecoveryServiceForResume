@@ -1,0 +1,28 @@
+/**
+ * Tests functionality of the Recovery Service Runnable command. </p> Insert a coordinator job with RUNNING and
+ * action with RUNNING and workflow with SUSPENDED. Then, runs the recovery runnable and ensures the workflow status changes to RUNNING.
+ *
+ * @throws Exception
+ */
+public void testCoordActionRecoveryServiceForResume() throws Exception {
+    CoordinatorJobBean coordJob = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, false, false);
+    WorkflowJobBean wfJob = addRecordToWfJobTable(WorkflowJob.Status.SUSPENDED, WorkflowInstance.Status.SUSPENDED);
+    final String wfJobId = wfJob.getId();
+    addRecordToCoordActionTable(coordJob.getId(), 1, CoordinatorAction.Status.RUNNING, "coord-action-get.xml", wfJobId, "SUSPENDED", 1);
+    sleep(3000);
+    Runnable recoveryRunnable = new RecoveryRunnable(0, 1, 1);
+    recoveryRunnable.run();
+    final JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    waitFor(10000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            WorkflowJobGetJPAExecutor wfGetCmd = new WorkflowJobGetJPAExecutor(wfJobId);
+            WorkflowJobBean ret = jpaService.execute(wfGetCmd);
+            return (ret.getStatus() == WorkflowJob.Status.RUNNING);
+        }
+    });
+    WorkflowJobGetJPAExecutor wfGetCmd = new WorkflowJobGetJPAExecutor(wfJobId);
+    WorkflowJobBean ret = jpaService.execute(wfGetCmd);
+    assertEquals(WorkflowJob.Status.RUNNING, ret.getStatus());
+}

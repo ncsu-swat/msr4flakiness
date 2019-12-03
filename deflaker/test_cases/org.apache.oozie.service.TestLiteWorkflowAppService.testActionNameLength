@@ -1,0 +1,23 @@
+public void testActionNameLength() throws Exception {
+    setSystemProperty("oozie.service.ActionService.executor.ext.classes", TestActionExecutor.class.getName());
+    Services services = new Services();
+    try {
+        services.init();
+        Reader reader = IOUtils.getResourceAsReader("wf-schema-action-name-too-long.xml", -1);
+        Writer writer = new FileWriter(getTestCaseDir() + "/workflow.xml");
+        IOUtils.copyCharStream(reader, writer);
+        WorkflowAppService wps = services.get(WorkflowAppService.class);
+        Configuration jobConf = new XConfiguration();
+        jobConf.set(OozieClient.APP_PATH, "file://" + getTestCaseDir() + File.separator + "workflow.xml");
+        jobConf.set(OozieClient.USER_NAME, getTestUser());
+        try {
+            LiteWorkflowApp app = (LiteWorkflowApp) wps.parseDef(jobConf, "authToken");
+            fail();
+        } catch (WorkflowException ex) {
+            assertEquals(ErrorCode.E0724, ex.getErrorCode());
+        // nop
+        }
+    } finally {
+        services.destroy();
+    }
+}

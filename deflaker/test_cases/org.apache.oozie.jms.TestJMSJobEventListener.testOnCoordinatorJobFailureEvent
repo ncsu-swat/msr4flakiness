@@ -1,0 +1,36 @@
+@Test
+public void testOnCoordinatorJobFailureEvent() throws ParseException {
+    JMSJobEventListener coordEventListener = new JMSJobEventListener();
+    coordEventListener.init(conf);
+    Date startDate = DateUtils.parseDateUTC("2012-07-22T00:00Z");
+    Date nominalTime = DateUtils.parseDateUTC("2011-07-11T00:00Z");
+    Date endDate = new Date();
+    CoordinatorActionEvent cae = new CoordinatorActionEvent("caId1", "caJobId1", CoordinatorAction.Status.FAILED, "user1", "wf-app-name1", nominalTime, startDate, null);
+    cae.setEndTime(endDate);
+    cae.setErrorCode("E0101");
+    cae.setErrorMessage("dummyError");
+    ConnectionContext jmsContext = getConnectionContext();
+    try {
+        Session session = jmsContext.createSession(Session.AUTO_ACKNOWLEDGE);
+        MessageConsumer consumer = jmsContext.createConsumer(session, coordEventListener.getTopic(cae));
+        coordEventListener.onCoordinatorActionEvent(cae);
+        TextMessage message = (TextMessage) consumer.receive(5000);
+        assertFalse(message.getText().contains("missingDependency"));
+        CoordinatorActionMessage coordActionFailMessage = JMSMessagingUtils.getEventMessage(message);
+        assertEquals(CoordinatorAction.Status.FAILED, coordActionFailMessage.getStatus());
+        assertEquals(startDate, coordActionFailMessage.getStartTime());
+        assertEquals(endDate, coordActionFailMessage.getEndTime());
+        assertEquals("caJobId1", coordActionFailMessage.getParentId());
+        assertEquals("caId1", coordActionFailMessage.getId());
+        assertEquals(MessageType.JOB, coordActionFailMessage.getMessageType());
+        assertEquals(AppType.COORDINATOR_ACTION, coordActionFailMessage.getAppType());
+        assertEquals(EventStatus.FAILURE, coordActionFailMessage.getEventStatus());
+        assertEquals("user1", coordActionFailMessage.getUser());
+        assertEquals("wf-app-name1", coordActionFailMessage.getAppName());
+        assertEquals("E0101", coordActionFailMessage.getErrorCode());
+        assertEquals("dummyError", coordActionFailMessage.getErrorMessage());
+    } catch (Exception e) {
+        e.printStackTrace();
+        fail(e.getMessage());
+    }
+}

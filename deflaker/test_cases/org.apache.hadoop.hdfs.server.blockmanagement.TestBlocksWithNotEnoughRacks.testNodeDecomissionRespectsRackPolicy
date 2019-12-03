@@ -1,0 +1,41 @@
+/*
+   * Test that rack policy is still respected when blocks are replicated
+   * due to node decommissioning.
+   */
+@Test
+public void testNodeDecomissionRespectsRackPolicy() throws Exception {
+    Configuration conf = getConf();
+    short REPLICATION_FACTOR = 2;
+    final Path filePath = new Path("/testFile");
+    // Configure an excludes file
+    FileSystem localFileSys = FileSystem.getLocal(conf);
+    Path workingDir = localFileSys.getWorkingDirectory();
+    Path dir = new Path(workingDir, "build/test/data/temp/decommission");
+    Path excludeFile = new Path(dir, "exclude");
+    assertTrue(localFileSys.mkdirs(dir));
+    DFSTestUtil.writeFile(localFileSys, excludeFile, "");
+    conf.set("dfs.hosts.exclude", excludeFile.toUri().getPath());
+    // Two blocks and four racks
+    String[] racks = { "/rack1", "/rack1", "/rack2", "/rack2" };
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).numDataNodes(racks.length).racks(racks).build();
+    final FSNamesystem ns = cluster.getNameNode().getNamesystem();
+    try {
+        // Create a file with one block
+        final FileSystem fs = cluster.getFileSystem();
+        DFSTestUtil.createFile(fs, filePath, 1L, REPLICATION_FACTOR, 1L);
+        ExtendedBlock b = DFSTestUtil.getFirstBlock(fs, filePath);
+        DFSTestUtil.waitForReplication(cluster, b, 2, REPLICATION_FACTOR, 0);
+        // Decommission one of the hosts with the block, this should cause
+        // the block to get replicated to another host on the same rack,
+        // otherwise the rack policy is violated.
+        BlockLocation[] locs = fs.getFileBlockLocations(fs.getFileStatus(filePath), 0, Long.MAX_VALUE);
+        String name = locs[0].getNames()[0];
+        DFSTestUtil.writeFile(localFileSys, excludeFile, name);
+        ns.getBlockManager().getDatanodeManager().refreshNodes(conf);
+        DFSTestUtil.waitForDecommission(fs, name);
+        // Check the block still has sufficient # replicas across racks
+        DFSTestUtil.waitForReplication(cluster, b, 2, REPLICATION_FACTOR, 0);
+    } finally {
+        cluster.shutdown();
+    }
+}

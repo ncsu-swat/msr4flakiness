@@ -1,0 +1,45 @@
+/**
+ * Test bulk updates and deletes rollback
+ *
+ * @throws Exception
+ */
+public void testBulkUpdatesDeletesRollback() throws Exception {
+    WorkflowJobBean job = addRecordToWfJobTable(WorkflowJob.Status.PREP, WorkflowInstance.Status.PREP);
+    WorkflowActionBean action1 = addRecordToWfActionTable(job.getId(), "1", WorkflowAction.Status.PREP);
+    WorkflowActionBean action2 = addRecordToWfActionTable(job.getId(), "2", WorkflowAction.Status.PREP);
+    job.setStatus(WorkflowJob.Status.RUNNING);
+    List<JsonBean> deleteList = new ArrayList<JsonBean>();
+    // Add two actions to delete list
+    deleteList.add(action1);
+    deleteList.add(action2);
+    List<JsonBean> updateList = new ArrayList<JsonBean>();
+    // Add to update list
+    updateList.add(job);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    BulkUpdateDeleteJPAExecutor wfUpdateCmd1 = new BulkUpdateDeleteJPAExecutor(updateList, deleteList, true);
+    // set fault injection to true, so transaction is roll backed
+    setSystemProperty(FaultInjection.FAULT_INJECTION, "true");
+    setSystemProperty(SkipCommitFaultInjection.ACTION_FAILOVER_FAULT_INJECTION, "true");
+    try {
+        jpaService.execute(wfUpdateCmd1);
+        fail("Expected exception due to commit failure but didn't get any");
+    } catch (Exception e) {
+    }
+    FaultInjection.deactivate("org.apache.oozie.command.SkipCommitFaultInjection");
+    // Check whether transactions are rolled back or not
+    WorkflowJobGetJPAExecutor wfGetCmd = new WorkflowJobGetJPAExecutor(job.getId());
+    WorkflowJobBean wfBean = jpaService.execute(wfGetCmd);
+    // status should NOT be RUNNING
+    assertEquals("PREP", wfBean.getStatusStr());
+    try {
+        jpaService.execute(new WorkflowActionGetJPAExecutor(action1.getId()));
+    } catch (JPAExecutorException je) {
+        fail("WF action should not be removed due to rollback but was not found");
+    }
+    try {
+        jpaService.execute(new WorkflowActionGetJPAExecutor(action2.getId()));
+    } catch (JPAExecutorException je) {
+        fail("WF action should not be removed due to rollback but was not found");
+    }
+}

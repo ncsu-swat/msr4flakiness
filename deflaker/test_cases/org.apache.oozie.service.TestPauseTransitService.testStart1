@@ -1,0 +1,24 @@
+/**
+ * Test : Start a PREP bundle when its kickoff time reaches.
+ *
+ * @throws Exception
+ */
+public void testStart1() throws Exception {
+    BundleJobBean job = this.addRecordToBundleJobTable(Job.Status.PREP, false);
+    final JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    job.setKickoffTime(new Date(new Date().getTime() - 30 * 1000));
+    jpaService.execute(new BundleJobUpdateJPAExecutor(job));
+    Runnable pauseStartRunnable = new PauseTransitRunnable();
+    pauseStartRunnable.run();
+    final String jobId = job.getId();
+    waitFor(10 * 1000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            BundleJobBean job1 = jpaService.execute(new BundleJobGetJPAExecutor(jobId));
+            return job1.getStatus() == Job.Status.RUNNING;
+        }
+    });
+    job = jpaService.execute(new BundleJobGetJPAExecutor(jobId));
+    assertEquals(Job.Status.RUNNING, job.getStatus());
+}

@@ -1,0 +1,31 @@
+/**
+ * Test the retry count while used in a retry proxy.
+ */
+@Test(timeout = 60000)
+public void testRetryProxy() throws IOException {
+    final Client client = new Client(LongWritable.class, conf);
+    final TestServer server = new TestServer(1, false);
+    server.callListener = new Runnable() {
+
+        private int retryCount = 0;
+
+        @Override
+        public void run() {
+            Assert.assertEquals(retryCount++, Server.getCallRetryCount());
+        }
+    };
+    // try more times, so it is easier to find race condition bug
+    // 10000 times runs about 6s on a core i7 machine
+    final int totalRetry = 10000;
+    DummyProtocol proxy = (DummyProtocol) Proxy.newProxyInstance(DummyProtocol.class.getClassLoader(), new Class[] { DummyProtocol.class }, new TestInvocationHandler(client, server, totalRetry));
+    DummyProtocol retryProxy = (DummyProtocol) RetryProxy.create(DummyProtocol.class, proxy, RetryPolicies.RETRY_FOREVER);
+    try {
+        server.start();
+        retryProxy.dummyRun();
+        Assert.assertEquals(TestInvocationHandler.retry, totalRetry + 1);
+    } finally {
+        Client.setCallIdAndRetryCount(0, 0);
+        client.stop();
+        server.stop();
+    }
+}

@@ -1,0 +1,24 @@
+/**
+ * Test : Start bundle job with dryrun
+ *
+ * @throws Exception
+ */
+public void testBundleStartDryrun() throws Exception {
+    BundleJobBean job = this.addRecordToBundleJobTable(Job.Status.PREP, false);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    BundleJobGetJPAExecutor bundleJobGetExecutor = new BundleJobGetJPAExecutor(job.getId());
+    job = jpaService.execute(bundleJobGetExecutor);
+    assertEquals(job.getStatus(), Job.Status.PREP);
+    new BundleStartXCommand(job.getId(), true).call();
+    job = jpaService.execute(bundleJobGetExecutor);
+    assertEquals(job.getStatus(), Job.Status.RUNNING);
+    sleep(2000);
+    BundleActionsGetJPAExecutor bundleActionsGetExecutor = new BundleActionsGetJPAExecutor(job.getId());
+    List<BundleActionBean> actions = jpaService.execute(bundleActionsGetExecutor);
+    assertEquals(2, actions.size());
+    assertEquals(true, actions.get(0).isCritical());
+    assertEquals(job.getId(), actions.get(0).getBundleId());
+    assertEquals(false, actions.get(1).isCritical());
+    assertEquals(job.getId(), actions.get(1).getBundleId());
+}

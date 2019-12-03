@@ -1,0 +1,27 @@
+public void testSchema() throws Exception {
+    Services services = new Services();
+    try {
+        services.init();
+        Reader reader = IOUtils.getResourceAsReader("wf-schema-valid.xml", -1);
+        Writer writer = new FileWriter(getTestCaseDir() + "/workflow.xml");
+        IOUtils.copyCharStream(reader, writer);
+        WorkflowAppService wps = services.get(WorkflowAppService.class);
+        Configuration jobConf = new XConfiguration();
+        jobConf.set(OozieClient.APP_PATH, "file://" + getTestCaseDir() + File.separator + "workflow.xml");
+        jobConf.set(OozieClient.USER_NAME, getTestUser());
+        WorkflowApp app = wps.parseDef(jobConf, "authToken");
+        assertNotNull(app);
+        assertEquals("test-wf", app.getName());
+        reader = IOUtils.getResourceAsReader("wf-schema-invalid.xml", -1);
+        writer = new FileWriter(getTestCaseDir() + "/workflow.xml");
+        IOUtils.copyCharStream(reader, writer);
+        try {
+            wps.parseDef(jobConf, "authToken");
+            fail();
+        } catch (WorkflowException ex) {
+        // nop
+        }
+    } finally {
+        services.destroy();
+    }
+}

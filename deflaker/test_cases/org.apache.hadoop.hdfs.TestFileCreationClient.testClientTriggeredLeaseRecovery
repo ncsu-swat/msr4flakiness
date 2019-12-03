@@ -1,0 +1,60 @@
+/**
+ * Test lease recovery Triggered by DFSClient.
+ */
+public void testClientTriggeredLeaseRecovery() throws Exception {
+    final int REPLICATION = 3;
+    Configuration conf = new HdfsConfiguration();
+    conf.setInt(DFSConfigKeys.DFS_DATANODE_HANDLER_COUNT_KEY, 1);
+    conf.setInt(DFSConfigKeys.DFS_REPLICATION_KEY, REPLICATION);
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).numDataNodes(REPLICATION).build();
+    try {
+        final FileSystem fs = cluster.getFileSystem();
+        final Path dir = new Path("/wrwelkj");
+        SlowWriter[] slowwriters = new SlowWriter[10];
+        for (int i = 0; i < slowwriters.length; i++) {
+            slowwriters[i] = new SlowWriter(fs, new Path(dir, "file" + i));
+        }
+        try {
+            for (int i = 0; i < slowwriters.length; i++) {
+                slowwriters[i].start();
+            }
+            // let writers get started
+            Thread.sleep(1000);
+            // stop a datanode, it should have least recover.
+            cluster.stopDataNode(AppendTestUtil.nextInt(REPLICATION));
+            // let the slow writer writes a few more seconds
+            System.out.println("Wait a few seconds");
+            Thread.sleep(5000);
+        } finally {
+            for (int i = 0; i < slowwriters.length; i++) {
+                if (slowwriters[i] != null) {
+                    slowwriters[i].running = false;
+                    slowwriters[i].interrupt();
+                }
+            }
+            for (int i = 0; i < slowwriters.length; i++) {
+                if (slowwriters[i] != null) {
+                    slowwriters[i].join();
+                }
+            }
+        }
+        // Verify the file
+        System.out.println("Verify the file");
+        for (int i = 0; i < slowwriters.length; i++) {
+            System.out.println(slowwriters[i].filepath + ": length=" + fs.getFileStatus(slowwriters[i].filepath).getLen());
+            FSDataInputStream in = null;
+            try {
+                in = fs.open(slowwriters[i].filepath);
+                for (int j = 0, x; (x = in.read()) != -1; j++) {
+                    assertEquals(j, x);
+                }
+            } finally {
+                IOUtils.closeStream(in);
+            }
+        }
+    } finally {
+        if (cluster != null) {
+            cluster.shutdown();
+        }
+    }
+}

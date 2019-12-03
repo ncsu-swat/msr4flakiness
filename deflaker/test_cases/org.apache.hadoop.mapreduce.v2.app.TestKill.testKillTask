@@ -1,0 +1,32 @@
+@Test
+public void testKillTask() throws Exception {
+    final CountDownLatch latch = new CountDownLatch(1);
+    MRApp app = new BlockingMRApp(2, 0, latch);
+    // this will start the job but job won't complete as Task is blocked
+    Job job = app.submit(new Configuration());
+    // wait and vailidate for Job to become RUNNING
+    app.waitForState(job, JobState.RUNNING);
+    Map<TaskId, Task> tasks = job.getTasks();
+    Assert.assertEquals("No of tasks is not correct", 2, tasks.size());
+    Iterator<Task> it = tasks.values().iterator();
+    Task task1 = it.next();
+    Task task2 = it.next();
+    // send the kill signal to the first Task
+    app.getContext().getEventHandler().handle(new TaskEvent(task1.getID(), TaskEventType.T_KILL));
+    // unblock Task
+    latch.countDown();
+    // wait and validate for Job to become SUCCEEDED
+    app.waitForState(job, JobState.SUCCEEDED);
+    // first Task is killed and second is Succeeded
+    // Job is succeeded
+    Assert.assertEquals("Task state not correct", TaskState.KILLED, task1.getReport().getTaskState());
+    Assert.assertEquals("Task state not correct", TaskState.SUCCEEDED, task2.getReport().getTaskState());
+    Map<TaskAttemptId, TaskAttempt> attempts = task1.getAttempts();
+    Assert.assertEquals("No of attempts is not correct", 1, attempts.size());
+    Iterator<TaskAttempt> iter = attempts.values().iterator();
+    Assert.assertEquals("Attempt state not correct", TaskAttemptState.KILLED, iter.next().getReport().getTaskAttemptState());
+    attempts = task2.getAttempts();
+    Assert.assertEquals("No of attempts is not correct", 1, attempts.size());
+    iter = attempts.values().iterator();
+    Assert.assertEquals("Attempt state not correct", TaskAttemptState.SUCCEEDED, iter.next().getReport().getTaskAttemptState());
+}

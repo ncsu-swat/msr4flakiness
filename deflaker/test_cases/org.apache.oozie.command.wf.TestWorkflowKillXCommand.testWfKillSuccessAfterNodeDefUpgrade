@@ -1,0 +1,37 @@
+/**
+ * Test : kill RUNNING job after NodeDef upgrade.
+ *
+ * @throws Exception
+ */
+public void testWfKillSuccessAfterNodeDefUpgrade() throws Exception {
+    services.destroy();
+    setSystemProperty(LiteWorkflowStoreService.CONF_NODE_DEF_VERSION, LiteWorkflowStoreService.NODE_DEF_VERSION_0);
+    services = new Services();
+    services.init();
+    WorkflowJobBean job = this.addRecordToWfJobTable(WorkflowJob.Status.RUNNING, WorkflowInstance.Status.RUNNING);
+    WorkflowActionBean action = this.addRecordToWfActionTable(job.getId(), "1", WorkflowAction.Status.PREP);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    WorkflowJobGetJPAExecutor wfJobGetCmd = new WorkflowJobGetJPAExecutor(job.getId());
+    WorkflowActionGetJPAExecutor wfActionGetCmd = new WorkflowActionGetJPAExecutor(action.getId());
+    job = jpaService.execute(wfJobGetCmd);
+    action = jpaService.execute(wfActionGetCmd);
+    assertEquals(job.getStatus(), WorkflowJob.Status.RUNNING);
+    assertEquals(action.getStatus(), WorkflowAction.Status.PREP);
+    WorkflowInstance wfInstance = job.getWorkflowInstance();
+    assertEquals(wfInstance.getStatus(), WorkflowInstance.Status.RUNNING);
+    services.destroy();
+    sleep(5000);
+    setSystemProperty(LiteWorkflowStoreService.CONF_NODE_DEF_VERSION, LiteWorkflowStoreService.NODE_DEF_VERSION_1);
+    services = new Services();
+    services.init();
+    sleep(5000);
+    new KillXCommand(job.getId()).call();
+    jpaService = Services.get().get(JPAService.class);
+    job = jpaService.execute(wfJobGetCmd);
+    action = jpaService.execute(wfActionGetCmd);
+    assertEquals(job.getStatus(), WorkflowJob.Status.KILLED);
+    assertEquals(action.getStatus(), WorkflowAction.Status.KILLED);
+    wfInstance = job.getWorkflowInstance();
+    assertEquals(wfInstance.getStatus(), WorkflowInstance.Status.KILLED);
+}

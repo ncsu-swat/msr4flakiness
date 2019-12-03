@@ -1,0 +1,58 @@
+public void testCopyToLocal() throws IOException {
+    Configuration conf = new HdfsConfiguration();
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).numDataNodes(2).build();
+    FileSystem fs = cluster.getFileSystem();
+    assertTrue("Not a HDFS: " + fs.getUri(), fs instanceof DistributedFileSystem);
+    DistributedFileSystem dfs = (DistributedFileSystem) fs;
+    FsShell shell = new FsShell();
+    shell.setConf(conf);
+    try {
+        String root = createTree(dfs, "copyToLocal");
+        // Verify copying the tree
+        {
+            try {
+                assertEquals(0, runCmd(shell, "-copyToLocal", root + "*", TEST_ROOT_DIR));
+            } catch (Exception e) {
+                System.err.println("Exception raised from DFSShell.run " + e.getLocalizedMessage());
+            }
+            File localroot = new File(TEST_ROOT_DIR, "copyToLocal");
+            File localroot2 = new File(TEST_ROOT_DIR, "copyToLocal2");
+            File f1 = new File(localroot, "f1");
+            assertTrue("Copying failed.", f1.isFile());
+            File f2 = new File(localroot, "f2");
+            assertTrue("Copying failed.", f2.isFile());
+            File sub = new File(localroot, "sub");
+            assertTrue("Copying failed.", sub.isDirectory());
+            File f3 = new File(sub, "f3");
+            assertTrue("Copying failed.", f3.isFile());
+            File f4 = new File(sub, "f4");
+            assertTrue("Copying failed.", f4.isFile());
+            File f5 = new File(localroot2, "f1");
+            assertTrue("Copying failed.", f5.isFile());
+            f1.delete();
+            f2.delete();
+            f3.delete();
+            f4.delete();
+            f5.delete();
+            sub.delete();
+        }
+        // Verify copying non existing sources do not create zero byte
+        // destination files
+        {
+            String[] args = { "-copyToLocal", "nosuchfile", TEST_ROOT_DIR };
+            try {
+                assertEquals(1, shell.run(args));
+            } catch (Exception e) {
+                System.err.println("Exception raised from DFSShell.run " + e.getLocalizedMessage());
+            }
+            File f6 = new File(TEST_ROOT_DIR, "nosuchfile");
+            assertTrue(!f6.exists());
+        }
+    } finally {
+        try {
+            dfs.close();
+        } catch (Exception e) {
+        }
+        cluster.shutdown();
+    }
+}

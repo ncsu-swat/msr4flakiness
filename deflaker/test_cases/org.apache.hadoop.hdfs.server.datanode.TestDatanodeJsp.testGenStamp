@@ -1,0 +1,16 @@
+@Test
+public void testGenStamp() throws Exception {
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(CONF).numDataNodes(1).build();
+    try {
+        FileSystem fs = cluster.getFileSystem();
+        Path testFile = new Path("/test/mkdirs/TestchunkSizeToView");
+        writeFile(fs, testFile);
+        JspWriter writerMock = Mockito.mock(JspWriter.class);
+        HttpServletRequest reqMock = Mockito.mock(HttpServletRequest.class);
+        setTheMockExpectationsFromReq(testFile, reqMock);
+        DatanodeJspHelper.generateFileDetails(writerMock, reqMock, CONF);
+        Mockito.verify(writerMock, Mockito.atLeastOnce()).print("<input type=\"hidden\" name=\"genstamp\" value=\"987654321\">");
+    } finally {
+        cluster.shutdown();
+    }
+}

@@ -1,0 +1,60 @@
+/**
+ * Tests the {@link org.apache.oozie.service.PurgeService}.
+ * </p>
+ * Creates and runs a new workflow job to completion.
+ * Attempts to purge jobs older than a day. Verifies the presence of the job in the system.
+ * </p>
+ * Sets the end date for the same job to make it qualify for the purge criteria.
+ * Calls the purge service, and ensure the job does not exist in the system.
+ */
+public void testPurgeServiceForWorkflow() throws Exception {
+    Reader reader = IOUtils.getResourceAsReader("wf-ext-schema-valid.xml", -1);
+    Writer writer = new FileWriter(getTestCaseDir() + "/workflow.xml");
+    IOUtils.copyCharStream(reader, writer);
+    final DagEngine engine = new DagEngine("u", "a");
+    Configuration conf = new XConfiguration();
+    conf.set(OozieClient.APP_PATH, "file://" + getTestCaseDir() + File.separator + "workflow.xml");
+    conf.setStrings(OozieClient.USER_NAME, getTestUser());
+    conf.setStrings(OozieClient.GROUP_NAME, getTestGroup());
+    conf.set(OozieClient.LOG_TOKEN, "t");
+    conf.set("external-status", "ok");
+    conf.set("signal-value", "based_on_action_status");
+    final String jobId = engine.submitJob(conf, true);
+    waitFor(5000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            return (engine.getJob(jobId).getStatus() == WorkflowJob.Status.SUCCEEDED);
+        }
+    });
+    assertEquals(WorkflowJob.Status.SUCCEEDED, engine.getJob(jobId).getStatus());
+    new PurgeXCommand(1, 1, 1, 10000).call();
+    sleep(1000);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    WorkflowJobGetJPAExecutor wfJobGetCmd = new WorkflowJobGetJPAExecutor(jobId);
+    WorkflowJobBean wfBean = jpaService.execute(wfJobGetCmd);
+    Date endDate = new Date(System.currentTimeMillis() - 2 * 24 * 60 * 60 * 1000);
+    wfBean.setEndTime(endDate);
+    WorkflowJobUpdateJPAExecutor wfUpdateCmd = new WorkflowJobUpdateJPAExecutor(wfBean);
+    jpaService.execute(wfUpdateCmd);
+    Runnable purgeRunnable = new PurgeRunnable(1, 1, 1, 100);
+    purgeRunnable.run();
+    waitFor(10000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            try {
+                engine.getJob(jobId).getStatus();
+            } catch (Exception ex) {
+                return true;
+            }
+            return false;
+        }
+    });
+    try {
+        engine.getJob(jobId).getStatus();
+        fail("Job should be purged. Should fail.");
+    } catch (Exception ex) {
+        assertEquals(ex.getClass(), DagEngineException.class);
+        DagEngineException dex = (DagEngineException) ex;
+        assertEquals(ErrorCode.E0604, dex.getErrorCode());
+    }
+}

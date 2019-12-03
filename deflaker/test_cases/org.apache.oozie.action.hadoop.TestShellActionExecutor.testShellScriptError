@@ -1,0 +1,18 @@
+/**
+ * test if a sample shell script could run with error when the script return
+ * non-zero exit code
+ *
+ * @throws Exception
+ */
+public void testShellScriptError() throws Exception {
+    FileSystem fs = getFileSystem();
+    // Create the script file with canned shell command
+    Path script = new Path(getAppPath(), "script.sh");
+    Writer w = new OutputStreamWriter(fs.create(script));
+    w.write(SHELL_SCRIPT_CONTENT_ERROR);
+    w.close();
+    // Create sample shell action xml
+    String actionXml = "<shell>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>" + "<name-node>" + getNameNodeUri() + "</name-node>" + "<exec>sh</exec>" + "<argument>-c</argument>" + "<argument>script.sh</argument>" + "<argument>A</argument>" + "<argument>B</argument>" + "<file>" + script.toString() + "#" + script.getName() + "</file>" + "</shell>";
+    // Submit and verify the job's status
+    _testSubmit(actionXml, false, "");
+}

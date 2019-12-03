@@ -1,0 +1,20 @@
+/**
+ * On the second step of two-step write, expect read timeout accessing the
+ * redirect location, because the bogus server never sends a reply.
+ */
+@Test(timeout = TEST_TIMEOUT)
+public void testTwoStepWriteReadTimeout() throws Exception {
+    startSingleTemporaryRedirectResponseThread(false);
+    OutputStream os = null;
+    try {
+        os = fs.create(new Path("/file"));
+        // must close stream to force reading the HTTP response
+        os.close();
+        os = null;
+        fail("expected timeout");
+    } catch (SocketTimeoutException e) {
+        assertEquals("Read timed out", e.getMessage());
+    } finally {
+        IOUtils.cleanup(LOG, os);
+    }
+}

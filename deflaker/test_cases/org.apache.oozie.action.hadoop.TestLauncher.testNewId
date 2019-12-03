@@ -1,0 +1,21 @@
+public void testNewId() throws Exception {
+    Path actionDir = getFsTestCaseDir();
+    FileSystem fs = getFileSystem();
+    final RunningJob runningJob = _test("id");
+    waitFor(2000, new Predicate() {
+
+        @Override
+        public boolean evaluate() throws Exception {
+            return runningJob.isComplete();
+        }
+    });
+    assertTrue(runningJob.isSuccessful());
+    assertTrue(LauncherMapper.isMainDone(runningJob));
+    assertTrue(LauncherMapper.isMainSuccessful(runningJob));
+    assertFalse(LauncherMapper.hasOutputData(runningJob));
+    assertTrue(LauncherMapper.hasIdSwap(runningJob));
+    assertTrue(LauncherMapper.isMainDone(runningJob));
+    assertFalse(fs.exists(LauncherMapper.getErrorPath(actionDir)));
+    assertTrue(fs.exists(LauncherMapper.getIdSwapPath(actionDir)));
+    assertFalse(fs.exists(LauncherMapper.getOutputDataPath(actionDir)));
+}

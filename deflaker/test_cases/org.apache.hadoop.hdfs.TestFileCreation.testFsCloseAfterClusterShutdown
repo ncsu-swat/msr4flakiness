@@ -1,0 +1,43 @@
+// test closing file after cluster is shutdown
+public void testFsCloseAfterClusterShutdown() throws IOException {
+    System.out.println("test testFsCloseAfterClusterShutdown start");
+    final int DATANODE_NUM = 3;
+    Configuration conf = new HdfsConfiguration();
+    conf.setInt(DFS_NAMENODE_REPLICATION_MIN_KEY, 3);
+    // hdfs timeout is default 60 seconds
+    conf.setBoolean("ipc.client.ping", false);
+    // hdfs timeout is now 10 second
+    conf.setInt("ipc.ping.interval", 10000);
+    // create cluster
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).numDataNodes(DATANODE_NUM).build();
+    DistributedFileSystem dfs = null;
+    try {
+        cluster.waitActive();
+        dfs = (DistributedFileSystem) cluster.getFileSystem();
+        // create a new file.
+        final String f = DIR + "testFsCloseAfterClusterShutdown";
+        final Path fpath = new Path(f);
+        FSDataOutputStream out = TestFileCreation.createFile(dfs, fpath, DATANODE_NUM);
+        out.write("something_test".getBytes());
+        // ensure that block is allocated
+        out.hflush();
+        // shutdown last datanode in pipeline.
+        cluster.stopDataNode(2);
+        // close file. Since we have set the minReplcatio to 3 but have killed one
+        // of the three datanodes, the close call will loop until the hdfsTimeout is
+        // encountered.
+        boolean hasException = false;
+        try {
+            out.close();
+            System.out.println("testFsCloseAfterClusterShutdown: Error here");
+        } catch (IOException e) {
+            hasException = true;
+        }
+        assertTrue("Failed to close file after cluster shutdown", hasException);
+    } finally {
+        System.out.println("testFsCloseAfterClusterShutdown successful");
+        if (cluster != null) {
+            cluster.shutdown();
+        }
+    }
+}

@@ -1,0 +1,29 @@
+public void testAccessor() throws Exception {
+    Services services = Services.get();
+    HadoopAccessorService has = services.get(HadoopAccessorService.class);
+    JobConf conf = has.createJobConf(getJobTrackerUri());
+    conf.set("mapred.job.tracker", getJobTrackerUri());
+    conf.set("fs.default.name", getNameNodeUri());
+    URI uri = new URI(getNameNodeUri());
+    // valid user
+    String user = getTestUser();
+    String group = getTestGroup();
+    JobClient jc = has.createJobClient(user, conf);
+    assertNotNull(jc);
+    FileSystem fs = has.createFileSystem(user, new URI(getNameNodeUri()), conf);
+    assertNotNull(fs);
+    fs = has.createFileSystem(user, uri, conf);
+    assertNotNull(fs);
+    // invalid user
+    user = "invalid";
+    try {
+        has.createJobClient(user, conf);
+        fail();
+    } catch (Throwable ex) {
+    }
+    try {
+        has.createFileSystem(user, uri, conf);
+        fail();
+    } catch (Throwable ex) {
+    }
+}

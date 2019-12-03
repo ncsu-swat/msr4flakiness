@@ -1,0 +1,22 @@
+@Test
+public void clientSendsEmptyDataServerDoesntSendWindowUpdate() throws Exception {
+    peer.setVariantAndClient(SPDY3, false);
+    // Write the mocking script.
+    // SYN_STREAM
+    peer.acceptFrame();
+    // DATA
+    peer.acceptFrame();
+    peer.sendFrame().synReply(false, 1, headerEntries("a", "android"));
+    peer.play();
+    // Play it back.
+    SpdyConnection connection = connection(peer, SPDY3);
+    SpdyStream client = connection.newStream(headerEntries("b", "banana"), true, true);
+    BufferedSink out = Okio.buffer(client.getSink());
+    out.write(Util.EMPTY_BYTE_ARRAY);
+    out.flush();
+    out.close();
+    // Verify the peer received what was expected.
+    assertEquals(TYPE_HEADERS, peer.takeFrame().type);
+    assertEquals(TYPE_DATA, peer.takeFrame().type);
+    assertEquals(3, peer.frameCount());
+}

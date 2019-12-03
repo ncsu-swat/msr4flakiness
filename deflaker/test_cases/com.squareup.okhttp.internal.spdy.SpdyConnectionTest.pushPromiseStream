@@ -1,0 +1,23 @@
+@Test
+public void pushPromiseStream() throws Exception {
+    peer.setVariantAndClient(HTTP_20_DRAFT_09, false);
+    // write the mocking script
+    // SYN_STREAM
+    peer.acceptFrame();
+    peer.sendFrame().synReply(false, 3, headerEntries("a", "android"));
+    final List<Header> expectedRequestHeaders = Arrays.asList(new Header(Header.TARGET_METHOD, "GET"), new Header(Header.TARGET_SCHEME, "https"), new Header(Header.TARGET_AUTHORITY, "squareup.com"), new Header(Header.TARGET_PATH, "/cached"));
+    peer.sendFrame().pushPromise(3, 2, expectedRequestHeaders);
+    final List<Header> expectedResponseHeaders = Arrays.asList(new Header(Header.RESPONSE_STATUS, "200"));
+    peer.sendFrame().synReply(true, 2, expectedResponseHeaders);
+    peer.sendFrame().data(true, 3, data(0));
+    peer.play();
+    RecordingPushObserver observer = new RecordingPushObserver();
+    // play it back
+    SpdyConnection connection = connectionBuilder(peer, HTTP_20_DRAFT_09).pushObserver(observer).build();
+    SpdyStream client = connection.newStream(headerEntries("b", "banana"), false, true);
+    assertEquals(-1, client.getSource().read(new Buffer(), 1));
+    // verify the peer received what was expected
+    assertEquals(TYPE_HEADERS, peer.takeFrame().type);
+    assertEquals(expectedRequestHeaders, observer.takeEvent());
+    assertEquals(expectedResponseHeaders, observer.takeEvent());
+}

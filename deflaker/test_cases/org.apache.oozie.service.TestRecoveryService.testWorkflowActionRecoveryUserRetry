@@ -1,0 +1,41 @@
+/**
+ * Tests functionality of the Recovery Service Runnable command. </p> Starts an action with USER_RETRY status.
+ * Runs the recovery runnable, and ensures the state changes to OK and the job completes successfully.
+ *
+ * @throws Exception
+ */
+public void testWorkflowActionRecoveryUserRetry() throws Exception {
+    final JPAService jpaService = Services.get().get(JPAService.class);
+    WorkflowJobBean job = this.addRecordToWfJobTable(WorkflowJob.Status.RUNNING, WorkflowInstance.Status.RUNNING);
+    WorkflowActionBean action = this.addRecordToWfActionTable(job.getId(), "1", WorkflowAction.Status.USER_RETRY);
+    Runnable recoveryRunnable = new RecoveryRunnable(0, 60, 60);
+    recoveryRunnable.run();
+    sleep(3000);
+    final WorkflowActionGetJPAExecutor wfActionGetCmd = new WorkflowActionGetJPAExecutor(action.getId());
+    waitFor(5000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            WorkflowActionBean a = jpaService.execute(wfActionGetCmd);
+            return a.getExternalId() != null;
+        }
+    });
+    action = jpaService.execute(wfActionGetCmd);
+    assertNotNull(action.getExternalId());
+    assertEquals(WorkflowAction.Status.RUNNING, action.getStatus());
+    ActionExecutorContext context = new ActionXCommand.ActionExecutorContext(job, action, false, false);
+    MapReduceActionExecutor actionExecutor = new MapReduceActionExecutor();
+    JobConf conf = actionExecutor.createBaseHadoopConf(context, XmlUtils.parseXml(action.getConf()));
+    String user = conf.get("user.name");
+    String group = conf.get("group.name");
+    JobClient jobClient = Services.get().get(HadoopAccessorService.class).createJobClient(user, conf);
+    String launcherId = action.getExternalId();
+    final RunningJob launcherJob = jobClient.getJob(JobID.forName(launcherId));
+    waitFor(240 * 1000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            return launcherJob.isComplete();
+        }
+    });
+    assertTrue(launcherJob.isSuccessful());
+    assertTrue(LauncherMapper.hasIdSwap(launcherJob));
+}

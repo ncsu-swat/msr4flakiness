@@ -1,0 +1,8 @@
+@Test
+public void clientSuppliedConditionWithoutCachedResult() throws Exception {
+    server.enqueue(new MockResponse().setResponseCode(HttpURLConnection.HTTP_NOT_MODIFIED));
+    Request request = new Request.Builder().url(server.getUrl("/")).header("If-Modified-Since", formatDate(-24, TimeUnit.HOURS)).build();
+    Response response = client.newCall(request).execute();
+    assertEquals(HttpURLConnection.HTTP_NOT_MODIFIED, response.code());
+    assertEquals("", response.body().string());
+}

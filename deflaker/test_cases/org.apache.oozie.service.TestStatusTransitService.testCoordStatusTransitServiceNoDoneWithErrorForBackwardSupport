@@ -1,0 +1,33 @@
+/**
+ * Tests functionality of the StatusTransitService Runnable command. </p> Insert a coordinator job with RUNNING and
+ * pending true and coordinator actions with pending false, but one of action is KILLED.
+ * Set oozie.service.StatusTransitService.backward.support.for.coord.status=true
+ * and use uri:oozie:coordinator:0.1 namespace, then, runs the StatusTransitService runnable and
+ * ensures the job status stay in RUNNING.
+ *
+ * @throws Exception
+ */
+public void testCoordStatusTransitServiceNoDoneWithErrorForBackwardSupport() throws Exception {
+    Services.get().destroy();
+    setSystemProperty(StatusTransitService.CONF_BACKWARD_SUPPORT_FOR_COORD_STATUS, "true");
+    services = new Services();
+    setClassesToBeExcluded(services.getConf(), excludedServices);
+    services.init();
+    String currentDatePlusMonth = XDataTestCase.getCurrentDateafterIncrementingInMonths(1);
+    Date start = DateUtils.parseDateOozieTZ(currentDatePlusMonth);
+    Date end = DateUtils.parseDateOozieTZ(currentDatePlusMonth);
+    CoordinatorJobBean coordJob = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, start, end, true, true, 3);
+    final JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    coordJob.setAppNamespace(SchemaService.COORDINATOR_NAMESPACE_URI_1);
+    jpaService.execute(new CoordJobUpdateJPAExecutor(coordJob));
+    addRecordToCoordActionTable(coordJob.getId(), 1, CoordinatorAction.Status.KILLED, "coord-action-get.xml", 0);
+    addRecordToCoordActionTable(coordJob.getId(), 2, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    addRecordToCoordActionTable(coordJob.getId(), 3, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    Runnable runnable = new StatusTransitRunnable();
+    runnable.run();
+    sleep(1000);
+    CoordJobGetJPAExecutor coordGetCmd = new CoordJobGetJPAExecutor(coordJob.getId());
+    coordJob = jpaService.execute(coordGetCmd);
+    assertEquals(CoordinatorJob.Status.RUNNING, coordJob.getStatus());
+}

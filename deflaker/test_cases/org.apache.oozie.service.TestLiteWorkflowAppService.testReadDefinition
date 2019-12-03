@@ -1,0 +1,15 @@
+public void testReadDefinition() throws Exception {
+    Services services = new Services();
+    try {
+        services.init();
+        Reader reader = IOUtils.getResourceAsReader("wf-schema-valid.xml", -1);
+        Writer writer = new FileWriter(getTestCaseDir() + "/workflow.xml");
+        IOUtils.copyCharStream(reader, writer);
+        Configuration conf = new XConfiguration();
+        WorkflowAppService wps = services.get(WorkflowAppService.class);
+        String wfDef = wps.readDefinition("file://" + getTestCaseDir() + File.separator + "workflow.xml", getTestUser(), "authToken", conf);
+        assertNotNull(reader.toString(), wfDef);
+    } finally {
+        services.destroy();
+    }
+}

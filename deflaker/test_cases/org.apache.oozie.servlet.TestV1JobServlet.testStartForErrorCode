@@ -1,0 +1,28 @@
+/**
+ * This test will invoke the start action on a coordinator job. Since the coordinator job
+ * does not support a start action, the test case is expected to catch the error and verify
+ * the error message.
+ * @throws Exception
+ */
+public void testStartForErrorCode() throws Exception {
+    @SuppressWarnings("serial")
+    V1JobServlet testV1JobServlet = new V1JobServlet() {
+
+        @Override
+        protected String getResourceName(HttpServletRequest request) {
+            return "-C";
+        }
+    };
+    try {
+        testV1JobServlet.startJob(null, null);
+        // should not get here!
+        fail("Negative test to test an exception. Should not be succeeding!");
+    } catch (XServletException xse) {
+        // check for the error code and the message
+        assertEquals(xse.getErrorCode(), ErrorCode.E0303);
+        assertTrue(xse.getMessage().contains("Invalid parameter value, [action] = [start]"));
+    } catch (Exception e) {
+        // should not get here!
+        fail("Did not expect a generic exception. Was expecting XServletException");
+    }
+}

@@ -1,0 +1,16 @@
+// Test to ensure that the property value "oozie.action.prepare.xml" in the configuration of the job is properly set
+// when there is prepare block in workflow XML
+public void testSetupLauncherInfoWithNonEmptyPrepareXML() throws Exception {
+    Path actionDir = getFsTestCaseDir();
+    FileSystem fs = getFileSystem();
+    Path newDir = new Path(actionDir, "newDir");
+    // Setting up the job configuration
+    JobConf jobConf = Services.get().get(HadoopAccessorService.class).createJobConf(new URI(getNameNodeUri()).getAuthority());
+    jobConf.set("user.name", getTestUser());
+    jobConf.set("fs.default.name", getNameNodeUri());
+    LauncherMapper lm = new LauncherMapper();
+    Configuration actionConf = new XConfiguration();
+    String prepareBlock = "<prepare>" + "<mkdir path='" + newDir + "'/>" + "</prepare>";
+    lm.setupLauncherInfo(jobConf, "1", "1@a", actionDir, "1@a-0", actionConf, prepareBlock);
+    assertTrue(jobConf.get("oozie.action.prepare.xml").equals(prepareBlock));
+}

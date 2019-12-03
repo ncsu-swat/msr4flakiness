@@ -1,0 +1,30 @@
+/*
+   * This test creates a file with one block replica. Corrupt the block. Make
+   * DFSClient read the corrupted file. Corrupted block is expected to be
+   * reported to name node.
+   */
+@Test
+public void testOneBlockReplica() throws Exception {
+    final short repl = 1;
+    final int corruptBlockNumber = 1;
+    for (int i = 0; i < 2; i++) {
+        // create a file
+        String fileName = "/tmp/testClientReportBadBlock/OneBlockReplica" + i;
+        Path filePath = new Path(fileName);
+        createAFileWithCorruptedBlockReplicas(filePath, repl, corruptBlockNumber);
+        if (i == 0) {
+            dfsClientReadFile(filePath);
+        } else {
+            dfsClientReadFileFromPosition(filePath);
+        }
+        // the only block replica is corrupted. The LocatedBlock should be marked
+        // as corrupted. But the corrupted replica is expected to be returned
+        // when calling Namenode#getBlockLocations() since all(one) replicas are
+        // corrupted.
+        int expectedReplicaCount = 1;
+        verifyCorruptedBlockCount(filePath, expectedReplicaCount);
+        verifyFirstBlockCorrupted(filePath, true);
+        verifyFsckBlockCorrupted();
+        testFsckListCorruptFilesBlocks(filePath, -1);
+    }
+}

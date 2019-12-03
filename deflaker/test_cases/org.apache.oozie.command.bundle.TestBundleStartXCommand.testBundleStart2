@@ -1,0 +1,47 @@
+/**
+ * Test : Start bundle job
+ *
+ * @throws Exception
+ */
+public void testBundleStart2() throws Exception {
+    BundleJobBean job = this.addRecordToBundleJobTable(Job.Status.PREP, false);
+    final JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    Configuration jobConf = null;
+    try {
+        jobConf = new XConfiguration(new StringReader(job.getConf()));
+    } catch (IOException ioe) {
+        log.warn("Configuration parse error. read from DB :" + job.getConf(), ioe);
+        throw new CommandException(ErrorCode.E1005, ioe);
+    }
+    Path appPath = new Path(jobConf.get(OozieClient.BUNDLE_APP_PATH), "bundle.xml");
+    jobConf.set(OozieClient.BUNDLE_APP_PATH, appPath.toString());
+    BundleSubmitXCommand submitCmd = new BundleSubmitXCommand(jobConf, job.getAuthToken());
+    submitCmd.call();
+    BundleJobGetJPAExecutor bundleJobGetExecutor = new BundleJobGetJPAExecutor(submitCmd.getJob().getId());
+    job = jpaService.execute(bundleJobGetExecutor);
+    assertEquals("bundle-app-name", job.getAppName());
+    job = jpaService.execute(bundleJobGetExecutor);
+    assertEquals(job.getStatus(), Job.Status.PREP);
+    new BundleStartXCommand(job.getId()).call();
+    job = jpaService.execute(bundleJobGetExecutor);
+    assertEquals(job.getStatus(), Job.Status.RUNNING);
+    sleep(2000);
+    final BundleActionsGetJPAExecutor bundleActionsGetExecutor = new BundleActionsGetJPAExecutor(job.getId());
+    List<BundleActionBean> actions = jpaService.execute(bundleActionsGetExecutor);
+    assertEquals(2, actions.size());
+    waitFor(200000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            List<BundleActionBean> actions = jpaService.execute(bundleActionsGetExecutor);
+            return actions.get(0).getStatus().equals(Job.Status.RUNNING) && actions.get(1).getStatus().equals(Job.Status.RUNNING);
+        }
+    });
+    actions = jpaService.execute(bundleActionsGetExecutor);
+    assertEquals(Job.Status.RUNNING, actions.get(0).getStatus());
+    assertEquals(true, actions.get(0).isCritical());
+    assertEquals(job.getId(), actions.get(0).getBundleId());
+    assertEquals(Job.Status.RUNNING, actions.get(1).getStatus());
+    assertEquals(false, actions.get(1).isCritical());
+    assertEquals(job.getId(), actions.get(1).getBundleId());
+}

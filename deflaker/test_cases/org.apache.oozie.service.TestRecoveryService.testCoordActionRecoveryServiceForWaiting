@@ -1,0 +1,33 @@
+/**
+ * Tests functionality of the Recovery Service Runnable command. </p> Insert a coordinator job with RUNNING and
+ * action with WAITING. Then, runs the recovery runnable and ensures the action status changes to READY.
+ *
+ * @throws Exception
+ */
+public void testCoordActionRecoveryServiceForWaiting() throws Exception {
+    CoordinatorJobBean job = addRecordToCoordJobTableForWaiting("coord-job-for-action-input-check.xml", CoordinatorJob.Status.RUNNING, false, true);
+    CoordinatorActionBean action = addRecordToCoordActionTableForWaiting(job.getId(), 1, CoordinatorAction.Status.WAITING, "coord-action-for-action-input-check.xml");
+    createDir(getTestCaseDir() + "/2009/29/");
+    createDir(getTestCaseDir() + "/2009/22/");
+    createDir(getTestCaseDir() + "/2009/15/");
+    createDir(getTestCaseDir() + "/2009/08/");
+    sleep(3000);
+    Runnable recoveryRunnable = new RecoveryRunnable(0, 1, 1);
+    recoveryRunnable.run();
+    final String actionId = action.getId();
+    final JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    waitFor(10000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            CoordActionGetJPAExecutor coordGetCmd = new CoordActionGetJPAExecutor(actionId);
+            CoordinatorActionBean newAction = jpaService.execute(coordGetCmd);
+            return (newAction.getStatus() != CoordinatorAction.Status.WAITING);
+        }
+    });
+    CoordActionGetJPAExecutor coordGetCmd = new CoordActionGetJPAExecutor(actionId);
+    action = jpaService.execute(coordGetCmd);
+    if (action.getStatus() == CoordinatorAction.Status.WAITING) {
+        fail("recovery waiting coord action failed, action is WAITING");
+    }
+}

@@ -1,0 +1,64 @@
+/**
+ * Test if file creation and disk space consumption works right
+ */
+public void testFileCreation() throws IOException {
+    Configuration conf = new HdfsConfiguration();
+    if (simulatedStorage) {
+        conf.setBoolean(SimulatedFSDataset.CONFIG_PROPERTY_SIMULATED, true);
+    }
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).build();
+    FileSystem fs = cluster.getFileSystem();
+    try {
+        // 
+        // check that / exists
+        // 
+        Path path = new Path("/");
+        System.out.println("Path : \"" + path.toString() + "\"");
+        System.out.println(fs.getFileStatus(path).isDirectory());
+        assertTrue("/ should be a directory", fs.getFileStatus(path).isDirectory());
+        // 
+        // Create a directory inside /, then try to overwrite it
+        // 
+        Path dir1 = new Path("/test_dir");
+        fs.mkdirs(dir1);
+        System.out.println("createFile: Creating " + dir1.getName() + " for overwrite of existing directory.");
+        try {
+            // Create path, overwrite=true
+            fs.create(dir1, true);
+            fs.close();
+            assertTrue("Did not prevent directory from being overwritten.", false);
+        } catch (IOException ie) {
+            if (!ie.getMessage().contains("already exists as a directory."))
+                throw ie;
+        }
+        // create a new file in home directory. Do not close it.
+        // 
+        Path file1 = new Path("filestatus.dat");
+        Path parent = file1.getParent();
+        fs.mkdirs(parent);
+        DistributedFileSystem dfs = (DistributedFileSystem) fs;
+        dfs.setQuota(file1.getParent(), 100L, blockSize * 5);
+        FSDataOutputStream stm = createFile(fs, file1, 1);
+        // verify that file exists in FS namespace
+        assertTrue(file1 + " should be a file", fs.getFileStatus(file1).isFile());
+        System.out.println("Path : \"" + file1 + "\"");
+        // write to file
+        writeFile(stm);
+        stm.close();
+        // verify that file size has changed to the full size
+        long len = fs.getFileStatus(file1).getLen();
+        assertTrue(file1 + " should be of size " + fileSize + " but found to be of size " + len, len == fileSize);
+        // verify the disk space the file occupied
+        long diskSpace = dfs.getContentSummary(file1.getParent()).getLength();
+        assertEquals(file1 + " should take " + fileSize + " bytes disk space " + "but found to take " + diskSpace + " bytes", fileSize, diskSpace);
+        // Check storage usage
+        // can't check capacities for real storage since the OS file system may be changing under us.
+        if (simulatedStorage) {
+            DataNode dn = cluster.getDataNodes().get(0);
+            assertEquals(fileSize, dn.getFSDataset().getDfsUsed());
+            assertEquals(SimulatedFSDataset.DEFAULT_CAPACITY - fileSize, dn.getFSDataset().getRemaining());
+        }
+    } finally {
+        cluster.shutdown();
+    }
+}

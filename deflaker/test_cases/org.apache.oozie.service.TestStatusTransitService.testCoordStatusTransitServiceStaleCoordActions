@@ -1,0 +1,29 @@
+/**
+ * Tests functionality of the StatusTransitService Runnable command. </p> Insert a coordinator job with RUNNING and
+ * pending true and coordinator actions for that job with pending false. Insert a coordinator action with a stale coord job id. Then, runs the StatusTransitService runnable and ensures
+ * the job status of the good job changes to SUCCEEDED.
+ *
+ * @throws Exception
+ */
+public void testCoordStatusTransitServiceStaleCoordActions() throws Exception {
+    // this block will initialize the lastinstancetime for status transit service
+    Runnable runnable = new StatusTransitRunnable();
+    runnable.run();
+    String currentDatePlusMonth = XDataTestCase.getCurrentDateafterIncrementingInMonths(1);
+    Date start = DateUtils.parseDateOozieTZ(currentDatePlusMonth);
+    Date end = DateUtils.parseDateOozieTZ(currentDatePlusMonth);
+    CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, start, end, true, true, 3);
+    // add a record with stale reference to coord job id
+    addRecordToCoordActionTable("ABCD", 3, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    // add records with reference to correct job ids
+    addRecordToCoordActionTable(job.getId(), 1, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    addRecordToCoordActionTable(job.getId(), 2, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    addRecordToCoordActionTable(job.getId(), 3, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    runnable = new StatusTransitRunnable();
+    runnable.run();
+    sleep(1000);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    CoordJobGetJPAExecutor coordGetCmd = new CoordJobGetJPAExecutor(job.getId());
+    CoordinatorJobBean coordJob = jpaService.execute(coordGetCmd);
+    assertEquals(CoordinatorJob.Status.SUCCEEDED, coordJob.getStatus());
+}

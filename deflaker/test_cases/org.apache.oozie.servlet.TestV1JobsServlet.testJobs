@@ -1,0 +1,63 @@
+public void testJobs() throws Exception {
+    runTest("/v1/jobs", V1JobsServlet.class, IS_SECURITY_ENABLED, new Callable<Void>() {
+
+        public Void call() throws Exception {
+            MockDagEngineService.reset();
+            int wfCount = MockDagEngineService.workflows.size();
+            Map<String, String> params = new HashMap<String, String>();
+            params.put(RestConstants.JOBS_FILTER_PARAM, "name=x");
+            URL url = createURL("", params);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            assertEquals(HttpServletResponse.SC_OK, conn.getResponseCode());
+            assertTrue(conn.getHeaderField("content-type").startsWith(RestConstants.JSON_CONTENT_TYPE));
+            JSONObject json = (JSONObject) JSONValue.parse(new InputStreamReader(conn.getInputStream()));
+            JSONArray array = (JSONArray) json.get(JsonTags.WORKFLOWS_JOBS);
+            assertEquals(MockDagEngineService.INIT_WF_COUNT, array.size());
+            for (int i = 0; i < MockDagEngineService.INIT_WF_COUNT; i++) {
+                assertEquals(MockDagEngineService.JOB_ID + i + MockDagEngineService.JOB_ID_END, ((JSONObject) array.get(i)).get(JsonTags.WORKFLOW_ID));
+                assertNotNull(((JSONObject) array.get(i)).get(JsonTags.WORKFLOW_APP_PATH));
+            }
+            params = new HashMap<String, String>();
+            params.put(RestConstants.JOBS_FILTER_PARAM, "name=x");
+            params.put(RestConstants.OFFSET_PARAM, "2");
+            params.put(RestConstants.LEN_PARAM, "100");
+            params.put(RestConstants.TIME_ZONE_PARAM, "PST");
+            url = createURL("", params);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            assertEquals(HttpServletResponse.SC_OK, conn.getResponseCode());
+            assertTrue(conn.getHeaderField("content-type").startsWith(RestConstants.JSON_CONTENT_TYPE));
+            json = (JSONObject) JSONValue.parse(new InputStreamReader(conn.getInputStream()));
+            array = (JSONArray) json.get(JsonTags.WORKFLOWS_JOBS);
+            assertEquals(MockDagEngineService.INIT_WF_COUNT, array.size());
+            for (int i = 0; i < MockDagEngineService.INIT_WF_COUNT; i++) {
+                assertEquals(MockDagEngineService.JOB_ID + i + MockDagEngineService.JOB_ID_END, ((JSONObject) array.get(i)).get(JsonTags.WORKFLOW_ID));
+                assertNotNull(((JSONObject) array.get(i)).get(JsonTags.WORKFLOW_APP_PATH));
+                String startTime = (((JSONObject) array.get(i)).get(JsonTags.WORKFLOW_START_TIME)).toString();
+                // PDT if on daylight saving time
+                assertTrue(startTime.endsWith("PST") || startTime.endsWith("PDT"));
+            }
+            params = new HashMap<String, String>();
+            params.put(RestConstants.JOBTYPE_PARAM, "wf");
+            params.put(RestConstants.JOBS_EXTERNAL_ID_PARAM, "external-valid");
+            url = createURL("", params);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            assertEquals(HttpServletResponse.SC_OK, conn.getResponseCode());
+            assertTrue(conn.getHeaderField("content-type").startsWith(RestConstants.JSON_CONTENT_TYPE));
+            JSONObject obj = (JSONObject) JSONValue.parse(new InputStreamReader(conn.getInputStream()));
+            assertEquals("id-valid", obj.get(JsonTags.JOB_ID));
+            params = new HashMap<String, String>();
+            params.put(RestConstants.JOBS_EXTERNAL_ID_PARAM, "external-invalid");
+            url = createURL("", params);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            assertEquals(HttpServletResponse.SC_OK, conn.getResponseCode());
+            assertTrue(conn.getHeaderField("content-type").startsWith(RestConstants.JSON_CONTENT_TYPE));
+            obj = (JSONObject) JSONValue.parse(new InputStreamReader(conn.getInputStream()));
+            assertNull(obj.get(JsonTags.JOB_ID));
+            return null;
+        }
+    });
+}

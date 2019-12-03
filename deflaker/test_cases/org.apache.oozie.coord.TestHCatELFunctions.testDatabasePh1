@@ -1,0 +1,38 @@
+/**
+ * Test HCat databaseIn and databaseOut EL functions (phase 1) which echo
+ * back the EL function itself
+ *
+ * @throws Exception
+ */
+@Test
+public void testDatabasePh1() throws Exception {
+    init("coord-job-submit-data");
+    /*
+         * databaseIn
+         */
+    String expr = "${coord:databaseIn('ABC')}";
+    // +ve test
+    eval.setVariable("oozie.dataname.ABC", "data-in");
+    assertEquals("${coord:databaseIn('ABC')}", CoordELFunctions.evalAndWrap(eval, expr));
+    // -ve test
+    expr = "${coord:databaseIn('ABCD')}";
+    try {
+        assertEquals("${coord:databaseIn('ABCD')}", CoordELFunctions.evalAndWrap(eval, expr));
+        fail("should throw exception because Data-in ABCD is not defiend");
+    } catch (Exception ex) {
+    }
+    /*
+         * databaseOut
+         */
+    expr = "${coord:databaseOut('ABC')}";
+    // +ve test
+    eval.setVariable("oozie.dataname.ABC", "data-out");
+    assertEquals("${coord:databaseOut('ABC')}", CoordELFunctions.evalAndWrap(eval, expr));
+    // -ve test
+    expr = "${coord:databaseOut('ABCD')}";
+    try {
+        assertEquals("${coord:databaseOut('ABCD')}", CoordELFunctions.evalAndWrap(eval, expr));
+        fail("should throw exception because Data-out ABCD is not defiend");
+    } catch (Exception ex) {
+    }
+}

@@ -1,0 +1,23 @@
+@Test
+public void testCoordinatorActionSelectors() throws ParseException {
+    JMSJobEventListener coordEventListener = new JMSJobEventListener();
+    coordEventListener.init(conf);
+    Date startDate = DateUtils.parseDateUTC("2012-07-22T00:00Z");
+    Date nominalTime = DateUtils.parseDateUTC("2011-07-11T00:00Z");
+    CoordinatorActionEvent cae = new CoordinatorActionEvent("caId1", "caJobId1", CoordinatorAction.Status.FAILED, "user1", "wf-app-name1", nominalTime, startDate, null);
+    ConnectionContext jmsContext = getConnectionContext();
+    try {
+        Session session = jmsContext.createSession(Session.AUTO_ACKNOWLEDGE);
+        String selector = JMSHeaderConstants.USER + "='user1'";
+        MessageConsumer consumer = jmsContext.createConsumer(session, coordEventListener.getTopic(cae), selector);
+        coordEventListener.onCoordinatorActionEvent(cae);
+        TextMessage message = (TextMessage) consumer.receive(5000);
+        CoordinatorActionMessage coordActionFailMessage = JMSMessagingUtils.getEventMessage(message);
+        Assert.assertEquals(CoordinatorAction.Status.FAILED, coordActionFailMessage.getStatus());
+        assertEquals("user1", coordActionFailMessage.getUser());
+        assertEquals(MessageType.JOB, coordActionFailMessage.getMessageType());
+    } catch (Exception e) {
+        e.printStackTrace();
+        fail(e.getMessage());
+    }
+}

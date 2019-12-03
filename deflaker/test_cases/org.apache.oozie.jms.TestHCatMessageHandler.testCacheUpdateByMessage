@@ -1,0 +1,63 @@
+/**
+ * Test that message is processed to update the dependency map and mark
+ * partition as available
+ */
+@Test
+public void testCacheUpdateByMessage() {
+    try {
+        String actionId1 = "1234465451";
+        String actionId2 = "1234465452";
+        String actionId3 = "1234465453";
+        String actionId4 = "1234465454";
+        // add partition as missing
+        HCatURI dep1 = new HCatURI("hcat://hcat.server.com:5080/mydb/mytbl/dt=20120101;country=us");
+        HCatURI dep2 = new HCatURI("hcat://hcat.server.com:5080/mydb/mytbl/country=us;dt=20120101");
+        HCatURI dep3 = new HCatURI("hcat://hcat.server.com:5080/mydb/mytbl/dt=20120102;country=us");
+        HCatURI dep4 = new HCatURI("hcat://hcat.server.com:5080/mydb/mytbl/dt=20120102;country=us;state=CA");
+        PartitionDependencyManagerService pdms = Services.get().get(PartitionDependencyManagerService.class);
+        pdms.addMissingDependency(dep1, actionId1);
+        pdms.addMissingDependency(dep2, actionId2);
+        pdms.addMissingDependency(dep3, actionId3);
+        pdms.addMissingDependency(dep4, actionId4);
+        assertTrue(pdms.getWaitingActions(dep1).contains(actionId1));
+        assertTrue(pdms.getWaitingActions(dep2).contains(actionId2));
+        assertTrue(pdms.getWaitingActions(dep3).contains(actionId3));
+        assertTrue(pdms.getWaitingActions(dep4).contains(actionId4));
+        // construct message
+        List<Map<String, String>> partitionsList = new ArrayList<Map<String, String>>();
+        partitionsList.add(getPartitionMap("dt=20120101;country=us;state=CA"));
+        partitionsList.add(getPartitionMap("dt=20120101;country=us;state=NY"));
+        JSONAddPartitionMessage jsonMsg = new JSONAddPartitionMessage("thrift://" + dep1.getServer(), "", dep1.getDb(), dep1.getTable(), partitionsList, System.currentTimeMillis());
+        Message msg = session.createTextMessage(jsonMsg.toString());
+        msg.setStringProperty(HCatConstants.HCAT_EVENT, HCatEventMessage.EventType.ADD_PARTITION.toString());
+        // test message processing
+        HCatMessageHandler hcatHandler = new HCatMessageHandler("hcat.server.com:5080");
+        hcatHandler.process(msg);
+        assertNull(pdms.getWaitingActions(dep1));
+        assertNull(pdms.getWaitingActions(dep2));
+        assertTrue(pdms.getWaitingActions(dep3).contains(actionId3));
+        assertTrue(pdms.getWaitingActions(dep4).contains(actionId4));
+        // test message processing through JMS notification listener
+        partitionsList.clear();
+        partitionsList.add(getPartitionMap("dt=20120102;country=us;state=CA"));
+        partitionsList.add(getPartitionMap("dt=20120102;country=us;state=NY"));
+        jsonMsg = new JSONAddPartitionMessage("thrift://" + dep1.getServer(), "", dep1.getDb(), dep1.getTable(), partitionsList, System.currentTimeMillis());
+        msg = session.createTextMessage(jsonMsg.toString());
+        msg.setStringProperty(HCatConstants.HCAT_EVENT, HCatEventMessage.EventType.ADD_PARTITION.toString());
+        HCatAccessorService hcatService = Services.get().get(HCatAccessorService.class);
+        hcatService.registerForNotification(dep1, "hcat.topic1", hcatHandler);
+        Topic topic = session.createTopic("hcat.topic1");
+        MessageProducer producer = session.createProducer(topic);
+        producer.send(msg);
+        Thread.sleep(500);
+        assertNull(pdms.getWaitingActions(dep3));
+        assertNull(pdms.getWaitingActions(dep4));
+        assertTrue(pdms.getAvailableDependencyURIs(actionId1).contains(dep1.getURI().toString()));
+        assertTrue(pdms.getAvailableDependencyURIs(actionId2).contains(dep2.getURI().toString()));
+        assertTrue(pdms.getAvailableDependencyURIs(actionId3).contains(dep3.getURI().toString()));
+        assertTrue(pdms.getAvailableDependencyURIs(actionId4).contains(dep4.getURI().toString()));
+    } catch (Exception e) {
+        e.printStackTrace();
+        fail("Exception: " + e.getMessage());
+    }
+}

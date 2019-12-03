@@ -1,0 +1,42 @@
+/**
+ * This test creates a file with three block replicas. Corrupt two of the
+ * replicas. Make dfs client read the file. The corrupted blocks with their
+ * owner data nodes should be reported to the name node.
+ */
+@Test
+public void testCorruptTwoOutOfThreeReplicas() throws Exception {
+    final short repl = 3;
+    final int corruptBlocReplicas = 2;
+    for (int i = 0; i < 2; i++) {
+        String fileName = "/tmp/testClientReportBadBlock/CorruptTwoOutOfThreeReplicas" + i;
+        Path filePath = new Path(fileName);
+        createAFileWithCorruptedBlockReplicas(filePath, repl, corruptBlocReplicas);
+        int replicaCount = 0;
+        /*
+       * The order of data nodes in LocatedBlock returned by name node is sorted 
+       * by NetworkToplology#pseudoSortByDistance. In current MiniDFSCluster, 
+       * when LocatedBlock is returned, the sorting is based on a random order.
+       * That is to say, the DFS client and simulated data nodes in mini DFS
+       * cluster are considered not on the same host nor the same rack.
+       * Therefore, even we corrupted the first two block replicas based in 
+       * order. When DFSClient read some block replicas, it is not guaranteed 
+       * which block replicas (good/bad) will be returned first. So we try to 
+       * re-read the file until we know the expected replicas numbers is 
+       * returned.
+       */
+        while (replicaCount != repl - corruptBlocReplicas) {
+            if (i == 0) {
+                dfsClientReadFile(filePath);
+            } else {
+                dfsClientReadFileFromPosition(filePath);
+            }
+            LocatedBlocks blocks = dfs.dfs.getNamenode().getBlockLocations(filePath.toString(), 0, Long.MAX_VALUE);
+            replicaCount = blocks.get(0).getLocations().length;
+        }
+        verifyFirstBlockCorrupted(filePath, false);
+        int expectedReplicaCount = repl - corruptBlocReplicas;
+        verifyCorruptedBlockCount(filePath, expectedReplicaCount);
+        verifyFsckHealth("Target Replicas is 3 but found 1 replica");
+        testFsckListCorruptFilesBlocks(filePath, 0);
+    }
+}

@@ -1,0 +1,64 @@
+public void testGetJobs() throws Exception {
+    Reader reader = IOUtils.getResourceAsReader("wf-ext-schema-valid.xml", -1);
+    Writer writer = new FileWriter(getTestCaseDir() + "/workflow.xml");
+    IOUtils.copyCharStream(reader, writer);
+    final DagEngine engine = new DagEngine(getTestUser(), "a");
+    Configuration conf = new XConfiguration();
+    conf.set(OozieClient.APP_PATH, "file://" + getTestCaseDir() + File.separator + "workflow.xml");
+    conf.set(OozieClient.USER_NAME, getTestUser());
+    conf.set(OozieClient.LOG_TOKEN, "t");
+    conf.set("signal-value", "OK");
+    conf.set("external-status", "ok");
+    conf.set("error", "end.error");
+    final String jobId1 = engine.submitJob(conf, true);
+    String jobId2 = engine.submitJob(conf, false);
+/*
+        WorkflowsInfo wfInfo = engine.getJobs("group=" + getTestGroup(), 1, 1);
+        List<WorkflowJobBean> workflows = wfInfo.getWorkflows();
+        assertEquals(1, workflows.size());
+        assertEquals(getTestGroup(), workflows.get(0).getGroup());
+        assertEquals(jobId1, workflows.get(0).getId());
+
+        wfInfo = engine.getJobs("group=" + getTestGroup(), 1, 5);
+        workflows = wfInfo.getWorkflows();
+        assertEquals(2, workflows.size());
+        assertEquals(getTestGroup(), workflows.get(0).getGroup());
+        assertEquals(jobId1, workflows.get(0).getId());
+        assertEquals(jobId2, workflows.get(1).getId());
+
+        wfInfo = engine.getJobs("user=" + getTestUser(), 1, 1);
+        workflows = wfInfo.getWorkflows();
+        assertEquals(1, workflows.size());
+        assertEquals(getTestUser(), workflows.get(0).getUser());
+        assertEquals(jobId1, workflows.get(0).getId());
+
+        wfInfo = engine.getJobs("user=" + getTestUser(), 2, 5);
+        workflows = wfInfo.getWorkflows();
+        assertEquals(1, workflows.size());
+        assertEquals(getTestUser(), workflows.get(0).getUser());
+        assertEquals(jobId2, workflows.get(0).getId());
+
+        waitFor(5000, new Predicate() {
+            public boolean evaluate() throws Exception {
+                WorkflowJobBean bean = Services.get().get(WorkflowStoreService.class).create().getWorkflow(jobId1, false);
+                return bean.getWorkflowInstance().getStatus().isEndState();
+            }
+        });
+
+        wfInfo = engine.getJobs("status=PREP", 1, 5);
+        workflows = wfInfo.getWorkflows();
+        assertEquals(1, workflows.size());
+        assertEquals(jobId2, workflows.get(0).getId());
+
+        wfInfo = engine.getJobs("name=test-wf", 1, 5);
+        workflows = wfInfo.getWorkflows();
+        assertEquals(2, workflows.size());
+        assertEquals(jobId1, workflows.get(0).getId());
+        assertEquals(jobId2, workflows.get(1).getId());
+
+        wfInfo = engine.getJobs("name=test-wf;status=PREP", 1, 5);
+        workflows = wfInfo.getWorkflows();
+        assertEquals(1, workflows.size());
+        assertEquals(jobId2, workflows.get(0).getId());
+*/
+}

@@ -1,0 +1,17 @@
+@Test
+public void testViewFileJsp() throws IOException {
+    MiniDFSCluster cluster = null;
+    try {
+        cluster = new MiniDFSCluster.Builder(CONF).build();
+        cluster.waitActive();
+        String[] paths = { "/test-file", "/tmp/test-file", "/tmp/test-file%with goofy&characters", "/foo bar/foo bar", "/foo+bar/foo+bar", "/foo;bar/foo;bar", "/foo=bar/foo=bar", "/foo,bar/foo,bar", "/foo?bar/foo?bar", "/foo\">bar/foo\">bar" };
+        for (String p : paths) {
+            testViewingFile(cluster, p, false);
+            testViewingFile(cluster, p, true);
+        }
+    } finally {
+        if (cluster != null) {
+            cluster.shutdown();
+        }
+    }
+}

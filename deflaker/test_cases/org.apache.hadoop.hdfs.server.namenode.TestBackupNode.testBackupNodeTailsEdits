@@ -1,0 +1,57 @@
+/**
+ * Ensure that the backupnode will tail edits from the NN
+ * and keep in sync, even while the NN rolls, checkpoints
+ * occur, etc.
+ */
+public void testBackupNodeTailsEdits() throws Exception {
+    Configuration conf = new HdfsConfiguration();
+    MiniDFSCluster cluster = null;
+    FileSystem fileSys = null;
+    BackupNode backup = null;
+    try {
+        cluster = new MiniDFSCluster.Builder(conf).numDataNodes(0).build();
+        fileSys = cluster.getFileSystem();
+        backup = startBackupNode(conf, StartupOption.BACKUP, 1);
+        BackupImage bnImage = (BackupImage) backup.getFSImage();
+        testBNInSync(cluster, backup, 1);
+        // Force a roll -- BN should roll with NN.
+        NameNode nn = cluster.getNameNode();
+        NamenodeProtocols nnRpc = nn.getRpcServer();
+        nnRpc.rollEditLog();
+        assertEquals(bnImage.getEditLog().getCurSegmentTxId(), nn.getFSImage().getEditLog().getCurSegmentTxId());
+        // BN should stay in sync after roll
+        testBNInSync(cluster, backup, 2);
+        long nnImageBefore = nn.getFSImage().getStorage().getMostRecentCheckpointTxId();
+        // BN checkpoint
+        backup.doCheckpoint();
+        // NN should have received a new image
+        long nnImageAfter = nn.getFSImage().getStorage().getMostRecentCheckpointTxId();
+        assertTrue("nn should have received new checkpoint. before: " + nnImageBefore + " after: " + nnImageAfter, nnImageAfter > nnImageBefore);
+        // BN should stay in sync after checkpoint
+        testBNInSync(cluster, backup, 3);
+        // Stop BN
+        StorageDirectory sd = bnImage.getStorage().getStorageDir(0);
+        backup.stop();
+        backup = null;
+        // When shutting down the BN, it shouldn't finalize logs that are
+        // still open on the NN
+        EditLogFile editsLog = FSImageTestUtil.findLatestEditsLog(sd);
+        assertEquals(editsLog.getFirstTxId(), nn.getFSImage().getEditLog().getCurSegmentTxId());
+        assertTrue("Should not have finalized " + editsLog, editsLog.isInProgress());
+        // do some edits
+        assertTrue(fileSys.mkdirs(new Path("/edit-while-bn-down")));
+        // start a new backup node
+        backup = startBackupNode(conf, StartupOption.BACKUP, 1);
+        testBNInSync(cluster, backup, 4);
+        assertNotNull(backup.getNamesystem().getFileInfo("/edit-while-bn-down", false));
+    } finally {
+        LOG.info("Shutting down...");
+        if (backup != null)
+            backup.stop();
+        if (fileSys != null)
+            fileSys.close();
+        if (cluster != null)
+            cluster.shutdown();
+    }
+    assertStorageDirsMatch(cluster.getNameNode(), backup);
+}

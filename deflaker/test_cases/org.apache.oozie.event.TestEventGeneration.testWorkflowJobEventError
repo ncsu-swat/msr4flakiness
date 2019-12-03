@@ -1,0 +1,19 @@
+@Test
+public void testWorkflowJobEventError() throws Exception {
+    final WorkflowJobBean job = addRecordToWfJobTable(WorkflowJob.Status.FAILED, WorkflowInstance.Status.FAILED);
+    // create event with error code and message
+    WorkflowXCommand<Void> myCmd = new KillXCommand(job.getId()) {
+
+        @Override
+        protected Void execute() {
+            WorkflowXCommand.generateEvent(job, "errorCode", "errorMsg");
+            return null;
+        }
+    };
+    myCmd.call();
+    WorkflowJobEvent event = (WorkflowJobEvent) queue.poll();
+    assertNotNull(event);
+    assertEquals("errorCode", event.getErrorCode());
+    assertEquals("errorMsg", event.getErrorMessage());
+    assertEquals(EventStatus.FAILURE, event.getEventStatus());
+}

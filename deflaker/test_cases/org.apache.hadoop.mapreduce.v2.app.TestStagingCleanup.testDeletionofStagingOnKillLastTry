@@ -1,0 +1,24 @@
+@Test(timeout = 30000)
+public void testDeletionofStagingOnKillLastTry() throws IOException {
+    conf.set(MRJobConfig.MAPREDUCE_JOB_DIR, stagingJobDir);
+    fs = mock(FileSystem.class);
+    when(fs.delete(any(Path.class), anyBoolean())).thenReturn(true);
+    // Staging Dir exists
+    String user = UserGroupInformation.getCurrentUser().getShortUserName();
+    Path stagingDir = MRApps.getStagingAreaDir(conf, user);
+    when(fs.exists(stagingDir)).thenReturn(true);
+    ApplicationId appId = ApplicationId.newInstance(System.currentTimeMillis(), 0);
+    ApplicationAttemptId attemptId = ApplicationAttemptId.newInstance(appId, 1);
+    JobId jobid = recordFactory.newRecordInstance(JobId.class);
+    jobid.setAppId(appId);
+    ContainerAllocator mockAlloc = mock(ContainerAllocator.class);
+    // no retry
+    MRAppMaster appMaster = new TestMRApp(attemptId, mockAlloc, 1);
+    appMaster.init(conf);
+    assertTrue("appMaster.isLastAMRetry() is false", appMaster.isLastAMRetry());
+    // simulate the process being killed
+    MRAppMaster.MRAppMasterShutdownHook hook = new MRAppMaster.MRAppMasterShutdownHook(appMaster);
+    hook.run();
+    assertTrue("MRAppMaster isn't stopped", appMaster.isInState(Service.STATE.STOPPED));
+    verify(fs).delete(stagingJobPath, true);
+}

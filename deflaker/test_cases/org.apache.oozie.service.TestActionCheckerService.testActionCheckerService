@@ -1,0 +1,54 @@
+/**
+ * Tests functionality of the Action Checker Service Runnable. </p> Starts
+ * an action which behaves like an Async Action (Action and Job state set to
+ * Running). Verifies the action status to be RUNNING. </p> Runs the
+ * ActionCheck runnable, and checks for thw job to complete.
+ *
+ * @throws Exception
+ */
+public void testActionCheckerService() throws Exception {
+    Reader reader = IOUtils.getResourceAsReader("wf-ext-schema-valid.xml", -1);
+    Writer writer = new FileWriter(getTestCaseDir() + "/workflow.xml");
+    IOUtils.copyCharStream(reader, writer);
+    final DagEngine engine = new DagEngine(getTestUser(), "a");
+    Configuration conf = new XConfiguration();
+    conf.set(OozieClient.APP_PATH, "file://" + getTestCaseDir() + File.separator + "workflow.xml");
+    conf.set(WorkflowAppService.HADOOP_USER, getTestUser());
+    conf.set(OozieClient.LOG_TOKEN, "t");
+    conf.set("external-status", "ok");
+    conf.set("signal-value", "based_on_action_status");
+    conf.set("running-mode", "async");
+    final String jobId = engine.submitJob(conf, true);
+    waitFor(5000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            return (engine.getJob(jobId).getStatus() == WorkflowJob.Status.RUNNING);
+        }
+    });
+    sleep(2000);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    WorkflowActionsGetForJobJPAExecutor actionsGetExecutor = new WorkflowActionsGetForJobJPAExecutor(jobId);
+    List<WorkflowActionBean> actions = jpaService.execute(actionsGetExecutor);
+    WorkflowActionBean action = null;
+    for (WorkflowActionBean bean : actions) {
+        if (bean.getType().equals("test")) {
+            action = bean;
+            break;
+        }
+    }
+    assertNotNull(action);
+    assertEquals(WorkflowActionBean.Status.RUNNING, action.getStatus());
+    sleep(2000);
+    Runnable actionCheckRunnable = new ActionCheckRunnable(0);
+    actionCheckRunnable.run();
+    waitFor(20000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            return (engine.getJob(jobId).getStatus() == WorkflowJob.Status.SUCCEEDED);
+        }
+    });
+    List<WorkflowActionBean> actions2 = jpaService.execute(actionsGetExecutor);
+    WorkflowActionBean action2 = actions2.get(0);
+    assertEquals(WorkflowActionBean.Status.OK, action2.getStatus());
+}

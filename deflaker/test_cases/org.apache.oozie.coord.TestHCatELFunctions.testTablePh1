@@ -1,0 +1,38 @@
+/**
+ * Test HCat tableIn and tableOut EL functions (phase 1) which echo back the
+ * EL function itself
+ *
+ * @throws Exception
+ */
+@Test
+public void testTablePh1() throws Exception {
+    init("coord-job-submit-data");
+    /*
+         * tableIn
+         */
+    String expr = "${coord:tableIn('ABC')}";
+    // +ve test
+    eval.setVariable("oozie.dataname.ABC", "data-in");
+    assertEquals("${coord:tableIn('ABC')}", CoordELFunctions.evalAndWrap(eval, expr));
+    // -ve test
+    expr = "${coord:tableIn('ABCD')}";
+    try {
+        assertEquals("${coord:tableIn('ABCD')}", CoordELFunctions.evalAndWrap(eval, expr));
+        fail("should throw exception because Data-in ABCD is not defiend");
+    } catch (Exception ex) {
+    }
+    /*
+         * tableOut
+         */
+    expr = "${coord:tableOut('ABC')}";
+    // +ve test
+    eval.setVariable("oozie.dataname.ABC", "data-out");
+    assertEquals("${coord:tableOut('ABC')}", CoordELFunctions.evalAndWrap(eval, expr));
+    // -ve test
+    expr = "${coord:tableOut('ABCD')}";
+    try {
+        assertEquals("${coord:tableOut('ABCD')}", CoordELFunctions.evalAndWrap(eval, expr));
+        fail("should throw exception because Data-out ABCD is not defiend");
+    } catch (Exception ex) {
+    }
+}

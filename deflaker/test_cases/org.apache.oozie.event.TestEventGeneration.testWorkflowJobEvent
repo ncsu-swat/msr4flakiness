@@ -1,0 +1,82 @@
+@Test
+public void testWorkflowJobEvent() throws Exception {
+    assertEquals(queue.size(), 0);
+    WorkflowJobBean job = addRecordToWfJobTable(WorkflowJob.Status.PREP, WorkflowInstance.Status.PREP);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    // Starting job
+    new StartXCommand(job.getId()).call();
+    WorkflowJobGetJPAExecutor wfJobGetCmd = new WorkflowJobGetJPAExecutor(job.getId());
+    job = jpaService.execute(wfJobGetCmd);
+    assertEquals(WorkflowJob.Status.RUNNING, job.getStatus());
+    assertEquals(1, queue.size());
+    WorkflowJobEvent event = (WorkflowJobEvent) queue.poll();
+    assertNotNull(event);
+    assertEquals(EventStatus.STARTED, event.getEventStatus());
+    assertEquals(AppType.WORKFLOW_JOB, event.getAppType());
+    assertEquals(job.getId(), event.getId());
+    assertEquals(job.getUser(), event.getUser());
+    assertEquals(job.getAppName(), event.getAppName());
+    assertEquals(job.getStartTime(), event.getStartTime());
+    assertEquals(0, queue.size());
+    // Suspending job
+    new SuspendXCommand(job.getId()).call();
+    job = jpaService.execute(wfJobGetCmd);
+    assertEquals(WorkflowJob.Status.SUSPENDED, job.getStatus());
+    assertEquals(1, queue.size());
+    event = (WorkflowJobEvent) queue.poll();
+    assertNotNull(event);
+    assertEquals(EventStatus.SUSPEND, event.getEventStatus());
+    assertEquals(AppType.WORKFLOW_JOB, event.getAppType());
+    assertEquals(job.getId(), event.getId());
+    assertEquals(job.getUser(), event.getUser());
+    assertEquals(job.getAppName(), event.getAppName());
+    assertEquals(0, queue.size());
+    // Resuming job
+    new ResumeXCommand(job.getId()).call();
+    job = jpaService.execute(wfJobGetCmd);
+    assertEquals(WorkflowJob.Status.RUNNING, job.getStatus());
+    assertEquals(1, queue.size());
+    event = (WorkflowJobEvent) queue.poll();
+    assertNotNull(event);
+    assertEquals(AppType.WORKFLOW_JOB, event.getAppType());
+    assertEquals(job.getId(), event.getId());
+    assertEquals(job.getUser(), event.getUser());
+    assertEquals(job.getAppName(), event.getAppName());
+    assertEquals(job.getStartTime(), event.getStartTime());
+    assertEquals(0, queue.size());
+    // Killing job
+    new KillXCommand(job.getId()).call();
+    job = jpaService.execute(wfJobGetCmd);
+    assertEquals(WorkflowJob.Status.KILLED, job.getStatus());
+    assertEquals(1, queue.size());
+    event = (WorkflowJobEvent) queue.poll();
+    assertNotNull(event);
+    assertEquals(EventStatus.FAILURE, event.getEventStatus());
+    assertEquals(AppType.WORKFLOW_JOB, event.getAppType());
+    assertEquals(job.getId(), event.getId());
+    assertEquals(job.getUser(), event.getUser());
+    assertEquals(job.getAppName(), event.getAppName());
+    assertEquals(job.getStartTime(), event.getStartTime());
+    assertEquals(job.getEndTime(), event.getEndTime());
+    assertEquals(0, queue.size());
+    // Successful job (testing SignalX)
+    job = _createWorkflowJob();
+    LiteWorkflowInstance wfInstance = (LiteWorkflowInstance) job.getWorkflowInstance();
+    wfInstance.start();
+    job.setWfInstance(wfInstance);
+    jpaService.execute(new WorkflowJobUpdateJPAExecutor(job));
+    WorkflowActionBean wfAction = jpaService.execute(new WorkflowActionGetJPAExecutor(job.getId() + "@one"));
+    new SignalXCommand(job.getId(), wfAction.getId()).call();
+    job = jpaService.execute(new WorkflowJobGetJPAExecutor(job.getId()));
+    assertEquals(WorkflowJob.Status.SUCCEEDED, job.getStatus());
+    assertEquals(1, queue.size());
+    event = (WorkflowJobEvent) queue.poll();
+    assertNotNull(event);
+    assertEquals(AppType.WORKFLOW_JOB, event.getAppType());
+    assertEquals(job.getId(), event.getId());
+    assertEquals(job.getUser(), event.getUser());
+    assertEquals(job.getAppName(), event.getAppName());
+    assertEquals(job.getStartTime(), event.getStartTime());
+    assertEquals(job.getEndTime(), event.getEndTime());
+    assertEquals(0, queue.size());
+}

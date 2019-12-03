@@ -1,0 +1,37 @@
+/**
+ * Test the SocketCache itself.
+ */
+@Test
+public void testSocketCache() throws IOException {
+    final int CACHE_SIZE = 4;
+    SocketCache cache = new SocketCache(CACHE_SIZE);
+    // Make a client
+    InetSocketAddress nnAddr = new InetSocketAddress("localhost", cluster.getNameNodePort());
+    DFSClient client = new DFSClient(nnAddr, conf);
+    // Find out the DN addr
+    LocatedBlock block = client.getNamenode().getBlockLocations(testFile.toString(), 0, FILE_SIZE).getLocatedBlocks().get(0);
+    DataNode dn = util.getDataNode(block);
+    InetSocketAddress dnAddr = dn.getSelfAddr();
+    // Make some sockets to the DN
+    Socket[] dnSockets = new Socket[CACHE_SIZE];
+    for (int i = 0; i < dnSockets.length; ++i) {
+        dnSockets[i] = client.socketFactory.createSocket(dnAddr.getAddress(), dnAddr.getPort());
+    }
+    // Insert a socket to the NN
+    Socket nnSock = new Socket(nnAddr.getAddress(), nnAddr.getPort());
+    cache.put(nnSock);
+    assertSame("Read the write", nnSock, cache.get(nnAddr));
+    cache.put(nnSock);
+    // Insert DN socks
+    for (Socket dnSock : dnSockets) {
+        cache.put(dnSock);
+    }
+    assertEquals("NN socket evicted", null, cache.get(nnAddr));
+    assertTrue("Evicted socket closed", nnSock.isClosed());
+    // Lookup the DN socks
+    for (Socket dnSock : dnSockets) {
+        assertEquals("Retrieve cached sockets", dnSock, cache.get(dnAddr));
+        dnSock.close();
+    }
+    assertEquals("Cache is empty", 0, cache.size());
+}

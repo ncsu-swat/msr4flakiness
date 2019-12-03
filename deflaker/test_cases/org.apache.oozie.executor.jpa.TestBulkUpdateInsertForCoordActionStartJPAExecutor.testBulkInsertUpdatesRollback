@@ -1,0 +1,49 @@
+/**
+ * Test bulk inserts and updates rollback
+ *
+ * @throws Exception
+ */
+public void testBulkInsertUpdatesRollback() throws Exception {
+    WorkflowJobBean job = addRecordToWfJobTable(WorkflowJob.Status.PREP, WorkflowInstance.Status.PREP);
+    WorkflowActionBean action1 = createWorkflowAction(job.getId(), "1", WorkflowAction.Status.PREP);
+    WorkflowActionBean action2 = createWorkflowAction(job.getId(), "2", WorkflowAction.Status.PREP);
+    job.setStatus(WorkflowJob.Status.RUNNING);
+    List<JsonBean> insertList = new ArrayList<JsonBean>();
+    // Add two actions to insert list
+    insertList.add(action1);
+    insertList.add(action2);
+    List<JsonBean> updateList = new ArrayList<JsonBean>();
+    // Add to update list
+    updateList.add(job);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    BulkUpdateInsertForCoordActionStartJPAExecutor wfUpdateCmd1 = new BulkUpdateInsertForCoordActionStartJPAExecutor(updateList, insertList);
+    // set fault injection to true, so transaction is roll backed
+    setSystemProperty(FaultInjection.FAULT_INJECTION, "true");
+    setSystemProperty(SkipCommitFaultInjection.ACTION_FAILOVER_FAULT_INJECTION, "true");
+    try {
+        jpaService.execute(wfUpdateCmd1);
+        fail("Expected exception due to commit failure but didn't get any");
+    } catch (Exception e) {
+    }
+    FaultInjection.deactivate("org.apache.oozie.command.SkipCommitFaultInjection");
+    // Check whether transactions are rolled back or not
+    WorkflowJobGetJPAExecutor wfGetCmd = new WorkflowJobGetJPAExecutor(job.getId());
+    WorkflowJobBean wfBean = jpaService.execute(wfGetCmd);
+    // status should not be RUNNING
+    assertEquals("PREP", wfBean.getStatusStr());
+    WorkflowActionGetJPAExecutor actionGetCmd = new WorkflowActionGetJPAExecutor(action1.getId());
+    try {
+        action1 = jpaService.execute(actionGetCmd);
+        fail("Expected exception but didnt get any");
+    } catch (JPAExecutorException jpaee) {
+        assertEquals(ErrorCode.E0605, jpaee.getErrorCode());
+    }
+    actionGetCmd = new WorkflowActionGetJPAExecutor(action2.getId());
+    try {
+        action2 = jpaService.execute(actionGetCmd);
+        fail("Expected exception but didnt get any");
+    } catch (JPAExecutorException jpaee) {
+        assertEquals(ErrorCode.E0605, jpaee.getErrorCode());
+    }
+}

@@ -1,0 +1,25 @@
+/**
+ * Test : all bundle actions are succeeded - bundle job's status will be updated to succeeded.
+ *
+ * @throws Exception
+ */
+public void testBundleStatusTransitServiceSucceeded1() throws Exception {
+    BundleJobBean job = this.addRecordToBundleJobTable(Job.Status.RUNNING, false);
+    final JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    final String jobId = job.getId();
+    BundleActionBean ba1 = addRecordToBundleActionTable(jobId, "action1", 0, Job.Status.SUCCEEDED);
+    addRecordToBundleActionTable(jobId, "action2", 0, Job.Status.SUCCEEDED);
+    addRecordToBundleActionTable(jobId, "action3", 0, Job.Status.SUCCEEDED);
+    Runnable runnable = new StatusTransitRunnable();
+    runnable.run();
+    waitFor(5 * 1000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            BundleJobBean bundle = jpaService.execute(new BundleJobGetJPAExecutor(jobId));
+            return bundle.getStatus().equals(Job.Status.SUCCEEDED);
+        }
+    });
+    job = jpaService.execute(new BundleJobGetJPAExecutor(jobId));
+    assertEquals(Job.Status.SUCCEEDED, job.getStatus());
+}

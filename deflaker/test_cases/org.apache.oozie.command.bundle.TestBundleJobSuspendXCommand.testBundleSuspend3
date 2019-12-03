@@ -1,0 +1,27 @@
+/**
+ * Test : Suspend bundle job
+ *
+ * @throws Exception
+ */
+public void testBundleSuspend3() throws Exception {
+    BundleJobBean job = this.addRecordToBundleJobTable(Job.Status.PREP, false);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    Configuration jobConf = null;
+    try {
+        jobConf = new XConfiguration(new StringReader(job.getConf()));
+    } catch (IOException ioe) {
+        log.warn("Configuration parse error. read from DB :" + job.getConf(), ioe);
+        throw new CommandException(ErrorCode.E1005, ioe);
+    }
+    Path appPath = new Path(jobConf.get(OozieClient.BUNDLE_APP_PATH), "bundle.xml");
+    jobConf.set(OozieClient.BUNDLE_APP_PATH, appPath.toString());
+    BundleSubmitXCommand submitCmd = new BundleSubmitXCommand(jobConf, job.getAuthToken());
+    submitCmd.call();
+    BundleJobGetJPAExecutor bundleJobGetCmd = new BundleJobGetJPAExecutor(submitCmd.getJob().getId());
+    job = jpaService.execute(bundleJobGetCmd);
+    assertEquals(Job.Status.PREP, job.getStatus());
+    new BundleJobSuspendXCommand(job.getId()).call();
+    job = jpaService.execute(bundleJobGetCmd);
+    assertEquals(Job.Status.PREPSUSPENDED, job.getStatus());
+}

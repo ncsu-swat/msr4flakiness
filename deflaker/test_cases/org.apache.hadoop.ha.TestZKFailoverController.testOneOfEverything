@@ -1,0 +1,35 @@
+/**
+ * Test which exercises all of the inputs into ZKFC. This is particularly
+ * useful for running under jcarder to check for lock order violations.
+ */
+@Test(timeout = 30000)
+public void testOneOfEverything() throws Exception {
+    try {
+        cluster.start();
+        // Failover by session expiration
+        LOG.info("====== Failing over by session expiration");
+        cluster.expireAndVerifyFailover(0, 1);
+        cluster.expireAndVerifyFailover(1, 0);
+        // Restart ZK
+        LOG.info("====== Restarting server");
+        stopServer();
+        waitForServerDown(hostPort, CONNECTION_TIMEOUT);
+        startServer();
+        waitForServerUp(hostPort, CONNECTION_TIMEOUT);
+        // Failover by bad health
+        cluster.setHealthy(0, false);
+        cluster.waitForHAState(0, HAServiceState.STANDBY);
+        cluster.waitForHAState(1, HAServiceState.ACTIVE);
+        cluster.setHealthy(1, true);
+        cluster.setHealthy(0, false);
+        cluster.waitForHAState(1, HAServiceState.ACTIVE);
+        cluster.waitForHAState(0, HAServiceState.STANDBY);
+        cluster.setHealthy(0, true);
+        cluster.waitForHealthState(0, State.SERVICE_HEALTHY);
+        // Graceful failovers
+        cluster.getZkfc(1).gracefulFailoverToYou();
+        cluster.getZkfc(0).gracefulFailoverToYou();
+    } finally {
+        cluster.stop();
+    }
+}

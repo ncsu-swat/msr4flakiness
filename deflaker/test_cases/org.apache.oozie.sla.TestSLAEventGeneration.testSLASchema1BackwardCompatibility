@@ -1,0 +1,19 @@
+@Test
+public void testSLASchema1BackwardCompatibility() throws Exception {
+    EventHandlerService ehs = services.get(EventHandlerService.class);
+    assertNotNull(ehs);
+    SLAService slas = services.get(SLAService.class);
+    assertNotNull(slas);
+    Path appPath = getFsTestCaseDir();
+    writeToFile(SLA_XML_1, appPath, "workflow.xml");
+    Configuration conf = new XConfiguration();
+    conf.set(OozieClient.APP_PATH, appPath.toString());
+    conf.set(OozieClient.USER_NAME, getTestUser());
+    cal.setTime(new Date());
+    // for start_miss
+    cal.add(Calendar.MINUTE, -20);
+    Date nominal = cal.getTime();
+    String nominalTime = DateUtils.formatDateOozieTZ(nominal);
+    conf.set("nominal_time", nominalTime);
+    _testWorkflowJobCommands(conf, ehs, slas, false);
+}

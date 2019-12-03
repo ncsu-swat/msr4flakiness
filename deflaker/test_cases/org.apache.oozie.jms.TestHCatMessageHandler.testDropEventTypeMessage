@@ -1,0 +1,29 @@
+/**
+ * Test the other type of messages - DROP_PARTITION and DROP_TABLE are
+ * handled with the correct log messages
+ */
+public void testDropEventTypeMessage() {
+    try {
+        // Set the log4j appender for getting the statements logged by
+        // HCatMessageHandler
+        Logger logger = Logger.getLogger(HCatMessageHandler.class);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        Layout layout = new SimpleLayout();
+        Appender appender = new WriterAppender(layout, out);
+        logger.addAppender(appender);
+        Message msg = session.createTextMessage("{" + "\"server\" : \"thrift://localhost:1234\"," + "\"db\" : \"default\"," + "\"table\" : \"newTable\"," + "\"timestamp\" : \"123456\"," + "\"partitions\" : [{ \"dt\" : \"2012_01_01\", \"grid\" : \"AB\" }]" + "}");
+        msg.setStringProperty(HCatConstants.HCAT_EVENT, HCatEventMessage.EventType.DROP_PARTITION.toString());
+        HCatMessageHandler hcatHandler = new HCatMessageHandler("localhost");
+        hcatHandler.process(msg);
+        // check logs to see appropriate error message
+        String logMsg = out.toString();
+        assertTrue(logMsg.contains(HCatEventMessage.EventType.DROP_PARTITION.toString()));
+        msg.setStringProperty(HCatConstants.HCAT_EVENT, HCatEventMessage.EventType.DROP_TABLE.toString());
+        hcatHandler.process(msg);
+        // check logs to see appropriate error message
+        logMsg = out.toString();
+        assertTrue(logMsg.contains(HCatEventMessage.EventType.DROP_TABLE.toString()));
+    } catch (Exception e) {
+        fail("Exception caused " + e.getMessage());
+    }
+}

@@ -1,0 +1,21 @@
+/*
+     f->(2,3)
+     2->ok->3
+     2->fail->j
+     3->ok->j
+     3->fail->k
+     j->k
+    */
+public void testTransitionFailure1() throws WorkflowException {
+    LiteWorkflowAppParser parser = new LiteWorkflowAppParser(null, LiteWorkflowStoreService.LiteControlNodeHandler.class, LiteWorkflowStoreService.LiteDecisionHandler.class, LiteWorkflowStoreService.LiteActionHandler.class);
+    LiteWorkflowApp def = new LiteWorkflowApp("name", "def", new StartNodeDef(LiteWorkflowStoreService.LiteControlNodeHandler.class, "one")).addNode(new ActionNodeDef("one", dummyConf, TestActionNodeHandler.class, "f", "end")).addNode(new ForkNodeDef("f", LiteWorkflowStoreService.LiteControlNodeHandler.class, Arrays.asList(new String[] { "two", "three" }))).addNode(new ActionNodeDef("two", dummyConf, TestActionNodeHandler.class, "three", "j")).addNode(new ActionNodeDef("three", dummyConf, TestActionNodeHandler.class, "j", "k")).addNode(new JoinNodeDef("j", LiteWorkflowStoreService.LiteControlNodeHandler.class, "k")).addNode(new KillNodeDef("k", "kill", LiteWorkflowStoreService.LiteControlNodeHandler.class)).addNode(new EndNodeDef("end", LiteWorkflowStoreService.LiteControlNodeHandler.class));
+    try {
+        invokeForkJoin(parser, def);
+        fail("Expected to catch an exception but did not encounter any");
+    } catch (Exception ex) {
+        WorkflowException we = (WorkflowException) ex.getCause();
+        assertEquals(ErrorCode.E0743, we.getErrorCode());
+        // Make sure the message contains the node involved in the invalid transition
+        assertTrue(we.getMessage().contains("three"));
+    }
+}

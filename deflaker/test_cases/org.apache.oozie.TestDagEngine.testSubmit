@@ -1,0 +1,51 @@
+public void testSubmit() throws Exception {
+    Reader reader = IOUtils.getResourceAsReader("wf-ext-schema-valid.xml", -1);
+    Writer writer = new FileWriter(getTestCaseDir() + "/workflow.xml");
+    IOUtils.copyCharStream(reader, writer);
+    OutputStream os = new FileOutputStream(getTestCaseDir() + "/config-default.xml");
+    XConfiguration defaultConf = new XConfiguration();
+    defaultConf.set("a", "AA");
+    defaultConf.set("b", "BB");
+    defaultConf.set("e", "${d}${d}");
+    defaultConf.writeXml(os);
+    os.close();
+    final DagEngine engine = new DagEngine(getTestUser(), "a");
+    Configuration conf = new XConfiguration();
+    conf.set(OozieClient.APP_PATH, "file://" + getTestCaseDir() + File.separator + "workflow.xml");
+    conf.set(OozieClient.USER_NAME, getTestUser());
+    conf.set(OozieClient.LOG_TOKEN, "t");
+    conf.set(OozieClient.ACTION_NOTIFICATION_URL, container.getServletURL("/callback") + "?jobId=$jobId&status=$status&nodeName=$nodeName");
+    conf.set("signal-value", "OK");
+    conf.set("external-status", "ok");
+    conf.set("error", "end.error");
+    conf.set("b", "B");
+    conf.set("c", "C");
+    conf.set("d", "${c}${c}");
+    conf.set("f", "${e}${e}");
+    final String jobId1 = engine.submitJob(conf, true);
+    WorkflowJob wf = engine.getJob(jobId1);
+    XConfiguration wfConf = new XConfiguration(new StringReader(wf.getConf()));
+    assertEquals("AA", wfConf.get("a"));
+    assertEquals("B", wfConf.get("b"));
+    assertEquals("C", conf.get("c"));
+    assertEquals("CC", conf.get("d"));
+    assertEquals("CCCC", conf.get("e"));
+    assertEquals("CCCCCCCC", conf.get("f"));
+    waitFor(10000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            WorkflowJobBean bean = Services.get().get(WorkflowStoreService.class).create().getWorkflow(jobId1, false);
+            return bean.getWorkflowInstance().getStatus().isEndState();
+        }
+    });
+    assertEquals(WorkflowJob.Status.KILLED, engine.getJob(jobId1).getStatus());
+    waitFor(10000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            return CallbackServlet.JOB_ID != null;
+        }
+    });
+    assertEquals(wf.getId(), CallbackServlet.JOB_ID);
+    assertEquals("kill", CallbackServlet.NODE_NAME);
+    assertEquals("T:null", CallbackServlet.STATUS);
+}

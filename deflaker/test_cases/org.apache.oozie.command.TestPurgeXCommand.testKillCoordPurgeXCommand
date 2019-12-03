@@ -1,0 +1,30 @@
+/**
+ * Test : purge killed coord job and action successfully
+ *
+ * @throws Exception
+ */
+public void testKillCoordPurgeXCommand() throws Exception {
+    CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.KILLED, false, false);
+    CoordinatorActionBean action = addRecordToCoordActionTable(job.getId(), 1, CoordinatorAction.Status.KILLED, "coord-action-get.xml", 0);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    CoordJobGetJPAExecutor coordJobGetExecutor = new CoordJobGetJPAExecutor(job.getId());
+    CoordActionGetJPAExecutor coordActionGetExecutor = new CoordActionGetJPAExecutor(action.getId());
+    job = jpaService.execute(coordJobGetExecutor);
+    action = jpaService.execute(coordActionGetExecutor);
+    assertEquals(job.getStatus(), CoordinatorJob.Status.KILLED);
+    assertEquals(action.getStatus(), CoordinatorAction.Status.KILLED);
+    new PurgeXCommand(1, 7, 1, 10).call();
+    try {
+        jpaService.execute(coordJobGetExecutor);
+        fail("Coordinator Job should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0604, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(coordActionGetExecutor);
+        fail("Coordinator Action should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0605, je.getErrorCode());
+    }
+}

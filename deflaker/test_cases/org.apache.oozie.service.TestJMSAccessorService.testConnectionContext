@@ -1,0 +1,24 @@
+@Test
+public void testConnectionContext() throws ServiceException {
+    try {
+        services.destroy();
+        services = super.setupServicesForHCatalog();
+        Configuration conf = services.getConf();
+        // set the connection factory name
+        String jmsURL = "hcat://${1}.${2}.server.com:8020=java.naming.factory.initial#" + "org.apache.activemq.jndi.ActiveMQInitialContextFactory" + ";java.naming.provider.url#vm://localhost?broker.persistent=false;" + "connectionFactoryNames#dynamicFactories/hcat.prod.${1}";
+        conf.set(HCatAccessorService.JMS_CONNECTIONS_PROPERTIES, jmsURL);
+        services.init();
+        HCatAccessorService hcatService = services.get(HCatAccessorService.class);
+        JMSConnectionInfo connInfo = hcatService.getJMSConnectionInfo(new URI("hcat://hcatserver.blue.server.com:8020"));
+        assertEquals("java.naming.factory.initial#org.apache.activemq.jndi.ActiveMQInitialContextFactory;java.naming.provider.url#" + "vm://localhost?broker.persistent=false;connectionFactoryNames#dynamicFactories/hcat.prod.hcatserver", connInfo.getJNDIPropertiesString());
+        ConnectionContext ctx1 = new DefaultConnectionContext();
+        ctx1.createConnection(connInfo.getJNDIProperties());
+        BrokerService broker = new BrokerService();
+        // Without this stop testConnectionRetry fails with
+        // javax.management.InstanceAlreadyExistsException: org.apache.activemq:BrokerName=localhost,Type=Broker
+        broker.stop();
+    } catch (Exception e) {
+        e.printStackTrace();
+        fail("Unexpected exception " + e);
+    }
+}

@@ -1,0 +1,28 @@
+@Test
+public void testLease() throws Exception {
+    Configuration conf = new HdfsConfiguration();
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).numDataNodes(2).build();
+    try {
+        FileSystem fs = cluster.getFileSystem();
+        Assert.assertTrue(fs.mkdirs(dir));
+        Path a = new Path(dir, "a");
+        Path b = new Path(dir, "b");
+        DataOutputStream a_out = fs.create(a);
+        a_out.writeBytes("something");
+        Assert.assertTrue(hasLease(cluster, a));
+        Assert.assertTrue(!hasLease(cluster, b));
+        DataOutputStream b_out = fs.create(b);
+        b_out.writeBytes("something");
+        Assert.assertTrue(hasLease(cluster, a));
+        Assert.assertTrue(hasLease(cluster, b));
+        a_out.close();
+        b_out.close();
+        Assert.assertTrue(!hasLease(cluster, a));
+        Assert.assertTrue(!hasLease(cluster, b));
+        fs.delete(dir, true);
+    } finally {
+        if (cluster != null) {
+            cluster.shutdown();
+        }
+    }
+}

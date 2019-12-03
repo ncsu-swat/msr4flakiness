@@ -1,0 +1,48 @@
+/**
+ * This tests if permission setting in create, mkdir, and
+ * setPermission works correctly
+ */
+public void testPermissionSetting() throws Exception {
+    // test file creation
+    testPermissionSetting(OpType.CREATE);
+    // test directory creation
+    testPermissionSetting(OpType.MKDIRS);
+}
+/* check permission setting works correctly for file or directory */
+private void testPermissionSetting(OpType op) throws Exception {
+    short uMask = DEFAULT_UMASK;
+    // case 1: use default permission but all possible umasks
+    PermissionGenerator generator = new PermissionGenerator(r);
+    FsPermission permission = new FsPermission(DEFAULT_PERMISSION);
+    for (short i = 0; i < NUM_TEST_PERMISSIONS; i++) {
+        uMask = generator.next();
+        initFileSystem(uMask);
+        createAndCheckPermission(op, FILE_DIR_PATH, uMask, permission, true);
+        closeFileSystem();
+    }
+    // case 2: use permission 0643 and the default umask
+    uMask = DEFAULT_UMASK;
+    initFileSystem(uMask);
+    createAndCheckPermission(op, FILE_DIR_PATH, uMask, new FsPermission((short) 0643), true);
+    closeFileSystem();
+    // case 3: use permission 0643 and umask 0222
+    uMask = (short) 0222;
+    initFileSystem(uMask);
+    createAndCheckPermission(op, FILE_DIR_PATH, uMask, new FsPermission((short) 0643), false);
+    closeFileSystem();
+    // case 4: set permission
+    uMask = (short) 0111;
+    initFileSystem(uMask);
+    fs.setPermission(FILE_DIR_PATH, new FsPermission(uMask));
+    short expectedPermission = (short) ((op == OpType.CREATE) ? 0 : 0111);
+    checkPermission(FILE_DIR_PATH, expectedPermission, true);
+    closeFileSystem();
+    // case 5: test non-existent parent directory
+    uMask = DEFAULT_UMASK;
+    initFileSystem(uMask);
+    assertFalse("File shouldn't exists", fs.exists(NON_EXISTENT_PATH));
+    createAndCheckPermission(op, NON_EXISTENT_PATH, uMask, new FsPermission(DEFAULT_PERMISSION), false);
+    Path parent = NON_EXISTENT_PATH.getParent();
+    checkPermission(parent, getPermission(parent.getParent()), true);
+    closeFileSystem();
+}

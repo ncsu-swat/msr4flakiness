@@ -1,0 +1,18 @@
+/**
+ * Test if the seek bug exists in FSDataInputStream in DFS.
+ */
+public void testSeekBugDFS() throws IOException {
+    Configuration conf = new HdfsConfiguration();
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).build();
+    FileSystem fileSys = cluster.getFileSystem();
+    try {
+        Path file1 = new Path("seektest.dat");
+        writeFile(fileSys, file1);
+        seekReadFile(fileSys, file1);
+        smallReadSeek(fileSys, file1);
+        cleanupFile(fileSys, file1);
+    } finally {
+        fileSys.close();
+        cluster.shutdown();
+    }
+}

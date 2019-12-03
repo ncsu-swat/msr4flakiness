@@ -1,0 +1,36 @@
+@Test
+public void remoteDoubleSynReply() throws Exception {
+    // write the mocking script
+    // SYN_STREAM
+    peer.acceptFrame();
+    peer.sendFrame().synReply(false, 3, headerEntries("a", "android"));
+    // PING
+    peer.acceptFrame();
+    peer.sendFrame().synReply(false, 3, headerEntries("b", "banana"));
+    peer.sendFrame().ping(true, 1, 0);
+    // RST_STREAM
+    peer.acceptFrame();
+    peer.play();
+    // play it back
+    SpdyConnection connection = connection(peer, SPDY3);
+    SpdyStream stream = connection.newStream(headerEntries("c", "cola"), true, true);
+    assertEquals(headerEntries("a", "android"), stream.getResponseHeaders());
+    // Ensure that the 2nd SYN REPLY has been received.
+    connection.ping().roundTripTime();
+    try {
+        stream.getSource().read(new Buffer(), 1);
+        fail();
+    } catch (IOException expected) {
+        assertEquals("stream was reset: STREAM_IN_USE", expected.getMessage());
+    }
+    // verify the peer received what was expected
+    MockSpdyPeer.InFrame synStream = peer.takeFrame();
+    assertEquals(TYPE_HEADERS, synStream.type);
+    assertEquals(HeadersMode.SPDY_SYN_STREAM, synStream.headersMode);
+    MockSpdyPeer.InFrame ping = peer.takeFrame();
+    assertEquals(TYPE_PING, ping.type);
+    MockSpdyPeer.InFrame rstStream = peer.takeFrame();
+    assertEquals(TYPE_RST_STREAM, rstStream.type);
+    assertEquals(3, rstStream.streamId);
+    assertEquals(STREAM_IN_USE, rstStream.errorCode);
+}

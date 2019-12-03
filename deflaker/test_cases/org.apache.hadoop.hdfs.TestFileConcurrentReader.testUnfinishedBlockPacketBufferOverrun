@@ -1,0 +1,21 @@
+/**
+ * test case: if the BlockSender decides there is only one packet to send,
+ * the previous computation of the pktSize based on transferToAllowed
+ * would result in too small a buffer to do the buffer-copy needed
+ * for partial chunks.
+ */
+public void testUnfinishedBlockPacketBufferOverrun() throws IOException {
+    // check that / exists
+    Path path = new Path("/");
+    System.out.println("Path : \"" + path.toString() + "\"");
+    // create a new file in the root, write data, do no close
+    Path file1 = new Path("/unfinished-block");
+    final FSDataOutputStream stm = TestFileCreation.createFile(fileSystem, file1, 1);
+    // write partial block and sync
+    final int bytesPerChecksum = conf.getInt("io.bytes.per.checksum", 512);
+    final int partialBlockSize = bytesPerChecksum - 1;
+    writeFileAndSync(stm, partialBlockSize);
+    // Make sure a client can read it before it is closed
+    checkCanRead(fileSystem, file1, partialBlockSize);
+    stm.close();
+}

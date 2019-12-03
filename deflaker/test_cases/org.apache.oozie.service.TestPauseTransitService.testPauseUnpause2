@@ -1,0 +1,37 @@
+/**
+ * Test : Pause a PREP bundle, then reset its pausetime to null to unpause it.
+ *
+ * @throws Exception
+ */
+public void testPauseUnpause2() throws Exception {
+    BundleJobBean job = this.addRecordToBundleJobTable(Job.Status.PREP, false);
+    final JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    job.setPauseTime(new Date(new Date().getTime() - 30 * 1000));
+    job.setKickoffTime(new Date(new Date().getTime() + 3600 * 1000));
+    jpaService.execute(new BundleJobUpdateJPAExecutor(job));
+    Runnable pauseStartRunnable = new PauseTransitRunnable();
+    pauseStartRunnable.run();
+    final String jobId = job.getId();
+    waitFor(10 * 1000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            BundleJobBean job1 = jpaService.execute(new BundleJobGetJPAExecutor(jobId));
+            return job1.getStatus() == Job.Status.PREPPAUSED;
+        }
+    });
+    job = jpaService.execute(new BundleJobGetJPAExecutor(jobId));
+    assertEquals(Job.Status.PREPPAUSED, job.getStatus());
+    job.setPauseTime(null);
+    jpaService.execute(new BundleJobUpdateJPAExecutor(job));
+    pauseStartRunnable.run();
+    waitFor(10 * 1000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            BundleJobBean job1 = jpaService.execute(new BundleJobGetJPAExecutor(jobId));
+            return job1.getStatus() == Job.Status.PREP;
+        }
+    });
+    job = jpaService.execute(new BundleJobGetJPAExecutor(jobId));
+    assertEquals(Job.Status.PREP, job.getStatus());
+}

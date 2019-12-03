@@ -1,0 +1,24 @@
+/**
+ * Test allow-snapshot operation.
+ */
+@Test(timeout = 15000)
+public void testAllowSnapshot() throws Exception {
+    final String pathStr = sub1.toString();
+    final INode before = fsdir.getINode(pathStr);
+    // Before a directory is snapshottable
+    Assert.assertTrue(before instanceof INodeDirectory);
+    Assert.assertFalse(before instanceof INodeDirectorySnapshottable);
+    // After a directory is snapshottable
+    final Path path = new Path(pathStr);
+    hdfs.allowSnapshot(path);
+    {
+        final INode after = fsdir.getINode(pathStr);
+        Assert.assertTrue(after instanceof INodeDirectorySnapshottable);
+    }
+    hdfs.disallowSnapshot(path);
+    {
+        final INode after = fsdir.getINode(pathStr);
+        Assert.assertTrue(after instanceof INodeDirectory);
+        Assert.assertFalse(after instanceof INodeDirectorySnapshottable);
+    }
+}

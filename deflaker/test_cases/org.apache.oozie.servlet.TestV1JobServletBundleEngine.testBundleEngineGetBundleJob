@@ -1,0 +1,21 @@
+public void testBundleEngineGetBundleJob() throws Exception {
+    final BundleJobBean bundleJobBean = xDataTestCase.addRecordToBundleJobTable(Job.Status.PREP, false);
+    runTest("/v1/job/*", V1JobServlet.class, IS_SECURITY_ENABLED, new Callable<Void>() {
+
+        @Override
+        public Void call() throws Exception {
+            MockCoordinatorEngineService.reset();
+            Map<String, String> params = new HashMap<String, String>();
+            params.put(RestConstants.JOB_SHOW_PARAM, RestConstants.JOB_SHOW_INFO);
+            final String id = bundleJobBean.getId();
+            URL url = createURL(id, params);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            assertEquals(HttpServletResponse.SC_OK, conn.getResponseCode());
+            assertTrue(conn.getHeaderField("content-type").startsWith(RestConstants.JSON_CONTENT_TYPE));
+            JSONObject obj = (JSONObject) JSONValue.parse(new InputStreamReader(conn.getInputStream()));
+            assertEquals(id, obj.get("bundleJobId"));
+            return null;
+        }
+    });
+}

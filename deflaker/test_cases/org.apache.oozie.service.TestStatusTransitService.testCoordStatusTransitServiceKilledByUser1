@@ -1,0 +1,52 @@
+/**
+ * Tests functionality of the StatusTransitService Runnable command. </p> Insert a coordinator job with RUNNING and
+ * pending false and coordinator actions with pending false. Then, runs the CoordKillXCommand and
+ * StatusTransitService runnable and ensures the job pending changes to false.
+ *
+ * @throws Exception
+ */
+public void testCoordStatusTransitServiceKilledByUser1() throws Exception {
+    final JPAService jpaService = Services.get().get(JPAService.class);
+    String currentDatePlusMonth = XDataTestCase.getCurrentDateafterIncrementingInMonths(1);
+    Date start = DateUtils.parseDateOozieTZ(currentDatePlusMonth);
+    Date end = DateUtils.parseDateOozieTZ(currentDatePlusMonth);
+    CoordinatorJobBean coordJob = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, start, end, false, false, 1);
+    WorkflowJobBean wfJob = addRecordToWfJobTable(WorkflowJob.Status.RUNNING, WorkflowInstance.Status.RUNNING);
+    final String wfJobId = wfJob.getId();
+    CoordinatorActionBean coordAction = addRecordToCoordActionTable(coordJob.getId(), 1, CoordinatorAction.Status.RUNNING, "coord-action-get.xml", wfJobId, "RUNNING", 0);
+    new CoordKillXCommand(coordJob.getId()).call();
+    waitFor(5 * 1000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            WorkflowJobGetJPAExecutor wfGetCmd = new WorkflowJobGetJPAExecutor(wfJobId);
+            WorkflowJobBean wfBean = jpaService.execute(wfGetCmd);
+            return wfBean.getStatusStr().equals("KILLED");
+        }
+    });
+    assertNotNull(jpaService);
+    final CoordJobGetJPAExecutor coordJobGetCmd = new CoordJobGetJPAExecutor(coordJob.getId());
+    CoordActionGetJPAExecutor coordActionGetCmd = new CoordActionGetJPAExecutor(coordAction.getId());
+    WorkflowJobGetJPAExecutor wfGetCmd = new WorkflowJobGetJPAExecutor(wfJobId);
+    coordJob = jpaService.execute(coordJobGetCmd);
+    coordAction = jpaService.execute(coordActionGetCmd);
+    wfJob = jpaService.execute(wfGetCmd);
+    assertEquals(CoordinatorJob.Status.KILLED, coordJob.getStatus());
+    assertEquals(CoordinatorAction.Status.KILLED, coordAction.getStatus());
+    assertEquals(WorkflowJob.Status.KILLED, wfJob.getStatus());
+    assertEquals(false, coordAction.isPending());
+    Runnable runnable = new StatusTransitRunnable();
+    runnable.run();
+    // Status of coordJobBean is being updated asynchronously.
+    // Increasing wait time to atmost 10s to make sure there is
+    // sufficient time for the status to get updated. Thus, resulting
+    // in following assertion not failing.
+    waitFor(10 * 1000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            CoordinatorJobBean coordJobBean = jpaService.execute(coordJobGetCmd);
+            return !coordJobBean.isPending();
+        }
+    });
+    coordJob = jpaService.execute(coordJobGetCmd);
+    assertEquals(false, coordJob.isPending());
+}

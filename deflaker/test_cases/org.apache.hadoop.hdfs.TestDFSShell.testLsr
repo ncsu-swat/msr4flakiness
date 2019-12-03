@@ -1,0 +1,25 @@
+public void testLsr() throws Exception {
+    final Configuration conf = new HdfsConfiguration();
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).numDataNodes(2).build();
+    DistributedFileSystem dfs = (DistributedFileSystem) cluster.getFileSystem();
+    try {
+        final String root = createTree(dfs, "lsr");
+        dfs.mkdirs(new Path(root, "zzz"));
+        runLsr(new FsShell(conf), root, 0);
+        final Path sub = new Path(root, "sub");
+        dfs.setPermission(sub, new FsPermission((short) 0));
+        final UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+        final String tmpusername = ugi.getShortUserName() + "1";
+        UserGroupInformation tmpUGI = UserGroupInformation.createUserForTesting(tmpusername, new String[] { tmpusername });
+        String results = tmpUGI.doAs(new PrivilegedExceptionAction<String>() {
+
+            @Override
+            public String run() throws Exception {
+                return runLsr(new FsShell(conf), root, 1);
+            }
+        });
+        assertTrue(results.contains("zzz"));
+    } finally {
+        cluster.shutdown();
+    }
+}

@@ -1,0 +1,14 @@
+/*
+     * 1->ok->2
+     * 2->ok->end
+     */
+public void testWfNoForkJoin() throws WorkflowException {
+    LiteWorkflowAppParser parser = new LiteWorkflowAppParser(null, LiteWorkflowStoreService.LiteControlNodeHandler.class, LiteWorkflowStoreService.LiteDecisionHandler.class, LiteWorkflowStoreService.LiteActionHandler.class);
+    LiteWorkflowApp def = new LiteWorkflowApp("name", "def", new StartNodeDef(LiteWorkflowStoreService.LiteControlNodeHandler.class, "one")).addNode(new ActionNodeDef("one", dummyConf, TestActionNodeHandler.class, "two", "three")).addNode(new ActionNodeDef("two", dummyConf, TestActionNodeHandler.class, "end", "end")).addNode(new ActionNodeDef("three", dummyConf, TestActionNodeHandler.class, "end", "end")).addNode(new EndNodeDef("end", LiteWorkflowStoreService.LiteControlNodeHandler.class));
+    try {
+        invokeForkJoin(parser, def);
+    } catch (Exception e) {
+        e.printStackTrace();
+        fail("Unexpected Exception");
+    }
+}

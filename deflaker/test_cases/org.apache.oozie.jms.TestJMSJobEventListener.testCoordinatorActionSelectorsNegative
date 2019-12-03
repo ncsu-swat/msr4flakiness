@@ -1,0 +1,21 @@
+@Test
+public void testCoordinatorActionSelectorsNegative() throws ParseException {
+    JMSJobEventListener coordEventListener = new JMSJobEventListener();
+    coordEventListener.init(conf);
+    Date startDate = DateUtils.parseDateUTC("2012-07-22T00:00Z");
+    Date nominalTime = DateUtils.parseDateUTC("2011-07-11T00:00Z");
+    CoordinatorActionEvent cae = new CoordinatorActionEvent("caId1", "caJobId1", CoordinatorAction.Status.FAILED, "user1", "wf-app-name1", nominalTime, startDate, null);
+    ConnectionContext jmsContext = getConnectionContext();
+    try {
+        Session session = jmsContext.createSession(Session.AUTO_ACKNOWLEDGE);
+        // Pass a selector which wont match and assert for null message
+        String selector = JMSHeaderConstants.USER + "='Non_matching_user'";
+        MessageConsumer consumer = jmsContext.createConsumer(session, coordEventListener.getTopic(cae), selector);
+        coordEventListener.onCoordinatorActionEvent(cae);
+        TextMessage message = (TextMessage) consumer.receive(5000);
+        assertNull(message);
+    } catch (Exception e) {
+        e.printStackTrace();
+        fail(e.getMessage());
+    }
+}

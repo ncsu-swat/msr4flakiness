@@ -1,0 +1,14 @@
+/**
+ * After a redirect, expect read timeout accessing the redirect location,
+ * because the bogus server never sends a reply.
+ */
+@Test(timeout = TEST_TIMEOUT)
+public void testRedirectReadTimeout() throws Exception {
+    startSingleTemporaryRedirectResponseThread(false);
+    try {
+        fs.getFileChecksum(new Path("/file"));
+        fail("expected timeout");
+    } catch (SocketTimeoutException e) {
+        assertEquals("Read timed out", e.getMessage());
+    }
+}

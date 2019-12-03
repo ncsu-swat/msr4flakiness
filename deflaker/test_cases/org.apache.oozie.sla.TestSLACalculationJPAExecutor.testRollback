@@ -1,0 +1,60 @@
+/**
+ * Test inserts and updates rollback
+ *
+ * @throws Exception
+ */
+@Test
+public void testRollback() throws Exception {
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    String wfId1 = "workflow-1";
+    String wfId2 = "workflow-2";
+    // initial insert
+    SLACalculatorBean bean1 = _createSLACalcBean(wfId1, false, false);
+    SLASummaryBean bean2 = _createSLASummaryBean(wfId1, "RUNNING", EventStatus.START_MISS, new Date(), new Date(), 1000, null, null, 2000);
+    List<JsonBean> list = new ArrayList<JsonBean>();
+    list.add(bean1);
+    list.add(bean2);
+    SLACalculationInsertUpdateJPAExecutor writeCmd = new SLACalculationInsertUpdateJPAExecutor(list, null);
+    jpaService.execute(writeCmd);
+    // update existing record and insert another
+    Date newDate = new Date();
+    bean1 = _createSLACalcBean(wfId1, true, true);
+    bean2 = new SLASummaryBean();
+    bean2.setJobId(wfId1);
+    bean2.setActualEnd(newDate);
+    List<JsonBean> updateList = new ArrayList<JsonBean>();
+    updateList.add(bean1);
+    updateList.add(bean2);
+    SLACalculatorBean bean3 = _createSLACalcBean(wfId2, false, false);
+    SLASummaryBean bean4 = _createSLASummaryBean(wfId2, "RUNNING", EventStatus.END_MISS, new Date(), new Date(), 1000, null, null, 2000);
+    List<JsonBean> insertList = new ArrayList<JsonBean>();
+    insertList.add(bean3);
+    insertList.add(bean4);
+    writeCmd = new SLACalculationInsertUpdateJPAExecutor(insertList, updateList);
+    // set fault injection to true, so transaction is roll backed
+    setSystemProperty(FaultInjection.FAULT_INJECTION, "true");
+    setSystemProperty(SkipCommitFaultInjection.ACTION_FAILOVER_FAULT_INJECTION, "true");
+    try {
+        jpaService.execute(writeCmd);
+        fail("Expected exception due to commit failure but didn't get any");
+    } catch (Exception e) {
+    }
+    FaultInjection.deactivate("org.apache.oozie.command.SkipCommitFaultInjection");
+    // Check whether transactions are rolled back or not
+    SLACalculatorGetJPAExecutor readCmd1 = new SLACalculatorGetJPAExecutor(wfId1);
+    SLACalculatorBean scBean = jpaService.execute(readCmd1);
+    // isStartProcessed should NOT be toggled to true
+    assertFalse(scBean.isStartProcessed());
+    SLASummaryGetJPAExecutor readCmd2 = new SLASummaryGetJPAExecutor(wfId1);
+    SLASummaryBean sdBean = jpaService.execute(readCmd2);
+    // actualEnd should be null as before
+    assertNull(sdBean.getActualEnd());
+    readCmd1 = new SLACalculatorGetJPAExecutor(wfId2);
+    try {
+        scBean = jpaService.execute(readCmd1);
+        fail("Expected exception but didnt get any");
+    } catch (JPAExecutorException jpaee) {
+        assertEquals(ErrorCode.E0603, jpaee.getErrorCode());
+    }
+}

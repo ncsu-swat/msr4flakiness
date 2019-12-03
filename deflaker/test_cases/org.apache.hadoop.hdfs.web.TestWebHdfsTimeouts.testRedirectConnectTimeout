@@ -1,0 +1,14 @@
+/**
+ * After a redirect, expect connect timeout accessing the redirect location,
+ * because the connection backlog is consumed.
+ */
+@Test(timeout = TEST_TIMEOUT)
+public void testRedirectConnectTimeout() throws Exception {
+    startSingleTemporaryRedirectResponseThread(true);
+    try {
+        fs.getFileChecksum(new Path("/file"));
+        fail("expected timeout");
+    } catch (SocketTimeoutException e) {
+        assertEquals("connect timed out", e.getMessage());
+    }
+}

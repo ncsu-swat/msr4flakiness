@@ -1,0 +1,25 @@
+@Test
+public void testMixedTopic1() {
+    try {
+        services.destroy();
+        services = setupServicesForTopic();
+        services.getConf().set(JMSTopicService.TOPIC_NAME, JMSTopicService.JobType.WORKFLOW.getValue() + " = workflow," + JMSTopicService.JobType.COORDINATOR.getValue() + "=coord, default = " + JMSTopicService.TopicType.JOBID.getValue());
+        services.init();
+        JMSTopicService jmsTopicService = Services.get().get(JMSTopicService.class);
+        WorkflowJobBean wfj = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED);
+        assertEquals("workflow", jmsTopicService.getTopic(wfj.getId()));
+        WorkflowActionBean wab = addRecordToWfActionTable(wfj.getId(), "1", WorkflowAction.Status.RUNNING);
+        assertEquals("workflow", jmsTopicService.getTopic(wab.getId()));
+        CoordinatorJobBean cjb = addRecordToCoordJobTable(CoordinatorJob.Status.SUCCEEDED, true, true);
+        assertEquals("coord", jmsTopicService.getTopic(cjb.getId()));
+        CoordinatorActionBean cab = addRecordToCoordActionTable(cjb.getId(), 1, CoordinatorAction.Status.SUCCEEDED, "coord-action-for-action-input-check.xml", 0);
+        assertEquals("coord", jmsTopicService.getTopic(cab.getId()));
+        BundleJobBean bjb = addRecordToBundleJobTable(Job.Status.RUNNING, true);
+        assertEquals(bjb.getId(), jmsTopicService.getTopic(bjb.getId()));
+        BundleActionBean bab = addRecordToBundleActionTable(bjb.getId(), "1", 1, Job.Status.RUNNING);
+        assertEquals(bjb.getId(), jmsTopicService.getTopic(bab.getBundleActionId()));
+    } catch (Exception e) {
+        e.printStackTrace();
+        fail(e.getMessage());
+    }
+}

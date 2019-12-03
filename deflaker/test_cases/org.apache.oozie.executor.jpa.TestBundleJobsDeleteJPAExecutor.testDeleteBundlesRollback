@@ -1,0 +1,76 @@
+public void testDeleteBundlesRollback() throws Exception {
+    BundleJobBean jobA = this.addRecordToBundleJobTable(Job.Status.SUCCEEDED, false);
+    BundleActionBean actionA1 = addRecordToBundleActionTable(jobA.getId(), "actionA1", 0, Job.Status.SUCCEEDED);
+    BundleActionBean actionA2 = addRecordToBundleActionTable(jobA.getId(), "actionA2", 0, Job.Status.SUCCEEDED);
+    BundleJobBean jobB = this.addRecordToBundleJobTable(Job.Status.SUCCEEDED, false);
+    BundleActionBean actionB1 = addRecordToBundleActionTable(jobB.getId(), "actionB1", 0, Job.Status.SUCCEEDED);
+    BundleActionBean actionB2 = addRecordToBundleActionTable(jobB.getId(), "actionB2", 0, Job.Status.SUCCEEDED);
+    BundleJobBean jobC = this.addRecordToBundleJobTable(Job.Status.SUCCEEDED, false);
+    BundleActionBean actionC1 = addRecordToBundleActionTable(jobC.getId(), "actionC1", 0, Job.Status.SUCCEEDED);
+    BundleActionBean actionC2 = addRecordToBundleActionTable(jobC.getId(), "actionC2", 0, Job.Status.SUCCEEDED);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    try {
+        // set fault injection to true, so transaction is roll backed
+        setSystemProperty(FaultInjection.FAULT_INJECTION, "true");
+        setSystemProperty(SkipCommitFaultInjection.ACTION_FAILOVER_FAULT_INJECTION, "true");
+        List<String> deleteList = new ArrayList<String>();
+        deleteList.add(jobA.getId());
+        deleteList.add(jobB.getId());
+        deleteList.add(jobC.getId());
+        try {
+            jpaService.execute(new BundleJobsDeleteJPAExecutor(deleteList));
+            fail("Should have skipped commit for failover testing");
+        } catch (RuntimeException re) {
+            assertEquals("Skipping Commit for Failover Testing", re.getMessage());
+        }
+    } finally {
+        // Remove fault injection
+        FaultInjection.deactivate("org.apache.oozie.command.SkipCommitFaultInjection");
+    }
+    try {
+        jpaService.execute(new BundleJobGetJPAExecutor(jobA.getId()));
+    } catch (JPAExecutorException je) {
+        fail("Bundle Job A should not have been deleted");
+    }
+    try {
+        jpaService.execute(new BundleActionGetJPAExecutor(actionA1.getBundleId(), actionA1.getCoordName()));
+    } catch (JPAExecutorException je) {
+        fail("Bundle Action A1 should not have been deleted");
+    }
+    try {
+        jpaService.execute(new BundleActionGetJPAExecutor(actionA2.getBundleId(), actionA2.getCoordName()));
+    } catch (JPAExecutorException je) {
+        fail("Bundle Action A2 should not have been deleted");
+    }
+    try {
+        jpaService.execute(new BundleJobGetJPAExecutor(jobB.getId()));
+    } catch (JPAExecutorException je) {
+        fail("Bundle Job B should not have been deleted");
+    }
+    try {
+        jpaService.execute(new BundleActionGetJPAExecutor(actionB1.getBundleId(), actionB1.getCoordName()));
+    } catch (JPAExecutorException je) {
+        fail("Bundle Action B1 should not have been deleted");
+    }
+    try {
+        jpaService.execute(new BundleActionGetJPAExecutor(actionB2.getBundleId(), actionB2.getCoordName()));
+    } catch (JPAExecutorException je) {
+        fail("Bundle Action B2 should not have been deleted");
+    }
+    try {
+        jpaService.execute(new BundleJobGetJPAExecutor(jobC.getId()));
+    } catch (JPAExecutorException je) {
+        fail("Bundle Job C should not have been deleted");
+    }
+    try {
+        jpaService.execute(new BundleActionGetJPAExecutor(actionC1.getBundleId(), actionC1.getCoordName()));
+    } catch (JPAExecutorException je) {
+        fail("Bundle Action C1 should not have been deleted");
+    }
+    try {
+        jpaService.execute(new BundleActionGetJPAExecutor(actionC2.getBundleId(), actionC2.getCoordName()));
+    } catch (JPAExecutorException je) {
+        fail("Bundle Action C2 should not have been deleted");
+    }
+}

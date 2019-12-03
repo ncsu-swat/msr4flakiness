@@ -1,0 +1,14 @@
+/**
+ * Test method org.apache.oozie.CoordinatorEngine.streamLog(String, String,
+ * String, Writer) with RestConstants.JOB_LOG_ACTION and non-null 2nd
+ * argument.
+ */
+public void testStreamLog4JobLogAction() throws Exception {
+    CoordinatorEngine ce = createCoordinatorEngine();
+    String jobId = runJobsImpl(ce);
+    ce.streamLog(jobId, "678, 123-127, 946", RestConstants.JOB_LOG_ACTION, new StringWriter());
+    DummyXLogService service = (DummyXLogService) services.get(XLogService.class);
+    Filter filter = service.filter;
+    assertEquals(jobId, filter.getFilterParams().get(DagXLogInfoService.JOB));
+    assertEquals("(" + jobId + "@678|" + jobId + "@123|" + jobId + "@124|" + jobId + "@125|" + jobId + "@126|" + jobId + "@127|" + jobId + "@946)", filter.getFilterParams().get(DagXLogInfoService.ACTION));
+}

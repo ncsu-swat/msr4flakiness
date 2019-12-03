@@ -1,0 +1,33 @@
+public void testRedeploy() throws IOException, OozieClientException, InterruptedException {
+    Reader reader = IOUtils.getResourceAsReader("rerun-elerr-wf.xml", -1);
+    Writer writer = new FileWriter(getTestCaseDir() + "/workflow.xml");
+    IOUtils.copyCharStream(reader, writer);
+    final OozieClient wfClient = LocalOozie.getClient();
+    Properties conf = wfClient.createConfiguration();
+    conf.setProperty(OozieClient.APP_PATH, "file://" + getTestCaseDir() + File.separator + "workflow.xml");
+    conf.setProperty(OozieClient.USER_NAME, getTestUser());
+    conf.setProperty("inPath", getFsTestCaseDir().toString());
+    conf.setProperty("checkDir", getFsTestCaseDir().toString() + "/check");
+    final String jobId1 = wfClient.submit(conf);
+    wfClient.start(jobId1);
+    waitFor(15 * 1000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            return wfClient.getJobInfo(jobId1).getStatus() == WorkflowJob.Status.FAILED;
+        }
+    });
+    assertEquals(WorkflowJob.Status.FAILED, wfClient.getJobInfo(jobId1).getStatus());
+    reader = IOUtils.getResourceAsReader("rerun-el-wf.xml", -1);
+    writer = new FileWriter(getTestCaseDir() + "/workflow.xml");
+    IOUtils.copyCharStream(reader, writer);
+    sleep(5000);
+    conf.setProperty(OozieClient.RERUN_SKIP_NODES, "hdfs11");
+    wfClient.reRun(jobId1, conf);
+    waitFor(15 * 1000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            return wfClient.getJobInfo(jobId1).getStatus() == WorkflowJob.Status.SUCCEEDED;
+        }
+    });
+    assertEquals(WorkflowJob.Status.SUCCEEDED, wfClient.getJobInfo(jobId1).getStatus());
+}

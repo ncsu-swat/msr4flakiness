@@ -1,0 +1,59 @@
+public void testEventListener() throws Exception {
+    EventHandlerService ehs = _testEventHandlerService();
+    /*
+         * Workflow Job events
+         */
+    WorkflowJobEvent event = new WorkflowJobEvent("jobid", "parentid", WorkflowJob.Status.RUNNING, getTestUser(), "myapp", null, null);
+    ehs.queueEvent(event);
+    ehs.new EventWorker().run();
+    assertTrue(output.toString().contains("Workflow Job event STARTED"));
+    output.setLength(0);
+    event.setStatus(WorkflowJob.Status.SUSPENDED);
+    ehs.queueEvent(event);
+    ehs.new EventWorker().run();
+    assertTrue(output.toString().contains("Workflow Job event SUSPEND"));
+    output.setLength(0);
+    event.setStatus(WorkflowJob.Status.SUCCEEDED);
+    ehs.queueEvent(event);
+    ehs.new EventWorker().run();
+    assertTrue(output.toString().contains("Workflow Job event SUCCESS"));
+    output.setLength(0);
+    event.setStatus(WorkflowJob.Status.KILLED);
+    ehs.queueEvent(event);
+    ehs.new EventWorker().run();
+    assertTrue(output.toString().contains("Workflow Job event FAILURE"));
+    output.setLength(0);
+    /*
+         * Coordinator Action events
+         */
+    CoordinatorActionEvent event2 = new CoordinatorActionEvent("jobid", "parentid", CoordinatorAction.Status.WAITING, getTestUser(), "myapp", null, null, null);
+    ehs.queueEvent(event2);
+    ehs.new EventWorker().run();
+    assertTrue(output.toString().contains("Coord Action event WAITING"));
+    output.setLength(0);
+    event2.setStatus(CoordinatorAction.Status.RUNNING);
+    ehs.queueEvent(event2);
+    ehs.new EventWorker().run();
+    assertTrue(output.toString().contains("Coord Action event STARTED"));
+    output.setLength(0);
+    event2.setStatus(CoordinatorAction.Status.SUSPENDED);
+    ehs.queueEvent(event2);
+    ehs.new EventWorker().run();
+    assertTrue(output.toString().contains("Coord Action event SUSPEND"));
+    output.setLength(0);
+    event2.setStatus(CoordinatorAction.Status.SUCCEEDED);
+    ehs.queueEvent(event2);
+    ehs.new EventWorker().run();
+    assertTrue(output.toString().contains("Coord Action event SUCCESS"));
+    output.setLength(0);
+    event2.setStatus(CoordinatorAction.Status.TIMEDOUT);
+    ehs.queueEvent(event2);
+    ehs.new EventWorker().run();
+    assertTrue(output.toString().contains("Coord Action event FAILURE"));
+    output.setLength(0);
+    event2.setStatus(CoordinatorAction.Status.KILLED);
+    ehs.queueEvent(event2);
+    ehs.new EventWorker().run();
+    assertTrue(output.toString().contains("Coord Action event FAILURE"));
+    output.setLength(0);
+}

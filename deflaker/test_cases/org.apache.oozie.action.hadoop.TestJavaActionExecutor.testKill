@@ -1,0 +1,19 @@
+public void testKill() throws Exception {
+    String actionXml = "<java>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>" + "<name-node>" + getNameNodeUri() + "</name-node>" + "<main-class>" + LauncherMainTester.class.getName() + "</main-class>" + "</java>";
+    final Context context = createContext(actionXml, null);
+    final RunningJob runningJob = submitAction(context);
+    assertFalse(runningJob.isComplete());
+    ActionExecutor ae = new JavaActionExecutor();
+    ae.kill(context, context.getAction());
+    assertEquals(WorkflowAction.Status.DONE, context.getAction().getStatus());
+    assertEquals("KILLED", context.getAction().getExternalStatus());
+    assertTrue(ae.isCompleted(context.getAction().getExternalStatus()));
+    waitFor(60 * 1000, new Predicate() {
+
+        @Override
+        public boolean evaluate() throws Exception {
+            return runningJob.isComplete();
+        }
+    });
+    assertFalse(runningJob.isSuccessful());
+}

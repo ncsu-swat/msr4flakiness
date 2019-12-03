@@ -1,0 +1,18 @@
+/**
+ * Test : Negative case - pause a suspended bundle
+ *
+ * @throws Exception
+ */
+public void testBundlePauseUnpauseNeg1() throws Exception {
+    BundleJobBean job = this.addRecordToBundleJobTable(Job.Status.SUSPENDED, false);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    BundleJobGetJPAExecutor bundleJobGetCmd = new BundleJobGetJPAExecutor(job.getId());
+    job = jpaService.execute(bundleJobGetCmd);
+    assertEquals(job.getStatus(), Job.Status.SUSPENDED);
+    try {
+        new BundlePauseXCommand(job).call();
+        fail("should not reach here.");
+    } catch (Exception ex) {
+    }
+}

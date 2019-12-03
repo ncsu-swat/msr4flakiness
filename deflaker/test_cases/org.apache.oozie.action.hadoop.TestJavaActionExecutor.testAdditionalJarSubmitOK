@@ -1,0 +1,25 @@
+public void testAdditionalJarSubmitOK() throws Exception {
+    Path appJarPath = new Path("test-extra.jar");
+    File jarFile = IOUtils.createJar(new File(getTestCaseDir()), appJarPath.getName(), LauncherMainTester2.class);
+    InputStream is = new FileInputStream(jarFile);
+    OutputStream os = getFileSystem().create(new Path(getAppPath(), appJarPath.toString()));
+    IOUtils.copyStream(is, os);
+    String actionXml = "<java>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>" + "<name-node>" + getNameNodeUri() + "</name-node>" + "<main-class>" + LauncherMainTester2.class.getName() + "</main-class>" + "<file>" + appJarPath.toString() + "</file>" + "</java>";
+    Context context = createContext(actionXml, null);
+    final RunningJob runningJob = submitAction(context);
+    ActionExecutor ae = new JavaActionExecutor();
+    assertFalse(ae.isCompleted(context.getAction().getExternalStatus()));
+    waitFor(60 * 1000, new Predicate() {
+
+        @Override
+        public boolean evaluate() throws Exception {
+            return runningJob.isComplete();
+        }
+    });
+    assertTrue(runningJob.isSuccessful());
+    ae.check(context, context.getAction());
+    assertEquals("SUCCEEDED", context.getAction().getExternalStatus());
+    assertNull(context.getAction().getData());
+    ae.end(context, context.getAction());
+    assertEquals(WorkflowAction.Status.OK, context.getAction().getStatus());
+}

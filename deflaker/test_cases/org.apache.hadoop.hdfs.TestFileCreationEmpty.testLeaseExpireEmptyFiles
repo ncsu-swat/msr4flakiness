@@ -1,0 +1,46 @@
+/**
+ * This test creates three empty files and lets their leases expire.
+ * This triggers release of the leases.
+ * The empty files are supposed to be closed by that
+ * without causing ConcurrentModificationException.
+ */
+public void testLeaseExpireEmptyFiles() throws Exception {
+    final Thread.UncaughtExceptionHandler oldUEH = Thread.getDefaultUncaughtExceptionHandler();
+    Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+
+        public void uncaughtException(Thread t, Throwable e) {
+            if (e instanceof ConcurrentModificationException) {
+                LeaseManager.LOG.error("t=" + t, e);
+                isConcurrentModificationException = true;
+            }
+        }
+    });
+    System.out.println("testLeaseExpireEmptyFiles start");
+    final long leasePeriod = 1000;
+    final int DATANODE_NUM = 3;
+    final Configuration conf = new HdfsConfiguration();
+    conf.setInt(DFSConfigKeys.DFS_NAMENODE_HEARTBEAT_RECHECK_INTERVAL_KEY, 1000);
+    conf.setInt(DFSConfigKeys.DFS_HEARTBEAT_INTERVAL_KEY, 1);
+    // create cluster
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).numDataNodes(DATANODE_NUM).build();
+    try {
+        cluster.waitActive();
+        DistributedFileSystem dfs = (DistributedFileSystem) cluster.getFileSystem();
+        // create a new file.
+        TestFileCreation.createFile(dfs, new Path("/foo"), DATANODE_NUM);
+        TestFileCreation.createFile(dfs, new Path("/foo2"), DATANODE_NUM);
+        TestFileCreation.createFile(dfs, new Path("/foo3"), DATANODE_NUM);
+        // set the soft and hard limit to be 1 second so that the
+        // namenode triggers lease recovery
+        cluster.setLeasePeriod(leasePeriod, leasePeriod);
+        // wait for the lease to expire
+        try {
+            Thread.sleep(5 * leasePeriod);
+        } catch (InterruptedException e) {
+        }
+        assertFalse(isConcurrentModificationException);
+    } finally {
+        Thread.setDefaultUncaughtExceptionHandler(oldUEH);
+        cluster.shutdown();
+    }
+}

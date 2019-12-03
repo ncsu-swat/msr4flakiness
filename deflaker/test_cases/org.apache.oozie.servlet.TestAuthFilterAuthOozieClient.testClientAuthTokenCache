@@ -1,0 +1,49 @@
+public void testClientAuthTokenCache() throws Exception {
+    // not using cache
+    setSystemProperty("oozie.authentication.simple.anonymous.allowed", "false");
+    AuthOozieClient.AUTH_TOKEN_CACHE_FILE.delete();
+    assertFalse(AuthOozieClient.AUTH_TOKEN_CACHE_FILE.exists());
+    runTest(new Callable<Void>() {
+
+        public Void call() throws Exception {
+            String oozieUrl = getContextURL();
+            String[] args = new String[] { "admin", "-status", "-oozie", oozieUrl };
+            assertEquals(0, new OozieCLI().run(args));
+            return null;
+        }
+    });
+    assertFalse(AuthOozieClient.AUTH_TOKEN_CACHE_FILE.exists());
+    // using cache
+    setSystemProperty("oozie.auth.token.cache", "true");
+    setSystemProperty("oozie.authentication.simple.anonymous.allowed", "false");
+    setSystemProperty("oozie.authentication.signature.secret", "secret");
+    AuthOozieClient.AUTH_TOKEN_CACHE_FILE.delete();
+    assertFalse(AuthOozieClient.AUTH_TOKEN_CACHE_FILE.exists());
+    runTest(new Callable<Void>() {
+
+        public Void call() throws Exception {
+            String oozieUrl = getContextURL();
+            String[] args = new String[] { "admin", "-status", "-oozie", oozieUrl };
+            assertEquals(0, new OozieCLI().run(args));
+            return null;
+        }
+    });
+    assertTrue(AuthOozieClient.AUTH_TOKEN_CACHE_FILE.exists());
+    String currentCache = IOUtils.getReaderAsString(new FileReader(AuthOozieClient.AUTH_TOKEN_CACHE_FILE), -1);
+    // re-using cache
+    setSystemProperty("oozie.auth.token.cache", "true");
+    setSystemProperty("oozie.authentication.simple.anonymous.allowed", "false");
+    setSystemProperty("oozie.authentication.signature.secret", "secret");
+    runTest(new Callable<Void>() {
+
+        public Void call() throws Exception {
+            String oozieUrl = getContextURL();
+            String[] args = new String[] { "admin", "-status", "-oozie", oozieUrl };
+            assertEquals(0, new OozieCLI().run(args));
+            return null;
+        }
+    });
+    assertTrue(AuthOozieClient.AUTH_TOKEN_CACHE_FILE.exists());
+    String newCache = IOUtils.getReaderAsString(new FileReader(AuthOozieClient.AUTH_TOKEN_CACHE_FILE), -1);
+    assertEquals(currentCache, newCache);
+}

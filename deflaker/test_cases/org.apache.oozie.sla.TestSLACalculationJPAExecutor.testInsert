@@ -1,0 +1,44 @@
+/**
+ * Test simple insert
+ *
+ * @throws Exception
+ */
+@Test
+public void testInsert() throws Exception {
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    String wfId = "workflow-1";
+    SLACalculatorBean bean1 = _createSLACalcBean(wfId, false, false);
+    cal.setTime(new Date());
+    cal.add(Calendar.DAY_OF_MONTH, -2);
+    Date expStart = cal.getTime();
+    cal.add(Calendar.DAY_OF_MONTH, -1);
+    Date expEnd = cal.getTime();
+    Date actStart = new Date();
+    cal.add(Calendar.DAY_OF_MONTH, 2);
+    Date actEnd = cal.getTime();
+    SLASummaryBean bean2 = _createSLASummaryBean(wfId, "RUNNING", EventStatus.START_MISS, expStart, expEnd, 1000, actStart, actEnd, 2000);
+    List<JsonBean> list = new ArrayList<JsonBean>();
+    list.add(bean1);
+    list.add(bean2);
+    SLACalculationInsertUpdateJPAExecutor writeCmd = new SLACalculationInsertUpdateJPAExecutor();
+    writeCmd.setInsertList(list);
+    jpaService.execute(writeCmd);
+    SLACalculatorGetJPAExecutor readCmd1 = new SLACalculatorGetJPAExecutor(wfId);
+    SLACalculatorBean scBean = jpaService.execute(readCmd1);
+    assertNotNull(scBean);
+    assertEquals(wfId, scBean.getJobId());
+    assertFalse(scBean.isStartProcessed());
+    assertFalse(scBean.isEndProcessed());
+    SLASummaryGetJPAExecutor readCmd2 = new SLASummaryGetJPAExecutor(wfId);
+    SLASummaryBean ssBean = jpaService.execute(readCmd2);
+    assertEquals(wfId, ssBean.getJobId());
+    assertEquals("RUNNING", ssBean.getJobStatus());
+    assertEquals(EventStatus.START_MISS, ssBean.getEventStatus());
+    assertEquals(expStart, ssBean.getExpectedStart());
+    assertEquals(expEnd, ssBean.getExpectedEnd());
+    assertEquals(1000, ssBean.getExpectedDuration());
+    assertEquals(actStart, ssBean.getActualStart());
+    assertEquals(actEnd, ssBean.getActualEnd());
+    assertEquals(2000, ssBean.getActualDuration());
+}

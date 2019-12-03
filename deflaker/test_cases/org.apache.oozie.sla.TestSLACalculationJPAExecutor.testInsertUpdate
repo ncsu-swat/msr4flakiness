@@ -1,0 +1,53 @@
+/**
+ * Test insert + update
+ *
+ * @throws Exception
+ */
+@Test
+public void testInsertUpdate() throws Exception {
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    String wfId = "workflow-1";
+    // initial insert
+    SLACalculatorBean bean1 = _createSLACalcBean(wfId, false, false);
+    cal.setTime(new Date());
+    cal.add(Calendar.DAY_OF_MONTH, -2);
+    Date expStart = cal.getTime();
+    cal.add(Calendar.DAY_OF_MONTH, -1);
+    Date expEnd = cal.getTime();
+    Date actStart = new Date();
+    SLASummaryBean bean2 = _createSLASummaryBean(wfId, "RUNNING", EventStatus.START_MISS, expStart, expEnd, 1000, actStart, null, 2000);
+    List<JsonBean> list = new ArrayList<JsonBean>();
+    list.add(bean1);
+    list.add(bean2);
+    SLACalculationInsertUpdateJPAExecutor writeCmd = new SLACalculationInsertUpdateJPAExecutor();
+    writeCmd.setInsertList(list);
+    jpaService.execute(writeCmd);
+    // update existing record
+    Date newDate = new Date();
+    bean1 = _createSLACalcBean(wfId, true, true);
+    bean2 = _createSLASummaryBean(wfId, "RUNNING", EventStatus.DURATION_MISS, expStart, expEnd, 1000, actStart, newDate, 2000);
+    list = new ArrayList<JsonBean>();
+    list.add(bean1);
+    list.add(bean2);
+    writeCmd.setUpdateList(list);
+    writeCmd.setInsertList(null);
+    jpaService.execute(writeCmd);
+    SLACalculatorGetJPAExecutor readCmd1 = new SLACalculatorGetJPAExecutor(wfId);
+    SLACalculatorBean scBean = jpaService.execute(readCmd1);
+    assertNotNull(scBean);
+    assertEquals(wfId, scBean.getJobId());
+    assertTrue(scBean.isStartProcessed());
+    assertTrue(scBean.isEndProcessed());
+    SLASummaryGetJPAExecutor readCmd2 = new SLASummaryGetJPAExecutor(wfId);
+    SLASummaryBean sdBean = jpaService.execute(readCmd2);
+    // check updated + original fields
+    assertEquals(wfId, sdBean.getJobId());
+    assertEquals(EventStatus.DURATION_MISS, sdBean.getEventStatus());
+    assertEquals(expStart, sdBean.getExpectedStart());
+    assertEquals(expEnd, sdBean.getExpectedEnd());
+    assertEquals(1000, sdBean.getExpectedDuration());
+    assertEquals(actStart, sdBean.getActualStart());
+    assertEquals(newDate, sdBean.getActualEnd());
+    assertEquals(2000, sdBean.getActualDuration());
+}

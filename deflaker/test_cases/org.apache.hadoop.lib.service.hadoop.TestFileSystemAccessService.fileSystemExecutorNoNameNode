@@ -1,0 +1,25 @@
+@Test
+@TestException(exception = FileSystemAccessException.class, msgRegExp = "H06.*")
+@TestDir
+@TestHdfs
+public void fileSystemExecutorNoNameNode() throws Exception {
+    String dir = TestDirHelper.getTestDir().getAbsolutePath();
+    String services = StringUtils.join(",", Arrays.asList(InstrumentationService.class.getName(), SchedulerService.class.getName(), FileSystemAccessService.class.getName()));
+    Configuration hadoopConf = new Configuration(false);
+    hadoopConf.set(CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY, TestHdfsHelper.getHdfsConf().get(CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY));
+    createHadoopConf(hadoopConf);
+    Configuration conf = new Configuration(false);
+    conf.set("server.services", services);
+    Server server = new Server("server", dir, dir, dir, dir, conf);
+    server.init();
+    FileSystemAccess fsAccess = server.get(FileSystemAccess.class);
+    Configuration hdfsConf = fsAccess.getFileSystemConfiguration();
+    hdfsConf.set(CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY, "");
+    fsAccess.execute("u", hdfsConf, new FileSystemAccess.FileSystemExecutor<Void>() {
+
+        @Override
+        public Void execute(FileSystem fs) throws IOException {
+            return null;
+        }
+    });
+}

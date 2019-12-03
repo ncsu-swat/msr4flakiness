@@ -1,0 +1,16 @@
+public void testInfoThreadLocal() throws Exception {
+    XLog.Info.defineParameter("A");
+    assertEquals("A[-]", XLog.Info.get().createPrefix());
+    XLog.Info.get().setParameter("A", "a");
+    assertEquals("A[a]", XLog.Info.get().createPrefix());
+    Thread t = new Thread() {
+
+        public void run() {
+            assertEquals("A[-]", XLog.Info.get().createPrefix());
+            XLog.Info.get().setParameter("A", "aa");
+        }
+    };
+    t.start();
+    t.join();
+    assertEquals("A[a]", XLog.Info.get().createPrefix());
+}

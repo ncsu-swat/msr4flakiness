@@ -1,0 +1,61 @@
+public void testFilePermision() throws Exception {
+    final Configuration conf = new HdfsConfiguration();
+    conf.setBoolean(DFSConfigKeys.DFS_PERMISSIONS_ENABLED_KEY, true);
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).numDataNodes(3).build();
+    cluster.waitActive();
+    try {
+        FileSystem nnfs = FileSystem.get(conf);
+        // test permissions on files that do not exist
+        assertFalse(nnfs.exists(CHILD_FILE1));
+        try {
+            nnfs.setOwner(CHILD_FILE1, "foo", "bar");
+            assertTrue(false);
+        } catch (java.io.FileNotFoundException e) {
+            LOG.info("GOOD: got " + e);
+        }
+        try {
+            nnfs.setPermission(CHILD_FILE1, new FsPermission((short) 0777));
+            assertTrue(false);
+        } catch (java.io.FileNotFoundException e) {
+            LOG.info("GOOD: got " + e);
+        }
+        // following dir/file creations are legal
+        nnfs.mkdirs(CHILD_DIR1);
+        FSDataOutputStream out = nnfs.create(CHILD_FILE1);
+        byte[] data = new byte[FILE_LEN];
+        RAN.nextBytes(data);
+        out.write(data);
+        out.close();
+        nnfs.setPermission(CHILD_FILE1, new FsPermission("700"));
+        // following read is legal
+        byte[] dataIn = new byte[FILE_LEN];
+        FSDataInputStream fin = nnfs.open(CHILD_FILE1);
+        int bytesRead = fin.read(dataIn);
+        assertTrue(bytesRead == FILE_LEN);
+        for (int i = 0; i < FILE_LEN; i++) {
+            assertEquals(data[i], dataIn[i]);
+        }
+        // //////////////////////////////////////////////////////////////
+        // test illegal file/dir creation
+        UserGroupInformation userGroupInfo = UserGroupInformation.createUserForTesting(USER_NAME, GROUP_NAMES);
+        FileSystem userfs = DFSTestUtil.getFileSystemAs(userGroupInfo, conf);
+        // make sure mkdir of a existing directory that is not owned by
+        // this user does not throw an exception.
+        userfs.mkdirs(CHILD_DIR1);
+        // illegal mkdir
+        assertTrue(!canMkdirs(userfs, CHILD_DIR2));
+        // illegal file creation
+        assertTrue(!canCreate(userfs, CHILD_FILE2));
+        // illegal file open
+        assertTrue(!canOpen(userfs, CHILD_FILE1));
+        nnfs.setPermission(ROOT_PATH, new FsPermission((short) 0755));
+        nnfs.setPermission(CHILD_DIR1, new FsPermission("777"));
+        nnfs.setPermission(new Path("/"), new FsPermission((short) 0777));
+        final Path RENAME_PATH = new Path("/foo/bar");
+        userfs.mkdirs(RENAME_PATH);
+        assertTrue(canRename(userfs, RENAME_PATH, CHILD_DIR1));
+    } finally {
+        if (cluster != null)
+            cluster.shutdown();
+    }
+}

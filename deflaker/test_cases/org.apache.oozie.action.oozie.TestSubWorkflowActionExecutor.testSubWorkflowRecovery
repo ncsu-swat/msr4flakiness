@@ -1,0 +1,34 @@
+public void testSubWorkflowRecovery() throws Exception {
+    Path subWorkflowAppPath = getFsTestCaseDir();
+    FileSystem fs = getFileSystem();
+    Writer writer = new OutputStreamWriter(fs.create(new Path(subWorkflowAppPath, "workflow.xml")));
+    writer.write(APP1);
+    writer.close();
+    XConfiguration protoConf = getBaseProtoConf();
+    WorkflowJobBean workflow = createBaseWorkflow(protoConf, "W");
+    final WorkflowActionBean action = (WorkflowActionBean) workflow.getActions().get(0);
+    action.setConf("<sub-workflow xmlns='uri:oozie:workflow:0.1'>" + "      <app-path>" + subWorkflowAppPath + File.separator + "workflow.xml" + "</app-path>" + "      <configuration>" + "        <property>" + "          <name>a</name>" + "          <value>A</value>" + "        </property>" + "      </configuration>" + "</sub-workflow>");
+    SubWorkflowActionExecutor subWorkflow = new SubWorkflowActionExecutor();
+    subWorkflow.start(new Context(workflow, action), action);
+    final OozieClient oozieClient = subWorkflow.getWorkflowClient(new Context(workflow, action), SubWorkflowActionExecutor.LOCAL);
+    waitFor(JOB_TIMEOUT, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            return oozieClient.getJobInfo(action.getExternalId()).getStatus() == WorkflowJob.Status.SUCCEEDED;
+        }
+    });
+    String extId = action.getExternalId();
+    assertEquals(workflow.getId(), oozieClient.getJobInfo(extId).getParentId());
+    assertEquals(WorkflowJob.Status.SUCCEEDED, oozieClient.getJobInfo(extId).getStatus());
+    WorkflowActionBean action1 = new WorkflowActionBean();
+    action1.setId(action.getId());
+    action1.setName(action.getName());
+    action1.setConf("<sub-workflow xmlns='uri:oozie:workflow:0.1'>" + "      <app-path>wrongAppPath</app-path>" + "      <configuration>" + "        <property>" + "          <name>a</name>" + "          <value>A</value>" + "        </property>" + "      </configuration>" + "</sub-workflow>");
+    subWorkflow.start(new Context(workflow, action1), action1);
+    assertEquals(extId, action1.getExternalId());
+    assertEquals(workflow.getId(), oozieClient.getJobInfo(extId).getParentId());
+    subWorkflow.check(new Context(workflow, action1), action1);
+    assertEquals(WorkflowAction.Status.DONE, action1.getStatus());
+    subWorkflow.end(new Context(workflow, action1), action1);
+    assertEquals(WorkflowAction.Status.OK, action1.getStatus());
+}

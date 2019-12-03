@@ -1,0 +1,19 @@
+/**
+ * Make sure that client failover works when an active NN dies and the standby
+ * takes over.
+ */
+@Test
+public void testDfsClientFailover() throws IOException, URISyntaxException {
+    FileSystem fs = HATestUtil.configureFailoverFs(cluster, conf);
+    DFSTestUtil.createFile(fs, TEST_FILE, FILE_LENGTH_TO_VERIFY, (short) 1, 1L);
+    assertEquals(fs.getFileStatus(TEST_FILE).getLen(), FILE_LENGTH_TO_VERIFY);
+    cluster.shutdownNameNode(0);
+    cluster.transitionToActive(1);
+    assertEquals(fs.getFileStatus(TEST_FILE).getLen(), FILE_LENGTH_TO_VERIFY);
+    // Check that it functions even if the URL becomes canonicalized
+    // to include a port number.
+    Path withPort = new Path("hdfs://" + HATestUtil.getLogicalHostname(cluster) + ":" + NameNode.DEFAULT_PORT + "/" + TEST_FILE.toUri().getPath());
+    FileSystem fs2 = withPort.getFileSystem(fs.getConf());
+    assertTrue(fs2.exists(withPort));
+    fs.close();
+}

@@ -1,0 +1,23 @@
+@Test
+public void testWorkflowJobSelectorsAnd() {
+    JMSJobEventListener wfEventListener = new JMSJobEventListener();
+    wfEventListener.init(conf);
+    WorkflowJobEvent wfe = new WorkflowJobEvent("wfId1", "caId1", WorkflowJob.Status.FAILED, "user1", "wf-app-name1", new Date(), new Date());
+    ConnectionContext jmsContext = getConnectionContext();
+    try {
+        Session session = jmsContext.createSession(Session.AUTO_ACKNOWLEDGE);
+        // Pass a selector using AND condition
+        String selector = JMSHeaderConstants.EVENT_STATUS + "='FAILURE' AND " + JMSHeaderConstants.APP_TYPE + "='WORKFLOW_JOB' AND " + JMSHeaderConstants.MESSAGE_TYPE + "='JOB'";
+        MessageConsumer consumer = jmsContext.createConsumer(session, wfEventListener.getTopic(wfe), selector);
+        wfEventListener.onWorkflowJobEvent(wfe);
+        TextMessage message = (TextMessage) consumer.receive(5000);
+        WorkflowJobMessage wfFailMessage = JMSMessagingUtils.getEventMessage(message);
+        Assert.assertEquals(WorkflowJob.Status.FAILED, wfFailMessage.getStatus());
+        assertEquals("user1", wfFailMessage.getUser());
+        assertEquals(MessageType.JOB, wfFailMessage.getMessageType());
+        wfEventListener.destroy();
+    } catch (Exception e) {
+        e.printStackTrace();
+        fail(e.getMessage());
+    }
+}

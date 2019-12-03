@@ -1,0 +1,20 @@
+@Test
+public void testSendingCookiesFromStore() throws Exception {
+    MockWebServer server = new MockWebServer();
+    server.enqueue(new MockResponse());
+    server.play();
+    CookieManager cookieManager = new CookieManager(null, ACCEPT_ORIGINAL_SERVER);
+    HttpCookie cookieA = new HttpCookie("a", "android");
+    cookieA.setDomain(server.getCookieDomain());
+    cookieA.setPath("/");
+    cookieManager.getCookieStore().add(server.getUrl("/").toURI(), cookieA);
+    HttpCookie cookieB = new HttpCookie("b", "banana");
+    cookieB.setDomain(server.getCookieDomain());
+    cookieB.setPath("/");
+    cookieManager.getCookieStore().add(server.getUrl("/").toURI(), cookieB);
+    CookieHandler.setDefault(cookieManager);
+    get(server, "/");
+    RecordedRequest request = server.takeRequest();
+    List<String> receivedHeaders = request.getHeaders();
+    assertContains(receivedHeaders, "Cookie: $Version=\"1\"; " + "a=\"android\";$Path=\"/\";$Domain=\"" + server.getCookieDomain() + "\"; " + "b=\"banana\";$Path=\"/\";$Domain=\"" + server.getCookieDomain() + "\"");
+}

@@ -1,0 +1,22 @@
+public void testSingleRecord() throws Exception {
+    runTest("/v1/jobs", V1JobsServlet.class, false, new Callable<Void>() {
+
+        public Void call() throws Exception {
+            String bulkRequest = "bundle=" + bundleName + ";coordinators=Coord1;" + "actionStatus=FAILED;startcreatedtime=2012-07-21T00:00Z";
+            JSONArray array = _requestToServer(bulkRequest);
+            assertEquals(1, array.size());
+            JSONObject jbundle = (JSONObject) ((JSONObject) array.get(0)).get(JsonTags.BULK_RESPONSE_BUNDLE);
+            JSONObject jcoord = (JSONObject) ((JSONObject) array.get(0)).get(JsonTags.BULK_RESPONSE_COORDINATOR);
+            JSONObject jaction = (JSONObject) ((JSONObject) array.get(0)).get(JsonTags.BULK_RESPONSE_ACTION);
+            assertNotNull(jbundle);
+            assertNotNull(jcoord);
+            assertNotNull(jaction);
+            assertEquals(jbundle.get(JsonTags.BUNDLE_JOB_NAME), "BUNDLE-TEST");
+            assertEquals(jcoord.get(JsonTags.COORDINATOR_JOB_NAME), "Coord1");
+            assertEquals(jcoord.get(JsonTags.COORDINATOR_JOB_STATUS), "RUNNING");
+            assertEquals(jaction.get(JsonTags.COORDINATOR_ACTION_STATUS), "FAILED");
+            assertEquals((jaction.get(JsonTags.COORDINATOR_ACTION_CREATED_TIME).toString().split(", "))[1], DateUtils.parseDateUTC(CREATE_TIME).toGMTString());
+            return null;
+        }
+    });
+}

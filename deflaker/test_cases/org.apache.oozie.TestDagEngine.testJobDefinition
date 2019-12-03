@@ -1,0 +1,16 @@
+public void testJobDefinition() throws Exception {
+    Reader reader = IOUtils.getResourceAsReader("wf-ext-schema-valid.xml", -1);
+    Writer writer = new FileWriter(getTestCaseDir() + "/workflow.xml");
+    IOUtils.copyCharStream(reader, writer);
+    final DagEngine engine = new DagEngine(getTestUser(), "a");
+    Configuration conf = new XConfiguration();
+    conf.set(OozieClient.APP_PATH, "file://" + getTestCaseDir() + File.separator + "workflow.xml");
+    conf.set(OozieClient.USER_NAME, getTestUser());
+    conf.set(OozieClient.LOG_TOKEN, "t");
+    conf.set("signal-value", "OK");
+    conf.set("external-status", "ok");
+    conf.set("error", "end.error");
+    String jobId1 = engine.submitJob(conf, false);
+    String def = engine.getDefinition(jobId1);
+    assertNotNull(def);
+}

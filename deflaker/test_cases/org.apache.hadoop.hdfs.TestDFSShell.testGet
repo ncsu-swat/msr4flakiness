@@ -1,0 +1,55 @@
+public void testGet() throws IOException {
+    DFSTestUtil.setLogLevel2All(FSInputChecker.LOG);
+    final Configuration conf = new HdfsConfiguration();
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).numDataNodes(2).build();
+    DistributedFileSystem dfs = (DistributedFileSystem) cluster.getFileSystem();
+    try {
+        final String fname = "testGet.txt";
+        final File localf = createLocalFile(new File(TEST_ROOT_DIR, fname));
+        final String localfcontent = DFSTestUtil.readFile(localf);
+        final Path root = mkdir(dfs, new Path("/test/get"));
+        final Path remotef = new Path(root, fname);
+        dfs.copyFromLocalFile(false, false, new Path(localf.getPath()), remotef);
+        final FsShell shell = new FsShell();
+        shell.setConf(conf);
+        TestGetRunner runner = new TestGetRunner() {
+
+            private int count = 0;
+
+            public String run(int exitcode, String... options) throws IOException {
+                String dst = TEST_ROOT_DIR + "/" + fname + ++count;
+                String[] args = new String[options.length + 3];
+                args[0] = "-get";
+                args[args.length - 2] = remotef.toString();
+                args[args.length - 1] = dst;
+                for (int i = 0; i < options.length; i++) {
+                    args[i + 1] = options[i];
+                }
+                show("args=" + Arrays.asList(args));
+                try {
+                    assertEquals(exitcode, shell.run(args));
+                } catch (Exception e) {
+                    assertTrue(StringUtils.stringifyException(e), false);
+                }
+                return exitcode == 0 ? DFSTestUtil.readFile(new File(dst)) : null;
+            }
+        };
+        assertEquals(localfcontent, runner.run(0));
+        assertEquals(localfcontent, runner.run(0, "-ignoreCrc"));
+        // find and modify the block files
+        List<File> files = getBlockFiles(cluster);
+        show("files=" + files);
+        corrupt(files);
+        assertEquals(null, runner.run(1));
+        String corruptedcontent = runner.run(0, "-ignoreCrc");
+        assertEquals(localfcontent.substring(1), corruptedcontent.substring(1));
+        assertEquals(localfcontent.charAt(0) + 1, corruptedcontent.charAt(0));
+        localf.delete();
+    } finally {
+        try {
+            dfs.close();
+        } catch (Exception e) {
+        }
+        cluster.shutdown();
+    }
+}

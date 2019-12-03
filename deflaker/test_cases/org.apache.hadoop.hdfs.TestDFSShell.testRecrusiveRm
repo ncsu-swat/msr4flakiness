@@ -1,0 +1,28 @@
+public void testRecrusiveRm() throws IOException {
+    Configuration conf = new HdfsConfiguration();
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).numDataNodes(2).build();
+    FileSystem fs = cluster.getFileSystem();
+    assertTrue("Not a HDFS: " + fs.getUri(), fs instanceof DistributedFileSystem);
+    try {
+        fs.mkdirs(new Path(new Path("parent"), "child"));
+        try {
+            fs.delete(new Path("parent"), false);
+            // should never reach here.
+            assert (false);
+        } catch (IOException e) {
+        // should have thrown an exception
+        }
+        try {
+            fs.delete(new Path("parent"), true);
+        } catch (IOException e) {
+            assert (false);
+        }
+    } finally {
+        try {
+            fs.close();
+        } catch (IOException e) {
+        }
+        ;
+        cluster.shutdown();
+    }
+}

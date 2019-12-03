@@ -1,0 +1,70 @@
+public void testSafeMode() throws Exception {
+    runTest(new String[] { "/v0/admin/*", "/v0/job/*" }, new Class[] { V0AdminServlet.class, V0JobServlet.class }, IS_SECURITY_ENABLED, new Callable<Void>() {
+
+        public Void call() throws Exception {
+            MockDagEngineService.reset();
+            Map<String, String> params = new HashMap<String, String>();
+            params.put(RestConstants.ACTION_PARAM, RestConstants.JOB_ACTION_START);
+            URL url = createURL("/v0/job/*", MockDagEngineService.JOB_ID + 1, params);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("PUT");
+            assertEquals(HttpServletResponse.SC_OK, conn.getResponseCode());
+            MockDagEngineService.reset();
+            url = createURL("/v0/admin/*", RestConstants.ADMIN_STATUS_RESOURCE, Collections.EMPTY_MAP);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            assertEquals(HttpServletResponse.SC_OK, conn.getResponseCode());
+            assertTrue(conn.getHeaderField("content-type").startsWith(RestConstants.JSON_CONTENT_TYPE));
+            JSONObject json = (JSONObject) JSONValue.parse(new InputStreamReader(conn.getInputStream()));
+            assertTrue(json.containsKey(JsonTags.OOZIE_SAFE_MODE));
+            assertFalse((Boolean) json.get(JsonTags.OOZIE_SAFE_MODE));
+            MockDagEngineService.reset();
+            params = new HashMap<String, String>();
+            params.put(RestConstants.ADMIN_SAFE_MODE_PARAM, "true");
+            url = createURL("/v0/admin/*", RestConstants.ADMIN_STATUS_RESOURCE, params);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("PUT");
+            assertEquals(HttpServletResponse.SC_OK, conn.getResponseCode());
+            MockDagEngineService.reset();
+            url = createURL("/v0/admin/*", RestConstants.ADMIN_STATUS_RESOURCE, Collections.EMPTY_MAP);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            assertEquals(HttpServletResponse.SC_OK, conn.getResponseCode());
+            assertTrue(conn.getHeaderField("content-type").startsWith(RestConstants.JSON_CONTENT_TYPE));
+            json = (JSONObject) JSONValue.parse(new InputStreamReader(conn.getInputStream()));
+            assertTrue(json.containsKey(JsonTags.OOZIE_SAFE_MODE));
+            assertTrue((Boolean) json.get(JsonTags.OOZIE_SAFE_MODE));
+            MockDagEngineService.reset();
+            params = new HashMap<String, String>();
+            params.put(RestConstants.ACTION_PARAM, RestConstants.JOB_ACTION_START);
+            url = createURL("/v0/job/*", MockDagEngineService.JOB_ID + 1, params);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("PUT");
+            assertEquals(HttpServletResponse.SC_SERVICE_UNAVAILABLE, conn.getResponseCode());
+            MockDagEngineService.reset();
+            params = new HashMap<String, String>();
+            params.put(RestConstants.ADMIN_SAFE_MODE_PARAM, "false");
+            url = createURL("/v0/admin/*", RestConstants.ADMIN_STATUS_RESOURCE, params);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("PUT");
+            assertEquals(HttpServletResponse.SC_OK, conn.getResponseCode());
+            MockDagEngineService.reset();
+            url = createURL("/v0/admin/*", RestConstants.ADMIN_STATUS_RESOURCE, Collections.EMPTY_MAP);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            assertEquals(HttpServletResponse.SC_OK, conn.getResponseCode());
+            assertTrue(conn.getHeaderField("content-type").startsWith(RestConstants.JSON_CONTENT_TYPE));
+            json = (JSONObject) JSONValue.parse(new InputStreamReader(conn.getInputStream()));
+            assertTrue(json.containsKey(JsonTags.OOZIE_SAFE_MODE));
+            assertFalse((Boolean) json.get(JsonTags.OOZIE_SAFE_MODE));
+            MockDagEngineService.reset();
+            params = new HashMap<String, String>();
+            params.put(RestConstants.ACTION_PARAM, RestConstants.JOB_ACTION_START);
+            url = createURL("/v0/job/*", MockDagEngineService.JOB_ID + 1, params);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("PUT");
+            assertEquals(HttpServletResponse.SC_OK, conn.getResponseCode());
+            return null;
+        }
+    });
+}

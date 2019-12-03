@@ -1,0 +1,45 @@
+/*
+   * Test that when the excess replicas of a block are reduced due to
+   * a node re-joining the cluster the rack policy is not violated.
+   */
+@Test
+public void testReduceReplFactorDueToRejoinRespectsRackPolicy() throws Exception {
+    Configuration conf = getConf();
+    short REPLICATION_FACTOR = 2;
+    final Path filePath = new Path("/testFile");
+    // Last datanode is on a different rack
+    String[] racks = { "/rack1", "/rack1", "/rack2" };
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).numDataNodes(racks.length).racks(racks).build();
+    final FSNamesystem ns = cluster.getNameNode().getNamesystem();
+    final DatanodeManager dm = ns.getBlockManager().getDatanodeManager();
+    try {
+        // Create a file with one block
+        final FileSystem fs = cluster.getFileSystem();
+        DFSTestUtil.createFile(fs, filePath, 1L, REPLICATION_FACTOR, 1L);
+        ExtendedBlock b = DFSTestUtil.getFirstBlock(fs, filePath);
+        DFSTestUtil.waitForReplication(cluster, b, 2, REPLICATION_FACTOR, 0);
+        // Make the last (cross rack) datanode look like it failed
+        // to heartbeat by stopping it and calling removeDatanode.
+        ArrayList<DataNode> datanodes = cluster.getDataNodes();
+        assertEquals(3, datanodes.size());
+        DataNode dataNode = datanodes.get(2);
+        DatanodeID dnId = dataNode.getDatanodeId();
+        cluster.stopDataNode(2);
+        dm.removeDatanode(dnId);
+        // The block gets re-replicated to another datanode so it has a
+        // sufficient # replicas, but not across racks, so there should
+        // be 1 rack, and 1 needed replica (even though there are 2 hosts
+        // available and only 2 replicas required).
+        DFSTestUtil.waitForReplication(cluster, b, 1, REPLICATION_FACTOR, 1);
+        // Start the "failed" datanode, which has a replica so the block is
+        // now over-replicated and therefore a replica should be removed but
+        // not on the restarted datanode as that would violate the rack policy.
+        String[] rack2 = { "/rack2" };
+        cluster.startDataNodes(conf, 1, true, null, rack2);
+        cluster.waitActive();
+        // The block now has sufficient # replicas, across racks
+        DFSTestUtil.waitForReplication(cluster, b, 2, REPLICATION_FACTOR, 0);
+    } finally {
+        cluster.shutdown();
+    }
+}

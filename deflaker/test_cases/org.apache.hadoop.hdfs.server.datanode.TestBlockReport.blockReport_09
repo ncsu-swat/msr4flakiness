@@ -1,0 +1,38 @@
+// Similar to BlockReport_08 but corrupts GS and len of the TEMPORARY's
+// replica block. Expect the same behaviour: NN should simply ignore this
+// block
+@Test
+public void blockReport_09() throws IOException {
+    final String METHOD_NAME = GenericTestUtils.getMethodName();
+    Path filePath = new Path("/" + METHOD_NAME + ".dat");
+    final int DN_N1 = DN_N0 + 1;
+    final int bytesChkSum = 1024 * 1000;
+    conf.setInt(DFSConfigKeys.DFS_BYTES_PER_CHECKSUM_KEY, bytesChkSum);
+    conf.setLong(DFSConfigKeys.DFS_BLOCK_SIZE_KEY, 6 * bytesChkSum);
+    shutDownCluster();
+    startUpCluster();
+    // write file and start second node to be "older" than the original
+    try {
+        ArrayList<Block> blocks = writeFile(METHOD_NAME, 12 * bytesChkSum, filePath);
+        Block bl = findBlock(filePath, 12 * bytesChkSum);
+        BlockChecker bc = new BlockChecker(filePath);
+        bc.start();
+        corruptBlockGS(bl);
+        corruptBlockLen(bl);
+        waitForTempReplica(bl, DN_N1);
+        // all blocks belong to the same file, hence same BP
+        DataNode dn = cluster.getDataNodes().get(DN_N1);
+        String poolId = cluster.getNamesystem().getBlockPoolId();
+        DatanodeRegistration dnR = dn.getDNRegistrationForBP(poolId);
+        cluster.getNameNodeRpc().blockReport(dnR, poolId, new BlockListAsLongs(blocks, null).getBlockListAsLongs());
+        printStats();
+        assertEquals("Wrong number of PendingReplication blocks", 2, cluster.getNamesystem().getPendingReplicationBlocks());
+        try {
+            bc.join();
+        } catch (InterruptedException e) {
+        }
+    } finally {
+        // return the initial state of the configuration
+        resetConfiguration();
+    }
+}

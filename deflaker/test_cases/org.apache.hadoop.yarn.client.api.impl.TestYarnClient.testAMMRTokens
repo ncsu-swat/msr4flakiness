@@ -1,0 +1,43 @@
+@Test(timeout = 30000)
+public void testAMMRTokens() throws Exception {
+    MiniYARNCluster cluster = new MiniYARNCluster("testMRAMTokens", 1, 1, 1);
+    YarnClient rmClient = null;
+    try {
+        cluster.init(new YarnConfiguration());
+        cluster.start();
+        final Configuration yarnConf = cluster.getConfig();
+        rmClient = YarnClient.createYarnClient();
+        rmClient.init(yarnConf);
+        rmClient.start();
+        ApplicationId appId = createApp(rmClient, false);
+        waitTillAccepted(rmClient, appId);
+        // managed AMs don't return AMRM token
+        Assert.assertNull(rmClient.getAMRMToken(appId));
+        appId = createApp(rmClient, true);
+        waitTillAccepted(rmClient, appId);
+        // unmanaged AMs do return AMRM token
+        Assert.assertNotNull(rmClient.getAMRMToken(appId));
+        UserGroupInformation other = UserGroupInformation.createUserForTesting("foo", new String[] {});
+        appId = other.doAs(new PrivilegedExceptionAction<ApplicationId>() {
+
+            @Override
+            public ApplicationId run() throws Exception {
+                YarnClient rmClient = YarnClient.createYarnClient();
+                rmClient.init(yarnConf);
+                rmClient.start();
+                ApplicationId appId = createApp(rmClient, true);
+                waitTillAccepted(rmClient, appId);
+                // unmanaged AMs do return AMRM token
+                Assert.assertNotNull(rmClient.getAMRMToken(appId));
+                return appId;
+            }
+        });
+        // other users don't get AMRM token
+        Assert.assertNull(rmClient.getAMRMToken(appId));
+    } finally {
+        if (rmClient != null) {
+            rmClient.stop();
+        }
+        cluster.stop();
+    }
+}

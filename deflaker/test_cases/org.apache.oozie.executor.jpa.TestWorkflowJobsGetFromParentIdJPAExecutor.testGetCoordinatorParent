@@ -1,0 +1,21 @@
+public void testGetCoordinatorParent() throws Exception {
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    CoordinatorJobBean coordJobA = addRecordToCoordJobTable(CoordinatorJob.Status.SUCCEEDED, false, false);
+    CoordinatorJobBean coordJobB = addRecordToCoordJobTable(CoordinatorJob.Status.SUCCEEDED, false, false);
+    WorkflowJobBean wfJobA1 = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED);
+    WorkflowJobBean wfJobA2 = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED);
+    WorkflowJobBean wfJobB = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED);
+    WorkflowActionBean wfActionA1 = addRecordToWfActionTable(wfJobA1.getId(), "1", WorkflowAction.Status.OK);
+    WorkflowActionBean wfActionA2 = addRecordToWfActionTable(wfJobA2.getId(), "1", WorkflowAction.Status.OK);
+    WorkflowActionBean wfActionB = addRecordToWfActionTable(wfJobB.getId(), "1", WorkflowAction.Status.OK);
+    CoordinatorActionBean coordActionA1 = addRecordToCoordActionTable(coordJobA.getId(), 1, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", wfJobA1.getId(), "SUCCEEDED", 0);
+    CoordinatorActionBean coordActionA2 = addRecordToCoordActionTable(coordJobA.getId(), 2, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", wfJobA2.getId(), "SUCCEEDED", 0);
+    CoordinatorActionBean coordActionB = addRecordToCoordActionTable(coordJobB.getId(), 1, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", wfJobB.getId(), "SUCCEEDED", 0);
+    List<String> children = new ArrayList<String>();
+    children.addAll(jpaService.execute(new WorkflowJobsGetFromParentIdJPAExecutor(coordJobA.getId(), 10)));
+    checkChildren(children, wfJobA1.getId(), wfJobA2.getId());
+    children = new ArrayList<String>();
+    children.addAll(jpaService.execute(new WorkflowJobsGetFromParentIdJPAExecutor(coordJobB.getId(), 10)));
+    checkChildren(children, wfJobB.getId());
+}

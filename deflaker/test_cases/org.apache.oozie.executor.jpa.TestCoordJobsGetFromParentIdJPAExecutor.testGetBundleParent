@@ -1,0 +1,23 @@
+public void testGetBundleParent() throws Exception {
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    BundleJobBean bundleJobA = addRecordToBundleJobTable(Job.Status.SUCCEEDED, false);
+    BundleJobBean bundleJobB = addRecordToBundleJobTable(Job.Status.SUCCEEDED, false);
+    CoordinatorJobBean coordJobA1 = addRecordToCoordJobTable(CoordinatorJob.Status.SUCCEEDED, false, false);
+    CoordinatorJobBean coordJobA2 = addRecordToCoordJobTable(CoordinatorJob.Status.SUCCEEDED, false, false);
+    coordJobA2.setAppName("something_different");
+    jpaService.execute(new CoordJobUpdateJPAExecutor(coordJobA2));
+    CoordinatorJobBean coordJobB = addRecordToCoordJobTable(CoordinatorJob.Status.SUCCEEDED, false, false);
+    CoordinatorActionBean coordActionA1 = addRecordToCoordActionTable(coordJobA1.getId(), 1, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    CoordinatorActionBean coordActionA2 = addRecordToCoordActionTable(coordJobA2.getId(), 1, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    CoordinatorActionBean coordActionB = addRecordToCoordActionTable(coordJobB.getId(), 1, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    BundleActionBean bundleActionA1 = addRecordToBundleActionTable(bundleJobA.getId(), coordJobA1.getId(), coordJobA1.getAppName(), 0, Job.Status.SUCCEEDED);
+    BundleActionBean bundleActionA2 = addRecordToBundleActionTable(bundleJobA.getId(), coordJobA2.getId(), coordJobA2.getAppName(), 0, Job.Status.SUCCEEDED);
+    BundleActionBean bundleActionB = addRecordToBundleActionTable(bundleJobB.getId(), coordJobB.getId(), coordJobB.getAppName(), 0, Job.Status.SUCCEEDED);
+    List<String> children = new ArrayList<String>();
+    children.addAll(jpaService.execute(new CoordJobsGetFromParentIdJPAExecutor(bundleJobA.getId(), 10)));
+    checkChildren(children, coordJobA1.getId(), coordJobA2.getId());
+    children = new ArrayList<String>();
+    children.addAll(jpaService.execute(new CoordJobsGetFromParentIdJPAExecutor(bundleJobB.getId(), 10)));
+    checkChildren(children, coordJobB.getId());
+}

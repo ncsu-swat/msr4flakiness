@@ -1,0 +1,71 @@
+public void testErrors() throws Exception {
+    init(false, true);
+    services.setService(ForTestAuthorizationService.class);
+    AuthorizationService as = services.get(AuthorizationService.class);
+    Configuration conf = new Configuration();
+    HadoopAccessorService has = Services.get().get(HadoopAccessorService.class);
+    URI uri = getFileSystem().getUri();
+    Configuration fsConf = has.createJobConf(uri.getAuthority());
+    FileSystem fileSystem = has.createFileSystem(getTestUser(), uri, fsConf);
+    try {
+        as.authorizeForGroup(getTestUser3(), getTestGroup());
+        fail();
+    } catch (AuthorizationException ex) {
+        assertEquals(ErrorCode.E0502, ex.getErrorCode());
+    }
+    try {
+        as.authorizeForAdmin(getTestUser(), true);
+        fail();
+    } catch (AuthorizationException ex) {
+        assertEquals(ErrorCode.E0503, ex.getErrorCode());
+    }
+    try {
+        Path app = new Path(getFsTestCaseDir(), "w");
+        as.authorizeForApp(getTestUser(), getTestGroup(), app.toString(), conf);
+        fail();
+    } catch (AuthorizationException ex) {
+        assertEquals(ErrorCode.E0504, ex.getErrorCode());
+    }
+    try {
+        Path app = new Path(getFsTestCaseDir(), "w");
+        fileSystem.mkdirs(app);
+        as.authorizeForApp(getTestUser(), getTestGroup(), app.toString(), conf);
+        fail();
+    } catch (AuthorizationException ex) {
+        assertEquals(ErrorCode.E0505, ex.getErrorCode());
+    }
+    try {
+        Path app = new Path(getFsTestCaseDir(), "w");
+        Path wf = new Path(app, "workflow.xml");
+        fileSystem.mkdirs(wf);
+        as.authorizeForApp(getTestUser(), getTestGroup(), app.toString(), conf);
+        fail();
+    } catch (AuthorizationException ex) {
+        assertEquals(ErrorCode.E0506, ex.getErrorCode());
+    }
+    try {
+        Path app = new Path(getFsTestCaseDir(), "ww");
+        fileSystem.mkdirs(app);
+        Path wf = new Path(app, "workflow.xml");
+        fileSystem.create(wf).close();
+        FsPermission fsPermission = new FsPermission(FsAction.READ, FsAction.NONE, FsAction.NONE);
+        fileSystem.setPermission(app, fsPermission);
+        as.authorizeForApp(getTestUser2(), getTestGroup() + "-invalid", app.toString(), conf);
+        fail();
+    } catch (AuthorizationException ex) {
+        assertEquals(ErrorCode.E0507, ex.getErrorCode());
+    }
+    try {
+        as.authorizeForJob(getTestUser(), "1", true);
+        fail();
+    } catch (AuthorizationException ex) {
+        assertEquals(ErrorCode.E0604, ex.getErrorCode());
+    }
+    WorkflowJobBean job = this.addRecordToWfJobTable(WorkflowJob.Status.PREP, WorkflowInstance.Status.PREP);
+    try {
+        as.authorizeForJob(getTestUser3(), job.getId(), true);
+        fail();
+    } catch (AuthorizationException ex) {
+        assertEquals(ErrorCode.E0508, ex.getErrorCode());
+    }
+}

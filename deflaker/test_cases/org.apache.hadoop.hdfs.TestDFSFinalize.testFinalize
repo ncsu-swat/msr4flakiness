@@ -1,0 +1,34 @@
+/**
+ * This test attempts to finalize the NameNode and DataNode.
+ */
+@Test
+public void testFinalize() throws Exception {
+    UpgradeUtilities.initialize();
+    for (int numDirs = 1; numDirs <= 2; numDirs++) {
+        /* This test requires that "current" directory not change after
+       * the upgrade. Actually it is ok for those contents to change.
+       * For now disabling block verification so that the contents are 
+       * not changed.
+       */
+        conf = new HdfsConfiguration();
+        conf.setInt(DFSConfigKeys.DFS_DATANODE_SCAN_PERIOD_HOURS_KEY, -1);
+        conf = UpgradeUtilities.initializeStorageStateConf(numDirs, conf);
+        String[] nameNodeDirs = conf.getStrings(DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY);
+        String[] dataNodeDirs = conf.getStrings(DFSConfigKeys.DFS_DATANODE_DATA_DIR_KEY);
+        log("Finalize with existing previous dir", numDirs);
+        UpgradeUtilities.createNameNodeStorageDirs(nameNodeDirs, "current");
+        UpgradeUtilities.createNameNodeStorageDirs(nameNodeDirs, "previous");
+        UpgradeUtilities.createDataNodeStorageDirs(dataNodeDirs, "current");
+        UpgradeUtilities.createDataNodeStorageDirs(dataNodeDirs, "previous");
+        cluster = new MiniDFSCluster.Builder(conf).format(false).manageDataDfsDirs(false).manageNameDfsDirs(false).startupOption(StartupOption.REGULAR).build();
+        cluster.finalizeCluster(conf);
+        checkResult(nameNodeDirs, dataNodeDirs);
+        log("Finalize without existing previous dir", numDirs);
+        cluster.finalizeCluster(conf);
+        checkResult(nameNodeDirs, dataNodeDirs);
+        cluster.shutdown();
+        UpgradeUtilities.createEmptyDirs(nameNodeDirs);
+        UpgradeUtilities.createEmptyDirs(dataNodeDirs);
+    }
+// end numDir loop
+}

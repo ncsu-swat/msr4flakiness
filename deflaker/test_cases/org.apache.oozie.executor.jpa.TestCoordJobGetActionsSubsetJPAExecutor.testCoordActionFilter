@@ -1,0 +1,13 @@
+// Check status filters for Coordinator actions
+public void testCoordActionFilter() throws Exception {
+    CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, false, false);
+    // Add Coordinator action with nominal time: 2009-12-15T01:00Z
+    addRecordToCoordActionTable(job.getId(), 1, CoordinatorAction.Status.RUNNING, "coord-action-get.xml", 0);
+    // Add Coordinator action with nominal time: 2009-02-01T23:59Z
+    addRecordToCoordActionTable(job.getId(), 2, CoordinatorAction.Status.WAITING, "coord-action-get.xml", 0);
+    // Create lists for status filter
+    List<String> filterList = new ArrayList<String>();
+    filterList.add("RUNNING");
+    filterList.add("KILLED");
+    _testGetActionsSubsetFilter(job.getId(), 1, filterList, 1, 2);
+}

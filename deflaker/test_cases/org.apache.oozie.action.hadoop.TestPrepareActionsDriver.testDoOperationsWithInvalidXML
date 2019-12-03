@@ -1,0 +1,23 @@
+// Test to check if LauncherException is thrown when the prepare XML block is invalid
+public void testDoOperationsWithInvalidXML() throws LauncherException, IOException {
+    Path actionDir = getFsTestCaseDir();
+    FileSystem fs = getFileSystem();
+    Path newDir = new Path(actionDir, "newDir");
+    String prepareXML = "";
+    // Delete the file if it is already there
+    if (fs.exists(newDir)) {
+        fs.delete(newDir, true);
+    }
+    try {
+        prepareXML = "prepare>" + "<mkdir path='" + newDir + "'/>" + "</prepare>";
+        JobConf conf = createJobConf();
+        LauncherMapper.setupLauncherURIHandlerConf(conf);
+        PrepareActionsDriver.doOperations(prepareXML, conf);
+        fail("Expected to catch an exception but did not encounter any");
+    } catch (LauncherException le) {
+        assertEquals(le.getCause().getClass(), org.xml.sax.SAXParseException.class);
+        assertEquals(le.getMessage(), "Content is not allowed in prolog.");
+    } catch (Exception ex) {
+        fail("Expected a LauncherException but received an Exception");
+    }
+}

@@ -1,0 +1,18 @@
+/**
+ * Inserts a coordinator job in KILLED state with pending materialization.
+ * Make sure the status changes to DONEWITHERROR if there is at least one
+ * coordinator action in NON-KILLED state
+ *
+ * @throws Exception
+ */
+public void testCoordStatusTransitServiceTransitionToDoneWithError() throws Exception {
+    CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.KILLED, true, false);
+    addRecordToCoordActionTable(job.getId(), 1, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    Runnable runnable = new StatusTransitRunnable();
+    runnable.run();
+    sleep(1000);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    CoordJobGetJPAExecutor coordGetCmd = new CoordJobGetJPAExecutor(job.getId());
+    CoordinatorJobBean coordJob = jpaService.execute(coordGetCmd);
+    assertEquals(CoordinatorJob.Status.DONEWITHERROR, coordJob.getStatus());
+}

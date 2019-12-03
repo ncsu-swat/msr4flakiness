@@ -1,0 +1,14 @@
+/**
+ * Test that that writes to an incomplete block are available to a reader
+ */
+public void testUnfinishedBlockRead() throws IOException {
+    // create a new file in the root, write data, do no close
+    Path file1 = new Path("/unfinished-block");
+    FSDataOutputStream stm = TestFileCreation.createFile(fileSystem, file1, 1);
+    // write partial block and sync
+    int partialBlockSize = blockSize / 2;
+    writeFileAndSync(stm, partialBlockSize);
+    // Make sure a client can read it before it is closed
+    checkCanRead(fileSystem, file1, partialBlockSize);
+    stm.close();
+}

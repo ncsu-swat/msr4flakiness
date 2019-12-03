@@ -1,0 +1,20 @@
+/**
+ * Tests DFSClient.close throws no ConcurrentModificationException if
+ * multiple files are open.
+ */
+@Test
+public void testDFSClose() throws Exception {
+    Configuration conf = getTestConfiguration();
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).numDataNodes(2).build();
+    FileSystem fileSys = cluster.getFileSystem();
+    try {
+        // create two files
+        fileSys.create(new Path("/test/dfsclose/file-0"));
+        fileSys.create(new Path("/test/dfsclose/file-1"));
+        fileSys.close();
+    } finally {
+        if (cluster != null) {
+            cluster.shutdown();
+        }
+    }
+}

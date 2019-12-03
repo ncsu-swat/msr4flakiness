@@ -1,0 +1,35 @@
+@Test
+public void testDisplayRecentEditLogOpCodes() throws IOException {
+    // start a cluster
+    Configuration conf = new HdfsConfiguration();
+    MiniDFSCluster cluster = null;
+    FileSystem fileSys = null;
+    cluster = new MiniDFSCluster.Builder(conf).numDataNodes(NUM_DATA_NODES).build();
+    cluster.waitActive();
+    fileSys = cluster.getFileSystem();
+    final FSNamesystem namesystem = cluster.getNamesystem();
+    FSImage fsimage = namesystem.getFSImage();
+    for (int i = 0; i < 20; i++) {
+        fileSys.mkdirs(new Path("/tmp/tmp" + i));
+    }
+    StorageDirectory sd = fsimage.getStorage().dirIterator(NameNodeDirType.EDITS).next();
+    cluster.shutdown();
+    File editFile = FSImageTestUtil.findLatestEditsLog(sd).getFile();
+    assertTrue("Should exist: " + editFile, editFile.exists());
+    // Corrupt the edits file.
+    long fileLen = editFile.length();
+    RandomAccessFile rwf = new RandomAccessFile(editFile, "rw");
+    rwf.seek(fileLen - 40);
+    for (int i = 0; i < 20; i++) {
+        rwf.write(FSEditLogOpCodes.OP_DELETE.getOpCode());
+    }
+    rwf.close();
+    String expectedErrorMessage = "^Error replaying edit log at offset \\d+\n";
+    expectedErrorMessage += "Recent opcode offsets: (\\d+\\s*){4}$";
+    try {
+        cluster = new MiniDFSCluster.Builder(conf).numDataNodes(NUM_DATA_NODES).format(false).build();
+        fail("should not be able to start");
+    } catch (IOException e) {
+        assertTrue("error message contains opcodes message", e.getMessage().matches(expectedErrorMessage));
+    }
+}

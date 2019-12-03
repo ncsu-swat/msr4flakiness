@@ -1,0 +1,17 @@
+/**
+ * Test: submit bundle job, then check job info
+ *
+ * @throws Exception
+ */
+public void testBundleJobInfo1() throws Exception {
+    BundleJobBean job = this.addRecordToBundleJobTable(Job.Status.PREP, false);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    BundleJobGetJPAExecutor bundleJobGetjpa = new BundleJobGetJPAExecutor(job.getId());
+    job = jpaService.execute(bundleJobGetjpa);
+    assertEquals(job.getStatus(), Job.Status.PREP);
+    BundleJobBean bundleJob = (new BundleJobXCommand(job.getId())).call();
+    assertEquals(0, bundleJob.getCoordinators().size());
+    assertEquals(bundleJob.getStatus(), Job.Status.PREP);
+    assertEquals(bundleJob.getId(), job.getId());
+}

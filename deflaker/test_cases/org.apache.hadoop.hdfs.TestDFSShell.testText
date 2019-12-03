@@ -1,0 +1,16 @@
+public void testText() throws Exception {
+    Configuration conf = new HdfsConfiguration();
+    MiniDFSCluster cluster = null;
+    try {
+        cluster = new MiniDFSCluster.Builder(conf).numDataNodes(2).build();
+        final FileSystem dfs = cluster.getFileSystem();
+        textTest(new Path("/texttest").makeQualified(dfs.getUri(), dfs.getWorkingDirectory()), conf);
+        conf.set("fs.default.name", dfs.getUri().toString());
+        final FileSystem lfs = FileSystem.getLocal(conf);
+        textTest(new Path(TEST_ROOT_DIR, "texttest").makeQualified(lfs.getUri(), lfs.getWorkingDirectory()), conf);
+    } finally {
+        if (null != cluster) {
+            cluster.shutdown();
+        }
+    }
+}

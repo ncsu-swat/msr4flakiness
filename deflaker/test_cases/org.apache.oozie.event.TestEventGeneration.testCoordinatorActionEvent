@@ -1,0 +1,84 @@
+@Test
+public void testCoordinatorActionEvent() throws Exception {
+    EventHandlerService ehs = Services.get().get(EventHandlerService.class);
+    // reduce noise from WF Job events (also default) by setting it to only
+    // coord action
+    ehs.setAppTypes(new HashSet<String>(Arrays.asList(new String[] { "coordinator_action" })));
+    assertEquals(queue.size(), 0);
+    Date startTime = DateUtils.parseDateOozieTZ("2013-01-01T10:00Z");
+    Date endTime = DateUtils.parseDateOozieTZ("2013-01-01T10:14Z");
+    CoordinatorJobBean coord = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, startTime, endTime, false, false, 0);
+    modifyCoordForRunning(coord);
+    final JPAService jpaService = Services.get().get(JPAService.class);
+    // Action WAITING on materialization
+    new CoordMaterializeTransitionXCommand(coord.getId(), 3600).call();
+    final CoordActionGetJPAExecutor coordGetCmd = new CoordActionGetJPAExecutor(coord.getId() + "@1");
+    CoordinatorActionBean action = jpaService.execute(coordGetCmd);
+    assertEquals(CoordinatorAction.Status.WAITING, action.getStatus());
+    assertEquals(1, queue.size());
+    CoordinatorActionEvent event = (CoordinatorActionEvent) queue.poll();
+    assertNotNull(event);
+    assertEquals(EventStatus.WAITING, event.getEventStatus());
+    assertEquals(AppType.COORDINATOR_ACTION, event.getAppType());
+    assertEquals(action.getId(), event.getId());
+    assertEquals(action.getJobId(), event.getParentId());
+    assertEquals(action.getNominalTime(), event.getNominalTime());
+    assertEquals(action.getCreatedTime(), event.getStartTime());
+    assertEquals(coord.getUser(), event.getUser());
+    assertEquals(coord.getAppName(), event.getAppName());
+    assertEquals(0, queue.size());
+    // Make Action ready
+    new CoordActionInputCheckXCommand(action.getId(), coord.getId()).call();
+    action = jpaService.execute(coordGetCmd);
+    assertEquals(CoordinatorAction.Status.READY, action.getStatus());
+    waitFor(1 * 100, new Predicate() {
+
+        @Override
+        public boolean evaluate() throws Exception {
+            return jpaService.execute(coordGetCmd).getStatus() == CoordinatorAction.Status.RUNNING;
+        }
+    });
+    event = _pollQueue();
+    assertEquals(EventStatus.STARTED, event.getEventStatus());
+    assertEquals(AppType.COORDINATOR_ACTION, event.getAppType());
+    assertEquals(action.getId(), event.getId());
+    assertEquals(action.getJobId(), event.getParentId());
+    assertEquals(action.getNominalTime(), event.getNominalTime());
+    assertEquals(action.getCreatedTime(), event.getStartTime());
+    assertEquals(coord.getUser(), event.getUser());
+    assertEquals(coord.getAppName(), event.getAppName());
+    // Action Success
+    action = jpaService.execute(coordGetCmd);
+    WorkflowJobBean wfJob = jpaService.execute(new WorkflowJobGetJPAExecutor(action.getExternalId()));
+    wfJob.setStatus(WorkflowJob.Status.SUCCEEDED);
+    jpaService.execute(new WorkflowJobUpdateJPAExecutor(wfJob));
+    new CoordActionCheckXCommand(action.getId(), 0).call();
+    action = jpaService.execute(coordGetCmd);
+    assertEquals(CoordinatorAction.Status.SUCCEEDED, action.getStatus());
+    event = _pollQueue();
+    assertEquals(EventStatus.SUCCESS, event.getEventStatus());
+    assertEquals(AppType.COORDINATOR_ACTION, event.getAppType());
+    assertEquals(action.getId(), event.getId());
+    assertEquals(action.getJobId(), event.getParentId());
+    assertEquals(action.getNominalTime(), event.getNominalTime());
+    assertEquals(action.getCreatedTime(), event.getStartTime());
+    assertEquals(coord.getUser(), event.getUser());
+    assertEquals(coord.getAppName(), event.getAppName());
+    // Action Failure
+    action.setStatus(CoordinatorAction.Status.RUNNING);
+    jpaService.execute(new CoordActionUpdateJPAExecutor(action));
+    wfJob.setStatus(WorkflowJob.Status.KILLED);
+    jpaService.execute(new WorkflowJobUpdateJPAExecutor(wfJob));
+    new CoordActionCheckXCommand(action.getId(), 0).call();
+    action = jpaService.execute(coordGetCmd);
+    assertEquals(CoordinatorAction.Status.KILLED, action.getStatus());
+    event = _pollQueue();
+    assertEquals(EventStatus.FAILURE, event.getEventStatus());
+    assertEquals(AppType.COORDINATOR_ACTION, event.getAppType());
+    assertEquals(action.getId(), event.getId());
+    assertEquals(action.getJobId(), event.getParentId());
+    assertEquals(action.getNominalTime(), event.getNominalTime());
+    assertEquals(action.getCreatedTime(), event.getStartTime());
+    assertEquals(coord.getUser(), event.getUser());
+    assertEquals(coord.getAppName(), event.getAppName());
+}

@@ -1,0 +1,15 @@
+public void testSLARegistrationGet() throws Exception {
+    Date current = new Date();
+    final String jobId = "0000000-" + current.getTime() + "-TestSLARegGetJPAExecutor-W";
+    _addRecordToSLARegistrationTable(jobId, AppType.WORKFLOW_JOB, current, new Date(), "END_MISS", "alert@example.com");
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    SLARegistrationGetJPAExecutor readCmd = new SLARegistrationGetJPAExecutor(jobId);
+    SLARegistrationBean bean = jpaService.execute(readCmd);
+    assertEquals(jobId, bean.getJobId());
+    assertEquals(AppType.WORKFLOW_JOB, bean.getAppType());
+    assertEquals(current, bean.getExpectedStart());
+    assertEquals(2, bean.getSlaConfigMap().size());
+    assertEquals("END_MISS", bean.getAlertEvents());
+    assertEquals("alert@example.com", bean.getAlertContact());
+}

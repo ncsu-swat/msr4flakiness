@@ -1,0 +1,17 @@
+/*
+    f->(2,3)
+    2->decision node->{4,5,4}
+    4->j
+    5->j
+    3->j
+    */
+public void testDecisionForkJoin() throws WorkflowException {
+    LiteWorkflowAppParser parser = new LiteWorkflowAppParser(null, LiteWorkflowStoreService.LiteControlNodeHandler.class, LiteWorkflowStoreService.LiteDecisionHandler.class, LiteWorkflowStoreService.LiteActionHandler.class);
+    LiteWorkflowApp def = new LiteWorkflowApp("name", "def", new StartNodeDef(LiteWorkflowStoreService.LiteControlNodeHandler.class, "one")).addNode(new ActionNodeDef("one", dummyConf, TestActionNodeHandler.class, "f", "end")).addNode(new ForkNodeDef("f", LiteWorkflowStoreService.LiteControlNodeHandler.class, Arrays.asList(new String[] { "two", "three" }))).addNode(new DecisionNodeDef("two", dummyConf, TestDecisionNodeHandler.class, Arrays.asList(new String[] { "four", "five", "four" }))).addNode(new ActionNodeDef("four", dummyConf, TestActionNodeHandler.class, "j", "k")).addNode(new ActionNodeDef("five", dummyConf, TestActionNodeHandler.class, "j", "k")).addNode(new ActionNodeDef("three", dummyConf, TestActionNodeHandler.class, "j", "k")).addNode(new JoinNodeDef("j", LiteWorkflowStoreService.LiteControlNodeHandler.class, "end")).addNode(new KillNodeDef("k", "kill", LiteWorkflowStoreService.LiteControlNodeHandler.class)).addNode(new EndNodeDef("end", LiteWorkflowStoreService.LiteControlNodeHandler.class));
+    try {
+        invokeForkJoin(parser, def);
+    } catch (Exception e) {
+        e.printStackTrace();
+        fail("Unexpected Exception");
+    }
+}

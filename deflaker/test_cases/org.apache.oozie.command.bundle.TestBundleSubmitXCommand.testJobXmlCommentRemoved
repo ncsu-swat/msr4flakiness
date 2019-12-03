@@ -1,0 +1,30 @@
+/**
+ * https://issues.apache.org/jira/browse/OOZIE-945
+ *
+ * @throws Exception
+ */
+public void testJobXmlCommentRemoved() throws Exception {
+    // this retrieves bundle-submit-job.xml
+    BundleJobBean job = this.addRecordToBundleJobTable(Job.Status.PREP, false);
+    final JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    Configuration jobConf = null;
+    try {
+        jobConf = new XConfiguration(new StringReader(job.getConf()));
+    } catch (IOException ioe) {
+        log.warn("Configuration parse error. read from DB :" + job.getConf(), ioe);
+        throw new CommandException(ErrorCode.E1005, ioe);
+    }
+    Path appPath = new Path(jobConf.get(OozieClient.BUNDLE_APP_PATH), "bundle.xml");
+    jobConf.set(OozieClient.BUNDLE_APP_PATH, appPath.toString());
+    BundleSubmitXCommand command = new BundleSubmitXCommand(true, jobConf, CREATE_TIME);
+    BundleJobBean bundleBean = (BundleJobBean) command.getJob();
+    bundleBean.setStartTime(new Date());
+    bundleBean.setEndTime(new Date());
+    command.call();
+    // result includes bundle-submit-job.xml file instead of jobId since this is a dryRun mode
+    String result = command.submit();
+    // bundle-submit-job.xml contains the Apache license but this result should not contain the comment block
+    assertTrue("submit result should not contain <!-- ", !result.contains("<!--"));
+    assertTrue("submit result should not contain --> ", !result.contains("-->"));
+}

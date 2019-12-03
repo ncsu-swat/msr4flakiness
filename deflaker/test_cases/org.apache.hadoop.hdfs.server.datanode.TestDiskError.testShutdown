@@ -1,0 +1,41 @@
+/**
+ * Test to check that a DN goes down when all its volumes have failed.
+ */
+@Test
+public void testShutdown() throws Exception {
+    if (System.getProperty("os.name").startsWith("Windows")) {
+        /**
+         * This test depends on OS not allowing file creations on a directory
+         * that does not have write permissions for the user. Apparently it is
+         * not the case on Windows (at least under Cygwin), and possibly AIX.
+         * This is disabled on Windows.
+         */
+        return;
+    }
+    // Bring up two more datanodes
+    cluster.startDataNodes(conf, 2, true, null, null);
+    cluster.waitActive();
+    final int dnIndex = 0;
+    String bpid = cluster.getNamesystem().getBlockPoolId();
+    File storageDir = cluster.getInstanceStorageDir(dnIndex, 0);
+    File dir1 = MiniDFSCluster.getRbwDir(storageDir, bpid);
+    storageDir = cluster.getInstanceStorageDir(dnIndex, 1);
+    File dir2 = MiniDFSCluster.getRbwDir(storageDir, bpid);
+    try {
+        // make the data directory of the first datanode to be readonly
+        assertTrue("Couldn't chmod local vol", dir1.setReadOnly());
+        assertTrue("Couldn't chmod local vol", dir2.setReadOnly());
+        // create files and make sure that first datanode will be down
+        DataNode dn = cluster.getDataNodes().get(dnIndex);
+        for (int i = 0; dn.isDatanodeUp(); i++) {
+            Path fileName = new Path("/test.txt" + i);
+            DFSTestUtil.createFile(fs, fileName, 1024, (short) 2, 1L);
+            DFSTestUtil.waitReplication(fs, fileName, (short) 2);
+            fs.delete(fileName, true);
+        }
+    } finally {
+        // restore its old permission
+        dir1.setWritable(true);
+        dir2.setWritable(true);
+    }
+}

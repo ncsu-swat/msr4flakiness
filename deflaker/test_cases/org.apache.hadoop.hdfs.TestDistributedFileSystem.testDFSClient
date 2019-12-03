@@ -1,0 +1,136 @@
+@Test
+public void testDFSClient() throws Exception {
+    Configuration conf = getTestConfiguration();
+    final long grace = 1000L;
+    MiniDFSCluster cluster = null;
+    try {
+        cluster = new MiniDFSCluster.Builder(conf).numDataNodes(2).build();
+        final String filepathstring = "/test/LeaseChecker/foo";
+        final Path[] filepaths = new Path[4];
+        for (int i = 0; i < filepaths.length; i++) {
+            filepaths[i] = new Path(filepathstring + i);
+        }
+        final long millis = System.currentTimeMillis();
+        {
+            DistributedFileSystem dfs = (DistributedFileSystem) cluster.getFileSystem();
+            dfs.dfs.leaserenewer.setGraceSleepPeriod(grace);
+            assertFalse(dfs.dfs.leaserenewer.isRunning());
+            {
+                // create a file
+                final FSDataOutputStream out = dfs.create(filepaths[0]);
+                assertTrue(dfs.dfs.leaserenewer.isRunning());
+                // write something
+                out.writeLong(millis);
+                assertTrue(dfs.dfs.leaserenewer.isRunning());
+                // close
+                out.close();
+                Thread.sleep(grace / 4 * 3);
+                // within grace period
+                assertTrue(dfs.dfs.leaserenewer.isRunning());
+                for (int i = 0; i < 3; i++) {
+                    if (dfs.dfs.leaserenewer.isRunning()) {
+                        Thread.sleep(grace / 2);
+                    }
+                }
+                // passed grace period
+                assertFalse(dfs.dfs.leaserenewer.isRunning());
+            }
+            {
+                // create file1
+                final FSDataOutputStream out1 = dfs.create(filepaths[1]);
+                assertTrue(dfs.dfs.leaserenewer.isRunning());
+                // create file2
+                final FSDataOutputStream out2 = dfs.create(filepaths[2]);
+                assertTrue(dfs.dfs.leaserenewer.isRunning());
+                // write something to file1
+                out1.writeLong(millis);
+                assertTrue(dfs.dfs.leaserenewer.isRunning());
+                // close file1
+                out1.close();
+                assertTrue(dfs.dfs.leaserenewer.isRunning());
+                // write something to file2
+                out2.writeLong(millis);
+                assertTrue(dfs.dfs.leaserenewer.isRunning());
+                // close file2
+                out2.close();
+                Thread.sleep(grace / 4 * 3);
+                // within grace period
+                assertTrue(dfs.dfs.leaserenewer.isRunning());
+            }
+            {
+                // create file3
+                final FSDataOutputStream out3 = dfs.create(filepaths[3]);
+                assertTrue(dfs.dfs.leaserenewer.isRunning());
+                Thread.sleep(grace / 4 * 3);
+                // passed previous grace period, should still running
+                assertTrue(dfs.dfs.leaserenewer.isRunning());
+                // write something to file3
+                out3.writeLong(millis);
+                assertTrue(dfs.dfs.leaserenewer.isRunning());
+                // close file3
+                out3.close();
+                assertTrue(dfs.dfs.leaserenewer.isRunning());
+                Thread.sleep(grace / 4 * 3);
+                // within grace period
+                assertTrue(dfs.dfs.leaserenewer.isRunning());
+                for (int i = 0; i < 3; i++) {
+                    if (dfs.dfs.leaserenewer.isRunning()) {
+                        Thread.sleep(grace / 2);
+                    }
+                }
+                // passed grace period
+                assertFalse(dfs.dfs.leaserenewer.isRunning());
+            }
+            dfs.close();
+        }
+        {
+            // Check to see if opening a non-existent file triggers a FNF
+            FileSystem fs = cluster.getFileSystem();
+            Path dir = new Path("/wrwelkj");
+            assertFalse("File should not exist for test.", fs.exists(dir));
+            try {
+                FSDataInputStream in = fs.open(dir);
+                try {
+                    in.close();
+                    fs.close();
+                } finally {
+                    assertTrue("Did not get a FileNotFoundException for non-existing" + " file.", false);
+                }
+            } catch (FileNotFoundException fnf) {
+            // This is the proper exception to catch; move on.
+            }
+        }
+        {
+            DistributedFileSystem dfs = (DistributedFileSystem) cluster.getFileSystem();
+            assertFalse(dfs.dfs.leaserenewer.isRunning());
+            // open and check the file
+            FSDataInputStream in = dfs.open(filepaths[0]);
+            assertFalse(dfs.dfs.leaserenewer.isRunning());
+            assertEquals(millis, in.readLong());
+            assertFalse(dfs.dfs.leaserenewer.isRunning());
+            in.close();
+            assertFalse(dfs.dfs.leaserenewer.isRunning());
+            dfs.close();
+        }
+        {
+            // test accessing DFS with ip address. should work with any hostname
+            // alias or ip address that points to the interface that NameNode
+            // is listening on. In this case, it is localhost.
+            String uri = "hdfs://127.0.0.1:" + cluster.getNameNodePort() + "/test/ipAddress/file";
+            Path path = new Path(uri);
+            FileSystem fs = FileSystem.get(path.toUri(), conf);
+            FSDataOutputStream out = fs.create(path);
+            byte[] buf = new byte[1024];
+            out.write(buf);
+            out.close();
+            FSDataInputStream in = fs.open(path);
+            in.readFully(buf);
+            in.close();
+            fs.close();
+        }
+    } finally {
+        if (cluster != null) {
+            cluster.shutdown();
+        }
+    }
+}

@@ -1,0 +1,41 @@
+/**
+ * Test : kill a bundle job with coord jobs as DONEWITHERROR
+ * <p/>
+ * Initially the bundle job should be KILLED and then DONEWITHERROR
+ *
+ * @throws Exception
+ */
+public void testBundleStatusTransitServiceKilled1() throws Exception {
+    BundleJobBean bundleJob = this.addRecordToBundleJobTable(Job.Status.RUNNING, true);
+    final JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    final String bundleId = bundleJob.getId();
+    addRecordToBundleActionTable(bundleId, "action1", 0, Job.Status.DONEWITHERROR);
+    addRecordToBundleActionTable(bundleId, "action2", 0, Job.Status.DONEWITHERROR);
+    String currentDatePlusMonth = XDataTestCase.getCurrentDateafterIncrementingInMonths(1);
+    Date start = DateUtils.parseDateOozieTZ(currentDatePlusMonth);
+    Date end = DateUtils.parseDateOozieTZ(currentDatePlusMonth);
+    addRecordToCoordJobTableWithBundle(bundleId, "action1", CoordinatorJob.Status.DONEWITHERROR, start, end, false, true, 2);
+    addRecordToCoordJobTableWithBundle(bundleId, "action2", CoordinatorJob.Status.DONEWITHERROR, start, end, false, true, 2);
+    new BundleKillXCommand(bundleId).call();
+    waitFor(5 * 1000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            BundleJobBean bundle = jpaService.execute(new BundleJobGetJPAExecutor(bundleId));
+            return bundle.getStatus() == Job.Status.KILLED;
+        }
+    });
+    bundleJob = jpaService.execute(new BundleJobGetJPAExecutor(bundleId));
+    assertEquals(Job.Status.KILLED, bundleJob.getStatus());
+    Runnable runnable = new StatusTransitRunnable();
+    runnable.run();
+    waitFor(15 * 1000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            BundleJobBean bundle = jpaService.execute(new BundleJobGetJPAExecutor(bundleId));
+            return bundle.getStatus() == Job.Status.DONEWITHERROR;
+        }
+    });
+    bundleJob = jpaService.execute(new BundleJobGetJPAExecutor(bundleId));
+    assertEquals(Job.Status.DONEWITHERROR, bundleJob.getStatus());
+}

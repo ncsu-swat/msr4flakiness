@@ -1,0 +1,18 @@
+// Test for delete as prepare action
+@Test
+public void testDelete() throws Exception {
+    Path actionDir = getFsTestCaseDir();
+    FileSystem fs = getFileSystem();
+    Path newDir = new Path(actionDir, "newDir");
+    // Delete the file if it is already there
+    if (fs.exists(newDir)) {
+        fs.delete(newDir, true);
+    }
+    fs.mkdirs(newDir);
+    // Prepare block that contains delete action
+    String prepareXML = "<prepare>" + "<delete path='" + newDir + "'/>" + "</prepare>";
+    JobConf conf = createJobConf();
+    LauncherMapper.setupLauncherURIHandlerConf(conf);
+    PrepareActionsDriver.doOperations(prepareXML, conf);
+    assertFalse(fs.exists(newDir));
+}

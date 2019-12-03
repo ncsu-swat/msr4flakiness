@@ -1,0 +1,76 @@
+public void testDeleteWorkflowsRollback() throws Exception {
+    WorkflowJobBean jobA = this.addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED);
+    WorkflowActionBean actionA1 = this.addRecordToWfActionTable(jobA.getId(), "1", WorkflowAction.Status.OK);
+    WorkflowActionBean actionA2 = this.addRecordToWfActionTable(jobA.getId(), "2", WorkflowAction.Status.OK);
+    WorkflowJobBean jobB = this.addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED);
+    WorkflowActionBean actionB1 = this.addRecordToWfActionTable(jobB.getId(), "1", WorkflowAction.Status.OK);
+    WorkflowActionBean actionB2 = this.addRecordToWfActionTable(jobB.getId(), "2", WorkflowAction.Status.OK);
+    WorkflowJobBean jobC = this.addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED);
+    WorkflowActionBean actionC1 = this.addRecordToWfActionTable(jobC.getId(), "1", WorkflowAction.Status.OK);
+    WorkflowActionBean actionC2 = this.addRecordToWfActionTable(jobC.getId(), "2", WorkflowAction.Status.OK);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    try {
+        // set fault injection to true, so transaction is roll backed
+        setSystemProperty(FaultInjection.FAULT_INJECTION, "true");
+        setSystemProperty(SkipCommitFaultInjection.ACTION_FAILOVER_FAULT_INJECTION, "true");
+        List<String> deleteList = new ArrayList<String>();
+        deleteList.add(jobA.getId());
+        deleteList.add(jobB.getId());
+        deleteList.add(jobC.getId());
+        try {
+            jpaService.execute(new WorkflowJobsDeleteJPAExecutor(deleteList));
+            fail("Should have skipped commit for failover testing");
+        } catch (RuntimeException re) {
+            assertEquals("Skipping Commit for Failover Testing", re.getMessage());
+        }
+    } finally {
+        // Remove fault injection
+        FaultInjection.deactivate("org.apache.oozie.command.SkipCommitFaultInjection");
+    }
+    try {
+        jpaService.execute(new WorkflowJobGetJPAExecutor(jobA.getId()));
+    } catch (JPAExecutorException je) {
+        fail("Workflow Job A should not have been deleted");
+    }
+    try {
+        jpaService.execute(new WorkflowActionGetJPAExecutor(actionA1.getId()));
+    } catch (JPAExecutorException je) {
+        fail("Workflow Action A1 should not have been deleted");
+    }
+    try {
+        jpaService.execute(new WorkflowActionGetJPAExecutor(actionA2.getId()));
+    } catch (JPAExecutorException je) {
+        fail("Workflow Action A2 should not have been deleted");
+    }
+    try {
+        jpaService.execute(new WorkflowJobGetJPAExecutor(jobB.getId()));
+    } catch (JPAExecutorException je) {
+        fail("Workflow Job B should not have been deleted");
+    }
+    try {
+        jpaService.execute(new WorkflowActionGetJPAExecutor(actionB1.getId()));
+    } catch (JPAExecutorException je) {
+        fail("Workflow Action B1 should not have been deleted");
+    }
+    try {
+        jpaService.execute(new WorkflowActionGetJPAExecutor(actionB2.getId()));
+    } catch (JPAExecutorException je) {
+        fail("Workflow Action B2 should not have been deleted");
+    }
+    try {
+        jpaService.execute(new WorkflowJobGetJPAExecutor(jobC.getId()));
+    } catch (JPAExecutorException je) {
+        fail("Workflow Job C should not have been deleted");
+    }
+    try {
+        jpaService.execute(new WorkflowActionGetJPAExecutor(actionC1.getId()));
+    } catch (JPAExecutorException je) {
+        fail("Workflow Action C1 should not have been deleted");
+    }
+    try {
+        jpaService.execute(new WorkflowActionGetJPAExecutor(actionC2.getId()));
+    } catch (JPAExecutorException je) {
+        fail("Workflow Action C2 should not have been deleted");
+    }
+}

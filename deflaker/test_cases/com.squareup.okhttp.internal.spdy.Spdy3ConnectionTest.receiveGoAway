@@ -1,0 +1,54 @@
+@Test
+public void receiveGoAway() throws Exception {
+    peer.setVariantAndClient(SPDY3, false);
+    // write the mocking script
+    // SYN_STREAM 1
+    peer.acceptFrame();
+    // SYN_STREAM 3
+    peer.acceptFrame();
+    peer.sendFrame().goAway(1, PROTOCOL_ERROR, Util.EMPTY_BYTE_ARRAY);
+    // PING
+    peer.acceptFrame();
+    peer.sendFrame().ping(true, 1, 0);
+    // DATA STREAM 1
+    peer.acceptFrame();
+    peer.play();
+    // play it back
+    SpdyConnection connection = connection(peer, SPDY3);
+    SpdyStream stream1 = connection.newStream(headerEntries("a", "android"), true, true);
+    SpdyStream stream2 = connection.newStream(headerEntries("b", "banana"), true, true);
+    // Ensure the GO_AWAY that resets stream2 has been received.
+    connection.ping().roundTripTime();
+    BufferedSink sink1 = Okio.buffer(stream1.getSink());
+    BufferedSink sink2 = Okio.buffer(stream2.getSink());
+    sink1.writeUtf8("abc");
+    try {
+        sink2.writeUtf8("abc");
+        sink2.flush();
+        fail();
+    } catch (IOException expected) {
+        assertEquals("stream was reset: REFUSED_STREAM", expected.getMessage());
+    }
+    sink1.writeUtf8("def");
+    sink1.close();
+    try {
+        connection.newStream(headerEntries("c", "cola"), true, true);
+        fail();
+    } catch (IOException expected) {
+        assertEquals("shutdown", expected.getMessage());
+    }
+    assertTrue(stream1.isOpen());
+    assertFalse(stream2.isOpen());
+    assertEquals(1, connection.openStreamCount());
+    // verify the peer received what was expected
+    MockSpdyPeer.InFrame synStream1 = peer.takeFrame();
+    assertEquals(TYPE_HEADERS, synStream1.type);
+    MockSpdyPeer.InFrame synStream2 = peer.takeFrame();
+    assertEquals(TYPE_HEADERS, synStream2.type);
+    MockSpdyPeer.InFrame ping = peer.takeFrame();
+    assertEquals(TYPE_PING, ping.type);
+    MockSpdyPeer.InFrame data1 = peer.takeFrame();
+    assertEquals(TYPE_DATA, data1.type);
+    assertEquals(1, data1.streamId);
+    assertTrue(Arrays.equals("abcdef".getBytes("UTF-8"), data1.data));
+}

@@ -1,0 +1,21 @@
+@SuppressWarnings("deprecation")
+@Test(timeout = 120000, expected = InvalidJobConfException.class)
+public void testSetupDistributedCacheConflictsFiles() throws Exception {
+    Configuration conf = new Configuration();
+    conf.setClass("fs.mockfs.impl", MockFileSystem.class, FileSystem.class);
+    URI mockUri = URI.create("mockfs://mock/");
+    FileSystem mockFs = ((FilterFileSystem) FileSystem.get(mockUri, conf)).getRawFileSystem();
+    URI file = new URI("mockfs://mock/tmp/something.zip#something");
+    Path filePath = new Path(file);
+    URI file2 = new URI("mockfs://mock/tmp/something.txt#something");
+    Path file2Path = new Path(file);
+    when(mockFs.resolvePath(filePath)).thenReturn(filePath);
+    when(mockFs.resolvePath(file2Path)).thenReturn(file2Path);
+    DistributedCache.addCacheFile(file, conf);
+    DistributedCache.addCacheFile(file2, conf);
+    conf.set(MRJobConfig.CACHE_FILE_TIMESTAMPS, "10,11");
+    conf.set(MRJobConfig.CACHE_FILES_SIZES, "10,11");
+    conf.set(MRJobConfig.CACHE_FILE_VISIBILITIES, "true,true");
+    Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
+    MRApps.setupDistributedCache(conf, localResources);
+}

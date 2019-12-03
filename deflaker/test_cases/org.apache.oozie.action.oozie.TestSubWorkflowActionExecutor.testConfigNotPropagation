@@ -1,0 +1,32 @@
+public void testConfigNotPropagation() throws Exception {
+    Path subWorkflowAppPath = getFsTestCaseDir();
+    FileSystem fs = getFileSystem();
+    Writer writer = new OutputStreamWriter(fs.create(new Path(subWorkflowAppPath, "workflow.xml")));
+    writer.write(APP1);
+    writer.close();
+    XConfiguration protoConf = getBaseProtoConf();
+    WorkflowJobBean workflow = createBaseWorkflow(protoConf, "W");
+    String defaultConf = workflow.getConf();
+    XConfiguration newConf = new XConfiguration(new StringReader(defaultConf));
+    newConf.set("abc", "xyz");
+    workflow.setConf(newConf.toXmlString());
+    final WorkflowActionBean action = (WorkflowActionBean) workflow.getActions().get(0);
+    action.setConf("<sub-workflow xmlns='uri:oozie:workflow:0.1' name='subwf'>" + "      <app-path>" + subWorkflowAppPath + File.separator + "workflow.xml" + "</app-path>" + "      <configuration>" + "        <property>" + "          <name>a</name>" + "          <value>A</value>" + "        </property>" + "      </configuration>" + "</sub-workflow>");
+    SubWorkflowActionExecutor subWorkflow = new SubWorkflowActionExecutor();
+    subWorkflow.start(new Context(workflow, action), action);
+    final OozieClient oozieClient = subWorkflow.getWorkflowClient(new Context(workflow, action), SubWorkflowActionExecutor.LOCAL);
+    waitFor(JOB_TIMEOUT, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            return oozieClient.getJobInfo(action.getExternalId()).getStatus() == WorkflowJob.Status.SUCCEEDED;
+        }
+    });
+    assertEquals(WorkflowJob.Status.SUCCEEDED, oozieClient.getJobInfo(action.getExternalId()).getStatus());
+    subWorkflow.check(new Context(workflow, action), action);
+    assertEquals(WorkflowAction.Status.DONE, action.getStatus());
+    subWorkflow.end(new Context(workflow, action), action);
+    assertEquals(WorkflowAction.Status.OK, action.getStatus());
+    WorkflowJob wf = oozieClient.getJobInfo(action.getExternalId());
+    Configuration childConf = new XConfiguration(new StringReader(wf.getConf()));
+    assertNull(childConf.get("abc"));
+}

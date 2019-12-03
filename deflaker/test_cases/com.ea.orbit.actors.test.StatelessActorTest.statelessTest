@@ -1,0 +1,57 @@
+@Test
+public void statelessTest() throws ExecutionException, InterruptedException {
+    OrbitStage stage1 = createStage();
+    OrbitStage stage2 = createStage();
+    OrbitStage stage3 = createStage();
+    OrbitStage stage4 = createStage();
+    OrbitStage client = createClient();
+    IStatelessThing actor1 = IActor.getReference(IStatelessThing.class, "1000");
+    IStatelessThing actor2 = IActor.getReference(IStatelessThing.class, "1000");
+    IStatelessThing actor3 = IActor.getReference(IStatelessThing.class, "1000");
+    IStatelessThing actor4 = IActor.getReference(IStatelessThing.class, "1000");
+    IStatelessThing actor5 = IActor.getReference(IStatelessThing.class, "1000");
+    final Set<UUID> set = new HashSet<>();
+    for (int i = 0; i < 25; i++) {
+        // there will be no concurrent executions here
+        // each node will have at most one activation of the stateless worker
+        stage1.bind();
+        set.add(actor1.getUniqueActivationId().join());
+        stage2.bind();
+        set.add(actor2.getUniqueActivationId().join());
+        stage3.bind();
+        set.add(actor3.getUniqueActivationId().join());
+        stage4.bind();
+        set.add(actor4.getUniqueActivationId().join());
+        client.bind();
+        set.add(actor5.getUniqueActivationId().join());
+    }
+    // statistics might let us down from time to time here...
+    assertEquals(4, set.size());
+    set.clear();
+    List<Future<UUID>> futures = new ArrayList<>();
+    for (int i = 0; i < 50; i++) {
+        // this will force the creation of concurrent activations in each node
+        stage1.bind();
+        futures.add(actor1.getUniqueActivationId(5000));
+        stage2.bind();
+        futures.add(actor2.getUniqueActivationId(5000));
+        stage3.bind();
+        futures.add(actor3.getUniqueActivationId(5000));
+        stage4.bind();
+        futures.add(actor4.getUniqueActivationId(5000));
+        client.bind();
+        futures.add(actor5.getUniqueActivationId(5000));
+    }
+    futures.forEach(f -> {
+        try {
+            set.add(f.get(10, TimeUnit.SECONDS));
+        } catch (Exception e) {
+            throw new UncheckedException(e);
+        }
+    });
+    // it is very likely that there will be more than one activation per stage host.
+    final int size = set.size();
+    assertTrue("Expecting >4 but was: " + size, size > 4);
+    // only 25*5 calls => there should not be more than 125 activations
+    assertTrue("Expecting <=" + (50 * 5) + " but was: " + size, size <= 50 * 5);
+}

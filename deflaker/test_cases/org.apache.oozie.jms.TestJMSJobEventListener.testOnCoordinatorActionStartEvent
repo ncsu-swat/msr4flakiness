@@ -1,0 +1,32 @@
+@Test
+public void testOnCoordinatorActionStartEvent() throws ParseException {
+    JMSJobEventListener coordEventListener = new JMSJobEventListener();
+    coordEventListener.init(conf);
+    Date startDate = DateUtils.parseDateUTC("2012-07-22T00:00Z");
+    Date nominalTime = DateUtils.parseDateUTC("2011-07-11T00:00Z");
+    CoordinatorActionEvent cae = new CoordinatorActionEvent("caId1", "caJobId1", CoordinatorAction.Status.RUNNING, "user1", "wf-app-name1", nominalTime, startDate, null);
+    ConnectionContext jmsContext = getConnectionContext();
+    try {
+        Session session = jmsContext.createSession(Session.AUTO_ACKNOWLEDGE);
+        MessageConsumer consumer = jmsContext.createConsumer(session, coordEventListener.getTopic(cae));
+        coordEventListener.onCoordinatorActionEvent(cae);
+        TextMessage message = (TextMessage) consumer.receive(5000);
+        assertFalse(message.getText().contains("endTime"));
+        assertFalse(message.getText().contains("errorCode"));
+        assertFalse(message.getText().contains("errorMessage"));
+        assertFalse(message.getText().contains("missingDependency"));
+        CoordinatorActionMessage coordActionStartMessage = JMSMessagingUtils.getEventMessage(message);
+        assertEquals(CoordinatorAction.Status.RUNNING, coordActionStartMessage.getStatus());
+        assertEquals(startDate, coordActionStartMessage.getStartTime());
+        assertEquals("caJobId1", coordActionStartMessage.getParentId());
+        assertEquals("caId1", coordActionStartMessage.getId());
+        assertEquals(MessageType.JOB, coordActionStartMessage.getMessageType());
+        assertEquals(AppType.COORDINATOR_ACTION, coordActionStartMessage.getAppType());
+        assertEquals(EventStatus.STARTED, coordActionStartMessage.getEventStatus());
+        assertEquals("user1", coordActionStartMessage.getUser());
+        assertEquals("wf-app-name1", coordActionStartMessage.getAppName());
+    } catch (Exception e) {
+        e.printStackTrace();
+        fail(e.getMessage());
+    }
+}

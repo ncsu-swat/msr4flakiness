@@ -1,0 +1,46 @@
+@Test
+public void testConnectionRetryExceptionListener() throws Exception {
+    services.destroy();
+    services = super.setupServicesForHCatalog();
+    int randomPort = 30000 + random.nextInt(10000);
+    String brokerURL = "tcp://localhost:" + randomPort;
+    String jndiPropertiesString = "java.naming.factory.initial#" + ActiveMQConnFactory + ";" + "java.naming.provider.url#" + brokerURL + ";" + "connectionFactoryNames#" + "ConnectionFactory";
+    Configuration servicesConf = services.getConf();
+    servicesConf.set(JMSAccessorService.CONF_RETRY_INITIAL_DELAY, "1");
+    servicesConf.set(JMSAccessorService.CONF_RETRY_MAX_ATTEMPTS, "3");
+    servicesConf.set(HCatAccessorService.JMS_CONNECTIONS_PROPERTIES, "default=" + jndiPropertiesString);
+    services.init();
+    HCatAccessorService hcatService = Services.get().get(HCatAccessorService.class);
+    JMSAccessorService jmsService = Services.get().get(JMSAccessorService.class);
+    String publisherAuthority = "hcat.server.com:5080";
+    String topic = "topic.topic1";
+    // Start the broker
+    BrokerService broker = new BrokerService();
+    broker.addConnector(brokerURL);
+    broker.start();
+    JMSConnectionInfo connInfo = hcatService.getJMSConnectionInfo(new URI("hcat://hcat.server.com:8020"));
+    jmsService.registerForNotification(connInfo, topic, new HCatMessageHandler(publisherAuthority));
+    assertTrue(jmsService.isListeningToTopic(connInfo, topic));
+    assertFalse(jmsService.isConnectionInRetryList(connInfo));
+    assertFalse(jmsService.isTopicInRetryList(connInfo, topic));
+    ConnectionContext connCtxt = jmsService.createConnectionContext(connInfo);
+    broker.stop();
+    try {
+        connCtxt.createSession(Session.AUTO_ACKNOWLEDGE);
+        fail("Exception expected");
+    } catch (Exception e) {
+        Thread.sleep(100);
+        assertFalse(jmsService.isListeningToTopic(connInfo, topic));
+        assertTrue(jmsService.isConnectionInRetryList(connInfo));
+        assertTrue(jmsService.isTopicInRetryList(connInfo, topic));
+    }
+    broker = new BrokerService();
+    broker.addConnector(brokerURL);
+    broker.start();
+    Thread.sleep(1000);
+    assertTrue(jmsService.isListeningToTopic(connInfo, topic));
+    assertFalse(jmsService.isConnectionInRetryList(connInfo));
+    assertFalse(jmsService.isTopicInRetryList(connInfo, topic));
+    broker.stop();
+    jmsService.destroy();
+}

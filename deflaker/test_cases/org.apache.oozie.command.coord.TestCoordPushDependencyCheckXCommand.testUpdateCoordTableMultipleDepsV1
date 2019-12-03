@@ -1,0 +1,14 @@
+@Test
+public void testUpdateCoordTableMultipleDepsV1() throws Exception {
+    // Test for two dependencies which are already in the hcat server
+    String db = "default";
+    String table = "tablename";
+    String newHCatDependency1 = "hcat://" + server + "/" + db + "/" + table + "/dt=20120412;country=brazil";
+    String newHCatDependency2 = "hcat://" + server + "/" + db + "/" + table + "/dt=20120430;country=usa";
+    String newHCatDependency = newHCatDependency1 + CoordELFunctions.INSTANCE_SEPARATOR + newHCatDependency2;
+    populateTable(db, table);
+    String actionId = addInitRecords(newHCatDependency);
+    checkCoordAction(actionId, newHCatDependency, CoordinatorAction.Status.WAITING);
+    new CoordPushDependencyCheckXCommand(actionId).call();
+    checkCoordAction(actionId, "", CoordinatorAction.Status.READY);
+}

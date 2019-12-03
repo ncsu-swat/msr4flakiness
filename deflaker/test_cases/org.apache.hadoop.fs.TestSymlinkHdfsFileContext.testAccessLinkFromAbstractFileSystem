@@ -1,0 +1,17 @@
+@Test(timeout = 1000)
+public /**
+ * Test access a symlink using AbstractFileSystem
+ */
+void testAccessLinkFromAbstractFileSystem() throws IOException {
+    Path file = new Path(testBaseDir1(), "file");
+    Path link = new Path(testBaseDir1(), "linkToFile");
+    createAndWriteFile(file);
+    wrapper.createSymlink(file, link, false);
+    try {
+        AbstractFileSystem afs = fc.getDefaultFileSystem();
+        afs.open(link);
+        fail("Opened a link using AFS");
+    } catch (UnresolvedLinkException x) {
+    // Expected
+    }
+}

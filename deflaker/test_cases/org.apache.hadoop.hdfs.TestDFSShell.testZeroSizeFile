@@ -1,0 +1,38 @@
+public void testZeroSizeFile() throws IOException {
+    Configuration conf = new HdfsConfiguration();
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).numDataNodes(2).build();
+    FileSystem fs = cluster.getFileSystem();
+    assertTrue("Not a HDFS: " + fs.getUri(), fs instanceof DistributedFileSystem);
+    final DistributedFileSystem dfs = (DistributedFileSystem) fs;
+    try {
+        // create a zero size file
+        final File f1 = new File(TEST_ROOT_DIR, "f1");
+        assertTrue(!f1.exists());
+        assertTrue(f1.createNewFile());
+        assertTrue(f1.exists());
+        assertTrue(f1.isFile());
+        assertEquals(0L, f1.length());
+        // copy to remote
+        final Path root = mkdir(dfs, new Path("/test/zeroSizeFile"));
+        final Path remotef = new Path(root, "dst");
+        show("copy local " + f1 + " to remote " + remotef);
+        dfs.copyFromLocalFile(false, false, new Path(f1.getPath()), remotef);
+        // getBlockSize() should not throw exception
+        show("Block size = " + dfs.getFileStatus(remotef).getBlockSize());
+        // copy back
+        final File f2 = new File(TEST_ROOT_DIR, "f2");
+        assertTrue(!f2.exists());
+        dfs.copyToLocalFile(remotef, new Path(f2.getPath()));
+        assertTrue(f2.exists());
+        assertTrue(f2.isFile());
+        assertEquals(0L, f2.length());
+        f1.delete();
+        f2.delete();
+    } finally {
+        try {
+            dfs.close();
+        } catch (Exception e) {
+        }
+        cluster.shutdown();
+    }
+}

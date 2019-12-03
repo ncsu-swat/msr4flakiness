@@ -1,0 +1,65 @@
+/**
+ * check if nn.getCorruptFiles() returns a file that has corrupted blocks
+ */
+@Test
+public void testListCorruptFilesCorruptedBlock() throws Exception {
+    MiniDFSCluster cluster = null;
+    Random random = new Random();
+    try {
+        Configuration conf = new HdfsConfiguration();
+        // datanode scans directories
+        conf.setInt(DFSConfigKeys.DFS_DATANODE_DIRECTORYSCAN_INTERVAL_KEY, 1);
+        // datanode sends block reports
+        conf.setInt(DFSConfigKeys.DFS_BLOCKREPORT_INTERVAL_MSEC_KEY, 3 * 1000);
+        cluster = new MiniDFSCluster.Builder(conf).build();
+        FileSystem fs = cluster.getFileSystem();
+        // create two files with one block each
+        DFSTestUtil util = new DFSTestUtil("testCorruptFilesCorruptedBlock", 2, 1, 512);
+        util.createFiles(fs, "/srcdat10");
+        // fetch bad file list from namenode. There should be none.
+        final NameNode namenode = cluster.getNameNode();
+        Collection<FSNamesystem.CorruptFileBlockInfo> badFiles = namenode.getNamesystem().listCorruptFileBlocks("/", null);
+        assertTrue("Namenode has " + badFiles.size() + " corrupt files. Expecting None.", badFiles.size() == 0);
+        // Now deliberately corrupt one block
+        String bpid = cluster.getNamesystem().getBlockPoolId();
+        File storageDir = cluster.getInstanceStorageDir(0, 1);
+        File data_dir = MiniDFSCluster.getFinalizedDir(storageDir, bpid);
+        assertTrue("data directory does not exist", data_dir.exists());
+        File[] blocks = data_dir.listFiles();
+        assertTrue("Blocks do not exist in data-dir", (blocks != null) && (blocks.length > 0));
+        for (int idx = 0; idx < blocks.length; idx++) {
+            if (blocks[idx].getName().startsWith("blk_") && blocks[idx].getName().endsWith(".meta")) {
+                // 
+                // shorten .meta file
+                // 
+                RandomAccessFile file = new RandomAccessFile(blocks[idx], "rw");
+                FileChannel channel = file.getChannel();
+                long position = channel.size() - 2;
+                int length = 2;
+                byte[] buffer = new byte[length];
+                random.nextBytes(buffer);
+                channel.write(ByteBuffer.wrap(buffer), position);
+                file.close();
+                LOG.info("Deliberately corrupting file " + blocks[idx].getName() + " at offset " + position + " length " + length);
+                // read all files to trigger detection of corrupted replica
+                try {
+                    util.checkFiles(fs, "/srcdat10");
+                } catch (BlockMissingException e) {
+                    System.out.println("Received BlockMissingException as expected.");
+                } catch (IOException e) {
+                    assertTrue("Corrupted replicas not handled properly. Expecting BlockMissingException " + " but received IOException " + e, false);
+                }
+                break;
+            }
+        }
+        // fetch bad file list from namenode. There should be one file.
+        badFiles = namenode.getNamesystem().listCorruptFileBlocks("/", null);
+        LOG.info("Namenode has bad files. " + badFiles.size());
+        assertTrue("Namenode has " + badFiles.size() + " bad files. Expecting 1.", badFiles.size() == 1);
+        util.cleanup(fs, "/srcdat10");
+    } finally {
+        if (cluster != null) {
+            cluster.shutdown();
+        }
+    }
+}

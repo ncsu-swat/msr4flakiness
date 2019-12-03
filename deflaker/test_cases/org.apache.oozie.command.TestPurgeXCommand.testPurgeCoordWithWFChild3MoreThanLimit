@@ -1,0 +1,170 @@
+/**
+ * Test : The workflow should get purged, and the coordinator parent should get purged --> both will get purged
+ *
+ * @throws Exception
+ */
+public void testPurgeCoordWithWFChild3MoreThanLimit() throws Exception {
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    CoordinatorJobBean coordJob = addRecordToCoordJobTable(CoordinatorJob.Status.SUCCEEDED, false, false);
+    WorkflowJobBean wfJob1 = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED);
+    WorkflowJobBean wfJob2 = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED);
+    WorkflowJobBean wfJob3 = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED);
+    WorkflowJobBean wfJob4 = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED);
+    WorkflowJobBean wfJob5 = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED);
+    WorkflowActionBean wfAction1 = addRecordToWfActionTable(wfJob1.getId(), "1", WorkflowAction.Status.OK);
+    WorkflowActionBean wfAction2 = addRecordToWfActionTable(wfJob2.getId(), "1", WorkflowAction.Status.OK);
+    WorkflowActionBean wfAction3 = addRecordToWfActionTable(wfJob3.getId(), "1", WorkflowAction.Status.OK);
+    WorkflowActionBean wfAction4 = addRecordToWfActionTable(wfJob4.getId(), "1", WorkflowAction.Status.OK);
+    WorkflowActionBean wfAction5 = addRecordToWfActionTable(wfJob5.getId(), "1", WorkflowAction.Status.OK);
+    CoordinatorActionBean coordAction1 = addRecordToCoordActionTable(coordJob.getId(), 1, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", wfJob1.getId(), "SUCCEEDED", 0);
+    CoordinatorActionBean coordAction2 = addRecordToCoordActionTable(coordJob.getId(), 2, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", wfJob2.getId(), "SUCCEEDED", 0);
+    CoordinatorActionBean coordAction3 = addRecordToCoordActionTable(coordJob.getId(), 3, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", wfJob3.getId(), "SUCCEEDED", 0);
+    CoordinatorActionBean coordAction4 = addRecordToCoordActionTable(coordJob.getId(), 4, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", wfJob4.getId(), "SUCCEEDED", 0);
+    CoordinatorActionBean coordAction5 = addRecordToCoordActionTable(coordJob.getId(), 5, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", wfJob5.getId(), "SUCCEEDED", 0);
+    WorkflowJobGetJPAExecutor wfJob1GetCmd = new WorkflowJobGetJPAExecutor(wfJob1.getId());
+    WorkflowJobGetJPAExecutor wfJob2GetCmd = new WorkflowJobGetJPAExecutor(wfJob2.getId());
+    WorkflowJobGetJPAExecutor wfJob3GetCmd = new WorkflowJobGetJPAExecutor(wfJob3.getId());
+    WorkflowJobGetJPAExecutor wfJob4GetCmd = new WorkflowJobGetJPAExecutor(wfJob4.getId());
+    WorkflowJobGetJPAExecutor wfJob5GetCmd = new WorkflowJobGetJPAExecutor(wfJob5.getId());
+    WorkflowActionGetJPAExecutor wfAction1GetCmd = new WorkflowActionGetJPAExecutor(wfAction1.getId());
+    WorkflowActionGetJPAExecutor wfAction2GetCmd = new WorkflowActionGetJPAExecutor(wfAction2.getId());
+    WorkflowActionGetJPAExecutor wfAction3GetCmd = new WorkflowActionGetJPAExecutor(wfAction3.getId());
+    WorkflowActionGetJPAExecutor wfAction4GetCmd = new WorkflowActionGetJPAExecutor(wfAction4.getId());
+    WorkflowActionGetJPAExecutor wfAction5GetCmd = new WorkflowActionGetJPAExecutor(wfAction5.getId());
+    CoordJobGetJPAExecutor coordJobGetCmd = new CoordJobGetJPAExecutor(coordJob.getId());
+    CoordActionGetJPAExecutor coordAction1GetCmd = new CoordActionGetJPAExecutor(coordAction1.getId());
+    CoordActionGetJPAExecutor coordAction2GetCmd = new CoordActionGetJPAExecutor(coordAction2.getId());
+    CoordActionGetJPAExecutor coordAction3GetCmd = new CoordActionGetJPAExecutor(coordAction3.getId());
+    CoordActionGetJPAExecutor coordAction4GetCmd = new CoordActionGetJPAExecutor(coordAction4.getId());
+    CoordActionGetJPAExecutor coordAction5GetCmd = new CoordActionGetJPAExecutor(coordAction5.getId());
+    wfJob1 = jpaService.execute(wfJob1GetCmd);
+    wfJob2 = jpaService.execute(wfJob2GetCmd);
+    wfJob3 = jpaService.execute(wfJob3GetCmd);
+    wfJob4 = jpaService.execute(wfJob4GetCmd);
+    wfJob5 = jpaService.execute(wfJob5GetCmd);
+    wfAction1 = jpaService.execute(wfAction1GetCmd);
+    wfAction2 = jpaService.execute(wfAction2GetCmd);
+    wfAction3 = jpaService.execute(wfAction3GetCmd);
+    wfAction4 = jpaService.execute(wfAction4GetCmd);
+    wfAction5 = jpaService.execute(wfAction5GetCmd);
+    coordJob = jpaService.execute(coordJobGetCmd);
+    coordAction1 = jpaService.execute(coordAction1GetCmd);
+    coordAction2 = jpaService.execute(coordAction2GetCmd);
+    coordAction3 = jpaService.execute(coordAction3GetCmd);
+    coordAction4 = jpaService.execute(coordAction4GetCmd);
+    coordAction5 = jpaService.execute(coordAction5GetCmd);
+    assertEquals(WorkflowJob.Status.SUCCEEDED, wfJob1.getStatus());
+    assertEquals(WorkflowJob.Status.SUCCEEDED, wfJob2.getStatus());
+    assertEquals(WorkflowJob.Status.SUCCEEDED, wfJob3.getStatus());
+    assertEquals(WorkflowJob.Status.SUCCEEDED, wfJob4.getStatus());
+    assertEquals(WorkflowJob.Status.SUCCEEDED, wfJob5.getStatus());
+    assertEquals(WorkflowAction.Status.OK, wfAction1.getStatus());
+    assertEquals(WorkflowAction.Status.OK, wfAction2.getStatus());
+    assertEquals(WorkflowAction.Status.OK, wfAction3.getStatus());
+    assertEquals(WorkflowAction.Status.OK, wfAction4.getStatus());
+    assertEquals(WorkflowAction.Status.OK, wfAction5.getStatus());
+    assertEquals(CoordinatorJob.Status.SUCCEEDED, coordJob.getStatus());
+    assertEquals(CoordinatorAction.Status.SUCCEEDED, coordAction1.getStatus());
+    assertEquals(CoordinatorAction.Status.SUCCEEDED, coordAction2.getStatus());
+    assertEquals(CoordinatorAction.Status.SUCCEEDED, coordAction3.getStatus());
+    assertEquals(CoordinatorAction.Status.SUCCEEDED, coordAction4.getStatus());
+    assertEquals(CoordinatorAction.Status.SUCCEEDED, coordAction5.getStatus());
+    new PurgeXCommand(7, 7, 1, 10).call();
+    try {
+        jpaService.execute(coordJobGetCmd);
+        fail("Coordinator Job should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0604, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(coordAction1GetCmd);
+        fail("Coordinator Action 1 should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0605, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(coordAction2GetCmd);
+        fail("Coordinator Action 2 should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0605, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(coordAction3GetCmd);
+        fail("Coordinator Action 3 should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0605, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(coordAction4GetCmd);
+        fail("Coordinator Action 4 should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0605, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(coordAction5GetCmd);
+        fail("Coordinator Action 5 should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0605, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(wfJob1GetCmd);
+        fail("Workflow Job 1 should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0604, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(wfJob2GetCmd);
+        fail("Workflow Job 2 should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0604, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(wfJob3GetCmd);
+        fail("Workflow Job 3 should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0604, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(wfJob4GetCmd);
+        fail("Workflow Job 4 should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0604, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(wfJob5GetCmd);
+        fail("Workflow Job 5 should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0604, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(wfAction1GetCmd);
+        fail("Workflow Action 1 should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0605, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(wfAction2GetCmd);
+        fail("Workflow Action 2 should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0605, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(wfAction3GetCmd);
+        fail("Workflow Action 3 should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0605, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(wfAction4GetCmd);
+        fail("Workflow Action 4 should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0605, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(wfAction5GetCmd);
+        fail("Workflow Action 5 should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0605, je.getErrorCode());
+    }
+}

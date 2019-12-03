@@ -1,0 +1,43 @@
+@Test(timeout = 15000)
+public void testRMDTMasterKeyStateOnRollingMasterKey() throws Exception {
+    MemoryRMStateStore memStore = new MemoryRMStateStore();
+    memStore.init(conf);
+    RMState rmState = memStore.getState();
+    Map<RMDelegationTokenIdentifier, Long> rmDTState = rmState.getRMDTSecretManagerState().getTokenState();
+    Set<DelegationKey> rmDTMasterKeyState = rmState.getRMDTSecretManagerState().getMasterKeyState();
+    MockRM rm1 = new MyMockRM(conf, memStore);
+    rm1.start();
+    // on rm start, two master keys are created.
+    // One is created at RMDTSecretMgr.startThreads.updateCurrentKey();
+    // the other is created on the first run of
+    // tokenRemoverThread.rollMasterKey()
+    RMDelegationTokenSecretManager dtSecretManager = rm1.getRMDTSecretManager();
+    // assert all master keys are saved
+    Assert.assertEquals(dtSecretManager.getAllMasterKeys(), rmDTMasterKeyState);
+    Set<DelegationKey> expiringKeys = new HashSet<DelegationKey>();
+    expiringKeys.addAll(dtSecretManager.getAllMasterKeys());
+    // record the current key
+    DelegationKey oldCurrentKey = ((TestRMDelegationTokenSecretManager) dtSecretManager).getCurrentKey();
+    // request to generate a RMDelegationToken
+    GetDelegationTokenRequest request = mock(GetDelegationTokenRequest.class);
+    when(request.getRenewer()).thenReturn("renewer1");
+    GetDelegationTokenResponse response = rm1.getClientRMService().getDelegationToken(request);
+    org.apache.hadoop.yarn.api.records.Token delegationToken = response.getRMDelegationToken();
+    Token<RMDelegationTokenIdentifier> token1 = ConverterUtils.convertFromYarn(delegationToken, null);
+    RMDelegationTokenIdentifier dtId1 = token1.decodeIdentifier();
+    // wait for the first rollMasterKey
+    while (((TestRMDelegationTokenSecretManager) dtSecretManager).numUpdatedKeys.get() < 1) {
+        Thread.sleep(200);
+    }
+    // assert old-current-key and new-current-key exist
+    Assert.assertTrue(rmDTMasterKeyState.contains(oldCurrentKey));
+    DelegationKey newCurrentKey = ((TestRMDelegationTokenSecretManager) dtSecretManager).getCurrentKey();
+    Assert.assertTrue(rmDTMasterKeyState.contains(newCurrentKey));
+    // wait for token to expire
+    // rollMasterKey is called every 1 second.
+    while (((TestRMDelegationTokenSecretManager) dtSecretManager).numUpdatedKeys.get() < 6) {
+        Thread.sleep(200);
+    }
+    Assert.assertFalse(rmDTState.containsKey(dtId1));
+    rm1.stop();
+}

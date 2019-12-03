@@ -1,0 +1,11 @@
+public void testActionInputCheck() throws Exception {
+    String jobId = "0000000-" + new Date().getTime() + "-TestCoordActionInputCheckXCommand-C";
+    Date startTime = DateUtils.parseDateOozieTZ("2009-02-01T23:59" + TZ);
+    Date endTime = DateUtils.parseDateOozieTZ("2009-02-02T23:59" + TZ);
+    CoordinatorJobBean job = addRecordToCoordJobTable(jobId, startTime, endTime);
+    new CoordMaterializeTransitionXCommand(job.getId(), 3600).call();
+    createDir(getTestCaseDir() + "/2009/01/29/");
+    createDir(getTestCaseDir() + "/2009/01/15/");
+    new CoordActionInputCheckXCommand(job.getId() + "@1", job.getId()).call();
+    checkCoordAction(job.getId() + "@1");
+}

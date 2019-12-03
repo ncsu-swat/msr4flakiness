@@ -1,0 +1,40 @@
+/**
+ * test pause time change : pending should mark false if job is running with
+ * pending true. two actions should be removed for pause time changes.
+ *
+ * @throws Exception
+ */
+public void testCoordChangePauseTime() throws Exception {
+    Date start = new Date();
+    // 4 hrs
+    Date end = new Date(start.getTime() + (4 * 60 * 60 * 1000));
+    // 2 hrs
+    Date pauseTime = new Date(start.getTime() + (2 * 60 * 60 * 1000));
+    String pauseTimeChangeStr = "pausetime=" + DateUtils.formatDateOozieTZ(pauseTime);
+    final CoordinatorJobBean job = addRecordToCoordJobTableForPauseTimeTest(CoordinatorJob.Status.RUNNING, start, end, end, true, false, 4);
+    addRecordToCoordActionTable(job.getId(), 1, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    addRecordToCoordActionTable(job.getId(), 2, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    addRecordToCoordActionTable(job.getId(), 3, CoordinatorAction.Status.WAITING, "coord-action-get.xml", 0);
+    addRecordToCoordActionTable(job.getId(), 4, CoordinatorAction.Status.WAITING, "coord-action-get.xml", 0);
+    new CoordChangeXCommand(job.getId(), pauseTimeChangeStr).call();
+    JPAService jpaService = Services.get().get(JPAService.class);
+    CoordJobGetJPAExecutor coordGetCmd = new CoordJobGetJPAExecutor(job.getId());
+    CoordinatorJobBean coordJob = jpaService.execute(coordGetCmd);
+    assertEquals(DateUtils.formatDateOozieTZ(coordJob.getPauseTime()), DateUtils.formatDateOozieTZ(pauseTime));
+    assertEquals(Job.Status.RUNNING, coordJob.getStatus());
+    assertEquals(2, coordJob.getLastActionNumber());
+    try {
+        jpaService.execute(new CoordJobGetActionByActionNumberJPAExecutor(job.getId(), 3));
+        fail("Expected to fail as action 3 should have been deleted");
+    } catch (JPAExecutorException jpae) {
+        assertEquals(ErrorCode.E0603, jpae.getErrorCode());
+        jpae.printStackTrace();
+    }
+    try {
+        jpaService.execute(new CoordJobGetActionByActionNumberJPAExecutor(job.getId(), 4));
+        fail("Expected to fail as action 4 should have been deleted");
+    } catch (JPAExecutorException jpae) {
+        assertEquals(ErrorCode.E0603, jpae.getErrorCode());
+        jpae.printStackTrace();
+    }
+}

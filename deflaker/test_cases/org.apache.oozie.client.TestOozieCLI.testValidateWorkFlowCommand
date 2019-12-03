@@ -1,0 +1,23 @@
+public void testValidateWorkFlowCommand() throws Exception {
+    runTest(END_POINTS, SERVLET_CLASSES, IS_SECURITY_ENABLED, new Callable<Void>() {
+
+        @Override
+        public Void call() throws Exception {
+            String validFileName = "./test-workflow-app.xml";
+            String invalidFileName = "./test-invalid-workflow-app.xml";
+            String validContent = "<workflow-app xmlns=\"uri:oozie:workflow:0.2\" name=\"no-op-wf\"> " + " <start to=\"end\"/> <end name=\"end\"/> </workflow-app>";
+            String invalidContent = "<workflow-app xmlns=\"uri:oozie:workflow:0.2\" name=\"f\"> " + " <tag=\"end\"/> <tag=\"end\"/> </workflow-app>";
+            File validfile = new File(validFileName);
+            File invalidfile = new File(invalidFileName);
+            validfile.delete();
+            invalidfile.delete();
+            IOUtils.copyCharStream(new StringReader(validContent), new FileWriter(validfile));
+            String[] args = new String[] { "validate", validFileName };
+            assertEquals(0, new OozieCLI().run(args));
+            IOUtils.copyCharStream(new StringReader(invalidContent), new FileWriter(invalidfile));
+            args = new String[] { "validate", invalidFileName };
+            assertEquals(-1, new OozieCLI().run(args));
+            return null;
+        }
+    });
+}

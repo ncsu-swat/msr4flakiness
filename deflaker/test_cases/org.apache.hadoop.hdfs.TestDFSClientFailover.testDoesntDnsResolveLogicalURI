@@ -1,0 +1,16 @@
+/**
+ * Test that the client doesn't ever try to DNS-resolve the logical URI.
+ * Regression test for HADOOP-9150.
+ */
+@Test
+public void testDoesntDnsResolveLogicalURI() throws Exception {
+    NameService spyNS = spyOnNameService();
+    FileSystem fs = HATestUtil.configureFailoverFs(cluster, conf);
+    String logicalHost = fs.getUri().getHost();
+    Path qualifiedRoot = fs.makeQualified(new Path("/"));
+    // Make a few calls against the filesystem.
+    fs.getCanonicalServiceName();
+    fs.listStatus(qualifiedRoot);
+    // Ensure that the logical hostname was never resolved.
+    Mockito.verify(spyNS, Mockito.never()).lookupAllHostAddr(Mockito.eq(logicalHost));
+}

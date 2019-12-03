@@ -1,0 +1,93 @@
+public void testPut() throws IOException {
+    Configuration conf = new HdfsConfiguration();
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).numDataNodes(2).build();
+    FileSystem fs = cluster.getFileSystem();
+    assertTrue("Not a HDFS: " + fs.getUri(), fs instanceof DistributedFileSystem);
+    final DistributedFileSystem dfs = (DistributedFileSystem) fs;
+    try {
+        // remove left over crc files:
+        new File(TEST_ROOT_DIR, ".f1.crc").delete();
+        new File(TEST_ROOT_DIR, ".f2.crc").delete();
+        final File f1 = createLocalFile(new File(TEST_ROOT_DIR, "f1"));
+        final File f2 = createLocalFile(new File(TEST_ROOT_DIR, "f2"));
+        final Path root = mkdir(dfs, new Path("/test/put"));
+        final Path dst = new Path(root, "dst");
+        show("begin");
+        final Thread copy2ndFileThread = new Thread() {
+
+            public void run() {
+                try {
+                    show("copy local " + f2 + " to remote " + dst);
+                    dfs.copyFromLocalFile(false, false, new Path(f2.getPath()), dst);
+                } catch (IOException ioe) {
+                    show("good " + StringUtils.stringifyException(ioe));
+                    return;
+                }
+                // should not be here, must got IOException
+                assertTrue(false);
+            }
+        };
+        // use SecurityManager to pause the copying of f1 and begin copying f2
+        SecurityManager sm = System.getSecurityManager();
+        System.out.println("SecurityManager = " + sm);
+        System.setSecurityManager(new SecurityManager() {
+
+            private boolean firstTime = true;
+
+            public void checkPermission(Permission perm) {
+                if (firstTime) {
+                    Thread t = Thread.currentThread();
+                    if (!t.toString().contains("DataNode")) {
+                        String s = "" + Arrays.asList(t.getStackTrace());
+                        if (s.contains("FileUtil.copyContent")) {
+                            // pause at FileUtil.copyContent
+                            firstTime = false;
+                            copy2ndFileThread.start();
+                            try {
+                                Thread.sleep(5000);
+                            } catch (InterruptedException e) {
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        show("copy local " + f1 + " to remote " + dst);
+        dfs.copyFromLocalFile(false, false, new Path(f1.getPath()), dst);
+        show("done");
+        try {
+            copy2ndFileThread.join();
+        } catch (InterruptedException e) {
+        }
+        System.setSecurityManager(sm);
+        // copy multiple files to destination directory
+        final Path destmultiple = mkdir(dfs, new Path("/test/putmultiple"));
+        Path[] srcs = new Path[2];
+        srcs[0] = new Path(f1.getPath());
+        srcs[1] = new Path(f2.getPath());
+        dfs.copyFromLocalFile(false, false, srcs, destmultiple);
+        srcs[0] = new Path(destmultiple, "f1");
+        srcs[1] = new Path(destmultiple, "f2");
+        assertTrue(dfs.exists(srcs[0]));
+        assertTrue(dfs.exists(srcs[1]));
+        // move multiple files to destination directory
+        final Path destmultiple2 = mkdir(dfs, new Path("/test/movemultiple"));
+        srcs[0] = new Path(f1.getPath());
+        srcs[1] = new Path(f2.getPath());
+        dfs.moveFromLocalFile(srcs, destmultiple2);
+        assertFalse(f1.exists());
+        assertFalse(f2.exists());
+        srcs[0] = new Path(destmultiple2, "f1");
+        srcs[1] = new Path(destmultiple2, "f2");
+        assertTrue(dfs.exists(srcs[0]));
+        assertTrue(dfs.exists(srcs[1]));
+        f1.delete();
+        f2.delete();
+    } finally {
+        try {
+            dfs.close();
+        } catch (Exception e) {
+        }
+        cluster.shutdown();
+    }
+}

@@ -1,0 +1,35 @@
+@Test
+public void testSpeedLayer() throws Exception {
+    Map<String, Object> overlayConfig = new HashMap<>();
+    overlayConfig.put("oryx.speed.model-manager-class", MockSpeedModelManager.class.getName());
+    overlayConfig.put("oryx.speed.streaming.generation-interval-sec", 3);
+    overlayConfig.put("oryx.speed.streaming.block-interval-sec", 1);
+    Config config = ConfigUtils.overlayOn(overlayConfig, getConfig());
+    startMessaging();
+    List<Pair<String, String>> updates = startServerProduceConsumeTopics(config, 1000, 10);
+    int inputToUpdate = 0;
+    int receivedUpdates = 0;
+    int models = 0;
+    for (Pair<String, String> update : updates) {
+        String key = update.getFirst();
+        String message = update.getSecond();
+        if (message.contains(",")) {
+            // it's an input converted to update
+            assertEquals("UP", update.getFirst());
+            inputToUpdate++;
+        } else {
+            // Else should be just an int
+            boolean shouldBeModel = Integer.parseInt(message) % 10 == 0;
+            assertEquals(shouldBeModel ? "MODEL" : "UP", key);
+            if (shouldBeModel) {
+                models++;
+            } else {
+                receivedUpdates++;
+            }
+        }
+    }
+    log.info("Received {} models, {} inputs converted to updates, and {} other updates", models, inputToUpdate, receivedUpdates);
+    assertEquals(1, models);
+    assertEquals(9, receivedUpdates);
+    assertEquals(1000, inputToUpdate);
+}

@@ -1,0 +1,51 @@
+/**
+ * Tests the {@link org.apache.oozie.service.PurgeService}.
+ * </p>
+ * Creates a new coordinator job. Attempts to purge jobs older than a day.
+ * Verifies the presence of the job in the system.
+ * </p>
+ * Sets the end date for the same job to make it qualify for the purge criteria.
+ * Calls the purge service, and ensure the job does not exist in the system.
+ */
+public void testPurgeServiceForCoordinator() throws Exception {
+    String currentDatePlusMonth = XDataTestCase.getCurrentDateafterIncrementingInMonths(1);
+    Date start = DateUtils.parseDateOozieTZ(currentDatePlusMonth);
+    Date end = DateUtils.parseDateOozieTZ(currentDatePlusMonth);
+    CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.SUCCEEDED, start, end, false, false, 0);
+    final String jobId = job.getId();
+    CoordinatorActionBean action = addRecordToCoordActionTable(job.getId(), 1, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    CoordJobGetJPAExecutor coordJobGetExecutor = new CoordJobGetJPAExecutor(job.getId());
+    CoordActionGetJPAExecutor coordActionGetExecutor = new CoordActionGetJPAExecutor(action.getId());
+    job = jpaService.execute(coordJobGetExecutor);
+    action = jpaService.execute(coordActionGetExecutor);
+    assertEquals(job.getStatus(), CoordinatorJob.Status.SUCCEEDED);
+    assertEquals(action.getStatus(), CoordinatorAction.Status.SUCCEEDED);
+    Runnable purgeRunnable = new PurgeRunnable(1, 1, 1, 100);
+    purgeRunnable.run();
+    final CoordinatorEngine engine = new CoordinatorEngine("u", "a");
+    waitFor(10000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            try {
+                engine.getCoordJob(jobId).getStatus();
+            } catch (Exception ex) {
+                return true;
+            }
+            return false;
+        }
+    });
+    try {
+        job = jpaService.execute(coordJobGetExecutor);
+        fail("Job should be purged. Should fail.");
+    } catch (JPAExecutorException je) {
+    // Job doesn't exist. Exception is expected.
+    }
+    try {
+        jpaService.execute(coordActionGetExecutor);
+        fail("Action should be purged. Should fail.");
+    } catch (JPAExecutorException je) {
+    // Job doesn't exist. Exception is expected.
+    }
+}

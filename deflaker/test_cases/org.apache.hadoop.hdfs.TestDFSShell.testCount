@@ -1,0 +1,29 @@
+public void testCount() throws Exception {
+    Configuration conf = new HdfsConfiguration();
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).numDataNodes(2).build();
+    DistributedFileSystem dfs = (DistributedFileSystem) cluster.getFileSystem();
+    FsShell shell = new FsShell();
+    shell.setConf(conf);
+    try {
+        String root = createTree(dfs, "count");
+        // Verify the counts
+        runCount(root, 2, 4, shell);
+        runCount(root + "2", 2, 1, shell);
+        runCount(root + "2/f1", 0, 1, shell);
+        runCount(root + "2/sub", 1, 0, shell);
+        final FileSystem localfs = FileSystem.getLocal(conf);
+        Path localpath = new Path(TEST_ROOT_DIR, "testcount");
+        localpath = localpath.makeQualified(localfs.getUri(), localfs.getWorkingDirectory());
+        localfs.mkdirs(localpath);
+        final String localstr = localpath.toString();
+        System.out.println("localstr=" + localstr);
+        runCount(localstr, 1, 0, shell);
+        assertEquals(0, runCmd(shell, "-count", root, localstr));
+    } finally {
+        try {
+            dfs.close();
+        } catch (Exception e) {
+        }
+        cluster.shutdown();
+    }
+}

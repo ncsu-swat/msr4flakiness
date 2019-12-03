@@ -1,0 +1,20 @@
+/**
+ * Test method org.apache.oozie.CoordinatorEngine.streamLog(String, String,
+ * String, Writer) with RestConstants.JOB_LOG_DATE.
+ */
+public void testStreamLog4JobLogDate() throws Exception {
+    CoordinatorEngine ce = createCoordinatorEngine();
+    final String jobId = runJobsImpl(ce);
+    CoordinatorJobBean cjb = ce.getCoordJob(jobId);
+    Date createdDate = cjb.getCreatedTime();
+    Date endDate = new Date();
+    assertTrue(endDate.after(createdDate));
+    long middle = (createdDate.getTime() + endDate.getTime()) / 2;
+    Date middleDate = new Date(middle);
+    ce.streamLog(jobId, DateUtils.formatDateOozieTZ(createdDate) + "::" + DateUtils.formatDateOozieTZ(middleDate) + "," + DateUtils.formatDateOozieTZ(middleDate) + "::" + DateUtils.formatDateOozieTZ(endDate), RestConstants.JOB_LOG_DATE, new StringWriter());
+    DummyXLogService service = (DummyXLogService) services.get(XLogService.class);
+    Filter filter = service.filter;
+    assertEquals(jobId, filter.getFilterParams().get(DagXLogInfoService.JOB));
+    final String action = filter.getFilterParams().get(DagXLogInfoService.ACTION);
+    assertEquals("(" + jobId + "@1|" + jobId + "@2)", action);
+}

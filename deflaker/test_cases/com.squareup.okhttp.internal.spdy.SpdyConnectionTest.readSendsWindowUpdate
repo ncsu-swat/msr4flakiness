@@ -1,0 +1,52 @@
+@Test
+public void readSendsWindowUpdate() throws Exception {
+    readSendsWindowUpdate(SPDY3);
+}
+private void readSendsWindowUpdate(Variant variant) throws IOException, InterruptedException {
+    peer.setVariantAndClient(variant, false);
+    int windowUpdateThreshold = DEFAULT_INITIAL_WINDOW_SIZE / 2;
+    // Write the mocking script.
+    // SYN_STREAM
+    peer.acceptFrame();
+    peer.sendFrame().synReply(false, 3, headerEntries("a", "android"));
+    for (int i = 0; i < 3; i++) {
+        // Send frames summing to windowUpdateThreshold.
+        for (int sent = 0, count; sent < windowUpdateThreshold; sent += count) {
+            count = Math.min(variant.maxFrameSize(), windowUpdateThreshold - sent);
+            peer.sendFrame().data(false, 3, data(count));
+        }
+        // connection WINDOW UPDATE
+        peer.acceptFrame();
+        // stream WINDOW UPDATE
+        peer.acceptFrame();
+    }
+    peer.sendFrame().data(true, 3, data(0));
+    peer.play();
+    // Play it back.
+    SpdyConnection connection = connection(peer, variant);
+    SpdyStream stream = connection.newStream(headerEntries("b", "banana"), false, true);
+    assertEquals(0, stream.unacknowledgedBytesRead);
+    assertEquals(headerEntries("a", "android"), stream.getResponseHeaders());
+    Source in = stream.getSource();
+    Buffer buffer = new Buffer();
+    while (in.read(buffer, 1024) != -1) {
+        if (buffer.size() == 3 * windowUpdateThreshold)
+            break;
+    }
+    assertEquals(-1, in.read(buffer, 1));
+    MockSpdyPeer.InFrame synStream = peer.takeFrame();
+    assertEquals(TYPE_HEADERS, synStream.type);
+    for (int i = 0; i < 3; i++) {
+        List<Integer> windowUpdateStreamIds = new ArrayList(2);
+        for (int j = 0; j < 2; j++) {
+            MockSpdyPeer.InFrame windowUpdate = peer.takeFrame();
+            assertEquals(TYPE_WINDOW_UPDATE, windowUpdate.type);
+            windowUpdateStreamIds.add(windowUpdate.streamId);
+            assertEquals(windowUpdateThreshold, windowUpdate.windowSizeIncrement);
+        }
+        // connection
+        assertTrue(windowUpdateStreamIds.contains(0));
+        // stream
+        assertTrue(windowUpdateStreamIds.contains(3));
+    }
+}

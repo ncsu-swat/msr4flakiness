@@ -1,0 +1,61 @@
+public void testRerun() throws Exception {
+    Path appPath = new Path(getFsTestCaseDir(), "app");
+    FileSystem fs = getFileSystem();
+    fs.mkdirs(new Path(appPath, "lib"));
+    File jarFile = IOUtils.createJar(new File(getTestCaseDir()), "test.jar", MapperReducerForTest.class);
+    InputStream is = new FileInputStream(jarFile);
+    OutputStream os = fs.create(new Path(appPath, "lib/test.jar"));
+    IOUtils.copyStream(is, os);
+    Path input = new Path(appPath, "input");
+    Path output = new Path(appPath, "output");
+    fs.mkdirs(input);
+    Writer writer = new OutputStreamWriter(fs.create(new Path(input, "test.txt")));
+    writer.write("hello");
+    writer.close();
+    final String APP1 = "<workflow-app xmlns='uri:oozie:workflow:0.1' name='app'>" + "<start to='end'/>" + "<end name='end'/>" + "</workflow-app>";
+    String subWorkflowAppPath = new Path(appPath, "subwf").toString();
+    fs.mkdirs(new Path(appPath, "subwf"));
+    Writer writer2 = new OutputStreamWriter(fs.create(new Path(subWorkflowAppPath, "workflow.xml")));
+    writer2.write(APP1);
+    writer2.close();
+    Reader reader = IOUtils.getResourceAsReader("recovery-wf.xml", -1);
+    Writer writer1 = new OutputStreamWriter(fs.create(new Path(appPath + "/workflow.xml")));
+    IOUtils.copyCharStream(reader, writer1);
+    final OozieClient wfClient = LocalOozie.getClient();
+    Properties conf = wfClient.createConfiguration();
+    conf.setProperty(OozieClient.APP_PATH, appPath.toString() + File.separator + "workflow.xml");
+    conf.setProperty("jobTracker", getJobTrackerUri());
+    conf.setProperty("nameNode", getNameNodeUri());
+    conf.setProperty("mrclass", MapperReducerForTest.class.getName());
+    conf.setProperty("input", input.toString());
+    conf.setProperty("output", output.toString());
+    conf.setProperty("delPath", output.toString());
+    conf.setProperty("subWfApp", appPath.toString() + "/subwf/workflow.xml");
+    // conf.setProperty("user.name", getTestUser());
+    // first run
+    final String jobId1 = wfClient.submit(conf);
+    wfClient.start(jobId1);
+    waitFor(120 * 1000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            return wfClient.getJobInfo(jobId1).getStatus() == WorkflowJob.Status.SUCCEEDED;
+        }
+    });
+    assertEquals(WorkflowJob.Status.SUCCEEDED, wfClient.getJobInfo(jobId1).getStatus());
+    // getting external IDs of all actions on first run
+    Map<String, String> extId0 = loadExtIds(wfClient.getJobInfo(jobId1).getActions());
+    // doing a rerun skipping no nodes
+    conf.setProperty(OozieClient.RERUN_SKIP_NODES, "");
+    wfClient.reRun(jobId1, conf);
+    waitFor(120 * 1000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            return wfClient.getJobInfo(jobId1).getStatus() == WorkflowJob.Status.SUCCEEDED;
+        }
+    });
+    assertEquals(WorkflowJob.Status.SUCCEEDED, wfClient.getJobInfo(jobId1).getStatus());
+    // getting external IDs of all actions on rerun
+    Map<String, String> extId1 = loadExtIds(wfClient.getJobInfo(jobId1).getActions());
+    // comparing external IDs of first run and rerun are different.
+    assertNotSame(extId0, extId1);
+}

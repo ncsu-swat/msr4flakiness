@@ -1,0 +1,34 @@
+@Test
+public void testOnCoordinatorJobSuccessEvent() throws ParseException {
+    JMSJobEventListener coordEventListener = new JMSJobEventListener();
+    coordEventListener.init(conf);
+    Date startDate = DateUtils.parseDateUTC("2012-07-22T00:00Z");
+    Date nominalTime = DateUtils.parseDateUTC("2011-07-11T00:00Z");
+    Date endDate = new Date();
+    CoordinatorActionEvent cae = new CoordinatorActionEvent("caId1", "caJobId1", CoordinatorAction.Status.SUCCEEDED, "user1", "wf-app-name1", nominalTime, startDate, null);
+    cae.setEndTime(endDate);
+    ConnectionContext jmsContext = getConnectionContext();
+    try {
+        Session session = jmsContext.createSession(Session.AUTO_ACKNOWLEDGE);
+        MessageConsumer consumer = jmsContext.createConsumer(session, coordEventListener.getTopic(cae));
+        coordEventListener.onCoordinatorActionEvent(cae);
+        TextMessage message = (TextMessage) consumer.receive(5000);
+        assertFalse(message.getText().contains("errorCode"));
+        assertFalse(message.getText().contains("errorMessage"));
+        assertFalse(message.getText().contains("missingDependency"));
+        CoordinatorActionMessage coordActionSuccessMessage = JMSMessagingUtils.getEventMessage(message);
+        assertEquals(CoordinatorAction.Status.SUCCEEDED, coordActionSuccessMessage.getStatus());
+        assertEquals(startDate, coordActionSuccessMessage.getStartTime());
+        assertEquals(endDate, coordActionSuccessMessage.getEndTime());
+        assertEquals("caJobId1", coordActionSuccessMessage.getParentId());
+        assertEquals("caId1", coordActionSuccessMessage.getId());
+        assertEquals(MessageType.JOB, coordActionSuccessMessage.getMessageType());
+        assertEquals(AppType.COORDINATOR_ACTION, coordActionSuccessMessage.getAppType());
+        assertEquals(EventStatus.SUCCESS, coordActionSuccessMessage.getEventStatus());
+        assertEquals("user1", coordActionSuccessMessage.getUser());
+        assertEquals("wf-app-name1", coordActionSuccessMessage.getAppName());
+    } catch (Exception e) {
+        e.printStackTrace();
+        fail(e.getMessage());
+    }
+}

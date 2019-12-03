@@ -1,0 +1,34 @@
+/**
+ * Test bulk updates and deletes
+ * workflow job and action
+ *
+ * @throws Exception
+ */
+public void testBulkUpdatesDeletes() throws Exception {
+    WorkflowJobBean job = addRecordToWfJobTable(WorkflowJob.Status.KILLED, WorkflowInstance.Status.KILLED);
+    WorkflowActionBean action = addRecordToWfActionTable(job.getId(), "1", WorkflowAction.Status.PREP);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    job.setStatus(WorkflowJob.Status.RUNNING);
+    List<JsonBean> updateList = new ArrayList<JsonBean>();
+    // Add job to update
+    updateList.add(job);
+    List<JsonBean> deleteList = new ArrayList<JsonBean>();
+    // Add action to delete
+    deleteList.add(action);
+    BulkUpdateDeleteJPAExecutor bulkDelRerunCmd = new BulkUpdateDeleteJPAExecutor();
+    bulkDelRerunCmd.setUpdateList(updateList);
+    bulkDelRerunCmd.setDeleteList(deleteList);
+    jpaService.execute(bulkDelRerunCmd);
+    // check for update after running bulkJPA. job should be updated from KILLED -> RUNING
+    job = jpaService.execute(new WorkflowJobGetJPAExecutor(job.getId()));
+    assertEquals("RUNNING", job.getStatusStr());
+    // check for non existence after running bulkJPA
+    try {
+        jpaService.execute(new WorkflowActionGetJPAExecutor(action.getId()));
+        // should not be found
+        fail();
+    } catch (JPAExecutorException jex) {
+        assertEquals(ErrorCode.E0605, jex.getErrorCode());
+    }
+}

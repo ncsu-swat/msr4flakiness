@@ -1,0 +1,59 @@
+/**
+ * Test : Suspend bundle job
+ *
+ * @throws Exception
+ */
+public void testBundleSuspend2() throws Exception {
+    BundleJobBean job = this.addRecordToBundleJobTable(Job.Status.PREP, false);
+    final JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    Configuration jobConf = null;
+    try {
+        jobConf = new XConfiguration(new StringReader(job.getConf()));
+    } catch (IOException ioe) {
+        log.warn("Configuration parse error. read from DB :" + job.getConf(), ioe);
+        throw new CommandException(ErrorCode.E1005, ioe);
+    }
+    Path appPath = new Path(jobConf.get(OozieClient.BUNDLE_APP_PATH), "bundle.xml");
+    jobConf.set(OozieClient.BUNDLE_APP_PATH, appPath.toString());
+    BundleSubmitXCommand submitCmd = new BundleSubmitXCommand(jobConf, job.getAuthToken());
+    submitCmd.call();
+    BundleJobGetJPAExecutor bundleJobGetCmd = new BundleJobGetJPAExecutor(submitCmd.getJob().getId());
+    job = jpaService.execute(bundleJobGetCmd);
+    assertEquals(Job.Status.PREP, job.getStatus());
+    new BundleStartXCommand(job.getId()).call();
+    job = jpaService.execute(bundleJobGetCmd);
+    assertEquals(Job.Status.RUNNING, job.getStatus());
+    sleep(2000);
+    BundleActionsGetJPAExecutor bundleActionsGetCmd = new BundleActionsGetJPAExecutor(job.getId());
+    List<BundleActionBean> actions = jpaService.execute(bundleActionsGetCmd);
+    assertEquals(2, actions.size());
+    assertNotNull(actions.get(0).getCoordId());
+    assertNotNull(actions.get(1).getCoordId());
+    new BundleJobSuspendXCommand(job.getId()).call();
+    job = jpaService.execute(bundleJobGetCmd);
+    assertEquals(Job.Status.SUSPENDED, job.getStatus());
+    actions = jpaService.execute(bundleActionsGetCmd);
+    assertEquals(true, actions.get(0).isPending());
+    assertEquals(true, actions.get(1).isPending());
+    final CoordJobGetJPAExecutor coordGetCmd1 = new CoordJobGetJPAExecutor(actions.get(0).getCoordId());
+    final CoordJobGetJPAExecutor coordGetCmd2 = new CoordJobGetJPAExecutor(actions.get(1).getCoordId());
+    waitFor(200000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            CoordinatorJobBean job1 = jpaService.execute(coordGetCmd1);
+            return job1.getStatus().equals(CoordinatorJobBean.Status.SUSPENDED);
+        }
+    });
+    CoordinatorJobBean job1 = jpaService.execute(coordGetCmd1);
+    assertEquals(CoordinatorJobBean.Status.SUSPENDED, job1.getStatus());
+    waitFor(200000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            CoordinatorJobBean job2 = jpaService.execute(coordGetCmd2);
+            return job2.getStatus().equals(CoordinatorJobBean.Status.SUSPENDED);
+        }
+    });
+    CoordinatorJobBean job2 = jpaService.execute(coordGetCmd2);
+    assertEquals(CoordinatorJobBean.Status.SUSPENDED, job2.getStatus());
+}

@@ -1,0 +1,58 @@
+public void testSubmitMR() throws Exception {
+    runTest(END_POINTS, SERVLET_CLASSES, IS_SECURITY_ENABLED, new Callable<Void>() {
+
+        public Void call() throws Exception {
+            String oozieUrl = getContextURL();
+            int wfCount = MockDagEngineService.INIT_WF_COUNT;
+            XOozieClient wc = new XOozieClient(oozieUrl);
+            Properties conf = wc.createConfiguration();
+            Path libPath = new Path(getFsTestCaseDir(), "lib");
+            getFileSystem().mkdirs(libPath);
+            String localPath = libPath.toUri().getPath();
+            int startPosition = libPath.toString().indexOf(localPath);
+            String nn = libPath.toString().substring(0, startPosition);
+            // try to submit without JT and NN
+            try {
+                wc.submitMapReduce(conf);
+                fail("submit client without JT should throw exception");
+            } catch (RuntimeException exception) {
+                assertEquals("java.lang.RuntimeException: jobtracker is not specified in conf", exception.toString());
+            }
+            conf.setProperty(XOozieClient.JT, "localhost:9001");
+            try {
+                wc.submitMapReduce(conf);
+                fail("submit client without NN should throw exception");
+            } catch (RuntimeException exception) {
+                assertEquals("java.lang.RuntimeException: namenode is not specified in conf", exception.toString());
+            }
+            // set fs.default.name
+            conf.setProperty(XOozieClient.NN, nn);
+            try {
+                wc.submitMapReduce(conf);
+                fail("submit client without LIBPATH should throw exception");
+            } catch (RuntimeException exception) {
+                assertEquals("java.lang.RuntimeException: libpath is not specified in conf", exception.toString());
+            }
+            // set fs.defaultFS instead
+            conf.remove(XOozieClient.NN);
+            conf.setProperty(XOozieClient.NN_2, nn);
+            try {
+                wc.submitMapReduce(conf);
+                fail("submit client without LIBPATH should throw exception");
+            } catch (RuntimeException exception) {
+                assertEquals("java.lang.RuntimeException: libpath is not specified in conf", exception.toString());
+            }
+            conf.setProperty(OozieClient.LIBPATH, localPath.substring(1));
+            try {
+                wc.submitMapReduce(conf);
+                fail("lib path can not be relative");
+            } catch (RuntimeException e) {
+                assertEquals("java.lang.RuntimeException: libpath should be absolute", e.toString());
+            }
+            conf.setProperty(OozieClient.LIBPATH, localPath);
+            assertEquals(MockDagEngineService.JOB_ID + wfCount + MockDagEngineService.JOB_ID_END, wc.submitMapReduce(conf));
+            assertTrue(MockDagEngineService.started.get(wfCount));
+            return null;
+        }
+    });
+}

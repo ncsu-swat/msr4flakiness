@@ -1,0 +1,35 @@
+/**
+ * Test bulk inserts by inserting a workflow job and two workflow actions
+ * @throws Exception
+ */
+public void testInserts() throws Exception {
+    WorkflowApp app = new LiteWorkflowApp("testApp", "<workflow-app/>", new StartNodeDef(LiteWorkflowStoreService.LiteControlNodeHandler.class, "end")).addNode(new EndNodeDef("end", LiteWorkflowStoreService.LiteControlNodeHandler.class));
+    Configuration conf = new Configuration();
+    Path appUri = new Path(getAppPath(), "workflow.xml");
+    conf.set(OozieClient.APP_PATH, appUri.toString());
+    conf.set(OozieClient.LOG_TOKEN, "testToken");
+    conf.set(OozieClient.USER_NAME, getTestUser());
+    WorkflowJobBean job = createWorkflow(app, conf, "auth", WorkflowJob.Status.PREP, WorkflowInstance.Status.PREP);
+    WorkflowActionBean action1 = createWorkflowAction(job.getId(), "1", WorkflowAction.Status.PREP);
+    WorkflowActionBean action2 = createWorkflowAction(job.getId(), "2", WorkflowAction.Status.PREP);
+    List<JsonBean> insertList = new ArrayList<JsonBean>();
+    // insert one workflow job and two actions
+    insertList.add(action1);
+    insertList.add(action2);
+    insertList.add(job);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    BulkUpdateInsertJPAExecutor bulkInsertCmd = new BulkUpdateInsertJPAExecutor();
+    bulkInsertCmd.setInsertList(insertList);
+    jpaService.execute(bulkInsertCmd);
+    // check for expected status after running bulkUpdateJPA
+    WorkflowActionGetJPAExecutor actionGetCmd = new WorkflowActionGetJPAExecutor(action1.getId());
+    action1 = jpaService.execute(actionGetCmd);
+    assertEquals("PREP", action1.getStatusStr());
+    actionGetCmd = new WorkflowActionGetJPAExecutor(action2.getId());
+    action2 = jpaService.execute(actionGetCmd);
+    assertEquals("PREP", action2.getStatusStr());
+    WorkflowJobGetJPAExecutor wfGetCmd = new WorkflowJobGetJPAExecutor(job.getId());
+    job = jpaService.execute(wfGetCmd);
+    assertEquals("PREP", job.getStatusStr());
+}

@@ -1,0 +1,22 @@
+@Test
+public void testResolveCoordConfiguration() throws Exception {
+    String db = "default";
+    String table = "tablename";
+    String newHCatDependency1 = "hcat://" + server + "/" + db + "/" + table + "/dt=20120412;country=brazil";
+    String newHCatDependency2 = "hcat://" + server + "/" + db + "/" + table + "/dt=20120430;country=usa";
+    String newHCatDependency = newHCatDependency1 + CoordELFunctions.INSTANCE_SEPARATOR + newHCatDependency2;
+    populateTable(db, table);
+    CoordinatorJobBean job = addRecordToCoordJobTableForWaiting("coord-job-for-action-input-check.xml", CoordinatorJob.Status.RUNNING, false, true);
+    CoordinatorActionBean action = addRecordToCoordActionTableForWaiting(job.getId(), 1, CoordinatorAction.Status.WAITING, "coord-action-for-action-push-check.xml", null, newHCatDependency, "Z");
+    String actionId = action.getId();
+    checkCoordAction(actionId, newHCatDependency, CoordinatorAction.Status.WAITING);
+    new CoordPushDependencyCheckXCommand(actionId).call();
+    CoordinatorActionBean caBean = checkCoordAction(actionId, "", CoordinatorAction.Status.READY);
+    Element eAction = XmlUtils.parseXml(caBean.getActionXml());
+    Element configElem = eAction.getChild("action", eAction.getNamespace()).getChild("workflow", eAction.getNamespace()).getChild("configuration", eAction.getNamespace());
+    List<?> elementList = configElem.getChildren("property", configElem.getNamespace());
+    Element e1 = (Element) elementList.get(0);
+    Element e2 = (Element) elementList.get(1);
+    assertEquals("hcat://dummyhcat:1000/db1/table1/ds=/2009-29,hcat://dummyhcat:1000/db1/table1/ds=/2009-29," + "hcat://dummyhcat:1000/db1/table1/ds=/2009-29", e1.getChild("value", e1.getNamespace()).getValue());
+    assertEquals("hcat://dummyhcat:1000/db1/table1/ds=/2009-29", e2.getChild("value", e1.getNamespace()).getValue());
+}

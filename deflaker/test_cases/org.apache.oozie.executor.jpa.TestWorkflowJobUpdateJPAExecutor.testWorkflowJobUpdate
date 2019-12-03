@@ -1,0 +1,22 @@
+public void testWorkflowJobUpdate() throws Exception {
+    WorkflowJobBean job = addRecordToWfJobTable(WorkflowJob.Status.PREP, WorkflowInstance.Status.PREP);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    WorkflowJobGetJPAExecutor wfGetCmd = new WorkflowJobGetJPAExecutor(job.getId());
+    WorkflowJobBean wfBean = jpaService.execute(wfGetCmd);
+    // first update;
+    wfBean.setStatus(WorkflowJob.Status.SUCCEEDED);
+    WorkflowJobUpdateJPAExecutor wfUpdateCmd1 = new WorkflowJobUpdateJPAExecutor(wfBean);
+    jpaService.execute(wfUpdateCmd1);
+    WorkflowJobBean wfBean1 = jpaService.execute(wfGetCmd);
+    assertEquals(wfBean1.getId(), job.getId());
+    assertEquals(wfBean1.getStatusStr(), "SUCCEEDED");
+    // second update;
+    wfBean.setAppName("test");
+    wfBean.setStatus(WorkflowJob.Status.RUNNING);
+    WorkflowJobUpdateJPAExecutor wfUpdateCmd2 = new WorkflowJobUpdateJPAExecutor(wfBean);
+    jpaService.execute(wfUpdateCmd2);
+    WorkflowJobBean wfBean2 = jpaService.execute(wfGetCmd);
+    assertEquals(wfBean2.getId(), job.getId());
+    assertEquals(wfBean2.getStatusStr(), "RUNNING");
+}

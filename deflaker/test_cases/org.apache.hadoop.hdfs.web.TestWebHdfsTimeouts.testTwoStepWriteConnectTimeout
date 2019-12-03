@@ -1,0 +1,17 @@
+/**
+ * On the second step of two-step write, expect connect timeout accessing the
+ * redirect location, because the connection backlog is consumed.
+ */
+@Test(timeout = TEST_TIMEOUT)
+public void testTwoStepWriteConnectTimeout() throws Exception {
+    startSingleTemporaryRedirectResponseThread(true);
+    OutputStream os = null;
+    try {
+        os = fs.create(new Path("/file"));
+        fail("expected timeout");
+    } catch (SocketTimeoutException e) {
+        assertEquals("connect timed out", e.getMessage());
+    } finally {
+        IOUtils.cleanup(LOG, os);
+    }
+}

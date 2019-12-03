@@ -1,0 +1,57 @@
+/**
+ * Test if NameNode handles truncated blocks in block report
+ */
+public void testTruncatedBlockReport() throws Exception {
+    final Configuration conf = new HdfsConfiguration();
+    final short REPLICATION_FACTOR = (short) 2;
+    final Path fileName = new Path("/file1");
+    conf.setLong(DFSConfigKeys.DFS_BLOCKREPORT_INTERVAL_MSEC_KEY, 3L);
+    conf.setLong(DFSConfigKeys.DFS_NAMENODE_REPLICATION_INTERVAL_KEY, 3);
+    conf.setLong(DFSConfigKeys.DFS_HEARTBEAT_INTERVAL_KEY, 3L);
+    conf.setBoolean(DFSConfigKeys.DFS_NAMENODE_REPLICATION_CONSIDERLOAD_KEY, false);
+    long startTime = System.currentTimeMillis();
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).numDataNodes(REPLICATION_FACTOR).build();
+    cluster.waitActive();
+    ExtendedBlock block;
+    try {
+        FileSystem fs = cluster.getFileSystem();
+        DFSTestUtil.createFile(fs, fileName, 1, REPLICATION_FACTOR, 0);
+        DFSTestUtil.waitReplication(fs, fileName, REPLICATION_FACTOR);
+        block = DFSTestUtil.getFirstBlock(fs, fileName);
+    } finally {
+        cluster.shutdown();
+    }
+    // Restart cluster and confirm block is verified on datanode 0,
+    // then truncate it on datanode 0.
+    cluster = new MiniDFSCluster.Builder(conf).numDataNodes(REPLICATION_FACTOR).format(false).build();
+    cluster.waitActive();
+    try {
+        FileSystem fs = cluster.getFileSystem();
+        int infoPort = cluster.getDataNodes().get(0).getInfoPort();
+        assertTrue(waitForVerification(infoPort, fs, fileName, 1, startTime, TIMEOUT) >= startTime);
+        // Truncate replica of block
+        if (!changeReplicaLength(block, 0, -1)) {
+            throw new IOException("failed to find or change length of replica on node 0 " + cluster.getDataNodes().get(0).getSelfAddr());
+        }
+    } finally {
+        cluster.shutdown();
+    }
+    // Restart the cluster, add a node, and check that the truncated block is
+    // handled correctly
+    cluster = new MiniDFSCluster.Builder(conf).numDataNodes(REPLICATION_FACTOR).format(false).build();
+    cluster.startDataNodes(conf, 1, true, null, null);
+    // now we have 3 datanodes
+    cluster.waitActive();
+    // Assure the cluster has left safe mode.
+    cluster.waitClusterUp();
+    assertFalse("failed to leave safe mode", cluster.getNameNode().isInSafeMode());
+    try {
+        // wait for truncated block be detected by block scanner,
+        // and the block to be replicated
+        DFSTestUtil.waitReplication(cluster.getFileSystem(), fileName, REPLICATION_FACTOR);
+        // Make sure that truncated block will be deleted
+        waitForBlockDeleted(block, 0, TIMEOUT);
+    } finally {
+        cluster.shutdown();
+    }
+}

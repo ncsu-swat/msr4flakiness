@@ -1,0 +1,150 @@
+public void testSetupMethods() throws Exception {
+    JavaActionExecutor ae = new JavaActionExecutor();
+    assertEquals("java", ae.getType());
+    assertEquals("java-launcher.jar", ae.getLauncherJarName());
+    List<Class> classes = new ArrayList<Class>();
+    classes.add(LauncherMapper.class);
+    classes.add(LauncherSecurityManager.class);
+    classes.add(LauncherException.class);
+    classes.add(LauncherMainException.class);
+    classes.add(PrepareActionsDriver.class);
+    classes.addAll(Services.get().get(URIHandlerService.class).getClassesForLauncher());
+    classes.add(ActionStats.class);
+    classes.add(ActionType.class);
+    assertEquals(classes, ae.getLauncherClasses());
+    Configuration conf = new XConfiguration();
+    conf.set("user.name", "a");
+    try {
+        JavaActionExecutor.checkForDisallowedProps(conf, "x");
+        fail();
+    } catch (ActionExecutorException ex) {
+    }
+    conf = new XConfiguration();
+    conf.set("mapred.job.tracker", "a");
+    try {
+        JavaActionExecutor.checkForDisallowedProps(conf, "x");
+        fail();
+    } catch (ActionExecutorException ex) {
+    }
+    conf = new XConfiguration();
+    conf.set("fs.default.name", "a");
+    try {
+        JavaActionExecutor.checkForDisallowedProps(conf, "x");
+        fail();
+    } catch (ActionExecutorException ex) {
+    }
+    conf = new XConfiguration();
+    conf.set("a", "a");
+    try {
+        JavaActionExecutor.checkForDisallowedProps(conf, "x");
+    } catch (ActionExecutorException ex) {
+        fail();
+    }
+    Element actionXml = XmlUtils.parseXml("<java>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>" + "<name-node>" + getNameNodeUri() + "</name-node>" + "<job-xml>job.xml</job-xml>" + "<job-xml>job2.xml</job-xml>" + "<configuration>" + "<property><name>oozie.launcher.a</name><value>LA</value></property>" + "<property><name>a</name><value>AA</value></property>" + "<property><name>b</name><value>BB</value></property>" + "</configuration>" + "<main-class>MAIN-CLASS</main-class>" + "<java-opts>JAVA-OPTS</java-opts>" + "<arg>A1</arg>" + "<arg>A2</arg>" + "<file>f.jar</file>" + "<archive>a.tar</archive>" + "</java>");
+    Path appPath = new Path(getFsTestCaseDir(), "wf");
+    Path appJarPath = new Path("lib/a.jar");
+    getFileSystem().create(new Path(appPath, appJarPath)).close();
+    Path appSoPath = new Path("lib/a.so");
+    getFileSystem().create(new Path(appPath, appSoPath)).close();
+    Path appSo1Path = new Path("lib/a.so.1");
+    String expectedSo1Path = "lib/a.so.1#a.so.1";
+    getFileSystem().create(new Path(appPath, appSo1Path)).close();
+    Path filePath = new Path("f.jar");
+    getFileSystem().create(new Path(appPath, filePath)).close();
+    Path archivePath = new Path("a.tar");
+    getFileSystem().create(new Path(appPath, archivePath)).close();
+    XConfiguration protoConf = new XConfiguration();
+    protoConf.set(WorkflowAppService.HADOOP_USER, getTestUser());
+    protoConf.setStrings(WorkflowAppService.APP_LIB_PATH_LIST, appJarPath.toString(), appSoPath.toString());
+    WorkflowJobBean wf = createBaseWorkflow(protoConf, "action");
+    WorkflowActionBean action = (WorkflowActionBean) wf.getActions().get(0);
+    action.setType(ae.getType());
+    Context context = new Context(wf, action);
+    conf = new XConfiguration();
+    conf.set("c", "C");
+    conf.set("oozie.launcher.d", "D");
+    OutputStream os = getFileSystem().create(new Path(getFsTestCaseDir(), "job.xml"));
+    conf.writeXml(os);
+    os.close();
+    conf = new XConfiguration();
+    conf.set("e", "E");
+    conf.set("oozie.launcher.f", "F");
+    os = getFileSystem().create(new Path(getFsTestCaseDir(), "job2.xml"));
+    conf.writeXml(os);
+    os.close();
+    conf = ae.createBaseHadoopConf(context, actionXml);
+    assertEquals(protoConf.get(WorkflowAppService.HADOOP_USER), conf.get(WorkflowAppService.HADOOP_USER));
+    assertEquals(getJobTrackerUri(), conf.get("mapred.job.tracker"));
+    assertEquals(getNameNodeUri(), conf.get("fs.default.name"));
+    conf = ae.createBaseHadoopConf(context, actionXml);
+    ae.setupLauncherConf(conf, actionXml, getFsTestCaseDir(), context);
+    assertEquals("LA", conf.get("oozie.launcher.a"));
+    assertEquals("LA", conf.get("a"));
+    assertNull(conf.get("b"));
+    assertNull(conf.get("oozie.launcher.d"));
+    assertNull(conf.get("d"));
+    assertNull(conf.get("action.foo"));
+    assertEquals("action.barbar", conf.get("action.foofoo"));
+    conf = ae.createBaseHadoopConf(context, actionXml);
+    ae.setupActionConf(conf, context, actionXml, getFsTestCaseDir());
+    assertEquals("LA", conf.get("oozie.launcher.a"));
+    assertEquals("AA", conf.get("a"));
+    assertEquals("BB", conf.get("b"));
+    assertEquals("C", conf.get("c"));
+    assertEquals("D", conf.get("oozie.launcher.d"));
+    assertEquals("E", conf.get("e"));
+    assertEquals("F", conf.get("oozie.launcher.f"));
+    assertEquals("action.bar", conf.get("action.foo"));
+    conf = ae.createBaseHadoopConf(context, actionXml);
+    ae.setupLauncherConf(conf, actionXml, getFsTestCaseDir(), context);
+    ae.addToCache(conf, appPath, appJarPath.toString(), false);
+    assertTrue(conf.get("mapred.job.classpath.files").contains(appJarPath.toUri().getPath()));
+    ae.addToCache(conf, appPath, appSoPath.toString(), false);
+    assertTrue(conf.get("mapred.cache.files").contains(appSoPath.toUri().getPath()));
+    ae.addToCache(conf, appPath, appSo1Path.toString(), false);
+    assertTrue(conf.get("mapred.cache.files").contains(expectedSo1Path));
+    assertTrue(ae.getOozieLauncherJar(context).startsWith(context.getActionDir().toString()));
+    assertTrue(ae.getOozieLauncherJar(context).endsWith(ae.getLauncherJarName()));
+    assertFalse(getFileSystem().exists(context.getActionDir()));
+    ae.prepareActionDir(getFileSystem(), context);
+    assertTrue(getFileSystem().exists(context.getActionDir()));
+    assertTrue(getFileSystem().exists(new Path(context.getActionDir(), ae.getLauncherJarName())));
+    ae.cleanUpActionDir(getFileSystem(), context);
+    assertFalse(getFileSystem().exists(context.getActionDir()));
+    conf = ae.createBaseHadoopConf(context, actionXml);
+    ae.setupLauncherConf(conf, actionXml, getFsTestCaseDir(), context);
+    ae.setLibFilesArchives(context, actionXml, appPath, conf);
+    assertTrue(conf.get("mapred.cache.files").contains(filePath.toUri().getPath()));
+    assertTrue(conf.get("mapred.cache.archives").contains(archivePath.toUri().getPath()));
+    conf = ae.createBaseHadoopConf(context, actionXml);
+    ae.setupActionConf(conf, context, actionXml, getFsTestCaseDir());
+    ae.setLibFilesArchives(context, actionXml, appPath, conf);
+    assertTrue(conf.get("mapred.cache.files").contains(filePath.toUri().getPath()));
+    assertTrue(conf.get("mapred.cache.archives").contains(archivePath.toUri().getPath()));
+    Configuration actionConf = ae.createBaseHadoopConf(context, actionXml);
+    ae.setupActionConf(actionConf, context, actionXml, getFsTestCaseDir());
+    conf = ae.createLauncherConf(getFileSystem(), context, action, actionXml, actionConf);
+    ae.setupLauncherConf(conf, actionXml, getFsTestCaseDir(), context);
+    assertEquals("MAIN-CLASS", ae.getLauncherMain(conf, actionXml));
+    assertTrue(conf.get("mapred.child.java.opts").contains("JAVA-OPTS"));
+    assertEquals(Arrays.asList("A1", "A2"), Arrays.asList(LauncherMapper.getMainArguments(conf)));
+    assertTrue(getFileSystem().exists(new Path(context.getActionDir(), LauncherMapper.ACTION_CONF_XML)));
+    actionXml = XmlUtils.parseXml("<java>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>" + "<name-node>" + getNameNodeUri() + "</name-node> <configuration>" + "<property><name>mapred.job.queue.name</name><value>AQ</value></property>" + "<property><name>oozie.action.sharelib.for.java</name><value>sharelib-java</value></property>" + "</configuration>" + "<main-class>MAIN-CLASS</main-class>" + "</java>");
+    actionConf = ae.createBaseHadoopConf(context, actionXml);
+    ae.setupActionConf(actionConf, context, actionXml, appPath);
+    conf = ae.createLauncherConf(getFileSystem(), context, action, actionXml, actionConf);
+    assertEquals("AQ", conf.get("mapred.job.queue.name"));
+    assertEquals("AQ", actionConf.get("mapred.job.queue.name"));
+    assertEquals("sharelib-java", actionConf.get("oozie.action.sharelib.for.java"));
+    actionXml = XmlUtils.parseXml("<java>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>" + "<name-node>" + getNameNodeUri() + "</name-node> <configuration>" + "<property><name>oozie.launcher.mapred.job.queue.name</name><value>LQ</value></property>" + "</configuration>" + "<main-class>MAIN-CLASS</main-class>" + "</java>");
+    actionConf = ae.createBaseHadoopConf(context, actionXml);
+    ae.setupActionConf(actionConf, context, actionXml, appPath);
+    conf = ae.createLauncherConf(getFileSystem(), context, action, actionXml, actionConf);
+    assertEquals("LQ", conf.get("mapred.job.queue.name"));
+    actionXml = XmlUtils.parseXml("<java>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>" + "<name-node>" + getNameNodeUri() + "</name-node> <configuration>" + "<property><name>oozie.launcher.mapred.job.queue.name</name><value>LQ</value></property>" + "<property><name>mapred.job.queue.name</name><value>AQ</value></property>" + "</configuration>" + "<main-class>MAIN-CLASS</main-class>" + "</java>");
+    actionConf = ae.createBaseHadoopConf(context, actionXml);
+    ae.setupActionConf(actionConf, context, actionXml, appPath);
+    conf = ae.createLauncherConf(getFileSystem(), context, action, actionXml, actionConf);
+    assertEquals("LQ", conf.get("mapred.job.queue.name"));
+    assertEquals("AQ", actionConf.get("mapred.job.queue.name"));
+}

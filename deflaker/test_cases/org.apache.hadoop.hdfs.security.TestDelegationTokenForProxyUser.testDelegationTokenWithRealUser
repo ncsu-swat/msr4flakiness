@@ -1,0 +1,21 @@
+@Test
+public void testDelegationTokenWithRealUser() throws IOException {
+    UserGroupInformation ugi = UserGroupInformation.createRemoteUser(REAL_USER);
+    final UserGroupInformation proxyUgi = UserGroupInformation.createProxyUserForTesting(PROXY_USER, ugi, GROUP_NAMES);
+    try {
+        Token<DelegationTokenIdentifier> token = proxyUgi.doAs(new PrivilegedExceptionAction<Token<DelegationTokenIdentifier>>() {
+
+            public Token<DelegationTokenIdentifier> run() throws IOException {
+                DistributedFileSystem dfs = (DistributedFileSystem) cluster.getFileSystem();
+                return dfs.getDelegationToken("RenewerUser");
+            }
+        });
+        DelegationTokenIdentifier identifier = new DelegationTokenIdentifier();
+        byte[] tokenId = token.getIdentifier();
+        identifier.readFields(new DataInputStream(new ByteArrayInputStream(tokenId)));
+        Assert.assertEquals(identifier.getUser().getUserName(), PROXY_USER);
+        Assert.assertEquals(identifier.getUser().getRealUser().getUserName(), REAL_USER);
+    } catch (InterruptedException e) {
+    // Do Nothing
+    }
+}

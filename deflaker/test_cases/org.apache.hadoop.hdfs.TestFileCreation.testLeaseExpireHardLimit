@@ -1,0 +1,60 @@
+/**
+ * Create a file, write something, hflush but not close.
+ * Then change lease period and wait for lease recovery.
+ * Finally, read the block directly from each Datanode and verify the content.
+ */
+public void testLeaseExpireHardLimit() throws Exception {
+    System.out.println("testLeaseExpireHardLimit start");
+    final long leasePeriod = 1000;
+    final int DATANODE_NUM = 3;
+    Configuration conf = new HdfsConfiguration();
+    conf.setInt(DFS_NAMENODE_HEARTBEAT_RECHECK_INTERVAL_KEY, 1000);
+    conf.setInt(DFS_HEARTBEAT_INTERVAL_KEY, 1);
+    // create cluster
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).numDataNodes(DATANODE_NUM).build();
+    DistributedFileSystem dfs = null;
+    try {
+        cluster.waitActive();
+        dfs = (DistributedFileSystem) cluster.getFileSystem();
+        // create a new file.
+        final String f = DIR + "foo";
+        final Path fpath = new Path(f);
+        FSDataOutputStream out = TestFileCreation.createFile(dfs, fpath, DATANODE_NUM);
+        out.write("something".getBytes());
+        out.hflush();
+        int actualRepl = ((DFSOutputStream) (out.getWrappedStream())).getNumCurrentReplicas();
+        assertTrue(f + " should be replicated to " + DATANODE_NUM + " datanodes.", actualRepl == DATANODE_NUM);
+        // set the soft and hard limit to be 1 second so that the
+        // namenode triggers lease recovery
+        cluster.setLeasePeriod(leasePeriod, leasePeriod);
+        // wait for the lease to expire
+        try {
+            Thread.sleep(5 * leasePeriod);
+        } catch (InterruptedException e) {
+        }
+        LocatedBlocks locations = dfs.dfs.getNamenode().getBlockLocations(f, 0, Long.MAX_VALUE);
+        assertEquals(1, locations.locatedBlockCount());
+        LocatedBlock locatedblock = locations.getLocatedBlocks().get(0);
+        int successcount = 0;
+        for (DatanodeInfo datanodeinfo : locatedblock.getLocations()) {
+            DataNode datanode = cluster.getDataNode(datanodeinfo.ipcPort);
+            FSDataset dataset = (FSDataset) datanode.data;
+            ExtendedBlock blk = locatedblock.getBlock();
+            Block b = dataset.getStoredBlock(blk.getBlockPoolId(), blk.getBlockId());
+            File blockfile = dataset.findBlockFile(blk.getBlockPoolId(), b.getBlockId());
+            System.out.println("blockfile=" + blockfile);
+            if (blockfile != null) {
+                BufferedReader in = new BufferedReader(new FileReader(blockfile));
+                assertEquals("something", in.readLine());
+                in.close();
+                successcount++;
+            }
+        }
+        System.out.println("successcount=" + successcount);
+        assertTrue(successcount > 0);
+    } finally {
+        IOUtils.closeStream(dfs);
+        cluster.shutdown();
+    }
+    System.out.println("testLeaseExpireHardLimit successful");
+}

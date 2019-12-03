@@ -1,0 +1,38 @@
+@Test
+public void writeAwaitsWindowUpdate() throws Exception {
+    int framesThatFillWindow = roundUp(DEFAULT_INITIAL_WINDOW_SIZE, HTTP_20_DRAFT_09.maxFrameSize());
+    // Write the mocking script. This accepts more data frames than necessary!
+    // SYN_STREAM
+    peer.acceptFrame();
+    for (int i = 0; i < framesThatFillWindow; i++) {
+        // DATA
+        peer.acceptFrame();
+    }
+    // DATA we won't be able to flush until a window update.
+    peer.acceptFrame();
+    peer.play();
+    // Play it back.
+    SpdyConnection connection = connection(peer, SPDY3);
+    SpdyStream stream = connection.newStream(headerEntries("b", "banana"), true, true);
+    BufferedSink out = Okio.buffer(stream.getSink());
+    out.write(new byte[DEFAULT_INITIAL_WINDOW_SIZE]);
+    out.flush();
+    // Check that we've filled the window for both the stream and also the connection.
+    assertEquals(0, connection.bytesLeftInWriteWindow);
+    assertEquals(0, connection.getStream(3).bytesLeftInWriteWindow);
+    out.writeByte('a');
+    assertFlushBlocks(out);
+    // receiving a window update on the connection isn't enough.
+    connection.readerRunnable.windowUpdate(0, 1);
+    assertFlushBlocks(out);
+    // receiving a window update on the stream will unblock the stream.
+    connection.readerRunnable.windowUpdate(3, 1);
+    out.flush();
+    // Verify the peer received what was expected.
+    MockSpdyPeer.InFrame synStream = peer.takeFrame();
+    assertEquals(TYPE_HEADERS, synStream.type);
+    for (int i = 0; i < framesThatFillWindow; i++) {
+        MockSpdyPeer.InFrame data = peer.takeFrame();
+        assertEquals(TYPE_DATA, data.type);
+    }
+}

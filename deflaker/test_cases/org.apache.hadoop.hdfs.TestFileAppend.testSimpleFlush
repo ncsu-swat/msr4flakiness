@@ -1,0 +1,47 @@
+/**
+ * Test a simple flush on a simple HDFS file.
+ * @throws IOException an exception might be thrown
+ */
+@Test
+public void testSimpleFlush() throws IOException {
+    Configuration conf = new HdfsConfiguration();
+    if (simulatedStorage) {
+        conf.setBoolean(SimulatedFSDataset.CONFIG_PROPERTY_SIMULATED, true);
+    }
+    fileContents = AppendTestUtil.initBuffer(AppendTestUtil.FILE_SIZE);
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).build();
+    FileSystem fs = cluster.getFileSystem();
+    try {
+        // create a new file.
+        Path file1 = new Path("/simpleFlush.dat");
+        FSDataOutputStream stm = AppendTestUtil.createFile(fs, file1, 1);
+        System.out.println("Created file simpleFlush.dat");
+        // write to file
+        int mid = AppendTestUtil.FILE_SIZE / 2;
+        stm.write(fileContents, 0, mid);
+        stm.hflush();
+        System.out.println("Wrote and Flushed first part of file.");
+        // write the remainder of the file
+        stm.write(fileContents, mid, AppendTestUtil.FILE_SIZE - mid);
+        System.out.println("Written second part of file");
+        stm.hflush();
+        stm.hflush();
+        System.out.println("Wrote and Flushed second part of file.");
+        // verify that full blocks are sane
+        checkFile(fs, file1, 1);
+        stm.close();
+        System.out.println("Closed file.");
+        // verify that entire file is good
+        AppendTestUtil.checkFullFile(fs, file1, AppendTestUtil.FILE_SIZE, fileContents, "Read 2");
+    } catch (IOException e) {
+        System.out.println("Exception :" + e);
+        throw e;
+    } catch (Throwable e) {
+        System.out.println("Throwable :" + e);
+        e.printStackTrace();
+        throw new IOException("Throwable : " + e);
+    } finally {
+        fs.close();
+        cluster.shutdown();
+    }
+}

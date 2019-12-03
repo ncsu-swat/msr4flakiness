@@ -1,0 +1,50 @@
+/**
+ * Test : The subworkflow should get purged, and the workflow parent should get purged --> both will get purged
+ *
+ * @throws Exception
+ */
+public void testPurgeWFWithSubWF3() throws Exception {
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    WorkflowJobBean wfJob = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED);
+    WorkflowActionBean wfAction = addRecordToWfActionTable(wfJob.getId(), "1", WorkflowAction.Status.OK);
+    WorkflowJobBean subwfJob = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED, wfJob.getId());
+    WorkflowActionBean subwfAction = addRecordToWfActionTable(subwfJob.getId(), "1", WorkflowAction.Status.OK);
+    WorkflowJobGetJPAExecutor wfJobGetCmd = new WorkflowJobGetJPAExecutor(wfJob.getId());
+    WorkflowActionGetJPAExecutor wfActionGetCmd = new WorkflowActionGetJPAExecutor(wfAction.getId());
+    WorkflowJobGetJPAExecutor subwfJobGetCmd = new WorkflowJobGetJPAExecutor(subwfJob.getId());
+    WorkflowActionGetJPAExecutor subwfActionGetCmd = new WorkflowActionGetJPAExecutor(subwfAction.getId());
+    wfJob = jpaService.execute(wfJobGetCmd);
+    wfAction = jpaService.execute(wfActionGetCmd);
+    subwfJob = jpaService.execute(subwfJobGetCmd);
+    subwfAction = jpaService.execute(subwfActionGetCmd);
+    assertEquals(WorkflowJob.Status.SUCCEEDED, wfJob.getStatus());
+    assertEquals(WorkflowAction.Status.OK, wfAction.getStatus());
+    assertEquals(WorkflowJob.Status.SUCCEEDED, subwfJob.getStatus());
+    assertEquals(WorkflowAction.Status.OK, subwfAction.getStatus());
+    new PurgeXCommand(7, 1, 1, 10).call();
+    try {
+        jpaService.execute(wfJobGetCmd);
+        fail("Workflow Job should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0604, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(wfActionGetCmd);
+        fail("Workflow Action should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0605, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(subwfJobGetCmd);
+        fail("SubWorkflow Job should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0604, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(subwfActionGetCmd);
+        fail("SubWorkflow Action should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0605, je.getErrorCode());
+    }
+}

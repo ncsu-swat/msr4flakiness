@@ -1,0 +1,18 @@
+@Test
+public void testRegisterSingleConsumerPerTopic() {
+    try {
+        HCatAccessorService hcatService = services.get(HCatAccessorService.class);
+        JMSAccessorService jmsService = services.get(JMSAccessorService.class);
+        String server = "hcat.server.com:5080";
+        String topic = "hcat.mydb.mytable";
+        JMSConnectionInfo connInfo = hcatService.getJMSConnectionInfo(new URI("hcat://hcat.server.com:8020"));
+        jmsService.registerForNotification(connInfo, topic, new HCatMessageHandler(server));
+        MessageReceiver receiver1 = jmsService.getMessageReceiver(connInfo, topic);
+        jmsService.registerForNotification(connInfo, topic, new HCatMessageHandler(server));
+        MessageReceiver receiver2 = jmsService.getMessageReceiver(connInfo, topic);
+        assertEquals(receiver1, receiver2);
+    } catch (Exception e) {
+        e.printStackTrace();
+        fail("Exception encountered : " + e);
+    }
+}

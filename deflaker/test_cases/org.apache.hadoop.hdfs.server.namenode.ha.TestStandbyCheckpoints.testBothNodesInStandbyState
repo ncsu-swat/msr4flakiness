@@ -1,0 +1,26 @@
+/**
+ * Test for the case when both of the NNs in the cluster are
+ * in the standby state, and thus are both creating checkpoints
+ * and uploading them to each other.
+ * In this circumstance, they should receive the error from the
+ * other node indicating that the other node already has a
+ * checkpoint for the given txid, but this should not cause
+ * an abort, etc.
+ */
+@Test
+public void testBothNodesInStandbyState() throws Exception {
+    doEdits(0, 10);
+    cluster.transitionToStandby(0);
+    // Transitioning to standby closed the edit log on the active,
+    // so the standby will catch up. Then, both will be in standby mode
+    // with enough uncheckpointed txns to cause a checkpoint, and they
+    // will each try to take a checkpoint and upload to each other.
+    HATestUtil.waitForCheckpoint(cluster, 1, ImmutableList.of(12));
+    HATestUtil.waitForCheckpoint(cluster, 0, ImmutableList.of(12));
+    assertEquals(12, nn0.getNamesystem().getFSImage().getMostRecentCheckpointTxId());
+    assertEquals(12, nn1.getNamesystem().getFSImage().getMostRecentCheckpointTxId());
+    List<File> dirs = Lists.newArrayList();
+    dirs.addAll(FSImageTestUtil.getNameNodeCurrentDirs(cluster, 0));
+    dirs.addAll(FSImageTestUtil.getNameNodeCurrentDirs(cluster, 1));
+    FSImageTestUtil.assertParallelFilesAreIdentical(dirs, ImmutableSet.<String>of());
+}

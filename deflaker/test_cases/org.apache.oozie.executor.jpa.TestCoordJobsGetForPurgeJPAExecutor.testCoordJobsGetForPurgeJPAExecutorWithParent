@@ -1,0 +1,15 @@
+public void testCoordJobsGetForPurgeJPAExecutorWithParent() throws Exception {
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    String jobId1 = "00001-" + new Date().getTime() + "-TestCoordJobsGetForPurgeJPAExecutor-C";
+    insertJob(jobId1, CoordinatorJob.Status.SUCCEEDED, DateUtils.parseDateOozieTZ("2011-01-01T01:00Z"));
+    String jobId2 = "00002-" + new Date().getTime() + "-TestCoordJobsGetForPurgeJPAExecutor-C";
+    CoordinatorJobBean job2 = insertJob(jobId2, CoordinatorJob.Status.SUCCEEDED, DateUtils.parseDateOozieTZ("2011-01-01T01:00Z"));
+    job2.setBundleId("some_bundle_parent_id");
+    jpaService.execute(new CoordJobUpdateJPAExecutor(job2));
+    CoordJobsGetForPurgeJPAExecutor executor = new CoordJobsGetForPurgeJPAExecutor(10, 50);
+    List<String> jobList = jpaService.execute(executor);
+    // job2 shouldn't be in the list because it has a parent
+    assertEquals(1, jobList.size());
+    assertEquals(jobId1, jobList.get(0));
+}

@@ -1,0 +1,56 @@
+/**
+ * Test {@link INodeDirectory#getExistingPathINodes(byte[][], int, boolean)}
+ * for snapshot file while modifying file after snapshot.
+ */
+@Test(timeout = 15000)
+public void testSnapshotPathINodesAfterModification() throws Exception {
+    // file1 was deleted, create it again.
+    DFSTestUtil.createFile(hdfs, file1, 1024, REPLICATION, seed);
+    // First check the INode for /TestSnapshot/sub1/file1
+    String[] names = INode.getPathNames(file1.toString());
+    byte[][] components = INode.getPathComponents(names);
+    INodesInPath nodesInPath = INodesInPath.resolve(fsdir.rootDir, components);
+    INode[] inodes = nodesInPath.getINodes();
+    // The number of inodes should be equal to components.length
+    assertEquals(inodes.length, components.length);
+    assertSnapshot(nodesInPath, false, s4, -1);
+    // The last INode should be associated with file1
+    assertEquals(inodes[components.length - 1].getFullPathName(), file1.toString());
+    // Create a snapshot for the dir, and check the inodes for the path
+    // pointing to a snapshot file
+    hdfs.allowSnapshot(sub1);
+    hdfs.createSnapshot(sub1, "s3");
+    // Modify file1
+    DFSTestUtil.appendFile(hdfs, file1, "the content for appending");
+    // Check the INodes for snapshot of file1
+    String snapshotPath = sub1.toString() + "/.snapshot/s3/file1";
+    names = INode.getPathNames(snapshotPath);
+    components = INode.getPathComponents(names);
+    INodesInPath ssNodesInPath = INodesInPath.resolve(fsdir.rootDir, components);
+    INode[] ssInodes = ssNodesInPath.getINodes();
+    // Length of ssInodes should be (components.length - 1), since we will
+    // ignore ".snapshot"
+    assertEquals(ssInodes.length, components.length - 1);
+    final Snapshot s3 = getSnapshot(ssNodesInPath, "s3");
+    assertSnapshot(ssNodesInPath, true, s3, 3);
+    // Check the INode for snapshot of file1
+    INode snapshotFileNode = ssInodes[ssInodes.length - 1];
+    assertEquals(snapshotFileNode.getLocalName(), file1.getName());
+    assertTrue(snapshotFileNode instanceof INodeFileWithSnapshot);
+    // The modification time of the snapshot INode should be the same with the
+    // original INode before modification
+    assertEquals(inodes[inodes.length - 1].getModificationTime(), snapshotFileNode.getModificationTime(ssNodesInPath.getPathSnapshot()));
+    // Check the INode for /TestSnapshot/sub1/file1 again
+    names = INode.getPathNames(file1.toString());
+    components = INode.getPathComponents(names);
+    INodesInPath newNodesInPath = INodesInPath.resolve(fsdir.rootDir, components);
+    assertSnapshot(newNodesInPath, false, s3, -1);
+    INode[] newInodes = newNodesInPath.getINodes();
+    // The number of inodes should be equal to components.length
+    assertEquals(newInodes.length, components.length);
+    // The last INode should be associated with file1
+    final int last = components.length - 1;
+    assertEquals(newInodes[last].getFullPathName(), file1.toString());
+    // The modification time of the INode for file3 should have been changed
+    Assert.assertFalse(inodes[last].getModificationTime() == newInodes[last].getModificationTime());
+}

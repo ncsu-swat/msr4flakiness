@@ -1,0 +1,24 @@
+/*
+     * f->(1,2)
+     * 1->ok->j1
+     * 1->fail->k
+     * 2->ok->j2
+     * 2->fail->k
+     * j1->end
+     * j2->f2
+     * f2->k,k
+     */
+public void testForkJoinMismatch() throws WorkflowException {
+    LiteWorkflowAppParser parser = new LiteWorkflowAppParser(null, LiteWorkflowStoreService.LiteControlNodeHandler.class, LiteWorkflowStoreService.LiteDecisionHandler.class, LiteWorkflowStoreService.LiteActionHandler.class);
+    LiteWorkflowApp def = new LiteWorkflowApp("name", "def", new StartNodeDef(LiteWorkflowStoreService.LiteControlNodeHandler.class, "f")).addNode(new ForkNodeDef("f", LiteWorkflowStoreService.LiteControlNodeHandler.class, Arrays.asList(new String[] { "one", "two" }))).addNode(new ActionNodeDef("one", dummyConf, TestActionNodeHandler.class, "j1", "k")).addNode(new JoinNodeDef("j1", LiteWorkflowStoreService.LiteControlNodeHandler.class, "end")).addNode(new ActionNodeDef("two", dummyConf, TestActionNodeHandler.class, "j2", "k")).addNode(new JoinNodeDef("j2", LiteWorkflowStoreService.LiteControlNodeHandler.class, "f2")).addNode(new ForkNodeDef("f2", LiteWorkflowStoreService.LiteControlNodeHandler.class, Arrays.asList(new String[] { "k", "k" }))).addNode(new KillNodeDef("k", "kill", LiteWorkflowStoreService.LiteControlNodeHandler.class)).addNode(new EndNodeDef("end", LiteWorkflowStoreService.LiteControlNodeHandler.class));
+    try {
+        invokeForkJoin(parser, def);
+        fail("Expected to catch an exception but did not encounter any");
+    } catch (Exception ex) {
+        WorkflowException we = (WorkflowException) ex.getCause();
+        assertEquals(ErrorCode.E0732, we.getErrorCode());
+        assertTrue(we.getMessage().contains("Fork [f]"));
+        assertTrue(we.getMessage().contains("Join [j1]"));
+        assertTrue(we.getMessage().contains("been [j2]"));
+    }
+}

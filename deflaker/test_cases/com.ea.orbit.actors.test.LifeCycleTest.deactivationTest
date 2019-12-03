@@ -1,0 +1,16 @@
+@Test
+public void deactivationTest() throws ExecutionException, InterruptedException {
+    OrbitStage stage = createStage();
+    OrbitStage client = createClient();
+    ISomeMatch match = IActor.getReference(ISomeMatch.class, "1000");
+    ISomePlayer player = IActor.getReference(ISomePlayer.class, "101");
+    match.addPlayer(player).get();
+    int machEventCount = player.getMatchEventCount().get();
+    // moving the time ahead
+    clock.incrementTimeMillis(TimeUnit.MINUTES.toMillis(60));
+    // touching the player to prevent it's deactivation;
+    assertEquals(machEventCount, player.getMatchEventCount().get().intValue());
+    stage.cleanup(true);
+    // the match calls a player event on it's deactivation
+    assertNotEquals(machEventCount, player.getMatchEventCount().get().intValue());
+}

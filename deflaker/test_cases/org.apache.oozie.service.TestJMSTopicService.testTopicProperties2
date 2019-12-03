@@ -1,0 +1,21 @@
+@Test
+public void testTopicProperties2() {
+    try {
+        services.destroy();
+        services = setupServicesForTopic();
+        services.getConf().set(JMSTopicService.TOPIC_NAME, JMSTopicService.JobType.WORKFLOW.getValue() + " = workflow," + JMSTopicService.JobType.COORDINATOR.getValue() + "=coord");
+        services.init();
+        JMSTopicService jmsTopicService = Services.get().get(JMSTopicService.class);
+        Properties props = jmsTopicService.getTopicPatternProperties();
+        assertEquals("workflow", props.get(AppType.WORKFLOW_JOB));
+        assertEquals("workflow", props.get(AppType.WORKFLOW_ACTION));
+        assertEquals("coord", props.get(AppType.COORDINATOR_JOB));
+        assertEquals("coord", props.get(AppType.COORDINATOR_ACTION));
+        assertEquals("${username}", props.get(AppType.BUNDLE_JOB));
+        assertEquals("${username}", props.get(AppType.BUNDLE_ACTION));
+        services.destroy();
+    } catch (Exception e) {
+        e.printStackTrace();
+        fail(e.getMessage());
+    }
+}

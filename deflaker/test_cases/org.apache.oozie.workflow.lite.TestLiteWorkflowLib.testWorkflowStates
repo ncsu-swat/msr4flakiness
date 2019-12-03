@@ -1,0 +1,91 @@
+public void testWorkflowStates() throws WorkflowException {
+    LiteWorkflowApp def = new LiteWorkflowApp("wf", "<worklfow-app/>", new StartNodeDef(TestControlNodeHandler.class, "one")).addNode(new NodeDef("one", null, AsynchNodeHandler.class, Arrays.asList(new String[] { "end" }))).addNode(new EndNodeDef("end", TestControlNodeHandler.class));
+    LiteWorkflowInstance job = new LiteWorkflowInstance(def, new XConfiguration(), "1");
+    assertEquals(WorkflowInstance.Status.PREP, job.getStatus());
+    job.kill();
+    assertEquals(WorkflowInstance.Status.KILLED, job.getStatus());
+    job = new LiteWorkflowInstance(def, new XConfiguration(), "1");
+    job.fail("one");
+    assertEquals(WorkflowInstance.Status.FAILED, job.getStatus());
+    job = new LiteWorkflowInstance(def, new XConfiguration(), "1");
+    try {
+        job.suspend();
+        fail();
+    } catch (WorkflowException ex) {
+    // nop
+    }
+    try {
+        job.resume();
+        fail();
+    } catch (WorkflowException ex) {
+    // nop
+    }
+    job.start();
+    assertEquals(WorkflowInstance.Status.RUNNING, job.getStatus());
+    try {
+        job.resume();
+        fail();
+    } catch (WorkflowException ex) {
+    // nop
+    }
+    try {
+        job.start();
+        fail();
+    } catch (WorkflowException ex) {
+    // nop
+    }
+    job.suspend();
+    assertEquals(WorkflowInstance.Status.SUSPENDED, job.getStatus());
+    try {
+        job.suspend();
+        fail();
+    } catch (WorkflowException ex) {
+    // nop
+    }
+    try {
+        job.start();
+        fail();
+    } catch (WorkflowException ex) {
+    // nop
+    }
+    job.resume();
+    assertEquals(WorkflowInstance.Status.RUNNING, job.getStatus());
+    try {
+        job.resume();
+        fail();
+    } catch (WorkflowException ex) {
+    // nop
+    }
+    try {
+        job.start();
+        fail();
+    } catch (WorkflowException ex) {
+    // nop
+    }
+    job.kill();
+    assertEquals(WorkflowInstance.Status.KILLED, job.getStatus());
+    try {
+        job.kill();
+        fail();
+    } catch (WorkflowException ex) {
+    // nop
+    }
+    try {
+        job.suspend();
+        fail();
+    } catch (WorkflowException ex) {
+    // nop
+    }
+    try {
+        job.resume();
+        fail();
+    } catch (WorkflowException ex) {
+    // nop
+    }
+    try {
+        job.start();
+        fail();
+    } catch (WorkflowException ex) {
+    // nop
+    }
+}

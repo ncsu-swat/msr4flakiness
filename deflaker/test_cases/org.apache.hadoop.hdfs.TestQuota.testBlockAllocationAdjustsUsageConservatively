@@ -1,0 +1,54 @@
+/**
+ * Violate a space quota using files of size < 1 block. Test that block
+ * allocation conservatively assumes that for quota checking the entire
+ * space of the block is used.
+ */
+@Test
+public void testBlockAllocationAdjustsUsageConservatively() throws Exception {
+    Configuration conf = new HdfsConfiguration();
+    final int BLOCK_SIZE = 6 * 1024;
+    conf.setInt(DFSConfigKeys.DFS_BLOCK_SIZE_KEY, BLOCK_SIZE);
+    conf.setBoolean(DFSConfigKeys.DFS_WEBHDFS_ENABLED_KEY, true);
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).numDataNodes(3).build();
+    cluster.waitActive();
+    FileSystem fs = cluster.getFileSystem();
+    DFSAdmin admin = new DFSAdmin(conf);
+    final String nnAddr = conf.get(DFSConfigKeys.DFS_NAMENODE_HTTP_ADDRESS_KEY);
+    final String webhdfsuri = WebHdfsFileSystem.SCHEME + "://" + nnAddr;
+    System.out.println("webhdfsuri=" + webhdfsuri);
+    final FileSystem webhdfs = new Path(webhdfsuri).getFileSystem(conf);
+    try {
+        Path dir = new Path("/test");
+        Path file1 = new Path("/test/test1");
+        Path file2 = new Path("/test/test2");
+        boolean exceededQuota = false;
+        // total space usage including
+        final int QUOTA_SIZE = 3 * BLOCK_SIZE;
+        // repl.
+        final int FILE_SIZE = BLOCK_SIZE / 2;
+        ContentSummary c;
+        // Create the directory and set the quota
+        assertTrue(fs.mkdirs(dir));
+        runCommand(admin, false, "-setSpaceQuota", Integer.toString(QUOTA_SIZE), dir.toString());
+        // Creating a file should use half the quota
+        DFSTestUtil.createFile(fs, file1, FILE_SIZE, (short) 3, 1L);
+        DFSTestUtil.waitReplication(fs, file1, (short) 3);
+        c = fs.getContentSummary(dir);
+        checkContentSummary(c, webhdfs.getContentSummary(dir));
+        assertEquals("Quota is half consumed", QUOTA_SIZE / 2, c.getSpaceConsumed());
+        // We can not create the 2nd file because even though the total spaced
+        // used by two files (2 * 3 * 512/2) would fit within the quota (3 * 512)
+        // when a block for a file is created the space used is adjusted
+        // conservatively (3 * block size, ie assumes a full block is written)
+        // which will violate the quota (3 * block size) since we've already
+        // used half the quota for the first file.
+        try {
+            DFSTestUtil.createFile(fs, file2, FILE_SIZE, (short) 3, 1L);
+        } catch (QuotaExceededException e) {
+            exceededQuota = true;
+        }
+        assertTrue("Quota not exceeded", exceededQuota);
+    } finally {
+        cluster.shutdown();
+    }
+}

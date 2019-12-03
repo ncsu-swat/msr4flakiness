@@ -1,0 +1,24 @@
+public void testSubmitPig() throws Exception {
+    runTest(END_POINTS, SERVLET_CLASSES, IS_SECURITY_ENABLED, new Callable<Void>() {
+
+        public Void call() throws Exception {
+            String oozieUrl = getContextURL();
+            int wfCount = MockDagEngineService.INIT_WF_COUNT;
+            XOozieClient wc = new XOozieClient(oozieUrl);
+            Properties conf = wc.createConfiguration();
+            Path libPath = new Path(getFsTestCaseDir(), "lib");
+            getFileSystem().mkdirs(libPath);
+            conf.setProperty(OozieClient.LIBPATH, libPath.toString());
+            conf.setProperty(XOozieClient.JT, "localhost:9001");
+            conf.setProperty(XOozieClient.NN, "hdfs://localhost:9000");
+            String[] params = new String[] { "INPUT=input.txt" };
+            String pigScriptFile = getTestCaseDir() + "/test";
+            BufferedWriter writer = new BufferedWriter(new FileWriter(pigScriptFile));
+            writer.write("a = load '${INPUT}';\n dump a;");
+            writer.close();
+            assertEquals(MockDagEngineService.JOB_ID + wfCount + MockDagEngineService.JOB_ID_END, wc.submitScriptLanguage(conf, pigScriptFile, null, params, "pig"));
+            assertTrue(MockDagEngineService.started.get(wfCount));
+            return null;
+        }
+    });
+}

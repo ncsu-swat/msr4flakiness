@@ -1,0 +1,30 @@
+@Test
+public void testOnWorkflowJobSuccessEvent() throws ParseException {
+    JMSJobEventListener wfEventListener = new JMSJobEventListener();
+    wfEventListener.init(conf);
+    Date startDate = DateUtils.parseDateUTC("2012-07-22T00:00Z");
+    Date endDate = new Date();
+    WorkflowJobEvent wfe = new WorkflowJobEvent("wfId1", "caId1", WorkflowJob.Status.SUCCEEDED, "user1", "wf-app-name1", startDate, endDate);
+    ConnectionContext jmsContext = getConnectionContext();
+    try {
+        Session session = jmsContext.createSession(Session.AUTO_ACKNOWLEDGE);
+        MessageConsumer consumer = jmsContext.createConsumer(session, wfEventListener.getTopic(wfe));
+        wfEventListener.onWorkflowJobEvent(wfe);
+        TextMessage message = (TextMessage) consumer.receive(5000);
+        WorkflowJobMessage wfSuccMessage = JMSMessagingUtils.getEventMessage(message);
+        assertEquals(WorkflowJob.Status.SUCCEEDED, wfSuccMessage.getStatus());
+        assertEquals(startDate, wfSuccMessage.getStartTime());
+        assertEquals(endDate, wfSuccMessage.getEndTime());
+        assertEquals("wfId1", wfSuccMessage.getId());
+        assertEquals("caId1", wfSuccMessage.getParentId());
+        assertEquals(MessageType.JOB, wfSuccMessage.getMessageType());
+        assertEquals(AppType.WORKFLOW_JOB, wfSuccMessage.getAppType());
+        assertEquals(EventStatus.SUCCESS, wfSuccMessage.getEventStatus());
+        assertEquals("user1", wfSuccMessage.getUser());
+        assertEquals("wf-app-name1", wfSuccMessage.getAppName());
+        wfEventListener.destroy();
+    } catch (Exception e) {
+        e.printStackTrace();
+        fail(e.getMessage());
+    }
+}

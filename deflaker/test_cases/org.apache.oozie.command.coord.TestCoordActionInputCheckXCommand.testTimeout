@@ -1,0 +1,13 @@
+@Test
+public void testTimeout() throws Exception {
+    String missingDeps = "hdfs:///dirx/filex";
+    String actionId = addInitRecords(missingDeps, null, TZ);
+    new CoordActionInputCheckXCommand(actionId, actionId.substring(0, actionId.indexOf("@"))).call();
+    // Timeout is 10 mins. Change action creation time to before 12 min to make the action
+    // timeout.
+    long timeOutCreationTime = System.currentTimeMillis() - (12 * 60 * 1000);
+    setCoordActionCreationTime(actionId, timeOutCreationTime);
+    new CoordActionInputCheckXCommand(actionId, actionId.substring(0, actionId.indexOf("@"))).call();
+    Thread.sleep(100);
+    checkCoordAction(actionId, missingDeps, CoordinatorAction.Status.TIMEDOUT);
+}

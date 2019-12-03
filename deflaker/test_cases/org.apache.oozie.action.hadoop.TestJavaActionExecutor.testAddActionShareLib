@@ -1,0 +1,62 @@
+@Test
+public void testAddActionShareLib() throws Exception {
+    Path systemLibPath = new Path(getFsTestCaseDir(), "systemlib");
+    Path javaShareLibPath = new Path(systemLibPath, "java");
+    getFileSystem().mkdirs(javaShareLibPath);
+    Path jar1Path = new Path(javaShareLibPath, "jar1.jar");
+    getFileSystem().create(jar1Path).close();
+    Path jar2Path = new Path(javaShareLibPath, "jar2.jar");
+    getFileSystem().create(jar2Path).close();
+    Path hcatShareLibPath = new Path(systemLibPath, "hcat");
+    getFileSystem().mkdirs(hcatShareLibPath);
+    Path jar3Path = new Path(hcatShareLibPath, "jar3.jar");
+    getFileSystem().create(jar3Path).close();
+    Path jar4Path = new Path(hcatShareLibPath, "jar4.jar");
+    getFileSystem().create(jar4Path).close();
+    Path otherShareLibPath = new Path(systemLibPath, "other");
+    getFileSystem().mkdirs(otherShareLibPath);
+    Path jar5Path = new Path(otherShareLibPath, "jar5.jar");
+    getFileSystem().create(jar5Path).close();
+    String actionXml = "<java>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>" + "<name-node>" + getNameNodeUri() + "</name-node>" + "<job-xml>job.xml</job-xml>" + "<job-xml>job2.xml</job-xml>" + "<main-class>MAIN-CLASS</main-class>" + "</java>";
+    Element eActionXml = XmlUtils.parseXml(actionXml);
+    Context context = createContext(actionXml, null);
+    // Test oozie server action sharelib setting
+    WorkflowJobBean workflow = (WorkflowJobBean) context.getWorkflow();
+    XConfiguration wfConf = new XConfiguration();
+    wfConf.set(WorkflowAppService.HADOOP_USER, getTestUser());
+    wfConf.set(OozieClient.APP_PATH, new Path(getAppPath(), "workflow.xml").toString());
+    wfConf.setBoolean(OozieClient.USE_SYSTEM_LIBPATH, true);
+    workflow.setConf(XmlUtils.prettyPrint(wfConf).toString());
+    Services.get().getConf().set("oozie.action.sharelib.for.java", "java,hcat");
+    JavaActionExecutor ae = new JavaActionExecutor();
+    Configuration jobConf = ae.createBaseHadoopConf(context, eActionXml);
+    ae.setupLauncherConf(jobConf, eActionXml, getAppPath(), context);
+    ae.setLibFilesArchives(context, eActionXml, getAppPath(), jobConf);
+    URI[] cacheFiles = DistributedCache.getCacheFiles(jobConf);
+    String cacheFilesStr = Arrays.toString(cacheFiles);
+    assertTrue(cacheFilesStr.contains(jar1Path.toString()));
+    assertTrue(cacheFilesStr.contains(jar2Path.toString()));
+    assertTrue(cacheFilesStr.contains(jar3Path.toString()));
+    assertTrue(cacheFilesStr.contains(jar4Path.toString()));
+    // Test per workflow action sharelib setting
+    workflow = (WorkflowJobBean) context.getWorkflow();
+    wfConf = new XConfiguration();
+    wfConf.set(WorkflowAppService.HADOOP_USER, getTestUser());
+    wfConf.set(OozieClient.APP_PATH, new Path(getAppPath(), "workflow.xml").toString());
+    wfConf.setBoolean(OozieClient.USE_SYSTEM_LIBPATH, true);
+    wfConf.set("oozie.action.sharelib.for.java", "other,hcat");
+    workflow.setConf(XmlUtils.prettyPrint(wfConf).toString());
+    Services.get().getConf().set("oozie.action.sharelib.for.java", "java");
+    ae = new JavaActionExecutor();
+    jobConf = ae.createBaseHadoopConf(context, eActionXml);
+    ae.setupLauncherConf(jobConf, eActionXml, getAppPath(), context);
+    ae.setLibFilesArchives(context, eActionXml, getAppPath(), jobConf);
+    cacheFiles = DistributedCache.getCacheFiles(jobConf);
+    cacheFilesStr = Arrays.toString(cacheFiles);
+    // The oozie server setting should have been overridden by workflow setting
+    assertFalse(cacheFilesStr.contains(jar1Path.toString()));
+    assertFalse(cacheFilesStr.contains(jar2Path.toString()));
+    assertTrue(cacheFilesStr.contains(jar3Path.toString()));
+    assertTrue(cacheFilesStr.contains(jar4Path.toString()));
+    assertTrue(cacheFilesStr.contains(jar5Path.toString()));
+}

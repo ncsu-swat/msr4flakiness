@@ -1,0 +1,26 @@
+/**
+ * Test : kill RUNNING job and RUNNING action successfully.
+ *
+ * @throws Exception
+ */
+public void testWfKillSuccess2() throws Exception {
+    WorkflowJobBean job = this.addRecordToWfJobTable(WorkflowJob.Status.RUNNING, WorkflowInstance.Status.RUNNING);
+    WorkflowActionBean action = this.addRecordToWfActionTable(job.getId(), "1", WorkflowAction.Status.RUNNING);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    WorkflowJobGetJPAExecutor wfJobGetCmd = new WorkflowJobGetJPAExecutor(job.getId());
+    WorkflowActionGetJPAExecutor wfActionGetCmd = new WorkflowActionGetJPAExecutor(action.getId());
+    job = jpaService.execute(wfJobGetCmd);
+    action = jpaService.execute(wfActionGetCmd);
+    assertEquals(job.getStatus(), WorkflowJob.Status.RUNNING);
+    assertEquals(action.getStatus(), WorkflowAction.Status.RUNNING);
+    WorkflowInstance wfInstance = job.getWorkflowInstance();
+    assertEquals(wfInstance.getStatus(), WorkflowInstance.Status.RUNNING);
+    new KillXCommand(job.getId()).call();
+    job = jpaService.execute(wfJobGetCmd);
+    action = jpaService.execute(wfActionGetCmd);
+    assertEquals(job.getStatus(), WorkflowJob.Status.KILLED);
+    assertEquals(action.getStatus(), WorkflowAction.Status.KILLED);
+    wfInstance = job.getWorkflowInstance();
+    assertEquals(wfInstance.getStatus(), WorkflowInstance.Status.KILLED);
+}

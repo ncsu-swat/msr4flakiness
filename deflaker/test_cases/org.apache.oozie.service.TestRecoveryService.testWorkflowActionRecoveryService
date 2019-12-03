@@ -1,0 +1,85 @@
+/**
+ * Tests functionality of the Recovery Service Runnable command. </p> Starts an action which behaves like an Async
+ * Action (Action and Job state set to Running). Changes the action configuration to run in sync mode and updates
+ * the store. Runs the recovery runnable, and ensures the state of the action and job have not changed. </p> Changes
+ * the state of the action from RUNNING to PREP and updates the store. Again, runs the recovery runnable and ensures
+ * the state changes to OK and the job completes successfully.
+ *
+ * @throws Exception
+ */
+public void testWorkflowActionRecoveryService() throws Exception {
+    Reader reader = IOUtils.getResourceAsReader("wf-ext-schema-valid.xml", -1);
+    Writer writer = new FileWriter(getTestCaseDir() + "/workflow.xml");
+    createTestCaseSubDir("lib");
+    IOUtils.copyCharStream(reader, writer);
+    final DagEngine engine = new DagEngine(getTestUser(), "a");
+    Configuration conf = new XConfiguration();
+    conf.set(OozieClient.APP_PATH, "file://" + getTestCaseDir() + File.separator + "workflow.xml");
+    conf.set(OozieClient.USER_NAME, getTestUser());
+    conf.set(OozieClient.LOG_TOKEN, "t");
+    conf.set("external-status", "ok");
+    conf.set("signal-value", "based_on_action_status");
+    conf.set("running-mode", "async");
+    // TODO CHECK, without this we get JPA concurrency exceptions, ODD
+    sleep(1000);
+    final String jobId = engine.submitJob(conf, true);
+    // TODO CHECK, without this we get JPA concurrency exceptions, ODD
+    sleep(1000);
+    waitFor(5000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            return (engine.getJob(jobId).getStatus() == WorkflowJob.Status.RUNNING);
+        }
+    });
+    sleep(1000);
+    final WorkflowStore store = Services.get().get(WorkflowStoreService.class).create();
+    store.beginTrx();
+    List<WorkflowActionBean> actions = store.getActionsForWorkflow(jobId, false);
+    WorkflowActionBean action = null;
+    for (WorkflowActionBean bean : actions) {
+        if (bean.getType().equals("test")) {
+            action = bean;
+            break;
+        }
+    }
+    assertNotNull(action);
+    final String actionId = action.getId();
+    assertEquals(WorkflowActionBean.Status.RUNNING, action.getStatus());
+    String actionConf = action.getConf();
+    String fixedActionConf = actionConf.replaceAll("async", "sync");
+    action.setConf(fixedActionConf);
+    action.setPending();
+    store.updateAction(action);
+    store.commitTrx();
+    store.closeTrx();
+    Runnable recoveryRunnable = new RecoveryRunnable(0, 60, 60);
+    recoveryRunnable.run();
+    sleep(3000);
+    final WorkflowStore store2 = Services.get().get(WorkflowStoreService.class).create();
+    assertEquals(WorkflowJob.Status.RUNNING, engine.getJob(jobId).getStatus());
+    store2.beginTrx();
+    WorkflowActionBean action2 = store2.getAction(actionId, false);
+    assertEquals(WorkflowActionBean.Status.RUNNING, action2.getStatus());
+    action2.setStatus(WorkflowActionBean.Status.PREP);
+    action2.setPending();
+    store2.updateAction(action2);
+    store2.commitTrx();
+    store2.closeTrx();
+    sleep(1000);
+    recoveryRunnable.run();
+    sleep(3000);
+    waitFor(10000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            return (engine.getWorkflowAction(actionId).getStatus() == WorkflowActionBean.Status.OK);
+        }
+    });
+    // getPendingActions works correctly only with MYSQL - following assertsfail with hsql - to be investigated
+    // assertEquals(WorkflowJob.Status.SUCCEEDED, engine.getJob(jobId).getStatus());
+    final WorkflowStore store3 = Services.get().get(WorkflowStoreService.class).create();
+    store3.beginTrx();
+    WorkflowActionBean action3 = store3.getAction(actionId, false);
+    assertEquals(WorkflowActionBean.Status.OK, action3.getStatus());
+    store3.commitTrx();
+    store3.closeTrx();
+}

@@ -1,0 +1,38 @@
+/**
+ * Regression test for HDFS-894 ensures that, when datanodes
+ * are restarted, the new IPC port is registered with the
+ * namenode.
+ */
+public void testChangeIpcPort() throws Exception {
+    HdfsConfiguration conf = new HdfsConfiguration();
+    MiniDFSCluster cluster = null;
+    try {
+        cluster = new MiniDFSCluster.Builder(conf).build();
+        InetSocketAddress addr = new InetSocketAddress("localhost", cluster.getNameNodePort());
+        DFSClient client = new DFSClient(addr, conf);
+        // Restart datanodes
+        cluster.restartDataNodes();
+        // Wait until we get a heartbeat from the new datanode
+        DatanodeInfo[] report = client.datanodeReport(DatanodeReportType.ALL);
+        long firstUpdateAfterRestart = report[0].getLastUpdate();
+        boolean gotHeartbeat = false;
+        for (int i = 0; i < 10 && !gotHeartbeat; i++) {
+            try {
+                Thread.sleep(i * 1000);
+            } catch (InterruptedException ie) {
+            }
+            report = client.datanodeReport(DatanodeReportType.ALL);
+            gotHeartbeat = (report[0].getLastUpdate() > firstUpdateAfterRestart);
+        }
+        if (!gotHeartbeat) {
+            fail("Never got a heartbeat from restarted datanode.");
+        }
+        int realIpcPort = cluster.getDataNodes().get(0).getIpcPort();
+        // Now make sure the reported IPC port is the correct one.
+        assertEquals(realIpcPort, report[0].getIpcPort());
+    } finally {
+        if (cluster != null) {
+            cluster.shutdown();
+        }
+    }
+}

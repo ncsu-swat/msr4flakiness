@@ -1,0 +1,25 @@
+@Test
+public void getResponseHeadersTimesOut() throws Exception {
+    // write the mocking script
+    // SYN_STREAM
+    peer.acceptFrame();
+    // RST_STREAM
+    peer.acceptFrame();
+    peer.play();
+    // play it back
+    SpdyConnection connection = connection(peer, SPDY3);
+    SpdyStream stream = connection.newStream(headerEntries("b", "banana"), true, true);
+    stream.readTimeout().timeout(500, TimeUnit.MILLISECONDS);
+    long startNanos = System.nanoTime();
+    try {
+        stream.getResponseHeaders();
+        fail();
+    } catch (InterruptedIOException expected) {
+    }
+    long elapsedNanos = System.nanoTime() - startNanos;
+    assertEquals(500d, TimeUnit.NANOSECONDS.toMillis(elapsedNanos), 200d);
+    assertEquals(0, connection.openStreamCount());
+    // verify the peer received what was expected
+    assertEquals(TYPE_HEADERS, peer.takeFrame().type);
+    assertEquals(TYPE_RST_STREAM, peer.takeFrame().type);
+}

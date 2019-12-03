@@ -1,0 +1,171 @@
+/**
+ * Test : The subworkflow should get purged, and the workflow parent should get purged --> both will get purged
+ * There are more subworkflow children than the limit
+ *
+ * @throws Exception
+ */
+public void testPurgeWFWithSubWF3MoreThanLimit() throws Exception {
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    WorkflowJobBean wfJob = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED);
+    WorkflowActionBean wfAction1 = addRecordToWfActionTable(wfJob.getId(), "1", WorkflowAction.Status.OK);
+    WorkflowActionBean wfAction2 = addRecordToWfActionTable(wfJob.getId(), "2", WorkflowAction.Status.OK);
+    WorkflowActionBean wfAction3 = addRecordToWfActionTable(wfJob.getId(), "3", WorkflowAction.Status.OK);
+    WorkflowActionBean wfAction4 = addRecordToWfActionTable(wfJob.getId(), "4", WorkflowAction.Status.OK);
+    WorkflowActionBean wfAction5 = addRecordToWfActionTable(wfJob.getId(), "5", WorkflowAction.Status.OK);
+    WorkflowJobBean subwfJob1 = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED, wfJob.getId());
+    WorkflowJobBean subwfJob2 = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED, wfJob.getId());
+    WorkflowJobBean subwfJob3 = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED, wfJob.getId());
+    WorkflowJobBean subwfJob4 = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED, wfJob.getId());
+    WorkflowJobBean subwfJob5 = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED, wfJob.getId());
+    WorkflowActionBean subwfAction1 = addRecordToWfActionTable(subwfJob1.getId(), "1", WorkflowAction.Status.OK);
+    WorkflowActionBean subwfAction2 = addRecordToWfActionTable(subwfJob2.getId(), "1", WorkflowAction.Status.OK);
+    WorkflowActionBean subwfAction3 = addRecordToWfActionTable(subwfJob3.getId(), "1", WorkflowAction.Status.OK);
+    WorkflowActionBean subwfAction4 = addRecordToWfActionTable(subwfJob4.getId(), "1", WorkflowAction.Status.OK);
+    WorkflowActionBean subwfAction5 = addRecordToWfActionTable(subwfJob5.getId(), "1", WorkflowAction.Status.OK);
+    WorkflowJobGetJPAExecutor wfJobGetCmd = new WorkflowJobGetJPAExecutor(wfJob.getId());
+    WorkflowActionGetJPAExecutor wfAction1GetCmd = new WorkflowActionGetJPAExecutor(wfAction1.getId());
+    WorkflowActionGetJPAExecutor wfAction2GetCmd = new WorkflowActionGetJPAExecutor(wfAction2.getId());
+    WorkflowActionGetJPAExecutor wfAction3GetCmd = new WorkflowActionGetJPAExecutor(wfAction3.getId());
+    WorkflowActionGetJPAExecutor wfAction4GetCmd = new WorkflowActionGetJPAExecutor(wfAction4.getId());
+    WorkflowActionGetJPAExecutor wfAction5GetCmd = new WorkflowActionGetJPAExecutor(wfAction5.getId());
+    WorkflowJobGetJPAExecutor subwfJob1GetCmd = new WorkflowJobGetJPAExecutor(subwfJob1.getId());
+    WorkflowJobGetJPAExecutor subwfJob2GetCmd = new WorkflowJobGetJPAExecutor(subwfJob2.getId());
+    WorkflowJobGetJPAExecutor subwfJob3GetCmd = new WorkflowJobGetJPAExecutor(subwfJob3.getId());
+    WorkflowJobGetJPAExecutor subwfJob4GetCmd = new WorkflowJobGetJPAExecutor(subwfJob4.getId());
+    WorkflowJobGetJPAExecutor subwfJob5GetCmd = new WorkflowJobGetJPAExecutor(subwfJob5.getId());
+    WorkflowActionGetJPAExecutor subwfAction1GetCmd = new WorkflowActionGetJPAExecutor(subwfAction1.getId());
+    WorkflowActionGetJPAExecutor subwfAction2GetCmd = new WorkflowActionGetJPAExecutor(subwfAction2.getId());
+    WorkflowActionGetJPAExecutor subwfAction3GetCmd = new WorkflowActionGetJPAExecutor(subwfAction3.getId());
+    WorkflowActionGetJPAExecutor subwfAction4GetCmd = new WorkflowActionGetJPAExecutor(subwfAction4.getId());
+    WorkflowActionGetJPAExecutor subwfAction5GetCmd = new WorkflowActionGetJPAExecutor(subwfAction5.getId());
+    wfJob = jpaService.execute(wfJobGetCmd);
+    wfAction1 = jpaService.execute(wfAction1GetCmd);
+    wfAction2 = jpaService.execute(wfAction2GetCmd);
+    wfAction3 = jpaService.execute(wfAction3GetCmd);
+    wfAction4 = jpaService.execute(wfAction4GetCmd);
+    wfAction5 = jpaService.execute(wfAction5GetCmd);
+    subwfJob1 = jpaService.execute(subwfJob1GetCmd);
+    subwfJob2 = jpaService.execute(subwfJob2GetCmd);
+    subwfJob3 = jpaService.execute(subwfJob3GetCmd);
+    subwfJob4 = jpaService.execute(subwfJob4GetCmd);
+    subwfJob5 = jpaService.execute(subwfJob5GetCmd);
+    subwfAction1 = jpaService.execute(subwfAction1GetCmd);
+    subwfAction2 = jpaService.execute(subwfAction2GetCmd);
+    subwfAction3 = jpaService.execute(subwfAction3GetCmd);
+    subwfAction4 = jpaService.execute(subwfAction4GetCmd);
+    subwfAction5 = jpaService.execute(subwfAction5GetCmd);
+    assertEquals(WorkflowJob.Status.SUCCEEDED, wfJob.getStatus());
+    assertEquals(WorkflowAction.Status.OK, wfAction1.getStatus());
+    assertEquals(WorkflowAction.Status.OK, wfAction2.getStatus());
+    assertEquals(WorkflowAction.Status.OK, wfAction3.getStatus());
+    assertEquals(WorkflowAction.Status.OK, wfAction4.getStatus());
+    assertEquals(WorkflowAction.Status.OK, wfAction5.getStatus());
+    assertEquals(WorkflowJob.Status.SUCCEEDED, subwfJob1.getStatus());
+    assertEquals(WorkflowJob.Status.SUCCEEDED, subwfJob2.getStatus());
+    assertEquals(WorkflowJob.Status.SUCCEEDED, subwfJob3.getStatus());
+    assertEquals(WorkflowJob.Status.SUCCEEDED, subwfJob4.getStatus());
+    assertEquals(WorkflowJob.Status.SUCCEEDED, subwfJob5.getStatus());
+    assertEquals(WorkflowAction.Status.OK, subwfAction1.getStatus());
+    assertEquals(WorkflowAction.Status.OK, subwfAction2.getStatus());
+    assertEquals(WorkflowAction.Status.OK, subwfAction3.getStatus());
+    assertEquals(WorkflowAction.Status.OK, subwfAction4.getStatus());
+    assertEquals(WorkflowAction.Status.OK, subwfAction5.getStatus());
+    new PurgeXCommand(7, 1, 1, 3).call();
+    try {
+        jpaService.execute(wfJobGetCmd);
+        fail("Workflow Job should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0604, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(wfAction1GetCmd);
+        fail("Workflow Action 1 should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0605, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(wfAction2GetCmd);
+        fail("Workflow Action 2 should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0605, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(wfAction3GetCmd);
+        fail("Workflow Action 3 should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0605, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(wfAction4GetCmd);
+        fail("Workflow Action 4 should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0605, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(wfAction5GetCmd);
+        fail("Workflow Action 5 should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0605, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(subwfJob1GetCmd);
+        fail("SubWorkflow Job 1 should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0604, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(subwfJob2GetCmd);
+        fail("SubWorkflow Job 2 should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0604, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(subwfJob3GetCmd);
+        fail("SubWorkflow Job 3 should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0604, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(subwfJob4GetCmd);
+        fail("SubWorkflow Job 4 should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0604, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(subwfJob5GetCmd);
+        fail("SubWorkflow Job 5 should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0604, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(subwfAction1GetCmd);
+        fail("SubWorkflow Action 1 should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0605, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(subwfAction2GetCmd);
+        fail("SubWorkflow Action 2 should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0605, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(subwfAction3GetCmd);
+        fail("SubWorkflow Action 3 should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0605, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(subwfAction4GetCmd);
+        fail("SubWorkflow Action 4 should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0605, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(subwfAction5GetCmd);
+        fail("SubWorkflow Action 5 should have been purged");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0605, je.getErrorCode());
+    }
+}

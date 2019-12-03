@@ -1,0 +1,35 @@
+/**
+ * Test that the delegation token secret manager only runs when the
+ * NN is out of safe mode. This is because the secret manager
+ * has to log to the edit log, which should not be written in
+ * safe mode. Regression test for HDFS-2579.
+ */
+@Test
+public void testDTManagerInSafeMode() throws Exception {
+    cluster.startDataNodes(config, 1, true, StartupOption.REGULAR, null);
+    FileSystem fs = cluster.getFileSystem();
+    for (int i = 0; i < 5; i++) {
+        DFSTestUtil.createFile(fs, new Path("/test-" + i), 100, (short) 1, 1L);
+    }
+    cluster.getConfiguration(0).setInt(DFSConfigKeys.DFS_NAMENODE_DELEGATION_KEY_UPDATE_INTERVAL_KEY, 500);
+    cluster.getConfiguration(0).setInt(DFSConfigKeys.DFS_NAMENODE_SAFEMODE_EXTENSION_KEY, 30000);
+    cluster.setWaitSafeMode(false);
+    cluster.restartNameNode();
+    NameNode nn = cluster.getNameNode();
+    assertTrue(nn.isInSafeMode());
+    DelegationTokenSecretManager sm = NameNodeAdapter.getDtSecretManager(nn.getNamesystem());
+    assertFalse("Secret manager should not run in safe mode", sm.isRunning());
+    NameNodeAdapter.leaveSafeMode(nn);
+    assertTrue("Secret manager should start when safe mode is exited", sm.isRunning());
+    LOG.info("========= entering safemode again");
+    NameNodeAdapter.enterSafeMode(nn, false);
+    assertFalse("Secret manager should stop again when safe mode " + "is manually entered", sm.isRunning());
+    // Set the cluster to leave safemode quickly on its own.
+    cluster.getConfiguration(0).setInt(DFSConfigKeys.DFS_NAMENODE_SAFEMODE_EXTENSION_KEY, 0);
+    cluster.setWaitSafeMode(true);
+    cluster.restartNameNode();
+    nn = cluster.getNameNode();
+    sm = NameNodeAdapter.getDtSecretManager(nn.getNamesystem());
+    assertFalse(nn.isInSafeMode());
+    assertTrue(sm.isRunning());
+}

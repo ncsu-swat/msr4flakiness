@@ -1,0 +1,22 @@
+/**
+ * Test when input path is a file
+ */
+@Test
+public void testFile() throws IOException {
+    fc.mkdir(TEST_DIR, FsPermission.getDefault(), true);
+    writeFile(fc, FILE1, FILE_LEN);
+    RemoteIterator<LocatedFileStatus> itor = fc.util().listFiles(FILE1, true);
+    LocatedFileStatus stat = itor.next();
+    assertFalse(itor.hasNext());
+    assertTrue(stat.isFile());
+    assertEquals(FILE_LEN, stat.getLen());
+    assertEquals(fc.makeQualified(FILE1), stat.getPath());
+    assertEquals(1, stat.getBlockLocations().length);
+    itor = fc.util().listFiles(FILE1, false);
+    stat = itor.next();
+    assertFalse(itor.hasNext());
+    assertTrue(stat.isFile());
+    assertEquals(FILE_LEN, stat.getLen());
+    assertEquals(fc.makeQualified(FILE1), stat.getPath());
+    assertEquals(1, stat.getBlockLocations().length);
+}

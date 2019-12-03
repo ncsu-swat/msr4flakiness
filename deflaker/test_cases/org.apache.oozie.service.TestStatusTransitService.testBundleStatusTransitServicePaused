@@ -1,0 +1,31 @@
+/**
+ * Test : Check the transition of a PAUSEDWITHERROR bundle job to PAUSED
+ * @throws Exception
+ */
+public void testBundleStatusTransitServicePaused() throws Exception {
+    Services.get().destroy();
+    setSystemProperty(StatusTransitService.CONF_BACKWARD_SUPPORT_FOR_STATES_WITHOUT_ERROR, "false");
+    services = new Services();
+    setClassesToBeExcluded(services.getConf(), excludedServices);
+    services.init();
+    BundleJobBean bundleJob = createBundleJob(Job.Status.PAUSEDWITHERROR, true);
+    bundleJob.setPauseTime(DateUtils.parseDateOozieTZ("2009-02-01T01:00Z"));
+    final JPAService jpaService = Services.get().get(JPAService.class);
+    BundleJobInsertJPAExecutor bundleInsertjpa = new BundleJobInsertJPAExecutor(bundleJob);
+    jpaService.execute(bundleInsertjpa);
+    final String bundleId = bundleJob.getId();
+    addRecordToBundleActionTable(bundleId, "action1", 1, Job.Status.PAUSED);
+    addRecordToBundleActionTable(bundleId, "action2", 1, Job.Status.PAUSED);
+    addRecordToBundleActionTable(bundleId, "action3", 0, Job.Status.SUCCEEDED);
+    Runnable runnable = new StatusTransitRunnable();
+    runnable.run();
+    waitFor(5 * 1000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            BundleJobBean bundle = jpaService.execute(new BundleJobGetJPAExecutor(bundleId));
+            return bundle.getStatus() == Job.Status.PAUSED;
+        }
+    });
+    bundleJob = jpaService.execute(new BundleJobGetJPAExecutor(bundleId));
+    assertEquals(Job.Status.PAUSED, bundleJob.getStatus());
+}

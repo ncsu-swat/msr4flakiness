@@ -1,0 +1,18 @@
+@Test
+public void testFileSystemCloseAll() throws Exception {
+    Configuration conf = getTestConfiguration();
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).numDataNodes(0).build();
+    URI address = FileSystem.getDefaultUri(conf);
+    try {
+        FileSystem.closeAll();
+        conf = getTestConfiguration();
+        FileSystem.setDefaultUri(conf, address);
+        FileSystem.get(conf);
+        FileSystem.get(conf);
+        FileSystem.closeAll();
+    } finally {
+        if (cluster != null) {
+            cluster.shutdown();
+        }
+    }
+}

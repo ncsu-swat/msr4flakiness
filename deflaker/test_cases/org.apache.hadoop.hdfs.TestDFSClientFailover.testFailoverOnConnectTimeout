@@ -1,0 +1,19 @@
+/**
+ * Test that even a non-idempotent method will properly fail-over if the
+ * first IPC attempt times out trying to connect. Regression test for
+ * HDFS-4404.
+ */
+@Test
+public void testFailoverOnConnectTimeout() throws Exception {
+    conf.setClass(CommonConfigurationKeysPublic.HADOOP_RPC_SOCKET_FACTORY_CLASS_DEFAULT_KEY, InjectingSocketFactory.class, SocketFactory.class);
+    // Set up the InjectingSocketFactory to throw a ConnectTimeoutException
+    // when connecting to the first NN.
+    InjectingSocketFactory.portToInjectOn = cluster.getNameNodePort(0);
+    FileSystem fs = HATestUtil.configureFailoverFs(cluster, conf);
+    // Make the second NN the active one.
+    cluster.shutdownNameNode(0);
+    cluster.transitionToActive(1);
+    // Call a non-idempotent method, and ensure the failover of the call proceeds
+    // successfully.
+    IOUtils.closeStream(fs.create(TEST_FILE));
+}

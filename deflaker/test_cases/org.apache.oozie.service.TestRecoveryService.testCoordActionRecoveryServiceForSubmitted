@@ -1,0 +1,44 @@
+/**
+ * Tests functionality of the Recovery Service Runnable command. </p> Insert a coordinator job with RUNNING and
+ * action with SUBMITTED. Then, runs the recovery runnable and ensures the action status changes to RUNNING.
+ *
+ * @throws Exception
+ */
+public void testCoordActionRecoveryServiceForSubmitted() throws Exception {
+    final String jobId = "0000000-" + new Date().getTime() + "-testCoordRecoveryService-C";
+    final int actionNum = 1;
+    final String actionId = jobId + "@" + actionNum;
+    final CoordinatorEngine ce = new CoordinatorEngine(getTestUser(), "UNIT_TESTING");
+    CoordinatorStore store = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
+    store.beginTrx();
+    try {
+        createTestCaseSubDir("no-op");
+        createTestCaseSubDir("no-op/lib");
+        createTestCaseSubDir("workflows");
+        createTestCaseSubDir("in");
+        addRecordToJobTable(jobId, store, getTestCaseDir());
+        addRecordToActionTable(jobId, actionNum, actionId, store, getTestCaseDir());
+        store.commitTrx();
+    } finally {
+        store.closeTrx();
+    }
+    sleep(3000);
+    Runnable recoveryRunnable = new RecoveryRunnable(0, 1, 1);
+    recoveryRunnable.run();
+    waitFor(10000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            CoordinatorActionBean bean = ce.getCoordAction(actionId);
+            return (bean.getStatus() == CoordinatorAction.Status.RUNNING || bean.getStatus() == CoordinatorAction.Status.SUCCEEDED);
+        }
+    });
+    CoordinatorStore store2 = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
+    store2.beginTrx();
+    CoordinatorActionBean action = store2.getCoordinatorAction(actionId, false);
+    if (action.getStatus() == CoordinatorAction.Status.RUNNING || action.getStatus() == CoordinatorAction.Status.SUCCEEDED) {
+    } else {
+        fail();
+    }
+    store2.commitTrx();
+    store2.closeTrx();
+}

@@ -1,0 +1,43 @@
+/*
+   * Test that a block that is re-replicated because one of its replicas
+   * is found to be corrupt and is re-replicated across racks.
+   */
+@Test
+public void testCorruptBlockRereplicatedAcrossRacks() throws Exception {
+    Configuration conf = getConf();
+    short REPLICATION_FACTOR = 2;
+    int fileLen = 512;
+    final Path filePath = new Path("/testFile");
+    // Datanodes are spread across two racks
+    String[] racks = { "/rack1", "/rack1", "/rack2", "/rack2" };
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).numDataNodes(racks.length).racks(racks).build();
+    final FSNamesystem ns = cluster.getNameNode().getNamesystem();
+    try {
+        // Create a file with one block with a replication factor of 2
+        final FileSystem fs = cluster.getFileSystem();
+        DFSTestUtil.createFile(fs, filePath, fileLen, REPLICATION_FACTOR, 1L);
+        final String fileContent = DFSTestUtil.readFile(fs, filePath);
+        ExtendedBlock b = DFSTestUtil.getFirstBlock(fs, filePath);
+        DFSTestUtil.waitForReplication(cluster, b, 2, REPLICATION_FACTOR, 0);
+        // Corrupt a replica of the block
+        int dnToCorrupt = DFSTestUtil.firstDnWithBlock(cluster, b);
+        assertTrue(MiniDFSCluster.corruptReplica(dnToCorrupt, b));
+        // Restart the datanode so blocks are re-scanned, and the corrupt
+        // block is detected.
+        cluster.restartDataNode(dnToCorrupt);
+        // Wait for the namenode to notice the corrupt replica
+        DFSTestUtil.waitCorruptReplicas(fs, ns, filePath, b, 1);
+        // The rack policy is still respected
+        DFSTestUtil.waitForReplication(cluster, b, 2, REPLICATION_FACTOR, 0);
+        // Ensure all replicas are valid (the corrupt replica may not
+        // have been cleaned up yet).
+        for (int i = 0; i < racks.length; i++) {
+            String blockContent = cluster.readBlockOnDataNode(i, b);
+            if (blockContent != null && i != dnToCorrupt) {
+                assertEquals("Corrupt replica", fileContent, blockContent);
+            }
+        }
+    } finally {
+        cluster.shutdown();
+    }
+}

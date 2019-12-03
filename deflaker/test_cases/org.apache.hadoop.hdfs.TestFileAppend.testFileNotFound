@@ -1,0 +1,21 @@
+/**
+ * FileNotFoundException is expected for appending to a non-exisiting file
+ *
+ * @throws FileNotFoundException as the result
+ */
+@Test(expected = FileNotFoundException.class)
+public void testFileNotFound() throws IOException {
+    Configuration conf = new HdfsConfiguration();
+    if (simulatedStorage) {
+        conf.setBoolean(SimulatedFSDataset.CONFIG_PROPERTY_SIMULATED, true);
+    }
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).build();
+    FileSystem fs = cluster.getFileSystem();
+    try {
+        Path file1 = new Path("/nonexistingfile.dat");
+        fs.append(file1);
+    } finally {
+        fs.close();
+        cluster.shutdown();
+    }
+}

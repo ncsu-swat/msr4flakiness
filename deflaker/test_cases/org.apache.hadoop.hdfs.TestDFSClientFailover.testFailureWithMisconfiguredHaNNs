@@ -1,0 +1,19 @@
+/**
+ * Make sure that a helpful error message is shown if a proxy provider is
+ * configured for a given URI, but no actual addresses are configured for that
+ * URI.
+ */
+@Test
+public void testFailureWithMisconfiguredHaNNs() throws Exception {
+    String logicalHost = "misconfigured-ha-uri";
+    Configuration conf = new Configuration();
+    conf.set(DFS_CLIENT_FAILOVER_PROXY_PROVIDER_KEY_PREFIX + "." + logicalHost, ConfiguredFailoverProxyProvider.class.getName());
+    URI uri = new URI("hdfs://" + logicalHost + "/test");
+    try {
+        FileSystem.get(uri, conf).exists(new Path("/test"));
+        fail("Successfully got proxy provider for misconfigured FS");
+    } catch (IOException ioe) {
+        LOG.info("got expected exception", ioe);
+        assertTrue("expected exception did not contain helpful message", StringUtils.stringifyException(ioe).contains("Could not find any configured addresses for URI " + uri));
+    }
+}

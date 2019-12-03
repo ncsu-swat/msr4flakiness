@@ -1,0 +1,24 @@
+@Test
+public void testKillJob() throws Exception {
+    final CountDownLatch latch = new CountDownLatch(1);
+    MRApp app = new BlockingMRApp(1, 0, latch);
+    // this will start the job but job won't complete as task is
+    // blocked
+    Job job = app.submit(new Configuration());
+    // wait and vailidate for Job to become RUNNING
+    app.waitForState(job, JobState.RUNNING);
+    // send the kill signal to Job
+    app.getContext().getEventHandler().handle(new JobEvent(job.getID(), JobEventType.JOB_KILL));
+    // unblock Task
+    latch.countDown();
+    // wait and validate for Job to be KILLED
+    app.waitForState(job, JobState.KILLED);
+    Map<TaskId, Task> tasks = job.getTasks();
+    Assert.assertEquals("No of tasks is not correct", 1, tasks.size());
+    Task task = tasks.values().iterator().next();
+    Assert.assertEquals("Task state not correct", TaskState.KILLED, task.getReport().getTaskState());
+    Map<TaskAttemptId, TaskAttempt> attempts = tasks.values().iterator().next().getAttempts();
+    Assert.assertEquals("No of attempts is not correct", 1, attempts.size());
+    Iterator<TaskAttempt> it = attempts.values().iterator();
+    Assert.assertEquals("Attempt state not correct", TaskAttemptState.KILLED, it.next().getReport().getTaskAttemptState());
+}

@@ -1,0 +1,32 @@
+@Test
+public void testZkNodeChangesUpdateFeatureState() throws Exception {
+    setupTestWithEmptyDatastore();
+    FeatureState savedFeatureState = new FeatureState(TestFeature.FEATURE);
+    savedFeatureState.setStrategyId(UsernameActivationStrategy.ID);
+    savedFeatureState.setParameter(UsernameActivationStrategy.PARAM_USERS, "user1, user2, user3");
+    stateRepository.setFeatureState(savedFeatureState);
+    FeatureState loadedFeatureState = stateRepository.getFeatureState(TestFeature.FEATURE);
+    assertThat(reflectionEquals(savedFeatureState, loadedFeatureState), is(true));
+    // Modify data in ZK
+    FeatureStateStorageWrapper externallySetStateWrapper = new FeatureStateStorageWrapper();
+    FeatureState externallySetState = new FeatureState(TestFeature.FEATURE);
+    ObjectMapper objectMapper = new ObjectMapper();
+    final String json = objectMapper.writeValueAsString(externallySetStateWrapper);
+    final CountDownLatch latch = new CountDownLatch(1);
+    new Thread(new Runnable() {
+
+        @Override
+        public void run() {
+            try {
+                serverClientPair.client.setData().forPath(TEST_ZNODE + "/FEATURE", json.getBytes("UTF-8"));
+                latch.countDown();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }).start();
+    latch.await(2, TimeUnit.SECONDS);
+    Thread.sleep(25);
+    loadedFeatureState = stateRepository.getFeatureState(TestFeature.FEATURE);
+    assertThat(reflectionEquals(externallySetState, loadedFeatureState), is(true));
+}

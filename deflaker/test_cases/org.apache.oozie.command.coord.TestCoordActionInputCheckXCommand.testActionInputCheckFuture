@@ -1,0 +1,33 @@
+public void testActionInputCheckFuture() throws Exception {
+    String jobId = "0000000-" + new Date().getTime() + "-TestCoordActionInputCheckXCommand-C";
+    Date startTime = DateUtils.parseDateOozieTZ("2009-02-15T23:59" + TZ);
+    Date endTime = DateUtils.parseDateOozieTZ("2009-02-16T23:59" + TZ);
+    CoordinatorJobBean job = addRecordToCoordJobTable(jobId, startTime, endTime, "future");
+    new CoordMaterializeTransitionXCommand(job.getId(), 3600).call();
+    // providing some of the dataset dirs required as per coordinator specification with holes
+    createDir(getTestCaseDir() + "/2009/02/12/");
+    createDir(getTestCaseDir() + "/2009/02/26/");
+    createDir(getTestCaseDir() + "/2009/03/05/");
+    // limit is 5. So this should be ignored
+    createDir(getTestCaseDir() + "/2009/03/26/");
+    new CoordActionInputCheckXCommand(job.getId() + "@1", job.getId()).call();
+    CoordinatorActionBean action = null;
+    JPAService jpaService = Services.get().get(JPAService.class);
+    try {
+        action = jpaService.execute(new CoordActionGetJPAExecutor(job.getId() + "@1"));
+    } catch (JPAExecutorException se) {
+        fail("Action ID " + job.getId() + "@1" + " was not stored properly in db");
+    }
+    assertEquals(CoordCommandUtils.RESOLVED_UNRESOLVED_SEPARATOR + "${coord:futureRange(0,3,'5')}", action.getMissingDependencies());
+    createDir(getTestCaseDir() + "/2009/03/12/");
+    new CoordActionInputCheckXCommand(job.getId() + "@1", job.getId()).call();
+    try {
+        action = jpaService.execute(new CoordActionGetJPAExecutor(job.getId() + "@1"));
+    } catch (JPAExecutorException se) {
+        fail("Action ID " + job.getId() + "@1" + " was not stored properly in db");
+    }
+    assertEquals("", action.getMissingDependencies());
+    String actionXML = action.getActionXml();
+    String resolvedList = "file://" + getTestCaseDir() + "/2009/02/12" + CoordELFunctions.INSTANCE_SEPARATOR + "file://" + getTestCaseDir() + "/2009/02/26" + CoordELFunctions.INSTANCE_SEPARATOR + "file://" + getTestCaseDir() + "/2009/03/05" + CoordELFunctions.INSTANCE_SEPARATOR + "file://" + getTestCaseDir() + "/2009/03/12";
+    assertEquals(resolvedList, actionXML.substring(actionXML.indexOf("<uris>") + 6, actionXML.indexOf("</uris>")));
+}

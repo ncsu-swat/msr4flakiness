@@ -1,0 +1,38 @@
+/**
+ * Tests that NameNode resource monitor causes the NN to enter safe mode when
+ * resources are low.
+ */
+@Test
+public void testCheckThatNameNodeResourceMonitorIsRunning() throws IOException, InterruptedException {
+    MiniDFSCluster cluster = null;
+    try {
+        conf.set(DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY, nameDir.getAbsolutePath());
+        conf.setLong(DFSConfigKeys.DFS_NAMENODE_RESOURCE_CHECK_INTERVAL_KEY, 1);
+        cluster = new MiniDFSCluster.Builder(conf).numDataNodes(1).build();
+        NameNodeResourceChecker mockResourceChecker = Mockito.mock(NameNodeResourceChecker.class);
+        Mockito.when(mockResourceChecker.hasAvailableDiskSpace()).thenReturn(true);
+        cluster.getNameNode().getNamesystem().nnResourceChecker = mockResourceChecker;
+        cluster.waitActive();
+        String name = NameNodeResourceMonitor.class.getName();
+        boolean isNameNodeMonitorRunning = false;
+        Set<Thread> runningThreads = Thread.getAllStackTraces().keySet();
+        for (Thread runningThread : runningThreads) {
+            if (runningThread.toString().startsWith("Thread[" + name)) {
+                isNameNodeMonitorRunning = true;
+                break;
+            }
+        }
+        assertTrue("NN resource monitor should be running", isNameNodeMonitorRunning);
+        assertFalse("NN should not presently be in safe mode", cluster.getNameNode().isInSafeMode());
+        Mockito.when(mockResourceChecker.hasAvailableDiskSpace()).thenReturn(false);
+        // Make sure the NNRM thread has a chance to run.
+        long startMillis = System.currentTimeMillis();
+        while (!cluster.getNameNode().isInSafeMode() && System.currentTimeMillis() < startMillis + (60 * 1000)) {
+            Thread.sleep(1000);
+        }
+        assertTrue("NN should be in safe mode after resources crossed threshold", cluster.getNameNode().isInSafeMode());
+    } finally {
+        if (cluster != null)
+            cluster.shutdown();
+    }
+}

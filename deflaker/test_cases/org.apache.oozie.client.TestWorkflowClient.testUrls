@@ -1,0 +1,19 @@
+public void testUrls() throws Exception {
+    runTest(END_POINTS, SERVLET_CLASSES, IS_SECURITY_ENABLED, new Callable<Void>() {
+
+        public Void call() throws Exception {
+            String oozieUrl = getContextURL();
+            OozieClient wc = new OozieClient(oozieUrl);
+            assertEquals(oozieUrl, wc.getOozieUrl().substring(0, wc.getOozieUrl().length() - 1));
+            assertTrue(wc.getProtocolUrl().startsWith(wc.getOozieUrl() + "v"));
+            try {
+                wc = new OozieClientForTest(oozieUrl);
+                wc.getProtocolUrl();
+                fail("wrong version should run throw exception");
+            } catch (OozieClientException e) {
+                assertEquals("UNSUPPORTED_VERSION : Supported version [2] or less, Unsupported versions[-11-10]", e.toString());
+            }
+            return null;
+        }
+    });
+}

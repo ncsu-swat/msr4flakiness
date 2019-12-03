@@ -1,0 +1,23 @@
+@Test
+public void testQuotedAttributeValues() throws Exception {
+    CookieManager cookieManager = new CookieManager(null, ACCEPT_ORIGINAL_SERVER);
+    CookieHandler.setDefault(cookieManager);
+    MockWebServer server = new MockWebServer();
+    server.play();
+    server.enqueue(new MockResponse().addHeader("Set-Cookie2: a=\"android\"; " + "Comment=\"this cookie is delicious\"; " + "CommentURL=\"http://google.com/\"; " + "Discard; " + "Domain=\"" + server.getCookieDomain() + "\"; " + "Max-Age=\"60\"; " + "Path=\"/path\"; " + "Port=\"80,443," + server.getPort() + "\"; " + "Secure; " + "Version=\"1\""));
+    get(server, "/path/foo");
+    List<HttpCookie> cookies = cookieManager.getCookieStore().getCookies();
+    assertEquals(1, cookies.size());
+    HttpCookie cookie = cookies.get(0);
+    assertEquals("a", cookie.getName());
+    assertEquals("android", cookie.getValue());
+    assertEquals("this cookie is delicious", cookie.getComment());
+    assertEquals("http://google.com/", cookie.getCommentURL());
+    assertEquals(true, cookie.getDiscard());
+    assertEquals(server.getCookieDomain(), cookie.getDomain());
+    assertEquals(60, cookie.getMaxAge());
+    assertEquals("/path", cookie.getPath());
+    assertEquals("80,443," + server.getPort(), cookie.getPortlist());
+    assertEquals(true, cookie.getSecure());
+    assertEquals(1, cookie.getVersion());
+}

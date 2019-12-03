@@ -1,0 +1,28 @@
+/**
+ * Test that the BPOS can register to talk to two different NNs,
+ * sends block reports to both, etc.
+ */
+@Test
+public void testBasicFunctionality() throws Exception {
+    BPOfferService bpos = setupBPOSForNNs(mockNN1, mockNN2);
+    bpos.start();
+    try {
+        waitForInitialization(bpos);
+        // The DN should have register to both NNs.
+        Mockito.verify(mockNN1).registerDatanode(Mockito.any(DatanodeRegistration.class));
+        Mockito.verify(mockNN2).registerDatanode(Mockito.any(DatanodeRegistration.class));
+        // Should get block reports from both NNs
+        waitForBlockReport(mockNN1);
+        waitForBlockReport(mockNN2);
+        // When we receive a block, it should report it to both NNs
+        bpos.notifyNamenodeReceivedBlock(FAKE_BLOCK, "");
+        ReceivedDeletedBlockInfo[] ret = waitForBlockReceived(FAKE_BLOCK, mockNN1);
+        assertEquals(1, ret.length);
+        assertEquals(FAKE_BLOCK.getLocalBlock(), ret[0].getBlock());
+        ret = waitForBlockReceived(FAKE_BLOCK, mockNN2);
+        assertEquals(1, ret.length);
+        assertEquals(FAKE_BLOCK.getLocalBlock(), ret[0].getBlock());
+    } finally {
+        bpos.stop();
+    }
+}

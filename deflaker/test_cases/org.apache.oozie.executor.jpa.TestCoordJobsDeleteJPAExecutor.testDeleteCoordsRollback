@@ -1,0 +1,76 @@
+public void testDeleteCoordsRollback() throws Exception {
+    CoordinatorJobBean jobA = addRecordToCoordJobTable(CoordinatorJob.Status.SUCCEEDED, false, false);
+    CoordinatorActionBean actionA1 = addRecordToCoordActionTable(jobA.getId(), 1, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    CoordinatorActionBean actionA2 = addRecordToCoordActionTable(jobA.getId(), 2, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    CoordinatorJobBean jobB = addRecordToCoordJobTable(CoordinatorJob.Status.SUCCEEDED, false, false);
+    CoordinatorActionBean actionB1 = addRecordToCoordActionTable(jobB.getId(), 1, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    CoordinatorActionBean actionB2 = addRecordToCoordActionTable(jobB.getId(), 2, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    CoordinatorJobBean jobC = addRecordToCoordJobTable(CoordinatorJob.Status.SUCCEEDED, false, false);
+    CoordinatorActionBean actionC1 = addRecordToCoordActionTable(jobC.getId(), 1, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    CoordinatorActionBean actionC2 = addRecordToCoordActionTable(jobC.getId(), 2, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    try {
+        // set fault injection to true, so transaction is roll backed
+        setSystemProperty(FaultInjection.FAULT_INJECTION, "true");
+        setSystemProperty(SkipCommitFaultInjection.ACTION_FAILOVER_FAULT_INJECTION, "true");
+        List<String> deleteList = new ArrayList<String>();
+        deleteList.add(jobA.getId());
+        deleteList.add(jobB.getId());
+        deleteList.add(jobC.getId());
+        try {
+            jpaService.execute(new CoordJobsDeleteJPAExecutor(deleteList));
+            fail("Should have skipped commit for failover testing");
+        } catch (RuntimeException re) {
+            assertEquals("Skipping Commit for Failover Testing", re.getMessage());
+        }
+    } finally {
+        // Remove fault injection
+        FaultInjection.deactivate("org.apache.oozie.command.SkipCommitFaultInjection");
+    }
+    try {
+        jpaService.execute(new CoordJobGetJPAExecutor(jobA.getId()));
+    } catch (JPAExecutorException je) {
+        fail("Coordinator Job A should not have been deleted");
+    }
+    try {
+        jpaService.execute(new CoordActionGetJPAExecutor(actionA1.getId()));
+    } catch (JPAExecutorException je) {
+        fail("Coordinator Action A1 should not have been deleted");
+    }
+    try {
+        jpaService.execute(new CoordActionGetJPAExecutor(actionA2.getId()));
+    } catch (JPAExecutorException je) {
+        fail("Coordinator Action A2 should not have been deleted");
+    }
+    try {
+        jpaService.execute(new CoordJobGetJPAExecutor(jobB.getId()));
+    } catch (JPAExecutorException je) {
+        fail("Coordinator Job B should not have been deleted");
+    }
+    try {
+        jpaService.execute(new CoordActionGetJPAExecutor(actionB1.getId()));
+    } catch (JPAExecutorException je) {
+        fail("Coordinator Action B1 should not have been deleted");
+    }
+    try {
+        jpaService.execute(new CoordActionGetJPAExecutor(actionB2.getId()));
+    } catch (JPAExecutorException je) {
+        fail("Coordinator Action B2 should not have been deleted");
+    }
+    try {
+        jpaService.execute(new CoordJobGetJPAExecutor(jobC.getId()));
+    } catch (JPAExecutorException je) {
+        fail("Coordinator Job C should not have been deleted");
+    }
+    try {
+        jpaService.execute(new CoordActionGetJPAExecutor(actionC1.getId()));
+    } catch (JPAExecutorException je) {
+        fail("Coordinator Action C1 should not have been deleted");
+    }
+    try {
+        jpaService.execute(new CoordActionGetJPAExecutor(actionC2.getId()));
+    } catch (JPAExecutorException je) {
+        fail("Coordinator Action C2 should not have been deleted");
+    }
+}

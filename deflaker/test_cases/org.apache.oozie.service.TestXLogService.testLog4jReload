@@ -1,0 +1,27 @@
+public void testLog4jReload() throws Exception {
+    File log4jFile = new File(getTestCaseConfDir(), XLogService.DEFAULT_LOG4J_PROPERTIES);
+    ClassLoader cl = Thread.currentThread().getContextClassLoader();
+    InputStream is = cl.getResourceAsStream("test-oozie-log4j.properties");
+    IOUtils.copyStream(is, new FileOutputStream(log4jFile));
+    setSystemProperty(XLogService.LOG4J_RELOAD, "1");
+    XLogService ls = new XLogService();
+    ls.init(null);
+    assertTrue(LogFactory.getLog("a").isTraceEnabled());
+    sleep(1 * 1000);
+    is = cl.getResourceAsStream("test-custom-log4j.properties");
+    IOUtils.copyStream(is, new FileOutputStream(log4jFile));
+    float originalRatio = XTestCase.WAITFOR_RATIO;
+    try {
+        XTestCase.WAITFOR_RATIO = 1;
+        waitFor(5 * 1000, new Predicate() {
+
+            public boolean evaluate() throws Exception {
+                return !LogFactory.getLog("a").isTraceEnabled();
+            }
+        });
+        assertFalse(LogFactory.getLog("a").isTraceEnabled());
+    } finally {
+        XTestCase.WAITFOR_RATIO = originalRatio;
+    }
+    ls.destroy();
+}

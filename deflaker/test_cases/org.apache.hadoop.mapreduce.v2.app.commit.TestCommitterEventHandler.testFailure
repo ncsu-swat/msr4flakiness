@@ -1,0 +1,37 @@
+@Test
+public void testFailure() throws Exception {
+    AppContext mockContext = mock(AppContext.class);
+    OutputCommitter mockCommitter = mock(OutputCommitter.class);
+    Clock mockClock = mock(Clock.class);
+    CommitterEventHandler handler = new CommitterEventHandler(mockContext, mockCommitter, new TestingRMHeartbeatHandler());
+    YarnConfiguration conf = new YarnConfiguration();
+    conf.set(MRJobConfig.MR_AM_STAGING_DIR, stagingDir);
+    JobContext mockJobContext = mock(JobContext.class);
+    ApplicationAttemptId attemptid = ConverterUtils.toApplicationAttemptId("appattempt_1234567890000_0001_0");
+    JobId jobId = TypeConverter.toYarn(TypeConverter.fromYarn(attemptid.getApplicationId()));
+    WaitForItHandler waitForItHandler = new WaitForItHandler();
+    when(mockContext.getApplicationID()).thenReturn(attemptid.getApplicationId());
+    when(mockContext.getApplicationAttemptId()).thenReturn(attemptid);
+    when(mockContext.getEventHandler()).thenReturn(waitForItHandler);
+    when(mockContext.getClock()).thenReturn(mockClock);
+    doThrow(new YarnRuntimeException("Intentional Failure")).when(mockCommitter).commitJob(any(JobContext.class));
+    handler.init(conf);
+    handler.start();
+    try {
+        handler.handle(new CommitterJobCommitEvent(jobId, mockJobContext));
+        String user = UserGroupInformation.getCurrentUser().getShortUserName();
+        Path startCommitFile = MRApps.getStartJobCommitFile(conf, user, jobId);
+        Path endCommitSuccessFile = MRApps.getEndJobCommitSuccessFile(conf, user, jobId);
+        Path endCommitFailureFile = MRApps.getEndJobCommitFailureFile(conf, user, jobId);
+        Event e = waitForItHandler.getAndClearEvent();
+        assertNotNull(e);
+        assertTrue(e instanceof JobCommitFailedEvent);
+        FileSystem fs = FileSystem.get(conf);
+        assertTrue(fs.exists(startCommitFile));
+        assertFalse(fs.exists(endCommitSuccessFile));
+        assertTrue(fs.exists(endCommitFailureFile));
+        verify(mockCommitter).commitJob(any(JobContext.class));
+    } finally {
+        handler.stop();
+    }
+}

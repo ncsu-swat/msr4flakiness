@@ -1,0 +1,50 @@
+/* Check if namenode performs permission checking correctly for
+   * superuser, file owner, group owner, and other users */
+public void testPermissionChecking() throws Exception {
+    try {
+        fs = FileSystem.get(conf);
+        // set the permission of the root to be world-wide rwx
+        fs.setPermission(new Path("/"), new FsPermission((short) 0777));
+        // create a directory hierarchy and sets random permission for each inode
+        PermissionGenerator ancestorPermissionGenerator = new PermissionGenerator(r);
+        PermissionGenerator dirPermissionGenerator = new PermissionGenerator(r);
+        PermissionGenerator filePermissionGenerator = new PermissionGenerator(r);
+        short[] ancestorPermissions = new short[NUM_TEST_PERMISSIONS];
+        short[] parentPermissions = new short[NUM_TEST_PERMISSIONS];
+        short[] permissions = new short[NUM_TEST_PERMISSIONS];
+        Path[] ancestorPaths = new Path[NUM_TEST_PERMISSIONS];
+        Path[] parentPaths = new Path[NUM_TEST_PERMISSIONS];
+        Path[] filePaths = new Path[NUM_TEST_PERMISSIONS];
+        Path[] dirPaths = new Path[NUM_TEST_PERMISSIONS];
+        for (int i = 0; i < NUM_TEST_PERMISSIONS; i++) {
+            // create ancestor directory
+            ancestorPaths[i] = new Path(ANCESTOR_NAME + i);
+            create(OpType.MKDIRS, ancestorPaths[i]);
+            fs.setOwner(ancestorPaths[i], USER1_NAME, GROUP2_NAME);
+            // create parent directory
+            parentPaths[i] = new Path(ancestorPaths[i], PARENT_NAME + i);
+            create(OpType.MKDIRS, parentPaths[i]);
+            // change parent directory's ownership to be user1
+            fs.setOwner(parentPaths[i], USER1_NAME, GROUP2_NAME);
+            filePaths[i] = new Path(parentPaths[i], FILE_NAME + i);
+            dirPaths[i] = new Path(parentPaths[i], DIR_NAME + i);
+            // makes sure that each inode at the same level
+            // has a different permission
+            ancestorPermissions[i] = ancestorPermissionGenerator.next();
+            parentPermissions[i] = dirPermissionGenerator.next();
+            permissions[i] = filePermissionGenerator.next();
+            fs.setPermission(ancestorPaths[i], new FsPermission(ancestorPermissions[i]));
+            fs.setPermission(parentPaths[i], new FsPermission(parentPermissions[i]));
+        }
+        /* file owner */
+        testPermissionCheckingPerUser(USER1, ancestorPermissions, parentPermissions, permissions, parentPaths, filePaths, dirPaths);
+        /* group owner */
+        testPermissionCheckingPerUser(USER2, ancestorPermissions, parentPermissions, permissions, parentPaths, filePaths, dirPaths);
+        /* other owner */
+        testPermissionCheckingPerUser(USER3, ancestorPermissions, parentPermissions, permissions, parentPaths, filePaths, dirPaths);
+        /* super owner */
+        testPermissionCheckingPerUser(SUPERUSER, ancestorPermissions, parentPermissions, permissions, parentPaths, filePaths, dirPaths);
+    } finally {
+        fs.close();
+    }
+}

@@ -1,0 +1,28 @@
+@Test
+public void testRealUserIPNotSpecified() throws IOException {
+    final Configuration conf = new Configuration();
+    conf.setStrings(ProxyUsers.getProxySuperuserGroupConfKey(REAL_USER_SHORT_NAME), "group1");
+    Server server = RPC.getServer(TestProtocol.class, new TestImpl(), ADDRESS, 0, 2, false, conf, null);
+    try {
+        server.start();
+        final InetSocketAddress addr = NetUtils.getConnectAddress(server);
+        UserGroupInformation realUserUgi = UserGroupInformation.createRemoteUser(REAL_USER_NAME);
+        UserGroupInformation proxyUserUgi = UserGroupInformation.createProxyUserForTesting(PROXY_USER_NAME, realUserUgi, GROUP_NAMES);
+        String retVal = proxyUserUgi.doAs(new PrivilegedExceptionAction<String>() {
+
+            public String run() throws IOException {
+                proxy = RPC.getProxy(TestProtocol.class, TestProtocol.versionID, addr, conf);
+                String ret = proxy.aMethod();
+                return ret;
+            }
+        });
+        Assert.fail("The RPC must have failed " + retVal);
+    } catch (Exception e) {
+        e.printStackTrace();
+    } finally {
+        server.stop();
+        if (proxy != null) {
+            RPC.stopProxy(proxy);
+        }
+    }
+}

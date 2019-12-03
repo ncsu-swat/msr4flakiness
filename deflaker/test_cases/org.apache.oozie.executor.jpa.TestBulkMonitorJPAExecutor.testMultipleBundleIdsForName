@@ -1,0 +1,20 @@
+public void testMultipleBundleIdsForName() throws Exception {
+    // Adding another bundle having same name
+    BundleJobBean bundle = new BundleJobBean();
+    bundle.setId("00002-12345-B");
+    bundle.setAppName(bundleName);
+    bundle.setStatus(BundleJob.Status.RUNNING);
+    bundle.setStartTime(new Date());
+    BundleJobInsertJPAExecutor bundleInsert = new BundleJobInsertJPAExecutor(bundle);
+    jpaService.execute(bundleInsert);
+    String request = "bundle=" + bundleName;
+    BulkJPAExecutor bulkjpa = new BulkJPAExecutor(BundleEngine.parseBulkFilter(request), 1, 10);
+    try {
+        jpaService.execute(bulkjpa);
+        // exception expected due to >1 records found for same
+        fail();
+    // bundle name
+    } catch (JPAExecutorException jex) {
+        assertTrue(jex.getMessage().contains("Non-unique bundles present for same bundle name"));
+    }
+}

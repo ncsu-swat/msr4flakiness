@@ -1,0 +1,19 @@
+public void testPipes() throws Exception {
+    Path programPath = new Path(getFsTestCaseDir(), "wordcount-simple");
+    FileSystem fs = getFileSystem();
+    InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream("wordcount-simple");
+    if (is != null) {
+        OutputStream os = fs.create(programPath);
+        IOUtils.copyStream(is, os);
+        Path inputDir = new Path(getFsTestCaseDir(), "input");
+        Path outputDir = new Path(getFsTestCaseDir(), "output");
+        Writer w = new OutputStreamWriter(fs.create(new Path(inputDir, "data.txt")));
+        w.write("dummy\n");
+        w.write("dummy\n");
+        w.close();
+        String actionXml = "<map-reduce>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>" + "<name-node>" + getNameNodeUri() + "</name-node>" + "      <pipes>" + "        <program>" + programPath + "#wordcount-simple" + "</program>" + "      </pipes>" + getPipesConfig(inputDir.toString(), outputDir.toString()).toXmlString(false) + "<file>" + programPath + "</file>" + "</map-reduce>";
+        _testSubmit("pipes", actionXml);
+    } else {
+        System.out.println("SKIPPING TEST: TestMapReduceActionExecutor.testPipes(), " + "binary 'wordcount-simple' not available in the classpath");
+    }
+}

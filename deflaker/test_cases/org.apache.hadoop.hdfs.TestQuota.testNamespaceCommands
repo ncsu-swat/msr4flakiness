@@ -1,0 +1,148 @@
+/**
+ * Test commands that change the size of the name space:
+ *  mkdirs, rename, and delete
+ */
+@Test
+public void testNamespaceCommands() throws Exception {
+    final Configuration conf = new HdfsConfiguration();
+    final MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).numDataNodes(2).build();
+    final FileSystem fs = cluster.getFileSystem();
+    assertTrue("Not a HDFS: " + fs.getUri(), fs instanceof DistributedFileSystem);
+    final DistributedFileSystem dfs = (DistributedFileSystem) fs;
+    try {
+        // 1: create directory /nqdir0/qdir1/qdir20/nqdir30
+        assertTrue(dfs.mkdirs(new Path("/nqdir0/qdir1/qdir20/nqdir30")));
+        // 2: set the quota of /nqdir0/qdir1 to be 6
+        final Path quotaDir1 = new Path("/nqdir0/qdir1");
+        dfs.setQuota(quotaDir1, 6, HdfsConstants.QUOTA_DONT_SET);
+        ContentSummary c = dfs.getContentSummary(quotaDir1);
+        assertEquals(c.getDirectoryCount(), 3);
+        assertEquals(c.getQuota(), 6);
+        // 3: set the quota of /nqdir0/qdir1/qdir20 to be 7
+        final Path quotaDir2 = new Path("/nqdir0/qdir1/qdir20");
+        dfs.setQuota(quotaDir2, 7, HdfsConstants.QUOTA_DONT_SET);
+        c = dfs.getContentSummary(quotaDir2);
+        assertEquals(c.getDirectoryCount(), 2);
+        assertEquals(c.getQuota(), 7);
+        // 4: Create directory /nqdir0/qdir1/qdir21 and set its quota to 2
+        final Path quotaDir3 = new Path("/nqdir0/qdir1/qdir21");
+        assertTrue(dfs.mkdirs(quotaDir3));
+        dfs.setQuota(quotaDir3, 2, HdfsConstants.QUOTA_DONT_SET);
+        c = dfs.getContentSummary(quotaDir3);
+        assertEquals(c.getDirectoryCount(), 1);
+        assertEquals(c.getQuota(), 2);
+        // 5: Create directory /nqdir0/qdir1/qdir21/nqdir32
+        Path tempPath = new Path(quotaDir3, "nqdir32");
+        assertTrue(dfs.mkdirs(tempPath));
+        c = dfs.getContentSummary(quotaDir3);
+        assertEquals(c.getDirectoryCount(), 2);
+        assertEquals(c.getQuota(), 2);
+        // 6: Create directory /nqdir0/qdir1/qdir21/nqdir33
+        tempPath = new Path(quotaDir3, "nqdir33");
+        boolean hasException = false;
+        try {
+            assertFalse(dfs.mkdirs(tempPath));
+        } catch (NSQuotaExceededException e) {
+            hasException = true;
+        }
+        assertTrue(hasException);
+        c = dfs.getContentSummary(quotaDir3);
+        assertEquals(c.getDirectoryCount(), 2);
+        assertEquals(c.getQuota(), 2);
+        // 7: Create directory /nqdir0/qdir1/qdir20/nqdir31
+        tempPath = new Path(quotaDir2, "nqdir31");
+        assertTrue(dfs.mkdirs(tempPath));
+        c = dfs.getContentSummary(quotaDir2);
+        assertEquals(c.getDirectoryCount(), 3);
+        assertEquals(c.getQuota(), 7);
+        c = dfs.getContentSummary(quotaDir1);
+        assertEquals(c.getDirectoryCount(), 6);
+        assertEquals(c.getQuota(), 6);
+        // 8: Create directory /nqdir0/qdir1/qdir20/nqdir33
+        tempPath = new Path(quotaDir2, "nqdir33");
+        hasException = false;
+        try {
+            assertFalse(dfs.mkdirs(tempPath));
+        } catch (NSQuotaExceededException e) {
+            hasException = true;
+        }
+        assertTrue(hasException);
+        // 9: Move /nqdir0/qdir1/qdir21/nqdir32 /nqdir0/qdir1/qdir20/nqdir30
+        tempPath = new Path(quotaDir2, "nqdir30");
+        dfs.rename(new Path(quotaDir3, "nqdir32"), tempPath);
+        c = dfs.getContentSummary(quotaDir2);
+        assertEquals(c.getDirectoryCount(), 4);
+        assertEquals(c.getQuota(), 7);
+        c = dfs.getContentSummary(quotaDir1);
+        assertEquals(c.getDirectoryCount(), 6);
+        assertEquals(c.getQuota(), 6);
+        // 10: Move /nqdir0/qdir1/qdir20/nqdir30 to /nqdir0/qdir1/qdir21
+        hasException = false;
+        try {
+            assertFalse(dfs.rename(tempPath, quotaDir3));
+        } catch (NSQuotaExceededException e) {
+            hasException = true;
+        }
+        assertTrue(hasException);
+        assertTrue(dfs.exists(tempPath));
+        assertFalse(dfs.exists(new Path(quotaDir3, "nqdir30")));
+        // 10.a: Rename /nqdir0/qdir1/qdir20/nqdir30 to /nqdir0/qdir1/qdir21/nqdir32
+        hasException = false;
+        try {
+            assertFalse(dfs.rename(tempPath, new Path(quotaDir3, "nqdir32")));
+        } catch (QuotaExceededException e) {
+            hasException = true;
+        }
+        assertTrue(hasException);
+        assertTrue(dfs.exists(tempPath));
+        assertFalse(dfs.exists(new Path(quotaDir3, "nqdir32")));
+        // 11: Move /nqdir0/qdir1/qdir20/nqdir30 to /nqdir0
+        assertTrue(dfs.rename(tempPath, new Path("/nqdir0")));
+        c = dfs.getContentSummary(quotaDir2);
+        assertEquals(c.getDirectoryCount(), 2);
+        assertEquals(c.getQuota(), 7);
+        c = dfs.getContentSummary(quotaDir1);
+        assertEquals(c.getDirectoryCount(), 4);
+        assertEquals(c.getQuota(), 6);
+        // 12: Create directory /nqdir0/nqdir30/nqdir33
+        assertTrue(dfs.mkdirs(new Path("/nqdir0/nqdir30/nqdir33")));
+        // 13: Move /nqdir0/nqdir30 /nqdir0/qdir1/qdir20/qdir30
+        hasException = false;
+        try {
+            assertFalse(dfs.rename(new Path("/nqdir0/nqdir30"), tempPath));
+        } catch (NSQuotaExceededException e) {
+            hasException = true;
+        }
+        assertTrue(hasException);
+        // 14: Move /nqdir0/qdir1/qdir21 /nqdir0/qdir1/qdir20
+        assertTrue(dfs.rename(quotaDir3, quotaDir2));
+        c = dfs.getContentSummary(quotaDir1);
+        assertEquals(c.getDirectoryCount(), 4);
+        assertEquals(c.getQuota(), 6);
+        c = dfs.getContentSummary(quotaDir2);
+        assertEquals(c.getDirectoryCount(), 3);
+        assertEquals(c.getQuota(), 7);
+        tempPath = new Path(quotaDir2, "qdir21");
+        c = dfs.getContentSummary(tempPath);
+        assertEquals(c.getDirectoryCount(), 1);
+        assertEquals(c.getQuota(), 2);
+        // 15: Delete /nqdir0/qdir1/qdir20/qdir21
+        dfs.delete(tempPath, true);
+        c = dfs.getContentSummary(quotaDir2);
+        assertEquals(c.getDirectoryCount(), 2);
+        assertEquals(c.getQuota(), 7);
+        c = dfs.getContentSummary(quotaDir1);
+        assertEquals(c.getDirectoryCount(), 3);
+        assertEquals(c.getQuota(), 6);
+        // 16: Move /nqdir0/qdir30 /nqdir0/qdir1/qdir20
+        assertTrue(dfs.rename(new Path("/nqdir0/nqdir30"), quotaDir2));
+        c = dfs.getContentSummary(quotaDir2);
+        assertEquals(c.getDirectoryCount(), 5);
+        assertEquals(c.getQuota(), 7);
+        c = dfs.getContentSummary(quotaDir1);
+        assertEquals(c.getDirectoryCount(), 6);
+        assertEquals(c.getQuota(), 6);
+    } finally {
+        cluster.shutdown();
+    }
+}

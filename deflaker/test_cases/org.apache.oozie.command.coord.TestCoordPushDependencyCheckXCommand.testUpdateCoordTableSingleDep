@@ -1,0 +1,12 @@
+@Test
+public void testUpdateCoordTableSingleDep() throws Exception {
+    // Test for single dependency which is already in the hcat server
+    String db = "default";
+    String table = "tablename";
+    String newHCatDependency = "hcat://" + server + "/" + db + "/" + table + "/dt=20120430;country=usa";
+    populateTable(db, table);
+    String actionId = addInitRecords(newHCatDependency);
+    checkCoordAction(actionId, newHCatDependency, CoordinatorAction.Status.WAITING);
+    new CoordPushDependencyCheckXCommand(actionId).call();
+    checkCoordAction(actionId, "", CoordinatorAction.Status.READY);
+}

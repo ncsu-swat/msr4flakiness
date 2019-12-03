@@ -1,0 +1,24 @@
+@Test
+public void clientCreatesStreamAndServerRepliesWithFin() throws Exception {
+    // write the mocking script
+    // SYN_STREAM
+    peer.acceptFrame();
+    // PING
+    peer.acceptFrame();
+    peer.sendFrame().synReply(true, 3, headerEntries("a", "android"));
+    peer.sendFrame().ping(true, 1, 0);
+    peer.play();
+    // play it back
+    SpdyConnection connection = connection(peer, SPDY3);
+    connection.newStream(headerEntries("b", "banana"), false, true);
+    assertEquals(1, connection.openStreamCount());
+    // Ensure that the SYN_REPLY has been received.
+    connection.ping().roundTripTime();
+    assertEquals(0, connection.openStreamCount());
+    // verify the peer received what was expected
+    MockSpdyPeer.InFrame synStream = peer.takeFrame();
+    assertEquals(TYPE_HEADERS, synStream.type);
+    assertEquals(HeadersMode.SPDY_SYN_STREAM, synStream.headersMode);
+    MockSpdyPeer.InFrame ping = peer.takeFrame();
+    assertEquals(TYPE_PING, ping.type);
+}

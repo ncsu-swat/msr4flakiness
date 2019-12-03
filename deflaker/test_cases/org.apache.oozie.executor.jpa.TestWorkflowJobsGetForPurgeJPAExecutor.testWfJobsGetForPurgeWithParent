@@ -1,0 +1,13 @@
+public void testWfJobsGetForPurgeWithParent() throws Exception {
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    WorkflowJobBean job1 = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED);
+    WorkflowJobBean job2 = addRecordToWfJobTable(WorkflowJob.Status.FAILED, WorkflowInstance.Status.FAILED);
+    WorkflowJobBean job3 = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED);
+    job3.setParentId(job1.getId());
+    jpaService.execute(new WorkflowJobUpdateJPAExecutor(job3));
+    List<String> list = new ArrayList<String>();
+    list.addAll(jpaService.execute(new WorkflowJobsGetForPurgeJPAExecutor(1, 20)));
+    // job3 shouldn't be in the list because it has a parent
+    checkWorkflows(list, job1.getId(), job2.getId());
+}

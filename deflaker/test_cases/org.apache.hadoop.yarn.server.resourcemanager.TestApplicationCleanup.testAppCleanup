@@ -1,0 +1,55 @@
+@Test
+public void testAppCleanup() throws Exception {
+    Logger rootLogger = LogManager.getRootLogger();
+    rootLogger.setLevel(Level.DEBUG);
+    MockRM rm = new MockRM();
+    rm.start();
+    MockNM nm1 = rm.registerNode("127.0.0.1:1234", 5000);
+    RMApp app = rm.submitApp(2000);
+    // kick the scheduling
+    nm1.nodeHeartbeat(true);
+    RMAppAttempt attempt = app.getCurrentAppAttempt();
+    MockAM am = rm.sendAMLaunched(attempt.getAppAttemptId());
+    am.registerAppAttempt();
+    // request for containers
+    int request = 2;
+    am.allocate("127.0.0.1", 1000, request, new ArrayList<ContainerId>());
+    // kick the scheduler
+    nm1.nodeHeartbeat(true);
+    List<Container> conts = am.allocate(new ArrayList<ResourceRequest>(), new ArrayList<ContainerId>()).getAllocatedContainers();
+    int contReceived = conts.size();
+    int waitCount = 0;
+    while (contReceived < request && waitCount++ < 200) {
+        LOG.info("Got " + contReceived + " containers. Waiting to get " + request);
+        Thread.sleep(100);
+        conts = am.allocate(new ArrayList<ResourceRequest>(), new ArrayList<ContainerId>()).getAllocatedContainers();
+        contReceived += conts.size();
+        nm1.nodeHeartbeat(true);
+    }
+    Assert.assertEquals(request, contReceived);
+    am.unregisterAppAttempt();
+    NodeHeartbeatResponse resp = nm1.nodeHeartbeat(attempt.getAppAttemptId(), 1, ContainerState.COMPLETE);
+    am.waitForState(RMAppAttemptState.FINISHED);
+    // currently only containers are cleaned via this
+    // AM container is cleaned via container launcher
+    resp = nm1.nodeHeartbeat(true);
+    List<ContainerId> contsToClean = resp.getContainersToCleanup();
+    List<ApplicationId> apps = resp.getApplicationsToCleanup();
+    int cleanedConts = contsToClean.size();
+    int cleanedApps = apps.size();
+    waitCount = 0;
+    while ((cleanedConts < 2 || cleanedApps < 1) && waitCount++ < 200) {
+        LOG.info("Waiting to get cleanup events.. cleanedConts: " + cleanedConts + " cleanedApps: " + cleanedApps);
+        Thread.sleep(100);
+        resp = nm1.nodeHeartbeat(true);
+        contsToClean = resp.getContainersToCleanup();
+        apps = resp.getApplicationsToCleanup();
+        cleanedConts += contsToClean.size();
+        cleanedApps += apps.size();
+    }
+    Assert.assertEquals(1, apps.size());
+    Assert.assertEquals(app.getApplicationId(), apps.get(0));
+    Assert.assertEquals(1, cleanedApps);
+    Assert.assertEquals(2, cleanedConts);
+    rm.stop();
+}

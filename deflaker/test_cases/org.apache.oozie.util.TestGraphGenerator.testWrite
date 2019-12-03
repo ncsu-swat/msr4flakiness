@@ -1,0 +1,43 @@
+public void testWrite() {
+    JsonWorkflowJob jsonWFJob = new JsonWorkflowJob();
+    jsonWFJob.setAppName("My Test App");
+    jsonWFJob.setId("My Test ID");
+    String png1 = "src/test/resources/tmp1.png";
+    String png2 = "src/test/resources/tmp2.png";
+    try {
+        GraphGenerator g = new GraphGenerator(readFile("src/test/resources/graphWF.xml"), jsonWFJob);
+        g.write(new FileOutputStream(new File(png1)));
+    } catch (Exception e) {
+        Assert.fail("Write PNG failed for graphWF.xml: " + e.getMessage());
+    }
+    File f1 = new File(png1);
+    try {
+        // Check if a valid file was written
+        Assert.assertNotNull(ImageIO.read(f1));
+    } catch (IOException io) {
+        Assert.fail("Not a valid PNG: " + io.getMessage());
+    }
+    try {
+        GraphGenerator g = new GraphGenerator(readFile("src/test/resources/graphWF.xml"), jsonWFJob, true);
+        g.write(new FileOutputStream(new File(png2)));
+    } catch (Exception e) {
+        Assert.fail("Write PNG failed for graphWF.xml: " + e.getMessage());
+    }
+    File f2 = new File(png2);
+    try {
+        // Check if a valid file was written
+        Assert.assertNotNull(ImageIO.read(f2));
+    } catch (IOException io) {
+        Assert.fail("Not a valid PNG: " + io.getMessage());
+    }
+    Assert.assertTrue(f1.length() < f2.length());
+    f1.delete();
+    f2.delete();
+    try {
+        GraphGenerator g = new GraphGenerator(readFile("src/test/resources/invalidGraphWF.xml"), jsonWFJob, true);
+        g.write(new FileOutputStream(new File("src/test/resources/invalid.png")));
+    } catch (Exception e) {
+        Assert.fail("Write PNG failed for invalidGraphWF.xml: " + e.getMessage());
+    }
+    new File("src/test/resources/invalid.png").delete();
+}

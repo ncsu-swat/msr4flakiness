@@ -1,0 +1,33 @@
+@Test(timeout = 60000)
+public void testSecureAuthParamsInUrl() throws IOException {
+    Configuration conf = new Configuration();
+    // fake turning on security so api thinks it should use tokens
+    SecurityUtil.setAuthenticationMethod(KERBEROS, conf);
+    UserGroupInformation.setConfiguration(conf);
+    UserGroupInformation ugi = UserGroupInformation.createRemoteUser("test-user");
+    ugi.setAuthenticationMethod(KERBEROS);
+    UserGroupInformation.setLoginUser(ugi);
+    WebHdfsFileSystem webhdfs = getWebHdfsFileSystem(ugi, conf);
+    Path fsPath = new Path("/");
+    String tokenString = webhdfs.getDelegationToken().encodeToUrlString();
+    // send user
+    URL getTokenUrl = webhdfs.toUrl(GetOpParam.Op.GETDELEGATIONTOKEN, fsPath);
+    checkQueryParams(new String[] { GetOpParam.Op.GETDELEGATIONTOKEN.toQueryString(), new UserParam(ugi.getShortUserName()).toString() }, getTokenUrl);
+    // send user
+    URL renewTokenUrl = webhdfs.toUrl(PutOpParam.Op.RENEWDELEGATIONTOKEN, fsPath, new TokenArgumentParam(tokenString));
+    checkQueryParams(new String[] { PutOpParam.Op.RENEWDELEGATIONTOKEN.toQueryString(), new UserParam(ugi.getShortUserName()).toString(), new TokenArgumentParam(tokenString).toString() }, renewTokenUrl);
+    // send token
+    URL cancelTokenUrl = webhdfs.toUrl(PutOpParam.Op.CANCELDELEGATIONTOKEN, fsPath, new TokenArgumentParam(tokenString));
+    checkQueryParams(new String[] { PutOpParam.Op.CANCELDELEGATIONTOKEN.toQueryString(), new UserParam(ugi.getShortUserName()).toString(), new TokenArgumentParam(tokenString).toString() }, cancelTokenUrl);
+    // send token
+    URL fileStatusUrl = webhdfs.toUrl(GetOpParam.Op.GETFILESTATUS, fsPath);
+    checkQueryParams(new String[] { GetOpParam.Op.GETFILESTATUS.toQueryString(), new DelegationParam(tokenString).toString() }, fileStatusUrl);
+    // wipe out internal token to simulate auth always required
+    webhdfs.setDelegationToken(null);
+    // send user
+    cancelTokenUrl = webhdfs.toUrl(PutOpParam.Op.CANCELDELEGATIONTOKEN, fsPath, new TokenArgumentParam(tokenString));
+    checkQueryParams(new String[] { PutOpParam.Op.CANCELDELEGATIONTOKEN.toQueryString(), new UserParam(ugi.getShortUserName()).toString(), new TokenArgumentParam(tokenString).toString() }, cancelTokenUrl);
+    // send user
+    fileStatusUrl = webhdfs.toUrl(GetOpParam.Op.GETFILESTATUS, fsPath);
+    checkQueryParams(new String[] { GetOpParam.Op.GETFILESTATUS.toQueryString(), new UserParam(ugi.getShortUserName()).toString() }, fileStatusUrl);
+}

@@ -1,0 +1,16 @@
+@Test(timeout = 5000)
+public void testAppAttemptMetrics() throws Exception {
+    AsyncDispatcher dispatcher = new InlineDispatcher();
+    RMContext rmContext = new RMContextImpl(dispatcher, null, null, null, null, null, null, null, null);
+    FifoScheduler schedular = new FifoScheduler();
+    schedular.reinitialize(new Configuration(), rmContext);
+    ApplicationId appId = BuilderUtils.newApplicationId(200, 1);
+    ApplicationAttemptId appAttemptId = BuilderUtils.newApplicationAttemptId(appId, 1);
+    SchedulerEvent event = new AppAddedSchedulerEvent(appAttemptId, "queue", "user");
+    schedular.handle(event);
+    appAttemptId = BuilderUtils.newApplicationAttemptId(appId, 2);
+    event = new AppAddedSchedulerEvent(appAttemptId, "queue", "user");
+    schedular.handle(event);
+    QueueMetrics metrics = schedular.getRootQueueMetrics();
+    Assert.assertEquals(1, metrics.getAppsSubmitted());
+}

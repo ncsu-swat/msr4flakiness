@@ -1,0 +1,21 @@
+/**
+ * Test HCat dataOutPartition EL function (phase 1) which echo back the EL
+ * function itself
+ *
+ * @throws Exception
+ */
+@Test
+public void testDataOutPartitionsPh1() throws Exception {
+    init("coord-job-submit-data");
+    String expr = "${coord:dataOutPartitions('ABC')}";
+    // +ve test
+    eval.setVariable("oozie.dataname.ABC", "data-out");
+    assertEquals("${coord:dataOutPartitions('ABC')}", CoordELFunctions.evalAndWrap(eval, expr));
+    // -ve test
+    expr = "${coord:dataOutPartitions('ABCD')}";
+    try {
+        assertEquals("${coord:dataOutPartitions('ABCD')}", CoordELFunctions.evalAndWrap(eval, expr));
+        fail("should throw exception because Data-in is not defiend");
+    } catch (Exception ex) {
+    }
+}

@@ -1,0 +1,28 @@
+/*
+   * Reduce the replication factor of a file, making sure that the only
+   * cross rack replica is not removed when deleting replicas.
+   */
+@Test
+public void testReduceReplFactorRespectsRackPolicy() throws Exception {
+    Configuration conf = getConf();
+    short REPLICATION_FACTOR = 3;
+    final Path filePath = new Path("/testFile");
+    String[] racks = { "/rack1", "/rack1", "/rack2", "/rack2" };
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).numDataNodes(racks.length).racks(racks).build();
+    final FSNamesystem ns = cluster.getNameNode().getNamesystem();
+    try {
+        // Create a file with one block
+        final FileSystem fs = cluster.getFileSystem();
+        DFSTestUtil.createFile(fs, filePath, 1L, REPLICATION_FACTOR, 1L);
+        ExtendedBlock b = DFSTestUtil.getFirstBlock(fs, filePath);
+        DFSTestUtil.waitForReplication(cluster, b, 2, REPLICATION_FACTOR, 0);
+        // Decrease the replication factor, make sure the deleted replica
+        // was not the one that lived on the rack with only one replica,
+        // ie we should still have 2 racks after reducing the repl factor.
+        REPLICATION_FACTOR = 2;
+        NameNodeAdapter.setReplication(ns, "/testFile", REPLICATION_FACTOR);
+        DFSTestUtil.waitForReplication(cluster, b, 2, REPLICATION_FACTOR, 0);
+    } finally {
+        cluster.shutdown();
+    }
+}

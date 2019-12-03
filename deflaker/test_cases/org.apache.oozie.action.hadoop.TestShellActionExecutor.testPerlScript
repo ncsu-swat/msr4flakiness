@@ -1,0 +1,16 @@
+/**
+ * test if a perl script could run successfully
+ *
+ * @throws Exception
+ */
+public void testPerlScript() throws Exception {
+    FileSystem fs = getFileSystem();
+    // Create a sample perl script
+    Path script = new Path(getAppPath(), "script.pl");
+    Writer w = new OutputStreamWriter(fs.create(script));
+    w.write(PERL_SCRIPT_CONTENT);
+    w.close();
+    // Create a Sample Shell action using the perl script
+    String actionXml = "<shell>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>" + "<name-node>" + getNameNodeUri() + "</name-node>" + "<exec>perl</exec>" + "<argument>script.pl</argument>" + "<argument>A</argument>" + "<argument>B</argument>" + "<env-var>my_var1=my_val1</env-var>" + "<file>" + script.toString() + "#" + script.getName() + "</file>" + "<capture-output/>" + "</shell>";
+    _testSubmit(actionXml, true, "TESTING");
+}

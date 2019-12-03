@@ -1,0 +1,20 @@
+public void testBundleEngineChange() throws Exception {
+    final BundleJobBean bundleJobBean = xDataTestCase.addRecordToBundleJobTable(Job.Status.PREP, false);
+    runTest("/v1/job/*", V1JobServlet.class, IS_SECURITY_ENABLED, new Callable<Void>() {
+
+        @Override
+        public Void call() throws Exception {
+            MockCoordinatorEngineService.reset();
+            Map<String, String> params = new HashMap<String, String>();
+            params.put(RestConstants.ACTION_PARAM, RestConstants.JOB_ACTION_CHANGE);
+            String changeValue = "endtime=2011-12-01T05:00Z";
+            params.put(RestConstants.JOB_CHANGE_VALUE, changeValue);
+            final String id = bundleJobBean.getId();
+            URL url = createURL(id, params);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("PUT");
+            assertEquals(HttpServletResponse.SC_OK, conn.getResponseCode());
+            return null;
+        }
+    });
+}

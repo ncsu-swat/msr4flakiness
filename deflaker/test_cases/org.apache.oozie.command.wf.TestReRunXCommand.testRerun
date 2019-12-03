@@ -1,0 +1,43 @@
+public void testRerun() throws IOException, OozieClientException {
+    Reader reader = IOUtils.getResourceAsReader("rerun-wf.xml", -1);
+    Writer writer = new FileWriter(getTestCaseDir() + "/workflow.xml");
+    IOUtils.copyCharStream(reader, writer);
+    Path path = getFsTestCaseDir();
+    getFileSystem().create(new Path(path, "p2"));
+    final OozieClient wfClient = LocalOozie.getClient();
+    Properties conf = wfClient.createConfiguration();
+    conf.setProperty(OozieClient.APP_PATH, "file://" + getTestCaseDir() + File.separator + "workflow.xml");
+    conf.setProperty(OozieClient.USER_NAME, getTestUser());
+    conf.setProperty("nnbase", path.toString());
+    conf.setProperty("base", path.toUri().getPath());
+    final String jobId1 = wfClient.submit(conf);
+    wfClient.start(jobId1);
+    waitFor(15 * 1000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            return wfClient.getJobInfo(jobId1).getStatus() == WorkflowJob.Status.KILLED;
+        }
+    });
+    assertEquals(WorkflowJob.Status.KILLED, wfClient.getJobInfo(jobId1).getStatus());
+    // Skip a non-executed node
+    conf.setProperty(OozieClient.RERUN_SKIP_NODES, "fs1,fs2,dec3");
+    boolean failed = false;
+    try {
+        wfClient.reRun(jobId1, conf);
+    } catch (OozieClientException e) {
+        failed = true;
+        assertTrue(e.getCause().getMessage().contains(ErrorCode.E0807.toString()));
+    }
+    assertEquals(true, failed);
+    // Skip executed nodes
+    getFileSystem().delete(new Path(path, "p2"), true);
+    conf.setProperty(OozieClient.RERUN_SKIP_NODES, "fs1");
+    wfClient.reRun(jobId1, conf);
+    waitFor(15 * 1000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            return wfClient.getJobInfo(jobId1).getStatus() == WorkflowJob.Status.SUCCEEDED;
+        }
+    });
+    assertEquals(WorkflowJob.Status.SUCCEEDED, wfClient.getJobInfo(jobId1).getStatus());
+}

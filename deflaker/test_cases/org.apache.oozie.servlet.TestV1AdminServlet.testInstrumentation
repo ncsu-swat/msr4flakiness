@@ -1,0 +1,15 @@
+public void testInstrumentation() throws Exception {
+    runTest("/v1/admin/*", V1AdminServlet.class, IS_SECURITY_ENABLED, new Callable<Void>() {
+
+        public Void call() throws Exception {
+            URL url = createURL(RestConstants.ADMIN_INSTRUMENTATION_RESOURCE, Collections.EMPTY_MAP);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            assertEquals(HttpServletResponse.SC_OK, conn.getResponseCode());
+            assertTrue(conn.getHeaderField("content-type").startsWith(RestConstants.JSON_CONTENT_TYPE));
+            JSONObject json = (JSONObject) JSONValue.parse(new InputStreamReader(conn.getInputStream()));
+            assertTrue(json.containsKey(JsonTags.INSTR_VARIABLES));
+            return null;
+        }
+    });
+}

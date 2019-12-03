@@ -1,0 +1,58 @@
+/**
+ * Tests the {@link org.apache.oozie.service.PurgeService}.
+ * </p>
+ * Creates a new Bundle job. Attempts to purge jobs older than a day.
+ * Verifies the presence of the job in the system.
+ * </p>
+ * Sets the end date for the same job to make it qualify for the purge criteria.
+ * Calls the purge service, and ensure the job does not exist in the system.
+ */
+public void testPurgeServiceForBundle() throws Exception {
+    BundleJobBean job = this.addRecordToBundleJobTable(Job.Status.SUCCEEDED, DateUtils.parseDateOozieTZ("2011-01-01T01:00Z"));
+    final String jobId = job.getId();
+    this.addRecordToBundleActionTable(job.getId(), "action1", 0, Job.Status.SUCCEEDED);
+    this.addRecordToBundleActionTable(job.getId(), "action2", 0, Job.Status.SUCCEEDED);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    BundleJobGetJPAExecutor bundleJobGetExecutor = new BundleJobGetJPAExecutor(job.getId());
+    job = jpaService.execute(bundleJobGetExecutor);
+    assertEquals(Job.Status.SUCCEEDED, job.getStatus());
+    BundleActionGetJPAExecutor bundleActionGetExecutor1 = new BundleActionGetJPAExecutor(job.getId(), "action1");
+    BundleActionBean action1 = jpaService.execute(bundleActionGetExecutor1);
+    assertEquals(Job.Status.SUCCEEDED, action1.getStatus());
+    BundleActionGetJPAExecutor bundleActionGetExecutor2 = new BundleActionGetJPAExecutor(job.getId(), "action2");
+    BundleActionBean action2 = jpaService.execute(bundleActionGetExecutor2);
+    assertEquals(Job.Status.SUCCEEDED, action2.getStatus());
+    Runnable purgeRunnable = new PurgeRunnable(1, 1, 1, 100);
+    purgeRunnable.run();
+    final BundleEngine engine = new BundleEngine("u", "a");
+    waitFor(10000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            try {
+                engine.getBundleJob(jobId).getStatus();
+            } catch (Exception ex) {
+                return true;
+            }
+            return false;
+        }
+    });
+    try {
+        job = jpaService.execute(bundleJobGetExecutor);
+        fail("Job should be purged. Should fail.");
+    } catch (JPAExecutorException je) {
+    // Job doesn't exist. Exception is expected.
+    }
+    try {
+        jpaService.execute(bundleActionGetExecutor1);
+        fail("Action should be purged. Should fail.");
+    } catch (JPAExecutorException je) {
+    // Job doesn't exist. Exception is expected.
+    }
+    try {
+        jpaService.execute(bundleActionGetExecutor2);
+        fail("Action should be purged. Should fail.");
+    } catch (JPAExecutorException je) {
+    // Job doesn't exist. Exception is expected.
+    }
+}

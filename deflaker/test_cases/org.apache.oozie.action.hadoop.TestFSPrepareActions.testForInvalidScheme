@@ -1,0 +1,23 @@
+// Test for invalid scheme value in the path for action
+@Test
+public void testForInvalidScheme() throws Exception {
+    Path actionDir = getFsTestCaseDir();
+    // Construct a path with invalid scheme
+    Path newDir = new Path("hftp:/" + actionDir.toString().substring(5) + "/delete");
+    // Construct prepare XML block with the path
+    String prepareXML = "<prepare>" + "<delete path='" + newDir + "'/>" + "</prepare>";
+    // Parse the XML to get the node
+    Document doc = PrepareActionsDriver.getDocumentFromXML(prepareXML);
+    Node n = doc.getDocumentElement().getChildNodes().item(0);
+    try {
+        JobConf conf = createJobConf();
+        LauncherMapper.setupLauncherURIHandlerConf(conf);
+        PrepareActionsDriver.doOperations(prepareXML, conf);
+        fail("Expected to catch an exception but did not encounter any");
+    } catch (LauncherException le) {
+        Path path = new Path(n.getAttributes().getNamedItem("path").getNodeValue().trim());
+        assertEquals("Scheme hftp not supported in uri " + path, le.getMessage());
+    } catch (Exception ex) {
+        fail("Expected a LauncherException but received an Exception");
+    }
+}

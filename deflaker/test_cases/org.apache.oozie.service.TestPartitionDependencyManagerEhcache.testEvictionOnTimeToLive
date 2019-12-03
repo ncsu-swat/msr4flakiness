@@ -1,0 +1,18 @@
+@Test
+public void testEvictionOnTimeToLive() throws Exception {
+    setupServices("testevictionontimetolive");
+    PartitionDependencyManagerService pdms = Services.get().get(PartitionDependencyManagerService.class);
+    int numItems = 50;
+    long startTime = System.currentTimeMillis();
+    for (int i = 0; i < numItems; i++) {
+        HCatURI dep = new HCatURI("hcat://hcat.server.com:5080/mydb/mytbl/id=" + i);
+        pdms.addMissingDependency(dep, "" + i);
+    }
+    verifyWaitingAction(pdms, numItems);
+    LOG.info("Time taken to insert and retrive " + numItems + " items is " + (System.currentTimeMillis() - startTime));
+    // timeToLiveSeconds is 1
+    Thread.sleep(1000);
+    for (int i = 0; i < numItems; i++) {
+        assertNull(pdms.getWaitingActions(new HCatURI("hcat://hcat.server.com:5080/mydb/mytbl/id=" + "" + i)));
+    }
+}

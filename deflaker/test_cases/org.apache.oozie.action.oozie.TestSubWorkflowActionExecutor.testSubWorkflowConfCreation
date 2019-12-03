@@ -1,0 +1,11 @@
+public void testSubWorkflowConfCreation() throws Exception {
+    SubWorkflowActionExecutor subWorkflow = new SubWorkflowActionExecutor();
+    XConfiguration protoConf = getBaseProtoConf();
+    WorkflowJobBean workflow = createBaseWorkflow(protoConf, "W");
+    WorkflowActionBean action = (WorkflowActionBean) workflow.getActions().get(0);
+    action.setConf("<sub-workflow xmlns='uri:oozie:workflow:0.1'>" + "      <app-path>hdfs://foo:9000/user/bar/workflow.xml</app-path>" + "      <configuration>" + "        <property>" + "          <name>a</name>" + "          <value>A</value>" + "        </property>" + "      </configuration>" + "</sub-workflow>");
+    OozieClient oozieClient = subWorkflow.getWorkflowClient(new Context(workflow, action), SubWorkflowActionExecutor.LOCAL);
+    assertNotNull(oozieClient);
+    oozieClient = subWorkflow.getWorkflowClient(new Context(workflow, action), "http://localhost:8080/oozie");
+    assertNotNull(oozieClient);
+}

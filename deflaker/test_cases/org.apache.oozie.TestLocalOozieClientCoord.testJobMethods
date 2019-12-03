@@ -1,0 +1,22 @@
+public void testJobMethods() throws Exception {
+    final OozieClient client = LocalOozie.getCoordClient();
+    // Just in case, check that there are no Coord job records left by previous tests:
+    List<CoordinatorJob> list0 = client.getCoordJobsInfo("", 1, 100);
+    assertEquals(0, list0.size());
+    Properties conf = client.createConfiguration();
+    String appPath = "file://" + getTestCaseDir() + File.separator + "coordinator.xml";
+    String appXml = "<coordinator-app name=\"NAME\" frequency=\"${coord:minutes(20)}\" " + "start=\"2009-02-01T01:00Z\" end=\"2009-02-03T23:59Z\" timezone=\"UTC\" " + "xmlns=\"uri:oozie:coordinator:0.1\"> <controls> <timeout>10</timeout> <concurrency>1</concurrency> " + "<execution>LIFO</execution> </controls> <datasets> " + "<dataset name=\"a\" frequency=\"${coord:minutes(20)}\" initial-instance=\"2009-02-01T01:00Z\" " + "timezone=\"UTC\"> <uri-template>file:///tmp/coord/workflows/${YEAR}/${DAY}</uri-template> </dataset> " + "<dataset name=\"local_a\" frequency=\"${coord:minutes(20)}\" initial-instance=\"2009-02-01T01:00Z\" " + "timezone=\"UTC\"> <uri-template>file:///tmp/coord/workflows/${YEAR}/${DAY}</uri-template> </dataset> " + "</datasets> <input-events> " + "<data-in name=\"A\" dataset=\"a\"> <instance>${coord:latest(0)}</instance> </data-in>  " + "</input-events> " + "<output-events> <data-out name=\"LOCAL_A\" dataset=\"local_a\"> " + "<instance>${coord:current(-1)}</instance> </data-out> </output-events> <action> <workflow> " + "<app-path>hdfs:///tmp/workflows/</app-path> " + "<configuration> <property> <name>inputA</name> <value>${coord:dataIn('A')}</value> </property> " + "<property> <name>inputB</name> <value>${coord:dataOut('LOCAL_A')}</value> " + "</property></configuration> </workflow> </action> </coordinator-app>";
+    writeToFile(appXml, appPath);
+    conf.setProperty(OozieClient.COORDINATOR_APP_PATH, appPath);
+    String jobId0 = client.submit(conf);
+    client.kill(jobId0);
+    String jobId = client.run(conf);
+    client.suspend(jobId);
+    client.resume(jobId);
+    client.kill(jobId);
+    CoordinatorJob job = client.getCoordJobInfo(jobId);
+    String appName = job.getAppName();
+    assertEquals("NAME", appName);
+    List<CoordinatorJob> list = client.getCoordJobsInfo("", 1, 5);
+    assertEquals(2, list.size());
+}

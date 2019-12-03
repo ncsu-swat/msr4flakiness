@@ -1,0 +1,12 @@
+/**
+ * Test that if we do an incomplete read, we don't call CHECKSUM_OK
+ */
+@Test
+public void testIncompleteRead() throws Exception {
+    RemoteBlockReader reader = (RemoteBlockReader) spy(util.getBlockReader(testBlock, 0, FILE_SIZE_K * 1024));
+    util.readAndCheckEOS(reader, FILE_SIZE_K / 2 * 1024, false);
+    // We asked the blockreader for the whole file, and only read
+    // half of it, so no CHECKSUM_OK
+    verify(reader, never()).sendReadResult(reader.dnSock, Status.CHECKSUM_OK);
+    reader.close();
+}

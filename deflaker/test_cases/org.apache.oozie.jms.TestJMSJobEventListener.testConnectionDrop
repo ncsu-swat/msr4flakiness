@@ -1,0 +1,40 @@
+@Test
+public void testConnectionDrop() {
+    Random random = new Random();
+    try {
+        services.destroy();
+        services = new Services();
+        Configuration conf = services.getConf();
+        conf.set(Services.CONF_SERVICE_EXT_CLASSES, JMSAccessorService.class.getName() + "," + JMSTopicService.class.getName());
+        int randomPort = 30000 + random.nextInt(10000);
+        String brokerURl = "tcp://localhost:" + randomPort;
+        conf.set(JMSJobEventListener.JMS_CONNECTION_PROPERTIES, "java.naming.factory.initial#" + ActiveMQConnFactory + ";" + "java.naming.provider.url#" + brokerURl + ";connectionFactoryNames#" + "ConnectionFactory");
+        services.init();
+        JMSJobEventListener wfEventListener = new JMSJobEventListener();
+        wfEventListener.init(conf);
+        BrokerService broker = new BrokerService();
+        broker.addConnector(brokerURl);
+        broker.start();
+        ConnectionContext jmsContext = getConnectionContext();
+        assertNotNull(jmsContext);
+        broker.stop();
+        jmsContext = getConnectionContext();
+        // Exception Listener should have removed the old conn context
+        assertNull(jmsContext);
+        broker = new BrokerService();
+        broker.addConnector(brokerURl);
+        broker.start();
+        WorkflowJobEvent wfe = new WorkflowJobEvent("wfId1", "caId1", WorkflowJob.Status.FAILED, "user1", "wf-app-name1", new Date(), new Date());
+        jmsContext = getConnectionContext();
+        Session session = jmsContext.createSession(Session.AUTO_ACKNOWLEDGE);
+        MessageConsumer consumer = jmsContext.createConsumer(session, wfEventListener.getTopic(wfe));
+        wfEventListener.onWorkflowJobEvent(wfe);
+        TextMessage message = (TextMessage) consumer.receive(5000);
+        assertNotNull(message);
+        broker.stop();
+        wfEventListener.destroy();
+    } catch (Exception e) {
+        e.printStackTrace();
+        fail(e.getMessage());
+    }
+}

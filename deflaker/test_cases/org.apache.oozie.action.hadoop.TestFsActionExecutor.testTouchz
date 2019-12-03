@@ -1,0 +1,39 @@
+public void testTouchz() throws Exception {
+    FsActionExecutor ae = new FsActionExecutor();
+    FileSystem fs = getFileSystem();
+    Path dir = new Path(getFsTestCaseDir(), "dir1");
+    Path f1 = new Path(dir + "/newfile1");
+    Path f2 = new Path(dir + "/newfile2");
+    Context context = createContext("<fs/>");
+    fs.mkdirs(dir);
+    fs.createNewFile(f1);
+    assertTrue(fs.exists(f1));
+    assertTrue(fs.getFileStatus(f1).getLen() == 0);
+    ae.touchz(context, f1);
+    ae.touchz(context, f2);
+    assertTrue(fs.exists(f1));
+    assertTrue(fs.exists(f2));
+    FileStatus fs1 = fs.getFileStatus(f1);
+    FileStatus fs2 = fs.getFileStatus(f2);
+    assertFalse(fs1.isDir());
+    assertFalse(fs2.isDir());
+    assertTrue(fs1.getLen() == 0);
+    assertTrue(fs2.getLen() == 0);
+    try {
+        ae.touchz(context, dir);
+        fail();
+    } catch (Exception ex) {
+        assertTrue(ex.getMessage().contains("is a directory"));
+    }
+    // Test touchz on a non-zero length file
+    Path f3 = new Path(dir + "/newfile3");
+    Writer writer = new OutputStreamWriter(fs.create(f3));
+    writer.write("This is not a zero length file");
+    writer.close();
+    try {
+        ae.touchz(context, f3);
+        fail();
+    } catch (Exception ex) {
+        assertTrue(ex.getMessage().contains("must be a zero-length file"));
+    }
+}

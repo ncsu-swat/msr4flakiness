@@ -1,0 +1,21 @@
+public void testEmbeddedServletContainer() throws Exception {
+    EmbeddedServletContainer container = new EmbeddedServletContainer("blah");
+    container.addServletEndpoint("/ping/*", PingServlet.class);
+    container.addFilter("/ping/*", PingServlet.class);
+    try {
+        PingServlet.FILTER_INIT = false;
+        PingServlet.DO_FILTER = false;
+        container.start();
+        URL url = new URL(container.getServletURL("/ping/*") + "bla");
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.connect();
+        assertEquals(HttpURLConnection.HTTP_OK, conn.getResponseCode());
+        BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+        assertEquals("ping", reader.readLine());
+        assertEquals(null, reader.readLine());
+        assertTrue(PingServlet.FILTER_INIT);
+        assertTrue(PingServlet.DO_FILTER);
+    } finally {
+        container.stop();
+    }
+}

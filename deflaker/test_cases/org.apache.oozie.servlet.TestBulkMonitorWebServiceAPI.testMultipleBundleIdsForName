@@ -1,0 +1,26 @@
+public void testMultipleBundleIdsForName() throws Exception {
+    // Adding another bundle having same name
+    BundleJobBean bundle = new BundleJobBean();
+    bundle.setId("00002-12345-B");
+    bundle.setAppName(bundleName);
+    bundle.setStatus(BundleJob.Status.RUNNING);
+    bundle.setStartTime(new Date());
+    BundleJobInsertJPAExecutor bundleInsert = new BundleJobInsertJPAExecutor(bundle);
+    jpaService.execute(bundleInsert);
+    runTest("/v1/jobs", V1JobsServlet.class, false, new Callable<Void>() {
+
+        public Void call() throws Exception {
+            String bulkRequest = "bundle=" + bundleName;
+            Map<String, String> params = new HashMap<String, String>();
+            params.put(RestConstants.JOBS_BULK_PARAM, bulkRequest);
+            params.put(RestConstants.OFFSET_PARAM, "1");
+            params.put(RestConstants.LEN_PARAM, "5");
+            URL url = createURL("", params);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            // WS call will throw BAD_REQUEST code 400 error because no
+            // records found for this bundle
+            assertEquals(HttpServletResponse.SC_BAD_REQUEST, conn.getResponseCode());
+            return null;
+        }
+    });
+}

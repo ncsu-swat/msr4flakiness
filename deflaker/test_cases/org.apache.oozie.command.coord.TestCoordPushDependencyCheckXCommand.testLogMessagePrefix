@@ -1,0 +1,20 @@
+@Test
+public void testLogMessagePrefix() throws Exception {
+    Logger logger = Logger.getLogger(DependencyChecker.class);
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    Layout layout = new SimpleLayout();
+    Appender appender = new WriterAppender(layout, out);
+    logger.addAppender(appender);
+    String db = "default";
+    String table = "tablename";
+    populateTable(db, table);
+    String newHCatDependency = "hcat://" + server + "/" + db + "/" + table + "/dt=20120430;country=brazil";
+    String actionId1 = addInitRecords(newHCatDependency);
+    new CoordPushDependencyCheckXCommand(actionId1).call();
+    assertTrue(out.toString().contains("ACTION[" + actionId1 + "]"));
+    out.reset();
+    String actionId2 = addInitRecords(newHCatDependency);
+    new CoordPushDependencyCheckXCommand(actionId2).call();
+    assertFalse(out.toString().contains("ACTION[" + actionId1 + "]"));
+    assertTrue(out.toString().contains("ACTION[" + actionId2 + "]"));
+}

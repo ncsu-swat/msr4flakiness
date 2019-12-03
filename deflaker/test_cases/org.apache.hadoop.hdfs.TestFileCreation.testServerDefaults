@@ -1,0 +1,25 @@
+/**
+ * Test that server default values can be retrieved on the client side
+ */
+public void testServerDefaults() throws IOException {
+    Configuration conf = new HdfsConfiguration();
+    conf.setLong(DFS_BLOCK_SIZE_KEY, DFS_BLOCK_SIZE_DEFAULT);
+    conf.setInt(DFS_BYTES_PER_CHECKSUM_KEY, DFS_BYTES_PER_CHECKSUM_DEFAULT);
+    conf.setInt(DFS_CLIENT_WRITE_PACKET_SIZE_KEY, DFS_CLIENT_WRITE_PACKET_SIZE_DEFAULT);
+    conf.setInt(DFS_REPLICATION_KEY, DFS_REPLICATION_DEFAULT + 1);
+    conf.setInt(IO_FILE_BUFFER_SIZE_KEY, IO_FILE_BUFFER_SIZE_DEFAULT);
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).numDataNodes(DFSConfigKeys.DFS_REPLICATION_DEFAULT + 1).build();
+    cluster.waitActive();
+    FileSystem fs = cluster.getFileSystem();
+    try {
+        FsServerDefaults serverDefaults = fs.getServerDefaults();
+        assertEquals(DFS_BLOCK_SIZE_DEFAULT, serverDefaults.getBlockSize());
+        assertEquals(DFS_BYTES_PER_CHECKSUM_DEFAULT, serverDefaults.getBytesPerChecksum());
+        assertEquals(DFS_CLIENT_WRITE_PACKET_SIZE_DEFAULT, serverDefaults.getWritePacketSize());
+        assertEquals(DFS_REPLICATION_DEFAULT + 1, serverDefaults.getReplication());
+        assertEquals(IO_FILE_BUFFER_SIZE_DEFAULT, serverDefaults.getFileBufferSize());
+    } finally {
+        fs.close();
+        cluster.shutdown();
+    }
+}

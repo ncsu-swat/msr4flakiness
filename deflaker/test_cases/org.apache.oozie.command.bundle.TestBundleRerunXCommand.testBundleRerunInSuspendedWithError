@@ -1,0 +1,24 @@
+/**
+ * Test : Rerun SUSPENDEDINERROR bundle job
+ *
+ * @throws Exception
+ */
+public void testBundleRerunInSuspendedWithError() throws Exception {
+    Services.get().destroy();
+    setSystemProperty(StatusTransitService.CONF_BACKWARD_SUPPORT_FOR_STATES_WITHOUT_ERROR, "false");
+    services = new Services();
+    services.init();
+    BundleJobBean job = this.addRecordToBundleJobTable(Job.Status.SUSPENDEDWITHERROR, false);
+    this.addRecordToBundleActionTable(job.getId(), "action1", 0, Job.Status.SUSPENDED);
+    this.addRecordToBundleActionTable(job.getId(), "action2", 0, Job.Status.SUSPENDEDWITHERROR);
+    addRecordToCoordJobTable("action1", CoordinatorJob.Status.SUSPENDED, false, false);
+    addRecordToCoordJobTable("action2", CoordinatorJob.Status.SUSPENDEDWITHERROR, false, false);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    BundleJobGetJPAExecutor bundleJobGetExecutor = new BundleJobGetJPAExecutor(job.getId());
+    job = jpaService.execute(bundleJobGetExecutor);
+    assertEquals(Job.Status.SUSPENDEDWITHERROR, job.getStatus());
+    new BundleRerunXCommand(job.getId(), "action2", null, false, true).call();
+    job = jpaService.execute(bundleJobGetExecutor);
+    assertEquals(Job.Status.RUNNINGWITHERROR, job.getStatus());
+}

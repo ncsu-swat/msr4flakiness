@@ -1,0 +1,15 @@
+// Test to check if prepare action is performed as expected when the prepare XML block is a valid one
+public void testDoOperationsWithValidXML() throws LauncherException, IOException {
+    Path actionDir = getFsTestCaseDir();
+    FileSystem fs = getFileSystem();
+    Path newDir = new Path(actionDir, "newDir");
+    String prepareXML = "<prepare>" + "<mkdir path='" + newDir + "'/>" + "</prepare>";
+    // Delete the file if it is already there
+    if (fs.exists(newDir)) {
+        fs.delete(newDir, true);
+    }
+    JobConf conf = createJobConf();
+    LauncherMapper.setupLauncherURIHandlerConf(conf);
+    PrepareActionsDriver.doOperations(prepareXML, conf);
+    assertTrue(fs.exists(actionDir));
+}

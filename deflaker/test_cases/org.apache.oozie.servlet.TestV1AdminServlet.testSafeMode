@@ -1,0 +1,70 @@
+public void testSafeMode() throws Exception {
+    runTest(new String[] { "/v1/admin/*", "/v1/job/*" }, new Class[] { V1AdminServlet.class, V1JobServlet.class }, IS_SECURITY_ENABLED, new Callable<Void>() {
+
+        public Void call() throws Exception {
+            MockDagEngineService.reset();
+            Map<String, String> params = new HashMap<String, String>();
+            params.put(RestConstants.ACTION_PARAM, RestConstants.JOB_ACTION_START);
+            URL url = createURL("/v1/job/*", MockDagEngineService.JOB_ID + "1" + MockDagEngineService.JOB_ID_END, params);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("PUT");
+            assertEquals(HttpServletResponse.SC_OK, conn.getResponseCode());
+            MockDagEngineService.reset();
+            url = createURL("/v1/admin/*", RestConstants.ADMIN_STATUS_RESOURCE, Collections.EMPTY_MAP);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            assertEquals(HttpServletResponse.SC_OK, conn.getResponseCode());
+            assertTrue(conn.getHeaderField("content-type").startsWith(RestConstants.JSON_CONTENT_TYPE));
+            JSONObject json = (JSONObject) JSONValue.parse(new InputStreamReader(conn.getInputStream()));
+            assertTrue(json.containsKey(JsonTags.OOZIE_SYSTEM_MODE));
+            assertEquals(SYSTEM_MODE.NORMAL.toString(), json.get(JsonTags.OOZIE_SYSTEM_MODE));
+            MockDagEngineService.reset();
+            params = new HashMap<String, String>();
+            params.put(RestConstants.ADMIN_SYSTEM_MODE_PARAM, SYSTEM_MODE.SAFEMODE.toString());
+            url = createURL("/v1/admin/*", RestConstants.ADMIN_STATUS_RESOURCE, params);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("PUT");
+            assertEquals(HttpServletResponse.SC_OK, conn.getResponseCode());
+            MockDagEngineService.reset();
+            url = createURL("/v1/admin/*", RestConstants.ADMIN_STATUS_RESOURCE, Collections.EMPTY_MAP);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            assertEquals(HttpServletResponse.SC_OK, conn.getResponseCode());
+            assertTrue(conn.getHeaderField("content-type").startsWith(RestConstants.JSON_CONTENT_TYPE));
+            json = (JSONObject) JSONValue.parse(new InputStreamReader(conn.getInputStream()));
+            assertTrue(json.containsKey(JsonTags.OOZIE_SYSTEM_MODE));
+            assertEquals(SYSTEM_MODE.SAFEMODE.toString(), json.get(JsonTags.OOZIE_SYSTEM_MODE));
+            MockDagEngineService.reset();
+            params = new HashMap<String, String>();
+            params.put(RestConstants.ACTION_PARAM, RestConstants.JOB_ACTION_START);
+            url = createURL("/v1/job/*", MockDagEngineService.JOB_ID + "1" + MockDagEngineService.JOB_ID_END, params);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("PUT");
+            assertEquals(HttpServletResponse.SC_SERVICE_UNAVAILABLE, conn.getResponseCode());
+            MockDagEngineService.reset();
+            params = new HashMap<String, String>();
+            params.put(RestConstants.ADMIN_SYSTEM_MODE_PARAM, SYSTEM_MODE.NORMAL.toString());
+            url = createURL("/v1/admin/*", RestConstants.ADMIN_STATUS_RESOURCE, params);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("PUT");
+            assertEquals(HttpServletResponse.SC_OK, conn.getResponseCode());
+            MockDagEngineService.reset();
+            url = createURL("/v1/admin/*", RestConstants.ADMIN_STATUS_RESOURCE, Collections.EMPTY_MAP);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            assertEquals(HttpServletResponse.SC_OK, conn.getResponseCode());
+            assertTrue(conn.getHeaderField("content-type").startsWith(RestConstants.JSON_CONTENT_TYPE));
+            json = (JSONObject) JSONValue.parse(new InputStreamReader(conn.getInputStream()));
+            assertTrue(json.containsKey(JsonTags.OOZIE_SYSTEM_MODE));
+            assertEquals(SYSTEM_MODE.NORMAL.toString(), json.get(JsonTags.OOZIE_SYSTEM_MODE));
+            MockDagEngineService.reset();
+            params = new HashMap<String, String>();
+            params.put(RestConstants.ACTION_PARAM, RestConstants.JOB_ACTION_START);
+            url = createURL("/v1/job/*", MockDagEngineService.JOB_ID + "1" + MockDagEngineService.JOB_ID_END, params);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("PUT");
+            assertEquals(HttpServletResponse.SC_OK, conn.getResponseCode());
+            return null;
+        }
+    });
+}

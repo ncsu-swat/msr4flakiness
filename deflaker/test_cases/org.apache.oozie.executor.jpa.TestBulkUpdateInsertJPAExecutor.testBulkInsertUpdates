@@ -1,0 +1,37 @@
+/**
+ * Test bulk inserts and updates by inserting wf actions and updating
+ * coordinator and workflow jobs
+ *
+ * @throws Exception
+ */
+public void testBulkInsertUpdates() throws Exception {
+    CoordinatorJobBean coordJob = addRecordToCoordJobTable(CoordinatorJob.Status.PREP, true, true);
+    WorkflowJobBean job = addRecordToWfJobTable(WorkflowJob.Status.PREP, WorkflowInstance.Status.PREP);
+    WorkflowActionBean action1 = createWorkflowAction(job.getId(), "1", WorkflowAction.Status.PREP);
+    WorkflowActionBean action2 = createWorkflowAction(job.getId(), "2", WorkflowAction.Status.PREP);
+    job.setStatus(WorkflowJob.Status.RUNNING);
+    coordJob.setStatus(Job.Status.SUCCEEDED);
+    List<JsonBean> insertList = new ArrayList<JsonBean>();
+    // Add two actions to insert list
+    insertList.add(action1);
+    insertList.add(action2);
+    List<JsonBean> updateList = new ArrayList<JsonBean>();
+    // Add two jobs to update list
+    updateList.add(coordJob);
+    updateList.add(job);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    BulkUpdateInsertJPAExecutor bulkUpdateCmd = new BulkUpdateInsertJPAExecutor(updateList, insertList);
+    jpaService.execute(bulkUpdateCmd);
+    coordJob = jpaService.execute(new CoordJobGetJPAExecutor(coordJob.getId()));
+    assertEquals("SUCCEEDED", coordJob.getStatusStr());
+    WorkflowJobGetJPAExecutor wfGetCmd = new WorkflowJobGetJPAExecutor(job.getId());
+    WorkflowJobBean wfBean = jpaService.execute(wfGetCmd);
+    assertEquals("RUNNING", wfBean.getStatusStr());
+    WorkflowActionGetJPAExecutor actionGetCmd = new WorkflowActionGetJPAExecutor(action1.getId());
+    action1 = jpaService.execute(actionGetCmd);
+    assertEquals("PREP", action1.getStatusStr());
+    actionGetCmd = new WorkflowActionGetJPAExecutor(action2.getId());
+    action2 = jpaService.execute(actionGetCmd);
+    assertEquals("PREP", action2.getStatusStr());
+}

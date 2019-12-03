@@ -1,0 +1,33 @@
+@Test
+public void testOnCoordinatorActionWaitingEvent() throws ParseException {
+    JMSJobEventListener wfEventListner = new JMSJobEventListener();
+    wfEventListner.init(conf);
+    Date startDate = DateUtils.parseDateUTC("2012-07-22T00:00Z");
+    Date nominalTime = DateUtils.parseDateUTC("2011-07-11T00:00Z");
+    CoordinatorActionEvent cae = new CoordinatorActionEvent("caId1", "caJobId1", CoordinatorAction.Status.WAITING, "user1", "wf-app-name1", nominalTime, startDate, "missingDep1");
+    ConnectionContext jmsContext = getConnectionContext();
+    try {
+        Session session = jmsContext.createSession(Session.AUTO_ACKNOWLEDGE);
+        MessageConsumer consumer = jmsContext.createConsumer(session, wfEventListner.getTopic(cae));
+        wfEventListner.onCoordinatorActionEvent(cae);
+        TextMessage message = (TextMessage) consumer.receive(5000);
+        assertFalse(message.getText().contains("endTime"));
+        assertFalse(message.getText().contains("errorCode"));
+        assertFalse(message.getText().contains("errorMessage"));
+        CoordinatorActionMessage coordActionWaitingMessage = JMSMessagingUtils.getEventMessage(message);
+        assertEquals(CoordinatorAction.Status.WAITING, coordActionWaitingMessage.getStatus());
+        assertEquals(startDate, coordActionWaitingMessage.getStartTime());
+        assertEquals(nominalTime, coordActionWaitingMessage.getNominalTime());
+        assertEquals("caJobId1", coordActionWaitingMessage.getParentId());
+        assertEquals("caId1", coordActionWaitingMessage.getId());
+        assertEquals(MessageType.JOB, coordActionWaitingMessage.getMessageType());
+        assertEquals(AppType.COORDINATOR_ACTION, coordActionWaitingMessage.getAppType());
+        assertEquals(EventStatus.WAITING, coordActionWaitingMessage.getEventStatus());
+        assertEquals("user1", coordActionWaitingMessage.getUser());
+        assertEquals("wf-app-name1", coordActionWaitingMessage.getAppName());
+        assertEquals("missingDep1", coordActionWaitingMessage.getMissingDependency());
+    } catch (Exception e) {
+        e.printStackTrace();
+        fail(e.getMessage());
+    }
+}

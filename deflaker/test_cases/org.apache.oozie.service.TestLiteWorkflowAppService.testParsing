@@ -1,0 +1,38 @@
+public void testParsing() throws Exception {
+    Services services = new Services();
+    try {
+        services.init();
+        WorkflowAppService wps = services.get(WorkflowAppService.class);
+        Reader reader = IOUtils.getResourceAsReader("wf-schema-valid.xml", -1);
+        Writer writer = new FileWriter(getTestCaseDir() + "/workflow.xml");
+        IOUtils.copyCharStream(reader, writer);
+        Configuration jobConf = new XConfiguration();
+        jobConf.set(OozieClient.APP_PATH, "file://" + getTestCaseDir() + File.separator + "workflow.xml");
+        jobConf.set(OozieClient.USER_NAME, getTestUser());
+        LiteWorkflowApp app = (LiteWorkflowApp) wps.parseDef(jobConf, "authToken");
+        assertNotNull(app);
+        assertEquals("test-wf", app.getName());
+        assertNotNull(app.getNode(StartNodeDef.START));
+        assertEquals("a", app.getNode(StartNodeDef.START).getTransitions().get(0));
+        assertEquals("b", app.getNode("a").getTransitions().get(0));
+        assertEquals("c", app.getNode("a").getTransitions().get(1));
+        assertEquals("c", app.getNode("a").getTransitions().get(2));
+        assertTrue(app.getNode("b").getConf().contains("kill"));
+        assertEquals("d", app.getNode("c").getTransitions().get(0));
+        assertEquals("e", app.getNode("c").getTransitions().get(1));
+        assertEquals(2, app.getNode("c").getTransitions().size());
+        assertEquals("f", app.getNode("d").getTransitions().get(0));
+        assertEquals("b", app.getNode("d").getTransitions().get(1));
+        assertTrue(app.getNode("d").getConf().startsWith("<map-reduce"));
+        assertEquals("f", app.getNode("e").getTransitions().get(0));
+        assertEquals("b", app.getNode("e").getTransitions().get(1));
+        assertTrue(app.getNode("e").getConf().startsWith("<pig"));
+        assertEquals("g", app.getNode("f").getTransitions().get(0));
+        assertEquals("z", app.getNode("g").getTransitions().get(0));
+        assertEquals("b", app.getNode("g").getTransitions().get(1));
+        assertTrue(app.getNode("g").getConf().startsWith("<fs"));
+        assertNotNull(app.getNode("z"));
+    } finally {
+        services.destroy();
+    }
+}

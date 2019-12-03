@@ -1,0 +1,30 @@
+/**
+ * This test creates a file with three block replicas. Corrupt all of the
+ * replicas. Make dfs client read the file. No block corruption should be
+ * reported.
+ */
+@Test
+public void testCorruptAllOfThreeReplicas() throws Exception {
+    final short repl = 3;
+    final int corruptBlockNumber = 3;
+    for (int i = 0; i < 2; i++) {
+        // create a file
+        String fileName = "/tmp/testClientReportBadBlock/testCorruptAllReplicas" + i;
+        Path filePath = new Path(fileName);
+        createAFileWithCorruptedBlockReplicas(filePath, repl, corruptBlockNumber);
+        // ask dfs client to read the file
+        if (i == 0) {
+            dfsClientReadFile(filePath);
+        } else {
+            dfsClientReadFileFromPosition(filePath);
+        }
+        // As all replicas are corrupted. We expect DFSClient does NOT report
+        // corrupted replicas to the name node.
+        int expectedReplicasReturned = repl;
+        verifyCorruptedBlockCount(filePath, expectedReplicasReturned);
+        // LocatedBlock should not have the block marked as corrupted.
+        verifyFirstBlockCorrupted(filePath, false);
+        verifyFsckHealth("");
+        testFsckListCorruptFilesBlocks(filePath, 0);
+    }
+}

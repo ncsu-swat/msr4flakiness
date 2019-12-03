@@ -1,0 +1,23 @@
+/**
+ * Tests functionality of the CoordMaterializeTriggerService Runnable
+ * command. </p> Insert a coordinator job with PREP. Then, runs the
+ * CoordMaterializeTriggerService runnable and ensures the job status
+ * changes to RUNNING.
+ *
+ * @throws Exception
+ */
+public void testCoordMaterializeTriggerService1() throws Exception {
+    Date start = DateUtils.parseDateOozieTZ("2009-02-01T01:00Z");
+    Date end = DateUtils.parseDateOozieTZ("2009-02-20T23:59Z");
+    final CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.PREP, start, end, false, false, 0);
+    sleep(3000);
+    Runnable runnable = new CoordMaterializeTriggerRunnable(3600, 300);
+    runnable.run();
+    sleep(1000);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    CoordJobGetJPAExecutor coordGetCmd = new CoordJobGetJPAExecutor(job.getId());
+    CoordinatorJobBean coordJob = jpaService.execute(coordGetCmd);
+    assertEquals(CoordinatorJob.Status.RUNNING, coordJob.getStatus());
+    int numWaitingActions = jpaService.execute(new CoordJobGetRunningActionsCountJPAExecutor(coordJob.getId()));
+    assert (numWaitingActions <= coordJob.getMatThrottling());
+}

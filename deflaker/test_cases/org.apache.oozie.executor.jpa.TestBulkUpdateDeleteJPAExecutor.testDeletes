@@ -1,0 +1,32 @@
+/**
+ * Test bulk deletes by deleting a coord action and a wf action
+ * @throws Exception
+ */
+public void testDeletes() throws Exception {
+    CoordinatorActionBean action1 = addRecordToCoordActionTable("000-123-C", 1, CoordinatorAction.Status.KILLED, "coord-action-get.xml", 0);
+    WorkflowActionBean action2 = addRecordToWfActionTable("000-123-W", "2", WorkflowAction.Status.PREP);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    List<JsonBean> deleteList = new ArrayList<JsonBean>();
+    // insert one workflow job and two actions
+    deleteList.add(action1);
+    deleteList.add(action2);
+    BulkUpdateDeleteJPAExecutor bulkDelRerunCmd = new BulkUpdateDeleteJPAExecutor();
+    bulkDelRerunCmd.setDeleteList(deleteList);
+    jpaService.execute(bulkDelRerunCmd);
+    // check for non existence after running bulkDeleteJPA
+    try {
+        jpaService.execute(new CoordActionGetJPAExecutor(action1.getId()));
+        // should not be found
+        fail();
+    } catch (JPAExecutorException jex) {
+        assertEquals(ErrorCode.E0605, jex.getErrorCode());
+    }
+    try {
+        jpaService.execute(new WorkflowActionGetJPAExecutor(action2.getId()));
+        // should not be found
+        fail();
+    } catch (JPAExecutorException jex) {
+        assertEquals(ErrorCode.E0605, jex.getErrorCode());
+    }
+}
