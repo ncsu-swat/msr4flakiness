@@ -8,6 +8,7 @@ import re
 from shutil import copyfile
 
 dict = {"achilles": "https://github.com/OHDSI/Achilles.git",
+        "ambari": "https://github.com/apache/ambari.git",
         "assertj-core": "https://github.com/joel-costigliola/assertj-core.git",
         "cloudera.oryx": "https://github.com/OryxProject/oryx.git",
         "commons-exec": "https://github.com/apache/commons-exec.git",
@@ -40,6 +41,7 @@ def main():
         csv_reader = csv.DictReader(csv_file)
         #isFirstTime = True
         dir = None
+        lastdir = None
         for row in csv_reader:
             ## go back to base directory
             os.chdir(basedir)
@@ -63,6 +65,12 @@ def main():
             if dir == None:
                 raise Exception("fatal error")
             os.chdir(dir)
+
+            ## delete previous project
+            if ((lastdir is not None) and (not lastdir == dir)):
+                if (os.path.exists(lastdir)):
+                    shutil.rmtree(lastdir, ignore_errors=True)
+            lastdir = dir
 
             #print("checking out revision {}".format(sha))
             myprocess = subprocess.Popen(['git', 'checkout', sha],
@@ -129,7 +137,9 @@ def main():
             else:
                 print("......problems when trying to generate tokens for test case.")
                 continue
-            
+
+    if (os.path.exists(lastdir)):
+        shutil.rmtree(lastdir, ignore_errors=True)                
 
 if __name__ == "__main__":
     main()
