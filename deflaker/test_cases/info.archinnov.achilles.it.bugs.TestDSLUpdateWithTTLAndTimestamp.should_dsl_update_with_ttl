@@ -1,0 +1,15 @@
+@Test
+public void should_dsl_update_with_ttl() throws Exception {
+    // Given
+    final long id = RandomUtils.nextLong(0L, Long.MAX_VALUE);
+    final Date date = buildDateKey();
+    scriptExecutor.executeScriptTemplate("SimpleEntity/insert_single_row.cql", ImmutableMap.of("id", id, "table", "simple"));
+    manager.dsl().update().fromBaseTable().value().Set("new value").consistencyList().consistencyList_Set(Arrays.asList(ConsistencyLevel.ALL)).where().id().Eq(id).date().Eq(date).usingTimeToLive(1).usingTimestamp(new Date().getTime()).execute();
+    // When
+    Thread.sleep(2000);
+    Row row = session.execute("SELECT * FROM simple WHERE id = " + id + " AND date = '2015-10-01 00:00:00.000+0000'").one();
+    // Then
+    assertThat(row).isNotNull();
+    assertThat(row.getList("consistencylist", String.class)).hasSize(2).containsExactly("QUORUM", "LOCAL_ONE");
+    assertThat(row.getString("value")).isEqualTo("0 AM");
+}

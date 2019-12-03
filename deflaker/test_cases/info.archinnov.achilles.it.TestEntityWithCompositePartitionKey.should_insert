@@ -1,0 +1,16 @@
+@Test
+public void should_insert() throws Exception {
+    // Given
+    final long id = RandomUtils.nextLong(0L, Long.MAX_VALUE);
+    final UUID uuid = new UUID(1L, 1L);
+    final EntityWithCompositePartitionKey entity = new EntityWithCompositePartitionKey(id, uuid, "val");
+    // When
+    manager.crud().insert(entity).execute();
+    // Then
+    final List<Row> rows = session.execute("SELECT * FROM entity_composite_pk WHERE id = " + id + " AND uuid = " + uuid).all();
+    assertThat(rows).hasSize(1);
+    final Row row = rows.get(0);
+    assertThat(row.getLong("id")).isEqualTo(id);
+    assertThat(row.getUUID("uuid")).isEqualTo(uuid);
+    assertThat(row.getString("value")).isEqualTo("val");
+}

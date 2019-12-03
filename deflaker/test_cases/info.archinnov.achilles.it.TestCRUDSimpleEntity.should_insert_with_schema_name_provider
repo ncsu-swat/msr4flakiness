@@ -1,0 +1,27 @@
+@Test
+public void should_insert_with_schema_name_provider() throws Exception {
+    // Given
+    final String tableName = "simple_insert_with_schema_name";
+    scriptExecutor.executeScriptTemplate("SimpleEntity/create_simple_mirror_table.cql", ImmutableMap.of("table", tableName));
+    final long id = RandomUtils.nextLong(0L, Long.MAX_VALUE);
+    final Date date = buildDateKey();
+    final SimpleEntity entity = new SimpleEntity(id, date, "value_tenant3");
+    final SchemaNameProvider provider = new SchemaNameProvider() {
+
+        @Override
+        public <T> String keyspaceFor(Class<T> entityClass) {
+            return DEFAULT_CASSANDRA_EMBEDDED_KEYSPACE_NAME;
+        }
+
+        @Override
+        public <T> String tableNameFor(Class<T> entityClass) {
+            return tableName;
+        }
+    };
+    // When
+    manager.crud().insert(entity).withSchemaNameProvider(provider).execute();
+    // Then
+    final Row row = session.execute("SELECT * FROM " + tableName + " WHERE id = " + id).one();
+    assertThat(row).isNotNull();
+    assertThat(row.getString("value")).isEqualTo("value_tenant3");
+}

@@ -1,0 +1,16 @@
+@Test
+public void should_dsl_delete() throws Exception {
+    // Given
+    final long id = RandomUtils.nextLong(0L, Long.MAX_VALUE);
+    final Date date = buildDateKey();
+    scriptExecutor.executeScriptTemplate("SimpleEntity/insert_single_row.cql", ImmutableMap.of("id", id, "table", "simple"));
+    // When
+    manager.dsl().delete().consistencyList().simpleMap().fromBaseTable().where().id().Eq(id).date().Eq(date).execute();
+    // Then
+    final Row row = session.execute("SELECT * FROM simple WHERE id = " + id).one();
+    assertThat(row).isNotNull();
+    assertThat(row.isNull("consistencylist")).isTrue();
+    assertThat(row.isNull("simplemap")).isTrue();
+    assertThat(row.getSet("simpleset", Double.class)).containsOnly(1.0, 2.0);
+    assertThat(row.getString("value")).isEqualTo("0 AM");
+}

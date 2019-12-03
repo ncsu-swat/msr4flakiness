@@ -7,33 +7,14 @@ import sys
 import re
 from shutil import copyfile
 
-dict = {"achilles": "https://github.com/OHDSI/Achilles.git",
-        "ambari": "https://github.com/apache/ambari.git",
-        "assertj-core": "https://github.com/joel-costigliola/assertj-core.git",
-        "cloudera.oryx": "https://github.com/OryxProject/oryx.git",
-        "commons-exec": "https://github.com/apache/commons-exec.git",
-        "dropwizard": "https://github.com/dropwizard/dropwizard.git",
-        "hadoop": "https://github.com/apache/hadoop.git",
-        "handlebars": "https://github.com/wycats/handlebars.js.git",
-        "hbase": "https://github.com/apache/hbase.git",
-        "hector": "https://github.com/JGCRI/hector.git",
-        "httpcore": "https://github.com/httpwg/http-core.git",
-        "jackrabbit-oak": "https://github.com/apache/jackrabbit-oak.git",
-        "jimfs": "https://github.com/google/jimfs.git",
-        "logback": "https://github.com/qos-ch/logback.git",
-        "ninja": "https://github.com/ninja-build/ninja.git",
-        "okhttp": "https://github.com/square/okhttp.git",
-        "oozie": "https://github.com/apache/oozie.git",
-        "orbit": "https://github.com/orbit/orbit.git",
-        "oryx": "https://github.com/OryxProject/oryx.git",
-        "spring-boot": "https://github.com/spring-projects/spring-boot.git",
-        "tachyon": "https://github.com/humanmade/tachyon.git",
-        "togglz": "https://github.com/togglz/togglz.git",
-        "wro4j": "https://github.com/wro4j/wro4j.git",
-        "zxing": "https://github.com/zxing/zxing.git"}
+
+dict = {}
 
 def main():
-    ##TODO: create test_files and test_cases directory if they do not exist
+    with open('historical_projects.csv') as urls_file:
+        csv_reader = csv.DictReader(urls_file)
+        for row in csv_reader:
+            dict[row["Project Name"]] = row["Project Address"]
     
     basedir = os.getcwd()
     ## assuming the rows are ordered per project
@@ -48,22 +29,23 @@ def main():
 
             project = row["\ufeffProject"]
             url = dict[project]
-            
+            parts = url.split("/")
+            tmp = parts[-1] # read the last element
+            dir = tmp.split(".git")[0]
+            if dir == None:
+                raise Exception("fatal error")            
             sha = row["sha"]
+
             # clone the repository
             print("checking out revision: {}:{}".format(url, sha))
             myprocess = subprocess.Popen(['git', 'clone', url],
                                          stdout=subprocess.PIPE,
                                          stderr=subprocess.STDOUT)
             stdout,stderr = myprocess.communicate()
-
-            # change directory to this project
-            # get the name of the project                                                                                          
-            parts = url.split("/")
-            tmp = parts[-1] # read the last element
-            dir = tmp.split(".git")[0]
-            if dir == None:
-                raise Exception("fatal error")
+            tmp = stdout.decode("utf-8")
+            if tmp.startswith("Cloning into '{}'...\nERROR: Repository not found.".format(dir)):
+                print("......could not clone from this URL: {}".format(url))
+                continue
             
             ## delete previous project
             if ((lastdir is not None) and (not lastdir == dir)):

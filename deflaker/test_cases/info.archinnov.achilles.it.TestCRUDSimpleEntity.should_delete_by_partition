@@ -1,0 +1,11 @@
+@Test
+public void should_delete_by_partition() throws Exception {
+    // Given
+    final long id = 200L;
+    scriptExecutor.executeScriptTemplate("SimpleEntity/insert_2_rows_same_partition.cql", ImmutableMap.of("id", id));
+    // When
+    manager.crud().deleteByPartitionKeys(id).execute();
+    // Then
+    final List<Row> rows = session.execute("SELECT * FROM simple WHERE id = " + id).all();
+    assertThat(rows).isEmpty();
+}

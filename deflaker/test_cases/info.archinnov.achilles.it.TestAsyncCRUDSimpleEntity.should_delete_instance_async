@@ -1,0 +1,24 @@
+@Test
+public void should_delete_instance_async() throws Exception {
+    // Given
+    final long id = RandomUtils.nextLong(0L, Long.MAX_VALUE);
+    final Date date = buildDateKey();
+    final SimpleEntity entity = new SimpleEntity(id, date, "value");
+    scriptExecutor.executeScriptTemplate("SimpleEntity/insert_single_row.cql", ImmutableMap.of("id", id, "table", "simple"));
+    final CountDownLatch latch = new CountDownLatch(1);
+    final CassandraLogAsserter logAsserter = new CassandraLogAsserter();
+    logAsserter.prepareLogLevel(ASYNC_LOGGER_STRING, "%msg - [%thread]%n");
+    // When
+    final CompletableFuture<ExecutionInfo> future = manager.crud().delete(entity).withResultSetAsyncListener(rs -> {
+        LOGGER.info(CALLED);
+        latch.countDown();
+        return rs;
+    }).executeAsyncWithStats();
+    // Then
+    latch.await();
+    logAsserter.assertContains("Called");
+    final List<Row> rows = session.execute("SELECT * FROM simple WHERE id = " + id).all();
+    assertThat(rows).isEmpty();
+    final ExecutionInfo executionInfo = future.get();
+    assertThat(executionInfo.getQueriedHost().isUp()).isTrue();
+}

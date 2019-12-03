@@ -1,0 +1,13 @@
+@Test
+public void should_insert_with_ttl() throws Exception {
+    // Given
+    final long id = RandomUtils.nextLong(0L, Long.MAX_VALUE);
+    final Date date = buildDateKey();
+    final SimpleEntity entity = new SimpleEntity(id, date, "value");
+    // When
+    manager.crud().insert(entity).usingTimeToLive(1).execute();
+    Thread.sleep(1001);
+    // Then
+    final Row row = session.execute("SELECT * FROM simple WHERE id = " + id).one();
+    assertThat(row).isNull();
+}

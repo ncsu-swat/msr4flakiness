@@ -1,0 +1,12 @@
+@Test
+public void should_dsl_update_list_appendAll() throws Exception {
+    // Given
+    final long id = RandomUtils.nextLong(0L, Long.MAX_VALUE);
+    final Date date = buildDateKey();
+    scriptExecutor.executeScriptTemplate("SimpleEntity/insert_single_row.cql", ImmutableMap.of("id", id, "table", "simple"));
+    // When
+    manager.dsl().update().fromBaseTable().consistencyList().consistencyList_AppendAllTo(asList(TWO, THREE)).where().id().Eq(id).date().Eq(date).execute();
+    // Then
+    final Row row = session.execute("SELECT consistencylist FROM simple WHERE id = " + id).one();
+    assertThat(row.getList("consistencylist", String.class)).containsExactly("QUORUM", "LOCAL_ONE", "TWO", "THREE");
+}

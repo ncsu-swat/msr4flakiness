@@ -1,0 +1,18 @@
+@Test
+public void should_insert() throws Exception {
+    // Given
+    final long id = RandomUtils.nextLong(0L, Long.MAX_VALUE);
+    final Tuple2<Integer, Map<Integer, List<String>>> tuple = Tuple2.of(10, ImmutableMap.of(20, asList("10", "20")));
+    final EntityWithComplexTuple entity = new EntityWithComplexTuple(id, tuple);
+    // When
+    manager.crud().insert(entity).execute();
+    // Then
+    final Row actual = session.execute("SELECT * FROM complex_tuple WHERE id = " + id).one();
+    assertThat(actual).isNotNull();
+    final TupleValue tupleValue = actual.getTupleValue("tuple");
+    assertThat(tupleValue.getInt(0)).isEqualTo(10);
+    final Map<Integer, List<String>> map = tupleValue.getMap(1, new TypeToken<Integer>() {
+    }, new TypeToken<List<String>>() {
+    });
+    assertThat(map).containsEntry(20, asList("10", "20"));
+}

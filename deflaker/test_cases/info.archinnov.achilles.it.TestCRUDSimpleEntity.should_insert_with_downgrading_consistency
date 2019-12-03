@@ -1,0 +1,15 @@
+@Test
+public void should_insert_with_downgrading_consistency() throws Exception {
+    // Given
+    final long id = RandomUtils.nextLong(0L, Long.MAX_VALUE);
+    final Date date = buildDateKey();
+    final SimpleEntity entity = new SimpleEntity(id, date, "value");
+    final CassandraLogAsserter logAsserter = new CassandraLogAsserter();
+    logAsserter.prepareLogLevelForDriverConnection();
+    // When
+    manager.crud().insert(entity).withConsistencyLevel(TWO).withRetryPolicy(DowngradingConsistencyRetryPolicy.INSTANCE).execute();
+    // Then
+    final Row row = session.execute("SELECT * FROM simple WHERE id = " + id).one();
+    assertThat(row).isNotNull();
+    logAsserter.assertConsistencyLevels(TWO, ONE);
+}

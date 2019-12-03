@@ -1,0 +1,13 @@
+@Test
+public void should_dsl_update_static() throws Exception {
+    // Given
+    final long id = RandomUtils.nextLong(0L, Long.MAX_VALUE);
+    final UUID uuid = UUIDs.timeBased();
+    scriptExecutor.executeScriptTemplate("EntityWithStaticColumn/insert_single_row.cql", ImmutableMap.of("id", id, "uuid", uuid));
+    // When
+    manager.dsl().updateStatic().fromBaseTable().staticCol().Set("updated_static").where().id().Eq(id).if_StaticCol().Eq("static_val").execute();
+    // Then
+    final Row actual = session.execute("SELECT static_col FROM entitywithstaticcolumn WHERE id = " + id).one();
+    assertThat(actual).isNotNull();
+    assertThat(actual.getString("static_col")).isEqualTo("updated_static");
+}

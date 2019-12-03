@@ -1,0 +1,24 @@
+@Test
+public void should_find_by_id_async() throws Exception {
+    // Given
+    final long id = RandomUtils.nextLong(0, Long.MAX_VALUE);
+    scriptExecutor.executeScriptTemplate("SimpleEntity/insert_single_row.cql", ImmutableMap.of("id", id, "table", "simple"));
+    final Date date = buildDateKey();
+    final CountDownLatch latch = new CountDownLatch(1);
+    final CassandraLogAsserter logAsserter = new CassandraLogAsserter();
+    logAsserter.prepareLogLevel(ASYNC_LOGGER_STRING, "%msg - [%thread]%n");
+    // When
+    final CompletableFuture<Tuple2<SimpleEntity, ExecutionInfo>> tuple2 = manager.crud().findById(id, date).withResultSetAsyncListener(rs -> {
+        LOGGER.info(CALLED);
+        latch.countDown();
+        return rs;
+    }).getAsyncWithStats();
+    // Then
+    latch.await();
+    final SimpleEntity actual = tuple2.get()._1();
+    final ExecutionInfo executionInfo = tuple2.get()._2();
+    assertThat(actual).isNotNull();
+    assertThat(actual.getConsistencyList()).containsExactly(ConsistencyLevel.QUORUM, ConsistencyLevel.LOCAL_ONE);
+    assertThat(executionInfo.getQueriedHost().isUp()).isTrue();
+    logAsserter.assertContains("Called - [achilles-default-executor");
+}

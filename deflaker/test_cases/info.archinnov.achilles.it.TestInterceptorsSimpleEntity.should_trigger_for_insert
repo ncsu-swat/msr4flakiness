@@ -1,0 +1,15 @@
+@Test
+public void should_trigger_for_insert() throws Exception {
+    // Given
+    final long id = RandomUtils.nextLong(0L, Long.MAX_VALUE);
+    final Date date = new Date();
+    final SimpleEntity entity = new SimpleEntity(id, date, "value");
+    // When
+    manager.crud().insert(entity).execute();
+    // Then
+    assertThat(entity.getValue()).isEqualTo("postInsert_preInsert_value");
+    final List<Row> rows = session.execute("SELECT * FROM simple WHERE id = " + id).all();
+    assertThat(rows).hasSize(1);
+    final Row row = rows.get(0);
+    assertThat(row.getString("value")).isEqualTo("preInsert_value");
+}

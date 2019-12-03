@@ -1,0 +1,14 @@
+@Test
+public void should_dsl_update_map_removeByKey() throws Exception {
+    // Given
+    final long id = RandomUtils.nextLong(0L, Long.MAX_VALUE);
+    final Date date = buildDateKey();
+    scriptExecutor.executeScriptTemplate("SimpleEntity/insert_single_row.cql", ImmutableMap.of("id", id, "table", "simple"));
+    // When
+    manager.dsl().update().fromBaseTable().simpleMap().simpleMap_RemoveByKey(20).where().id().Eq(id).date().Eq(date).execute();
+    // Then
+    final Row row = session.execute("SELECT simplemap FROM simple WHERE id = " + id).one();
+    assertThat(row.getMap("simplemap", Integer.class, String.class)).containsEntry(10, "ten");
+    assertThat(row.getMap("simplemap", Integer.class, String.class)).doesNotContainEntry(20, "twenty");
+    assertThat(row.getMap("simplemap", Integer.class, String.class)).hasSize(1);
+}

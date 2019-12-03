@@ -1,0 +1,12 @@
+@Test
+public void should_perform_prepared_typed_query() throws Exception {
+    // Given
+    final Long id = RandomUtils.nextLong(0L, Long.MAX_VALUE);
+    scriptExecutor.executeScriptTemplate("SimpleEntity/insert_single_row.cql", ImmutableMap.of("id", id, "table", "simple"));
+    final PreparedStatement preparedStatement = session.prepare("SELECT * FROM simple WHERE id = :id");
+    // When
+    final SimpleEntity actual = manager.query().typedQueryForSelect(preparedStatement, id).getOne();
+    // Then
+    assertThat(actual).isNotNull();
+    assertThat(actual.getValue()).contains("0 AM");
+}

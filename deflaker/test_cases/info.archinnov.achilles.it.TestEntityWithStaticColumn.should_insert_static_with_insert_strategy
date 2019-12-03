@@ -1,0 +1,15 @@
+@Test
+public void should_insert_static_with_insert_strategy() throws Exception {
+    // Given
+    final long id = RandomUtils.nextLong(0L, Long.MAX_VALUE);
+    final EntityWithStaticColumn entity1 = new EntityWithStaticColumn(id, null, "static_val1", "another_static_val1", null);
+    final EntityWithStaticColumn entity2 = new EntityWithStaticColumn(id, null, null, "another_static_val2", null);
+    manager.crud().insertStatic(entity1).execute();
+    // When
+    manager.crud().insertStatic(entity2).withInsertStrategy(InsertStrategy.NOT_NULL_FIELDS).execute();
+    // Then
+    final Row actual = session.execute("SELECT * FROM entitywithstaticcolumn WHERE id = " + id).one();
+    assertThat(actual).isNotNull();
+    assertThat(actual.getString("static_col")).isEqualTo("static_val1");
+    assertThat(actual.getString("another_static_col")).isEqualTo("another_static_val2");
+}

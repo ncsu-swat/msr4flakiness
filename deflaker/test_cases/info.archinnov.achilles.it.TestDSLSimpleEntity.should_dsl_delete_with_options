@@ -1,0 +1,16 @@
+@Test
+public void should_dsl_delete_with_options() throws Exception {
+    // Given
+    final long id = RandomUtils.nextLong(0L, Long.MAX_VALUE);
+    final Date date = buildDateKey();
+    scriptExecutor.executeScriptTemplate("SimpleEntity/insert_single_row.cql", ImmutableMap.of("id", id, "table", "simple"));
+    final CassandraLogAsserter logAsserter = new CassandraLogAsserter();
+    logAsserter.prepareLogLevelForDriverConnection();
+    // When
+    manager.dsl().delete().value().fromBaseTable().where().id().Eq(id).date().Eq(date).withConsistencyLevel(QUORUM).withRetryPolicy(DowngradingConsistencyRetryPolicy.INSTANCE).execute();
+    // Then
+    final Row row = session.execute("SELECT value FROM simple WHERE id = " + id).one();
+    assertThat(row).isNotNull();
+    assertThat(row.isNull("value")).isTrue();
+    logAsserter.assertConsistencyLevels(QUORUM);
+}

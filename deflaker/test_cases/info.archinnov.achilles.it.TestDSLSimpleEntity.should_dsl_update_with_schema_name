@@ -1,0 +1,25 @@
+@Test
+public void should_dsl_update_with_schema_name() throws Exception {
+    // Given
+    final long id = RandomUtils.nextLong(0L, Long.MAX_VALUE);
+    final Date date = buildDateKey();
+    final String tableName = "update_dsl_with_schema_name";
+    scriptExecutor.executeScriptTemplate("SimpleEntity/create_simple_mirror_table.cql", ImmutableMap.of("table", tableName));
+    scriptExecutor.executeScriptTemplate("SimpleEntity/insert_single_row.cql", ImmutableMap.of("id", id, "table", tableName));
+    // When
+    manager.dsl().update().from(new SchemaNameProvider() {
+
+        @Override
+        public <T> String keyspaceFor(Class<T> entityClass) {
+            return DEFAULT_CASSANDRA_EMBEDDED_KEYSPACE_NAME;
+        }
+
+        @Override
+        public <T> String tableNameFor(Class<T> entityClass) {
+            return tableName;
+        }
+    }).value().Set("new value").where().id().Eq(id).date().Eq(date).execute();
+    // Then
+    final Row row = session.execute("SELECT value FROM " + tableName + " WHERE id = " + id).one();
+    assertThat(row.getString("value")).isEqualTo("new value");
+}

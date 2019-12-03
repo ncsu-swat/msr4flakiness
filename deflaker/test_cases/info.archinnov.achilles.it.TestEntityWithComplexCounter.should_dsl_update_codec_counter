@@ -1,0 +1,13 @@
+@Test
+public void should_dsl_update_codec_counter() throws Exception {
+    // Given
+    final long id = RandomUtils.nextLong(0L, Long.MAX_VALUE);
+    final UUID uuid = UUIDs.timeBased();
+    final long codecCount = RandomUtils.nextLong(0L, Long.MAX_VALUE);
+    // When
+    manager.dsl().update().fromBaseTable().counterWithCodec().counterWithCodec_Incr(codecCount + "").where().id().Eq(id).uuid().Eq(uuid).execute();
+    // Then
+    final Row actual = session.execute("SELECT codec_count FROM entity_complex_counters WHERE id = " + id + " AND uuid = " + uuid).one();
+    assertThat(actual).isNotNull();
+    assertThat(actual.getLong("codec_count")).isEqualTo(codecCount);
+}

@@ -1,0 +1,23 @@
+@Test
+public void should_insert() throws Exception {
+    // Given
+    final long id = RandomUtils.nextLong(0L, Long.MAX_VALUE);
+    final Date date = new Date();
+    final SimpleEntity entity = new SimpleEntity(id, date, "value");
+    entity.setConsistencyList(Arrays.asList(ConsistencyLevel.EACH_QUORUM, ConsistencyLevel.LOCAL_QUORUM));
+    entity.setSimpleSet(Sets.newHashSet(10d, 11d));
+    entity.setSimpleMap(ImmutableMap.of(1, "one", 2, "two"));
+    // When
+    manager.crud().insert(entity).execute();
+    // Then
+    final List<Row> rows = session.execute("SELECT * FROM simple WHERE id = " + id).all();
+    assertThat(rows).hasSize(1);
+    final Row row = rows.get(0);
+    assertThat(row.getLong("id")).isEqualTo(id);
+    assertThat(row.getTimestamp("date")).isEqualTo(date);
+    assertThat(row.getString("value")).isEqualTo("value");
+    assertThat(row.getList("consistencylist", String.class)).containsExactly("EACH_QUORUM", "LOCAL_QUORUM");
+    assertThat(row.getSet("simpleset", Double.class)).containsOnly(10d, 11d);
+    assertThat(row.getMap("simplemap", Integer.class, String.class)).containsEntry(1, "one");
+    assertThat(row.getMap("simplemap", Integer.class, String.class)).containsEntry(2, "two");
+}

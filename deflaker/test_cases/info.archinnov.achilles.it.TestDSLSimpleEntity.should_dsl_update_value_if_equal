@@ -1,0 +1,31 @@
+@Test
+public void should_dsl_update_value_if_equal() throws Exception {
+    // Given
+    final long id = RandomUtils.nextLong(0L, Long.MAX_VALUE);
+    final Date date = buildDateKey();
+    final AtomicBoolean success = new AtomicBoolean(false);
+    scriptExecutor.executeScriptTemplate("SimpleEntity/insert_single_row.cql", ImmutableMap.of("id", id, "table", "simple"));
+    final CassandraLogAsserter logAsserter = new CassandraLogAsserter();
+    logAsserter.prepareLogLevelForDriverConnection();
+    // When
+    manager.dsl().update().fromBaseTable().value().Set("new value").where().id().Eq(id).date().Eq(date).if_Value().Eq("0 AM").withLwtResultListener(new LWTResultListener() {
+
+        @Override
+        public void onSuccess() {
+            success.getAndSet(true);
+        }
+
+        @Override
+        public void onError(LWTResult lwtResult) {
+        }
+    }).withResultSetAsyncListener(rs -> {
+        assertThat(rs.wasApplied()).isTrue();
+        return rs;
+    }).withSerialConsistencyLevel(SERIAL).execute();
+    // Then
+    final Row row = session.execute("SELECT value FROM simple WHERE id = " + id).one();
+    assertThat(row).isNotNull();
+    assertThat(row.getString("value")).isEqualTo("new value");
+    assertThat(success.get()).isTrue();
+    logAsserter.assertSerialConsistencyLevels(SERIAL);
+}

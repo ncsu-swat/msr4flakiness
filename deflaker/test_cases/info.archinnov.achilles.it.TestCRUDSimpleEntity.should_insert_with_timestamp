@@ -1,0 +1,13 @@
+@Test
+public void should_insert_with_timestamp() throws Exception {
+    // Given
+    final long id = RandomUtils.nextLong(0L, Long.MAX_VALUE);
+    final Date date = buildDateKey();
+    final SimpleEntity entity = new SimpleEntity(id, date, "value");
+    // When
+    manager.crud().insert(entity).usingTimestamp(1000L).execute();
+    // Then
+    final Row row = session.execute("SELECT writetime(value) as wt FROM simple WHERE id = " + id).one();
+    assertThat(row).isNotNull();
+    assertThat(row.getLong("wt")).isEqualTo(1000L);
+}

@@ -1,0 +1,25 @@
+@Test
+public void should_delete_with_equal_condition() throws Exception {
+    // Given
+    final long id = RandomUtils.nextLong(0L, Long.MAX_VALUE);
+    final Date date = buildDateKey();
+    scriptExecutor.executeScriptTemplate("SimpleEntity/insert_single_row.cql", ImmutableMap.of("id", id, "table", "simple"));
+    final AtomicBoolean success = new AtomicBoolean(false);
+    final LWTResultListener lwtResultListener = new LWTResultListener() {
+
+        @Override
+        public void onSuccess() {
+            success.getAndSet(true);
+        }
+
+        @Override
+        public void onError(LWTResult lwtResult) {
+        }
+    };
+    // When
+    manager.dsl().delete().allColumns_FromBaseTable().where().id().Eq(id).date().Eq(date).if_SimpleSet().Eq(Sets.newHashSet(1.0, 2.0)).withLwtResultListener(lwtResultListener).execute();
+    // Then
+    final Row row = session.execute("SELECT * FROM simple WHERE id = " + id).one();
+    assertThat(row).isNull();
+    assertThat(success.get()).isTrue();
+}

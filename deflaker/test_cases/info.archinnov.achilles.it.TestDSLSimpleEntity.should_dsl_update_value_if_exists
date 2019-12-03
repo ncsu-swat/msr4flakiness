@@ -1,0 +1,26 @@
+@Test
+public void should_dsl_update_value_if_exists() throws Exception {
+    // Given
+    final long id = RandomUtils.nextLong(0L, Long.MAX_VALUE);
+    final Date date = buildDateKey();
+    final AtomicBoolean error = new AtomicBoolean(false);
+    // When
+    manager.dsl().update().fromBaseTable().value().Set("new value").where().id().Eq(id).date().Eq(date).ifExists().withLwtResultListener(new LWTResultListener() {
+
+        @Override
+        public void onSuccess() {
+        }
+
+        @Override
+        public void onError(LWTResult lwtResult) {
+            error.getAndSet(true);
+        }
+    }).withResultSetAsyncListener(rs -> {
+        assertThat(rs.wasApplied()).isFalse();
+        return rs;
+    }).execute();
+    // Then
+    final Row row = session.execute("SELECT simplemap FROM simple WHERE id = " + id).one();
+    assertThat(row).isNull();
+    assertThat(error.get()).isTrue();
+}

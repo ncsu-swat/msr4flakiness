@@ -1,0 +1,12 @@
+@Test
+public void should_dsl_update_set_add() throws Exception {
+    // Given
+    final long id = RandomUtils.nextLong(0L, Long.MAX_VALUE);
+    final Date date = buildDateKey();
+    scriptExecutor.executeScriptTemplate("SimpleEntity/insert_single_row.cql", ImmutableMap.of("id", id, "table", "simple"));
+    // When
+    manager.dsl().update().fromBaseTable().simpleSet().simpleSet_AddTo(3.0D).where().id().Eq(id).date().Eq(date).execute();
+    // Then
+    final Row row = session.execute("SELECT simpleset FROM simple WHERE id = " + id).one();
+    assertThat(row.getSet("simpleset", Double.class)).containsExactly(1.0d, 2.0d, 3.0d);
+}

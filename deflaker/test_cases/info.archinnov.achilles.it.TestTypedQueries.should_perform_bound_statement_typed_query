@@ -1,0 +1,13 @@
+@Test
+public void should_perform_bound_statement_typed_query() throws Exception {
+    // Given
+    final Long id = RandomUtils.nextLong(0L, Long.MAX_VALUE);
+    scriptExecutor.executeScriptTemplate("SimpleEntity/insert_single_row.cql", ImmutableMap.of("id", id, "table", "simple"));
+    // When
+    final BoundStatement boundStatement = session.prepare("SELECT * FROM simple WHERE id = :id").bind(id);
+    // Then
+    final SimpleEntity actual = manager.query().typedQueryForSelect(boundStatement).getOne();
+    // Then
+    assertThat(actual).isNotNull();
+    assertThat(actual.getValue()).contains("0 AM");
+}
