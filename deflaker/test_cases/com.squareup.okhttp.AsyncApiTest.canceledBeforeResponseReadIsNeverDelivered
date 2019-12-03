@@ -1,0 +1,31 @@
+@Test
+public void canceledBeforeResponseReadIsNeverDelivered() throws Exception {
+    // Force requests to be executed serially.
+    client.getDispatcher().setMaxRequests(1);
+    server.setDispatcher(new Dispatcher() {
+
+        char nextResponse = 'A';
+
+        @Override
+        public MockResponse dispatch(RecordedRequest request) {
+            client.cancel("request A");
+            return new MockResponse().setBody(Character.toString(nextResponse++));
+        }
+    });
+    server.play();
+    // Canceling a request after the server has received a request but before
+    // it has delivered the response. That request will never be received to the
+    // client.
+    Request requestA = new Request.Builder().url(server.getUrl("/a")).tag("request A").build();
+    client.enqueue(requestA, receiver);
+    assertEquals("/a", server.takeRequest().getPath());
+    // We then make a second request (not canceled) to make sure the receiver
+    // has nothing left to wait for.
+    Request requestB = new Request.Builder().url(server.getUrl("/b")).tag("request B").build();
+    client.enqueue(requestB, receiver);
+    assertEquals("/b", server.takeRequest().getPath());
+    receiver.await(requestB.url()).assertBody("B");
+    // At this point we know the receiver is ready: if it hasn't received 'A'
+    // yet it never will.
+    receiver.assertNoResponse(requestA.url());
+}

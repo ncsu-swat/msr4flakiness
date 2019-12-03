@@ -1,0 +1,19 @@
+@Test
+public void timerTest() throws ExecutionException, InterruptedException {
+    OrbitStage stage1 = createStage();
+    OrbitStage frontend = createClient();
+    ISomeChatRoom chatRoom = IActor.getReference(ISomeChatRoom.class, "1");
+    SomeChatObserver observer = new SomeChatObserver();
+    chatRoom.join(observer).get();
+    chatRoom.startCountdown(5, "counting").get();
+    assertNotNull("counting 5", observer.messagesReceived.poll(20, TimeUnit.SECONDS).getRight());
+    long start = System.currentTimeMillis();
+    assertNotNull("counting 4", observer.messagesReceived.poll(2000, TimeUnit.SECONDS).getRight());
+    assertNotNull("counting 3", observer.messagesReceived.poll(5, TimeUnit.SECONDS).getRight());
+    assertNotNull("counting 2", observer.messagesReceived.poll(5, TimeUnit.SECONDS).getRight());
+    assertNotNull("counting 1", observer.messagesReceived.poll(5, TimeUnit.SECONDS).getRight());
+    // some timer must have elapsed!
+    assertTrue(System.currentTimeMillis() - start > 10);
+    // ensures no new messages are received
+    assertNull(observer.messagesReceived.poll(10, TimeUnit.MILLISECONDS));
+}

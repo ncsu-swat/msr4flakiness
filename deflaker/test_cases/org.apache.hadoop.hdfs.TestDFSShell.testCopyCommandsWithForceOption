@@ -1,0 +1,51 @@
+// force Copy Option is -f
+public void testCopyCommandsWithForceOption() throws Exception {
+    Configuration conf = new Configuration();
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).numDataNodes(1).format(true).build();
+    FsShell shell = null;
+    FileSystem fs = null;
+    final File localFile = new File(TEST_ROOT_DIR, "testFileForPut");
+    final String localfilepath = localFile.getAbsolutePath();
+    final String testdir = TEST_ROOT_DIR + "/ForceTestDir";
+    final Path hdfsTestDir = new Path(testdir);
+    try {
+        fs = cluster.getFileSystem();
+        fs.mkdirs(hdfsTestDir);
+        localFile.createNewFile();
+        writeFile(fs, new Path(TEST_ROOT_DIR, "testFileForPut"));
+        shell = new FsShell();
+        // Tests for put
+        String[] argv = new String[] { "-put", "-f", localfilepath, testdir };
+        int res = ToolRunner.run(shell, argv);
+        int SUCCESS = 0;
+        int ERROR = 1;
+        assertEquals("put -f is not working", SUCCESS, res);
+        argv = new String[] { "-put", localfilepath, testdir };
+        res = ToolRunner.run(shell, argv);
+        assertEquals("put command itself is able to overwrite the file", ERROR, res);
+        // Tests for copyFromLocal
+        argv = new String[] { "-copyFromLocal", "-f", localfilepath, testdir };
+        res = ToolRunner.run(shell, argv);
+        assertEquals("copyFromLocal -f is not working", SUCCESS, res);
+        argv = new String[] { "-copyFromLocal", localfilepath, testdir };
+        res = ToolRunner.run(shell, argv);
+        assertEquals("copyFromLocal command itself is able to overwrite the file", ERROR, res);
+        // Tests for cp
+        argv = new String[] { "-cp", "-f", localfilepath, testdir };
+        res = ToolRunner.run(shell, argv);
+        assertEquals("cp -f is not working", SUCCESS, res);
+        argv = new String[] { "-cp", localfilepath, testdir };
+        res = ToolRunner.run(shell, argv);
+        assertEquals("cp command itself is able to overwrite the file", ERROR, res);
+    } finally {
+        if (null != shell)
+            shell.close();
+        if (localFile.exists())
+            localFile.delete();
+        if (null != fs) {
+            fs.delete(hdfsTestDir, true);
+            fs.close();
+        }
+        cluster.shutdown();
+    }
+}

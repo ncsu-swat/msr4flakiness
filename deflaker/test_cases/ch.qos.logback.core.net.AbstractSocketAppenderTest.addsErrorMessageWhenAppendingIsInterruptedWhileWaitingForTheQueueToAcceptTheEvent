@@ -1,0 +1,11 @@
+@Test
+public void addsErrorMessageWhenAppendingIsInterruptedWhileWaitingForTheQueueToAcceptTheEvent() throws Exception {
+    // given
+    final InterruptedException interruptedException = new InterruptedException();
+    doThrow(interruptedException).when(deque).offer(eq("some event"), anyLong(), any(TimeUnit.class));
+    appender.start();
+    // when
+    appender.append("some event");
+    // then
+    verify(appender).addError("Interrupted while appending event to SocketAppender", interruptedException);
+}

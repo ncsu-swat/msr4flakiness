@@ -1,0 +1,97 @@
+/**
+ * Run compaction and flushing memstore
+ * Assert deletes get cleaned up.
+ * @throws Exception
+ */
+public void testCompaction() throws Exception {
+    createStoreFile(r);
+    for (int i = 0; i < COMPACTION_THRESHOLD; i++) {
+        createStoreFile(r);
+    }
+    // Add more content.  Now there are about 5 versions of each column.
+    // Default is that there only 3 (MAXVERSIONS) versions allowed per column.
+    // Assert == 3 when we ask for versions.
+    addContent(new HRegionIncommon(r), Bytes.toString(COLUMN_FAMILY));
+    // FIX!!
+    // Cell[] cellValues =
+    // Cell.createSingleCellArray(r.get(STARTROW, COLUMN_FAMILY_TEXT, -1, 100 /*Too many*/));
+    Result result = r.get(new Get(STARTROW).addFamily(COLUMN_FAMILY_TEXT).setMaxVersions(100), null);
+    // Assert that I can get 3 versions since it is the max I should get
+    assertEquals(COMPACTION_THRESHOLD, result.size());
+    // assertEquals(cellValues.length, 3);
+    r.flushcache();
+    r.compactStores();
+    // check compaction dir is exists
+    assertTrue(this.cluster.getFileSystem().exists(this.compactionDir));
+    // check Compaction Dir for this Regions is cleaned up
+    assertTrue(!this.cluster.getFileSystem().exists(this.regionCompactionDir));
+    // Always 3 versions if that is what max versions is.
+    byte[] secondRowBytes = START_KEY.getBytes(HConstants.UTF8_ENCODING);
+    // Increment the least significant character so we get to next row.
+    secondRowBytes[START_KEY_BYTES.length - 1]++;
+    // FIX
+    result = r.get(new Get(secondRowBytes).addFamily(COLUMN_FAMILY_TEXT).setMaxVersions(100), null);
+    // Assert that I can get 3 versions since it is the max I should get
+    assertEquals(3, result.size());
+    // 
+    // cellValues = Cell.createSingleCellArray(r.get(secondRowBytes, COLUMN_FAMILY_TEXT, -1, 100/*Too many*/));
+    // LOG.info("Count of " + Bytes.toString(secondRowBytes) + ": " +
+    // cellValues.length);
+    // assertTrue(cellValues.length == 3);
+    // Now add deletes to memstore and then flush it.  That will put us over
+    // the compaction threshold of 3 store files.  Compacting these store files
+    // should result in a compacted store file that has no references to the
+    // deleted row.
+    Delete delete = new Delete(secondRowBytes, System.currentTimeMillis(), null);
+    byte[][] famAndQf = { COLUMN_FAMILY, null };
+    delete.deleteFamily(famAndQf[0]);
+    r.delete(delete, null, true);
+    // Assert deleted.
+    result = r.get(new Get(secondRowBytes).addFamily(COLUMN_FAMILY_TEXT).setMaxVersions(100), null);
+    assertTrue(result.isEmpty());
+    r.flushcache();
+    result = r.get(new Get(secondRowBytes).addFamily(COLUMN_FAMILY_TEXT).setMaxVersions(100), null);
+    assertTrue(result.isEmpty());
+    // Add a bit of data and flush.  Start adding at 'bbb'.
+    createSmallerStoreFile(this.r);
+    r.flushcache();
+    // Assert that the second row is still deleted.
+    result = r.get(new Get(secondRowBytes).addFamily(COLUMN_FAMILY_TEXT).setMaxVersions(100), null);
+    assertTrue(result.isEmpty());
+    // Force major compaction.
+    r.compactStores(true);
+    assertEquals(r.getStore(COLUMN_FAMILY_TEXT).getStorefiles().size(), 1);
+    result = r.get(new Get(secondRowBytes).addFamily(COLUMN_FAMILY_TEXT).setMaxVersions(100), null);
+    assertTrue(result.isEmpty());
+    // Make sure the store files do have some 'aaa' keys in them -- exactly 3.
+    // Also, that compacted store files do not have any secondRowBytes because
+    // they were deleted.
+    int count = 0;
+    boolean containsStartRow = false;
+    for (StoreFile f : this.r.stores.get(COLUMN_FAMILY_TEXT).getStorefiles().values()) {
+        HFileScanner scanner = f.getReader().getScanner(false, false);
+        scanner.seekTo();
+        do {
+            byte[] row = scanner.getKeyValue().getRow();
+            if (Bytes.equals(row, STARTROW)) {
+                containsStartRow = true;
+                count++;
+            } else {
+                // After major compaction, should be none of these rows in compacted
+                // file.
+                assertFalse(Bytes.equals(row, secondRowBytes));
+            }
+        } while (scanner.next());
+    }
+    assertTrue(containsStartRow);
+    assertTrue(count == 3);
+    // Do a simple TTL test.
+    final int ttlInSeconds = 1;
+    for (Store store : this.r.stores.values()) {
+        store.ttl = ttlInSeconds * 1000;
+    }
+    Thread.sleep(ttlInSeconds * 1000);
+    r.compactStores(true);
+    count = count();
+    assertTrue(count == 0);
+}

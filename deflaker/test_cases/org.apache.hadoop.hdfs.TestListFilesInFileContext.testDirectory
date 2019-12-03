@@ -1,0 +1,47 @@
+/**
+ * Test when input path is a directory
+ */
+@Test
+public void testDirectory() throws IOException {
+    fc.mkdir(DIR1, FsPermission.getDefault(), true);
+    // test empty directory
+    RemoteIterator<LocatedFileStatus> itor = fc.util().listFiles(DIR1, true);
+    assertFalse(itor.hasNext());
+    itor = fc.util().listFiles(DIR1, false);
+    assertFalse(itor.hasNext());
+    // testing directory with 1 file
+    writeFile(fc, FILE2, FILE_LEN);
+    itor = fc.util().listFiles(DIR1, true);
+    LocatedFileStatus stat = itor.next();
+    assertFalse(itor.hasNext());
+    assertTrue(stat.isFile());
+    assertEquals(FILE_LEN, stat.getLen());
+    assertEquals(fc.makeQualified(FILE2), stat.getPath());
+    assertEquals(1, stat.getBlockLocations().length);
+    itor = fc.util().listFiles(DIR1, false);
+    stat = itor.next();
+    assertFalse(itor.hasNext());
+    assertTrue(stat.isFile());
+    assertEquals(FILE_LEN, stat.getLen());
+    assertEquals(fc.makeQualified(FILE2), stat.getPath());
+    assertEquals(1, stat.getBlockLocations().length);
+    // test more complicated directory
+    writeFile(fc, FILE1, FILE_LEN);
+    writeFile(fc, FILE3, FILE_LEN);
+    itor = fc.util().listFiles(TEST_DIR, true);
+    stat = itor.next();
+    assertTrue(stat.isFile());
+    assertEquals(fc.makeQualified(FILE2), stat.getPath());
+    stat = itor.next();
+    assertTrue(stat.isFile());
+    assertEquals(fc.makeQualified(FILE3), stat.getPath());
+    stat = itor.next();
+    assertTrue(stat.isFile());
+    assertEquals(fc.makeQualified(FILE1), stat.getPath());
+    assertFalse(itor.hasNext());
+    itor = fc.util().listFiles(TEST_DIR, false);
+    stat = itor.next();
+    assertTrue(stat.isFile());
+    assertEquals(fc.makeQualified(FILE1), stat.getPath());
+    assertFalse(itor.hasNext());
+}

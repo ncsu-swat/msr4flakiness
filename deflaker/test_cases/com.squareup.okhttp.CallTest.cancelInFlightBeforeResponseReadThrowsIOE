@@ -1,0 +1,17 @@
+@Test
+public void cancelInFlightBeforeResponseReadThrowsIOE() throws Exception {
+    server.get().setDispatcher(new Dispatcher() {
+
+        @Override
+        public MockResponse dispatch(RecordedRequest request) {
+            client.cancel("request");
+            return new MockResponse().setBody("A");
+        }
+    });
+    Request request = new Request.Builder().url(server.getUrl("/a")).tag("request").build();
+    try {
+        client.newCall(request).execute();
+        fail();
+    } catch (IOException expected) {
+    }
+}

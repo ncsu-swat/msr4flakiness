@@ -1,0 +1,51 @@
+/**
+ * Test which headers show up where. The cookie manager should be notified
+ * of both user-specified and derived headers like {@code Host}. Headers
+ * named {@code Cookie} or {@code Cookie2} that are returned by the cookie
+ * manager should show up in the request and in {@code
+ * getRequestProperties}.
+ */
+@Test
+public void testHeadersSentToCookieHandler() throws IOException, InterruptedException {
+    final Map<String, List<String>> cookieHandlerHeaders = new HashMap<>();
+    CookieHandler.setDefault(new CookieManager() {
+
+        @Override
+        public Map<String, List<String>> get(URI uri, Map<String, List<String>> requestHeaders) throws IOException {
+            cookieHandlerHeaders.putAll(requestHeaders);
+            Map<String, List<String>> result = new HashMap<>();
+            result.put("Cookie", Collections.singletonList("Bar=bar"));
+            result.put("Cookie2", Collections.singletonList("Baz=baz"));
+            result.put("Quux", Collections.singletonList("quux"));
+            return result;
+        }
+    });
+    MockWebServer server = new MockWebServer();
+    server.enqueue(new MockResponse());
+    server.play();
+    HttpURLConnection connection = new OkUrlFactory(client).open(server.getUrl("/"));
+    assertEquals(Collections.<String, List<String>>emptyMap(), connection.getRequestProperties());
+    connection.setRequestProperty("Foo", "foo");
+    connection.setDoOutput(true);
+    connection.getOutputStream().write(5);
+    connection.getOutputStream().close();
+    connection.getInputStream().close();
+    RecordedRequest request = server.takeRequest();
+    assertContainsAll(cookieHandlerHeaders.keySet(), "Foo");
+    assertContainsAll(cookieHandlerHeaders.keySet(), "Content-type", "User-Agent", "Connection", "Host");
+    assertFalse(cookieHandlerHeaders.containsKey("Cookie"));
+    /*
+     * The API specifies that calling getRequestProperties() on a connected instance should fail
+     * with an IllegalStateException, but the RI violates the spec and returns a valid map.
+     * http://www.mail-archive.com/net-dev@openjdk.java.net/msg01768.html
+     */
+    try {
+        assertContainsAll(connection.getRequestProperties().keySet(), "Foo");
+        assertContainsAll(connection.getRequestProperties().keySet(), "Content-type", "Content-Length", "User-Agent", "Connection", "Host");
+        assertContainsAll(connection.getRequestProperties().keySet(), "Cookie", "Cookie2");
+        assertFalse(connection.getRequestProperties().containsKey("Quux"));
+    } catch (IllegalStateException expected) {
+    }
+    assertContainsAll(request.getHeaders(), "Foo: foo", "Cookie: Bar=bar", "Cookie2: Baz=baz");
+    assertFalse(request.getHeaders().contains("Quux: quux"));
+}

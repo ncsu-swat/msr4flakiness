@@ -1,0 +1,66 @@
+@Test
+public void testUpdatedNodes() throws Exception {
+    Configuration conf = new Configuration();
+    MyResourceManager rm = new MyResourceManager(conf);
+    rm.start();
+    DrainDispatcher dispatcher = (DrainDispatcher) rm.getRMContext().getDispatcher();
+    // Submit the application
+    RMApp app = rm.submitApp(1024);
+    dispatcher.await();
+    MockNM amNodeManager = rm.registerNode("amNM:1234", 2048);
+    amNodeManager.nodeHeartbeat(true);
+    dispatcher.await();
+    ApplicationAttemptId appAttemptId = app.getCurrentAppAttempt().getAppAttemptId();
+    rm.sendAMLaunched(appAttemptId);
+    dispatcher.await();
+    JobId jobId = MRBuilderUtils.newJobId(appAttemptId.getApplicationId(), 0);
+    Job mockJob = mock(Job.class);
+    MyContainerAllocator allocator = new MyContainerAllocator(rm, conf, appAttemptId, mockJob);
+    // add resources to scheduler
+    MockNM nm1 = rm.registerNode("h1:1234", 10240);
+    MockNM nm2 = rm.registerNode("h2:1234", 10240);
+    dispatcher.await();
+    // create the map container request
+    ContainerRequestEvent event = createReq(jobId, 1, 1024, new String[] { "h1" });
+    allocator.sendRequest(event);
+    TaskAttemptId attemptId = event.getAttemptID();
+    TaskAttempt mockTaskAttempt = mock(TaskAttempt.class);
+    when(mockTaskAttempt.getNodeId()).thenReturn(nm1.getNodeId());
+    Task mockTask = mock(Task.class);
+    when(mockTask.getAttempt(attemptId)).thenReturn(mockTaskAttempt);
+    when(mockJob.getTask(attemptId.getTaskId())).thenReturn(mockTask);
+    // this tells the scheduler about the requests
+    List<TaskAttemptContainerAssignedEvent> assigned = allocator.schedule();
+    dispatcher.await();
+    nm1.nodeHeartbeat(true);
+    dispatcher.await();
+    // get the assignment
+    assigned = allocator.schedule();
+    dispatcher.await();
+    Assert.assertEquals(1, assigned.size());
+    Assert.assertEquals(nm1.getNodeId(), assigned.get(0).getContainer().getNodeId());
+    // no updated nodes reported
+    Assert.assertTrue(allocator.getJobUpdatedNodeEvents().isEmpty());
+    Assert.assertTrue(allocator.getTaskAttemptKillEvents().isEmpty());
+    // mark nodes bad
+    nm1.nodeHeartbeat(false);
+    nm2.nodeHeartbeat(false);
+    dispatcher.await();
+    // schedule response returns updated nodes
+    assigned = allocator.schedule();
+    dispatcher.await();
+    Assert.assertEquals(0, assigned.size());
+    // updated nodes are reported
+    Assert.assertEquals(1, allocator.getJobUpdatedNodeEvents().size());
+    Assert.assertEquals(1, allocator.getTaskAttemptKillEvents().size());
+    Assert.assertEquals(2, allocator.getJobUpdatedNodeEvents().get(0).getUpdatedNodes().size());
+    Assert.assertEquals(attemptId, allocator.getTaskAttemptKillEvents().get(0).getTaskAttemptID());
+    allocator.getJobUpdatedNodeEvents().clear();
+    allocator.getTaskAttemptKillEvents().clear();
+    assigned = allocator.schedule();
+    dispatcher.await();
+    Assert.assertEquals(0, assigned.size());
+    // no updated nodes reported
+    Assert.assertTrue(allocator.getJobUpdatedNodeEvents().isEmpty());
+    Assert.assertTrue(allocator.getTaskAttemptKillEvents().isEmpty());
+}

@@ -1,0 +1,11 @@
+@Test
+public void shouldNotWatchForChangeUnlessCheckCompleted() {
+    Context.get().getConfig().setResourceWatcherUpdatePeriod(1);
+    final CacheKey key = new CacheKey(GROUP_NAME, ResourceType.JS, true);
+    when(mockResourceWatcher.tryAsyncCheck(Mockito.eq(key))).thenReturn(false);
+    victim.get(key);
+    assertFalse(victim.wasCheckedForChange(key));
+    when(mockResourceWatcher.tryAsyncCheck(Mockito.eq(key))).thenReturn(true);
+    victim.get(key);
+    assertTrue(victim.wasCheckedForChange(key));
+}

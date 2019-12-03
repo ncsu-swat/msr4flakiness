@@ -1,0 +1,38 @@
+@Test
+public void testProduceConsume() throws Exception {
+    int zkPort = IOUtils.chooseFreePort();
+    int kafkaBrokerPort = IOUtils.chooseFreePort();
+    try (LocalZKServer localZKServer = new LocalZKServer(zkPort);
+        LocalKafkaBroker localKafkaBroker = new LocalKafkaBroker(kafkaBrokerPort, zkPort)) {
+        localZKServer.start();
+        localKafkaBroker.start();
+        KafkaUtils.deleteTopic("localhost", zkPort, TOPIC);
+        KafkaUtils.maybeCreateTopic("localhost", zkPort, TOPIC);
+        ProduceData produce = new ProduceData(new DefaultCSVDatumGenerator(), zkPort, localKafkaBroker.getPort(), TOPIC, NUM_DATA, 50);
+        final Collection<Integer> keys = new HashSet<>();
+        try (CloseableIterator<Pair<String, String>> data = new ConsumeData(TOPIC, zkPort).iterator()) {
+            log.info("Starting consumer thread");
+            WaitToScheduleRunnable readData = new WaitToScheduleRunnable(new LoggingRunnable() {
+
+                @Override
+                public void doRun() {
+                    while (data.hasNext()) {
+                        keys.add(Integer.valueOf(data.next().getFirst()));
+                    }
+                }
+            });
+            new Thread(readData).start();
+            readData.awaitScheduling();
+            log.info("Producing data");
+            produce.start();
+            // Sleep for a while before shutting down producer to let both finish
+            Thread.sleep(1000);
+        } finally {
+            KafkaUtils.deleteTopic("localhost", zkPort, TOPIC);
+        }
+        assertEquals(NUM_DATA, keys.size());
+        for (int i = 0; i < NUM_DATA; i++) {
+            assertTrue(keys.contains(i));
+        }
+    }
+}

@@ -45,7 +45,6 @@ import java.net.Proxy;
 import java.net.ProxySelector;
 import java.net.ResponseCache;
 import java.net.SocketAddress;
-import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
@@ -1716,7 +1715,7 @@ public final class URLConnectionTest {
         .setBody("This page has moved!"));
     server.play();
 
-    client.setFollowProtocolRedirects(false);
+    client.setFollowSslRedirects(false);
     client.setSslSocketFactory(sslContext.getSocketFactory());
     client.setHostnameVerifier(new RecordingHostnameVerifier());
     connection = client.open(server.getUrl("/"));
@@ -1729,7 +1728,7 @@ public final class URLConnectionTest {
         .setBody("This page has moved!"));
     server.play();
 
-    client.setFollowProtocolRedirects(false);
+    client.setFollowSslRedirects(false);
     connection = client.open(server.getUrl("/"));
     assertEquals("This page has moved!", readAscii(connection.getInputStream(), Integer.MAX_VALUE));
   }
@@ -1747,7 +1746,7 @@ public final class URLConnectionTest {
 
     client.setSslSocketFactory(sslContext.getSocketFactory());
     client.setHostnameVerifier(new RecordingHostnameVerifier());
-    client.setFollowProtocolRedirects(true);
+    client.setFollowSslRedirects(true);
     HttpsURLConnection connection = (HttpsURLConnection) client.open(server.getUrl("/"));
     assertContent("This is insecure HTTP!", connection);
     assertNull(connection.getCipherSuite());
@@ -1770,7 +1769,7 @@ public final class URLConnectionTest {
 
     client.setSslSocketFactory(sslContext.getSocketFactory());
     client.setHostnameVerifier(new RecordingHostnameVerifier());
-    client.setFollowProtocolRedirects(true);
+    client.setFollowSslRedirects(true);
     connection = client.open(server.getUrl("/"));
     assertContent("This is secure HTTPS!", connection);
     assertFalse(connection instanceof HttpsURLConnection);
@@ -2083,7 +2082,26 @@ public final class URLConnectionTest {
     try {
       in.read(); // if Content-Length was accurate, this would return -1 immediately
       fail();
-    } catch (SocketTimeoutException expected) {
+    } catch (IOException expected) {
+    }
+  }
+
+  /** Confirm that an unacknowledged write times out. */
+  @Test public void writeTimeouts() throws IOException {
+    server.enqueue(new MockResponse()
+        .throttleBody(1, 3600, TimeUnit.SECONDS)); // Prevent the server from reading!
+    server.play();
+
+    client.setWriteTimeout(500, TimeUnit.MILLISECONDS);
+    connection = client.open(server.getUrl("/"));
+    connection.setDoOutput(true);
+    connection.setChunkedStreamingMode(0);
+    OutputStream out = connection.getOutputStream();
+    try {
+      byte[] data = new byte[1024 * 1024]; // 1 MiB.
+      out.write(data);
+      fail();
+    } catch (IOException expected) {
     }
   }
 
@@ -2702,11 +2720,27 @@ public final class URLConnectionTest {
     enableNpn(protocol);
     server.enqueue(new MockResponse().setBody("A"));
     server.play();
-    client.setProtocols(Arrays.asList(Protocol.HTTP_11, protocol));
+    client.setProtocols(Arrays.asList(Protocol.HTTP_1_1, protocol));
     connection = client.open(server.getUrl("/"));
     List<String> protocolValues = connection.getHeaderFields().get(SELECTED_PROTOCOL);
-    assertEquals(Arrays.asList(protocol.name.utf8()), protocolValues);
+    assertEquals(Arrays.asList(protocol.toString()), protocolValues);
     assertContent("A", connection);
+  }
+
+  @Test public void http10SelectedProtocol() throws Exception {
+    server.enqueue(new MockResponse().setStatus("HTTP/1.0 200 OK"));
+    server.play();
+    connection = client.open(server.getUrl("/"));
+    List<String> protocolValues = connection.getHeaderFields().get(SELECTED_PROTOCOL);
+    assertEquals(Arrays.asList("http/1.0"), protocolValues);
+  }
+
+  @Test public void http11SelectedProtocol() throws Exception {
+    server.enqueue(new MockResponse().setStatus("HTTP/1.1 200 OK"));
+    server.play();
+    connection = client.open(server.getUrl("/"));
+    List<String> protocolValues = connection.getHeaderFields().get(SELECTED_PROTOCOL);
+    assertEquals(Arrays.asList("http/1.1"), protocolValues);
   }
 
   /** For example, empty Protobuf RPC messages end up as a zero-length POST. */
@@ -2758,7 +2792,7 @@ public final class URLConnectionTest {
   @Test public void setProtocols() throws Exception {
     server.enqueue(new MockResponse().setBody("A"));
     server.play();
-    client.setProtocols(Arrays.asList(Protocol.HTTP_11));
+    client.setProtocols(Arrays.asList(Protocol.HTTP_1_1));
     assertContent("A", client.open(server.getUrl("/")));
   }
 
@@ -2772,7 +2806,7 @@ public final class URLConnectionTest {
 
   @Test public void setProtocolsWithNull() throws Exception {
     try {
-      client.setProtocols(Arrays.asList(Protocol.HTTP_11, null));
+      client.setProtocols(Arrays.asList(Protocol.HTTP_1_1, null));
       fail();
     } catch (IllegalArgumentException expected) {
     }
@@ -3047,7 +3081,7 @@ public final class URLConnectionTest {
   private void enableNpn(Protocol protocol) {
     client.setSslSocketFactory(sslContext.getSocketFactory());
     client.setHostnameVerifier(new RecordingHostnameVerifier());
-    client.setProtocols(Arrays.asList(protocol, Protocol.HTTP_11));
+    client.setProtocols(Arrays.asList(protocol, Protocol.HTTP_1_1));
     server.useHttps(sslContext.getSocketFactory(), false);
     server.setNpnEnabled(true);
     server.setNpnProtocols(client.getProtocols());

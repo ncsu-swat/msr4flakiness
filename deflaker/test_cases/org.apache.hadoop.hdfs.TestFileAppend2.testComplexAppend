@@ -1,0 +1,54 @@
+/**
+ * Test that appends to files at random offsets.
+ * @throws IOException an exception might be thrown
+ */
+public void testComplexAppend() throws IOException {
+    fileContents = AppendTestUtil.initBuffer(AppendTestUtil.FILE_SIZE);
+    Configuration conf = new HdfsConfiguration();
+    conf.setInt(DFSConfigKeys.DFS_NAMENODE_HEARTBEAT_RECHECK_INTERVAL_KEY, 2000);
+    conf.setInt(DFSConfigKeys.DFS_HEARTBEAT_INTERVAL_KEY, 2);
+    conf.setInt(DFSConfigKeys.DFS_NAMENODE_REPLICATION_PENDING_TIMEOUT_SEC_KEY, 2);
+    conf.setInt(DFSConfigKeys.DFS_CLIENT_SOCKET_TIMEOUT_KEY, 30000);
+    conf.setInt(DFSConfigKeys.DFS_DATANODE_SOCKET_WRITE_TIMEOUT_KEY, 30000);
+    conf.setInt(DFSConfigKeys.DFS_DATANODE_HANDLER_COUNT_KEY, 50);
+    conf.setBoolean("dfs.support.append", true);
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).numDataNodes(numDatanodes).build();
+    cluster.waitActive();
+    FileSystem fs = cluster.getFileSystem();
+    try {
+        // create a bunch of test files with random replication factors.
+        // Insert them into a linked list.
+        // 
+        for (int i = 0; i < numberOfFiles; i++) {
+            final int replication = AppendTestUtil.nextInt(numDatanodes - 2) + 1;
+            Path testFile = new Path("/" + i + ".dat");
+            FSDataOutputStream stm = AppendTestUtil.createFile(fs, testFile, replication);
+            stm.close();
+            testFiles.add(testFile);
+        }
+        // Create threads and make them run workload concurrently.
+        workload = new Workload[numThreads];
+        for (int i = 0; i < numThreads; i++) {
+            workload[i] = new Workload(cluster, i);
+            workload[i].start();
+        }
+        // wait for all transactions to get over
+        for (int i = 0; i < numThreads; i++) {
+            try {
+                System.out.println("Waiting for thread " + i + " to complete...");
+                workload[i].join();
+                System.out.println("Waiting for thread " + i + " complete.");
+            } catch (InterruptedException e) {
+                // retry
+                i--;
+            }
+        }
+    } finally {
+        fs.close();
+        cluster.shutdown();
+    }
+    // If any of the worker thread failed in their job, indicate that
+    // this test failed.
+    // 
+    assertTrue("testComplexAppend Worker encountered exceptions.", globalStatus);
+}

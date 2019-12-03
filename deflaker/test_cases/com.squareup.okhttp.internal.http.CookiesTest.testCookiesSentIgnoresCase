@@ -1,0 +1,20 @@
+@Test
+public void testCookiesSentIgnoresCase() throws Exception {
+    CookieHandler.setDefault(new CookieManager() {
+
+        @Override
+        public Map<String, List<String>> get(URI uri, Map<String, List<String>> requestHeaders) throws IOException {
+            Map<String, List<String>> result = new HashMap<String, List<String>>();
+            result.put("COOKIE", Collections.singletonList("Bar=bar"));
+            result.put("cooKIE2", Collections.singletonList("Baz=baz"));
+            return result;
+        }
+    });
+    MockWebServer server = new MockWebServer();
+    server.enqueue(new MockResponse());
+    server.play();
+    get(server, "/");
+    RecordedRequest request = server.takeRequest();
+    assertContainsAll(request.getHeaders(), "COOKIE: Bar=bar", "cooKIE2: Baz=baz");
+    assertFalse(request.getHeaders().contains("Quux: quux"));
+}

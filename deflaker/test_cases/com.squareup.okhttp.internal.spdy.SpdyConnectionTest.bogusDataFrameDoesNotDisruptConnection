@@ -1,0 +1,20 @@
+@Test
+public void bogusDataFrameDoesNotDisruptConnection() throws Exception {
+    // write the mocking script
+    peer.sendFrame().data(true, 41, new Buffer().writeUtf8("bogus"));
+    // RST_STREAM
+    peer.acceptFrame();
+    peer.sendFrame().ping(false, 2, 0);
+    // PING
+    peer.acceptFrame();
+    peer.play();
+    // play it back
+    connection(peer, SPDY3);
+    // verify the peer received what was expected
+    MockSpdyPeer.InFrame rstStream = peer.takeFrame();
+    assertEquals(TYPE_RST_STREAM, rstStream.type);
+    assertEquals(41, rstStream.streamId);
+    assertEquals(INVALID_STREAM, rstStream.errorCode);
+    MockSpdyPeer.InFrame ping = peer.takeFrame();
+    assertEquals(2, ping.payload1);
+}

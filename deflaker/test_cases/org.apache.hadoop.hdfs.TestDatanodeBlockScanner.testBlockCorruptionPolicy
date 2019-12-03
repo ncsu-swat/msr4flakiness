@@ -1,0 +1,38 @@
+public void testBlockCorruptionPolicy() throws IOException {
+    Configuration conf = new HdfsConfiguration();
+    conf.setLong(DFSConfigKeys.DFS_BLOCKREPORT_INTERVAL_MSEC_KEY, 1000L);
+    Random random = new Random();
+    FileSystem fs = null;
+    int rand = random.nextInt(3);
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).numDataNodes(3).build();
+    cluster.waitActive();
+    fs = cluster.getFileSystem();
+    Path file1 = new Path("/tmp/testBlockVerification/file1");
+    DFSTestUtil.createFile(fs, file1, 1024, (short) 3, 0);
+    ExtendedBlock block = DFSTestUtil.getFirstBlock(fs, file1);
+    DFSTestUtil.waitReplication(fs, file1, (short) 3);
+    assertFalse(DFSTestUtil.allBlockReplicasCorrupt(cluster, file1, 0));
+    // Corrupt random replica of block
+    assertTrue(MiniDFSCluster.corruptReplica(rand, block));
+    // Restart the datanode hoping the corrupt block to be reported
+    cluster.restartDataNode(rand);
+    // We have 2 good replicas and block is not corrupt
+    DFSTestUtil.waitReplication(fs, file1, (short) 2);
+    assertFalse(DFSTestUtil.allBlockReplicasCorrupt(cluster, file1, 0));
+    // Corrupt all replicas. Now, block should be marked as corrupt
+    // and we should get all the replicas
+    assertTrue(MiniDFSCluster.corruptReplica(0, block));
+    assertTrue(MiniDFSCluster.corruptReplica(1, block));
+    assertTrue(MiniDFSCluster.corruptReplica(2, block));
+    // Read the file to trigger reportBadBlocks by client
+    try {
+        IOUtils.copyBytes(fs.open(file1), new IOUtils.NullOutputStream(), conf, true);
+    } catch (IOException e) {
+    // Ignore exception
+    }
+    // We now have the blocks to be marked as corrupt and we get back all
+    // its replicas
+    DFSTestUtil.waitReplication(fs, file1, (short) 3);
+    assertTrue(DFSTestUtil.allBlockReplicasCorrupt(cluster, file1, 0));
+    cluster.shutdown();
+}

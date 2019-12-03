@@ -1,0 +1,42 @@
+/**
+ * Test that file data can be flushed.
+ * @throws IOException an exception might be thrown
+ */
+@Test
+public void testComplexFlush() throws IOException {
+    Configuration conf = new HdfsConfiguration();
+    if (simulatedStorage) {
+        conf.setBoolean(SimulatedFSDataset.CONFIG_PROPERTY_SIMULATED, true);
+    }
+    fileContents = AppendTestUtil.initBuffer(AppendTestUtil.FILE_SIZE);
+    MiniDFSCluster cluster = new MiniDFSCluster.Builder(conf).build();
+    FileSystem fs = cluster.getFileSystem();
+    try {
+        // create a new file.
+        Path file1 = new Path("/complexFlush.dat");
+        FSDataOutputStream stm = AppendTestUtil.createFile(fs, file1, 1);
+        System.out.println("Created file complexFlush.dat");
+        int start = 0;
+        for (start = 0; (start + 29) < AppendTestUtil.FILE_SIZE; ) {
+            stm.write(fileContents, start, 29);
+            stm.hflush();
+            start += 29;
+        }
+        stm.write(fileContents, start, AppendTestUtil.FILE_SIZE - start);
+        // verify that full blocks are sane
+        checkFile(fs, file1, 1);
+        stm.close();
+        // verify that entire file is good
+        AppendTestUtil.checkFullFile(fs, file1, AppendTestUtil.FILE_SIZE, fileContents, "Read 2");
+    } catch (IOException e) {
+        System.out.println("Exception :" + e);
+        throw e;
+    } catch (Throwable e) {
+        System.out.println("Throwable :" + e);
+        e.printStackTrace();
+        throw new IOException("Throwable : " + e);
+    } finally {
+        fs.close();
+        cluster.shutdown();
+    }
+}

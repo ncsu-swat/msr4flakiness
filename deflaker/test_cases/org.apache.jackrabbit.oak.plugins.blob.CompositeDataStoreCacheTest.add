@@ -1,0 +1,19 @@
+/**
+ * Add to staging
+ */
+@Test
+public void add() throws Exception {
+    LOG.info("Starting add");
+    File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
+    boolean accepted = cache.stage(ID_PREFIX + 0, f);
+    assertTrue(accepted);
+    // start
+    taskLatch.countDown();
+    callbackLatch.countDown();
+    waitFinish();
+    File file = cache.getIfPresent(ID_PREFIX + 0);
+    assertNotNull(f);
+    assertFile(file, 0, folder);
+    assertCacheStats(cache.getStagingCacheStats(), 0, 0, 1, 1);
+    LOG.info("Finished add");
+}

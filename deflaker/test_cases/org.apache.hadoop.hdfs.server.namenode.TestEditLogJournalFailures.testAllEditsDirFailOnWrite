@@ -1,0 +1,13 @@
+@Test
+public void testAllEditsDirFailOnWrite() throws IOException {
+    assertTrue(doAnEdit());
+    // Invalidate both edits journals.
+    invalidateEditsDirAtIndex(0, true, true);
+    invalidateEditsDirAtIndex(1, true, true);
+    // Make sure runtime.exit(...) hasn't been called at all yet.
+    assertExitInvocations(0);
+    assertTrue(doAnEdit());
+    // The previous edit could not be synced to any persistent storage, should
+    // have halted the NN.
+    assertExitInvocations(1);
+}

@@ -1,0 +1,35 @@
+/**
+ * Tolerate bad https proxy response when using HttpResponseCache. http://b/6754912
+ */
+@Test
+public void connectViaHttpProxyToHttpsUsingBadProxyAndHttpResponseCache() throws Exception {
+    initResponseCache();
+    server.useHttps(sslContext.getSocketFactory(), true);
+    MockResponse response = // Key to reproducing b/6754912
+    new MockResponse().setSocketPolicy(SocketPolicy.UPGRADE_TO_SSL_AT_END).setBody("bogus proxy connect response content");
+    // Enqueue a pair of responses for every IP address held by localhost, because the
+    // route selector will try each in sequence.
+    // TODO: use the fake Dns implementation instead of a loop
+    for (InetAddress inetAddress : InetAddress.getAllByName(server.getHostName())) {
+        // For the first TLS tolerant connection
+        server.enqueue(response);
+        // For the backwards-compatible SSLv3 retry
+        server.enqueue(response);
+    }
+    server.play();
+    client.setProxy(server.toProxyAddress());
+    URL url = new URL("https://android.com/foo");
+    client.setSslSocketFactory(sslContext.getSocketFactory());
+    connection = client.open(url);
+    try {
+        connection.getResponseCode();
+        fail();
+    } catch (IOException expected) {
+    // Thrown when the connect causes SSLSocket.startHandshake() to throw
+    // when it sees the "bogus proxy connect response content"
+    // instead of a ServerHello handshake message.
+    }
+    RecordedRequest connect = server.takeRequest();
+    assertEquals("Connect line failure on proxy", "CONNECT android.com:443 HTTP/1.1", connect.getRequestLine());
+    assertContains(connect.getHeaders(), "Host: android.com");
+}

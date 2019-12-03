@@ -1,0 +1,18 @@
+/**
+ * Test for issue824 (https://code.google.com/p/wro4j/issues/detail?id=824).
+ * Checks that nested requests are properly cleaned up.
+ */
+@Test
+public void shouldNotLeakContextForNestedRequest() throws Exception {
+    final WroFilter innerFilter = new WroFilter();
+    innerFilter.init(mockFilterConfig);
+    final FilterChain chain = new FilterChain() {
+
+        public void doFilter(ServletRequest req, ServletResponse res) throws IOException, ServletException {
+            victim.doFilter(req, res, mockFilterChain);
+        }
+    };
+    victim.init(mockFilterConfig);
+    victim.doFilter(mockRequest, mockResponse, chain);
+    assertEquals(0, Context.countActive());
+}
