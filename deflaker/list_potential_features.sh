@@ -18,3 +18,4 @@ count task
 count send
 count concur
 count sync
+count http

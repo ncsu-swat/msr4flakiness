@@ -97,7 +97,7 @@ public class TestBlocksWithNotEnoughRacks {
       final FileSystem fs = cluster.getFileSystem();
       DFSTestUtil.createFile(fs, filePath, 1L, REPLICATION_FACTOR, 1L);
       ExtendedBlock b = DFSTestUtil.getFirstBlock(fs, filePath);
-      DFSTestUtil.waitForReplication(cluster, b, 1, REPLICATION_FACTOR, 0);
+      DFSTestUtil.waitForReplication(cluster, b, 1, REPLICATION_FACTOR, 1);
 
       // Add a new datanode on a different rack
       String newRacks[] = {"/rack2"};
@@ -165,7 +165,7 @@ public class TestBlocksWithNotEnoughRacks {
       final FileSystem fs = cluster.getFileSystem();
       DFSTestUtil.createFile(fs, filePath, 1L, REPLICATION_FACTOR, 1L);
       ExtendedBlock b = DFSTestUtil.getFirstBlock(fs, filePath);
-      DFSTestUtil.waitForReplication(cluster, b, 1, REPLICATION_FACTOR, 0);
+      DFSTestUtil.waitForReplication(cluster, b, 1, REPLICATION_FACTOR, 1);
       
       // Add new datanodes on a different rack and increase the
       // replication factor so the block is underreplicated and make
@@ -389,12 +389,9 @@ public class TestBlocksWithNotEnoughRacks {
     Path workingDir = localFileSys.getWorkingDirectory();
     Path dir = new Path(workingDir, "build/test/data/temp/decommission");
     Path excludeFile = new Path(dir, "exclude");
-    Path includeFile = new Path(dir, "include");
     assertTrue(localFileSys.mkdirs(dir));
     DFSTestUtil.writeFile(localFileSys, excludeFile, "");
-    DFSTestUtil.writeFile(localFileSys, includeFile, "");
-    conf.set(DFSConfigKeys.DFS_HOSTS_EXCLUDE, excludeFile.toUri().getPath());
-    conf.set(DFSConfigKeys.DFS_HOSTS, includeFile.toUri().getPath());
+    conf.set("dfs.hosts.exclude", excludeFile.toUri().getPath());
 
     // Two blocks and four racks
     String racks[] = {"/rack1", "/rack1", "/rack2", "/rack2"};
@@ -442,12 +439,9 @@ public class TestBlocksWithNotEnoughRacks {
     Path workingDir = localFileSys.getWorkingDirectory();
     Path dir = new Path(workingDir, "build/test/data/temp/decommission");
     Path excludeFile = new Path(dir, "exclude");
-    Path includeFile = new Path(dir, "include");
     assertTrue(localFileSys.mkdirs(dir));
     DFSTestUtil.writeFile(localFileSys, excludeFile, "");
-    DFSTestUtil.writeFile(localFileSys, includeFile, "");
-    conf.set(DFSConfigKeys.DFS_HOSTS, includeFile.toUri().getPath());
-    conf.set(DFSConfigKeys.DFS_HOSTS_EXCLUDE, excludeFile.toUri().getPath());
+    conf.set("dfs.hosts.exclude", excludeFile.toUri().getPath());
 
     // All hosts are on two racks, only one host on /rack2
     String racks[] = {"/rack1", "/rack2", "/rack1", "/rack1", "/rack1"};

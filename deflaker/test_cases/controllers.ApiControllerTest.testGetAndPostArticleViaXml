@@ -1,0 +1,32 @@
+@Test
+public void testGetAndPostArticleViaXml() throws Exception {
+    // /////////////////////////////////////////////////////////////////////
+    // Test initial data:
+    // /////////////////////////////////////////////////////////////////////
+    String response = ninjaTestBrowser.makeXmlRequest(getServerAddress() + "api/bob@gmail.com/articles.xml");
+    System.out.println("response xml: " + response);
+    JacksonXmlModule module = new JacksonXmlModule();
+    // and then configure, for example:
+    module.setDefaultUseWrapper(false);
+    XmlMapper xmlMapper = new XmlMapper(module);
+    ArticlesDto articlesDto = xmlMapper.readValue(response, ArticlesDto.class);
+    assertEquals(3, articlesDto.articles.size());
+    // /////////////////////////////////////////////////////////////////////
+    // Post new article:
+    // /////////////////////////////////////////////////////////////////////
+    ArticleDto articleDto = new ArticleDto();
+    articleDto.content = "contentcontent";
+    articleDto.title = "new title new title";
+    response = ninjaTestBrowser.postXml(getServerAddress() + "api/bob@gmail.com/article.xml", articleDto);
+    assertTrue(response.contains("Error. Forbidden."));
+    doLogin();
+    response = ninjaTestBrowser.postXml(getServerAddress() + "api/bob@gmail.com/article.xml", articleDto);
+    assertFalse(response.contains("Error. Forbidden."));
+    // /////////////////////////////////////////////////////////////////////
+    // Fetch articles again => assert we got a new one ...
+    // /////////////////////////////////////////////////////////////////////
+    response = ninjaTestBrowser.makeXmlRequest(getServerAddress() + "api/bob@gmail.com/articles.xml");
+    articlesDto = xmlMapper.readValue(response, ArticlesDto.class);
+    // one new result:
+    assertEquals(4, articlesDto.articles.size());
+}

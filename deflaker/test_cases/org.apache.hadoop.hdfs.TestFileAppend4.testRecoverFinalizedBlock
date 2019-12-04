@@ -12,7 +12,7 @@ public void testRecoverFinalizedBlock() throws Throwable {
         NamenodeProtocols spyNN = spy(preSpyNN);
         // Delay completeFile
         GenericTestUtils.DelayAnswer delayer = new GenericTestUtils.DelayAnswer(LOG);
-        doAnswer(delayer).when(spyNN).complete(anyString(), anyString(), (ExtendedBlock) anyObject(), anyLong());
+        doAnswer(delayer).when(spyNN).complete(anyString(), anyString(), (ExtendedBlock) anyObject());
         DFSClient client = new DFSClient(null, spyNN, conf, null);
         file1 = new Path("/testRecoverFinalized");
         final OutputStream stm = client.create("/testRecoverFinalized", true);
@@ -21,7 +21,6 @@ public void testRecoverFinalizedBlock() throws Throwable {
         final AtomicReference<Throwable> err = new AtomicReference<Throwable>();
         Thread t = new Thread() {
 
-            @Override
             public void run() {
                 try {
                     stm.close();
@@ -37,7 +36,7 @@ public void testRecoverFinalizedBlock() throws Throwable {
         // has not been completed in the NN.
         // Lose the leases
         LOG.info("Killing lease checker");
-        client.getLeaseRenewer().interruptAndJoin();
+        client.leaserenewer.interruptAndJoin();
         FileSystem fs1 = cluster.getFileSystem();
         FileSystem fs2 = AppendTestUtil.createHdfsWithDifferentUsername(fs1.getConf());
         LOG.info("Recovering file");

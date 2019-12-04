@@ -1,0 +1,28 @@
+@Test
+public void testGetAndPostArticleViaJson() throws Exception {
+    // /////////////////////////////////////////////////////////////////////
+    // Test initial data:
+    // /////////////////////////////////////////////////////////////////////
+    String response = ninjaTestBrowser.makeJsonRequest(getServerAddress() + "api/bob@gmail.com/articles.json");
+    System.out.println("response: " + response);
+    ArticlesDto articlesDto = getGsonWithLongToDateParsing().fromJson(response, ArticlesDto.class);
+    assertEquals(3, articlesDto.articles.size());
+    // /////////////////////////////////////////////////////////////////////
+    // Post new article:
+    // /////////////////////////////////////////////////////////////////////
+    ArticleDto articleDto = new ArticleDto();
+    articleDto.content = "contentcontent";
+    articleDto.title = "new title new title";
+    response = ninjaTestBrowser.postJson(getServerAddress() + "api/bob@gmail.com/article.json", articleDto);
+    assertTrue(response.contains("Error. Forbidden."));
+    doLogin();
+    response = ninjaTestBrowser.postJson(getServerAddress() + "api/bob@gmail.com/article.json", articleDto);
+    assertFalse(response.contains("Error. Forbidden."));
+    // /////////////////////////////////////////////////////////////////////
+    // Fetch articles again => assert we got a new one ...
+    // /////////////////////////////////////////////////////////////////////
+    response = ninjaTestBrowser.makeJsonRequest(getServerAddress() + "api/bob@gmail.com/articles.json");
+    articlesDto = getGsonWithLongToDateParsing().fromJson(response, ArticlesDto.class);
+    // one new result:
+    assertEquals(4, articlesDto.articles.size());
+}

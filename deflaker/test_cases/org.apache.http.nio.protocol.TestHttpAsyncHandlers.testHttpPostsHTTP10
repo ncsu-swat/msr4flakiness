@@ -1,0 +1,29 @@
+@Test
+public void testHttpPostsHTTP10() throws Exception {
+    InetSocketAddress address = start();
+    this.connpool.setDefaultMaxPerRoute(3);
+    this.connpool.setMaxTotal(3);
+    String pattern = RndTestPatternGenerator.generateText();
+    int count = RndTestPatternGenerator.generateCount(1000);
+    StringBuilder buffer = new StringBuilder();
+    for (int i = 0; i < count; i++) {
+        buffer.append(pattern);
+    }
+    String expectedPattern = buffer.toString();
+    HttpHost target = new HttpHost("localhost", address.getPort());
+    Queue<Future<HttpResponse>> queue = new ConcurrentLinkedQueue<Future<HttpResponse>>();
+    for (int i = 0; i < 30; i++) {
+        BasicHttpEntityEnclosingRequest request = new BasicHttpEntityEnclosingRequest("POST", pattern + "x" + count, HttpVersion.HTTP_1_0);
+        NStringEntity entity = NStringEntity.create(expectedPattern, ContentType.DEFAULT_TEXT);
+        request.setEntity(entity);
+        Future<HttpResponse> future = this.executor.execute(new BasicAsyncRequestProducer(target, request), new BasicAsyncResponseConsumer(), this.connpool);
+        queue.add(future);
+    }
+    Assert.assertEquals("Test client status", IOReactorStatus.ACTIVE, this.client.getStatus());
+    while (!queue.isEmpty()) {
+        Future<HttpResponse> future = queue.remove();
+        HttpResponse response = future.get();
+        Assert.assertNotNull(response);
+        Assert.assertEquals(expectedPattern, EntityUtils.toString(response.getEntity()));
+    }
+}
