@@ -11,7 +11,7 @@ import sys
 download('punkt')
 download('stopwords')
 stop_words = set(stopwords.words('english'))
-other_stop_words = [",","?","-","_",";","\"","—","\\n","==","0","1","2","3","4","-c","*","=","/","@","$",";",":","(",")","<",">","{","}",".","''","'","``", "get", "set"]
+other_stop_words = [",","?","-","_",";","\"","—","\\n","==","0","1","2","3","4","-c","*","=","/","@","$",";",":","(",")","<",">","{","}",".","''","'","``", "get", "set", "test"]
 stop_words = stop_words.union(set(other_stop_words))
 # word segmentation
 load()
@@ -71,6 +71,6 @@ if __name__ == '__main__':
     word_frequency = compute_frequency(test_words)
     sorted_word_frequency = sorted(word_frequency.items(), key=lambda x: x[1], reverse=True)
 
-    with open("output.log", 'r') as file:
+    with open("output.log", 'w') as file:
         for elem in sorted_word_frequency:
             file.write(elem)      
