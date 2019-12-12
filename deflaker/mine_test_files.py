@@ -90,7 +90,7 @@ def main():
                 path_to_testfile = result.split("\n")[0] 
 
             ## copying test file to test_files directory
-            testfile=basedir+"/test_files/"+testcase
+            testfile=basedir+"samples_flaky/test_files/"+testcase
             copyfile(path_to_testfile, testfile)
 
             ## copying test method to test_cases directory
@@ -101,7 +101,7 @@ def main():
             mbody,stderr = myprocess.communicate()
             parseError = b'com.github.javaparser.ParseProblemException' in mbody
             # create a file with the test case
-            pathto_testcase = basedir+"/test_cases/"+testcase
+            pathto_testcase = basedir+"/samples_flaky/test_cases/"+testcase
             if not parseError and len(mbody) > 400:
                 with open(pathto_testcase, "wt+") as testfile:
                     testfile.write(mbody.decode("utf-8"))
@@ -116,7 +116,7 @@ def main():
             mbody,stderr = myprocess.communicate()
             parseError = b'com.github.javaparser.ParseProblemException' in mbody
             if not parseError :
-                with open(basedir+"/test_tokens/"+testcase, "wt+") as testfile:
+                with open(basedir+"/samples_flaky/test_tokens/"+testcase, "wt+") as testfile:
                     testfile.write(mbody.decode("utf-8"))
             else:
                 print("......problems when trying to generate tokens for test case.")

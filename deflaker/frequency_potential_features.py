@@ -14,7 +14,7 @@ word_frequency = {}
 if __name__ == '__main__':
     coverage_matrix = {}
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    pathname = dir_path + "/test_tokens"
+    pathname = dir_path + "/samples_flaky/test_tokens"
     for filename in glob.glob(pathname + "/*"):
         with open(filename, 'r') as file:
             presence = set()

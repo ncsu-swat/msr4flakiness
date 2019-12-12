@@ -49,7 +49,7 @@ def compute_frequency(test_words):
 
 if __name__ == '__main__':
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    pathname = dir_path + "/test_tokens"
+    pathname = dir_path + "/samples_flaky/test_tokens"
 
     ## progress
     numfiles = len(os.listdir(pathname))
