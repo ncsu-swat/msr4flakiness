@@ -2,7 +2,7 @@ import os
 import csv
 from collections import OrderedDict
 
-project = 'zxing'
+project = 'logback'
 project_dir = os.path.join('deflaker', 'reruns', project)
 nonf_outfile = os.path.join(project_dir, 'nonflaky_list.txt')
 oth_outfile = os.path.join(project_dir, 'other_results.txt')
@@ -30,7 +30,7 @@ if __name__ == '__main__':
         for tc in all_results:
             classname, name = tc.split("---")
             if all_results[tc].count("pass") == 10:                
-                nonf_out.write("{},{}\n".format(classname, name))
+                nonf_out.write("{}.{}\n".format(classname, name))
             else:
-                oth_out.write("{},{}\n".format(classname, name))
+                oth_out.write("{}.{}\n".format(classname, name))
 
