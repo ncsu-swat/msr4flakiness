@@ -1,0 +1,11 @@
+@Test
+public void userSuppliedServletModuleInShiftedConfDirectory() {
+    ninjaPropertiesImpl = Mockito.spy(new NinjaPropertiesImpl(NinjaMode.test));
+    Mockito.when(ninjaPropertiesImpl.get(NinjaConstant.APPLICATION_MODULES_BASE_PACKAGE)).thenReturn("custom_base_package");
+    Bootstrap bootstrap = new NinjaServletBootstrap(ninjaPropertiesImpl);
+    bootstrap.boot();
+    assertThat("Ninja Boostrap process picks up user supplied Guice servlet module in custom_base_package.conf.ServletModule", bootstrap.getInjector().getInstance(custom_base_package.conf.ServletModule.DummyInterfaceForTesting.class), is(instanceOf(custom_base_package.conf.ServletModule.DummyClassForTesting.class)));
+    Router router = bootstrap.getInjector().getInstance(Router.class);
+    Route route = router.getRouteFor("GET", "/custom_base_package");
+    assertThat("custom_base_package.conf.Routes initialized properly. We get back the class we defined by the route.", route.getControllerClass(), is(instanceOf(controller.DummyControllerForTesting.class.getClass())));
+}

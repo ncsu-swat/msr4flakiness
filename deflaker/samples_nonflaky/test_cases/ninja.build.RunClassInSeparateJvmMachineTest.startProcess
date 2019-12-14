@@ -1,0 +1,12 @@
+@Test
+public void startProcess() throws Exception {
+    RunClassInSeparateJvmMachine rcsjm = new RunClassInSeparateJvmMachine("FakeDaemon", FakeDaemonMain.class.getName(), getOurClassPath(), Collections.EMPTY_LIST, new File("."));
+    // override output so we can capture it
+    final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    rcsjm.setOutput(baos);
+    StartedProcess startedProcess = rcsjm.startProcess();
+    assertTrue(isAlive(startedProcess.getProcess()));
+    waitOrTimeout(fakeDaemonCondition(baos), Timeout.timeout(Duration.millis(10000)));
+    startedProcess.getProcess().destroy();
+    ProcessResult processResult = startedProcess.getFuture().get();
+}

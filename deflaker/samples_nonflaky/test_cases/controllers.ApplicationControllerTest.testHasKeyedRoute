@@ -1,0 +1,13 @@
+@Test
+public void testHasKeyedRoute() {
+    NinjaPropertiesImpl ninjaProperties = new NinjaPropertiesImpl(NinjaMode.test);
+    ninjaProperties.setProperty("testkey", "true");
+    Provider<RouteBuilderImpl> routeBuilderImplProvider = Mockito.mock(Provider.class);
+    when(routeBuilderImplProvider.get()).thenAnswer((invocation) -> new RouteBuilderImpl(ninjaProperties, ninjaBaseDirectoryResolver));
+    RouterImpl router = new RouterImpl(injector, ninjaProperties, null, routeBuilderImplProvider);
+    Routes routes = new Routes(ninjaProperties);
+    routes.init(router);
+    router.compileRoutes();
+    String route = router.getReverseRoute(ApplicationController.class, "testKeyedRoute");
+    Assert.assertThat(route, CoreMatchers.equalTo("/base/middle/app/keyTest"));
+}

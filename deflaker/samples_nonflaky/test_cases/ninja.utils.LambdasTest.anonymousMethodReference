@@ -1,0 +1,16 @@
+@Test
+public void anonymousMethodReference() throws Exception {
+    ControllerMethod1<Context> lambda = (Context context) -> Results.html().renderRaw("".getBytes(StandardCharsets.UTF_8));
+    LambdaInfo lambdaInfo = Lambdas.reflect(lambda);
+    assertThat(lambdaInfo.getKind(), is(Kind.ANONYMOUS_METHOD_REFERENCE));
+    SerializedLambda serializedLambda = lambdaInfo.getSerializedLambda();
+    assertThat(serializedLambda.getFunctionalInterfaceMethodName(), is("apply"));
+    assertThat(serializedLambda.getImplClass().replace('/', '.'), is(LambdasTest.class.getCanonicalName()));
+    assertThat(serializedLambda.getImplMethodName(), startsWith("lambda$"));
+    assertThat(serializedLambda.getInstantiatedMethodType(), is("(Lninja/Context;)Lninja/Result;"));
+    // includes captured args btw...
+    assertThat(serializedLambda.getImplMethodSignature(), is("(Lninja/Context;)Lninja/Result;"));
+    // 6 = REF_invokeStatic
+    assertThat(serializedLambda.getImplMethodKind(), is(6));
+    assertThat(serializedLambda.getCapturedArgCount(), is(0));
+}

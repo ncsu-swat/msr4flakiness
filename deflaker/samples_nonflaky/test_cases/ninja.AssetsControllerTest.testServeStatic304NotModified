@@ -1,0 +1,18 @@
+@Test
+public void testServeStatic304NotModified() throws Exception {
+    when(contextRenderable.getRequestPath()).thenReturn("/assets/testasset.txt");
+    Result result2 = assetsController.serveStatic();
+    Renderable renderable = (Renderable) result2.getRenderable();
+    Result result = Results.ok();
+    // manually set to not modified => asset controller should
+    // only finalize, but not stream
+    result.status(Result.SC_304_NOT_MODIFIED);
+    renderable.render(contextRenderable, result);
+    // test streaming of resource:
+    // => not modified:
+    // check etag has been called
+    verify(httpCacheToolkit).addEtag(Mockito.eq(contextRenderable), Mockito.eq(result), Mockito.anyLong());
+    verify(contextRenderable).finalizeHeadersWithoutFlashAndSessionCookie(resultCaptor.capture());
+    // make sure we get the correct result...
+    assertEquals(Result.SC_304_NOT_MODIFIED, resultCaptor.getValue().getStatusCode());
+}

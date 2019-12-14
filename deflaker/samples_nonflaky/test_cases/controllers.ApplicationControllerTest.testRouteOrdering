@@ -1,0 +1,16 @@
+@Test
+public void testRouteOrdering() {
+    NinjaPropertiesImpl ninjaProperties = new NinjaPropertiesImpl(NinjaMode.test);
+    Provider<RouteBuilderImpl> routeBuilderImplProvider = Mockito.mock(Provider.class);
+    when(routeBuilderImplProvider.get()).thenAnswer((invocation) -> new RouteBuilderImpl(ninjaProperties, ninjaBaseDirectoryResolver));
+    RouterImpl router = new RouterImpl(injector, ninjaProperties, null, routeBuilderImplProvider);
+    Routes routes = new Routes(ninjaProperties);
+    routes.init(router);
+    router.compileRoutes();
+    Route route0 = router.getRoutes().get(0);
+    Assert.assertThat(route0.getUri(), CoreMatchers.equalTo("/base/middle/app/get"));
+    Route route8 = router.getRoutes().get(8);
+    Assert.assertThat(route8.getUri(), CoreMatchers.equalTo("/base/middle/app/put"));
+    Route route16 = router.getRoutes().get(16);
+    Assert.assertThat(route16.getUri(), CoreMatchers.equalTo("/base/middle/app/post"));
+}

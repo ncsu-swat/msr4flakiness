@@ -1,0 +1,14 @@
+@Test
+public void verifySingletonProviderAndInstance() {
+    NinjaPropertiesImpl ninjaProperties = new NinjaPropertiesImpl(NinjaMode.test);
+    ninjaProperties.setProperty(PostofficeConstant.postofficeImplementation, null);
+    Injector injector = Guice.createInjector(new BaseAndClassicModules(ninjaProperties));
+    PostofficeProvider provider = injector.getInstance(PostofficeProvider.class);
+    // cache provider should be a singleton
+    assertThat(provider, sameInstance(injector.getInstance(PostofficeProvider.class)));
+    assertThat(provider, sameInstance(injector.getInstance(PostofficeProvider.class)));
+    Postoffice postoffice = provider.get();
+    // cache should be a singleton
+    assertThat(postoffice, sameInstance(provider.get()));
+    assertThat(postoffice, sameInstance(injector.getInstance(Postoffice.class)));
+}

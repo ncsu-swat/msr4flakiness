@@ -1,0 +1,23 @@
+@Test
+public void sendAndReceiveBinary() throws IOException, WebSocketException, InterruptedException {
+    String chatId = UUID.randomUUID().toString();
+    String url = withBaseWebSocketUrl("/chat");
+    WebSocket ws = new WebSocketFactory().createSocket(url);
+    try {
+        ws.addHeader("X-Chat-Id", chatId);
+        ws.connect();
+        BlockingQueue<byte[]> received = new LinkedBlockingQueue<>();
+        ws.addListener(new WebSocketAdapter() {
+
+            @Override
+            public void onBinaryMessage(WebSocket websocket, byte[] binary) throws Exception {
+                received.put(binary);
+            }
+        });
+        ws.sendText("binary1");
+        byte[] reply = received.poll(2L, TimeUnit.SECONDS);
+        assertThat(reply, is(ChatWebSocket.BINARY1));
+    } finally {
+        ws.disconnect(WebSocketCloseCode.NORMAL);
+    }
+}

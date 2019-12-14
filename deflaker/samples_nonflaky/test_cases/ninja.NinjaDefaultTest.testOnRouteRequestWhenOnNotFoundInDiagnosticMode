@@ -1,0 +1,11 @@
+@Test
+public void testOnRouteRequestWhenOnNotFoundInDiagnosticMode() throws Exception {
+    // This simulates that a route has not been found
+    // subsequently the onNotFound method should be called.
+    Mockito.when(router.getRouteFor(ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).thenReturn(null);
+    when(ninjaProperties.isDev()).thenReturn(true);
+    when(ninjaProperties.getBooleanWithDefault(NinjaConstant.DIAGNOSTICS_KEY_NAME, true)).thenReturn(true);
+    ninjaDefault.onRouteRequest(contextImpl);
+    Result localResult = ninjaDefault.getNotFoundResult(contextImpl);
+    assertThat(localResult.getRenderable(), CoreMatchers.instanceOf(DiagnosticError.class));
+}

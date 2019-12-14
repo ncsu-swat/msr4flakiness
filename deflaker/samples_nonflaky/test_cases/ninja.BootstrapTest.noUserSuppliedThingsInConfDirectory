@@ -1,0 +1,17 @@
+@Test
+public void noUserSuppliedThingsInConfDirectory() {
+    // since we needed to supply conf.Ninja, etc. for our other tests, we'll
+    // test a user NOT supplying these by configuring the application base package
+    // a bit of a hack, but will work to force NOT finding anything
+    ninjaPropertiesImpl = Mockito.spy(new NinjaPropertiesImpl(NinjaMode.test));
+    Mockito.when(ninjaPropertiesImpl.get(NinjaConstant.APPLICATION_MODULES_BASE_PACKAGE)).thenReturn("com.doesnotexist");
+    Bootstrap bootstrap = new Bootstrap(ninjaPropertiesImpl);
+    bootstrap.boot();
+    Router router = bootstrap.getInjector().getInstance(Router.class);
+    try {
+        Route route = router.getRouteFor("GET", "/");
+        fail();
+    } catch (IllegalStateException e) {
+        assertThat(e.getMessage(), containsString("routes not compiled"));
+    }
+}

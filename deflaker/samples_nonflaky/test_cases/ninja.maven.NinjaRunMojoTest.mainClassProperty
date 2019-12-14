@@ -1,0 +1,15 @@
+@Test
+public void mainClassProperty() throws Exception {
+    ninjaRunMojo.buildOutputDirectory = "target/classes";
+    ninjaRunMojo.project = project;
+    ninjaRunMojo.pluginArtifacts = new ArrayList<>();
+    ninjaRunMojo.settleDownMillis = 500L;
+    ninjaRunMojo.mode = "dev";
+    ninjaRunMojo.mainClass = "this.is.a.class.to.run";
+    setupMachineAndWatcherStubs();
+    ninjaRunMojo.execute();
+    verify(machine, times(1)).restart();
+    verify(watcher, times(1)).run();
+    // verify what actually got to ninja machine
+    assertThat(classNameWithMainToRunCaptor.getValue(), is("this.is.a.class.to.run"));
+}

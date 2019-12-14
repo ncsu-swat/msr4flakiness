@@ -1,0 +1,23 @@
+@Test
+public void testEmptyJsonBody() {
+    final String jsonDocument = "";
+    final InputStream is = new ByteArrayInputStream(jsonDocument.getBytes());
+    final ObjectMapper jsonObjMapper = new ObjectMapper();
+    final BodyParserEngineJson bodyParserEngineJson = new BodyParserEngineJson(jsonObjMapper);
+    boolean badRequestThrown = false;
+    try {
+        Mockito.when(context.getInputStream()).thenReturn(is);
+    } catch (IOException ignore) {
+    }
+    try {
+        bodyParserEngineJson.invoke(context, SimpleTestForm.class);
+    } catch (BadRequestException ignore) {
+        badRequestThrown = true;
+    } finally {
+        try {
+            is.close();
+        } catch (IOException ignore) {
+        }
+    }
+    assertTrue(badRequestThrown);
+}

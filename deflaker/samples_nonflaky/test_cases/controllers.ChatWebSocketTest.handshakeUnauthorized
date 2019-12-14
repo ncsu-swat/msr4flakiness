@@ -1,0 +1,13 @@
+@Test
+public void handshakeUnauthorized() throws IOException, WebSocketException {
+    String url = withBaseWebSocketUrl("/chat?status=401");
+    WebSocket ws = new WebSocketFactory().createSocket(url);
+    try {
+        ws.connect();
+        fail("should have failed with a 401");
+    } catch (OpeningHandshakeException e) {
+        assertThat(e.getStatusLine().getStatusCode(), is(401));
+    } finally {
+        ws.disconnect(WebSocketCloseCode.NORMAL);
+    }
+}

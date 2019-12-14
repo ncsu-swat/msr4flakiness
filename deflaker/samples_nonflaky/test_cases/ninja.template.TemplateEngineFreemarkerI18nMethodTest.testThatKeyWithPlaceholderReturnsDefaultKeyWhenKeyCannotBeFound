@@ -1,0 +1,13 @@
+@Test
+public void testThatKeyWithPlaceholderReturnsDefaultKeyWhenKeyCannotBeFound() throws Exception {
+    Optional<Result> resultOptional = Optional.of(result);
+    List args = new ArrayList();
+    args.add(new SimpleScalar("my.message.key"));
+    args.add(new SimpleScalar("1000"));
+    Mockito.when(messages.get(Matchers.eq("my.message.key"), Matchers.eq(context), Matchers.eq(resultOptional), Matchers.any(Object.class))).thenReturn(Optional.<String>empty());
+    TemplateModel returnValue = templateEngineFreemarkerI18nMethod.exec(args);
+    assertThat(((SimpleScalar) returnValue).getAsString(), CoreMatchers.equalTo("my.message.key"));
+    // There must have been logged something because we did not find
+    // the value for the key...
+    Mockito.verify(mockAppender).doAppend(Matchers.anyObject());
+}

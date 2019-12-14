@@ -1,0 +1,16 @@
+@Test
+public void portProperty() throws Exception {
+    ninjaRunMojo.buildOutputDirectory = "target/classes";
+    ninjaRunMojo.project = project;
+    ninjaRunMojo.pluginArtifacts = new ArrayList<>();
+    ninjaRunMojo.settleDownMillis = 500L;
+    ninjaRunMojo.mode = "dev";
+    ninjaRunMojo.port = 9000;
+    setupMachineAndWatcherStubs();
+    ninjaRunMojo.execute();
+    verify(machine, times(1)).restart();
+    verify(watcher, times(1)).run();
+    // verify what actually got to ninja machine
+    assertThat(jvmArgumentsCaptor.getValue().get(0), is("-Dninja.mode=dev"));
+    assertThat(jvmArgumentsCaptor.getValue().get(1), is("-Dninja.port=9000"));
+}

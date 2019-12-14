@@ -1,0 +1,18 @@
+@Test
+public void testWithFiltersList() throws Exception {
+    // given
+    DummyFilter dummyFilter = new DummyFilter();
+    Result expectedResult = Mockito.mock(Result.class);
+    Context context = Mockito.mock(Context.class);
+    Provider filterProvider = Mockito.mock(Provider.class);
+    Mockito.when(injector.getProvider(DummyFilter.class)).thenReturn(filterProvider);
+    Mockito.when(filterProvider.get()).thenReturn(dummyFilter);
+    routeBuilder.GET().route("/").filters(Lists.newArrayList(DummyFilter.class)).with(() -> expectedResult);
+    Route route = routeBuilder.buildRoute(injector);
+    FilterChain filterChain = route.getFilterChain();
+    // when
+    Result result = filterChain.next(context);
+    // then
+    assertThat(dummyFilter.executed, Matchers.equalTo(1));
+    assertThat(result, org.hamcrest.Matchers.equalTo(expectedResult));
+}

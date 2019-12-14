@@ -1,0 +1,19 @@
+@Test
+public void jvmArgsProperty() throws Exception {
+    ninjaRunMojo.buildOutputDirectory = "target/classes";
+    ninjaRunMojo.project = project;
+    ninjaRunMojo.pluginArtifacts = new ArrayList<>();
+    ninjaRunMojo.settleDownMillis = 500L;
+    ninjaRunMojo.mode = "dev";
+    ninjaRunMojo.jvmArgs = "\"This has spaces\" -Dprop=name -XXXX";
+    setupMachineAndWatcherStubs();
+    ninjaRunMojo.execute();
+    verify(machine, times(1)).restart();
+    verify(watcher, times(1)).run();
+    // verify what actually got to ninja machine
+    ArrayList<String> value = jvmArgumentsCaptor.getValue();
+    assertThat(value.get(0), is("-Dninja.mode=dev"));
+    assertThat(value.get(1), is("This has spaces"));
+    assertThat(value.get(2), is("-Dprop=name"));
+    assertThat(value.get(3), is("-XXXX"));
+}

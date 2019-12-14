@@ -1,0 +1,14 @@
+@Test
+public void verifySingletonProviderAndInstance() {
+    NinjaPropertiesImpl ninjaProperties = new NinjaPropertiesImpl(NinjaMode.test);
+    ninjaProperties.setProperty(NinjaConstant.CACHE_IMPLEMENTATION, CacheMockImpl.class.getCanonicalName());
+    Injector injector = Guice.createInjector(new BaseAndClassicModules(ninjaProperties));
+    CacheProvider cacheProvider = injector.getInstance(CacheProvider.class);
+    // cache provider should be a singleton
+    assertThat(cacheProvider, sameInstance(injector.getInstance(CacheProvider.class)));
+    assertThat(cacheProvider, sameInstance(injector.getInstance(CacheProvider.class)));
+    Cache cache = cacheProvider.get();
+    // cache should be a singleton
+    assertThat(cache, sameInstance(cacheProvider.get()));
+    assertThat(cache, sameInstance(injector.getInstance(Cache.class)));
+}

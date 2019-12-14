@@ -1,0 +1,11 @@
+@Test
+public void testGetRemoteAddrUsesFallbackIfXForwardedForIsNotValidInetAddr() {
+    // say the httpServletRequest to return a certain value:
+    when(httpServletRequest.getRemoteAddr()).thenReturn("mockedRemoteAddr");
+    when(httpServletRequest.getHeader(Context.X_FORWARD_HEADER)).thenReturn("I_AM_NOT_A_VALID_ADDRESS");
+    when(ninjaProperties.getBooleanWithDefault(Context.NINJA_PROPERTIES_X_FORWARDED_FOR, false)).thenReturn(Boolean.TRUE);
+    // init the context from a (mocked) servlet
+    context.init(servletContext, httpServletRequest, httpServletResponse);
+    // make sure this is correct
+    assertEquals("mockedRemoteAddr", context.getRemoteAddr());
+}

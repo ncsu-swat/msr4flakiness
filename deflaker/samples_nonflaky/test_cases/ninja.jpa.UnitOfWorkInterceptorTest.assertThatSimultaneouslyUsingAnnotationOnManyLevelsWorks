@@ -1,0 +1,16 @@
+@Test
+public void assertThatSimultaneouslyUsingAnnotationOnManyLevelsWorks() throws Throwable {
+    // only the most outer annotation should open and close stuff...
+    UnitOfWorkInterceptor unitOfWorkInterceptor = new UnitOfWorkInterceptor();
+    unitOfWorkInterceptor.unitOfWork = unitOfWork;
+    // already started...
+    unitOfWorkInterceptor.didWeStartWork.set(Boolean.TRUE);
+    // execute method invocation
+    unitOfWorkInterceptor.invoke(methodInvocation);
+    // no unitOfWork begin
+    Mockito.verify(unitOfWork, Mockito.never()).begin();
+    // no unitOfWork ended
+    Mockito.verify(unitOfWork, Mockito.never()).end();
+    // but method has been invoked
+    Mockito.verify(methodInvocation).proceed();
+}
