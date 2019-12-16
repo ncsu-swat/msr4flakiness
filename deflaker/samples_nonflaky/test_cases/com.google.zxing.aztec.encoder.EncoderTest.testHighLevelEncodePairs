@@ -1,0 +1,15 @@
+@Test
+public void testHighLevelEncodePairs() {
+    // Typical usage
+    testHighLevelEncodeString("ABC. DEF\r\n", // A     B    C    P/S   .<sp>   D    E     F    P/S   \r\n
+    "...X. ...XX ..X.. ..... ...XX ..X.X ..XX. ..XXX ..... ...X.");
+    // We should latch to PUNCT mode, rather than shift.  Also check all pairs
+    testHighLevelEncodeString("A. : , \r\n", // 'A'    M/L   P/L   ". "  ": "   ", " "\r\n"
+    "...X. XXX.X XXXX. ...XX ..X.X  ..X.. ...X.");
+    // Latch to DIGIT rather than shift to PUNCT
+    testHighLevelEncodeString("A. 1234", // 'A'  D/L   '.'  ' '  '1' '2'   '3'  '4'
+    "...X. XXXX. XX.X ...X ..XX .X.. .X.X .X X.");
+    // Don't bother leaving Binary Shift.
+    testHighLevelEncodeString("A\200. \200", // 'A'  B/S    =2    \200      "."     " "     \200
+    "...X. XXXXX ..X.. X....... ..X.XXX. ..X..... X.......");
+}

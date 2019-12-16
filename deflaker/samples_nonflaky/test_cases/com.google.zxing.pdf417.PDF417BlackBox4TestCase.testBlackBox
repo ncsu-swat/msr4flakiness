@@ -1,0 +1,79 @@
+@Test
+@Override
+public void testBlackBox() throws IOException {
+    assertFalse(testResults.isEmpty());
+    Map<String, List<Path>> imageFiles = getImageFileLists();
+    int testCount = testResults.size();
+    int[] passedCounts = new int[testCount];
+    int[] tryHarderCounts = new int[testCount];
+    Path testBase = getTestBase();
+    for (Entry<String, List<Path>> testImageGroup : imageFiles.entrySet()) {
+        log.fine(String.format("Starting Image Group %s", testImageGroup.getKey()));
+        String fileBaseName = testImageGroup.getKey();
+        String expectedText;
+        Path expectedTextFile = testBase.resolve(fileBaseName + ".txt");
+        if (Files.exists(expectedTextFile)) {
+            expectedText = readFileAsString(expectedTextFile, StandardCharsets.UTF_8);
+        } else {
+            expectedTextFile = testBase.resolve(fileBaseName + ".bin");
+            assertTrue(Files.exists(expectedTextFile));
+            expectedText = readFileAsString(expectedTextFile, StandardCharsets.ISO_8859_1);
+        }
+        for (int x = 0; x < testCount; x++) {
+            List<Result> results = new ArrayList<>();
+            for (Path imageFile : testImageGroup.getValue()) {
+                BufferedImage image = ImageIO.read(imageFile.toFile());
+                float rotation = testResults.get(x).getRotation();
+                BufferedImage rotatedImage = rotateImage(image, rotation);
+                LuminanceSource source = new BufferedImageLuminanceSource(rotatedImage);
+                BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
+                try {
+                    results.addAll(Arrays.asList(decode(bitmap, false)));
+                } catch (ReaderException ignored) {
+                // ignore
+                }
+            }
+            results.sort(Comparator.comparingInt((Result r) -> getMeta(r).getSegmentIndex()));
+            StringBuilder resultText = new StringBuilder();
+            String fileId = null;
+            for (Result result : results) {
+                PDF417ResultMetadata resultMetadata = getMeta(result);
+                assertNotNull("resultMetadata", resultMetadata);
+                if (fileId == null) {
+                    fileId = resultMetadata.getFileId();
+                }
+                assertEquals("FileId", fileId, resultMetadata.getFileId());
+                resultText.append(result.getText());
+            }
+            assertEquals("ExpectedText", expectedText, resultText.toString());
+            passedCounts[x]++;
+            tryHarderCounts[x]++;
+        }
+    }
+    // Print the results of all tests first
+    int totalFound = 0;
+    int totalMustPass = 0;
+    int numberOfTests = imageFiles.keySet().size();
+    for (int x = 0; x < testResults.size(); x++) {
+        TestResult testResult = testResults.get(x);
+        log.info(String.format("Rotation %d degrees:", (int) testResult.getRotation()));
+        log.info(String.format(" %d of %d images passed (%d required)", passedCounts[x], numberOfTests, testResult.getMustPassCount()));
+        log.info(String.format(" %d of %d images passed with try harder (%d required)", tryHarderCounts[x], numberOfTests, testResult.getTryHarderCount()));
+        totalFound += passedCounts[x] + tryHarderCounts[x];
+        totalMustPass += testResult.getMustPassCount() + testResult.getTryHarderCount();
+    }
+    int totalTests = numberOfTests * testCount * 2;
+    log.info(String.format("Decoded %d images out of %d (%d%%, %d required)", totalFound, totalTests, totalFound * 100 / totalTests, totalMustPass));
+    if (totalFound > totalMustPass) {
+        log.warning(String.format("+++ Test too lax by %d images", totalFound - totalMustPass));
+    } else if (totalFound < totalMustPass) {
+        log.warning(String.format("--- Test failed by %d images", totalMustPass - totalFound));
+    }
+    // Then run through again and assert if any failed
+    for (int x = 0; x < testCount; x++) {
+        TestResult testResult = testResults.get(x);
+        String label = "Rotation " + testResult.getRotation() + " degrees: Too many images failed";
+        assertTrue(label, passedCounts[x] >= testResult.getMustPassCount());
+        assertTrue("Try harder, " + label, tryHarderCounts[x] >= testResult.getTryHarderCount());
+    }
+}

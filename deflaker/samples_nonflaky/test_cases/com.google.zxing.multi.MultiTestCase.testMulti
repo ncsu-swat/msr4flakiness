@@ -1,0 +1,17 @@
+@Test
+public void testMulti() throws Exception {
+    // Very basic test for now
+    Path testBase = AbstractBlackBoxTestCase.buildTestBase("src/test/resources/blackbox/multi-1");
+    Path testImage = testBase.resolve("1.png");
+    BufferedImage image = ImageIO.read(testImage.toFile());
+    LuminanceSource source = new BufferedImageLuminanceSource(image);
+    BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
+    MultipleBarcodeReader reader = new GenericMultipleBarcodeReader(new MultiFormatReader());
+    Result[] results = reader.decodeMultiple(bitmap);
+    assertNotNull(results);
+    assertEquals(2, results.length);
+    assertEquals("031415926531", results[0].getText());
+    assertEquals(BarcodeFormat.UPC_A, results[0].getBarcodeFormat());
+    assertEquals("www.airtable.com/jobs", results[1].getText());
+    assertEquals(BarcodeFormat.QR_CODE, results[1].getBarcodeFormat());
+}

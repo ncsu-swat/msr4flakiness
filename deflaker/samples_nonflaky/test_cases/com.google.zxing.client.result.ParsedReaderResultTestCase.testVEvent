@@ -1,0 +1,18 @@
+@Test
+public void testVEvent() {
+    // UTC times
+    doTestResult("BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nSUMMARY:foo\r\nDTSTART:20080504T123456Z\r\n" + "DTEND:20080505T234555Z\r\nEND:VEVENT\r\nEND:VCALENDAR", "foo\n" + formatTime(2008, 5, 4, 12, 34, 56) + "\n" + formatTime(2008, 5, 5, 23, 45, 55), ParsedResultType.CALENDAR);
+    doTestResult("BEGIN:VEVENT\r\nSUMMARY:foo\r\nDTSTART:20080504T123456Z\r\n" + "DTEND:20080505T234555Z\r\nEND:VEVENT", "foo\n" + formatTime(2008, 5, 4, 12, 34, 56) + "\n" + formatTime(2008, 5, 5, 23, 45, 55), ParsedResultType.CALENDAR);
+    // Local times
+    doTestResult("BEGIN:VEVENT\r\nSUMMARY:foo\r\nDTSTART:20080504T123456\r\n" + "DTEND:20080505T234555\r\nEND:VEVENT", "foo\n" + formatTime(2008, 5, 4, 12, 34, 56) + "\n" + formatTime(2008, 5, 5, 23, 45, 55), ParsedResultType.CALENDAR);
+    // Date only (all day event)
+    doTestResult("BEGIN:VEVENT\r\nSUMMARY:foo\r\nDTSTART:20080504\r\n" + "DTEND:20080505\r\nEND:VEVENT", "foo\n" + formatDate(2008, 5, 4) + "\n" + formatDate(2008, 5, 5), ParsedResultType.CALENDAR);
+    // Start time only
+    doTestResult("BEGIN:VEVENT\r\nSUMMARY:foo\r\nDTSTART:20080504T123456Z\r\nEND:VEVENT", "foo\n" + formatTime(2008, 5, 4, 12, 34, 56), ParsedResultType.CALENDAR);
+    doTestResult("BEGIN:VEVENT\r\nSUMMARY:foo\r\nDTSTART:20080504T123456\r\nEND:VEVENT", "foo\n" + formatTime(2008, 5, 4, 12, 34, 56), ParsedResultType.CALENDAR);
+    doTestResult("BEGIN:VEVENT\r\nSUMMARY:foo\r\nDTSTART:20080504\r\nEND:VEVENT", "foo\n" + formatDate(2008, 5, 4), ParsedResultType.CALENDAR);
+    doTestResult("BEGIN:VEVENT\r\nDTEND:20080505T\r\nEND:VEVENT", "BEGIN:VEVENT\r\nDTEND:20080505T\r\nEND:VEVENT", ParsedResultType.TEXT);
+    // Yeah, it's OK that this is thought of as maybe a URI as long as it's not CALENDAR
+    // Make sure illegal entries without newlines don't crash
+    doTestResult("BEGIN:VEVENTSUMMARY:EventDTSTART:20081030T122030ZDTEND:20081030T132030ZEND:VEVENT", "BEGIN:VEVENTSUMMARY:EventDTSTART:20081030T122030ZDTEND:20081030T132030ZEND:VEVENT", ParsedResultType.URI);
+}

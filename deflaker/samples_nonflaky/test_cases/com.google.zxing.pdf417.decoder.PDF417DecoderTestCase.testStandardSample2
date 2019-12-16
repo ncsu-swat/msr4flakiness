@@ -1,0 +1,20 @@
+/**
+ * Tests the second given in ISO/IEC 15438:2015(E) - Annex H.4
+ */
+@Test
+public void testStandardSample2() throws FormatException {
+    PDF417ResultMetadata resultMetadata = new PDF417ResultMetadata();
+    int[] sampleCodes = { 11, 928, 111, 103, 17, 53, 923, 1, 111, 104, 922, // we should never reach these
+    1000, 1000, 1000 };
+    DecodedBitStreamParser.decodeMacroBlock(sampleCodes, 2, resultMetadata);
+    assertEquals(3, resultMetadata.getSegmentIndex());
+    assertEquals("ARBX", resultMetadata.getFileId());
+    assertTrue(resultMetadata.isLastSegment());
+    assertEquals(4, resultMetadata.getSegmentCount());
+    assertNull(resultMetadata.getAddressee());
+    assertNull(resultMetadata.getSender());
+    @SuppressWarnings("deprecation")
+    int[] optionalData = resultMetadata.getOptionalData();
+    assertEquals("first element of optional array should be the first field identifier", 1, optionalData[0]);
+    assertEquals("last element of optional array should be the last codeword of the last field", 104, optionalData[optionalData.length - 1]);
+}
