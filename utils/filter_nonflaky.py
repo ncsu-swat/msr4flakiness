@@ -2,13 +2,9 @@ import os
 import csv
 from collections import OrderedDict
 
-project = 'logback'
-project_dir = os.path.join('deflaker', 'reruns', project)
-nonf_outfile = os.path.join(project_dir, 'nonflaky_list.txt')
-oth_outfile = os.path.join(project_dir, 'other_results.txt')
 
-if __name__ == '__main__':
-    
+def consolidate_results(project, project_dir, nonf_outfile, oth_outfile):
+    print("Consolidating results for project {}...".format(project))
     all_results = OrderedDict()
 
     for i in range(10):
@@ -34,3 +30,15 @@ if __name__ == '__main__':
             else:
                 oth_out.write("{}.{}\n".format(classname, name))
 
+
+
+if __name__ == '__main__':
+    all_projects = os.listdir(os.path.join('deflaker', 'reruns'))
+    
+    for project in all_projects:
+        if project in ['spring-boot', 'assertj-core', 'okhttp', 'hbase']:
+            continue
+        project_dir = os.path.join('deflaker', 'reruns', project)
+        nonf_outfile = os.path.join(project_dir, 'nonflaky_list.txt')
+        oth_outfile = os.path.join(project_dir, 'other_results.txt')
+        consolidate_results(project, project_dir, nonf_outfile, oth_outfile)
