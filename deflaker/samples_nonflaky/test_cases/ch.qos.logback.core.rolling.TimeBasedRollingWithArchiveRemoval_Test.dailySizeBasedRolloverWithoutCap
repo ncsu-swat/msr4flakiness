@@ -1,0 +1,12 @@
+@Test
+public void dailySizeBasedRolloverWithoutCap() {
+    SizeAndTimeBasedFNATP<Object> sizeAndTimeBasedFNATP = new SizeAndTimeBasedFNATP<Object>();
+    sizeAndTimeBasedFNATP.invocationGate = fixedRateInvocationGate;
+    sizeAndTimeBasedFNATP.setMaxFileSize(new FileSize(10000));
+    tbfnatp = sizeAndTimeBasedFNATP;
+    this.slashCount = computeSlashCount(DAILY_DATE_PATTERN);
+    String fileNamePattern = randomOutputDir + "/%d{" + DAILY_DATE_PATTERN + "}-clean.%i.zip";
+    cp.maxHistory(5).fileNamePattern(fileNamePattern).simulatedNumberOfPeriods(5 * 4);
+    logOverMultiplePeriods(cp);
+    checkPatternCompliance(5 + 1 + slashCount, "\\d{4}-\\d{2}-\\d{2}-clean(\\.\\d)(.zip)?");
+}

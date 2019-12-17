@@ -1,0 +1,19 @@
+@Test
+public void dispatchesEvents() throws Exception {
+    // given
+    ServerSocket serverSocket = ServerSocketUtil.createServerSocket();
+    instrumentedAppender.setRemoteHost(serverSocket.getInetAddress().getHostAddress());
+    instrumentedAppender.setPort(serverSocket.getLocalPort());
+    instrumentedAppender.start();
+    Socket appenderSocket = serverSocket.accept();
+    serverSocket.close();
+    // when
+    instrumentedAppender.append("some event");
+    // wait for event to be taken from deque and being written into the stream
+    verify(deque, timeout(TIMEOUT).atLeastOnce()).takeFirst();
+    verify(objectWriter, timeout(TIMEOUT)).write("some event");
+    // then
+    ObjectInputStream ois = new ObjectInputStream(appenderSocket.getInputStream());
+    assertEquals("some event", ois.readObject());
+    appenderSocket.close();
+}

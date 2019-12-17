@@ -1,0 +1,19 @@
+@Test
+public void resetsObjectOutputStreamAccordingToGivenResetFrequency() throws IOException {
+    // given
+    ObjectWriter objectWriter = new AutoFlushingObjectWriter(objectOutputStream, 2);
+    String object = "foo";
+    // when
+    objectWriter.write(object);
+    objectWriter.write(object);
+    objectWriter.write(object);
+    objectWriter.write(object);
+    // then
+    InOrder inOrder = inOrder(objectOutputStream);
+    inOrder.verify(objectOutputStream).writeObjectOverride(object);
+    inOrder.verify(objectOutputStream).writeObjectOverride(object);
+    inOrder.verify(objectOutputStream).reset();
+    inOrder.verify(objectOutputStream).writeObjectOverride(object);
+    inOrder.verify(objectOutputStream).writeObjectOverride(object);
+    inOrder.verify(objectOutputStream).reset();
+}

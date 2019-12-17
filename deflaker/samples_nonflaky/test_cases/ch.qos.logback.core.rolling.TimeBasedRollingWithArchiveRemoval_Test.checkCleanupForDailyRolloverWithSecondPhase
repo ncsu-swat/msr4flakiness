@@ -1,0 +1,11 @@
+@Test
+public void checkCleanupForDailyRolloverWithSecondPhase() {
+    slashCount = computeSlashCount(DAILY_DATE_PATTERN);
+    int maxHistory = 5;
+    String fileNamePattern = randomOutputDir + "clean-%d{" + DAILY_DATE_PATTERN + "}.txt";
+    ConfigParameters cp0 = new ConfigParameters(currentTime).maxHistory(maxHistory).fileNamePattern(fileNamePattern).simulatedNumberOfPeriods(maxHistory * 2);
+    long endTime = logOverMultiplePeriods(cp0);
+    ConfigParameters cp1 = new ConfigParameters(endTime + MILLIS_IN_DAY * 10).maxHistory(maxHistory).fileNamePattern(fileNamePattern).simulatedNumberOfPeriods(maxHistory);
+    logOverMultiplePeriods(cp1);
+    checkFileCount(expectedCountWithoutFolders(maxHistory));
+}

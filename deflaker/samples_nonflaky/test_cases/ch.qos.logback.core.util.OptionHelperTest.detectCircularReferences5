@@ -1,0 +1,12 @@
+@Test
+public void detectCircularReferences5() {
+    context.putProperty("A", "${B} and ${C}");
+    context.putProperty("B", "${B1}");
+    context.putProperty("B1", "B1-value");
+    context.putProperty("C", "${C1}");
+    context.putProperty("C1", "here's the loop: ${A}");
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage("Circular variable reference detected while parsing input [${A} --> ${C} --> ${C1} --> ${A}]");
+    String result = OptionHelper.substVars("${A}", context);
+    System.err.println(result);
+}

@@ -1,0 +1,24 @@
+@SuppressWarnings("unchecked")
+@Test(timeout = 5000)
+public void detachAppenderBoom() throws InterruptedException {
+    Appender<Integer> mockAppender = mock(Appender.class);
+    when(mockAppender.getName()).thenThrow(new OutOfMemoryError("oops"));
+    mockAppender.doAppend(17);
+    aai.addAppender(mockAppender);
+    Thread t = new Thread(new Runnable() {
+
+        public void run() {
+            try {
+                // appender.getName called as a result of next statement
+                aai.detachAppender("foo");
+            } catch (OutOfMemoryError e) {
+            // this leaves the write lock locked.
+            }
+        }
+    });
+    t.start();
+    t.join();
+    // the next call used to freeze with the earlier ReadWriteLock lock
+    // implementation
+    aai.appendLoopOnAppenders(17);
+}

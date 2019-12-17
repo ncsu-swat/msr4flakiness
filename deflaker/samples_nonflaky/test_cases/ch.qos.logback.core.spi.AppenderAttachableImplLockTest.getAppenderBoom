@@ -1,0 +1,17 @@
+@SuppressWarnings("unchecked")
+@Test(timeout = 5000)
+public void getAppenderBoom() {
+    Appender<Integer> mockAppender1 = mock(Appender.class);
+    when(mockAppender1.getName()).thenThrow(new OutOfMemoryError("oops"));
+    aai.addAppender(mockAppender1);
+    try {
+        // appender.getName called as a result of next statement
+        aai.getAppender("foo");
+    } catch (OutOfMemoryError e) {
+    // this leaves the read lock locked.
+    }
+    Appender<Integer> mockAppender2 = mock(Appender.class);
+    // the next call used to freeze with the earlier ReadWriteLock lock
+    // implementation
+    aai.addAppender(mockAppender2);
+}

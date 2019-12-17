@@ -1,0 +1,17 @@
+@Test
+public void testConnectionFails() throws Exception {
+    serverSocket.close();
+    Future<Socket> connectorTask = executor.submit(connector);
+    // this connection attempt will always timeout
+    try {
+        connectorTask.get(SHORT_DELAY, TimeUnit.MILLISECONDS);
+        fail();
+    } catch (TimeoutException e) {
+    }
+    Exception lastException = exceptionHandler.awaitConnectionFailed(DELAY);
+    assertTrue(lastException instanceof ConnectException);
+    assertFalse(connectorTask.isDone());
+    connectorTask.cancel(true);
+    // thread.join(4 * DELAY);
+    assertTrue(connectorTask.isCancelled());
+}

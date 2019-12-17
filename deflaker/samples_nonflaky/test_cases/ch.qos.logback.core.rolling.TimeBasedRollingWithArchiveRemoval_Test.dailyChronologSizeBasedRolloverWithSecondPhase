@@ -1,0 +1,16 @@
+@Test
+public void dailyChronologSizeBasedRolloverWithSecondPhase() {
+    SizeAndTimeBasedFNATP<Object> sizeAndTimeBasedFNATP = new SizeAndTimeBasedFNATP<Object>();
+    sizeAndTimeBasedFNATP.setMaxFileSize(new FileSize(10000));
+    sizeAndTimeBasedFNATP.invocationGate = fixedRateInvocationGate;
+    tbfnatp = sizeAndTimeBasedFNATP;
+    this.slashCount = 1;
+    String fileNamePattern = randomOutputDir + "/%d{" + DAILY_DATE_PATTERN + "}/clean.%i";
+    int maxHistory = 5;
+    cp.maxHistory(maxHistory).fileNamePattern(fileNamePattern).simulatedNumberOfPeriods(3);
+    long endTime = logOverMultiplePeriods(cp);
+    int simulatedNumberOfPeriods = maxHistory * 4;
+    ConfigParameters cp1 = new ConfigParameters(endTime + MILLIS_IN_DAY * 7).maxHistory(maxHistory).fileNamePattern(fileNamePattern).simulatedNumberOfPeriods(simulatedNumberOfPeriods);
+    logOverMultiplePeriods(cp1);
+    checkDirPatternCompliance(maxHistory + 1);
+}

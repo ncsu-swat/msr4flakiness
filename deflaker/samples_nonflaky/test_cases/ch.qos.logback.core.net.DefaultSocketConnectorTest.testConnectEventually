@@ -1,0 +1,25 @@
+@Test(timeout = 5000)
+public void testConnectEventually() throws Exception {
+    serverSocket.close();
+    Future<Socket> connectorTask = executor.submit(connector);
+    // this connection attempt will always timeout
+    try {
+        connectorTask.get(SHORT_DELAY, TimeUnit.MILLISECONDS);
+        fail();
+    } catch (TimeoutException e) {
+    }
+    // on Ceki's machine (Windows 7) this always takes 1second regardless of the value of DELAY
+    Exception lastException = exceptionHandler.awaitConnectionFailed(DELAY);
+    assertNotNull(lastException);
+    assertTrue(lastException instanceof ConnectException);
+    // now rebind to the same local address
+    SocketAddress address = serverSocket.getLocalSocketAddress();
+    serverSocket = new ServerSocket();
+    serverSocket.setReuseAddress(true);
+    serverSocket.bind(address);
+    // now we should be able to connect
+    Socket socket = connectorTask.get(2 * DELAY, TimeUnit.MILLISECONDS);
+    assertNotNull(socket);
+    assertFalse(connectorTask.isCancelled());
+    socket.close();
+}

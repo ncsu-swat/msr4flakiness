@@ -1,0 +1,18 @@
+@Test(timeout = 2000)
+public void eventLossIfNeverBlock() {
+    int bufferSize = 10;
+    int loopLen = bufferSize * 200;
+    // (loopLen*delay) much bigger than test timeout
+    delayingListAppender.setDelay(5);
+    asyncAppenderBase.addAppender(delayingListAppender);
+    asyncAppenderBase.setQueueSize(bufferSize);
+    asyncAppenderBase.setNeverBlock(true);
+    asyncAppenderBase.start();
+    for (int i = 0; i < loopLen; i++) {
+        asyncAppenderBase.doAppend(i);
+    }
+    asyncAppenderBase.stop();
+    // ListAppender size isn't a reliable test here, so just make sure we didn't
+    // have any errors, and that we could complete the test in time.
+    statusChecker.assertIsErrorFree();
+}

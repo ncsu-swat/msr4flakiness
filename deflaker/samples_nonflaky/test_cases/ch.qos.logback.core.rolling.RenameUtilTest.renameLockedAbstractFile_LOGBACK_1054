@@ -1,0 +1,16 @@
+// LOGBACK-1054
+@Test
+public void renameLockedAbstractFile_LOGBACK_1054() throws IOException, RolloverFailure {
+    RenameUtil renameUtil = new RenameUtil();
+    renameUtil.setContext(context);
+    String abstractFileName = "abstract_pathname-" + diff;
+    String src = CoreTestConstants.OUTPUT_DIR_PREFIX + abstractFileName;
+    String target = abstractFileName + ".target";
+    makeFile(src);
+    FileInputStream fisLock = new FileInputStream(src);
+    renameUtil.rename(src, target);
+    // release the lock
+    fisLock.close();
+    StatusPrinter.print(context);
+    assertEquals(0, statusChecker.matchCount("Parent of target file ." + target + ". is null"));
+}

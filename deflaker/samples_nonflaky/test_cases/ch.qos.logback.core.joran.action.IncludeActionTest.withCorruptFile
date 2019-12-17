@@ -1,0 +1,14 @@
+@Test
+public void withCorruptFile() throws JoranException, IOException {
+    String tmpOut = copyToTemp(INVALID);
+    System.setProperty(INCLUDE_KEY, tmpOut);
+    tc.doConfigure(TOP_BY_FILE);
+    assertEquals(Status.ERROR, statusChecker.getHighestLevel(0));
+    StatusPrinter.print(context);
+    assertTrue(statusChecker.containsException(SAXParseException.class));
+    // we like to erase the temp file in order to see
+    // if http://jira.qos.ch/browse/LBCORE-122 was fixed
+    File f = new File(tmpOut);
+    assertTrue(f.exists());
+    assertTrue(f.delete());
+}

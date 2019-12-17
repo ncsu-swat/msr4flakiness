@@ -1,0 +1,15 @@
+@Test
+public void endOfLivedAppenderShouldBeAvailableDuringLingeringPeriod() {
+    Appender<Object> a = appenderTracker.getOrCreate(key, now);
+    appenderTracker.endOfLife(key);
+    // clean
+    appenderTracker.removeStaleComponents(now);
+    Appender<Object> lingering = appenderTracker.getOrCreate(key, now);
+    assertTrue(lingering.isStarted());
+    assertTrue(a == lingering);
+    now += AppenderTracker.LINGERING_TIMEOUT + 1;
+    appenderTracker.removeStaleComponents(now);
+    assertFalse(a.isStarted());
+    a = appenderTracker.find(key);
+    assertNull(a);
+}

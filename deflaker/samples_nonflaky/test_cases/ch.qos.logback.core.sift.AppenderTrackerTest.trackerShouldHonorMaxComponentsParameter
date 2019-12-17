@@ -1,0 +1,15 @@
+@Test
+public void trackerShouldHonorMaxComponentsParameter() {
+    List<Appender<Object>> appenderList = new ArrayList<>();
+    int max = 10;
+    appenderTracker.setMaxComponents(max);
+    for (int i = 0; i < (max + 1); i++) {
+        Appender<Object> a = appenderTracker.getOrCreate(key + "-" + i, now++);
+        appenderList.add(a);
+    }
+    // cleaning only happens in removeStaleComponents
+    appenderTracker.removeStaleComponents(now++);
+    assertEquals(max, appenderTracker.allKeys().size());
+    assertNull(appenderTracker.find(key + "-" + 0));
+    assertFalse(appenderList.get(0).isStarted());
+}

@@ -1,0 +1,16 @@
+@Test
+public void maskCanDropToZeroForInfrequentInvocations() {
+    long currentTime = 0;
+    long minDelayThreshold = 4;
+    long maxDelayThreshold = 8;
+    DefaultInvocationGate gate = new DefaultInvocationGate(minDelayThreshold, maxDelayThreshold, currentTime);
+    int currentMask = DEFAULT_MASK;
+    do {
+        currentTime += maxDelayThreshold + 1;
+        assertFalse(gate.isTooSoon(currentTime));
+        assertTrue(gate.getMask() < currentMask);
+        currentMask = currentMask >> MASK_DECREASE_RIGHT_SHIFT_COUNT;
+    } while (currentMask > 0);
+    assertEquals(0, gate.getMask());
+    assertFalse(gate.isTooSoon(currentTime));
+}

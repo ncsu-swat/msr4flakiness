@@ -1,0 +1,16 @@
+@Test
+public void recoveryConditionDetectedEvenAfterReallyLongTimesBetweenRecovery() {
+    // Since backoff time quadruples whenever recovery is needed,
+    // we double the offset on each for-loop iteration, causing
+    // every other iteration to trigger recovery.
+    long offset = RecoveryCoordinator.BACKOFF_COEFFICIENT_MIN;
+    for (int i = 0; i < 16; i++) {
+        rc.setCurrentTime(now + offset);
+        if (i % 2 == 0) {
+            assertTrue("recovery should've been needed at " + offset, rc.isTooSoon());
+        } else {
+            assertFalse("recovery should NOT have been needed at " + offset, rc.isTooSoon());
+        }
+        offset *= 2;
+    }
+}

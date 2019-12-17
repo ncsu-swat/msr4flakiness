@@ -1,0 +1,17 @@
+@Test(timeout = 2000)
+public void lossyAppenderShouldOnlyLoseCertainEvents() {
+    int bufferSize = 5;
+    int loopLen = bufferSize * 2;
+    lossyAsyncAppender.addAppender(delayingListAppender);
+    lossyAsyncAppender.setQueueSize(bufferSize);
+    lossyAsyncAppender.setDiscardingThreshold(1);
+    lossyAsyncAppender.start();
+    for (int i = 0; i < loopLen; i++) {
+        lossyAsyncAppender.doAppend(i);
+    }
+    lossyAsyncAppender.stop();
+    // events 0, 3, 6 and 9 are discardable. However, for events 0 and 3
+    // the buffer is not not yet full. Thus, only events 6 and 9 will be
+    // effectively discarded.
+    verify(delayingListAppender, loopLen - 2);
+}
