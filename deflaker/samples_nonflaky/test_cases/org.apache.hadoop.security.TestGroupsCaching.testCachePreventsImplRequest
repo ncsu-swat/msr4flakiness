@@ -1,0 +1,16 @@
+@Test
+public void testCachePreventsImplRequest() throws Exception {
+    // Disable negative cache.
+    conf.setLong(CommonConfigurationKeys.HADOOP_SECURITY_GROUPS_NEGATIVE_CACHE_SECS, 0);
+    Groups groups = new Groups(conf);
+    groups.cacheGroupsAdd(Arrays.asList(myGroups));
+    groups.refresh();
+    FakeGroupMapping.clearBlackList();
+    assertEquals(0, FakeGroupMapping.getRequestCount());
+    // First call hits the wire
+    assertTrue(groups.getGroups("me").size() == 2);
+    assertEquals(1, FakeGroupMapping.getRequestCount());
+    // Second count hits cache
+    assertTrue(groups.getGroups("me").size() == 2);
+    assertEquals(1, FakeGroupMapping.getRequestCount());
+}

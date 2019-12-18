@@ -1,0 +1,22 @@
+/**
+ * Tests adding user/group to an wild card acl.
+ */
+@Test
+public void testAddRemoveToWildCardACL() {
+    AccessControlList acl = new AccessControlList(" * ");
+    assertTrue(acl.isAllAllowed());
+    UserGroupInformation drwho = UserGroupInformation.createUserForTesting("drwho@EXAMPLE.COM", new String[] { "aliens" });
+    UserGroupInformation drwho2 = UserGroupInformation.createUserForTesting("drwho2@EXAMPLE.COM", new String[] { "tardis" });
+    acl.addUser("drwho");
+    assertTrue(acl.isAllAllowed());
+    assertFalse(acl.getAclString().contains("drwho"));
+    acl.addGroup("tardis");
+    assertTrue(acl.isAllAllowed());
+    assertFalse(acl.getAclString().contains("tardis"));
+    acl.removeUser("drwho");
+    assertTrue(acl.isAllAllowed());
+    assertUserAllowed(drwho, acl);
+    acl.removeGroup("tardis");
+    assertTrue(acl.isAllAllowed());
+    assertUserAllowed(drwho2, acl);
+}

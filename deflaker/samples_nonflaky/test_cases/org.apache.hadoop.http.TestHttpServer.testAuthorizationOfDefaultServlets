@@ -1,0 +1,32 @@
+/**
+ * Verify the administrator access for /logs, /stacks, /conf, and /logLevel
+ * servlets.
+ *
+ * @throws Exception
+ */
+@Test
+public void testAuthorizationOfDefaultServlets() throws Exception {
+    Configuration conf = new Configuration();
+    conf.setBoolean(CommonConfigurationKeys.HADOOP_SECURITY_AUTHORIZATION, true);
+    conf.setBoolean(CommonConfigurationKeys.HADOOP_SECURITY_INSTRUMENTATION_REQUIRES_ADMIN, true);
+    conf.set(HttpServer2.FILTER_INITIALIZER_PROPERTY, DummyFilterInitializer.class.getName());
+    conf.set(CommonConfigurationKeys.HADOOP_SECURITY_GROUP_MAPPING, MyGroupsProvider.class.getName());
+    Groups.getUserToGroupsMappingService(conf);
+    MyGroupsProvider.clearMapping();
+    MyGroupsProvider.mapping.put("userA", Arrays.asList("groupA"));
+    MyGroupsProvider.mapping.put("userB", Arrays.asList("groupB"));
+    MyGroupsProvider.mapping.put("userC", Arrays.asList("groupC"));
+    MyGroupsProvider.mapping.put("userD", Arrays.asList("groupD"));
+    MyGroupsProvider.mapping.put("userE", Arrays.asList("groupE"));
+    HttpServer2 myServer = new HttpServer2.Builder().setName("test").addEndpoint(new URI("http://localhost:0")).setFindPort(true).setConf(conf).setACL(new AccessControlList("userA,userB groupC,groupD")).build();
+    myServer.setAttribute(HttpServer2.CONF_CONTEXT_ATTRIBUTE, conf);
+    myServer.start();
+    String serverURL = "http://" + NetUtils.getHostPortString(myServer.getConnectorAddress(0)) + "/";
+    for (String servlet : new String[] { "conf", "logs", "stacks", "logLevel" }) {
+        for (String user : new String[] { "userA", "userB", "userC", "userD" }) {
+            assertEquals(HttpURLConnection.HTTP_OK, getHttpStatusCode(serverURL + servlet, user));
+        }
+        assertEquals(HttpURLConnection.HTTP_FORBIDDEN, getHttpStatusCode(serverURL + servlet, "userE"));
+    }
+    myServer.stop();
+}

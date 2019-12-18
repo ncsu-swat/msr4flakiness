@@ -1,0 +1,33 @@
+@Test
+public void testFallbackToPseudoDelegationTokenAuthenticator() throws Exception {
+    final Server jetty = createJettyServer();
+    ServletContextHandler context = new ServletContextHandler();
+    context.setContextPath("/foo");
+    jetty.setHandler(context);
+    context.addFilter(new FilterHolder(PseudoDTAFilter.class), "/*", EnumSet.of(DispatcherType.REQUEST));
+    context.addServlet(new ServletHolder(UserServlet.class), "/bar");
+    try {
+        jetty.start();
+        final URL url = new URL(getJettyURL() + "/foo/bar");
+        UserGroupInformation ugi = UserGroupInformation.createRemoteUser(FOO_USER);
+        ugi.doAs(new PrivilegedExceptionAction<Void>() {
+
+            @Override
+            public Void run() throws Exception {
+                DelegationTokenAuthenticatedURL.Token token = new DelegationTokenAuthenticatedURL.Token();
+                DelegationTokenAuthenticatedURL aUrl = new DelegationTokenAuthenticatedURL();
+                HttpURLConnection conn = aUrl.openConnection(url, token);
+                Assert.assertEquals(HttpURLConnection.HTTP_OK, conn.getResponseCode());
+                List<String> ret = IOUtils.readLines(conn.getInputStream());
+                Assert.assertEquals(1, ret.size());
+                Assert.assertEquals(FOO_USER, ret.get(0));
+                aUrl.getDelegationToken(url, token, FOO_USER);
+                Assert.assertNotNull(token.getDelegationToken());
+                Assert.assertEquals(new Text("token-kind"), token.getDelegationToken().getKind());
+                return null;
+            }
+        });
+    } finally {
+        jetty.stop();
+    }
+}

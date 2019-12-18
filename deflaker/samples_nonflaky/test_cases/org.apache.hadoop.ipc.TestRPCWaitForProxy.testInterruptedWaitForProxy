@@ -1,0 +1,31 @@
+/**
+ * This test sets off a blocking thread and then interrupts it, before
+ * checking that the thread was interrupted
+ *
+ * @throws Throwable any exception other than that which was expected
+ */
+@Test(timeout = 10000)
+public void testInterruptedWaitForProxy() throws Throwable {
+    RpcThread worker = new RpcThread(100);
+    worker.start();
+    Thread.sleep(1000);
+    Assert.assertTrue("worker hasn't started", worker.waitStarted);
+    worker.interrupt();
+    worker.join();
+    Throwable caught = worker.getCaught();
+    Assert.assertNotNull("No exception was raised", caught);
+    // looking for the root cause here, which can be wrapped
+    // as part of the NetUtils work. Having this test look
+    // a the type of exception there would be brittle to improvements
+    // in exception diagnostics.
+    Throwable cause = caught.getCause();
+    if (cause == null) {
+        // no inner cause, use outer exception as root cause.
+        cause = caught;
+    } else if (cause.getCause() != null) {
+        cause = cause.getCause();
+    }
+    if (!(cause instanceof InterruptedIOException) && !(cause instanceof ClosedByInterruptException)) {
+        throw caught;
+    }
+}

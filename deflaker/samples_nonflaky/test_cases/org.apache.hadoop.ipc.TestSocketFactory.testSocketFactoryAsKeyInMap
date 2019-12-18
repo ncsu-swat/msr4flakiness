@@ -1,0 +1,18 @@
+@Test
+public void testSocketFactoryAsKeyInMap() {
+    Map<SocketFactory, Integer> dummyCache = new HashMap<SocketFactory, Integer>();
+    int toBeCached1 = 1;
+    int toBeCached2 = 2;
+    Configuration conf = new Configuration();
+    conf.set(CommonConfigurationKeys.HADOOP_RPC_SOCKET_FACTORY_CLASS_DEFAULT_KEY, "org.apache.hadoop.ipc.TestSocketFactory$DummySocketFactory");
+    final SocketFactory dummySocketFactory = NetUtils.getDefaultSocketFactory(conf);
+    dummyCache.put(dummySocketFactory, toBeCached1);
+    conf.set(CommonConfigurationKeys.HADOOP_RPC_SOCKET_FACTORY_CLASS_DEFAULT_KEY, "org.apache.hadoop.net.StandardSocketFactory");
+    final SocketFactory defaultSocketFactory = NetUtils.getDefaultSocketFactory(conf);
+    dummyCache.put(defaultSocketFactory, toBeCached2);
+    assertThat(dummyCache.size()).withFailMessage("The cache contains two elements").isEqualTo(2);
+    assertThat(defaultSocketFactory).withFailMessage("Equals of both socket factory shouldn't be same").isNotEqualTo(dummySocketFactory);
+    assertSame(toBeCached2, dummyCache.remove(defaultSocketFactory));
+    dummyCache.put(defaultSocketFactory, toBeCached2);
+    assertSame(toBeCached1, dummyCache.remove(dummySocketFactory));
+}

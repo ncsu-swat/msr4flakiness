@@ -1,0 +1,20 @@
+/**
+ * Simply fail back and forth between two services for the
+ * configured amount of time, via expiring their ZK sessions.
+ */
+@Test(timeout = (STRESS_RUNTIME_SECS + EXTRA_TIMEOUT_SECS) * 1000)
+public void testExpireBackAndForth() throws Exception {
+    cluster.start();
+    long st = Time.now();
+    long runFor = STRESS_RUNTIME_SECS * 1000;
+    int i = 0;
+    while (Time.now() - st < runFor) {
+        // flip flop the services back and forth
+        int from = i % 2;
+        int to = (i + 1) % 2;
+        // Expire one service, it should fail over to the other
+        LOG.info("Failing over via expiration from " + from + " to " + to);
+        cluster.expireAndVerifyFailover(from, to);
+        i++;
+    }
+}

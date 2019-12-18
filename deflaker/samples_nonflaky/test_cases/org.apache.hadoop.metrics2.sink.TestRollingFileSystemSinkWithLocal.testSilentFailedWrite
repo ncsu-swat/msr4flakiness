@@ -1,0 +1,21 @@
+/**
+ * Test that writing fails silently when the directory is not writable.
+ */
+@Test
+public void testSilentFailedWrite() {
+    String path = methodDir.toURI().toString();
+    MetricsSystem ms = initMetricsSystem(path, true, false);
+    new MyMetrics1().registerWith(ms);
+    assertTrue(FileUtil.setWritable(methodDir, false));
+    MockSink.errored = false;
+    try {
+        // publish the metrics
+        ms.publishMetricsNow();
+        assertFalse("An exception was generated while writing metrics " + "when the target directory was not writable, even though the " + "sink is set to ignore errors", MockSink.errored);
+        ms.stop();
+        ms.shutdown();
+    } finally {
+        // Make sure the dir is writable again so we can delete it at the end
+        methodDir.setWritable(true);
+    }
+}

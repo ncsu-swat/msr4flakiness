@@ -1,0 +1,25 @@
+/**
+ * Test parsing /proc/meminfo with Inactive(file) present
+ * @throws IOException
+ */
+@Test
+public void parsingProcMemFile2() throws IOException {
+    long memTotal = 131403836L;
+    long memFree = 11257036L;
+    long inactive = 27396032L;
+    long inactiveFile = 21010696L;
+    long swapTotal = 31981552L;
+    long swapFree = 1818480L;
+    long hardwareCorrupt = 31960904L;
+    int nrHugePages = 10;
+    File tempFile = new File(FAKE_MEMFILE);
+    tempFile.deleteOnExit();
+    FileWriter fWriter = new FileWriter(FAKE_MEMFILE);
+    fWriter.write(String.format(MEMINFO_FORMAT_2, memTotal, memFree, inactive, inactiveFile, swapTotal, swapFree, hardwareCorrupt, nrHugePages));
+    fWriter.close();
+    assertEquals(plugin.getAvailablePhysicalMemorySize(), 1024L * (memFree + inactiveFile));
+    assertFalse(plugin.getAvailablePhysicalMemorySize() == 1024L * (memFree + inactive));
+    assertEquals(plugin.getAvailableVirtualMemorySize(), 1024L * (memFree + inactiveFile + swapFree));
+    assertEquals(plugin.getPhysicalMemorySize(), 1024L * (memTotal - hardwareCorrupt - (nrHugePages * 2048)));
+    assertEquals(plugin.getVirtualMemorySize(), 1024L * (memTotal - hardwareCorrupt - (nrHugePages * 2048) + swapTotal));
+}

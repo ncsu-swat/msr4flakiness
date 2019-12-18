@@ -1,0 +1,39 @@
+@Test(timeout = 60000)
+public void testDuplicateInserts() {
+    IdentityHashStore<Key, Integer> store = new IdentityHashStore<Key, Integer>(4);
+    store.visitAll(new Visitor<Key, Integer>() {
+
+        @Override
+        public void accept(Key k, Integer v) {
+            Assert.fail("found key " + k + " in empty IdentityHashStore.");
+        }
+    });
+    Assert.assertTrue(store.isEmpty());
+    Key key1 = new Key("key1");
+    Integer value1 = new Integer(100);
+    Integer value2 = new Integer(200);
+    Integer value3 = new Integer(300);
+    store.put(key1, value1);
+    Key equalToKey1 = new Key("key1");
+    // IdentityHashStore compares by object equality, not equals()
+    Assert.assertNull(store.get(equalToKey1));
+    Assert.assertTrue(!store.isEmpty());
+    Assert.assertEquals(value1, store.get(key1));
+    store.put(key1, value2);
+    store.put(key1, value3);
+    final List<Integer> allValues = new LinkedList<Integer>();
+    store.visitAll(new Visitor<Key, Integer>() {
+
+        @Override
+        public void accept(Key k, Integer v) {
+            allValues.add(v);
+        }
+    });
+    Assert.assertEquals(3, allValues.size());
+    for (int i = 0; i < 3; i++) {
+        Integer value = store.remove(key1);
+        Assert.assertTrue(allValues.remove(value));
+    }
+    Assert.assertNull(store.remove(key1));
+    Assert.assertTrue(store.isEmpty());
+}

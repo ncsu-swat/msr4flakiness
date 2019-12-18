@@ -1,0 +1,32 @@
+@Test(timeout = 10000)
+public void testMultiThreadedCompressorPool() throws InterruptedException {
+    final int iterations = 4;
+    ExecutorService threadpool = Executors.newFixedThreadPool(3);
+    final LinkedBlockingDeque<Compressor> queue = new LinkedBlockingDeque<Compressor>(2 * iterations);
+    Callable<Boolean> consumer = new Callable<Boolean>() {
+
+        @Override
+        public Boolean call() throws Exception {
+            Compressor c = queue.take();
+            CodecPool.returnCompressor(c);
+            return c != null;
+        }
+    };
+    Callable<Boolean> producer = new Callable<Boolean>() {
+
+        @Override
+        public Boolean call() throws Exception {
+            Compressor c = CodecPool.getCompressor(codec);
+            queue.put(c);
+            return c != null;
+        }
+    };
+    for (int i = 0; i < iterations; i++) {
+        threadpool.submit(consumer);
+        threadpool.submit(producer);
+    }
+    // wait for completion
+    threadpool.shutdown();
+    threadpool.awaitTermination(1000, TimeUnit.SECONDS);
+    assertEquals(LEASE_COUNT_ERR, 0, CodecPool.getLeasedCompressorsCount(codec));
+}

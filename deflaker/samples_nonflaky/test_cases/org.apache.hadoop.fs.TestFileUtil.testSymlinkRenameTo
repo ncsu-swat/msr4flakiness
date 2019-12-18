@@ -1,0 +1,24 @@
+/**
+ * Test that rename on a symlink works as expected.
+ */
+@Test(timeout = 30000)
+public void testSymlinkRenameTo() throws Exception {
+    Assert.assertFalse(del.exists());
+    del.mkdirs();
+    File file = new File(del, FILE);
+    file.createNewFile();
+    File link = new File(del, "_link");
+    // create the symlink
+    FileUtil.symLink(file.getAbsolutePath(), link.getAbsolutePath());
+    Assert.assertTrue(file.exists());
+    Assert.assertTrue(link.exists());
+    File link2 = new File(del, "_link2");
+    // Rename the symlink
+    Assert.assertTrue(link.renameTo(link2));
+    // Make sure the file still exists
+    // (NOTE: this would fail on Java6 on Windows if we didn't
+    // copy the file in FileUtil#symlink)
+    Assert.assertTrue(file.exists());
+    Assert.assertTrue(link2.exists());
+    Assert.assertFalse(link.exists());
+}

@@ -1,0 +1,19 @@
+@Test(timeout = 60000)
+public void testStandAloneClient() throws IOException {
+    Client client = new Client(LongWritable.class, conf);
+    InetSocketAddress address = new InetSocketAddress("127.0.0.1", 10);
+    try {
+        call(client, RANDOM.nextLong(), address, conf);
+        fail("Expected an exception to have been thrown");
+    } catch (IOException e) {
+        String message = e.getMessage();
+        String addressText = address.getHostName() + ":" + address.getPort();
+        assertTrue("Did not find " + addressText + " in " + message, message.contains(addressText));
+        Throwable cause = e.getCause();
+        assertNotNull("No nested exception in " + e, cause);
+        String causeText = cause.getMessage();
+        assertTrue("Did not find " + causeText + " in " + message, message.contains(causeText));
+    } finally {
+        client.stop();
+    }
+}

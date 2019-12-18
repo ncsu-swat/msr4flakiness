@@ -1,0 +1,21 @@
+@Test
+public void testDeleteOnExitPathHandling() throws IOException {
+    Configuration conf = new Configuration();
+    conf.setClass("fs.mockfs.impl", MockFileSystem.class, FileSystem.class);
+    URI chrootUri = URI.create("mockfs://foo/a/b");
+    ChRootedFileSystem chrootFs = new ChRootedFileSystem(chrootUri, conf);
+    FileSystem mockFs = ((FilterFileSystem) chrootFs.getRawFileSystem()).getRawFileSystem();
+    // ensure delete propagates the correct path
+    Path chrootPath = new Path("/c");
+    Path rawPath = new Path("/a/b/c");
+    chrootFs.delete(chrootPath, false);
+    verify(mockFs).delete(eq(rawPath), eq(false));
+    reset(mockFs);
+    // fake that the path exists for deleteOnExit
+    FileStatus stat = mock(FileStatus.class);
+    when(mockFs.getFileStatus(eq(rawPath))).thenReturn(stat);
+    // ensure deleteOnExit propagates the correct path
+    chrootFs.deleteOnExit(chrootPath);
+    chrootFs.close();
+    verify(mockFs).delete(eq(rawPath), eq(true));
+}

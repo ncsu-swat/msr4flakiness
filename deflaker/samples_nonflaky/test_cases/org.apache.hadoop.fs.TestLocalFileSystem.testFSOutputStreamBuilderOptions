@@ -1,0 +1,20 @@
+@Test
+public void testFSOutputStreamBuilderOptions() throws Exception {
+    Path path = new Path(TEST_ROOT_DIR, "testBuilderOpt");
+    final List<String> supportedKeys = Arrays.asList("strM");
+    FSDataOutputStreamBuilder<?, ?> builder = new BuilderWithSupportedKeys(supportedKeys, fileSys, path);
+    builder.opt("strKey", "value");
+    builder.opt("intKey", 123);
+    builder.opt("strM", "ignored");
+    // Over-write an optional value with a mandatory value.
+    builder.must("strM", "value");
+    builder.must("unsupported", 12.34);
+    assertEquals("Optional value should be overwrite by a mandatory value", "value", builder.getOptions().get("strM"));
+    Set<String> mandatoryKeys = builder.getMandatoryKeys();
+    Set<String> expectedKeys = new HashSet<>();
+    expectedKeys.add("strM");
+    expectedKeys.add("unsupported");
+    assertEquals(expectedKeys, mandatoryKeys);
+    assertEquals(2, mandatoryKeys.size());
+    LambdaTestUtils.intercept(IllegalArgumentException.class, "unsupported key found", builder::build);
+}

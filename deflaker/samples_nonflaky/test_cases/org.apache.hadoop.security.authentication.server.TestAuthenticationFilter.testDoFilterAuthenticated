@@ -1,0 +1,40 @@
+@Test
+public void testDoFilterAuthenticated() throws Exception {
+    AuthenticationFilter filter = new AuthenticationFilter();
+    try {
+        FilterConfig config = Mockito.mock(FilterConfig.class);
+        Mockito.when(config.getInitParameter("management.operation.return")).thenReturn("true");
+        Mockito.when(config.getInitParameter(AuthenticationFilter.AUTH_TYPE)).thenReturn(DummyAuthenticationHandler.class.getName());
+        Mockito.when(config.getInitParameterNames()).thenReturn(new Vector<String>(Arrays.asList(AuthenticationFilter.AUTH_TYPE, "management.operation.return")).elements());
+        getMockedServletContextWithStringSigner(config);
+        filter.init(config);
+        HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
+        Mockito.when(request.getRequestURL()).thenReturn(new StringBuffer("http://foo:8080/bar"));
+        AuthenticationToken token = new AuthenticationToken("u", "p", "t");
+        token.setExpires(System.currentTimeMillis() + TOKEN_VALIDITY_SEC);
+        SignerSecretProvider secretProvider = StringSignerSecretProviderCreator.newStringSignerSecretProvider();
+        Properties secretProviderProps = new Properties();
+        secretProviderProps.setProperty(AuthenticationFilter.SIGNATURE_SECRET, "secret");
+        secretProvider.init(secretProviderProps, null, TOKEN_VALIDITY_SEC);
+        Signer signer = new Signer(secretProvider);
+        String tokenSigned = signer.sign(token.toString());
+        Cookie cookie = new Cookie(AuthenticatedURL.AUTH_COOKIE, tokenSigned);
+        Mockito.when(request.getCookies()).thenReturn(new Cookie[] { cookie });
+        HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
+        FilterChain chain = Mockito.mock(FilterChain.class);
+        Mockito.doAnswer(new Answer<Object>() {
+
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                Object[] args = invocation.getArguments();
+                HttpServletRequest request = (HttpServletRequest) args[0];
+                Assert.assertEquals("u", request.getRemoteUser());
+                Assert.assertEquals("p", request.getUserPrincipal().getName());
+                return null;
+            }
+        }).when(chain).doFilter(any(), any());
+        filter.doFilter(request, response, chain);
+    } finally {
+        filter.destroy();
+    }
+}

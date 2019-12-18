@@ -1,0 +1,21 @@
+/**
+ * Test ReconfigurationUtil.getChangedProperties.
+ */
+@Test
+public void testGetChangedProperties() {
+    Collection<ReconfigurationUtil.PropertyChange> changes = ReconfigurationUtil.getChangedProperties(conf2, conf1);
+    assertTrue("expected 3 changed properties but got " + changes.size(), changes.size() == 3);
+    boolean changeFound = false;
+    boolean unsetFound = false;
+    boolean setFound = false;
+    for (ReconfigurationUtil.PropertyChange c : changes) {
+        if (c.prop.equals(PROP2) && c.oldVal != null && c.oldVal.equals(VAL1) && c.newVal != null && c.newVal.equals(VAL2)) {
+            changeFound = true;
+        } else if (c.prop.equals(PROP3) && c.oldVal != null && c.oldVal.equals(VAL1) && c.newVal == null) {
+            unsetFound = true;
+        } else if (c.prop.equals(PROP4) && c.oldVal == null && c.newVal != null && c.newVal.equals(VAL1)) {
+            setFound = true;
+        }
+    }
+    assertTrue("not all changes have been applied", changeFound && unsetFound && setFound);
+}

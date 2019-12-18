@@ -1,0 +1,12 @@
+@Test
+public void testAwaitHandlesAssertions() throws Throwable {
+    // await a state which is never reached, expect a timeout exception
+    // with the text "failure" in it
+    TimeoutException ex = intercept(TimeoutException.class, "failure", () -> await(TIMEOUT, () -> r(new AssertionError("failure")), retry, TIMEOUT_FAILURE_HANDLER));
+    // the retry handler must have been invoked
+    assertMinRetryCount(1);
+    // and the nested cause is tha raised assertion
+    if (!(ex.getCause() instanceof AssertionError)) {
+        throw ex;
+    }
+}

@@ -1,0 +1,29 @@
+@Test
+public void testTagsForPrefix() throws Exception {
+    ConfigBuilder cb = new ConfigBuilder().add(testNamePrefix + ".sink.ganglia.tagsForPrefix.all", "*").add(testNamePrefix + ".sink.ganglia.tagsForPrefix.some", "NumActiveSinks, " + "NumActiveSources").add(testNamePrefix + ".sink.ganglia.tagsForPrefix.none", "");
+    GangliaSink30 sink = new GangliaSink30();
+    sink.init(cb.subset(testNamePrefix + ".sink.ganglia"));
+    List<MetricsTag> tags = new ArrayList<MetricsTag>();
+    tags.add(new MetricsTag(MsInfo.Context, "all"));
+    tags.add(new MetricsTag(MsInfo.NumActiveSources, "foo"));
+    tags.add(new MetricsTag(MsInfo.NumActiveSinks, "bar"));
+    tags.add(new MetricsTag(MsInfo.NumAllSinks, "haa"));
+    tags.add(new MetricsTag(MsInfo.Hostname, "host"));
+    Set<AbstractMetric> metrics = new HashSet<AbstractMetric>();
+    MetricsRecord record = new MetricsRecordImpl(MsInfo.Context, (long) 1, tags, metrics);
+    StringBuilder sb = new StringBuilder();
+    sink.appendPrefix(record, sb);
+    assertEquals(".NumActiveSources=foo.NumActiveSinks=bar.NumAllSinks=haa", sb.toString());
+    tags.set(0, new MetricsTag(MsInfo.Context, "some"));
+    sb = new StringBuilder();
+    sink.appendPrefix(record, sb);
+    assertEquals(".NumActiveSources=foo.NumActiveSinks=bar", sb.toString());
+    tags.set(0, new MetricsTag(MsInfo.Context, "none"));
+    sb = new StringBuilder();
+    sink.appendPrefix(record, sb);
+    assertEquals("", sb.toString());
+    tags.set(0, new MetricsTag(MsInfo.Context, "nada"));
+    sb = new StringBuilder();
+    sink.appendPrefix(record, sb);
+    assertEquals("", sb.toString());
+}

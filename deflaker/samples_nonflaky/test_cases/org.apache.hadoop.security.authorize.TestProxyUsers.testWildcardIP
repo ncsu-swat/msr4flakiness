@@ -1,0 +1,19 @@
+@Test
+public void testWildcardIP() {
+    Configuration conf = new Configuration();
+    conf.set(DefaultImpersonationProvider.getTestProvider().getProxySuperuserGroupConfKey(REAL_USER_NAME), StringUtils.join(",", Arrays.asList(GROUP_NAMES)));
+    conf.set(DefaultImpersonationProvider.getTestProvider().getProxySuperuserIpConfKey(REAL_USER_NAME), "*");
+    ProxyUsers.refreshSuperUserGroupsConfiguration(conf);
+    // First try proxying a group that's allowed
+    UserGroupInformation realUserUgi = UserGroupInformation.createRemoteUser(REAL_USER_NAME);
+    UserGroupInformation proxyUserUgi = UserGroupInformation.createProxyUserForTesting(PROXY_USER_NAME, realUserUgi, GROUP_NAMES);
+    // From either IP should be fine
+    assertAuthorized(proxyUserUgi, "1.2.3.4");
+    assertAuthorized(proxyUserUgi, "1.2.3.5");
+    // Now set up an unallowed group
+    realUserUgi = UserGroupInformation.createRemoteUser(REAL_USER_NAME);
+    proxyUserUgi = UserGroupInformation.createProxyUserForTesting(PROXY_USER_NAME, realUserUgi, OTHER_GROUP_NAMES);
+    // Neither IP should be OK
+    assertNotAuthorized(proxyUserUgi, "1.2.3.4");
+    assertNotAuthorized(proxyUserUgi, "1.2.3.5");
+}

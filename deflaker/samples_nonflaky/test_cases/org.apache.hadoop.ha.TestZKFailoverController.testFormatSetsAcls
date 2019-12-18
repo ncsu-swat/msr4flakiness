@@ -1,0 +1,19 @@
+/**
+ * Test that, if ACLs are specified in the configuration, that
+ * it sets the ACLs when formatting the parent node.
+ */
+@Test
+public void testFormatSetsAcls() throws Exception {
+    // Format the base dir, should succeed
+    DummyHAService svc = cluster.getService(1);
+    assertEquals(0, runFC(svc, "-formatZK"));
+    ZooKeeper otherClient = createClient();
+    try {
+        // client without auth should not be able to read it
+        Stat stat = new Stat();
+        otherClient.getData(ZKFailoverController.ZK_PARENT_ZNODE_DEFAULT, false, stat);
+        fail("Was able to read data without authenticating!");
+    } catch (KeeperException.NoAuthException nae) {
+    // expected
+    }
+}

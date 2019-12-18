@@ -1,0 +1,31 @@
+@Test
+public void testList() throws IOException {
+    FileStatus fs = fSys.getFileStatus(new Path("/"));
+    Assert.assertTrue(fs.isDirectory());
+    // should return the full path not the chrooted path
+    Assert.assertEquals(fs.getPath(), chrootedTo);
+    // list on Slash
+    FileStatus[] dirPaths = fSys.listStatus(new Path("/"));
+    Assert.assertEquals(0, dirPaths.length);
+    fileSystemTestHelper.createFile(fSys, "/foo");
+    fileSystemTestHelper.createFile(fSys, "/bar");
+    fSys.mkdirs(new Path("/dirX"));
+    fSys.mkdirs(fileSystemTestHelper.getTestRootPath(fSys, "/dirY"));
+    fSys.mkdirs(new Path("/dirX/dirXX"));
+    dirPaths = fSys.listStatus(new Path("/"));
+    // note 2 crc files
+    Assert.assertEquals(4, dirPaths.length);
+    // Note the the file status paths are the full paths on target
+    fs = FileSystemTestHelper.containsPath(new Path(chrootedTo, "foo"), dirPaths);
+    Assert.assertNotNull(fs);
+    Assert.assertTrue(fs.isFile());
+    fs = FileSystemTestHelper.containsPath(new Path(chrootedTo, "bar"), dirPaths);
+    Assert.assertNotNull(fs);
+    Assert.assertTrue(fs.isFile());
+    fs = FileSystemTestHelper.containsPath(new Path(chrootedTo, "dirX"), dirPaths);
+    Assert.assertNotNull(fs);
+    Assert.assertTrue(fs.isDirectory());
+    fs = FileSystemTestHelper.containsPath(new Path(chrootedTo, "dirY"), dirPaths);
+    Assert.assertNotNull(fs);
+    Assert.assertTrue(fs.isDirectory());
+}

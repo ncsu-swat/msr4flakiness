@@ -1,0 +1,25 @@
+/**
+ *  test {@link BloomMapFile.Reader#get(WritableComparable, Writable)} method
+ */
+@Test
+public void testGetBloomMapFile() {
+    int SIZE = 10;
+    BloomMapFile.Reader reader = null;
+    BloomMapFile.Writer writer = null;
+    try {
+        writer = new BloomMapFile.Writer(conf, TEST_FILE, MapFile.Writer.keyClass(IntWritable.class), MapFile.Writer.valueClass(Text.class));
+        for (int i = 0; i < SIZE; i++) {
+            writer.append(new IntWritable(i), new Text());
+        }
+        writer.close();
+        reader = new BloomMapFile.Reader(TEST_FILE, conf, MapFile.Reader.comparator(new WritableComparator(IntWritable.class)));
+        for (int i = 0; i < SIZE; i++) {
+            assertNotNull("testGetBloomMapFile error !!!", reader.get(new IntWritable(i), new Text()));
+        }
+        assertNull("testGetBloomMapFile error !!!", reader.get(new IntWritable(SIZE + 5), new Text()));
+    } catch (Exception ex) {
+        fail("unexpect ex in testGetBloomMapFile !!!");
+    } finally {
+        IOUtils.cleanupWithLogger(LOG, writer, reader);
+    }
+}

@@ -1,0 +1,26 @@
+/**
+ * test {@code MapFile.Writer.testFix} method
+ */
+@Test
+public void testFix() {
+    final String INDEX_LESS_MAP_FILE = "testFix.mapfile";
+    int PAIR_SIZE = 20;
+    MapFile.Writer writer = null;
+    try {
+        FileSystem fs = FileSystem.getLocal(conf);
+        Path dir = new Path(TEST_DIR, INDEX_LESS_MAP_FILE);
+        writer = createWriter(INDEX_LESS_MAP_FILE, IntWritable.class, Text.class);
+        for (int i = 0; i < PAIR_SIZE; i++) writer.append(new IntWritable(0), new Text("value"));
+        writer.close();
+        File indexFile = new File(".", "." + INDEX_LESS_MAP_FILE + "/index");
+        boolean isDeleted = false;
+        if (indexFile.exists())
+            isDeleted = indexFile.delete();
+        if (isDeleted)
+            assertTrue("testFix error !!!", MapFile.fix(fs, dir, IntWritable.class, Text.class, true, conf) == PAIR_SIZE);
+    } catch (Exception ex) {
+        fail("testFix error !!!");
+    } finally {
+        IOUtils.cleanupWithLogger(LOG, writer);
+    }
+}

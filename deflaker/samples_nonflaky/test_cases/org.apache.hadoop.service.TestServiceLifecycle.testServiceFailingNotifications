@@ -1,0 +1,19 @@
+@Test
+public void testServiceFailingNotifications() throws Throwable {
+    BreakableService svc = new BreakableService(false, false, false);
+    BreakableStateChangeListener listener = new BreakableStateChangeListener();
+    listener.setFailingState(Service.STATE.STARTED);
+    svc.registerServiceListener(listener);
+    svc.init(new Configuration());
+    assertEventCount(listener, 1);
+    // start this; the listener failed but this won't show
+    svc.start();
+    // counter went up
+    assertEventCount(listener, 2);
+    assertEquals(1, listener.getFailureCount());
+    // stop the service -this doesn't fail
+    svc.stop();
+    assertEventCount(listener, 3);
+    assertEquals(1, listener.getFailureCount());
+    svc.stop();
+}

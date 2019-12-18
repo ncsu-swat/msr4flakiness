@@ -1,0 +1,42 @@
+/**
+ * Test Chmod 1. Create and write file on FS 2. Verify that exit code for
+ * chmod on existing file is 0 3. Verify that exit code for chmod on
+ * non-existing file is 1 4. Verify that exit code for chmod with glob input
+ * on non-existing file is 1 5. Verify that exit code for chmod with glob
+ * input on existing file in 0
+ *
+ * @throws Exception
+ */
+@Test(timeout = 30000)
+public void testChmod() throws Exception {
+    Path p1 = new Path(TEST_ROOT_DIR, "testChmod/fileExists");
+    final String f1 = p1.toUri().getPath();
+    final String f2 = new Path(TEST_ROOT_DIR, "testChmod/fileDoesNotExist").toUri().getPath();
+    final String f3 = new Path(TEST_ROOT_DIR, "testChmod/nonExistingfiles*").toUri().getPath();
+    final Path p4 = new Path(TEST_ROOT_DIR, "testChmod/file1");
+    final Path p5 = new Path(TEST_ROOT_DIR, "testChmod/file2");
+    final Path p6 = new Path(TEST_ROOT_DIR, "testChmod/file3");
+    final String f7 = new Path(TEST_ROOT_DIR, "testChmod/file*").toUri().getPath();
+    // create and write test file
+    writeFile(fileSys, p1);
+    assertTrue(fileSys.exists(p1));
+    // Test 1: Test 1: exit code for chmod on existing is 0
+    String[] argv = { "-chmod", "777", f1 };
+    assertEquals(0, fsShell.run(argv));
+    // Test 2: exit code for chmod on non-existing path is 1
+    String[] argv2 = { "-chmod", "777", f2 };
+    assertEquals(1, fsShell.run(argv2));
+    // Test 3: exit code for chmod on non-existing path with globbed input is 1
+    String[] argv3 = { "-chmod", "777", f3 };
+    assertEquals(1, fsShell.run(argv3));
+    // create required files
+    writeFile(fileSys, p4);
+    assertTrue(fileSys.exists(p4));
+    writeFile(fileSys, p5);
+    assertTrue(fileSys.exists(p5));
+    writeFile(fileSys, p6);
+    assertTrue(fileSys.exists(p6));
+    // Test 4: exit code for chmod on existing path with globbed input is 0
+    String[] argv4 = { "-chmod", "777", f7 };
+    assertEquals(0, fsShell.run(argv4));
+}

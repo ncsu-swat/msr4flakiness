@@ -1,0 +1,51 @@
+@Test(timeout = 60000)
+public void testSwapUnderContention() throws InterruptedException {
+    manager = new CallQueueManager<FakeCall>(queueClass, schedulerClass, false, 5000, "", conf);
+    ArrayList<Putter> producers = new ArrayList<Putter>();
+    ArrayList<Taker> consumers = new ArrayList<Taker>();
+    HashMap<Runnable, Thread> threads = new HashMap<Runnable, Thread>();
+    // Create putters and takers
+    for (int i = 0; i < 1000; i++) {
+        Putter p = new Putter(manager, -1, -1);
+        Thread pt = new Thread(p);
+        producers.add(p);
+        threads.put(p, pt);
+        pt.start();
+    }
+    for (int i = 0; i < 100; i++) {
+        Taker t = new Taker(manager, -1, -1);
+        Thread tt = new Thread(t);
+        consumers.add(t);
+        threads.put(t, tt);
+        tt.start();
+    }
+    Thread.sleep(500);
+    for (int i = 0; i < 5; i++) {
+        manager.swapQueue(schedulerClass, queueClass, 5000, "", conf);
+    }
+    // Stop the producers
+    for (Putter p : producers) {
+        p.stop();
+    }
+    // Wait for consumers to wake up, then consume
+    Thread.sleep(2000);
+    assertEquals(0, manager.size());
+    // Ensure no calls were dropped
+    long totalCallsCreated = 0;
+    for (Putter p : producers) {
+        threads.get(p).interrupt();
+    }
+    for (Putter p : producers) {
+        threads.get(p).join();
+        totalCallsCreated += p.callsAdded;
+    }
+    long totalCallsConsumed = 0;
+    for (Taker t : consumers) {
+        threads.get(t).interrupt();
+    }
+    for (Taker t : consumers) {
+        threads.get(t).join();
+        totalCallsConsumed += t.callsTaken;
+    }
+    assertEquals(totalCallsConsumed, totalCallsCreated);
+}

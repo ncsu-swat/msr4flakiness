@@ -1,0 +1,18 @@
+/**
+ * Test that, if the callback throws an RTE, this will terminate the
+ * health monitor and thus change its state to FAILED
+ * @throws Exception
+ */
+@Test(timeout = 15000)
+public void testCallbackThrowsRTE() throws Exception {
+    hm.addCallback(new Callback() {
+
+        @Override
+        public void enteredState(State newState) {
+            throw new RuntimeException("Injected RTE");
+        }
+    });
+    LOG.info("Mocking bad health check, waiting for UNHEALTHY");
+    svc.isHealthy = false;
+    waitForState(hm, HealthMonitor.State.HEALTH_MONITOR_FAILED);
+}

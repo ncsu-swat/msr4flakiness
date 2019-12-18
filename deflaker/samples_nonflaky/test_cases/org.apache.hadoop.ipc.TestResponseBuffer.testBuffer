@@ -1,0 +1,33 @@
+@Test
+public void testBuffer() throws IOException {
+    final int startSize = 8;
+    final String empty = "";
+    ResponseBuffer buf = new ResponseBuffer(startSize);
+    assertEquals(startSize, buf.capacity());
+    // verify it's initially empty
+    checkBuffer(buf, empty);
+    // write "nothing" and re-verify it's empty
+    buf.writeBytes(empty);
+    checkBuffer(buf, empty);
+    // write to the buffer twice and verify it's properly encoded
+    String s1 = "testing123";
+    buf.writeBytes(s1);
+    checkBuffer(buf, s1);
+    String s2 = "456!";
+    buf.writeBytes(s2);
+    checkBuffer(buf, s1 + s2);
+    // reset should not change length of underlying byte array
+    int length = buf.capacity();
+    buf.reset();
+    assertEquals(length, buf.capacity());
+    checkBuffer(buf, empty);
+    // setCapacity will change length of underlying byte array
+    buf.setCapacity(startSize);
+    assertEquals(startSize, buf.capacity());
+    checkBuffer(buf, empty);
+    // make sure it still works
+    buf.writeBytes(s1);
+    checkBuffer(buf, s1);
+    buf.writeBytes(s2);
+    checkBuffer(buf, s1 + s2);
+}

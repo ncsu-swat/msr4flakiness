@@ -1,0 +1,16 @@
+@Test
+public void testCacheEntriesExpire() throws Exception {
+    conf.setLong(CommonConfigurationKeys.HADOOP_SECURITY_GROUPS_CACHE_SECS, 1);
+    FakeTimer timer = new FakeTimer();
+    final Groups groups = new Groups(conf, timer);
+    groups.cacheGroupsAdd(Arrays.asList(myGroups));
+    groups.refresh();
+    FakeGroupMapping.clearBlackList();
+    // We make an entry
+    groups.getGroups("me");
+    int startingRequestCount = FakeGroupMapping.getRequestCount();
+    timer.advance(20 * 1000);
+    // Cache entry has expired so it results in a new fetch
+    groups.getGroups("me");
+    assertEquals(startingRequestCount + 1, FakeGroupMapping.getRequestCount());
+}

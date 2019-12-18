@@ -1,0 +1,28 @@
+@Test
+public void testSocketAddress() {
+    Configuration conf = new Configuration();
+    final String defaultAddr = "host:1";
+    final int defaultPort = 2;
+    InetSocketAddress addr = null;
+    addr = conf.getSocketAddr("myAddress", defaultAddr, defaultPort);
+    assertEquals(defaultAddr, NetUtils.getHostPortString(addr));
+    conf.set("myAddress", "host2");
+    addr = conf.getSocketAddr("myAddress", defaultAddr, defaultPort);
+    assertEquals("host2:" + defaultPort, NetUtils.getHostPortString(addr));
+    conf.set("myAddress", "host2:3");
+    addr = conf.getSocketAddr("myAddress", defaultAddr, defaultPort);
+    assertEquals("host2:3", NetUtils.getHostPortString(addr));
+    conf.set("myAddress", " \n \t    host4:5     \t \n   ");
+    addr = conf.getSocketAddr("myAddress", defaultAddr, defaultPort);
+    assertEquals("host4:5", NetUtils.getHostPortString(addr));
+    boolean threwException = false;
+    conf.set("myAddress", "bad:-port");
+    try {
+        addr = conf.getSocketAddr("myAddress", defaultAddr, defaultPort);
+    } catch (IllegalArgumentException iae) {
+        threwException = true;
+        assertEquals("Does not contain a valid host:port authority: " + "bad:-port (configuration property 'myAddress')", iae.getMessage());
+    } finally {
+        assertTrue(threwException);
+    }
+}

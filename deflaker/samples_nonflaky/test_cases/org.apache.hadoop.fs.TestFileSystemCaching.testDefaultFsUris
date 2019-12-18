@@ -1,0 +1,22 @@
+@Test
+public void testDefaultFsUris() throws Exception {
+    final Configuration conf = new Configuration();
+    conf.set("fs.defaultfs.impl", DefaultFs.class.getName());
+    final URI defaultUri = URI.create("defaultfs://host");
+    FileSystem.setDefaultUri(conf, defaultUri);
+    // sanity check default fs
+    final FileSystem defaultFs = FileSystem.get(conf);
+    assertEquals(defaultUri, defaultFs.getUri());
+    // has scheme, no auth
+    assertSame(defaultFs, FileSystem.get(URI.create("defaultfs:/"), conf));
+    assertSame(defaultFs, FileSystem.get(URI.create("defaultfs:///"), conf));
+    // has scheme, same auth
+    assertSame(defaultFs, FileSystem.get(URI.create("defaultfs://host"), conf));
+    // has scheme, different auth
+    assertNotSame(defaultFs, FileSystem.get(URI.create("defaultfs://host2"), conf));
+    // no scheme, no auth
+    assertSame(defaultFs, FileSystem.get(URI.create("/"), conf));
+    // no scheme, same auth
+    intercept(UnsupportedFileSystemException.class, () -> FileSystem.get(URI.create("//host"), conf));
+    intercept(UnsupportedFileSystemException.class, () -> FileSystem.get(URI.create("//host2"), conf));
+}

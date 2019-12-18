@@ -1,0 +1,20 @@
+@Test
+@SuppressWarnings("deprecation")
+public void testMidKey() throws Exception {
+    // Write a mapfile of simple data: keys are
+    Path dirName = new Path(TEST_DIR, "testMidKey.mapfile");
+    FileSystem fs = FileSystem.getLocal(conf);
+    Path qualifiedDirName = fs.makeQualified(dirName);
+    MapFile.Writer writer = null;
+    MapFile.Reader reader = null;
+    try {
+        writer = new MapFile.Writer(conf, fs, qualifiedDirName.toString(), IntWritable.class, IntWritable.class);
+        writer.append(new IntWritable(1), new IntWritable(1));
+        writer.close();
+        // Now do getClosest on created mapfile.
+        reader = new MapFile.Reader(qualifiedDirName, conf);
+        assertEquals(new IntWritable(1), reader.midKey());
+    } finally {
+        IOUtils.cleanupWithLogger(LOG, writer, reader);
+    }
+}

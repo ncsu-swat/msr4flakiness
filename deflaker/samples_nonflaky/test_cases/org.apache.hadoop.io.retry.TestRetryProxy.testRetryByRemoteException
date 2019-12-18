@@ -1,0 +1,11 @@
+@Test
+public void testRetryByRemoteException() {
+    Map<Class<? extends Exception>, RetryPolicy> exceptionToPolicyMap = Collections.<Class<? extends Exception>, RetryPolicy>singletonMap(FatalException.class, TRY_ONCE_THEN_FAIL);
+    UnreliableInterface unreliable = (UnreliableInterface) RetryProxy.create(UnreliableInterface.class, unreliableImpl, retryByRemoteException(RETRY_FOREVER, exceptionToPolicyMap));
+    try {
+        unreliable.alwaysFailsWithRemoteFatalException();
+        fail("Should fail");
+    } catch (RemoteException e) {
+    // expected
+    }
+}

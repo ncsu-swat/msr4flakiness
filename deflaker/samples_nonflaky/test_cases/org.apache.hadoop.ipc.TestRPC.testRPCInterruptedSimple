@@ -1,0 +1,27 @@
+@Test(timeout = 90000)
+public void testRPCInterruptedSimple() throws Exception {
+    Server server;
+    TestRpcService proxy = null;
+    RPC.Builder builder = newServerBuilder(conf).setNumHandlers(5).setVerbose(true).setSecretManager(null);
+    server = setupTestServer(builder);
+    try {
+        proxy = getClient(addr, conf);
+        // Connect to the server
+        proxy.ping(null, newEmptyRequest());
+        // Interrupt self, try another call
+        Thread.currentThread().interrupt();
+        try {
+            proxy.ping(null, newEmptyRequest());
+            fail("Interruption did not cause IPC to fail");
+        } catch (ServiceException se) {
+            if (se.toString().contains("InterruptedException") || se.getCause() instanceof InterruptedIOException) {
+                // clear interrupt status for future tests
+                Thread.interrupted();
+                return;
+            }
+            throw se;
+        }
+    } finally {
+        stop(server, proxy);
+    }
+}

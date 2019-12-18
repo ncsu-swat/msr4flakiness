@@ -1,0 +1,22 @@
+@Test
+public void testReadWhenIoExceptionOccure() throws IOException {
+    File file = new File("testReadWhenIOException");
+    try {
+        file.createNewFile();
+        InputStream io = new FileInputStream(file) {
+
+            @Override
+            public int read() throws IOException {
+                throw new IOException("File blocks missing");
+            }
+        };
+        try (BlockDecompressorStream blockDecompressorStream = new BlockDecompressorStream(io, new FakeDecompressor(), 1024)) {
+            int byteRead = blockDecompressorStream.read();
+            fail("Should not return -1 in case of IOException. Byte read " + byteRead);
+        } catch (IOException e) {
+            assertTrue(e.getMessage().contains("File blocks missing"));
+        }
+    } finally {
+        file.delete();
+    }
+}

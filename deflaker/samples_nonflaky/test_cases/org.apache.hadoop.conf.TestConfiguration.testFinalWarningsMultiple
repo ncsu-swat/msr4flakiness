@@ -1,0 +1,29 @@
+@Test
+public void testFinalWarningsMultiple() throws Exception {
+    // Make a configuration file with a repeated final property
+    StringWriter writer = new StringWriter();
+    out = new BufferedWriter(writer);
+    startConfig();
+    declareProperty("prop", "A", "A", true);
+    declareProperty("prop", "A", "A", true);
+    endConfig();
+    byte[] bytes = writer.toString().getBytes();
+    InputStream in1 = new ByteArrayInputStream(bytes);
+    // Attach our own log appender so we can verify output
+    TestAppender appender = new TestAppender();
+    final Logger logger = Logger.getRootLogger();
+    logger.addAppender(appender);
+    try {
+        // Add the resource - this should not produce a warning
+        conf.addResource(in1);
+        assertEquals("should see the value", "A", conf.get("prop"));
+        List<LoggingEvent> events = appender.getLog();
+        for (LoggingEvent loggingEvent : events) {
+            System.out.println("Event = " + loggingEvent.getRenderedMessage());
+        }
+        assertTrue("adding same resource twice should not cause logging", events.isEmpty());
+    } finally {
+        // Make sure the appender is removed
+        logger.removeAppender(appender);
+    }
+}

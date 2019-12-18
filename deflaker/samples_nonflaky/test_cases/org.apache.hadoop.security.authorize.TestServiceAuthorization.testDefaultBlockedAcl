@@ -1,0 +1,30 @@
+@Test
+public void testDefaultBlockedAcl() throws UnknownHostException {
+    UserGroupInformation drwho = UserGroupInformation.createUserForTesting("drwho@EXAMPLE.COM", new String[] { "group1", "group2" });
+    ServiceAuthorizationManager serviceAuthorizationManager = new ServiceAuthorizationManager();
+    Configuration conf = new Configuration();
+    // test without setting a default blocked acl
+    serviceAuthorizationManager.refresh(conf, new TestPolicyProvider());
+    try {
+        serviceAuthorizationManager.authorize(drwho, TestProtocol1.class, conf, InetAddress.getByName(ADDRESS));
+    } catch (AuthorizationException e) {
+        fail();
+    }
+    // set a restrictive default blocked acl and an non-restricting blocked acl for TestProtocol
+    conf.set(CommonConfigurationKeys.HADOOP_SECURITY_SERVICE_AUTHORIZATION_DEFAULT_BLOCKED_ACL, "user2 group2");
+    conf.set(ACL_CONFIG + ServiceAuthorizationManager.BLOCKED, "user2");
+    serviceAuthorizationManager.refresh(conf, new TestPolicyProvider());
+    // drwho is authorized to access TestProtocol
+    try {
+        serviceAuthorizationManager.authorize(drwho, TestProtocol.class, conf, InetAddress.getByName(ADDRESS));
+    } catch (AuthorizationException e) {
+        fail();
+    }
+    // drwho is not authorized to access TestProtocol1 because it uses the default blocked acl.
+    try {
+        serviceAuthorizationManager.authorize(drwho, TestProtocol1.class, conf, InetAddress.getByName(ADDRESS));
+        fail();
+    } catch (AuthorizationException e) {
+    // expects Exception
+    }
+}

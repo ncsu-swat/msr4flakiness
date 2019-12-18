@@ -1,0 +1,12 @@
+@Test
+public void testSuccedsOnceThenFailOver() throws UnreliableException, IOException, StandbyException {
+    UnreliableInterface unreliable = (UnreliableInterface) RetryProxy.create(UnreliableInterface.class, newFlipFlopProxyProvider(), new FailOverOnceOnAnyExceptionPolicy());
+    assertEquals("impl1", unreliable.succeedsOnceThenFailsReturningString());
+    assertEquals("impl2", unreliable.succeedsOnceThenFailsReturningString());
+    try {
+        unreliable.succeedsOnceThenFailsReturningString();
+        fail("should not have succeeded more than twice");
+    } catch (UnreliableException e) {
+    // expected
+    }
+}

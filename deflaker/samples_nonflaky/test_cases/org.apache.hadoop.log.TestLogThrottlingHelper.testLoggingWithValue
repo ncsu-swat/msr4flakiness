@@ -1,0 +1,15 @@
+@Test
+public void testLoggingWithValue() {
+    assertTrue(helper.record(1).shouldLog());
+    for (int i = 0; i < 4; i++) {
+        timer.advance(LOG_PERIOD / 5);
+        assertFalse(helper.record(i % 2 == 0 ? 0 : 1).shouldLog());
+    }
+    timer.advance(LOG_PERIOD);
+    LogAction action = helper.record(0.5);
+    assertTrue(action.shouldLog());
+    assertEquals(5, action.getCount());
+    assertEquals(0.5, action.getStats(0).getMean(), 0.01);
+    assertEquals(1.0, action.getStats(0).getMax(), 0.01);
+    assertEquals(0.0, action.getStats(0).getMin(), 0.01);
+}

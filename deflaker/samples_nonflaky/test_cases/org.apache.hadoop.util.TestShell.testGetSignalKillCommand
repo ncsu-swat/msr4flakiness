@@ -1,0 +1,15 @@
+@Test
+public void testGetSignalKillCommand() throws Exception {
+    String anyPid = "9999";
+    int anySignal = 9;
+    String[] checkProcessAliveCommand = getSignalKillCommand(anySignal, anyPid);
+    String[] expectedCommand;
+    if (Shell.WINDOWS) {
+        expectedCommand = new String[] { getWinUtilsPath(), "task", "kill", anyPid };
+    } else if (Shell.isSetsidAvailable) {
+        expectedCommand = new String[] { "bash", "-c", "kill -9 -- -'" + anyPid + "'" };
+    } else {
+        expectedCommand = new String[] { "bash", "-c", "kill -9 '" + anyPid + "'" };
+    }
+    Assert.assertArrayEquals(expectedCommand, checkProcessAliveCommand);
+}

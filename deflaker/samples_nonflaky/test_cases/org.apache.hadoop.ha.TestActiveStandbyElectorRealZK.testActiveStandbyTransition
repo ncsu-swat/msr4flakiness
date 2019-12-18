@@ -1,0 +1,57 @@
+/**
+ * the test creates 2 electors which try to become active using a real
+ * zookeeper server. It verifies that 1 becomes active and 1 becomes standby.
+ * Upon becoming active the leader quits election and the test verifies that
+ * the standby now becomes active.
+ */
+@Test(timeout = 20000)
+public void testActiveStandbyTransition() throws Exception {
+    LOG.info("starting test with parentDir:" + PARENT_DIR);
+    assertFalse(electors[0].parentZNodeExists());
+    electors[0].ensureParentZNode();
+    assertTrue(electors[0].parentZNodeExists());
+    // First elector joins election, becomes active.
+    electors[0].joinElection(appDatas[0]);
+    ActiveStandbyElectorTestUtil.waitForActiveLockData(null, zkServer, PARENT_DIR, appDatas[0]);
+    Mockito.verify(cbs[0], Mockito.timeout(1000)).becomeActive();
+    checkFatalsAndReset();
+    // Second elector joins election, becomes standby.
+    electors[1].joinElection(appDatas[1]);
+    Mockito.verify(cbs[1], Mockito.timeout(1000)).becomeStandby();
+    checkFatalsAndReset();
+    // First elector quits, second one should become active
+    electors[0].quitElection(true);
+    ActiveStandbyElectorTestUtil.waitForActiveLockData(null, zkServer, PARENT_DIR, appDatas[1]);
+    Mockito.verify(cbs[1], Mockito.timeout(1000)).becomeActive();
+    checkFatalsAndReset();
+    // First one rejoins, becomes standby, second one stays active
+    electors[0].joinElection(appDatas[0]);
+    Mockito.verify(cbs[0], Mockito.timeout(1000)).becomeStandby();
+    checkFatalsAndReset();
+    // Second one expires, first one becomes active
+    electors[1].preventSessionReestablishmentForTests();
+    try {
+        zkServer.closeSession(electors[1].getZKSessionIdForTests());
+        ActiveStandbyElectorTestUtil.waitForActiveLockData(null, zkServer, PARENT_DIR, appDatas[0]);
+        Mockito.verify(cbs[1], Mockito.timeout(1000)).enterNeutralMode();
+        Mockito.verify(cbs[0], Mockito.timeout(1000)).fenceOldActive(AdditionalMatchers.aryEq(appDatas[1]));
+        Mockito.verify(cbs[0], Mockito.timeout(1000)).becomeActive();
+    } finally {
+        electors[1].allowSessionReestablishmentForTests();
+    }
+    // Second one eventually reconnects and becomes standby
+    Mockito.verify(cbs[1], Mockito.timeout(5000)).becomeStandby();
+    checkFatalsAndReset();
+    // First one expires, second one should become active
+    electors[0].preventSessionReestablishmentForTests();
+    try {
+        zkServer.closeSession(electors[0].getZKSessionIdForTests());
+        ActiveStandbyElectorTestUtil.waitForActiveLockData(null, zkServer, PARENT_DIR, appDatas[1]);
+        Mockito.verify(cbs[0], Mockito.timeout(1000)).enterNeutralMode();
+        Mockito.verify(cbs[1], Mockito.timeout(1000)).fenceOldActive(AdditionalMatchers.aryEq(appDatas[0]));
+        Mockito.verify(cbs[1], Mockito.timeout(1000)).becomeActive();
+    } finally {
+        electors[0].allowSessionReestablishmentForTests();
+    }
+    checkFatalsAndReset();
+}

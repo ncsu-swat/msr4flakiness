@@ -1,0 +1,21 @@
+@Test(timeout = 60000)
+public void testNonDefaultNonBrowserUserAgentAsNonBrowser() throws Exception {
+    if (handler != null) {
+        handler.destroy();
+        handler = null;
+    }
+    handler = getNewAuthenticationHandler();
+    Properties props = getDefaultProperties();
+    props.setProperty("alt-kerberos.non-browser.user-agents", "foo, bar");
+    try {
+        handler.init(props);
+    } catch (Exception ex) {
+        handler = null;
+        throw ex;
+    }
+    // Run the kerberos tests again
+    testRequestWithoutAuthorization();
+    testRequestWithInvalidAuthorization();
+    testRequestWithAuthorization();
+    testRequestWithInvalidKerberosAuthorization();
+}

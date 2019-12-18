@@ -1,0 +1,20 @@
+@Test
+public void testObserverExitGracefulFailover() throws Exception {
+    cluster.start(3);
+    cluster.waitForActiveLockHolder(0);
+    // Mark it become observer, wait for it to exit election
+    DummyHAService svc2 = cluster.getService(2);
+    svc2.state = HAServiceState.OBSERVER;
+    cluster.waitForHAState(2, HAServiceState.OBSERVER);
+    cluster.setFailToBecomeActive(2, true);
+    cluster.setFailToBecomeStandby(2, true);
+    cluster.setFailToBecomeObserver(2, true);
+    cluster.waitForElectorState(2, ActiveStandbyElector.State.INIT);
+    // Ask for failover, it should fail, because it's observer
+    try {
+        cluster.getService(2).getZKFCProxy(conf, 5000).gracefulFailover();
+        fail("Did not fail to graceful failover to observer!");
+    } catch (ServiceFailedException sfe) {
+        GenericTestUtils.assertExceptionContains(cluster.getService(2).toString() + " is in observer state.", sfe);
+    }
+}

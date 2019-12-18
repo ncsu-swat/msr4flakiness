@@ -1,0 +1,16 @@
+@Test(timeout = 20000)
+public void testBZip2NativeCodec() throws IOException {
+    Configuration conf = new Configuration();
+    conf.set("io.compression.codec.bzip2.library", "system-native");
+    if (NativeCodeLoader.isNativeCodeLoaded()) {
+        if (Bzip2Factory.isNativeBzip2Loaded(conf)) {
+            codecTest(conf, seed, 0, "org.apache.hadoop.io.compress.BZip2Codec");
+            codecTest(conf, seed, count, "org.apache.hadoop.io.compress.BZip2Codec");
+            conf.set("io.compression.codec.bzip2.library", "java-builtin");
+            codecTest(conf, seed, 0, "org.apache.hadoop.io.compress.BZip2Codec");
+            codecTest(conf, seed, count, "org.apache.hadoop.io.compress.BZip2Codec");
+        } else {
+            LOG.warn("Native hadoop library available but native bzip2 is not");
+        }
+    }
+}

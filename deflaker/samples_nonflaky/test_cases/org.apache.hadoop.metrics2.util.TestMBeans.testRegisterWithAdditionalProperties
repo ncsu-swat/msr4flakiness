@@ -1,0 +1,17 @@
+@Test
+public void testRegisterWithAdditionalProperties() throws Exception {
+    ObjectName objectName = null;
+    try {
+        counter = 42;
+        Map<String, String> properties = new HashMap<String, String>();
+        properties.put("flavour", "server");
+        objectName = MBeans.register("UnitTest", "RegisterTest", properties, this);
+        MBeanServer platformMBeanServer = ManagementFactory.getPlatformMBeanServer();
+        int jmxCounter = (int) platformMBeanServer.getAttribute(objectName, "Counter");
+        Assert.assertEquals(counter, jmxCounter);
+    } finally {
+        if (objectName != null) {
+            MBeans.unregister(objectName);
+        }
+    }
+}

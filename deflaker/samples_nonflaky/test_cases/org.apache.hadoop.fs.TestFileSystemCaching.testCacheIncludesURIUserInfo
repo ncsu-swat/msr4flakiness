@@ -1,0 +1,12 @@
+@Test
+public void testCacheIncludesURIUserInfo() throws Throwable {
+    URI containerA = new URI("wasb://a@account.blob.core.windows.net");
+    URI containerB = new URI("wasb://b@account.blob.core.windows.net");
+    Configuration conf = new Configuration(false);
+    FileSystem.Cache.Key keyA = new FileSystem.Cache.Key(containerA, conf);
+    FileSystem.Cache.Key keyB = new FileSystem.Cache.Key(containerB, conf);
+    assertNotEquals(keyA, keyB);
+    assertNotEquals(keyA, new FileSystem.Cache.Key(new URI("wasb://account.blob.core.windows.net"), conf));
+    assertEquals(keyA, new FileSystem.Cache.Key(new URI("wasb://A@account.blob.core.windows.net"), conf));
+    assertNotEquals(keyA, new FileSystem.Cache.Key(new URI("wasb://a:password@account.blob.core.windows.net"), conf));
+}

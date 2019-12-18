@@ -1,0 +1,27 @@
+/*
+   * Test if spaces , tabs and new lines are allowed
+   */
+@Test
+public void testHostFileReaderWithTabs() throws Exception {
+    FileWriter efw = new FileWriter(excludesFile);
+    FileWriter ifw = new FileWriter(includesFile);
+    efw.write("#DFS-Hosts-excluded\n");
+    efw.write("     \n");
+    efw.write("   somehost \t somehost2 \n somehost4");
+    efw.write("   somehost3 \t # somehost5");
+    efw.close();
+    ifw.write("#Hosts-in-DFS\n");
+    ifw.write("     \n");
+    ifw.write("   somehost \t  somehost2 \n somehost4");
+    ifw.write("   somehost3 \t # somehost5");
+    ifw.close();
+    HostsFileReader hfp = new HostsFileReader(includesFile, excludesFile);
+    int includesLen = hfp.getHosts().size();
+    int excludesLen = hfp.getExcludedHosts().size();
+    assertEquals(4, includesLen);
+    assertEquals(4, excludesLen);
+    assertTrue(hfp.getHosts().contains("somehost2"));
+    assertFalse(hfp.getHosts().contains("somehost5"));
+    assertTrue(hfp.getExcludedHosts().contains("somehost2"));
+    assertFalse(hfp.getExcludedHosts().contains("somehost5"));
+}

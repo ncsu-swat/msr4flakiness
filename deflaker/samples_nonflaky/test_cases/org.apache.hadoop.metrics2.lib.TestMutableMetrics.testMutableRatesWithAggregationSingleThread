@@ -1,0 +1,21 @@
+@Test
+public void testMutableRatesWithAggregationSingleThread() {
+    MutableRatesWithAggregation rates = new MutableRatesWithAggregation();
+    rates.add("foo", 1);
+    rates.add("bar", 5);
+    MetricsRecordBuilder rb = mockMetricsRecordBuilder();
+    rates.snapshot(rb, false);
+    assertCounter("FooNumOps", 1L, rb);
+    assertGauge("FooAvgTime", 1.0, rb);
+    assertCounter("BarNumOps", 1L, rb);
+    assertGauge("BarAvgTime", 5.0, rb);
+    rates.add("foo", 1);
+    rates.add("foo", 3);
+    rates.add("bar", 6);
+    rb = mockMetricsRecordBuilder();
+    rates.snapshot(rb, false);
+    assertCounter("FooNumOps", 3L, rb);
+    assertGauge("FooAvgTime", 2.0, rb);
+    assertCounter("BarNumOps", 2L, rb);
+    assertGauge("BarAvgTime", 6.0, rb);
+}

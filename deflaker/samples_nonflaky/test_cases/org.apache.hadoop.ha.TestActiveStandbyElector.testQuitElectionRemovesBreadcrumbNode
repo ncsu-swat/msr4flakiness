@@ -1,0 +1,12 @@
+@Test
+public void testQuitElectionRemovesBreadcrumbNode() throws Exception {
+    mockNoPriorActive();
+    elector.joinElection(data);
+    elector.processResult(Code.OK.intValue(), ZK_LOCK_NAME, mockZK, ZK_LOCK_NAME);
+    // Writes its own active info
+    Mockito.verify(mockZK, Mockito.times(1)).create(Mockito.eq(ZK_BREADCRUMB_NAME), Mockito.eq(data), Mockito.eq(Ids.OPEN_ACL_UNSAFE), Mockito.eq(CreateMode.PERSISTENT));
+    mockPriorActive(data);
+    elector.quitElection(false);
+    // Deletes its own active data
+    Mockito.verify(mockZK, Mockito.times(1)).delete(Mockito.eq(ZK_BREADCRUMB_NAME), Mockito.eq(0));
+}

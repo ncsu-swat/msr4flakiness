@@ -1,0 +1,19 @@
+/**
+ * Test that when using an invalid DNS server without hosts file
+ * fallback, we get back the cached host name.
+ *
+ * @throws Exception
+ */
+@Test(timeout = 60000)
+public void testLookupWithoutHostsFallback() throws Exception {
+    final String oldHostname = changeDnsCachedHostname(DUMMY_HOSTNAME);
+    try {
+        String hostname = DNS.getDefaultHost(getLoopbackInterface(), INVALID_DNS_SERVER, false);
+        // Expect to get back the cached host name since there was no hosts
+        // file lookup.
+        assertThat(hostname, is(DUMMY_HOSTNAME));
+    } finally {
+        // Restore DNS#cachedHostname for subsequent tests.
+        changeDnsCachedHostname(oldHostname);
+    }
+}

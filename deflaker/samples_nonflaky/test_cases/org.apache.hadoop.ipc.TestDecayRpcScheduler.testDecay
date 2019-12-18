@@ -1,0 +1,36 @@
+@Test
+@SuppressWarnings("deprecation")
+public void testDecay() throws Exception {
+    Configuration conf = new Configuration();
+    conf.setLong(// Never decay
+    "ns." + DecayRpcScheduler.IPC_SCHEDULER_DECAYSCHEDULER_PERIOD_KEY, 999999999);
+    conf.setDouble("ns." + DecayRpcScheduler.IPC_SCHEDULER_DECAYSCHEDULER_FACTOR_KEY, 0.5);
+    scheduler = new DecayRpcScheduler(1, "ns", conf);
+    assertEquals(0, scheduler.getTotalCallSnapshot());
+    for (int i = 0; i < 4; i++) {
+        getPriorityIncrementCallCount("A");
+    }
+    sleep(1000);
+    for (int i = 0; i < 8; i++) {
+        getPriorityIncrementCallCount("B");
+    }
+    assertEquals(12, scheduler.getTotalCallSnapshot());
+    assertEquals(4, scheduler.getCallCostSnapshot().get("A").longValue());
+    assertEquals(8, scheduler.getCallCostSnapshot().get("B").longValue());
+    scheduler.forceDecay();
+    assertEquals(6, scheduler.getTotalCallSnapshot());
+    assertEquals(2, scheduler.getCallCostSnapshot().get("A").longValue());
+    assertEquals(4, scheduler.getCallCostSnapshot().get("B").longValue());
+    scheduler.forceDecay();
+    assertEquals(3, scheduler.getTotalCallSnapshot());
+    assertEquals(1, scheduler.getCallCostSnapshot().get("A").longValue());
+    assertEquals(2, scheduler.getCallCostSnapshot().get("B").longValue());
+    scheduler.forceDecay();
+    assertEquals(1, scheduler.getTotalCallSnapshot());
+    assertEquals(null, scheduler.getCallCostSnapshot().get("A"));
+    assertEquals(1, scheduler.getCallCostSnapshot().get("B").longValue());
+    scheduler.forceDecay();
+    assertEquals(0, scheduler.getTotalCallSnapshot());
+    assertEquals(null, scheduler.getCallCostSnapshot().get("A"));
+    assertEquals(null, scheduler.getCallCostSnapshot().get("B"));
+}

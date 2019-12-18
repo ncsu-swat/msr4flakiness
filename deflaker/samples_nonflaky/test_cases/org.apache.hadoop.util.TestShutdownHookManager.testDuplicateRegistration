@@ -1,0 +1,27 @@
+/**
+ * Verifies that a hook cannot be re-registered: an attempt to do so
+ * will simply be ignored.
+ */
+@Test
+public void testDuplicateRegistration() throws Throwable {
+    Hook hook = new Hook("hook1", 0, false);
+    // add the hook
+    mgr.addShutdownHook(hook, 2, 1, TimeUnit.SECONDS);
+    // add it at a higher priority. This will be ignored.
+    mgr.addShutdownHook(hook, 5);
+    List<ShutdownHookManager.HookEntry> hookList = mgr.getShutdownHooksInOrder();
+    assertEquals("Hook added twice", 1, hookList.size());
+    ShutdownHookManager.HookEntry entry = hookList.get(0);
+    assertEquals("priority of hook", 2, entry.getPriority());
+    assertEquals("timeout of hook", 1, entry.getTimeout());
+    // remove the hook
+    assertTrue("failed to remove hook " + hook, mgr.removeShutdownHook(hook));
+    // which will fail a second time
+    assertFalse("expected hook removal to fail", mgr.removeShutdownHook(hook));
+    // now register it
+    mgr.addShutdownHook(hook, 5);
+    hookList = mgr.getShutdownHooksInOrder();
+    entry = hookList.get(0);
+    assertEquals("priority of hook", 5, entry.getPriority());
+    assertNotEquals("timeout of hook", 1, entry.getTimeout());
+}

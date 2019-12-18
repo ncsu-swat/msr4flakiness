@@ -1,0 +1,20 @@
+/**
+ * Test that when disabled, we will retry the configured number
+ * of times using the same LDAP server.
+ */
+@Test
+public void testDoesNotFailoverWhenDisabled() throws Exception {
+    final int numAttempts = 3;
+    Configuration conf = getBaseConf();
+    conf.setStrings(LDAP_URL_KEY, "ldap://test", "ldap://test1", "ldap://test2");
+    DummyLdapCtxFactory.setExpectedLdapUrl("ldap://test");
+    conf.setInt(LDAP_NUM_ATTEMPTS_KEY, numAttempts);
+    conf.setInt(LDAP_NUM_ATTEMPTS_BEFORE_FAILOVER_KEY, numAttempts);
+    when(getContext().search(anyString(), anyString(), any(Object[].class), any(SearchControls.class))).thenThrow(new CommunicationException());
+    LdapGroupsMapping groupsMapping = getGroupsMapping();
+    groupsMapping.setConf(conf);
+    List<String> groups = groupsMapping.getGroups(TEST_USER_NAME);
+    assertTrue(groups.isEmpty());
+    // Test that we made 3 attempts using the same server
+    verify(getContext(), times(numAttempts)).search(anyString(), anyString(), any(Object[].class), any(SearchControls.class));
+}

@@ -1,0 +1,19 @@
+@Test
+public void testCopyStreamTargetExists() throws Exception {
+    FSDataOutputStream out = mock(FSDataOutputStream.class);
+    whenFsCreate().thenReturn(out);
+    when(mockFs.getFileStatus(eq(path))).thenReturn(fileStat);
+    // so it's updated as existing
+    target.refreshStatus();
+    cmd.setOverwrite(true);
+    when(mockFs.getFileStatus(eq(tmpPath))).thenReturn(fileStat);
+    when(mockFs.delete(eq(path), eq(false))).thenReturn(true);
+    when(mockFs.rename(eq(tmpPath), eq(path))).thenReturn(true);
+    FSInputStream in = mock(FSInputStream.class);
+    when(in.read(any(byte[].class), anyInt(), anyInt())).thenReturn(-1);
+    tryCopyStream(in, true);
+    verify(mockFs).delete(eq(path), anyBoolean());
+    verify(mockFs).rename(eq(tmpPath), eq(path));
+    verify(mockFs, never()).delete(eq(tmpPath), anyBoolean());
+    verify(mockFs, never()).close();
+}

@@ -1,0 +1,16 @@
+@Test
+public void testGetCostConfiguredWeights() {
+    Configuration conf = new Configuration();
+    int queueWeight = 1000;
+    int lockfreeWeight = 10000;
+    int locksharedWeight = 100000;
+    conf.setInt("foo.weighted-cost.queue", queueWeight);
+    conf.setInt("foo.weighted-cost.lockfree", lockfreeWeight);
+    conf.setInt("foo.weighted-cost.lockshared", locksharedWeight);
+    // should not apply
+    conf.setInt("bar.weighted-cost.lockexclusive", 0);
+    costProvider.init("foo", conf);
+    long actualCost = costProvider.getCost(processingDetails);
+    long expectedCost = queueWeight * QUEUE_TIME + lockfreeWeight * LOCKFREE_TIME + locksharedWeight * LOCKSHARED_TIME + DEFAULT_LOCKEXCLUSIVE_WEIGHT * LOCKEXCLUSIVE_TIME;
+    assertEquals(expectedCost, actualCost);
+}

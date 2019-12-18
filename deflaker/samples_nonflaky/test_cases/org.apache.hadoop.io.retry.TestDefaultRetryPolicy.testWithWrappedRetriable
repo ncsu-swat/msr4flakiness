@@ -1,0 +1,15 @@
+/**
+ * Verify that the default retry policy correctly retries
+ * a RetriableException wrapped in a RemoteException when
+ * defaultRetryPolicyEnabled is enabled.
+ *
+ * @throws IOException
+ */
+@Test
+public void testWithWrappedRetriable() throws Exception {
+    Configuration conf = new Configuration();
+    RetryPolicy policy = RetryUtils.getDefaultRetryPolicy(conf, "Test.No.Such.Key", // defaultRetryPolicyEnabled = true
+    true, "Test.No.Such.Key", "10000,6", null);
+    RetryPolicy.RetryAction action = policy.shouldRetry(new RemoteException(RetriableException.class.getName(), "Dummy exception"), 0, 0, true);
+    assertThat(action.action, is(RetryPolicy.RetryAction.RetryDecision.RETRY));
+}

@@ -1,0 +1,39 @@
+/**
+ * test all available constructor for {@code MapFile.Writer}
+ */
+@Test
+@SuppressWarnings("deprecation")
+public void testDeprecatedConstructors() {
+    String path = new Path(TEST_DIR, "writes.mapfile").toString();
+    MapFile.Writer writer = null;
+    MapFile.Reader reader = null;
+    try {
+        FileSystem fs = FileSystem.getLocal(conf);
+        writer = new MapFile.Writer(conf, fs, path, IntWritable.class, Text.class, CompressionType.RECORD);
+        assertNotNull(writer);
+        writer.close();
+        writer = new MapFile.Writer(conf, fs, path, IntWritable.class, Text.class, CompressionType.RECORD, defaultProgressable);
+        assertNotNull(writer);
+        writer.close();
+        writer = new MapFile.Writer(conf, fs, path, IntWritable.class, Text.class, CompressionType.RECORD, defaultCodec, defaultProgressable);
+        assertNotNull(writer);
+        writer.close();
+        writer = new MapFile.Writer(conf, fs, path, WritableComparator.get(Text.class), Text.class);
+        assertNotNull(writer);
+        writer.close();
+        writer = new MapFile.Writer(conf, fs, path, WritableComparator.get(Text.class), Text.class, SequenceFile.CompressionType.RECORD);
+        assertNotNull(writer);
+        writer.close();
+        writer = new MapFile.Writer(conf, fs, path, WritableComparator.get(Text.class), Text.class, CompressionType.RECORD, defaultProgressable);
+        assertNotNull(writer);
+        writer.close();
+        reader = new MapFile.Reader(fs, path, WritableComparator.get(IntWritable.class), conf);
+        assertNotNull(reader);
+        assertNotNull("reader key is null !!!", reader.getKeyClass());
+        assertNotNull("reader value in null", reader.getValueClass());
+    } catch (IOException e) {
+        fail(e.getMessage());
+    } finally {
+        IOUtils.cleanupWithLogger(LOG, writer, reader);
+    }
+}

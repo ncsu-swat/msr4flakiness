@@ -1,0 +1,26 @@
+/**
+ * Test client command line options. Does not validate server behavior.
+ * @throws Exception
+ */
+@Test(timeout = 120000)
+public void testCommandOptions() throws Exception {
+    final String className = this.getClass().getName();
+    assertFalse(validateCommand(new String[] { "-foo" }));
+    // fail due to insufficient number of arguments
+    assertFalse(validateCommand(new String[] {}));
+    assertFalse(validateCommand(new String[] { "-getlevel" }));
+    assertFalse(validateCommand(new String[] { "-setlevel" }));
+    assertFalse(validateCommand(new String[] { "-getlevel", "foo.bar:8080" }));
+    // valid command arguments
+    assertTrue(validateCommand(new String[] { "-getlevel", "foo.bar:8080", className }));
+    assertTrue(validateCommand(new String[] { "-setlevel", "foo.bar:8080", className, "DEBUG" }));
+    assertTrue(validateCommand(new String[] { "-getlevel", "foo.bar:8080", className, "-protocol", "http" }));
+    assertTrue(validateCommand(new String[] { "-getlevel", "foo.bar:8080", className, "-protocol", "https" }));
+    assertTrue(validateCommand(new String[] { "-setlevel", "foo.bar:8080", className, "DEBUG", "-protocol", "http" }));
+    assertTrue(validateCommand(new String[] { "-setlevel", "foo.bar:8080", className, "DEBUG", "-protocol", "https" }));
+    // fail due to the extra argument
+    assertFalse(validateCommand(new String[] { "-getlevel", "foo.bar:8080", className, "-protocol", "https", "blah" }));
+    assertFalse(validateCommand(new String[] { "-setlevel", "foo.bar:8080", className, "DEBUG", "-protocol", "https", "blah" }));
+    assertFalse(validateCommand(new String[] { "-getlevel", "foo.bar:8080", className, "-protocol", "https", "-protocol", "https" }));
+    assertFalse(validateCommand(new String[] { "-getlevel", "foo.bar:8080", className, "-setlevel", "foo.bar:8080", className }));
+}

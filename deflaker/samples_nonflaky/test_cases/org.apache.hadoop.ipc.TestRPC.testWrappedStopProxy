@@ -1,0 +1,9 @@
+@Test
+public void testWrappedStopProxy() throws IOException {
+    StoppedProtocol wrappedProxy = RPC.getProxy(StoppedProtocol.class, StoppedProtocol.versionID, null, conf);
+    StoppedInvocationHandler invocationHandler = (StoppedInvocationHandler) Proxy.getInvocationHandler(wrappedProxy);
+    StoppedProtocol proxy = (StoppedProtocol) RetryProxy.create(StoppedProtocol.class, wrappedProxy, RetryPolicies.RETRY_FOREVER);
+    assertEquals(0, invocationHandler.getCloseCalled());
+    RPC.stopProxy(proxy);
+    assertEquals(1, invocationHandler.getCloseCalled());
+}

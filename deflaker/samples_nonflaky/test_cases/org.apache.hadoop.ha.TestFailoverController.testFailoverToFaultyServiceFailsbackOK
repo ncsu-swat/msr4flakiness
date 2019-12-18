@@ -1,0 +1,18 @@
+@Test
+public void testFailoverToFaultyServiceFailsbackOK() throws Exception {
+    DummyHAService svc1 = spy(new DummyHAService(HAServiceState.ACTIVE, svc1Addr));
+    DummyHAService svc2 = new DummyHAService(HAServiceState.STANDBY, svc2Addr);
+    Mockito.doThrow(new ServiceFailedException("Failed!")).when(svc2.proxy).transitionToActive(anyReqInfo());
+    svc1.fencer = svc2.fencer = setupFencer(AlwaysSucceedFencer.class.getName());
+    try {
+        doFailover(svc1, svc2, false, false);
+        fail("Failover to already active service");
+    } catch (FailoverFailedException ffe) {
+    // Expected
+    }
+    // svc1 went standby then back to active
+    verify(svc1.proxy).transitionToStandby(anyReqInfo());
+    verify(svc1.proxy).transitionToActive(anyReqInfo());
+    assertEquals(HAServiceState.ACTIVE, svc1.state);
+    assertEquals(HAServiceState.STANDBY, svc2.state);
+}

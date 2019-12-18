@@ -1,0 +1,26 @@
+@Test(timeout = 60000)
+public void testStartingWithZeroCapacity() {
+    IdentityHashStore<Key, Integer> store = new IdentityHashStore<Key, Integer>(0);
+    store.visitAll(new Visitor<Key, Integer>() {
+
+        @Override
+        public void accept(Key k, Integer v) {
+            Assert.fail("found key " + k + " in empty IdentityHashStore.");
+        }
+    });
+    Assert.assertTrue(store.isEmpty());
+    final Key key1 = new Key("key1");
+    Integer value1 = new Integer(100);
+    store.put(key1, value1);
+    Assert.assertTrue(!store.isEmpty());
+    Assert.assertEquals(value1, store.get(key1));
+    store.visitAll(new Visitor<Key, Integer>() {
+
+        @Override
+        public void accept(Key k, Integer v) {
+            Assert.assertEquals(key1, k);
+        }
+    });
+    Assert.assertEquals(value1, store.remove(key1));
+    Assert.assertTrue(store.isEmpty());
+}

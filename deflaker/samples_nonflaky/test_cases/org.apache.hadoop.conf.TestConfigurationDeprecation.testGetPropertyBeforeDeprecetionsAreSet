@@ -1,0 +1,23 @@
+@Test
+public void testGetPropertyBeforeDeprecetionsAreSet() throws Exception {
+    // SETUP
+    final String oldZkAddressKey = "yarn.resourcemanager.zk-address";
+    final String newZkAddressKey = CommonConfigurationKeys.ZK_ADDRESS;
+    final String zkAddressValue = "dummyZkAddress";
+    try {
+        out = new BufferedWriter(new FileWriter(CONFIG4));
+        startConfig();
+        appendProperty(oldZkAddressKey, zkAddressValue);
+        endConfig();
+        Path fileResource = new Path(CONFIG4);
+        conf.addResource(fileResource);
+    } finally {
+        out.close();
+    }
+    // ACT
+    conf.get(oldZkAddressKey);
+    Configuration.addDeprecations(new Configuration.DeprecationDelta[] { new Configuration.DeprecationDelta(oldZkAddressKey, newZkAddressKey) });
+    // ASSERT
+    assertEquals("Property should be accessible through deprecated key", zkAddressValue, conf.get(oldZkAddressKey));
+    assertEquals("Property should be accessible through new key", zkAddressValue, conf.get(newZkAddressKey));
+}

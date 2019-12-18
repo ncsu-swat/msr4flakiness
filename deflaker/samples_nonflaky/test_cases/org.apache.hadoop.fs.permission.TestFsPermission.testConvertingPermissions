@@ -1,0 +1,28 @@
+/**
+ * Ensure that when manually specifying permission modes we get
+ * the expected values back out for all combinations
+ */
+@Test
+public void testConvertingPermissions() {
+    for (short s = 0; s <= 01777; s++) {
+        assertEquals(s, new FsPermission(s).toShort());
+        // check string formats
+        assertEquals(s, new FsPermission(String.format("%03o", s)).toShort());
+    }
+    short s = 0;
+    for (boolean sb : new boolean[] { false, true }) {
+        for (FsAction u : FsAction.values()) {
+            for (FsAction g : FsAction.values()) {
+                for (FsAction o : FsAction.values()) {
+                    // Cover constructor with sticky bit.
+                    FsPermission f = new FsPermission(u, g, o, sb);
+                    assertEquals(s, f.toShort());
+                    FsPermission f2 = new FsPermission(f);
+                    assertEquals(s, f2.toShort());
+                    s++;
+                }
+            }
+        }
+    }
+    assertEquals(02000, s);
+}

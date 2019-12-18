@@ -1,0 +1,10 @@
+@Test
+public void testGetResource() throws IOException {
+    URL testJar = makeTestJar().toURI().toURL();
+    ClassLoader currentClassLoader = getClass().getClassLoader();
+    ClassLoader appClassloader = new ApplicationClassLoader(new URL[] { testJar }, currentClassLoader, null);
+    assertNull("Resource should be null for current classloader", currentClassLoader.getResourceAsStream("resource.txt"));
+    InputStream in = appClassloader.getResourceAsStream("resource.txt");
+    assertNotNull("Resource should not be null for app classloader", in);
+    assertEquals("hello", IOUtils.toString(in));
+}

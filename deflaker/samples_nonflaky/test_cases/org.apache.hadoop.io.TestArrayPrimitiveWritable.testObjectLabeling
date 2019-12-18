@@ -1,0 +1,32 @@
+@Test
+@SuppressWarnings("deprecation")
+public void testObjectLabeling() throws IOException {
+    // Do a few tricky experiments to make sure things are being written
+    // the way we expect
+    // Write the data array with ObjectWritable
+    // which will indirectly write it using APW.Internal
+    ObjectWritable.writeObject(out, i, i.getClass(), null, true);
+    // Write the corresponding APW directly with ObjectWritable
+    ArrayPrimitiveWritable apw = new ArrayPrimitiveWritable(i);
+    ObjectWritable.writeObject(out, apw, apw.getClass(), null, true);
+    // Get ready to read it back
+    in.reset(out.getData(), out.getLength());
+    // Read the int[] object as written by ObjectWritable, but
+    // "going around" ObjectWritable
+    String className = UTF8.readString(in);
+    assertEquals("The int[] written by ObjectWritable was not labelled as " + "an ArrayPrimitiveWritable.Internal", ArrayPrimitiveWritable.Internal.class.getName(), className);
+    ArrayPrimitiveWritable.Internal apwi = new ArrayPrimitiveWritable.Internal();
+    apwi.readFields(in);
+    assertEquals("The ArrayPrimitiveWritable.Internal component type was corrupted", int.class, apw.getComponentType());
+    assertTrue("The int[] written by ObjectWritable as " + "ArrayPrimitiveWritable.Internal was corrupted", Arrays.equals(i, (int[]) (apwi.get())));
+    // Read the APW object as written by ObjectWritable, but
+    // "going around" ObjectWritable
+    String declaredClassName = UTF8.readString(in);
+    assertEquals("The APW written by ObjectWritable was not labelled as " + "declaredClass ArrayPrimitiveWritable", ArrayPrimitiveWritable.class.getName(), declaredClassName);
+    className = UTF8.readString(in);
+    assertEquals("The APW written by ObjectWritable was not labelled as " + "class ArrayPrimitiveWritable", ArrayPrimitiveWritable.class.getName(), className);
+    ArrayPrimitiveWritable apw2 = new ArrayPrimitiveWritable();
+    apw2.readFields(in);
+    assertEquals("The ArrayPrimitiveWritable component type was corrupted", int.class, apw2.getComponentType());
+    assertTrue("The int[] written by ObjectWritable as " + "ArrayPrimitiveWritable was corrupted", Arrays.equals(i, (int[]) (apw2.get())));
+}

@@ -1,0 +1,19 @@
+// test the second expression stopping
+@Test
+public void testStopSecond() throws IOException {
+    And and = new And();
+    PathData pathData = mock(PathData.class);
+    Expression first = mock(Expression.class);
+    when(first.apply(pathData, -1)).thenReturn(Result.PASS);
+    Expression second = mock(Expression.class);
+    when(second.apply(pathData, -1)).thenReturn(Result.STOP);
+    Deque<Expression> children = new LinkedList<Expression>();
+    children.add(second);
+    children.add(first);
+    and.addChildren(children);
+    assertEquals(Result.STOP, and.apply(pathData, -1));
+    verify(first).apply(pathData, -1);
+    verify(second).apply(pathData, -1);
+    verifyNoMoreInteractions(first);
+    verifyNoMoreInteractions(second);
+}

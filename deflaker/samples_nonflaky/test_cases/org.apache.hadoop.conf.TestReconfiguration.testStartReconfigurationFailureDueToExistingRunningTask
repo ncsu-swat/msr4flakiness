@@ -1,0 +1,39 @@
+@Test(timeout = 30000)
+public void testStartReconfigurationFailureDueToExistingRunningTask() throws InterruptedException, IOException {
+    AsyncReconfigurableDummy dummy = spy(new AsyncReconfigurableDummy(conf1));
+    List<PropertyChange> changes = Lists.newArrayList(new PropertyChange(PROP1, "new1", "old1"));
+    doReturn(changes).when(dummy).getChangedProperties(any(Configuration.class), any(Configuration.class));
+    ReconfigurationTaskStatus status = dummy.getReconfigurationTaskStatus();
+    assertFalse(status.hasTask());
+    dummy.startReconfigurationTask();
+    status = dummy.getReconfigurationTaskStatus();
+    assertTrue(status.hasTask());
+    assertFalse(status.stopped());
+    // An active reconfiguration task is running.
+    try {
+        dummy.startReconfigurationTask();
+        fail("Expect to throw IOException.");
+    } catch (IOException e) {
+        GenericTestUtils.assertExceptionContains("Another reconfiguration task is running", e);
+    }
+    status = dummy.getReconfigurationTaskStatus();
+    assertTrue(status.hasTask());
+    assertFalse(status.stopped());
+    dummy.latch.countDown();
+    waitAsyncReconfigureTaskFinish(dummy);
+    status = dummy.getReconfigurationTaskStatus();
+    assertTrue(status.hasTask());
+    assertTrue(status.stopped());
+    // The first task has finished.
+    dummy.startReconfigurationTask();
+    waitAsyncReconfigureTaskFinish(dummy);
+    ReconfigurationTaskStatus status2 = dummy.getReconfigurationTaskStatus();
+    assertTrue(status2.getStartTime() >= status.getEndTime());
+    dummy.shutdownReconfigurationTask();
+    try {
+        dummy.startReconfigurationTask();
+        fail("Expect to throw IOException");
+    } catch (IOException e) {
+        GenericTestUtils.assertExceptionContains("The server is stopped", e);
+    }
+}

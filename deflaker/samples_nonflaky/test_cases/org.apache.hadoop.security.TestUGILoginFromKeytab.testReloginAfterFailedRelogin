@@ -1,0 +1,25 @@
+@Test
+public void testReloginAfterFailedRelogin() throws Exception {
+    KerberosPrincipal principal = new KerberosPrincipal("user1");
+    File keytab = new File(workDir, "user1.keytab");
+    File keytabBackup = new File(keytab + ".backup");
+    kdc.createPrincipal(keytab, principal.getName());
+    UserGroupInformation.loginUserFromKeytab(principal.getName(), keytab.getPath());
+    final UserGroupInformation loginUser = UserGroupInformation.getLoginUser();
+    checkTicketAndKeytab(loginUser, principal, true);
+    // move the keytab to induce a relogin failure.
+    Assert.assertTrue(keytab.renameTo(keytabBackup));
+    try {
+        loginUser.reloginFromKeytab();
+        Assert.fail("relogin should fail");
+    } catch (KerberosAuthException kae) {
+    // expected.
+    }
+    // even though no KeyTab object, ugi should know it's keytab based.
+    Assert.assertTrue(loginUser.isFromKeytab());
+    Assert.assertNull(getTicket(loginUser));
+    // move keytab back to enable relogin to succeed.
+    Assert.assertTrue(keytabBackup.renameTo(keytab));
+    loginUser.reloginFromKeytab();
+    checkTicketAndKeytab(loginUser, principal, true);
+}

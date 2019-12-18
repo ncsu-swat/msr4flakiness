@@ -1,0 +1,23 @@
+/**
+ * Test that, when the health monitor indicates bad health status,
+ * failover is triggered. Also ensures that graceful active->standby
+ * transition is used when possible, falling back to fencing when
+ * the graceful approach fails.
+ */
+@Test
+public void testAutoFailoverOnBadHealth() throws Exception {
+    cluster.start();
+    DummyHAService svc1 = cluster.getService(1);
+    LOG.info("Faking svc0 unhealthy, should failover to svc1");
+    cluster.setHealthy(0, false);
+    LOG.info("Waiting for svc0 to enter initializing state");
+    cluster.waitForHAState(0, HAServiceState.INITIALIZING);
+    cluster.waitForHAState(1, HAServiceState.ACTIVE);
+    LOG.info("Allowing svc0 to be healthy again, making svc1 unreachable " + "and fail to gracefully go to standby");
+    cluster.setUnreachable(1, true);
+    cluster.setHealthy(0, true);
+    // Should fail back to svc0 at this point
+    cluster.waitForHAState(0, HAServiceState.ACTIVE);
+    // and fence svc1
+    Mockito.verify(svc1.fencer).fence(Mockito.same(svc1));
+}

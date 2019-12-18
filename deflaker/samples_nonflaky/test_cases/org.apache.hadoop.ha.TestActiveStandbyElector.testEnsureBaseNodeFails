@@ -1,0 +1,19 @@
+/**
+ * Test for a bug encountered during development of HADOOP-8163:
+ * ensureBaseNode() should throw an exception if it has to retry
+ * more than 3 times to create any part of the path.
+ */
+@Test
+public void testEnsureBaseNodeFails() throws Exception {
+    Mockito.doThrow(new KeeperException.ConnectionLossException()).when(mockZK).create(Mockito.eq(ZK_PARENT_NAME), Mockito.<byte[]>any(), Mockito.eq(Ids.OPEN_ACL_UNSAFE), Mockito.eq(CreateMode.PERSISTENT));
+    try {
+        elector.ensureParentZNode();
+        Assert.fail("Did not throw!");
+    } catch (IOException ioe) {
+        if (!(ioe.getCause() instanceof KeeperException.ConnectionLossException)) {
+            throw ioe;
+        }
+    }
+    // Should have tried three times
+    Mockito.verify(mockZK, Mockito.times(3)).create(Mockito.eq(ZK_PARENT_NAME), Mockito.<byte[]>any(), Mockito.eq(Ids.OPEN_ACL_UNSAFE), Mockito.eq(CreateMode.PERSISTENT));
+}

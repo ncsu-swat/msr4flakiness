@@ -1,0 +1,25 @@
+@Test
+public void testNegativeCacheClearedOnRefresh() throws Exception {
+    conf.setLong(CommonConfigurationKeys.HADOOP_SECURITY_GROUPS_NEGATIVE_CACHE_SECS, 100);
+    final Groups groups = new Groups(conf);
+    groups.cacheGroupsAdd(Arrays.asList(myGroups));
+    groups.refresh();
+    FakeGroupMapping.clearBlackList();
+    FakeGroupMapping.addToBlackList("dne");
+    try {
+        groups.getGroups("dne");
+        fail("Should have failed to find this group");
+    } catch (IOException e) {
+    // pass
+    }
+    int startingRequestCount = FakeGroupMapping.getRequestCount();
+    groups.refresh();
+    FakeGroupMapping.addToBlackList("dne");
+    try {
+        List<String> g = groups.getGroups("dne");
+        fail("Should have failed to find this group");
+    } catch (IOException e) {
+    // pass
+    }
+    assertEquals(startingRequestCount + 1, FakeGroupMapping.getRequestCount());
+}

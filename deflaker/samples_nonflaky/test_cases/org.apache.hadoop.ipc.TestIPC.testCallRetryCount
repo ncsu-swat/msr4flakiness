@@ -1,0 +1,31 @@
+/**
+ * Test if the rpc server gets the retry count from client.
+ */
+@Test(timeout = 60000)
+public void testCallRetryCount() throws IOException {
+    final int retryCount = 255;
+    // Override client to store the call id
+    final Client client = new Client(LongWritable.class, conf);
+    Client.setCallIdAndRetryCount(Client.nextCallId(), 255, null);
+    // Attach a listener that tracks every call ID received by the server.
+    final TestServer server = new TestServer(1, false);
+    server.callListener = new Runnable() {
+
+        @Override
+        public void run() {
+            // we have not set the retry count for the client, thus on the server
+            // side we should see retry count as 0
+            Assert.assertEquals(retryCount, Server.getCallRetryCount());
+        }
+    };
+    try {
+        InetSocketAddress addr = NetUtils.getConnectAddress(server);
+        server.start();
+        final SerialCaller caller = new SerialCaller(client, addr, 10);
+        caller.run();
+        assertFalse(caller.failed);
+    } finally {
+        client.stop();
+        server.stop();
+    }
+}

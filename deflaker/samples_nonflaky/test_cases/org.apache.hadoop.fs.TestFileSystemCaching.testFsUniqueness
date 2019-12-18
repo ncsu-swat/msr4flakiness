@@ -1,0 +1,14 @@
+@Test
+public void testFsUniqueness() throws Exception {
+    final Configuration conf = newConf();
+    // multiple invocations of FileSystem.get return the same object.
+    FileSystem fs1 = FileSystem.get(conf);
+    FileSystem fs2 = FileSystem.get(conf);
+    assertSame(fs1, fs2);
+    // multiple invocations of FileSystem.newInstance return different objects
+    fs1 = FileSystem.newInstance(new URI("cachedfile://a"), conf, "bar");
+    fs2 = FileSystem.newInstance(new URI("cachedfile://a"), conf, "bar");
+    assertTrue(fs1 != fs2 && !fs1.equals(fs2));
+    fs1.close();
+    fs2.close();
+}

@@ -1,0 +1,39 @@
+@SuppressWarnings("unchecked")
+@Test
+public void testInsertionWithFailover() {
+    Configuration conf = new Configuration();
+    // Config for server to throw StandbyException instead of the
+    // regular RetriableException if call queue is full.
+    conf.setBoolean("ns." + CommonConfigurationKeys.IPC_CALLQUEUE_SERVER_FAILOVER_ENABLE, true);
+    // 3 queues, 2 slots each.
+    fcq = Mockito.spy(new FairCallQueue<>(3, 6, "ns", conf));
+    Schedulable p0 = mockCall("a", 0);
+    Schedulable p1 = mockCall("b", 1);
+    // add to first queue.
+    addToQueueAndVerify(p0, 1, 0, 0);
+    // 0:x- 1:-- 2:--
+    // add to second queue.
+    addToQueueAndVerify(p1, 0, 1, 0);
+    // 0:x- 1:x- 2:--
+    // add to first queue.
+    addToQueueAndVerify(p0, 1, 0, 0);
+    // 0:xx 1:x- 2:--
+    // add to first full queue spills over to second.
+    addToQueueAndVerify(p0, 1, 1, 0);
+    // 0:xx 1:xx 2:--
+    // add to second full queue spills over to third.
+    addToQueueAndVerify(p1, 0, 1, 1);
+    // 0:xx 1:xx 2:x-
+    // add to first and second full queue spills over to third.
+    addToQueueAndVerify(p0, 1, 1, 1);
+    // 0:xx 1:xx 2:xx
+    // adding non-lowest priority with all queues full throws a
+    // standby exception for client to try another server.
+    Mockito.reset(fcq);
+    try {
+        fcq.add(p0);
+        fail("didn't fail");
+    } catch (IllegalStateException ise) {
+        checkOverflowException(ise, RpcStatusProto.FATAL, true);
+    }
+}

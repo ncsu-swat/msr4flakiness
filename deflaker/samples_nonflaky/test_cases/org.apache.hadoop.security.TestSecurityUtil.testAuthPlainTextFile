@@ -1,0 +1,17 @@
+@Test
+public void testAuthPlainTextFile() throws Exception {
+    Configuration conf = new Configuration();
+    File passwordTxtFile = File.createTempFile(getClass().getSimpleName() + ".testAuthAtPathNotation-", ".txt");
+    Files.asCharSink(passwordTxtFile, StandardCharsets.UTF_8).write(ZK_AUTH_VALUE);
+    try {
+        conf.set(CommonConfigurationKeys.ZK_AUTH, "@" + passwordTxtFile.getAbsolutePath());
+        List<ZKAuthInfo> zkAuths = SecurityUtil.getZKAuthInfos(conf, CommonConfigurationKeys.ZK_AUTH);
+        assertEquals(1, zkAuths.size());
+        ZKAuthInfo zkAuthInfo = zkAuths.get(0);
+        assertEquals("a_scheme", zkAuthInfo.getScheme());
+        assertArrayEquals("a_password".getBytes(), zkAuthInfo.getAuth());
+    } finally {
+        boolean deleted = passwordTxtFile.delete();
+        assertTrue(deleted);
+    }
+}

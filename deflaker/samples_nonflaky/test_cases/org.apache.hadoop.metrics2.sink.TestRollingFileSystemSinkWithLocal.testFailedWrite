@@ -1,0 +1,21 @@
+/**
+ * Test that writing fails when the directory isn't writable.
+ */
+@Test
+public void testFailedWrite() {
+    String path = methodDir.toURI().toString();
+    MetricsSystem ms = initMetricsSystem(path, false, false);
+    new MyMetrics1().registerWith(ms);
+    assertTrue(FileUtil.setWritable(methodDir, false));
+    MockSink.errored = false;
+    try {
+        // publish the metrics
+        ms.publishMetricsNow();
+        assertTrue("No exception was generated while writing metrics " + "even though the target directory was not writable", MockSink.errored);
+        ms.stop();
+        ms.shutdown();
+    } finally {
+        // Make sure the dir is writable again so we can delete it at the end
+        methodDir.setWritable(true);
+    }
+}

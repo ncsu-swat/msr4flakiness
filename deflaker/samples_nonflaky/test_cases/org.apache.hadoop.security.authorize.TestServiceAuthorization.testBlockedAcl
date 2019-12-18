@@ -1,0 +1,55 @@
+@Test
+public void testBlockedAcl() throws UnknownHostException {
+    UserGroupInformation drwho = UserGroupInformation.createUserForTesting("drwho@EXAMPLE.COM", new String[] { "group1", "group2" });
+    ServiceAuthorizationManager serviceAuthorizationManager = new ServiceAuthorizationManager();
+    Configuration conf = new Configuration();
+    // test without setting a blocked acl
+    conf.set(ACL_CONFIG, "user1 group1");
+    serviceAuthorizationManager.refresh(conf, new TestPolicyProvider());
+    try {
+        serviceAuthorizationManager.authorize(drwho, TestProtocol.class, conf, InetAddress.getByName(ADDRESS));
+    } catch (AuthorizationException e) {
+        fail();
+    }
+    // now set a blocked acl with another user and another group
+    conf.set(ACL_CONFIG + ServiceAuthorizationManager.BLOCKED, "drwho2 group3");
+    serviceAuthorizationManager.refresh(conf, new TestPolicyProvider());
+    try {
+        serviceAuthorizationManager.authorize(drwho, TestProtocol.class, conf, InetAddress.getByName(ADDRESS));
+    } catch (AuthorizationException e) {
+        fail();
+    }
+    // now set a blocked acl with the user and another group
+    conf.set(ACL_CONFIG + ServiceAuthorizationManager.BLOCKED, "drwho group3");
+    serviceAuthorizationManager.refresh(conf, new TestPolicyProvider());
+    try {
+        serviceAuthorizationManager.authorize(drwho, TestProtocol.class, conf, InetAddress.getByName(ADDRESS));
+        fail();
+    } catch (AuthorizationException e) {
+    }
+    // now set a blocked acl with another user and another group
+    conf.set(ACL_CONFIG + ServiceAuthorizationManager.BLOCKED, "drwho2 group3");
+    serviceAuthorizationManager.refresh(conf, new TestPolicyProvider());
+    try {
+        serviceAuthorizationManager.authorize(drwho, TestProtocol.class, conf, InetAddress.getByName(ADDRESS));
+    } catch (AuthorizationException e) {
+        fail();
+    }
+    // now set a blocked acl with another user and group that the user belongs to
+    conf.set(ACL_CONFIG + ServiceAuthorizationManager.BLOCKED, "drwho2 group2");
+    serviceAuthorizationManager.refresh(conf, new TestPolicyProvider());
+    try {
+        serviceAuthorizationManager.authorize(drwho, TestProtocol.class, conf, InetAddress.getByName(ADDRESS));
+        fail();
+    } catch (AuthorizationException e) {
+    // expects Exception
+    }
+    // reset blocked acl so that there is no blocked ACL
+    conf.set(ACL_CONFIG + ServiceAuthorizationManager.BLOCKED, "");
+    serviceAuthorizationManager.refresh(conf, new TestPolicyProvider());
+    try {
+        serviceAuthorizationManager.authorize(drwho, TestProtocol.class, conf, InetAddress.getByName(ADDRESS));
+    } catch (AuthorizationException e) {
+        fail();
+    }
+}

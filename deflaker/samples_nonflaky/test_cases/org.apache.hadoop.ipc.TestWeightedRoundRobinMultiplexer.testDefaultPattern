@@ -1,0 +1,44 @@
+@Test
+public void testDefaultPattern() {
+    // Mux of size 1: 0 0 0 0 0, etc
+    mux = new WeightedRoundRobinMultiplexer(1, "", new Configuration());
+    for (int i = 0; i < 10; i++) {
+        assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
+    }
+    // Mux of size 2: 0 0 1 0 0 1 0 0 1, etc
+    mux = new WeightedRoundRobinMultiplexer(2, "", new Configuration());
+    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
+    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
+    assertThat(mux.getAndAdvanceCurrentIndex()).isOne();
+    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
+    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
+    assertThat(mux.getAndAdvanceCurrentIndex()).isOne();
+    // Size 3: 4x0 2x1 1x2, etc
+    mux = new WeightedRoundRobinMultiplexer(3, "", new Configuration());
+    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
+    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
+    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
+    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
+    assertThat(mux.getAndAdvanceCurrentIndex()).isOne();
+    assertThat(mux.getAndAdvanceCurrentIndex()).isOne();
+    assertThat(mux.getAndAdvanceCurrentIndex()).isEqualTo(2);
+    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
+    // Size 4: 8x0 4x1 2x2 1x3
+    mux = new WeightedRoundRobinMultiplexer(4, "", new Configuration());
+    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
+    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
+    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
+    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
+    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
+    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
+    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
+    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
+    assertThat(mux.getAndAdvanceCurrentIndex()).isOne();
+    assertThat(mux.getAndAdvanceCurrentIndex()).isOne();
+    assertThat(mux.getAndAdvanceCurrentIndex()).isOne();
+    assertThat(mux.getAndAdvanceCurrentIndex()).isOne();
+    assertThat(mux.getAndAdvanceCurrentIndex()).isEqualTo(2);
+    assertThat(mux.getAndAdvanceCurrentIndex()).isEqualTo(2);
+    assertThat(mux.getAndAdvanceCurrentIndex()).isEqualTo(3);
+    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
+}

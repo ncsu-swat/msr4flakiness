@@ -1,0 +1,19 @@
+@Test(timeout = 60000)
+public void testIpcTimeout() throws IOException {
+    // start server
+    Server server = new TestServer(1, true);
+    InetSocketAddress addr = NetUtils.getConnectAddress(server);
+    server.start();
+    // start client
+    Client client = new Client(LongWritable.class, conf);
+    // set timeout to be less than MIN_SLEEP_TIME
+    try {
+        call(client, new LongWritable(RANDOM.nextLong()), addr, MIN_SLEEP_TIME / 2, conf);
+        fail("Expected an exception to have been thrown");
+    } catch (SocketTimeoutException e) {
+        LOG.info("Get a SocketTimeoutException ", e);
+    }
+    // set timeout to be bigger than 3*ping interval
+    call(client, new LongWritable(RANDOM.nextLong()), addr, 3 * PING_INTERVAL + MIN_SLEEP_TIME, conf);
+    client.stop();
+}

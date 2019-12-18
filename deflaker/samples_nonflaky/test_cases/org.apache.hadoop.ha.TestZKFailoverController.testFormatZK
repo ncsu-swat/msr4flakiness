@@ -1,0 +1,17 @@
+/**
+ * Test that the various command lines for formatting the ZK directory
+ * function correctly.
+ */
+@Test
+public void testFormatZK() throws Exception {
+    DummyHAService svc = cluster.getService(1);
+    // Run without formatting the base dir,
+    // should barf
+    assertEquals(ZKFailoverController.ERR_CODE_NO_PARENT_ZNODE, runFC(svc));
+    // Format the base dir, should succeed
+    assertEquals(0, runFC(svc, "-formatZK"));
+    // Should fail to format if already formatted
+    assertEquals(ZKFailoverController.ERR_CODE_FORMAT_DENIED, runFC(svc, "-formatZK", "-nonInteractive"));
+    // Unless '-force' is on
+    assertEquals(0, runFC(svc, "-formatZK", "-force"));
+}

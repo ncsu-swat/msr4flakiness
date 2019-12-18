@@ -1,0 +1,18 @@
+/**
+ * Test that repeated calls to getting the local host are fairly fast, and
+ * hence that caching is being used
+ * @throws Exception if hostname lookups fail
+ */
+@Test
+public void testGetLocalHostIsFast() throws Exception {
+    String hostname1 = DNS.getDefaultHost(DEFAULT);
+    assertNotNull(hostname1);
+    String hostname2 = DNS.getDefaultHost(DEFAULT);
+    long t1 = Time.now();
+    String hostname3 = DNS.getDefaultHost(DEFAULT);
+    long t2 = Time.now();
+    assertEquals(hostname3, hostname2);
+    assertEquals(hostname2, hostname1);
+    long interval = t2 - t1;
+    assertTrue("Took too long to determine local host - caching is not working", interval < 20000);
+}

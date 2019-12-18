@@ -1,0 +1,14 @@
+/**
+ * Verify that assertions trigger catch and retry.
+ * @throws Throwable if the code is broken
+ */
+@Test
+public void testEventuallySpinsOnAssertions() throws Throwable {
+    AtomicInteger counter = new AtomicInteger(0);
+    eventually(TIMEOUT, () -> {
+        while (counter.incrementAndGet() < 5) {
+            fail("if you see this, we are in trouble");
+        }
+    }, retry);
+    assertMinRetryCount(4);
+}

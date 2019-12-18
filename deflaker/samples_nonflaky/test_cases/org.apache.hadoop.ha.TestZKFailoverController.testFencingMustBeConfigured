@@ -1,0 +1,13 @@
+/**
+ * Test that the ZKFC won't run if fencing is not configured for the
+ * local service.
+ */
+@Test
+public void testFencingMustBeConfigured() throws Exception {
+    DummyHAService svc = Mockito.spy(cluster.getService(0));
+    Mockito.doThrow(new BadFencingConfigurationException("no fencing")).when(svc).checkFencingConfigured();
+    // Format the base dir, should succeed
+    assertEquals(0, runFC(svc, "-formatZK"));
+    // Try to run the actual FC, should fail without a fencer
+    assertEquals(ZKFailoverController.ERR_CODE_NO_FENCER, runFC(svc));
+}

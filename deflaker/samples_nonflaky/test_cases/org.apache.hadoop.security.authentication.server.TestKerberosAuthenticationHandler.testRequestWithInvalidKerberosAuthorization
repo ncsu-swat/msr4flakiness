@@ -1,0 +1,15 @@
+@Test
+public void testRequestWithInvalidKerberosAuthorization() {
+    String token = new Base64(0).encodeToString(new byte[] { 0, 1, 2 });
+    HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
+    HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
+    Mockito.when(request.getHeader(KerberosAuthenticator.AUTHORIZATION)).thenReturn(KerberosAuthenticator.NEGOTIATE + token);
+    try {
+        handler.authenticate(request, response);
+        Assert.fail();
+    } catch (AuthenticationException ex) {
+    // Expected
+    } catch (Exception ex) {
+        Assert.fail();
+    }
+}

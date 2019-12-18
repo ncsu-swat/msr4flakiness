@@ -1,0 +1,34 @@
+/**
+ * Test if the rpc server gets the retry count from client.
+ *
+ * @throws ExecutionException
+ * @throws InterruptedException
+ */
+@Test(timeout = 60000)
+public void testCallRetryCount() throws IOException, InterruptedException, ExecutionException {
+    final int retryCount = 255;
+    // Override client to store the call id
+    final Client client = new Client(LongWritable.class, conf);
+    Client.setCallIdAndRetryCount(Client.nextCallId(), retryCount, null);
+    // Attach a listener that tracks every call ID received by the server.
+    final TestServer server = new TestIPC.TestServer(1, false, conf);
+    server.callListener = new Runnable() {
+
+        @Override
+        public void run() {
+            // we have not set the retry count for the client, thus on the server
+            // side we should see retry count as 0
+            Assert.assertEquals(retryCount, Server.getCallRetryCount());
+        }
+    };
+    try {
+        InetSocketAddress addr = NetUtils.getConnectAddress(server);
+        server.start();
+        final AsyncCaller caller = new AsyncCaller(client, addr, 10);
+        caller.run();
+        caller.assertReturnValues();
+    } finally {
+        client.stop();
+        server.stop();
+    }
+}

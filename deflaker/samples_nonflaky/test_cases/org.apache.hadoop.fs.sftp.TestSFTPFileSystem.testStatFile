@@ -1,0 +1,18 @@
+/**
+ * Test getting the status of a file.
+ *
+ * @throws Exception
+ */
+@Test
+public void testStatFile() throws Exception {
+    byte[] data = "yaks".getBytes();
+    Path file = touch(localFs, name.getMethodName().toLowerCase(), data);
+    FileStatus lstat = localFs.getFileStatus(file);
+    FileStatus sstat = sftpFs.getFileStatus(file);
+    assertNotNull(sstat);
+    assertEquals(lstat.getPath().toUri().getPath(), sstat.getPath().toUri().getPath());
+    assertEquals(data.length, sstat.getLen());
+    assertEquals(lstat.getLen(), sstat.getLen());
+    assertTrue(sftpFs.delete(file, false));
+    assertThat(((SFTPFileSystem) sftpFs).getConnectionPool().getLiveConnCount(), is(1));
+}

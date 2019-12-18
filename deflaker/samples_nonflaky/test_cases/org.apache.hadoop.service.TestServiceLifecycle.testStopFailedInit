@@ -1,0 +1,23 @@
+/**
+ * Show that if the service failed during an init
+ * operation, it stays in the created state, even after stopping it
+ * @throws Throwable if necessary
+ */
+@Test
+public void testStopFailedInit() throws Throwable {
+    BreakableService svc = new BreakableService(true, false, false);
+    assertServiceStateCreated(svc);
+    try {
+        svc.init(new Configuration());
+        fail("Expected a failure, got " + svc);
+    } catch (BreakableService.BrokenLifecycleEvent e) {
+    // expected
+    }
+    // the service state wasn't passed
+    assertServiceStateStopped(svc);
+    assertStateCount(svc, Service.STATE.INITED, 1);
+    assertStateCount(svc, Service.STATE.STOPPED, 1);
+    // now try to stop
+    svc.stop();
+    assertStateCount(svc, Service.STATE.STOPPED, 1);
+}

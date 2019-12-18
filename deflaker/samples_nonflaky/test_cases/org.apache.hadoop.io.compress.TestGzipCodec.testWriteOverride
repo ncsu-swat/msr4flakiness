@@ -1,0 +1,32 @@
+// ensure all necessary methods are overwritten
+@Test
+public void testWriteOverride() throws IOException {
+    Random r = new Random();
+    long seed = r.nextLong();
+    LOG.info("seed: " + seed);
+    r.setSeed(seed);
+    byte[] buf = new byte[128];
+    r.nextBytes(buf);
+    DataOutputBuffer dob = new DataOutputBuffer();
+    CompressionOutputStream cmpOut = codec.createOutputStream(dob);
+    cmpOut.write(buf);
+    int i = r.nextInt(128 - 10);
+    int l = r.nextInt(128 - i);
+    cmpOut.write(buf, i, l);
+    cmpOut.write((byte) (r.nextInt() & 0xFF));
+    cmpOut.close();
+    r.setSeed(seed);
+    DataInputBuffer dib = new DataInputBuffer();
+    dib.reset(dob.getData(), 0, dob.getLength());
+    CompressionInputStream cmpIn = codec.createInputStream(dib);
+    byte[] vbuf = new byte[128];
+    assertEquals(128, cmpIn.read(vbuf));
+    assertArrayEquals(buf, vbuf);
+    r.nextBytes(vbuf);
+    int vi = r.nextInt(128 - 10);
+    int vl = r.nextInt(128 - vi);
+    assertEquals(vl, cmpIn.read(vbuf, 0, vl));
+    assertArrayEquals(Arrays.copyOfRange(buf, i, i + l), Arrays.copyOf(vbuf, vl));
+    assertEquals(r.nextInt() & 0xFF, cmpIn.read());
+    assertEquals(-1, cmpIn.read());
+}

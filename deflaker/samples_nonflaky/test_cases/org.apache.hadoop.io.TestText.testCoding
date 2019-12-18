@@ -1,0 +1,22 @@
+@Test
+public void testCoding() throws Exception {
+    String before = "Bad \t encoding \t testcase";
+    Text text = new Text(before);
+    String after = text.toString();
+    assertTrue(before.equals(after));
+    for (int i = 0; i < NUM_ITERATIONS; i++) {
+        // generate a random string
+        if (i == 0)
+            before = getLongString();
+        else
+            before = getTestString();
+        // test string to utf8
+        ByteBuffer bb = Text.encode(before);
+        byte[] utf8Text = bb.array();
+        byte[] utf8Java = before.getBytes("UTF-8");
+        assertEquals(0, WritableComparator.compareBytes(utf8Text, 0, bb.limit(), utf8Java, 0, utf8Java.length));
+        // test utf8 to string
+        after = Text.decode(utf8Java);
+        assertTrue(before.equals(after));
+    }
+}

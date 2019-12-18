@@ -1,0 +1,16 @@
+@Test(timeout = 30000)
+public void testEnsureInitWithRules() throws IOException {
+    String rules = "RULE:[1:RULE1]";
+    // trigger implicit init, rules should init
+    UserGroupInformation.reset();
+    assertFalse(KerberosName.hasRulesBeenSet());
+    UserGroupInformation.createUserForTesting("someone", new String[0]);
+    assertTrue(KerberosName.hasRulesBeenSet());
+    // set a rule, trigger implicit init, rule should not change
+    UserGroupInformation.reset();
+    KerberosName.setRules(rules);
+    assertTrue(KerberosName.hasRulesBeenSet());
+    assertEquals(rules, KerberosName.getRules());
+    UserGroupInformation.createUserForTesting("someone", new String[0]);
+    assertEquals(rules, KerberosName.getRules());
+}

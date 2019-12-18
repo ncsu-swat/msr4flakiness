@@ -1,0 +1,15 @@
+@Test
+public void testIncorrectConfiguration() {
+    // No bind user configured for user2
+    Configuration conf = getBaseConf();
+    conf.set(BIND_USERS_KEY, "user1,user2");
+    conf.set(BIND_USERS_KEY + ".user1" + BIND_USER_SUFFIX, "bindUsername1");
+    LdapGroupsMapping groupsMapping = new LdapGroupsMapping();
+    try {
+        groupsMapping.setConf(conf);
+        groupsMapping.getGroups(TEST_USER_NAME);
+        fail("Should have failed with RuntimeException");
+    } catch (RuntimeException e) {
+        GenericTestUtils.assertExceptionContains("Bind username or password not configured for user: user2", e);
+    }
+}

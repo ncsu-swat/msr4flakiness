@@ -1,0 +1,36 @@
+// check listing of multiple directories
+@Test
+public void processPathDirectories() throws IOException {
+    TestFile testfile01 = new TestFile("testDirectory01", "testFile01");
+    TestFile testfile02 = new TestFile("testDirectory01", "testFile02");
+    TestFile testfile03 = new TestFile("testDirectory01", "testFile03");
+    TestFile testDir01 = new TestFile("", "testDirectory01");
+    testDir01.setIsDir(true);
+    testDir01.addContents(testfile01, testfile02, testfile03);
+    TestFile testfile04 = new TestFile("testDirectory02", "testFile04");
+    TestFile testfile05 = new TestFile("testDirectory02", "testFile05");
+    TestFile testfile06 = new TestFile("testDirectory02", "testFile06");
+    TestFile testDir02 = new TestFile("", "testDirectory02");
+    testDir02.setIsDir(true);
+    testDir02.addContents(testfile04, testfile05, testfile06);
+    LinkedList<PathData> pathData = new LinkedList<PathData>();
+    pathData.add(testDir01.getPathData());
+    pathData.add(testDir02.getPathData());
+    PrintStream out = mock(PrintStream.class);
+    Ls ls = new Ls();
+    ls.out = out;
+    LinkedList<String> options = new LinkedList<String>();
+    ls.processOptions(options);
+    String lineFormat = TestFile.computeLineFormat(pathData);
+    ls.processArguments(pathData);
+    InOrder inOrder = inOrder(out);
+    inOrder.verify(out).println("Found 3 items");
+    inOrder.verify(out).println(testfile01.formatLineMtime(lineFormat));
+    inOrder.verify(out).println(testfile02.formatLineMtime(lineFormat));
+    inOrder.verify(out).println(testfile03.formatLineMtime(lineFormat));
+    inOrder.verify(out).println("Found 3 items");
+    inOrder.verify(out).println(testfile04.formatLineMtime(lineFormat));
+    inOrder.verify(out).println(testfile05.formatLineMtime(lineFormat));
+    inOrder.verify(out).println(testfile06.formatLineMtime(lineFormat));
+    verifyNoMoreInteractions(out);
+}

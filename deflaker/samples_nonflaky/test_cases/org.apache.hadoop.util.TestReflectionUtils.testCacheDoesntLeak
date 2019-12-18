@@ -1,0 +1,14 @@
+@SuppressWarnings("unchecked")
+@Test
+public void testCacheDoesntLeak() throws Exception {
+    // very fast, but a bit less reliable - bigger numbers force GC
+    int iterations = 9999;
+    for (int i = 0; i < iterations; i++) {
+        URLClassLoader loader = new URLClassLoader(new URL[0], getClass().getClassLoader());
+        Class cl = Class.forName("org.apache.hadoop.util.TestReflectionUtils$LoadedInChild", false, loader);
+        Object o = ReflectionUtils.newInstance(cl, null);
+        assertEquals(cl, o.getClass());
+    }
+    System.gc();
+    assertTrue(cacheSize() + " too big", cacheSize() < iterations);
+}

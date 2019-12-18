@@ -1,0 +1,9 @@
+@Test
+public void testUpdateMismatchesStripe() throws Exception {
+    CrcComposer digester = CrcComposer.newStripedCrcComposer(type, chunkSize, cellSize);
+    digester.update(crcsByChunk[0], chunkSize);
+    // Going from chunkSize to chunkSize + cellSize will cross a cellSize
+    // boundary in a single CRC, which is not allowed, since we'd lack a
+    // CRC corresponding to the actual cellSize boundary.
+    LambdaTestUtils.intercept(IOException.class, "stripe", () -> digester.update(crcsByChunk[1], cellSize));
+}

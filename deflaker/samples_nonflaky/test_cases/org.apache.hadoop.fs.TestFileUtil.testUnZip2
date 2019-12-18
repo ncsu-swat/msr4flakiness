@@ -1,0 +1,25 @@
+@Test(timeout = 30000)
+public void testUnZip2() throws IOException {
+    setupDirs();
+    // make a simple zip
+    final File simpleZip = new File(del, FILE);
+    OutputStream os = new FileOutputStream(simpleZip);
+    try (ZipOutputStream tos = new ZipOutputStream(os)) {
+        // Add an entry that contains invalid filename
+        ZipEntry ze = new ZipEntry("../foo");
+        byte[] data = "some-content".getBytes(StandardCharsets.UTF_8);
+        ze.setSize(data.length);
+        tos.putNextEntry(ze);
+        tos.write(data);
+        tos.closeEntry();
+        tos.flush();
+        tos.finish();
+    }
+    // Unzip it into an existing dir
+    try {
+        FileUtil.unZip(simpleZip, tmp);
+        fail("unZip should throw IOException.");
+    } catch (IOException e) {
+        GenericTestUtils.assertExceptionContains("would create file outside of", e);
+    }
+}

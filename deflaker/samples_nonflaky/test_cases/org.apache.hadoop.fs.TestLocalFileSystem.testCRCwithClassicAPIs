@@ -1,0 +1,14 @@
+/**
+ * Verify that File IO through the classic non-builder APIs generate
+ * statistics which imply that CRCs were read and written.
+ */
+@Test
+public void testCRCwithClassicAPIs() throws Throwable {
+    final Path file = new Path(TEST_ROOT_DIR, "testByteCountersClassicAPIs");
+    assertWritesCRC("create()", file, () -> writeData(fileSys.create(file, true)), false);
+    final Statistics stats = getFileStatistics();
+    final long bytesRead0 = stats.getBytesRead();
+    fileSys.open(file).close();
+    final long bytesRead1 = stats.getBytesRead();
+    assertEquals("Bytes read in open() call with stats " + stats, CRC_SIZE, bytesRead1 - bytesRead0);
+}

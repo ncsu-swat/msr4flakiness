@@ -1,0 +1,24 @@
+/**
+ * Check that the write and readField methods work correctly.
+ */
+@Test
+public void testFileStatusWritable() throws Exception {
+    FileStatus[] tests = { new FileStatus(1, false, 5, 3, 4, 5, null, "", "", new Path("/a/b")), new FileStatus(0, false, 1, 2, 3, new Path("/")), new FileStatus(1, false, 5, 3, 4, 5, null, "", "", new Path("/a/b")) };
+    LOG.info("Writing FileStatuses to a ByteArrayOutputStream");
+    // Writing input list to ByteArrayOutputStream
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    DataOutput out = new DataOutputStream(baos);
+    for (FileStatus fs : tests) {
+        fs.write(out);
+    }
+    LOG.info("Creating ByteArrayInputStream object");
+    DataInput in = new DataInputStream(new ByteArrayInputStream(baos.toByteArray()));
+    LOG.info("Testing if read objects are equal to written ones");
+    FileStatus dest = new FileStatus();
+    int iterator = 0;
+    for (FileStatus fs : tests) {
+        dest.readFields(in);
+        assertEquals("Different FileStatuses in iteration " + iterator, dest, fs);
+        iterator++;
+    }
+}

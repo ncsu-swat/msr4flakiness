@@ -1,0 +1,24 @@
+@Test
+public void testBufferWrapper() throws IOException {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    DataOutputStream dos = new DataOutputStream(baos);
+    message1.writeDelimitedTo(dos);
+    message2.writeDelimitedTo(dos);
+    writable.write(dos);
+    ByteBuffer bb = ByteBuffer.wrap(baos.toByteArray());
+    RpcWritable.Buffer buf = RpcWritable.Buffer.wrap(bb);
+    Assert.assertEquals(baos.size(), bb.remaining());
+    Assert.assertEquals(baos.size(), buf.remaining());
+    Object actual = buf.getValue(EchoRequestProto.getDefaultInstance());
+    Assert.assertEquals(message1, actual);
+    Assert.assertTrue(bb.remaining() > 0);
+    Assert.assertEquals(bb.remaining(), buf.remaining());
+    actual = buf.getValue(EchoRequestProto.getDefaultInstance());
+    Assert.assertEquals(message2, actual);
+    Assert.assertTrue(bb.remaining() > 0);
+    Assert.assertEquals(bb.remaining(), buf.remaining());
+    actual = buf.newInstance(LongWritable.class, null);
+    Assert.assertEquals(writable, actual);
+    Assert.assertEquals(0, bb.remaining());
+    Assert.assertEquals(0, buf.remaining());
+}

@@ -1,0 +1,18 @@
+@Test
+public void testFailureNegativeOffset() throws IOException {
+    if (skip)
+        return;
+    writeRecords(2, true, true);
+    Reader reader = new Reader(fs.open(path), fs.getFileStatus(path).getLen(), conf);
+    Scanner scanner = reader.createScanner();
+    byte[] buf = new byte[K];
+    try {
+        scanner.entry().getKey(buf, -1);
+        fail("Failed to handle key negative offset.");
+    } catch (Exception e) {
+    // noop, expecting exceptions
+    } finally {
+    }
+    scanner.close();
+    reader.close();
+}

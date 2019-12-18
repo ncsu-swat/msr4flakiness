@@ -1,0 +1,13 @@
+/**
+ * Test that if a non-idempotent void function is called, and there is an exception,
+ * the exception is properly propagated
+ */
+@Test
+public void testExceptionPropagatedForNonIdempotentVoid() throws Exception {
+    UnreliableInterface unreliable = (UnreliableInterface) RetryProxy.create(UnreliableInterface.class, newFlipFlopProxyProvider(TypeOfExceptionToFailWith.IO_EXCEPTION, TypeOfExceptionToFailWith.UNRELIABLE_EXCEPTION), RetryPolicies.failoverOnNetworkException(1));
+    try {
+        unreliable.nonIdempotentVoidFailsIfIdentifierDoesntMatch("impl2");
+        fail("did not throw an exception");
+    } catch (Exception e) {
+    }
+}

@@ -1,0 +1,24 @@
+/**
+ * Simple performance test for the "common case" checksum usage in HDFS:
+ * computing and verifying CRC32C with 512 byte chunking on native
+ * buffers.
+ */
+@Test
+public void commonUsagePerfTest() throws Exception {
+    final int NUM_RUNS = 5;
+    final DataChecksum checksum = DataChecksum.newDataChecksum(DataChecksum.Type.CRC32C, 512);
+    final int dataLength = 512 * 1024 * 1024;
+    Harness h = new Harness(checksum, dataLength, true);
+    for (int i = 0; i < NUM_RUNS; i++) {
+        StopWatch s = new StopWatch().start();
+        // calculate real checksum, make sure it passes
+        checksum.calculateChunkedSums(h.dataBuf, h.checksumBuf);
+        s.stop();
+        System.err.println("Calculate run #" + i + ": " + s.now(TimeUnit.MICROSECONDS) + "us");
+        s = new StopWatch().start();
+        // calculate real checksum, make sure it passes
+        checksum.verifyChunkedSums(h.dataBuf, h.checksumBuf, "fake file", 0);
+        s.stop();
+        System.err.println("Verify run #" + i + ": " + s.now(TimeUnit.MICROSECONDS) + "us");
+    }
+}

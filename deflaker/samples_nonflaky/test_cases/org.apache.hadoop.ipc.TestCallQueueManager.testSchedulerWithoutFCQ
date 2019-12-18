@@ -1,0 +1,16 @@
+@Test
+public void testSchedulerWithoutFCQ() throws InterruptedException {
+    Configuration conf = new Configuration();
+    // Test DecayedRpcScheduler without FCQ
+    // Ensure the default LinkedBlockingQueue can work with DecayedRpcScheduler
+    final String ns = CommonConfigurationKeys.IPC_NAMESPACE + ".0";
+    final String schedulerClassName = "org.apache.hadoop.ipc.DecayRpcScheduler";
+    conf.setStrings(ns + "." + CommonConfigurationKeys.IPC_SCHEDULER_IMPL_KEY, schedulerClassName);
+    Class<? extends BlockingQueue<FakeCall>> queue = (Class<? extends BlockingQueue<FakeCall>>) getQueueClass(ns, conf);
+    assertTrue(queue.getCanonicalName().equals("java.util.concurrent." + "LinkedBlockingQueue"));
+    manager = new CallQueueManager<FakeCall>(queue, Server.getSchedulerClass(ns, conf), false, 3, "", conf);
+    // LinkedBlockingQueue with a capacity of 3 can put 3 calls
+    assertCanPut(manager, 3, 3);
+    // LinkedBlockingQueue with a capacity of 3 can't put 1 more call
+    assertCanPut(manager, 0, 1);
+}

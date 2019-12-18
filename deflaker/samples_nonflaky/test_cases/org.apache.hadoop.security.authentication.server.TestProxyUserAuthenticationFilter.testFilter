@@ -1,0 +1,32 @@
+@Test(timeout = 10000)
+public void testFilter() throws Exception {
+    Map<String, String> params = new HashMap<String, String>();
+    params.put("proxyuser.knox.users", "testuser");
+    params.put("proxyuser.knox.hosts", "127.0.0.1");
+    params.put("type", "simple");
+    FilterConfig config = new DummyFilterConfig(params);
+    FilterChain chain = new FilterChain() {
+
+        @Override
+        public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse) {
+            HttpServletRequest request = (HttpServletRequest) servletRequest;
+            actualUser = request.getRemoteUser();
+        }
+    };
+    ProxyUserAuthenticationFilter testFilter = new ProxyUserAuthenticationFilter();
+    testFilter.init(config);
+    HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
+    Mockito.when(request.getRemoteUser()).thenReturn("knox");
+    Mockito.when(request.getParameter("doas")).thenReturn("testuser");
+    Mockito.when(request.getRemoteAddr()).thenReturn("127.0.0.1");
+    Mockito.when(request.getUserPrincipal()).thenReturn(new Principal() {
+
+        @Override
+        public String getName() {
+            return "knox@EXAMPLE.COM";
+        }
+    });
+    HttpServletResponseForTest response = new HttpServletResponseForTest();
+    testFilter.doFilter(chain, request, response);
+    assertThat(actualUser).isEqualTo("testuser");
+}

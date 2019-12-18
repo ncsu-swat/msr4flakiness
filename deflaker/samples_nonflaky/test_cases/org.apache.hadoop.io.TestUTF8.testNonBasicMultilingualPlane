@@ -1,0 +1,18 @@
+/**
+ * Test encoding and decoding of UTF8 outside the basic multilingual plane.
+ *
+ * This is a regression test for HADOOP-9103.
+ */
+@Test
+public void testNonBasicMultilingualPlane() throws Exception {
+    // Test using the "CAT FACE" character (U+1F431)
+    // See http://www.fileformat.info/info/unicode/char/1f431/index.htm
+    String catFace = "\uD83D\uDC31";
+    // This encodes to 4 bytes in UTF-8:
+    byte[] encoded = catFace.getBytes("UTF-8");
+    assertEquals(4, encoded.length);
+    assertEquals("f09f90b1", StringUtils.byteToHexString(encoded));
+    // Decode back to String using our own decoder
+    String roundTrip = UTF8.fromBytes(encoded);
+    assertEquals(catFace, roundTrip);
+}

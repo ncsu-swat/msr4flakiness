@@ -1,0 +1,14 @@
+@Test
+public void testGetCheckProcessIsAliveCommand() throws Exception {
+    String anyPid = "9999";
+    String[] checkProcessAliveCommand = getCheckProcessIsAliveCommand(anyPid);
+    String[] expectedCommand;
+    if (Shell.WINDOWS) {
+        expectedCommand = new String[] { getWinUtilsPath(), "task", "isAlive", anyPid };
+    } else if (Shell.isSetsidAvailable) {
+        expectedCommand = new String[] { "bash", "-c", "kill -0 -- -'" + anyPid + "'" };
+    } else {
+        expectedCommand = new String[] { "bash", "-c", "kill -0 '" + anyPid + "'" };
+    }
+    Assert.assertArrayEquals(expectedCommand, checkProcessAliveCommand);
+}

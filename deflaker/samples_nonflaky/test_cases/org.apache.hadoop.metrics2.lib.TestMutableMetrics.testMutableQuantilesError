@@ -1,0 +1,39 @@
+/**
+ * Ensure that quantile estimates from {@link MutableQuantiles} are within
+ * specified error bounds.
+ */
+@Test(timeout = 30000)
+public void testMutableQuantilesError() throws Exception {
+    MetricsRecordBuilder mb = mockMetricsRecordBuilder();
+    MetricsRegistry registry = new MetricsRegistry("test");
+    // Use a 5s rollover period
+    MutableQuantiles quantiles = registry.newQuantiles("foo", "stat", "Ops", "Latency", 5);
+    // Push some values in and wait for it to publish
+    long start = System.nanoTime() / 1000000;
+    for (long i = 1; i <= 1000; i++) {
+        quantiles.add(i);
+        quantiles.add(1001 - i);
+    }
+    long end = System.nanoTime() / 1000000;
+    Thread.sleep(6000 - (end - start));
+    registry.snapshot(mb, false);
+    // Print out the snapshot
+    Map<Quantile, Long> previousSnapshot = quantiles.previousSnapshot;
+    for (Entry<Quantile, Long> item : previousSnapshot.entrySet()) {
+        System.out.println(String.format("Quantile %.2f has value %d", item.getKey().quantile, item.getValue()));
+    }
+    // Verify the results are within our requirements
+    verify(mb).addGauge(info("FooNumOps", "Number of ops for stat with 5s interval"), (long) 2000);
+    Quantile[] quants = MutableQuantiles.quantiles;
+    String name = "Foo%dthPercentileLatency";
+    String desc = "%d percentile latency with 5 second interval for stat";
+    for (Quantile q : quants) {
+        int percentile = (int) (100 * q.quantile);
+        int error = (int) (1000 * q.error);
+        String n = String.format(name, percentile);
+        String d = String.format(desc, percentile);
+        long expected = (long) (q.quantile * 1000);
+        verify(mb).addGauge(eq(info(n, d)), leq(expected + error));
+        verify(mb).addGauge(eq(info(n, d)), geq(expected - error));
+    }
+}

@@ -1,0 +1,38 @@
+/**
+ * Verify that du returns expected used space for a file.
+ * We assume here that if a file system crates a file of size
+ * that is a multiple of the block size in this file system,
+ * then the used size for the file will be exactly that size.
+ * This is true for most file systems.
+ *
+ * @throws IOException
+ * @throws InterruptedException
+ */
+@Test
+public void testDU() throws IOException, InterruptedException {
+    // writing 32K
+    final int writtenSize = 32 * 1024;
+    // Allow for extra 4K on-disk slack for local file systems
+    // that may store additional file metadata (eg ext attrs).
+    final int slack = 4 * 1024;
+    File file = new File(DU_DIR, "data");
+    createFile(file, writtenSize);
+    // let the metadata updater catch up
+    Thread.sleep(5000);
+    DU du = new DU(file, 10000, 0, -1);
+    du.init();
+    long duSize = du.getUsed();
+    du.close();
+    assertTrue("Invalid on-disk size", duSize >= writtenSize && writtenSize <= (duSize + slack));
+    // test with 0 interval, will not launch thread
+    du = new DU(file, 0, 1, -1);
+    du.init();
+    duSize = du.getUsed();
+    du.close();
+    assertTrue("Invalid on-disk size", duSize >= writtenSize && writtenSize <= (duSize + slack));
+    // test without launching thread
+    du = new DU(file, 10000, 0, -1);
+    du.init();
+    duSize = du.getUsed();
+    assertTrue("Invalid on-disk size", duSize >= writtenSize && writtenSize <= (duSize + slack));
+}

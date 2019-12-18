@@ -1,0 +1,22 @@
+@Test
+public void testCustomCookieNameJWT() throws Exception {
+    try {
+        handler.setPublicKey(publicKey);
+        Properties props = getProperties();
+        props.put(JWTRedirectAuthenticationHandler.JWT_COOKIE_NAME, "jowt");
+        handler.init(props);
+        SignedJWT jwt = getJWT("bob", new Date(new Date().getTime() + 5000), privateKey);
+        Cookie cookie = new Cookie("jowt", jwt.serialize());
+        HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
+        Mockito.when(request.getCookies()).thenReturn(new Cookie[] { cookie });
+        Mockito.when(request.getRequestURL()).thenReturn(new StringBuffer(SERVICE_URL));
+        HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
+        Mockito.when(response.encodeRedirectURL(SERVICE_URL)).thenReturn(SERVICE_URL);
+        AuthenticationToken token = handler.alternateAuthenticate(request, response);
+        Assert.assertEquals("bob", token.getUserName());
+    } catch (ServletException se) {
+        fail("alternateAuthentication should NOT have thrown a ServletException: " + se.getMessage());
+    } catch (AuthenticationException ae) {
+        fail("alternateAuthentication should NOT have thrown a AuthenticationException");
+    }
+}

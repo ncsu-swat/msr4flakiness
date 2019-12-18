@@ -1,0 +1,29 @@
+@Test
+public void testFactoryReturnsClearedHashes() throws IOException {
+    // A stream that will throw an IOE after reading some bytes
+    ByteArrayInputStream failingStream = new ByteArrayInputStream("xxxx".getBytes()) {
+
+        @Override
+        public synchronized int read(byte[] b) throws IOException {
+            int ret = super.read(b);
+            if (ret <= 0) {
+                throw new IOException("Injected fault");
+            }
+            return ret;
+        }
+    };
+    final String TEST_STRING = "hello";
+    // Calculate the correct digest for the test string
+    MD5Hash expectedHash = MD5Hash.digest(TEST_STRING);
+    // Hashing again should give the same result
+    assertEquals(expectedHash, MD5Hash.digest(TEST_STRING));
+    // Try to hash a stream which will fail halfway through
+    try {
+        MD5Hash.digest(failingStream);
+        fail("didnt throw!");
+    } catch (Exception e) {
+    // expected
+    }
+    // Make sure we get the same result
+    assertEquals(expectedHash, MD5Hash.digest(TEST_STRING));
+}

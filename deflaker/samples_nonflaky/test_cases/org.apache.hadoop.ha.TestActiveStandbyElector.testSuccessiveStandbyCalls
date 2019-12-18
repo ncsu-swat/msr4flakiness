@@ -1,0 +1,33 @@
+/**
+ * verify becomeStandby is not called if already in standby
+ */
+@Test
+public void testSuccessiveStandbyCalls() {
+    elector.joinElection(data);
+    // make the object go into the monitoring standby state
+    elector.processResult(Code.NODEEXISTS.intValue(), ZK_LOCK_NAME, mockZK, ZK_LOCK_NAME);
+    Mockito.verify(mockApp, Mockito.times(1)).becomeStandby();
+    verifyExistCall(1);
+    Assert.assertTrue(elector.isMonitorLockNodePending());
+    Stat stat = new Stat();
+    stat.setEphemeralOwner(0L);
+    Mockito.when(mockZK.getSessionId()).thenReturn(1L);
+    elector.processResult(Code.OK.intValue(), ZK_LOCK_NAME, mockZK, stat);
+    Assert.assertFalse(elector.isMonitorLockNodePending());
+    WatchedEvent mockEvent = Mockito.mock(WatchedEvent.class);
+    Mockito.when(mockEvent.getPath()).thenReturn(ZK_LOCK_NAME);
+    // notify node deletion
+    // monitoring should be setup again after event is received
+    Mockito.when(mockEvent.getType()).thenReturn(Event.EventType.NodeDeleted);
+    elector.processWatchEvent(mockZK, mockEvent);
+    // is standby. no need to notify anything now
+    Mockito.verify(mockApp, Mockito.times(0)).enterNeutralMode();
+    // another joinElection called.
+    Mockito.verify(mockZK, Mockito.times(2)).create(ZK_LOCK_NAME, data, Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL, elector, mockZK);
+    // lost election
+    elector.processResult(Code.NODEEXISTS.intValue(), ZK_LOCK_NAME, mockZK, ZK_LOCK_NAME);
+    // still standby. so no need to notify again
+    Mockito.verify(mockApp, Mockito.times(1)).becomeStandby();
+    // monitor is set again
+    verifyExistCall(2);
+}

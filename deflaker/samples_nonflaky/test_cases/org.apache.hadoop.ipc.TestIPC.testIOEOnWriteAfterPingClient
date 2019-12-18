@@ -1,0 +1,16 @@
+/**
+ * Test case that fails a write, but only after taking enough time
+ * that a ping should have been sent. This is a reproducer for a
+ * deadlock seen in one iteration of HADOOP-6762.
+ */
+@Test(timeout = 60000)
+public void testIOEOnWriteAfterPingClient() throws Exception {
+    // start server
+    Client.setPingInterval(conf, 100);
+    try {
+        WRITABLE_FAULTS_SLEEP = 1000;
+        doErrorTest(IOEOnWriteWritable.class, LongWritable.class, LongWritable.class, LongWritable.class);
+    } finally {
+        WRITABLE_FAULTS_SLEEP = 0;
+    }
+}

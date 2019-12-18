@@ -1,0 +1,31 @@
+@Test
+public void testAsyncReconfigure() throws ReconfigurationException, IOException, InterruptedException {
+    AsyncReconfigurableDummy dummy = spy(new AsyncReconfigurableDummy(conf1));
+    List<PropertyChange> changes = Lists.newArrayList();
+    changes.add(new PropertyChange("name1", "new1", "old1"));
+    changes.add(new PropertyChange("name2", "new2", "old2"));
+    changes.add(new PropertyChange("name3", "new3", "old3"));
+    doReturn(changes).when(dummy).getChangedProperties(any(Configuration.class), any(Configuration.class));
+    doReturn(true).when(dummy).isPropertyReconfigurable(eq("name1"));
+    doReturn(false).when(dummy).isPropertyReconfigurable(eq("name2"));
+    doReturn(true).when(dummy).isPropertyReconfigurable(eq("name3"));
+    doReturn("dummy").when(dummy).reconfigurePropertyImpl(eq("name1"), anyString());
+    doReturn("dummy").when(dummy).reconfigurePropertyImpl(eq("name2"), anyString());
+    doThrow(new ReconfigurationException("NAME3", "NEW3", "OLD3", new IOException("io exception"))).when(dummy).reconfigurePropertyImpl(eq("name3"), anyString());
+    dummy.startReconfigurationTask();
+    waitAsyncReconfigureTaskFinish(dummy);
+    ReconfigurationTaskStatus status = dummy.getReconfigurationTaskStatus();
+    assertEquals(2, status.getStatus().size());
+    for (Map.Entry<PropertyChange, Optional<String>> result : status.getStatus().entrySet()) {
+        PropertyChange change = result.getKey();
+        if (change.prop.equals("name1")) {
+            assertFalse(result.getValue().isPresent());
+        } else if (change.prop.equals("name2")) {
+            assertThat(result.getValue().get(), containsString("Property name2 is not reconfigurable"));
+        } else if (change.prop.equals("name3")) {
+            assertThat(result.getValue().get(), containsString("io exception"));
+        } else {
+            fail("Unknown property: " + change.prop);
+        }
+    }
+}

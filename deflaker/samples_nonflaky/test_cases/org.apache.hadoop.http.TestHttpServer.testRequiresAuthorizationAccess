@@ -1,0 +1,17 @@
+@Test
+public void testRequiresAuthorizationAccess() throws Exception {
+    Configuration conf = new Configuration();
+    ServletContext context = Mockito.mock(ServletContext.class);
+    Mockito.when(context.getAttribute(HttpServer2.CONF_CONTEXT_ATTRIBUTE)).thenReturn(conf);
+    HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
+    HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
+    // requires admin access to instrumentation, FALSE by default
+    Assert.assertTrue(HttpServer2.isInstrumentationAccessAllowed(context, request, response));
+    // requires admin access to instrumentation, TRUE
+    conf.setBoolean(CommonConfigurationKeys.HADOOP_SECURITY_INSTRUMENTATION_REQUIRES_ADMIN, true);
+    conf.setBoolean(CommonConfigurationKeys.HADOOP_SECURITY_AUTHORIZATION, true);
+    AccessControlList acls = Mockito.mock(AccessControlList.class);
+    Mockito.when(acls.isUserAllowed(Mockito.<UserGroupInformation>any())).thenReturn(false);
+    Mockito.when(context.getAttribute(HttpServer2.ADMINS_ACL)).thenReturn(acls);
+    Assert.assertFalse(HttpServer2.isInstrumentationAccessAllowed(context, request, response));
+}

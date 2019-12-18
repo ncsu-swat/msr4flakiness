@@ -1,0 +1,16 @@
+@Test(timeout = 10000)
+public void testStat() throws Exception {
+    Assume.assumeTrue(Stat.isAvailable());
+    FileSystem fs = FileSystem.getLocal(new Configuration());
+    Path testDir = new Path(getTestRootPath(fs), "teststat");
+    fs.mkdirs(testDir);
+    Path sub1 = new Path(testDir, "sub1");
+    Path sub2 = new Path(testDir, "sub2");
+    fs.mkdirs(sub1);
+    fs.createSymlink(sub1, sub2, false);
+    FileStatus stat1 = new Stat(sub1, 4096l, false, fs).getFileStatus();
+    FileStatus stat2 = new Stat(sub2, 0, false, fs).getFileStatus();
+    assertTrue(stat1.isDirectory());
+    assertFalse(stat2.isDirectory());
+    fs.delete(testDir, true);
+}

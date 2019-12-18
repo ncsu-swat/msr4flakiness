@@ -1,0 +1,18 @@
+@Test
+@SuppressWarnings("deprecation")
+public void testAccumulate() {
+    Configuration conf = new Configuration();
+    // Never flush
+    conf.set("ns." + DecayRpcScheduler.IPC_FCQ_DECAYSCHEDULER_PERIOD_KEY, "99999999");
+    scheduler = new DecayRpcScheduler(1, "ns", conf);
+    // empty first
+    assertEquals(0, scheduler.getCallCostSnapshot().size());
+    getPriorityIncrementCallCount("A");
+    assertEquals(1, scheduler.getCallCostSnapshot().get("A").longValue());
+    assertEquals(1, scheduler.getCallCostSnapshot().get("A").longValue());
+    getPriorityIncrementCallCount("A");
+    getPriorityIncrementCallCount("B");
+    getPriorityIncrementCallCount("A");
+    assertEquals(3, scheduler.getCallCostSnapshot().get("A").longValue());
+    assertEquals(1, scheduler.getCallCostSnapshot().get("B").longValue());
+}

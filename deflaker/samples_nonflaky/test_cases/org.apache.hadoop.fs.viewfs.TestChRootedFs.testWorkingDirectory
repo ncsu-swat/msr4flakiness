@@ -1,0 +1,51 @@
+@Test
+public void testWorkingDirectory() throws Exception {
+    // First we cd to our test root
+    fc.mkdir(new Path("/testWd"), FileContext.DEFAULT_PERM, false);
+    Path workDir = new Path("/testWd");
+    Path fqWd = fc.makeQualified(workDir);
+    fc.setWorkingDirectory(workDir);
+    Assert.assertEquals(fqWd, fc.getWorkingDirectory());
+    fc.setWorkingDirectory(new Path("."));
+    Assert.assertEquals(fqWd, fc.getWorkingDirectory());
+    fc.setWorkingDirectory(new Path(".."));
+    Assert.assertEquals(fqWd.getParent(), fc.getWorkingDirectory());
+    // cd using a relative path
+    // Go back to our test root
+    workDir = new Path("/testWd");
+    fqWd = fc.makeQualified(workDir);
+    fc.setWorkingDirectory(workDir);
+    Assert.assertEquals(fqWd, fc.getWorkingDirectory());
+    Path relativeDir = new Path("existingDir1");
+    Path absoluteDir = new Path(workDir, "existingDir1");
+    fc.mkdir(absoluteDir, FileContext.DEFAULT_PERM, true);
+    Path fqAbsoluteDir = fc.makeQualified(absoluteDir);
+    fc.setWorkingDirectory(relativeDir);
+    Assert.assertEquals(fqAbsoluteDir, fc.getWorkingDirectory());
+    // cd using a absolute path
+    absoluteDir = new Path("/test/existingDir2");
+    fqAbsoluteDir = fc.makeQualified(absoluteDir);
+    fc.mkdir(absoluteDir, FileContext.DEFAULT_PERM, true);
+    fc.setWorkingDirectory(absoluteDir);
+    Assert.assertEquals(fqAbsoluteDir, fc.getWorkingDirectory());
+    // Now open a file relative to the wd we just set above.
+    Path absolutePath = new Path(absoluteDir, "foo");
+    fc.create(absolutePath, EnumSet.of(CreateFlag.CREATE)).close();
+    fc.open(new Path("foo")).close();
+    // Now mkdir relative to the dir we cd'ed to
+    fc.mkdir(new Path("newDir"), FileContext.DEFAULT_PERM, true);
+    Assert.assertTrue(isDir(fc, new Path(absoluteDir, "newDir")));
+    absoluteDir = fileContextTestHelper.getTestRootPath(fc, "nonexistingPath");
+    try {
+        fc.setWorkingDirectory(absoluteDir);
+        Assert.fail("cd to non existing dir should have failed");
+    } catch (Exception e) {
+    // Exception as expected
+    }
+    // Try a URI
+    final String LOCAL_FS_ROOT_URI = "file:///tmp/test";
+    absoluteDir = new Path(LOCAL_FS_ROOT_URI + "/existingDir");
+    fc.mkdir(absoluteDir, FileContext.DEFAULT_PERM, true);
+    fc.setWorkingDirectory(absoluteDir);
+    Assert.assertEquals(absoluteDir, fc.getWorkingDirectory());
+}

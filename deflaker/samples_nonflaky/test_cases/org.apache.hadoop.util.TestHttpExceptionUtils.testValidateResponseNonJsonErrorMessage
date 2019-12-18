@@ -1,0 +1,16 @@
+@Test
+public void testValidateResponseNonJsonErrorMessage() throws IOException {
+    String msg = "stream";
+    InputStream is = new ByteArrayInputStream(msg.getBytes());
+    HttpURLConnection conn = Mockito.mock(HttpURLConnection.class);
+    Mockito.when(conn.getErrorStream()).thenReturn(is);
+    Mockito.when(conn.getResponseMessage()).thenReturn("msg");
+    Mockito.when(conn.getResponseCode()).thenReturn(HttpURLConnection.HTTP_BAD_REQUEST);
+    try {
+        HttpExceptionUtils.validateResponse(conn, HttpURLConnection.HTTP_CREATED);
+        Assert.fail();
+    } catch (IOException ex) {
+        Assert.assertTrue(ex.getMessage().contains("msg"));
+        Assert.assertTrue(ex.getMessage().contains("" + HttpURLConnection.HTTP_BAD_REQUEST));
+    }
+}

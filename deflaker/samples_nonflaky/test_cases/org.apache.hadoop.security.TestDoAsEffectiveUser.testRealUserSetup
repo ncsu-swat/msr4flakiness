@@ -1,0 +1,22 @@
+@Test(timeout = 4000)
+public void testRealUserSetup() throws IOException {
+    final Configuration conf = new Configuration();
+    conf.setStrings(DefaultImpersonationProvider.getTestProvider().getProxySuperuserGroupConfKey(REAL_USER_SHORT_NAME), "group1");
+    configureSuperUserIPAddresses(conf, REAL_USER_SHORT_NAME);
+    // Set RPC engine to protobuf RPC engine
+    RPC.setProtocolEngine(conf, TestRpcService.class, ProtobufRpcEngine.class);
+    UserGroupInformation.setConfiguration(conf);
+    final Server server = setupTestServer(conf, 5);
+    refreshConf(conf);
+    try {
+        UserGroupInformation realUserUgi = UserGroupInformation.createRemoteUser(REAL_USER_NAME);
+        checkRemoteUgi(realUserUgi, conf);
+        UserGroupInformation proxyUserUgi = UserGroupInformation.createProxyUserForTesting(PROXY_USER_NAME, realUserUgi, GROUP_NAMES);
+        checkRemoteUgi(proxyUserUgi, conf);
+    } catch (Exception e) {
+        e.printStackTrace();
+        Assert.fail();
+    } finally {
+        stop(server, client);
+    }
+}

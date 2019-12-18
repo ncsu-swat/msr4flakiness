@@ -1,0 +1,14 @@
+@Test
+public void testInterruptedCopyBytes() throws Exception {
+    FSDataOutputStream out = mock(FSDataOutputStream.class);
+    whenFsCreate().thenReturn(out);
+    when(mockFs.getFileStatus(eq(tmpPath))).thenReturn(fileStat);
+    FSInputStream in = mock(FSInputStream.class);
+    // make IOUtils.copyBytes fail
+    when(in.read(any(byte[].class), anyInt(), anyInt())).thenThrow(new InterruptedIOException());
+    tryCopyStream(in, false);
+    verify(mockFs).delete(eq(tmpPath), anyBoolean());
+    verify(mockFs, never()).rename(any(Path.class), any(Path.class));
+    verify(mockFs, never()).delete(eq(path), anyBoolean());
+    verify(mockFs, never()).close();
+}

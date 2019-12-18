@@ -1,0 +1,13 @@
+@Test(timeout = 5000)
+public void testProtoBufRandomException() throws Exception {
+    TestRpcService client = getClient(addr, conf);
+    try {
+        client.error2(null, newEmptyRequest());
+    } catch (ServiceException se) {
+        assertThat(se.getCause()).isInstanceOf(RemoteException.class);
+        RemoteException re = (RemoteException) se.getCause();
+        assertThat(re.getClassName()).isEqualTo(URISyntaxException.class.getName());
+        assertThat(re.getMessage()).contains("testException");
+        assertThat(re.getErrorCode()).isEqualTo(RpcErrorCodeProto.ERROR_APPLICATION);
+    }
+}

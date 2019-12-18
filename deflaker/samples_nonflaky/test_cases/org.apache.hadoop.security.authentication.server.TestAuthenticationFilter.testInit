@@ -1,0 +1,101 @@
+@Test
+public void testInit() throws Exception {
+    // custom secret as inline
+    AuthenticationFilter filter = new AuthenticationFilter();
+    try {
+        FilterConfig config = Mockito.mock(FilterConfig.class);
+        Mockito.when(config.getInitParameter(AuthenticationFilter.AUTH_TYPE)).thenReturn("simple");
+        Mockito.when(config.getInitParameterNames()).thenReturn(new Vector<>(Arrays.asList(AuthenticationFilter.AUTH_TYPE)).elements());
+        ServletContext context = Mockito.mock(ServletContext.class);
+        Mockito.when(context.getAttribute(AuthenticationFilter.SIGNER_SECRET_PROVIDER_ATTRIBUTE)).thenReturn(new SignerSecretProvider() {
+
+            @Override
+            public void init(Properties config, ServletContext servletContext, long tokenValidity) {
+            }
+
+            @Override
+            public byte[] getCurrentSecret() {
+                return null;
+            }
+
+            @Override
+            public byte[][] getAllSecrets() {
+                return null;
+            }
+        });
+        Mockito.when(config.getServletContext()).thenReturn(context);
+        filter.init(config);
+        Assert.assertFalse(filter.isRandomSecret());
+        Assert.assertTrue(filter.isCustomSignerSecretProvider());
+    } finally {
+        filter.destroy();
+    }
+    // custom secret by file
+    File testDir = new File(System.getProperty("test.build.data", "target/test-dir"));
+    testDir.mkdirs();
+    String secretValue = "hadoop";
+    File secretFile = new File(testDir, "http-secret.txt");
+    Writer writer = new FileWriter(secretFile);
+    writer.write(secretValue);
+    writer.close();
+    filter = new AuthenticationFilter();
+    try {
+        FilterConfig config = Mockito.mock(FilterConfig.class);
+        Mockito.when(config.getInitParameter(AuthenticationFilter.AUTH_TYPE)).thenReturn("simple");
+        Mockito.when(config.getInitParameter(AuthenticationFilter.SIGNATURE_SECRET_FILE)).thenReturn(secretFile.getAbsolutePath());
+        Mockito.when(config.getInitParameterNames()).thenReturn(new Vector<String>(Arrays.asList(AuthenticationFilter.AUTH_TYPE, AuthenticationFilter.SIGNATURE_SECRET_FILE)).elements());
+        ServletContext context = Mockito.mock(ServletContext.class);
+        Mockito.when(context.getAttribute(AuthenticationFilter.SIGNER_SECRET_PROVIDER_ATTRIBUTE)).thenReturn(null);
+        Mockito.when(config.getServletContext()).thenReturn(context);
+        filter.init(config);
+        Assert.assertFalse(filter.isRandomSecret());
+        Assert.assertFalse(filter.isCustomSignerSecretProvider());
+    } finally {
+        filter.destroy();
+    }
+    // custom cookie domain and cookie path
+    filter = new AuthenticationFilter();
+    try {
+        FilterConfig config = Mockito.mock(FilterConfig.class);
+        Mockito.when(config.getInitParameter(AuthenticationFilter.AUTH_TYPE)).thenReturn("simple");
+        Mockito.when(config.getInitParameter(AuthenticationFilter.COOKIE_DOMAIN)).thenReturn(".foo.com");
+        Mockito.when(config.getInitParameter(AuthenticationFilter.COOKIE_PATH)).thenReturn("/bar");
+        Mockito.when(config.getInitParameterNames()).thenReturn(new Vector<String>(Arrays.asList(AuthenticationFilter.AUTH_TYPE, AuthenticationFilter.COOKIE_DOMAIN, AuthenticationFilter.COOKIE_PATH)).elements());
+        getMockedServletContextWithStringSigner(config);
+        filter.init(config);
+        Assert.assertEquals(".foo.com", filter.getCookieDomain());
+        Assert.assertEquals("/bar", filter.getCookiePath());
+    } finally {
+        filter.destroy();
+    }
+    // authentication handler lifecycle, and custom impl
+    DummyAuthenticationHandler.reset();
+    filter = new AuthenticationFilter();
+    try {
+        FilterConfig config = Mockito.mock(FilterConfig.class);
+        Mockito.when(config.getInitParameter("management.operation.return")).thenReturn("true");
+        Mockito.when(config.getInitParameter(AuthenticationFilter.AUTH_TYPE)).thenReturn(DummyAuthenticationHandler.class.getName());
+        Mockito.when(config.getInitParameterNames()).thenReturn(new Vector<String>(Arrays.asList(AuthenticationFilter.AUTH_TYPE, "management.operation.return")).elements());
+        getMockedServletContextWithStringSigner(config);
+        filter.init(config);
+        Assert.assertTrue(DummyAuthenticationHandler.init);
+    } finally {
+        filter.destroy();
+        Assert.assertTrue(DummyAuthenticationHandler.destroy);
+    }
+    // kerberos auth handler
+    filter = new AuthenticationFilter();
+    try {
+        FilterConfig config = Mockito.mock(FilterConfig.class);
+        ServletContext sc = Mockito.mock(ServletContext.class);
+        Mockito.when(config.getServletContext()).thenReturn(sc);
+        Mockito.when(config.getInitParameter(AuthenticationFilter.AUTH_TYPE)).thenReturn("kerberos");
+        Mockito.when(config.getInitParameterNames()).thenReturn(new Vector<String>(Arrays.asList(AuthenticationFilter.AUTH_TYPE)).elements());
+        filter.init(config);
+    } catch (ServletException ex) {
+    // Expected
+    } finally {
+        Assert.assertEquals(KerberosAuthenticationHandler.class, filter.getAuthenticationHandler().getClass());
+        filter.destroy();
+    }
+}

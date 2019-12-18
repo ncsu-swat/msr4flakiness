@@ -1,0 +1,22 @@
+/**
+ * Check service class byte in IPC header is correct on wire.
+ */
+@Test(timeout = 60000)
+public void testIpcWithServiceClass() throws IOException {
+    // start server
+    Server server = new TestServer(5, false);
+    InetSocketAddress addr = NetUtils.getConnectAddress(server);
+    server.start();
+    // start client
+    Client.setConnectTimeout(conf, 10000);
+    callAndVerify(server, addr, 0, true);
+    // Service Class is low to -128 as byte on wire.
+    // -128 shouldn't be casted on wire but -129 should.
+    callAndVerify(server, addr, -128, true);
+    callAndVerify(server, addr, -129, false);
+    // Service Class is up to 127.
+    // 127 shouldn't be casted on wire but 128 should.
+    callAndVerify(server, addr, 127, true);
+    callAndVerify(server, addr, 128, false);
+    server.stop();
+}

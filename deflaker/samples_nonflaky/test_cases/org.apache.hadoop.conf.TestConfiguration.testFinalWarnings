@@ -1,0 +1,37 @@
+@Test
+public void testFinalWarnings() throws Exception {
+    // Make a configuration file with a final property
+    StringWriter writer = new StringWriter();
+    out = new BufferedWriter(writer);
+    startConfig();
+    declareProperty("prop", "A", "A", true);
+    endConfig();
+    byte[] bytes = writer.toString().getBytes();
+    InputStream in1 = new ByteArrayInputStream(bytes);
+    // Make a second config file with a final property with a different value
+    writer = new StringWriter();
+    out = new BufferedWriter(writer);
+    startConfig();
+    declareProperty("prop", "BB", "BB", true);
+    endConfig();
+    byte[] bytes2 = writer.toString().getBytes();
+    InputStream in2 = new ByteArrayInputStream(bytes2);
+    // Attach our own log appender so we can verify output
+    TestAppender appender = new TestAppender();
+    final Logger logger = Logger.getRootLogger();
+    logger.addAppender(appender);
+    try {
+        // Add the 2 different resources - this should generate a warning
+        conf.addResource(in1);
+        conf.addResource(in2);
+        assertEquals("should see the first value", "A", conf.get("prop"));
+        List<LoggingEvent> events = appender.getLog();
+        assertEquals("overriding a final parameter should cause logging", 1, events.size());
+        LoggingEvent loggingEvent = events.get(0);
+        String renderedMessage = loggingEvent.getRenderedMessage();
+        assertTrue("did not see expected string inside message " + renderedMessage, renderedMessage.contains("an attempt to override final parameter: " + "prop;  Ignoring."));
+    } finally {
+        // Make sure the appender is removed
+        logger.removeAppender(appender);
+    }
+}

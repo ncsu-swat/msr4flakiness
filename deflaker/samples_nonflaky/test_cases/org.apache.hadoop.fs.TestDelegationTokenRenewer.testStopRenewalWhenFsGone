@@ -1,0 +1,30 @@
+@Test
+public void testStopRenewalWhenFsGone() throws IOException, InterruptedException {
+    Configuration conf = mock(Configuration.class);
+    Token<?> token = mock(Token.class);
+    doReturn(new Text("myservice")).when(token).getService();
+    doAnswer(new Answer<Long>() {
+
+        public Long answer(InvocationOnMock invocation) {
+            return Time.now() + RENEW_CYCLE;
+        }
+    }).when(token).renew(any(Configuration.class));
+    RenewableFileSystem fs = mock(RenewableFileSystem.class);
+    doReturn(conf).when(fs).getConf();
+    doReturn(token).when(fs).getRenewToken();
+    renewer.addRenewAction(fs);
+    assertEquals(1, renewer.getRenewQueueLength());
+    Thread.sleep(RENEW_CYCLE);
+    verify(token, atLeast(1)).renew(eq(conf));
+    verify(token, atMost(2)).renew(eq(conf));
+    // drop weak ref
+    fs = null;
+    System.gc();
+    System.gc();
+    System.gc();
+    // next renew should detect the fs as gone
+    Thread.sleep(RENEW_CYCLE);
+    verify(token, atLeast(1)).renew(eq(conf));
+    verify(token, atMost(2)).renew(eq(conf));
+    assertEquals(0, renewer.getRenewQueueLength());
+}

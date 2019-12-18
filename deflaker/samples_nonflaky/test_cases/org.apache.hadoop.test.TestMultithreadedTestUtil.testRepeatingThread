@@ -1,0 +1,22 @@
+@Test
+public void testRepeatingThread() throws Exception {
+    final AtomicInteger counter = new AtomicInteger();
+    TestContext ctx = new TestContext();
+    ctx.addThread(new RepeatingTestThread(ctx) {
+
+        @Override
+        public void doAnAction() throws Exception {
+            counter.incrementAndGet();
+        }
+    });
+    ctx.startThreads();
+    long st = Time.now();
+    ctx.waitFor(3000);
+    ctx.stop();
+    long et = Time.now();
+    long elapsed = et - st;
+    // Test should have waited just about 3 seconds
+    assertTrue("Test took " + (et - st) + "ms", Math.abs(elapsed - 3000) < 500);
+    // Counter should have been incremented lots of times in 3 full seconds
+    assertTrue("Counter value = " + counter.get(), counter.get() > 1000);
+}

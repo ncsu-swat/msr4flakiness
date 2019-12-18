@@ -1,0 +1,39 @@
+@Test
+public void testLowSyncpoint() throws IOException {
+    // Uses a smaller sync interval of 2000 bytes
+    final Configuration conf = new Configuration();
+    final FileSystem fs = FileSystem.getLocal(conf);
+    final Path path = new Path(GenericTestUtils.getTempPath("sequencefile.sync.test"));
+    final IntWritable input = new IntWritable();
+    final Text val = new Text();
+    SequenceFile.Writer writer = new SequenceFile.Writer(conf, SequenceFile.Writer.file(path), SequenceFile.Writer.compression(CompressionType.NONE), SequenceFile.Writer.keyClass(IntWritable.class), SequenceFile.Writer.valueClass(Text.class), SequenceFile.Writer.syncInterval(20 * 100));
+    // Ensure the custom sync interval value is set
+    assertThat(writer.syncInterval).isEqualTo(20 * 100);
+    try {
+        writeSequenceFile(writer, NUMRECORDS);
+        for (int i = 0; i < 5; i++) {
+            final SequenceFile.Reader reader;
+            // try different SequenceFile.Reader constructors
+            if (i % 2 == 0) {
+                final int bufferSize = conf.getInt("io.file.buffer.size", 4096);
+                reader = new SequenceFile.Reader(conf, SequenceFile.Reader.file(path), SequenceFile.Reader.bufferSize(bufferSize));
+            } else {
+                final FSDataInputStream in = fs.open(path);
+                final long length = fs.getFileStatus(path).getLen();
+                reader = new SequenceFile.Reader(conf, SequenceFile.Reader.stream(in), SequenceFile.Reader.start(0L), SequenceFile.Reader.length(length));
+            }
+            try {
+                forOffset(reader, input, val, i, 0, 0);
+                forOffset(reader, input, val, i, 65, 0);
+                // There would be only a few records within
+                // this sync interval
+                forOffset(reader, input, val, i, 2000, 21);
+                forOffset(reader, input, val, i, 0, 0);
+            } finally {
+                reader.close();
+            }
+        }
+    } finally {
+        fs.delete(path, false);
+    }
+}

@@ -1,0 +1,49 @@
+/**
+ * Tests the case:
+ * <p>
+ * 5s interval and 2 sliding windows
+ * </p>
+ * <p>
+ * sample stream: 1000 times 1, 2, and 3, respectively, e.g. [1, 1...1], [2,
+ * 2...2] and [3, 3...3]
+ * </p>
+ */
+@Test(timeout = 30000)
+public void testRollingAveragesRollover() throws Exception {
+    final MetricsRecordBuilder rb = mockMetricsRecordBuilder();
+    final String name = "foo2";
+    // 5s roll over interval
+    final int windowSizeMs = 5000;
+    final int numWindows = 2;
+    final int numOpsPerIteration = 1000;
+    try (MutableRollingAverages rollingAverages = new MutableRollingAverages("Time")) {
+        rollingAverages.replaceScheduledTask(2, 5000, TimeUnit.MILLISECONDS);
+        /* Push values for three intervals */
+        final long start = Time.monotonicNow();
+        for (int i = 1; i <= 3; i++) {
+            /* insert value */
+            for (long j = 1; j <= numOpsPerIteration; j++) {
+                rollingAverages.add(name, i);
+            }
+            /**
+             * Sleep until 1s after the next windowSize seconds interval, to let the
+             * metrics roll over
+             */
+            final long sleep = (start + (windowSizeMs * i) + 1000) - Time.monotonicNow();
+            Thread.sleep(sleep);
+            /* Verify that the window reset, check it has the values we pushed in */
+            rollingAverages.snapshot(rb, false);
+            /*
+         * #1 window with a series of 1 1000
+         * times, e.g. [1, 1...1], similarly, #2 window, e.g. [2, 2...2],
+         * #3 window, e.g. [3, 3...3]
+         */
+            final double rollingSum = numOpsPerIteration * (i > 1 ? (i - 1) : 0) + numOpsPerIteration * i;
+            /* one empty window or all 2 windows full */
+            final long rollingTotal = i > 1 ? 2 * numOpsPerIteration : numOpsPerIteration;
+            verify(rb).addGauge(info("[Foo2]RollingAvgTime", "Rolling average time for foo2"), rollingSum / rollingTotal);
+            /* Verify the metrics were added the right number of times */
+            verify(rb, times(i)).addGauge(eq(info("[Foo2]RollingAvgTime", "Rolling average time for foo2")), anyDouble());
+        }
+    }
+}

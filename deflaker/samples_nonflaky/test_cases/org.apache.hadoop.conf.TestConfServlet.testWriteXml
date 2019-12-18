@@ -1,0 +1,22 @@
+@Test
+public void testWriteXml() throws Exception {
+    StringWriter sw = new StringWriter();
+    ConfServlet.writeResponse(getTestConf(), sw, "xml");
+    String xml = sw.toString();
+    DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
+    DocumentBuilder builder = docBuilderFactory.newDocumentBuilder();
+    Document doc = builder.parse(new InputSource(new StringReader(xml)));
+    NodeList nameNodes = doc.getElementsByTagName("name");
+    boolean foundSetting = false;
+    for (int i = 0; i < nameNodes.getLength(); i++) {
+        Node nameNode = nameNodes.item(i);
+        String key = nameNode.getTextContent();
+        if (TEST_KEY.equals(key)) {
+            foundSetting = true;
+            Element propertyElem = (Element) nameNode.getParentNode();
+            String val = propertyElem.getElementsByTagName("value").item(0).getTextContent();
+            assertEquals(TEST_VAL, val);
+        }
+    }
+    assertTrue(foundSetting);
+}

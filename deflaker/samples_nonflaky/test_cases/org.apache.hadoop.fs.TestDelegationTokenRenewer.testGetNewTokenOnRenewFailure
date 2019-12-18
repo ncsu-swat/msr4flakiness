@@ -1,0 +1,38 @@
+@Test
+public void testGetNewTokenOnRenewFailure() throws IOException, InterruptedException {
+    Text service = new Text("myservice");
+    Configuration conf = mock(Configuration.class);
+    final Token<?> token1 = mock(Token.class);
+    doReturn(service).when(token1).getService();
+    doThrow(new IOException("boom")).when(token1).renew(eq(conf));
+    final Token<?> token2 = mock(Token.class);
+    doReturn(service).when(token2).getService();
+    doAnswer(new Answer<Long>() {
+
+        public Long answer(InvocationOnMock invocation) {
+            return Time.now() + RENEW_CYCLE;
+        }
+    }).when(token2).renew(eq(conf));
+    RenewableFileSystem fs = mock(RenewableFileSystem.class);
+    doReturn(conf).when(fs).getConf();
+    doReturn(token1).doReturn(token2).when(fs).getRenewToken();
+    doReturn(token2).when(fs).getDelegationToken(null);
+    doAnswer(new Answer<Token<?>[]>() {
+
+        public Token<?>[] answer(InvocationOnMock invocation) {
+            return new Token<?>[] { token2 };
+        }
+    }).when(fs).addDelegationTokens(null, null);
+    renewer.addRenewAction(fs);
+    assertEquals(1, renewer.getRenewQueueLength());
+    Thread.sleep(RENEW_CYCLE);
+    verify(fs).getRenewToken();
+    verify(token1, atLeast(1)).renew(eq(conf));
+    verify(token1, atMost(2)).renew(eq(conf));
+    verify(fs).addDelegationTokens(null, null);
+    verify(fs).setDelegationToken(eq(token2));
+    assertEquals(1, renewer.getRenewQueueLength());
+    renewer.removeRenewAction(fs);
+    verify(token2).cancel(eq(conf));
+    assertEquals(0, renewer.getRenewQueueLength());
+}

@@ -1,0 +1,15 @@
+@Test
+public void testToStringAndParse() throws Exception {
+    long expires = System.currentTimeMillis() + 50;
+    AuthToken token = new AuthToken("u", "p", "t");
+    token.setExpires(expires);
+    String str = token.toString();
+    token = AuthToken.parse(str);
+    Assert.assertEquals("p", token.getName());
+    Assert.assertEquals("t", token.getType());
+    Assert.assertEquals(expires, token.getExpires());
+    Assert.assertFalse(token.isExpired());
+    // +20 msec fuzz for timer granularity.
+    Thread.sleep(70);
+    Assert.assertTrue(token.isExpired());
+}

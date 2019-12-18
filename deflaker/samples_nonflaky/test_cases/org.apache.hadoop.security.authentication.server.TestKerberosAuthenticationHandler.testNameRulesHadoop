@@ -1,0 +1,22 @@
+@Test
+public void testNameRulesHadoop() throws Exception {
+    KerberosName kn = new KerberosName(KerberosTestUtils.getServerPrincipal());
+    Assert.assertEquals(KerberosTestUtils.getRealm(), kn.getRealm());
+    // destroy handler created in setUp()
+    handler.destroy();
+    handler = getNewAuthenticationHandler();
+    Properties props = getDefaultProperties();
+    props.setProperty(KerberosAuthenticationHandler.NAME_RULES, "RULE:[1:$1@$0](.*@BAR)s/@.*//\nDEFAULT");
+    try {
+        handler.init(props);
+    } catch (Exception ex) {
+    }
+    kn = new KerberosName("bar@BAR");
+    Assert.assertEquals("bar", kn.getShortName());
+    kn = new KerberosName("bar@FOO");
+    try {
+        kn.getShortName();
+        Assert.fail();
+    } catch (Exception ex) {
+    }
+}

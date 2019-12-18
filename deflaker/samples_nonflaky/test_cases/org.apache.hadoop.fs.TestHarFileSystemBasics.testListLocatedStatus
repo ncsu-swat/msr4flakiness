@@ -1,0 +1,22 @@
+@Test
+public void testListLocatedStatus() throws Exception {
+    String testHarPath = this.getClass().getResource("/test.har").getPath();
+    URI uri = new URI("har://" + testHarPath);
+    HarFileSystem hfs = new HarFileSystem(localFileSystem);
+    hfs.initialize(uri, new Configuration());
+    // test.har has the following contents:
+    // dir1/1.txt
+    // dir1/2.txt
+    Set<String> expectedFileNames = new HashSet<String>();
+    expectedFileNames.add("1.txt");
+    expectedFileNames.add("2.txt");
+    // List contents of dir, and ensure we find all expected files
+    Path path = new Path("dir1");
+    RemoteIterator<LocatedFileStatus> fileList = hfs.listLocatedStatus(path);
+    while (fileList.hasNext()) {
+        String fileName = fileList.next().getPath().getName();
+        assertTrue(fileName + " not in expected files list", expectedFileNames.contains(fileName));
+        expectedFileNames.remove(fileName);
+    }
+    assertEquals("Didn't find all of the expected file names: " + expectedFileNames, 0, expectedFileNames.size());
+}

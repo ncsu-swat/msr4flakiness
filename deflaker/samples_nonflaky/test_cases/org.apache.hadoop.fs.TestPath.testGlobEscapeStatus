@@ -1,0 +1,46 @@
+@Test(timeout = 30000)
+public void testGlobEscapeStatus() throws Exception {
+    // This test is not meaningful on Windows where * is disallowed in file name.
+    assumeNotWindows();
+    FileSystem lfs = FileSystem.getLocal(new Configuration());
+    Path testRoot = lfs.makeQualified(new Path(GenericTestUtils.getTempPath("testPathGlob")));
+    lfs.delete(testRoot, true);
+    lfs.mkdirs(testRoot);
+    assertTrue(lfs.isDirectory(testRoot));
+    lfs.setWorkingDirectory(testRoot);
+    // create a couple dirs with file in them
+    Path[] paths = new Path[] { new Path(testRoot, "*/f"), new Path(testRoot, "d1/f"), new Path(testRoot, "d2/f") };
+    Arrays.sort(paths);
+    for (Path p : paths) {
+        lfs.create(p).close();
+        assertTrue(lfs.exists(p));
+    }
+    // try the non-globbed listStatus
+    FileStatus[] stats = lfs.listStatus(new Path(testRoot, "*"));
+    assertEquals(1, stats.length);
+    assertEquals(new Path(testRoot, "*/f"), stats[0].getPath());
+    // ensure globStatus with "*" finds all dir contents
+    stats = lfs.globStatus(new Path(testRoot, "*"));
+    Arrays.sort(stats);
+    Path[] parentPaths = new Path[paths.length];
+    for (int i = 0; i < paths.length; i++) {
+        parentPaths[i] = paths[i].getParent();
+    }
+    assertEquals(mergeStatuses(parentPaths), mergeStatuses(stats));
+    // ensure that globStatus with an escaped "\*" only finds "*"
+    stats = lfs.globStatus(new Path(testRoot, "\\*"));
+    assertEquals(1, stats.length);
+    assertEquals(new Path(testRoot, "*"), stats[0].getPath());
+    // try to glob the inner file for all dirs
+    stats = lfs.globStatus(new Path(testRoot, "*/f"));
+    assertEquals(paths.length, stats.length);
+    assertEquals(mergeStatuses(paths), mergeStatuses(stats));
+    // try to get the inner file for only the "*" dir
+    stats = lfs.globStatus(new Path(testRoot, "\\*/f"));
+    assertEquals(1, stats.length);
+    assertEquals(new Path(testRoot, "*/f"), stats[0].getPath());
+    // try to glob all the contents of the "*" dir
+    stats = lfs.globStatus(new Path(testRoot, "\\*/*"));
+    assertEquals(1, stats.length);
+    assertEquals(new Path(testRoot, "*/f"), stats[0].getPath());
+}

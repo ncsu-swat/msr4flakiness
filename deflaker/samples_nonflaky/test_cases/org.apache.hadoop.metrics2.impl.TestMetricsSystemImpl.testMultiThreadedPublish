@@ -1,0 +1,70 @@
+@Test
+public void testMultiThreadedPublish() throws Exception {
+    final int numThreads = 10;
+    new ConfigBuilder().add("*.period", 80).add("test.sink.collector." + MetricsConfig.QUEUE_CAPACITY_KEY, numThreads).save(TestMetricsConfig.getTestFilename("hadoop-metrics2-test"));
+    final MetricsSystemImpl ms = new MetricsSystemImpl("Test");
+    ms.start();
+    final CollectingSink sink = new CollectingSink(numThreads);
+    ms.registerSink("collector", "Collector of values from all threads.", sink);
+    final TestSource[] sources = new TestSource[numThreads];
+    final Thread[] threads = new Thread[numThreads];
+    final String[] results = new String[numThreads];
+    final CyclicBarrier barrier1 = new CyclicBarrier(numThreads), barrier2 = new CyclicBarrier(numThreads);
+    for (int i = 0; i < numThreads; i++) {
+        sources[i] = ms.register("threadSource" + i, "A source of my threaded goodness.", new TestSource("threadSourceRec" + i));
+        threads[i] = new Thread(new Runnable() {
+
+            private boolean safeAwait(int mySource, CyclicBarrier barrier) {
+                try {
+                    barrier.await(2, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    results[mySource] = "Interrupted";
+                    return false;
+                } catch (BrokenBarrierException e) {
+                    results[mySource] = "Broken Barrier";
+                    return false;
+                } catch (TimeoutException e) {
+                    results[mySource] = "Timed out on barrier";
+                    return false;
+                }
+                return true;
+            }
+
+            @Override
+            public void run() {
+                int mySource = Integer.parseInt(Thread.currentThread().getName());
+                if (sink.collected[mySource].get() != 0L) {
+                    results[mySource] = "Someone else collected my metric!";
+                    return;
+                }
+                // Wait for all the threads to come here so we can hammer
+                // the system at the same time
+                if (!safeAwait(mySource, barrier1))
+                    return;
+                sources[mySource].g1.set(230);
+                ms.publishMetricsNow();
+                // Since some other thread may have snatched my metric,
+                // I need to wait for the threads to finish before checking.
+                if (!safeAwait(mySource, barrier2))
+                    return;
+                if (sink.collected[mySource].get() != 230L) {
+                    results[mySource] = "Metric not collected!";
+                    return;
+                }
+                results[mySource] = "Passed";
+            }
+        }, "" + i);
+    }
+    for (Thread t : threads) t.start();
+    for (Thread t : threads) t.join();
+    assertEquals(0L, ms.droppedPubAll.value());
+    assertTrue(StringUtils.join("\n", Arrays.asList(results)), Iterables.all(Arrays.asList(results), new Predicate<String>() {
+
+        @Override
+        public boolean apply(@Nullable String input) {
+            return input.equalsIgnoreCase("Passed");
+        }
+    }));
+    ms.stop();
+    ms.shutdown();
+}

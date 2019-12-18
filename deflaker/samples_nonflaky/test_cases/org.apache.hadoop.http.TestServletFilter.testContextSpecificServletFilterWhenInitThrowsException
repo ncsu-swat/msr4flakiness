@@ -1,0 +1,16 @@
+/**
+ * Similar to the above test case, except that it uses a different API to add the
+ * filter. Regression test for HADOOP-8786.
+ */
+@Test
+public void testContextSpecificServletFilterWhenInitThrowsException() throws Exception {
+    Configuration conf = new Configuration();
+    HttpServer2 http = createTestServer(conf);
+    HttpServer2.defineFilter(http.webAppContext, "ErrorFilter", ErrorFilter.class.getName(), null, null);
+    try {
+        http.start();
+        fail("expecting exception");
+    } catch (IOException e) {
+        GenericTestUtils.assertExceptionContains("Unable to initialize WebAppContext", e);
+    }
+}

@@ -1,0 +1,32 @@
+@Test
+public void testLocalFSDirsetPermission() throws IOException {
+    assumeNotWindows();
+    LocalFileSystem localfs = FileSystem.getLocal(new Configuration());
+    Configuration conf = localfs.getConf();
+    conf.set(CommonConfigurationKeys.FS_PERMISSIONS_UMASK_KEY, "044");
+    Path dir = new Path(TEST_PATH_PREFIX + "dir");
+    localfs.mkdirs(dir);
+    Path dir1 = new Path(TEST_PATH_PREFIX + "dir1");
+    Path dir2 = new Path(TEST_PATH_PREFIX + "dir2");
+    try {
+        FsPermission initialPermission = getPermission(localfs, dir);
+        assertEquals(FsPermission.getDirDefault().applyUMask(FsPermission.getUMask(conf)), initialPermission);
+        FsPermission perm = new FsPermission((short) 0755);
+        localfs.mkdirs(dir1, perm);
+        initialPermission = getPermission(localfs, dir1);
+        assertEquals(perm.applyUMask(FsPermission.getUMask(conf)), initialPermission);
+        localfs.mkdirs(dir2);
+        initialPermission = getPermission(localfs, dir2);
+        Path copyPath = new Path(TEST_PATH_PREFIX + "dir_copy");
+        localfs.rename(dir2, copyPath);
+        FsPermission copyPermission = getPermission(localfs, copyPath);
+        assertEquals(initialPermission, copyPermission);
+        dir2 = copyPath;
+    } finally {
+        cleanup(localfs, dir);
+        cleanup(localfs, dir1);
+        if (localfs.exists(dir2)) {
+            localfs.delete(dir2, true);
+        }
+    }
+}

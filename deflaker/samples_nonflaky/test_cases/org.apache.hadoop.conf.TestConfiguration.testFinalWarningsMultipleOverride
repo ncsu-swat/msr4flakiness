@@ -1,0 +1,29 @@
+@Test
+public void testFinalWarningsMultipleOverride() throws Exception {
+    // Make a configuration file with 2 final properties with different values
+    StringWriter writer = new StringWriter();
+    out = new BufferedWriter(writer);
+    startConfig();
+    declareProperty("prop", "A", "A", true);
+    declareProperty("prop", "BB", "BB", true);
+    endConfig();
+    byte[] bytes = writer.toString().getBytes();
+    InputStream in1 = new ByteArrayInputStream(bytes);
+    // Attach our own log appender so we can verify output
+    TestAppender appender = new TestAppender();
+    final Logger logger = Logger.getRootLogger();
+    logger.addAppender(appender);
+    try {
+        // Add the resource - this should produce a warning
+        conf.addResource(in1);
+        assertEquals("should see the value", "A", conf.get("prop"));
+        List<LoggingEvent> events = appender.getLog();
+        assertEquals("overriding a final parameter should cause logging", 1, events.size());
+        LoggingEvent loggingEvent = events.get(0);
+        String renderedMessage = loggingEvent.getRenderedMessage();
+        assertTrue("did not see expected string inside message " + renderedMessage, renderedMessage.contains("an attempt to override final parameter: " + "prop;  Ignoring."));
+    } finally {
+        // Make sure the appender is removed
+        logger.removeAppender(appender);
+    }
+}

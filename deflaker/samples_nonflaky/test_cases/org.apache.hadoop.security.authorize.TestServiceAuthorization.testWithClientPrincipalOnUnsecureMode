@@ -1,0 +1,15 @@
+@Test
+public void testWithClientPrincipalOnUnsecureMode() throws UnknownHostException {
+    UserGroupInformation hdfsUser = UserGroupInformation.createUserForTesting("hdfs", new String[] { "hadoop" });
+    ServiceAuthorizationManager serviceAuthorizationManager = new ServiceAuthorizationManager();
+    SecurityUtil.setSecurityInfoProviders(new CustomSecurityInfo());
+    Configuration conf = new Configuration();
+    conf.set("dfs.datanode.kerberos.principal", "dn/_HOST@EXAMPLE.COM");
+    conf.set(ACL_CONFIG, "user1 hadoop");
+    serviceAuthorizationManager.refresh(conf, new TestPolicyProvider());
+    try {
+        serviceAuthorizationManager.authorize(hdfsUser, TestProtocol.class, conf, InetAddress.getByName(ADDRESS));
+    } catch (AuthorizationException e) {
+        fail();
+    }
+}

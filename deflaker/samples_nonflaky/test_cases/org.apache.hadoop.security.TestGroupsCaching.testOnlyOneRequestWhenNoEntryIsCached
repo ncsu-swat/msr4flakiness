@@ -1,0 +1,32 @@
+@Test
+public void testOnlyOneRequestWhenNoEntryIsCached() throws Exception {
+    // Disable negative cache.
+    conf.setLong(CommonConfigurationKeys.HADOOP_SECURITY_GROUPS_NEGATIVE_CACHE_SECS, 0);
+    final Groups groups = new Groups(conf);
+    groups.cacheGroupsAdd(Arrays.asList(myGroups));
+    groups.refresh();
+    FakeGroupMapping.clearBlackList();
+    FakeGroupMapping.setGetGroupsDelayMs(100);
+    ArrayList<Thread> threads = new ArrayList<Thread>();
+    for (int i = 0; i < 10; i++) {
+        threads.add(new Thread() {
+
+            public void run() {
+                try {
+                    assertEquals(2, groups.getGroups("me").size());
+                } catch (IOException e) {
+                    fail("Should not happen");
+                }
+            }
+        });
+    }
+    // We start a bunch of threads who all see no cached value
+    for (Thread t : threads) {
+        t.start();
+    }
+    for (Thread t : threads) {
+        t.join();
+    }
+    // But only one thread should have made the request
+    assertEquals(1, FakeGroupMapping.getRequestCount());
+}

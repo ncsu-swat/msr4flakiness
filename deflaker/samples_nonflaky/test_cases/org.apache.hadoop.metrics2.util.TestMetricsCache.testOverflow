@@ -1,0 +1,14 @@
+@Test
+public void testOverflow() {
+    MetricsCache cache = new MetricsCache();
+    MetricsCache.Record cr;
+    Collection<MetricsTag> t0 = Arrays.asList(makeTag("t0", "0"));
+    for (int i = 0; i < MetricsCache.MAX_RECS_PER_NAME_DEFAULT + 1; ++i) {
+        cr = cache.update(makeRecord("r", Arrays.asList(makeTag("t" + i, "" + i)), Arrays.asList(makeMetric("m", i))));
+        checkMetricValue("new metric value", cr, "m", i);
+        if (i < MetricsCache.MAX_RECS_PER_NAME_DEFAULT) {
+            assertNotNull("t0 is still there", cache.get("r", t0));
+        }
+    }
+    assertNull("t0 is gone", cache.get("r", t0));
+}

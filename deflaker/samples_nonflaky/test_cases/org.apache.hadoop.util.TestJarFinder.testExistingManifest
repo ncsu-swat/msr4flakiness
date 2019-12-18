@@ -1,0 +1,23 @@
+@Test
+public void testExistingManifest() throws Exception {
+    File dir = GenericTestUtils.getTestDir(TestJarFinder.class.getName() + "-testExistingManifest");
+    delete(dir);
+    dir.mkdirs();
+    File metaInfDir = new File(dir, "META-INF");
+    metaInfDir.mkdirs();
+    File manifestFile = new File(metaInfDir, "MANIFEST.MF");
+    Manifest manifest = new Manifest();
+    OutputStream os = new FileOutputStream(manifestFile);
+    manifest.write(os);
+    os.close();
+    File propsFile = new File(dir, "props.properties");
+    Writer writer = new FileWriter(propsFile);
+    new Properties().store(writer, "");
+    writer.close();
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    JarOutputStream zos = new JarOutputStream(baos);
+    JarFinder.jarDir(dir, "", zos);
+    JarInputStream jis = new JarInputStream(new ByteArrayInputStream(baos.toByteArray()));
+    Assert.assertNotNull(jis.getManifest());
+    jis.close();
+}

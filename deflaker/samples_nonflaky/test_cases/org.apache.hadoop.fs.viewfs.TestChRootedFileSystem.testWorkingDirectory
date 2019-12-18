@@ -1,0 +1,50 @@
+@Test
+public void testWorkingDirectory() throws Exception {
+    // First we cd to our test root
+    fSys.mkdirs(new Path("/testWd"));
+    Path workDir = new Path("/testWd");
+    fSys.setWorkingDirectory(workDir);
+    Assert.assertEquals(workDir, fSys.getWorkingDirectory());
+    fSys.setWorkingDirectory(new Path("."));
+    Assert.assertEquals(workDir, fSys.getWorkingDirectory());
+    fSys.setWorkingDirectory(new Path(".."));
+    Assert.assertEquals(workDir.getParent(), fSys.getWorkingDirectory());
+    // cd using a relative path
+    // Go back to our test root
+    workDir = new Path("/testWd");
+    fSys.setWorkingDirectory(workDir);
+    Assert.assertEquals(workDir, fSys.getWorkingDirectory());
+    Path relativeDir = new Path("existingDir1");
+    Path absoluteDir = new Path(workDir, "existingDir1");
+    fSys.mkdirs(absoluteDir);
+    fSys.setWorkingDirectory(relativeDir);
+    Assert.assertEquals(absoluteDir, fSys.getWorkingDirectory());
+    // cd using a absolute path
+    absoluteDir = new Path("/test/existingDir2");
+    fSys.mkdirs(absoluteDir);
+    fSys.setWorkingDirectory(absoluteDir);
+    Assert.assertEquals(absoluteDir, fSys.getWorkingDirectory());
+    // Now open a file relative to the wd we just set above.
+    Path absoluteFooPath = new Path(absoluteDir, "foo");
+    fSys.create(absoluteFooPath).close();
+    fSys.open(new Path("foo")).close();
+    // Now mkdir relative to the dir we cd'ed to
+    fSys.mkdirs(new Path("newDir"));
+    Assert.assertTrue(fSys.isDirectory(new Path(absoluteDir, "newDir")));
+    /* Filesystem impls (RawLocal and DistributedFileSystem do not check
+     * for existing of working dir
+    absoluteDir = getTestRootPath(fSys, "nonexistingPath");
+    try {
+      fSys.setWorkingDirectory(absoluteDir);
+      Assert.fail("cd to non existing dir should have failed");
+    } catch (Exception e) {
+      // Exception as expected
+    }
+    */
+    // Try a URI
+    final String LOCAL_FS_ROOT_URI = "file:///tmp/test";
+    absoluteDir = new Path(LOCAL_FS_ROOT_URI + "/existingDir");
+    fSys.mkdirs(absoluteDir);
+    fSys.setWorkingDirectory(absoluteDir);
+    Assert.assertEquals(absoluteDir, fSys.getWorkingDirectory());
+}

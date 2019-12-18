@@ -1,0 +1,27 @@
+@Test
+public void testReadWriteDiskValidator() throws DiskErrorException, InterruptedException {
+    int count = 100;
+    File testDir = new File(System.getProperty("test.build.data"));
+    ReadWriteDiskValidator readWriteDiskValidator = (ReadWriteDiskValidator) DiskValidatorFactory.getInstance(ReadWriteDiskValidator.NAME);
+    for (int i = 0; i < count; i++) {
+        readWriteDiskValidator.checkStatus(testDir);
+    }
+    ReadWriteDiskValidatorMetrics metric = ReadWriteDiskValidatorMetrics.getMetric(testDir.toString());
+    Assert.assertEquals("The count number of estimator in MutableQuantiles" + "metrics of file read is not right", metric.getFileReadQuantiles()[0].getEstimator().getCount(), count);
+    Assert.assertEquals("The count number of estimator in MutableQuantiles" + "metrics of file write is not right", metric.getFileWriteQuantiles()[0].getEstimator().getCount(), count);
+    MetricsSource source = ms.getSource(ReadWriteDiskValidatorMetrics.sourceName(testDir.toString()));
+    MetricsCollectorImpl collector = new MetricsCollectorImpl();
+    source.getMetrics(collector, true);
+    MetricsRecords.assertMetric(collector.getRecords().get(0), "FailureCount", 0);
+    MetricsRecords.assertMetric(collector.getRecords().get(0), "LastFailureTime", (long) 0);
+    // All MutableQuantiles haven't rolled over yet because the minimum
+    // interval is 1 hours, so we just test if these metrics exist.
+    MetricsRecords.assertMetricNotNull(collector.getRecords().get(0), "WriteLatency3600sNumOps");
+    MetricsRecords.assertMetricNotNull(collector.getRecords().get(0), "WriteLatency3600s50thPercentileLatencyMicros");
+    MetricsRecords.assertMetricNotNull(collector.getRecords().get(0), "WriteLatency86400sNumOps");
+    MetricsRecords.assertMetricNotNull(collector.getRecords().get(0), "WriteLatency864000sNumOps");
+    MetricsRecords.assertMetricNotNull(collector.getRecords().get(0), "ReadLatency3600sNumOps");
+    MetricsRecords.assertMetricNotNull(collector.getRecords().get(0), "ReadLatency3600s50thPercentileLatencyMicros");
+    MetricsRecords.assertMetricNotNull(collector.getRecords().get(0), "ReadLatency86400sNumOps");
+    MetricsRecords.assertMetricNotNull(collector.getRecords().get(0), "ReadLatency864000sNumOps");
+}

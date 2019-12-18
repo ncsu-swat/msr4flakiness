@@ -1,0 +1,23 @@
+/**
+ * test Syncable interface on raw local file system
+ * @throws IOException
+ */
+@Test
+public void testSyncable() throws IOException {
+    FileSystem fs = fileSys.getRawFileSystem();
+    Path file = new Path(TEST_ROOT_DIR, "syncable");
+    FSDataOutputStream out = fs.create(file);
+    ;
+    final int bytesWritten = 1;
+    byte[] expectedBuf = new byte[] { '0', '1', '2', '3' };
+    try {
+        out.write(expectedBuf, 0, 1);
+        out.hflush();
+        verifyFile(fs, file, bytesWritten, expectedBuf);
+        out.write(expectedBuf, bytesWritten, expectedBuf.length - bytesWritten);
+        out.hsync();
+        verifyFile(fs, file, expectedBuf.length, expectedBuf);
+    } finally {
+        out.close();
+    }
+}

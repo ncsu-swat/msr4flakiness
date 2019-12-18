@@ -1,0 +1,23 @@
+/**
+ * This test takes advantage of the invariant winutils path is valid
+ * or access to it will raise an exception holds on Linux, and without
+ * any winutils binary even if HADOOP_HOME points to a real hadoop
+ * directory, the exception reporting can be validated
+ */
+@Test
+public void testNoWinutilsOnUnix() throws Throwable {
+    Assume.assumeFalse(WINDOWS);
+    try {
+        getWinUtilsFile();
+    } catch (FileNotFoundException ex) {
+        assertExContains(ex, E_NOT_A_WINDOWS_SYSTEM);
+    }
+    try {
+        getWinUtilsPath();
+    } catch (RuntimeException ex) {
+        assertExContains(ex, E_NOT_A_WINDOWS_SYSTEM);
+        if (ex.getCause() == null || !(ex.getCause() instanceof FileNotFoundException)) {
+            throw ex;
+        }
+    }
+}

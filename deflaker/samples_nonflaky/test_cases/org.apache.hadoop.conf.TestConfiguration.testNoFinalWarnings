@@ -1,0 +1,31 @@
+@Test
+public void testNoFinalWarnings() throws Exception {
+    // Make a configuration file with a final property
+    StringWriter writer = new StringWriter();
+    out = new BufferedWriter(writer);
+    startConfig();
+    declareProperty("prop", "A", "A", true);
+    endConfig();
+    byte[] bytes = writer.toString().getBytes();
+    // The 2 input streams both have the same config file
+    InputStream in1 = new ByteArrayInputStream(bytes);
+    InputStream in2 = new ByteArrayInputStream(bytes);
+    // Attach our own log appender so we can verify output
+    TestAppender appender = new TestAppender();
+    final Logger logger = Logger.getRootLogger();
+    logger.addAppender(appender);
+    try {
+        // Add the resource twice from a stream - should not generate warnings
+        conf.addResource(in1);
+        conf.addResource(in2);
+        assertEquals("A", conf.get("prop"));
+        List<LoggingEvent> events = appender.getLog();
+        for (LoggingEvent loggingEvent : events) {
+            System.out.println("Event = " + loggingEvent.getRenderedMessage());
+        }
+        assertTrue("adding same resource twice should not cause logging", events.isEmpty());
+    } finally {
+        // Make sure the appender is removed
+        logger.removeAppender(appender);
+    }
+}

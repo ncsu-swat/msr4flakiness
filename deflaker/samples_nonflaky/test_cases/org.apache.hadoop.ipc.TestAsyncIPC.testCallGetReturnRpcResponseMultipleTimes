@@ -1,0 +1,20 @@
+@Test(timeout = 60000)
+public void testCallGetReturnRpcResponseMultipleTimes() throws IOException, InterruptedException, ExecutionException {
+    int handlerCount = 10, callCount = 100;
+    Server server = new TestIPC.TestServer(handlerCount, false, conf);
+    InetSocketAddress addr = NetUtils.getConnectAddress(server);
+    server.start();
+    final Client client = new Client(LongWritable.class, conf);
+    int asyncCallCount = client.getAsyncCallCount();
+    try {
+        AsyncCaller caller = new AsyncCaller(client, addr, callCount);
+        caller.run();
+        caller.assertReturnValues();
+        caller.assertReturnValues();
+        caller.assertReturnValues();
+        Assert.assertEquals(asyncCallCount, client.getAsyncCallCount());
+    } finally {
+        client.stop();
+        server.stop();
+    }
+}

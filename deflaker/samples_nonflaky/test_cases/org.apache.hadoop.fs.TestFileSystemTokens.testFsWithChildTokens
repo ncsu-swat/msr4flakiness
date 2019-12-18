@@ -1,0 +1,19 @@
+@Test
+public void testFsWithChildTokens() throws Exception {
+    Credentials credentials = new Credentials();
+    Text service1 = new Text("singleTokenFs1");
+    Text service2 = new Text("singleTokenFs2");
+    MockFileSystem fs1 = createFileSystemForServiceName(service1);
+    MockFileSystem fs2 = createFileSystemForServiceName(service2);
+    MockFileSystem fs3 = createFileSystemForServiceName(null);
+    MockFileSystem multiFs = createFileSystemForServiceName(null, fs1, fs2, fs3);
+    multiFs.addDelegationTokens(renewer, credentials);
+    // has no tokens of own, only child tokens
+    verifyTokenFetch(multiFs, false);
+    verifyTokenFetch(fs1, true);
+    verifyTokenFetch(fs2, true);
+    verifyTokenFetch(fs3, false);
+    assertEquals(2, credentials.numberOfTokens());
+    assertNotNull(credentials.getToken(service1));
+    assertNotNull(credentials.getToken(service2));
+}

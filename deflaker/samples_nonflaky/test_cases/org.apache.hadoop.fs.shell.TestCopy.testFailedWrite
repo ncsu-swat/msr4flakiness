@@ -1,0 +1,22 @@
+/**
+ * Create a file but fail in the write.
+ * The copy operation should attempt to clean up by
+ * closing the output stream then deleting it.
+ */
+@Test
+public void testFailedWrite() throws Exception {
+    FSDataOutputStream out = mock(FSDataOutputStream.class);
+    doThrow(new IOException("mocked")).when(out).write(any(byte[].class), anyInt(), anyInt());
+    whenFsCreate().thenReturn(out);
+    when(mockFs.getFileStatus(eq(tmpPath))).thenReturn(fileStat);
+    FSInputStream in = mock(FSInputStream.class);
+    doReturn(0).when(in).read(any(byte[].class), anyInt(), anyInt());
+    Throwable thrown = tryCopyStream(in, false);
+    assertExceptionContains("mocked", thrown);
+    verify(in).close();
+    verify(out, times(2)).close();
+    verify(mockFs).delete(eq(tmpPath), anyBoolean());
+    verify(mockFs, never()).rename(any(Path.class), any(Path.class));
+    verify(mockFs, never()).delete(eq(path), anyBoolean());
+    verify(mockFs, never()).close();
+}

@@ -1,0 +1,25 @@
+/**
+ * Test parsing /proc/meminfo
+ * @throws IOException
+ */
+@Test
+public void parsingProcMemFileWithBadValues() throws IOException {
+    long memTotal = 4058864L;
+    // bad value should return 0
+    long memFree = 0L;
+    long inactive = 567732L;
+    long swapTotal = 2096472L;
+    // bad value should return 0
+    long swapFree = 0L;
+    int nrHugePages = 10;
+    String badFreeValue = "18446744073709551596";
+    File tempFile = new File(FAKE_MEMFILE);
+    tempFile.deleteOnExit();
+    FileWriter fWriter = new FileWriter(FAKE_MEMFILE);
+    fWriter.write(String.format(MEMINFO_FORMAT3, memTotal, badFreeValue, inactive, swapTotal, badFreeValue, nrHugePages));
+    fWriter.close();
+    assertEquals(plugin.getAvailablePhysicalMemorySize(), 1024L * (memFree + inactive));
+    assertEquals(plugin.getAvailableVirtualMemorySize(), 1024L * (memFree + inactive + swapFree));
+    assertEquals(plugin.getPhysicalMemorySize(), 1024L * (memTotal - (nrHugePages * 2048)));
+    assertEquals(plugin.getVirtualMemorySize(), 1024L * (memTotal - (nrHugePages * 2048) + swapTotal));
+}

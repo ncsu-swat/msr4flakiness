@@ -1,0 +1,37 @@
+@Test
+public void testNodeHealthScript() throws Exception {
+    String errorScript = "echo ERROR\n echo \"Tracker not healthy\"";
+    String normalScript = "echo \"I am all fine\"";
+    String timeOutScript = Shell.WINDOWS ? "@echo off\nping -n 4 127.0.0.1 >nul\necho \"I am fine\"" : "sleep 4\necho \"I am fine\"";
+    String exitCodeScript = "exit 127";
+    Configuration conf = new Configuration();
+    writeNodeHealthScriptFile(normalScript, true);
+    NodeHealthScriptRunner nodeHealthScriptRunner = createNodeHealthScript();
+    nodeHealthScriptRunner.init(conf);
+    TimerTask timerTask = nodeHealthScriptRunner.getTimerTask();
+    timerTask.run();
+    // Normal Script runs successfully
+    assertTrue("Node health status reported unhealthy", nodeHealthScriptRunner.isHealthy());
+    assertTrue(nodeHealthScriptRunner.getHealthReport().isEmpty());
+    // Error script.
+    writeNodeHealthScriptFile(errorScript, true);
+    // Run timer
+    timerTask.run();
+    assertFalse("Node health status reported healthy", nodeHealthScriptRunner.isHealthy());
+    assertTrue(nodeHealthScriptRunner.getHealthReport().contains("ERROR"));
+    // Healthy script.
+    writeNodeHealthScriptFile(normalScript, true);
+    timerTask.run();
+    assertTrue("Node health status reported unhealthy", nodeHealthScriptRunner.isHealthy());
+    assertTrue(nodeHealthScriptRunner.getHealthReport().isEmpty());
+    // Timeout script.
+    writeNodeHealthScriptFile(timeOutScript, true);
+    timerTask.run();
+    assertFalse("Node health status reported healthy even after timeout", nodeHealthScriptRunner.isHealthy());
+    assertEquals(NodeHealthScriptRunner.NODE_HEALTH_SCRIPT_TIMED_OUT_MSG, nodeHealthScriptRunner.getHealthReport());
+    // Exit code 127
+    writeNodeHealthScriptFile(exitCodeScript, true);
+    timerTask.run();
+    assertTrue("Node health status reported unhealthy", nodeHealthScriptRunner.isHealthy());
+    assertEquals("", nodeHealthScriptRunner.getHealthReport());
+}

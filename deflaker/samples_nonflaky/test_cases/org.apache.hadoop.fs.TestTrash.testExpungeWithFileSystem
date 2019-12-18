@@ -1,0 +1,49 @@
+@Test
+public void testExpungeWithFileSystem() throws Exception {
+    {
+        Configuration config = new Configuration();
+        config.setClass("fs.testlfs.impl", TestLFS.class, FileSystem.class);
+        TestLFS testlfs = new TestLFS();
+        testlfs.setUri("testlfs:/");
+        URI testlfsURI = testlfs.getUri();
+        config.set("fs.defaultFS", testlfsURI.toString());
+        // 10 minute
+        config.setLong(FS_TRASH_INTERVAL_KEY, 10);
+        assertTrue(new Trash(config).isEnabled());
+        FileSystem.addFileSystemForTesting(testlfsURI, config, testlfs);
+        testlfs.initialize(testlfsURI, config);
+        FsShell testlfsshell = new FsShell();
+        testlfsshell.setConf(config);
+        Path trashRoot = testlfsshell.getCurrentTrashDir();
+        long trashInterval = config.getLong(FS_TRASH_INTERVAL_KEY, FS_TRASH_INTERVAL_DEFAULT);
+        long now = Time.now();
+        DateFormat checkpointFormat = new SimpleDateFormat("yyMMddHHmm");
+        Path oldCheckpoint = new Path(trashRoot.getParent(), checkpointFormat.format(now - (trashInterval * 60 * 1000) - 1));
+        Path recentCheckpoint = new Path(trashRoot.getParent(), checkpointFormat.format(now));
+        Path currentFolder = new Path(trashRoot.getParent(), "Current");
+        Path myPath = new Path(TEST_DIR, "test/mkdirs");
+        Path myFile = new Path(TEST_DIR, "test/mkdirs/testFile");
+        mkdir(testlfs, oldCheckpoint);
+        mkdir(testlfs, recentCheckpoint);
+        mkdir(testlfs, currentFolder);
+        mkdir(testlfs, myPath);
+        writeFile(testlfs, myFile, 10);
+        String[] args = new String[] { "-expunge", "-immediate", "-fs", "testlfs:/" };
+        int val = testlfsshell.run(args);
+        assertEquals("Expunge immediate with filesystem should return zero", 0, val);
+        assertFalse("Old checkpoint should be removed", testlfs.exists(oldCheckpoint));
+        assertFalse("Recent checkpoint should be removed", testlfs.exists(recentCheckpoint));
+        assertFalse("Current folder should be removed", testlfs.exists(currentFolder));
+        assertEquals("Ensure trash folder is empty", 0, testlfs.listStatus(trashRoot.getParent()).length);
+        // Incorrect FileSystem scheme
+        String incorrectFS = "incorrectfs:/";
+        args = new String[] { "-expunge", "-immediate", "-fs", incorrectFS };
+        val = testlfsshell.run(args);
+        assertEquals("Expunge immediate should return exit code 1 when " + "incorrect Filesystem is passed", 1, val);
+        // Empty FileSystem scheme
+        args = new String[] { "-expunge", "-immediate", "-fs", "" };
+        val = testlfsshell.run(args);
+        assertNotEquals("Expunge immediate should fail when filesystem is NULL", 0, val);
+        FileSystem.removeFileSystemForTesting(testlfsURI, config, testlfs);
+    }
+}

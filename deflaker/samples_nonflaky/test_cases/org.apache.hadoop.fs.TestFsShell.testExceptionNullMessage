@@ -1,0 +1,17 @@
+@Test
+public void testExceptionNullMessage() throws Exception {
+    final String cmdName = "-cmdExNullMsg";
+    final Command cmd = Mockito.mock(Command.class);
+    Mockito.when(cmd.run(Mockito.any())).thenThrow(new IllegalArgumentException());
+    Mockito.when(cmd.getUsage()).thenReturn(cmdName);
+    final CommandFactory cmdFactory = Mockito.mock(CommandFactory.class);
+    final String[] names = { cmdName };
+    Mockito.when(cmdFactory.getNames()).thenReturn(names);
+    Mockito.when(cmdFactory.getInstance(cmdName)).thenReturn(cmd);
+    FsShell shell = new FsShell(new Configuration());
+    shell.commandFactory = cmdFactory;
+    try (GenericTestUtils.SystemErrCapturer capture = new GenericTestUtils.SystemErrCapturer()) {
+        ToolRunner.run(shell, new String[] { cmdName });
+        Assert.assertThat(capture.getOutput(), StringContains.containsString(cmdName + ": Null exception message"));
+    }
+}

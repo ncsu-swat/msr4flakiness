@@ -1,0 +1,14 @@
+/**
+ * test proxy methods
+ */
+@Test(timeout = 5000)
+public void testProxy() throws Exception {
+    SocksSocketFactory templateWithoutProxy = new SocksSocketFactory();
+    Proxy proxy = new Proxy(Type.SOCKS, InetSocketAddress.createUnresolved("localhost", 0));
+    SocksSocketFactory templateWithProxy = new SocksSocketFactory(proxy);
+    assertThat(templateWithoutProxy).isNotEqualTo(templateWithProxy);
+    Configuration configuration = new Configuration();
+    configuration.set("hadoop.socks.server", "localhost:0");
+    templateWithoutProxy.setConf(configuration);
+    assertThat(templateWithoutProxy).isEqualTo(templateWithProxy);
+}

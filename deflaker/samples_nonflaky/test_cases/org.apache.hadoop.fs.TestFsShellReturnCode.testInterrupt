@@ -1,0 +1,22 @@
+@Test(timeout = 30000)
+public void testInterrupt() throws Exception {
+    MyFsShell shell = new MyFsShell();
+    shell.setConf(new Configuration());
+    final Path d = new Path(TEST_ROOT_DIR, "testInterrupt");
+    final Path f1 = new Path(d, "f1");
+    final Path f2 = new Path(d, "f2");
+    assertTrue(fileSys.mkdirs(d));
+    writeFile(fileSys, f1);
+    assertTrue(fileSys.isFile(f1));
+    writeFile(fileSys, f2);
+    assertTrue(fileSys.isFile(f2));
+    int exitCode = shell.run(new String[] { "-testInterrupt", f1.toString(), f2.toString() });
+    // processing a file throws an interrupt, it should blow on first file
+    assertEquals(1, InterruptCommand.processed);
+    assertEquals(130, exitCode);
+    exitCode = shell.run(new String[] { "-testInterrupt", d.toString() });
+    // processing a file throws an interrupt, it should blow on file
+    // after descent into dir
+    assertEquals(2, InterruptCommand.processed);
+    assertEquals(130, exitCode);
+}

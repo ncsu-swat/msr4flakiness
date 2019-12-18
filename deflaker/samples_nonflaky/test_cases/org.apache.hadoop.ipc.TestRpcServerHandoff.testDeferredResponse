@@ -1,0 +1,22 @@
+@Test(timeout = 10000)
+public void testDeferredResponse() throws IOException, InterruptedException, ExecutionException {
+    ServerForHandoffTest server = new ServerForHandoffTest(2);
+    server.start();
+    try {
+        InetSocketAddress serverAddress = NetUtils.getConnectAddress(server);
+        byte[] requestBytes = generateRandomBytes(1024);
+        ClientCallable clientCallable = new ClientCallable(serverAddress, conf, requestBytes);
+        FutureTask<Writable> future = new FutureTask<Writable>(clientCallable);
+        Thread clientThread = new Thread(future);
+        clientThread.start();
+        server.awaitInvocation();
+        awaitResponseTimeout(future);
+        server.sendResponse();
+        BytesWritable response = (BytesWritable) future.get();
+        Assert.assertEquals(new BytesWritable(requestBytes), response);
+    } finally {
+        if (server != null) {
+            server.stop();
+        }
+    }
+}

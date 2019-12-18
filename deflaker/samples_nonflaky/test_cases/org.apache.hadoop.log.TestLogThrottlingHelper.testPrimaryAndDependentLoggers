@@ -1,0 +1,18 @@
+@Test
+public void testPrimaryAndDependentLoggers() {
+    helper = new LogThrottlingHelper(LOG_PERIOD, "foo", timer);
+    assertTrue(helper.record("foo", 0).shouldLog());
+    assertTrue(helper.record("bar", 0).shouldLog());
+    assertFalse(helper.record("bar", 0).shouldLog());
+    assertFalse(helper.record("foo", 0).shouldLog());
+    assertFalse(helper.record("foo", LOG_PERIOD / 2).shouldLog());
+    assertFalse(helper.record("bar", LOG_PERIOD / 2).shouldLog());
+    // Both should log once the period has elapsed
+    assertTrue(helper.record("foo", LOG_PERIOD).shouldLog());
+    assertTrue(helper.record("bar", LOG_PERIOD).shouldLog());
+    // "bar" should not log yet because "foo" hasn't been triggered
+    assertFalse(helper.record("bar", LOG_PERIOD * 2).shouldLog());
+    assertTrue(helper.record("foo", LOG_PERIOD * 2).shouldLog());
+    // The timing of "bar" shouldn't matter as it is dependent on "foo"
+    assertTrue(helper.record("bar", 0).shouldLog());
+}

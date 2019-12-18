@@ -1,0 +1,12 @@
+/**
+ * Test that automatic failover won't run against a target that hasn't
+ * explicitly enabled the feature.
+ */
+@Test
+public void testWontRunWhenAutoFailoverDisabled() throws Exception {
+    DummyHAService svc = cluster.getService(1);
+    svc = Mockito.spy(svc);
+    Mockito.doReturn(false).when(svc).isAutoFailoverEnabled();
+    assertEquals(ZKFailoverController.ERR_CODE_AUTO_FAILOVER_NOT_ENABLED, runFC(svc, "-formatZK"));
+    assertEquals(ZKFailoverController.ERR_CODE_AUTO_FAILOVER_NOT_ENABLED, runFC(svc));
+}

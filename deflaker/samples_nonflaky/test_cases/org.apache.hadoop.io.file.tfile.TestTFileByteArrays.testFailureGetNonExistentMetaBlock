@@ -1,0 +1,23 @@
+@Test
+public void testFailureGetNonExistentMetaBlock() throws IOException {
+    if (skip)
+        return;
+    writer.append("keyX".getBytes(), "valueX".getBytes());
+    // create a new metablock
+    DataOutputStream outMeta = writer.prepareMetaBlock("testX", Compression.Algorithm.GZ.getName());
+    outMeta.write(123);
+    outMeta.write("foo".getBytes());
+    outMeta.close();
+    closeOutput();
+    Reader reader = new Reader(fs.open(path), fs.getFileStatus(path).getLen(), conf);
+    DataInputStream mb = reader.getMetaBlock("testX");
+    Assert.assertNotNull(mb);
+    mb.close();
+    try {
+        DataInputStream mbBad = reader.getMetaBlock("testY");
+        Assert.fail("Error on handling non-existent metablocks.");
+    } catch (Exception e) {
+    // noop, expecting exceptions
+    }
+    reader.close();
+}

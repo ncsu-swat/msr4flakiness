@@ -1,0 +1,27 @@
+@Test
+public void testRealUserGroupAuthorizationFailure() throws IOException {
+    final Configuration conf = new Configuration();
+    configureSuperUserIPAddresses(conf, REAL_USER_SHORT_NAME);
+    conf.setStrings(DefaultImpersonationProvider.getTestProvider().getProxySuperuserGroupConfKey(REAL_USER_SHORT_NAME), "group3");
+    RPC.setProtocolEngine(conf, TestRpcService.class, ProtobufRpcEngine.class);
+    UserGroupInformation.setConfiguration(conf);
+    final Server server = setupTestServer(conf, 2);
+    refreshConf(conf);
+    try {
+        UserGroupInformation realUserUgi = UserGroupInformation.createRemoteUser(REAL_USER_NAME);
+        UserGroupInformation proxyUserUgi = UserGroupInformation.createProxyUserForTesting(PROXY_USER_NAME, realUserUgi, GROUP_NAMES);
+        String retVal = proxyUserUgi.doAs(new PrivilegedExceptionAction<String>() {
+
+            @Override
+            public String run() throws ServiceException {
+                client = getClient(addr, conf);
+                return client.getCurrentUser(null, newEmptyRequest()).getUser();
+            }
+        });
+        Assert.fail("The RPC must have failed " + retVal);
+    } catch (Exception e) {
+        e.printStackTrace();
+    } finally {
+        stop(server, client);
+    }
+}

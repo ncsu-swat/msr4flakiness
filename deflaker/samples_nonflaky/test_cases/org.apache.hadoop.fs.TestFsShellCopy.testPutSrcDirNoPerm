@@ -1,0 +1,20 @@
+@Test
+public void testPutSrcDirNoPerm() throws Exception {
+    final Path src = new Path(testRootDir, "srcNoPerm");
+    final Path dst = new Path(testRootDir, "dst");
+    lfs.delete(src, true);
+    lfs.mkdirs(src, new FsPermission((short) 0));
+    lfs.delete(dst, true);
+    try {
+        final ByteArrayOutputStream err = new ByteArrayOutputStream();
+        PrintStream oldErr = System.err;
+        System.setErr(new PrintStream(err));
+        shellRun(1, "-put", src.toString(), dst.toString());
+        System.setErr(oldErr);
+        System.err.print(err.toString());
+        assertTrue(err.toString().contains(FSExceptionMessages.PERMISSION_DENIED));
+    } finally {
+        // Make sure the test directory can be deleted
+        lfs.setPermission(src, new FsPermission((short) 0755));
+    }
+}

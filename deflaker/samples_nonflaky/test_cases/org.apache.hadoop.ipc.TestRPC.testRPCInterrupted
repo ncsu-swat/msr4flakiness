@@ -1,0 +1,55 @@
+@Test(timeout = 30000)
+public void testRPCInterrupted() throws Exception {
+    Server server;
+    RPC.Builder builder = newServerBuilder(conf).setNumHandlers(5).setVerbose(true).setSecretManager(null);
+    server = setupTestServer(builder);
+    int numConcurrentRPC = 200;
+    final CyclicBarrier barrier = new CyclicBarrier(numConcurrentRPC);
+    final CountDownLatch latch = new CountDownLatch(numConcurrentRPC);
+    final AtomicBoolean leaderRunning = new AtomicBoolean(true);
+    final AtomicReference<Throwable> error = new AtomicReference<>();
+    Thread leaderThread = null;
+    try {
+        for (int i = 0; i < numConcurrentRPC; i++) {
+            final int num = i;
+            final TestRpcService proxy = getClient(addr, conf);
+            Thread rpcThread = new Thread(new Runnable() {
+
+                @Override
+                public void run() {
+                    try {
+                        barrier.await();
+                        while (num == 0 || leaderRunning.get()) {
+                            proxy.slowPing(null, newSlowPingRequest(false));
+                        }
+                        proxy.slowPing(null, newSlowPingRequest(false));
+                    } catch (Exception e) {
+                        if (num == 0) {
+                            leaderRunning.set(false);
+                        } else {
+                            error.set(e);
+                        }
+                        LOG.error("thread " + num, e);
+                    } finally {
+                        latch.countDown();
+                    }
+                }
+            });
+            rpcThread.start();
+            if (leaderThread == null) {
+                leaderThread = rpcThread;
+            }
+        }
+        // let threads get past the barrier
+        Thread.sleep(1000);
+        // stop a single thread
+        while (leaderRunning.get()) {
+            leaderThread.interrupt();
+        }
+        latch.await();
+        // should not cause any other thread to get an error
+        assertTrue("rpc got exception " + error.get(), error.get() == null);
+    } finally {
+        server.stop();
+    }
+}

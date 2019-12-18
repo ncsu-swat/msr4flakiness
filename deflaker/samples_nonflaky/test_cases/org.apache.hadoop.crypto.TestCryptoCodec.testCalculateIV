@@ -1,0 +1,35 @@
+/**
+ * Regression test for IV calculation, see HADOOP-11343
+ */
+@Test(timeout = 120000)
+public void testCalculateIV() throws Exception {
+    JceAesCtrCryptoCodec codec = new JceAesCtrCryptoCodec();
+    codec.setConf(conf);
+    SecureRandom sr = new SecureRandom();
+    byte[] initIV = new byte[16];
+    byte[] IV = new byte[16];
+    long iterations = 1000;
+    long counter = 10000;
+    // Overflow test, IV: 00 00 00 00 00 00 00 00 ff ff ff ff ff ff ff ff
+    for (int i = 0; i < 8; i++) {
+        initIV[8 + i] = (byte) 0xff;
+    }
+    for (long j = 0; j < counter; j++) {
+        assertIVCalculation(codec, initIV, j, IV);
+    }
+    // Random IV and counter sequence test
+    for (long i = 0; i < iterations; i++) {
+        sr.nextBytes(initIV);
+        for (long j = 0; j < counter; j++) {
+            assertIVCalculation(codec, initIV, j, IV);
+        }
+    }
+    // Random IV and random counter test
+    for (long i = 0; i < iterations; i++) {
+        sr.nextBytes(initIV);
+        for (long j = 0; j < counter; j++) {
+            long c = sr.nextLong();
+            assertIVCalculation(codec, initIV, c, IV);
+        }
+    }
+}

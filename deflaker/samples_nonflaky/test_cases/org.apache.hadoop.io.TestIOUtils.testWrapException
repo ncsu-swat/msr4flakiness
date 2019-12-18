@@ -1,0 +1,12 @@
+@Test
+public void testWrapException() throws Exception {
+    // Test for IOException with valid (String) constructor
+    LambdaTestUtils.intercept(EOFException.class, "Failed with java.io.EOFException while processing file/directory " + ":[/tmp/abc.txt] in method:[testWrapException]", () -> {
+        throw IOUtils.wrapException("/tmp/abc.txt", "testWrapException", new EOFException("EOFException "));
+    });
+    // Test for IOException with  no (String) constructor
+    PathIOException returnedEx = LambdaTestUtils.intercept(PathIOException.class, "Input/output error:", () -> {
+        throw IOUtils.wrapException("/tmp/abc.txt", "testWrapEx", new CharacterCodingException());
+    });
+    assertEquals("/tmp/abc.txt", returnedEx.getPath().toString());
+}

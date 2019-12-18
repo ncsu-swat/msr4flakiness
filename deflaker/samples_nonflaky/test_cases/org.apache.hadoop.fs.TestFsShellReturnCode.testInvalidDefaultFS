@@ -1,0 +1,30 @@
+@Test(timeout = 30000)
+public void testInvalidDefaultFS() throws Exception {
+    // if default fs doesn't exist or is invalid, but the path provided in
+    // arguments is valid - fsshell should work
+    FsShell shell = new FsShell();
+    Configuration conf = new Configuration();
+    conf.set(FS_DEFAULT_NAME_KEY, "hhhh://doesnotexist/");
+    shell.setConf(conf);
+    String[] args = new String[2];
+    args[0] = "-ls";
+    // this is valid, so command should run
+    args[1] = "file:///";
+    int res = shell.run(args);
+    System.out.println("res =" + res);
+    shell.setConf(conf);
+    final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+    final PrintStream out = new PrintStream(bytes);
+    final PrintStream oldErr = System.err;
+    System.setErr(out);
+    final String results;
+    try {
+        int run = shell.run(args);
+        results = bytes.toString();
+        LOG.info("result=" + results);
+        assertTrue("Return code should be 0", run == 0);
+    } finally {
+        IOUtils.closeStream(out);
+        System.setErr(oldErr);
+    }
+}

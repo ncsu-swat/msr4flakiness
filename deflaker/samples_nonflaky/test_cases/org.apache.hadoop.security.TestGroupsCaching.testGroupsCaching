@@ -1,0 +1,28 @@
+@Test
+public void testGroupsCaching() throws Exception {
+    // Disable negative cache.
+    conf.setLong(CommonConfigurationKeys.HADOOP_SECURITY_GROUPS_NEGATIVE_CACHE_SECS, 0);
+    Groups groups = new Groups(conf);
+    groups.cacheGroupsAdd(Arrays.asList(myGroups));
+    groups.refresh();
+    FakeGroupMapping.clearBlackList();
+    FakeGroupMapping.addToBlackList("user1");
+    // regular entry
+    assertTrue(groups.getGroups("me").size() == 2);
+    // this must be cached. blacklisting should have no effect.
+    FakeGroupMapping.addToBlackList("me");
+    assertTrue(groups.getGroups("me").size() == 2);
+    // ask for a negative entry
+    try {
+        TESTLOG.error("We are not supposed to get here." + groups.getGroups("user1").toString());
+        fail();
+    } catch (IOException ioe) {
+        if (!ioe.getMessage().startsWith("No groups found")) {
+            TESTLOG.error("Got unexpected exception: " + ioe.getMessage());
+            fail();
+        }
+    }
+    // this shouldn't be cached. remove from the black list and retry.
+    FakeGroupMapping.clearBlackList();
+    assertTrue(groups.getGroups("user1").size() == 2);
+}

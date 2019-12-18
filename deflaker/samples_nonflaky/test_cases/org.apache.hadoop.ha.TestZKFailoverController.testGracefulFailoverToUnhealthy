@@ -1,0 +1,15 @@
+@Test
+public void testGracefulFailoverToUnhealthy() throws Exception {
+    cluster.start();
+    cluster.waitForActiveLockHolder(0);
+    // Mark it unhealthy, wait for it to exit election
+    cluster.setHealthy(1, false);
+    cluster.waitForElectorState(1, ActiveStandbyElector.State.INIT);
+    // Ask for failover, it should fail, because it's unhealthy
+    try {
+        cluster.getService(1).getZKFCProxy(conf, 5000).gracefulFailover();
+        fail("Did not fail to graceful failover to unhealthy service!");
+    } catch (ServiceFailedException sfe) {
+        GenericTestUtils.assertExceptionContains(cluster.getService(1).toString() + " is not currently healthy.", sfe);
+    }
+}

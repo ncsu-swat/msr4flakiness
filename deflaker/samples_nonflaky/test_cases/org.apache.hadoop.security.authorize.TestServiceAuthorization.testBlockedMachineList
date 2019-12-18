@@ -1,0 +1,30 @@
+@Test
+public void testBlockedMachineList() throws UnknownHostException {
+    UserGroupInformation drwho = UserGroupInformation.createUserForTesting("drwho@EXAMPLE.COM", new String[] { "group1", "group2" });
+    ServiceAuthorizationManager serviceAuthorizationManager = new ServiceAuthorizationManager();
+    Configuration conf = new Configuration();
+    // test without setting a blocked MachineList
+    serviceAuthorizationManager.refresh(conf, new TestPolicyProvider());
+    try {
+        serviceAuthorizationManager.authorize(drwho, TestProtocol.class, conf, InetAddress.getByName("10.222.0.0"));
+    } catch (AuthorizationException e) {
+        fail();
+    }
+    // now set a blocked MachineList
+    conf.set(BLOCKED_HOST_CONFIG, IP_RANGE);
+    serviceAuthorizationManager.refresh(conf, new TestPolicyProvider());
+    try {
+        serviceAuthorizationManager.authorize(drwho, TestProtocol.class, conf, InetAddress.getByName("10.222.0.0"));
+        fail();
+    } catch (AuthorizationException e) {
+    // expects Exception
+    }
+    // reset blocked MachineList
+    conf.set(BLOCKED_HOST_CONFIG, "");
+    serviceAuthorizationManager.refresh(conf, new TestPolicyProvider());
+    try {
+        serviceAuthorizationManager.authorize(drwho, TestProtocol.class, conf, InetAddress.getByName("10.222.0.0"));
+    } catch (AuthorizationException e) {
+        fail();
+    }
+}

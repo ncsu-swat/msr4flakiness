@@ -1,0 +1,23 @@
+/**
+ * Test that there is no retry when invalid token exception is thrown.
+ * Verfies fix for HADOOP-12054
+ */
+@Test(expected = InvalidToken.class)
+public void testNoRetryOnInvalidToken() throws IOException {
+    final Client client = new Client(LongWritable.class, conf);
+    final TestServer server = new TestServer(1, false);
+    TestInvalidTokenHandler handler = new TestInvalidTokenHandler(client, server);
+    DummyProtocol proxy = (DummyProtocol) Proxy.newProxyInstance(DummyProtocol.class.getClassLoader(), new Class[] { DummyProtocol.class }, handler);
+    FailoverProxyProvider<DummyProtocol> provider = new DefaultFailoverProxyProvider<DummyProtocol>(DummyProtocol.class, proxy);
+    DummyProtocol retryProxy = (DummyProtocol) RetryProxy.create(DummyProtocol.class, provider, RetryPolicies.failoverOnNetworkException(RetryPolicies.TRY_ONCE_THEN_FAIL, 100, 100, 10000, 0));
+    try {
+        server.start();
+        retryProxy.dummyRun();
+    } finally {
+        // Check if dummyRun called only once
+        assertThat(handler.invocations).isOne();
+        Client.setCallIdAndRetryCount(0, 0, null);
+        client.stop();
+        server.stop();
+    }
+}

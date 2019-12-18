@@ -1,0 +1,21 @@
+@Test
+public void testReadBuffer() throws IOException {
+    // 32 buf.length < 52 TEST_STRING.length()
+    byte[] buf = new byte[32];
+    int bytesToRead = TEST_STRING.length();
+    int i = 0;
+    while (bytesToRead > 0) {
+        int n = Math.min(bytesToRead, buf.length);
+        int bytesRead = decompressorStream.read(buf, 0, n);
+        assertTrue(bytesRead > 0 && bytesRead <= n);
+        assertThat(new String(buf, 0, bytesRead), is(TEST_STRING.substring(i, i + bytesRead)));
+        bytesToRead = bytesToRead - bytesRead;
+        i = i + bytesRead;
+    }
+    try {
+        int ret = decompressorStream.read(buf, 0, buf.length);
+        fail("Not reachable but got ret " + ret);
+    } catch (EOFException e) {
+    // Expect EOF exception
+    }
+}

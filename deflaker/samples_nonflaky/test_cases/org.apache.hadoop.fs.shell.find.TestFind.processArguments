@@ -1,0 +1,54 @@
+// check expressions are called in the correct order
+@Test
+public void processArguments() throws IOException {
+    LinkedList<PathData> items = createDirectories();
+    Find find = new Find();
+    find.setConf(conf);
+    PrintStream out = mock(PrintStream.class);
+    find.getOptions().setOut(out);
+    PrintStream err = mock(PrintStream.class);
+    find.getOptions().setErr(err);
+    Expression expr = mock(Expression.class);
+    when(expr.apply((PathData) any(), anyInt())).thenReturn(Result.PASS);
+    FileStatusChecker fsCheck = mock(FileStatusChecker.class);
+    Expression test = new TestExpression(expr, fsCheck);
+    find.setRootExpression(test);
+    find.processArguments(items);
+    InOrder inOrder = inOrder(expr);
+    inOrder.verify(expr).setOptions(find.getOptions());
+    inOrder.verify(expr).prepare();
+    inOrder.verify(expr).apply(item1, 0);
+    inOrder.verify(expr).apply(item1a, 1);
+    inOrder.verify(expr).apply(item1aa, 2);
+    inOrder.verify(expr).apply(item1b, 1);
+    inOrder.verify(expr).apply(item2, 0);
+    inOrder.verify(expr).apply(item3, 0);
+    inOrder.verify(expr).apply(item4, 0);
+    inOrder.verify(expr).apply(item5, 0);
+    inOrder.verify(expr).apply(item5a, 1);
+    inOrder.verify(expr).apply(item5b, 1);
+    inOrder.verify(expr).apply(item5c, 1);
+    inOrder.verify(expr).apply(item5ca, 2);
+    inOrder.verify(expr).apply(item5d, 1);
+    inOrder.verify(expr).apply(item5e, 1);
+    inOrder.verify(expr).finish();
+    verifyNoMoreInteractions(expr);
+    InOrder inOrderFsCheck = inOrder(fsCheck);
+    inOrderFsCheck.verify(fsCheck).check(item1.stat);
+    inOrderFsCheck.verify(fsCheck).check(item1a.stat);
+    inOrderFsCheck.verify(fsCheck).check(item1aa.stat);
+    inOrderFsCheck.verify(fsCheck).check(item1b.stat);
+    inOrderFsCheck.verify(fsCheck).check(item2.stat);
+    inOrderFsCheck.verify(fsCheck).check(item3.stat);
+    inOrderFsCheck.verify(fsCheck).check(item4.stat);
+    inOrderFsCheck.verify(fsCheck).check(item5.stat);
+    inOrderFsCheck.verify(fsCheck).check(item5a.stat);
+    inOrderFsCheck.verify(fsCheck).check(item5b.stat);
+    inOrderFsCheck.verify(fsCheck).check(item5c.stat);
+    inOrderFsCheck.verify(fsCheck).check(item5ca.stat);
+    inOrderFsCheck.verify(fsCheck).check(item5d.stat);
+    inOrderFsCheck.verify(fsCheck).check(item5e.stat);
+    verifyNoMoreInteractions(fsCheck);
+    verifyNoMoreInteractions(out);
+    verifyNoMoreInteractions(err);
+}

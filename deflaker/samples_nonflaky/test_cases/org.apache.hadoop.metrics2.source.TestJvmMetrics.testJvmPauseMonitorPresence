@@ -1,0 +1,24 @@
+@Test
+public void testJvmPauseMonitorPresence() {
+    pauseMonitor = new JvmPauseMonitor();
+    pauseMonitor.init(new Configuration());
+    pauseMonitor.start();
+    JvmMetrics jvmMetrics = new JvmMetrics("test", "test");
+    jvmMetrics.setPauseMonitor(pauseMonitor);
+    MetricsRecordBuilder rb = getMetrics(jvmMetrics);
+    MetricsCollector mc = rb.parent();
+    verify(mc).addRecord(JvmMetrics);
+    verify(rb).tag(ProcessName, "test");
+    verify(rb).tag(SessionId, "test");
+    for (JvmMetricsInfo info : JvmMetricsInfo.values()) {
+        if (info.name().startsWith("Mem")) {
+            verify(rb).addGauge(eq(info), anyFloat());
+        } else if (info.name().startsWith("Gc") && !info.name().equals("GcTimePercentage")) {
+            verify(rb).addCounter(eq(info), anyLong());
+        } else if (info.name().startsWith("Threads")) {
+            verify(rb).addGauge(eq(info), anyInt());
+        } else if (info.name().startsWith("Log")) {
+            verify(rb).addCounter(eq(info), anyLong());
+        }
+    }
+}

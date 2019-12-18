@@ -1,0 +1,59 @@
+@Test
+public void testCoreCounts() throws IOException {
+    String fileContent = "";
+    // single core, hyper threading
+    long numProcessors = 2;
+    long cpuFrequencyKHz = 2392781;
+    for (int i = 0; i < numProcessors; i++) {
+        fileContent = fileContent.concat(String.format(CPUINFO_FORMAT, i, cpuFrequencyKHz / 1000D, 0, 0));
+        fileContent = fileContent.concat("\n");
+    }
+    writeFakeCPUInfoFile(fileContent);
+    plugin.setReadCpuInfoFile(false);
+    assertEquals(numProcessors, plugin.getNumProcessors());
+    assertEquals(1, plugin.getNumCores());
+    // single socket quad core, no hyper threading
+    fileContent = "";
+    numProcessors = 4;
+    for (int i = 0; i < numProcessors; i++) {
+        fileContent = fileContent.concat(String.format(CPUINFO_FORMAT, i, cpuFrequencyKHz / 1000D, 0, i));
+        fileContent = fileContent.concat("\n");
+    }
+    writeFakeCPUInfoFile(fileContent);
+    plugin.setReadCpuInfoFile(false);
+    assertEquals(numProcessors, plugin.getNumProcessors());
+    assertEquals(4, plugin.getNumCores());
+    // dual socket single core, hyper threading
+    fileContent = "";
+    numProcessors = 4;
+    for (int i = 0; i < numProcessors; i++) {
+        fileContent = fileContent.concat(String.format(CPUINFO_FORMAT, i, cpuFrequencyKHz / 1000D, i / 2, 0));
+        fileContent = fileContent.concat("\n");
+    }
+    writeFakeCPUInfoFile(fileContent);
+    plugin.setReadCpuInfoFile(false);
+    assertEquals(numProcessors, plugin.getNumProcessors());
+    assertEquals(2, plugin.getNumCores());
+    // dual socket, dual core, no hyper threading
+    fileContent = "";
+    numProcessors = 4;
+    for (int i = 0; i < numProcessors; i++) {
+        fileContent = fileContent.concat(String.format(CPUINFO_FORMAT, i, cpuFrequencyKHz / 1000D, i / 2, i % 2));
+        fileContent = fileContent.concat("\n");
+    }
+    writeFakeCPUInfoFile(fileContent);
+    plugin.setReadCpuInfoFile(false);
+    assertEquals(numProcessors, plugin.getNumProcessors());
+    assertEquals(4, plugin.getNumCores());
+    // dual socket, dual core, hyper threading
+    fileContent = "";
+    numProcessors = 8;
+    for (int i = 0; i < numProcessors; i++) {
+        fileContent = fileContent.concat(String.format(CPUINFO_FORMAT, i, cpuFrequencyKHz / 1000D, i / 4, (i % 4) / 2));
+        fileContent = fileContent.concat("\n");
+    }
+    writeFakeCPUInfoFile(fileContent);
+    plugin.setReadCpuInfoFile(false);
+    assertEquals(numProcessors, plugin.getNumProcessors());
+    assertEquals(4, plugin.getNumCores());
+}

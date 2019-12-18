@@ -1,0 +1,10 @@
+@Test(timeout = 30000)
+public void testCreateSnapshot() throws Exception {
+    Path snapRootPath = new Path("/snapPath");
+    Path chRootedSnapRootPath = new Path(Path.getPathWithoutSchemeAndAuthority(chrootedTo), "snapPath");
+    AbstractFileSystem baseFs = Mockito.spy(fc.getDefaultFileSystem());
+    ChRootedFs chRootedFs = new ChRootedFs(baseFs, chrootedTo);
+    Mockito.doReturn(snapRootPath).when(baseFs).createSnapshot(chRootedSnapRootPath, "snap1");
+    Assert.assertEquals(snapRootPath, chRootedFs.createSnapshot(snapRootPath, "snap1"));
+    Mockito.verify(baseFs).createSnapshot(chRootedSnapRootPath, "snap1");
+}

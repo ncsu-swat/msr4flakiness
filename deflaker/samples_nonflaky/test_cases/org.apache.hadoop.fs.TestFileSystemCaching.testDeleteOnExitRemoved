@@ -1,0 +1,16 @@
+@Test
+public void testDeleteOnExitRemoved() throws IOException {
+    FileSystem mockFs = mock(FileSystem.class);
+    Path path;
+    try (FileSystem fs = new FilterFileSystem(mockFs)) {
+        path = new Path("/a");
+        // don't delete on close if path existed, but later removed
+        when(mockFs.getFileStatus(eq(path))).thenReturn(new FileStatus());
+        assertTrue(fs.deleteOnExit(path));
+        verify(mockFs).getFileStatus(eq(path));
+        reset(mockFs);
+        fs.close();
+    }
+    verify(mockFs).getFileStatus(eq(path));
+    verify(mockFs, never()).delete(any(Path.class), anyBoolean());
+}

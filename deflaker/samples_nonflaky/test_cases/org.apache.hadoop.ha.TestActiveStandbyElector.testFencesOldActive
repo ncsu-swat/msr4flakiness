@@ -1,0 +1,17 @@
+/**
+ * Verify that, if there is a record of a prior active node, the
+ * elector asks the application to fence it before becoming active.
+ */
+@Test
+public void testFencesOldActive() throws Exception {
+    byte[] fakeOldActiveData = new byte[0];
+    mockPriorActive(fakeOldActiveData);
+    elector.joinElection(data);
+    elector.processResult(Code.OK.intValue(), ZK_LOCK_NAME, mockZK, ZK_LOCK_NAME);
+    // Application fences active.
+    Mockito.verify(mockApp, Mockito.times(1)).fenceOldActive(fakeOldActiveData);
+    // Updates breadcrumb node to new data
+    Mockito.verify(mockZK, Mockito.times(1)).setData(Mockito.eq(ZK_BREADCRUMB_NAME), Mockito.eq(data), Mockito.eq(0));
+    // Then it becomes active itself
+    Mockito.verify(mockApp, Mockito.times(1)).becomeActive();
+}

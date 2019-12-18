@@ -1,0 +1,13 @@
+@Test(timeout = 30000)
+public void testSerDeser() throws Throwable {
+    Path source = new Path("hdfs://localhost:4040/scratch");
+    ByteArrayOutputStream baos = new ByteArrayOutputStream(256);
+    try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+        oos.writeObject(source);
+    }
+    ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+    try (ObjectInputStream ois = new ObjectInputStream(bais)) {
+        Path deser = (Path) ois.readObject();
+        Assert.assertEquals(source, deser);
+    }
+}

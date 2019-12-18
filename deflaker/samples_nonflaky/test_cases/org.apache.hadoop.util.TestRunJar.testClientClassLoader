@@ -1,0 +1,27 @@
+/**
+ * Tests the client classloader to verify the main class and its dependent
+ * class are loaded correctly by the application classloader, and others are
+ * loaded by the system classloader.
+ */
+@Test
+public void testClientClassLoader() throws Throwable {
+    RunJar runJar = spy(new RunJar());
+    // enable the client classloader
+    when(runJar.useClientClassLoader()).thenReturn(true);
+    // set the system classes and blacklist the test main class and the test
+    // third class so they can be loaded by the application classloader
+    String mainCls = ClassLoaderCheckMain.class.getName();
+    String thirdCls = ClassLoaderCheckThird.class.getName();
+    String systemClasses = "-" + mainCls + "," + "-" + thirdCls + "," + ApplicationClassLoader.SYSTEM_CLASSES_DEFAULT;
+    when(runJar.getSystemClasses()).thenReturn(systemClasses);
+    // create the test jar
+    File testJar = JarFinder.makeClassLoaderTestJar(this.getClass(), TEST_ROOT_DIR, TEST_JAR_2_NAME, BUFF_SIZE, mainCls, thirdCls);
+    // form the args
+    String[] args = new String[3];
+    args[0] = testJar.getAbsolutePath();
+    args[1] = mainCls;
+    // run RunJar
+    runJar.run(args);
+    // it should not throw an exception
+    verify(runJar, times(1)).unJar(any(File.class), any(File.class));
+}

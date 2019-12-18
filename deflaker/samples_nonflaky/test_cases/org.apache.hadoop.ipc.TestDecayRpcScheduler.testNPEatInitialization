@@ -1,0 +1,20 @@
+@Test(timeout = 60000)
+public void testNPEatInitialization() throws InterruptedException {
+    // redirect the LOG to and check if there is NPE message while initializing
+    // the DecayRpcScheduler
+    PrintStream output = System.out;
+    try {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(bytes));
+        // initializing DefaultMetricsSystem here would set "monitoring" flag in
+        // MetricsSystemImpl to true
+        DefaultMetricsSystem.initialize("NameNode");
+        Configuration conf = new Configuration();
+        scheduler = new DecayRpcScheduler(1, "ns", conf);
+        // check if there is npe in log
+        assertFalse(bytes.toString().contains("NullPointerException"));
+    } finally {
+        // set systout back
+        System.setOut(output);
+    }
+}

@@ -1,0 +1,23 @@
+/**
+ * Test writing to a file and reading its value.
+ *
+ * @throws Exception
+ */
+@Test
+public void testReadFile() throws Exception {
+    byte[] data = "yaks".getBytes();
+    Path file = touch(localFs, name.getMethodName().toLowerCase(), data);
+    FSDataInputStream is = null;
+    try {
+        is = sftpFs.open(file);
+        byte[] b = new byte[data.length];
+        is.read(b);
+        assertArrayEquals(data, b);
+    } finally {
+        if (is != null) {
+            is.close();
+        }
+    }
+    assertTrue(sftpFs.delete(file, false));
+    assertThat(((SFTPFileSystem) sftpFs).getConnectionPool().getLiveConnCount(), is(1));
+}

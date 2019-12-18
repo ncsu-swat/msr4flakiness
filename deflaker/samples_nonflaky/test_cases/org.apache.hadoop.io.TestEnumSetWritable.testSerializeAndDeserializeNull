@@ -1,0 +1,18 @@
+@SuppressWarnings("unchecked")
+@Test
+public void testSerializeAndDeserializeNull() throws IOException {
+    boolean gotException = false;
+    try {
+        new EnumSetWritable<TestEnumSet>(null);
+    } catch (RuntimeException e) {
+        gotException = true;
+    }
+    assertTrue("Instantiation of empty EnumSetWritable with no element type class " + "provided should throw exception", gotException);
+    EnumSetWritable<TestEnumSet> nullFlagWritable = new EnumSetWritable<TestEnumSet>(null, TestEnumSet.class);
+    DataOutputBuffer out = new DataOutputBuffer();
+    ObjectWritable.writeObject(out, nullFlagWritable, nullFlagWritable.getClass(), null);
+    DataInputBuffer in = new DataInputBuffer();
+    in.reset(out.getData(), out.getLength());
+    EnumSet<TestEnumSet> read = ((EnumSetWritable<TestEnumSet>) ObjectWritable.readObject(in, null)).get();
+    assertEquals(read, null);
+}

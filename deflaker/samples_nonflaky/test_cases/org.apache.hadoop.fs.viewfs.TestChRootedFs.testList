@@ -1,0 +1,30 @@
+@Test
+public void testList() throws IOException {
+    FileStatus fs = fc.getFileStatus(new Path("/"));
+    Assert.assertTrue(fs.isDirectory());
+    // should return the full path not the chrooted path
+    Assert.assertEquals(fs.getPath(), chrootedTo);
+    // list on Slash
+    FileStatus[] dirPaths = fc.util().listStatus(new Path("/"));
+    Assert.assertEquals(0, dirPaths.length);
+    fileContextTestHelper.createFileNonRecursive(fc, "/foo");
+    fileContextTestHelper.createFileNonRecursive(fc, "/bar");
+    fc.mkdir(new Path("/dirX"), FileContext.DEFAULT_PERM, false);
+    fc.mkdir(fileContextTestHelper.getTestRootPath(fc, "/dirY"), FileContext.DEFAULT_PERM, false);
+    fc.mkdir(new Path("/dirX/dirXX"), FileContext.DEFAULT_PERM, false);
+    dirPaths = fc.util().listStatus(new Path("/"));
+    Assert.assertEquals(4, dirPaths.length);
+    // Note the the file status paths are the full paths on target
+    fs = fileContextTestHelper.containsPath(fcTarget, "foo", dirPaths);
+    Assert.assertNotNull(fs);
+    Assert.assertTrue(fs.isFile());
+    fs = fileContextTestHelper.containsPath(fcTarget, "bar", dirPaths);
+    Assert.assertNotNull(fs);
+    Assert.assertTrue(fs.isFile());
+    fs = fileContextTestHelper.containsPath(fcTarget, "dirX", dirPaths);
+    Assert.assertNotNull(fs);
+    Assert.assertTrue(fs.isDirectory());
+    fs = fileContextTestHelper.containsPath(fcTarget, "dirY", dirPaths);
+    Assert.assertNotNull(fs);
+    Assert.assertTrue(fs.isDirectory());
+}

@@ -1,0 +1,24 @@
+/**
+ * Ensure that {@link ReconfigurableBase#startReconfigurationTask} unsets the
+ * property in its parent's configuration when the new value is null.
+ * @throws IOException
+ */
+@Test(timeout = 300000)
+public void testConfIsUnsetAsync() throws ReconfigurationException, IOException, TimeoutException, InterruptedException {
+    final String property = "FOO";
+    final String value1 = "value1";
+    final Configuration conf = new Configuration();
+    conf.set(property, value1);
+    final Configuration newConf = new Configuration();
+    final ReconfigurableBase reconfigurable = makeReconfigurable(conf, newConf, Arrays.asList(property));
+    // Kick off a reconfiguration task and wait until it completes.
+    reconfigurable.startReconfigurationTask();
+    GenericTestUtils.waitFor(new Supplier<Boolean>() {
+
+        @Override
+        public Boolean get() {
+            return reconfigurable.getReconfigurationTaskStatus().stopped();
+        }
+    }, 100, 60000);
+    assertNull(reconfigurable.getConf().get(property));
+}

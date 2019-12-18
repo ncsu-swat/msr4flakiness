@@ -1,0 +1,31 @@
+/**
+ * Tests combinations of valid and invalid user and group arguments to chown.
+ */
+@Test
+public void testChownUserAndGroupValidity() {
+    testChownUserAndGroupValidity(true);
+    testChownUserAndGroupValidity(false);
+}
+private void testChownUserAndGroupValidity(boolean enableWarning) {
+    Configuration conf = new Configuration();
+    conf.setBoolean(HADOOP_SHELL_MISSING_DEFAULT_FS_WARNING_KEY, enableWarning);
+    FsCommand chown = new FakeChown();
+    chown.setConf(conf);
+    // The following are valid (no exception expected).
+    chown.run("user", "/path");
+    chown.run("user:group", "/path");
+    chown.run(":group", "/path");
+    // The following are valid only on Windows.
+    assertValidArgumentsOnWindows(chown, "User With Spaces", "/path");
+    assertValidArgumentsOnWindows(chown, "User With Spaces:group", "/path");
+    assertValidArgumentsOnWindows(chown, "User With Spaces:Group With Spaces", "/path");
+    assertValidArgumentsOnWindows(chown, "user:Group With Spaces", "/path");
+    assertValidArgumentsOnWindows(chown, ":Group With Spaces", "/path");
+    // The following are invalid (exception expected).
+    assertIllegalArguments(chown, "us!er", "/path");
+    assertIllegalArguments(chown, "us^er", "/path");
+    assertIllegalArguments(chown, "user:gr#oup", "/path");
+    assertIllegalArguments(chown, "user:gr%oup", "/path");
+    assertIllegalArguments(chown, ":gr#oup", "/path");
+    assertIllegalArguments(chown, ":gr%oup", "/path");
+}

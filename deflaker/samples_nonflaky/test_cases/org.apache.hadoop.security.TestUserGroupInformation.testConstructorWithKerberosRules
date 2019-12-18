@@ -1,0 +1,18 @@
+/**
+ * test constructor
+ */
+@Test(timeout = 30000)
+public void testConstructorWithKerberosRules() throws Exception {
+    // security on, explicit rules
+    SecurityUtil.setAuthenticationMethod(AuthenticationMethod.KERBEROS, conf);
+    conf.set(HADOOP_SECURITY_AUTH_TO_LOCAL, "RULE:[2:$1@$0](.*@OTHER.REALM)s/(.*)@.*/other-$1/" + "RULE:[1:$1@$0](.*@OTHER.REALM)s/(.*)@.*/other-$1/" + "DEFAULT");
+    UserGroupInformation.setConfiguration(conf);
+    testConstructorSuccess("user1", "user1");
+    testConstructorSuccess("user2@DEFAULT.REALM", "user2");
+    testConstructorSuccess("user3/cron@DEFAULT.REALM", "user3");
+    testConstructorSuccess("user4@OTHER.REALM", "other-user4");
+    testConstructorSuccess("user5/cron@OTHER.REALM", "other-user5");
+    // failure test
+    testConstructorFailures(null);
+    testConstructorFailures("");
+}

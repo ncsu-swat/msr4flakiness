@@ -1,0 +1,16 @@
+@Test
+public void testGetUGIFromKnownSubject() throws Exception {
+    KerberosPrincipal principal = new KerberosPrincipal("user");
+    File keytab = new File(workDir, "user.keytab");
+    kdc.createPrincipal(keytab, principal.getName());
+    UserGroupInformation ugi1 = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal.getName(), keytab.getPath());
+    Subject subject = ugi1.getSubject();
+    User user = getUser(subject);
+    Assert.assertNotNull(user);
+    LoginContext login = user.getLogin();
+    Assert.assertNotNull(login);
+    // User instance and/or login context should not change.
+    UserGroupInformation ugi2 = UserGroupInformation.getUGIFromSubject(subject);
+    Assert.assertSame(user, getUser(ugi2.getSubject()));
+    Assert.assertSame(login, user.getLogin());
+}

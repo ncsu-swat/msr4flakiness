@@ -1,0 +1,32 @@
+@Test
+public void testProtocolVersionMismatch() throws IOException, ServiceException {
+    conf = new Configuration();
+    conf.setInt(CommonConfigurationKeys.IPC_MAXIMUM_DATA_LENGTH, 1024);
+    // Set RPC engine to protobuf RPC engine
+    RPC.setProtocolEngine(conf, NewRpcService.class, ProtobufRpcEngine.class);
+    // Create server side implementation
+    NewServerImpl serverImpl = new NewServerImpl();
+    BlockingService service = NewProtobufRpcProto.newReflectiveBlockingService(serverImpl);
+    // Get RPC server for server side implementation
+    server = new RPC.Builder(conf).setProtocol(NewRpcService.class).setInstance(service).setBindAddress(ADDRESS).setPort(PORT).build();
+    addr = NetUtils.getConnectAddress(server);
+    server.start();
+    RPC.setProtocolEngine(conf, OldRpcService.class, ProtobufRpcEngine.class);
+    OldRpcService proxy = RPC.getProxy(OldRpcService.class, 0, addr, conf);
+    // Verify that exception is thrown if protocolVersion is mismatch between
+    // client and server.
+    EmptyRequestProto emptyRequest = EmptyRequestProto.newBuilder().build();
+    try {
+        proxy.ping(null, emptyRequest);
+        fail("Expected an exception to occur as version mismatch.");
+    } catch (Exception e) {
+        if (!(e.getMessage().contains("version mismatch"))) {
+            // Exception type is not what we expected, re-throw it.
+            throw new IOException(e);
+        }
+    }
+    // Verify that missing of optional field is still compatible in RPC call.
+    RPC.setProtocolEngine(conf, NewerRpcService.class, ProtobufRpcEngine.class);
+    NewerRpcService newProxy = RPC.getProxy(NewerRpcService.class, 0, addr, conf);
+    newProxy.echo(null, emptyRequest);
+}

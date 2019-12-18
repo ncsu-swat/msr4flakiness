@@ -1,0 +1,34 @@
+@Test(timeout = 30000)
+public void testUnZip() throws IOException {
+    setupDirs();
+    // make a simple zip
+    final File simpleZip = new File(del, FILE);
+    OutputStream os = new FileOutputStream(simpleZip);
+    ZipOutputStream tos = new ZipOutputStream(os);
+    try {
+        ZipEntry ze = new ZipEntry("foo");
+        byte[] data = "some-content".getBytes("UTF-8");
+        ze.setSize(data.length);
+        tos.putNextEntry(ze);
+        tos.write(data);
+        tos.closeEntry();
+        tos.flush();
+        tos.finish();
+    } finally {
+        tos.close();
+    }
+    // successfully unzip it into an existing dir:
+    FileUtil.unZip(simpleZip, tmp);
+    // check result:
+    assertTrue(new File(tmp, "foo").exists());
+    assertEquals(12, new File(tmp, "foo").length());
+    final File regularFile = new File(tmp, "QuickBrownFoxJumpsOverTheLazyDog");
+    regularFile.createNewFile();
+    assertTrue(regularFile.exists());
+    try {
+        FileUtil.unZip(simpleZip, regularFile);
+        assertTrue("An IOException expected.", false);
+    } catch (IOException ioe) {
+    // okay
+    }
+}

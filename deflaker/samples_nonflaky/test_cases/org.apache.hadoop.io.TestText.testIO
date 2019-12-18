@@ -1,0 +1,24 @@
+@Test
+public void testIO() throws Exception {
+    DataOutputBuffer out = new DataOutputBuffer();
+    DataInputBuffer in = new DataInputBuffer();
+    for (int i = 0; i < NUM_ITERATIONS; i++) {
+        // generate a random string
+        String before;
+        if (i == 0)
+            before = getLongString();
+        else
+            before = getTestString();
+        // write it
+        out.reset();
+        Text.writeString(out, before);
+        // test that it reads correctly
+        in.reset(out.getData(), out.getLength());
+        String after = Text.readString(in);
+        assertTrue(before.equals(after));
+        // Test compatibility with Java's other decoder
+        int strLenSize = WritableUtils.getVIntSize(Text.utf8Length(before));
+        String after2 = new String(out.getData(), strLenSize, out.getLength() - strLenSize, "UTF-8");
+        assertTrue(before.equals(after2));
+    }
+}

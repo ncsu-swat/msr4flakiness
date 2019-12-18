@@ -1,0 +1,30 @@
+// from Mockito mocks
+@SuppressWarnings("unchecked")
+@Test(timeout = 30000)
+public <T extends TokenIdentifier> void testAddToken() throws Exception {
+    UserGroupInformation ugi = UserGroupInformation.createRemoteUser("someone");
+    Token<T> t1 = mock(Token.class);
+    Token<T> t2 = mock(Token.class);
+    Token<T> t3 = mock(Token.class);
+    // add token to ugi
+    ugi.addToken(t1);
+    checkTokens(ugi, t1);
+    // replace token t1 with t2 - with same key (null)
+    ugi.addToken(t2);
+    checkTokens(ugi, t2);
+    // change t1 service and add token
+    when(t1.getService()).thenReturn(new Text("t1"));
+    ugi.addToken(t1);
+    checkTokens(ugi, t1, t2);
+    // overwrite t1 token with t3 - same key (!null)
+    when(t3.getService()).thenReturn(new Text("t1"));
+    ugi.addToken(t3);
+    checkTokens(ugi, t2, t3);
+    // just try to re-add with new name
+    when(t1.getService()).thenReturn(new Text("t1.1"));
+    ugi.addToken(t1);
+    checkTokens(ugi, t1, t2, t3);
+    // just try to re-add with new name again
+    ugi.addToken(t1);
+    checkTokens(ugi, t1, t2, t3);
+}

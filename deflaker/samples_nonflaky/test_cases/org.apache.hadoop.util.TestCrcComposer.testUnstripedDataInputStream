@@ -1,0 +1,11 @@
+@Test
+public void testUnstripedDataInputStream() throws IOException {
+    CrcComposer digester = CrcComposer.newCrcComposer(type, chunkSize);
+    DataInputStream input = new DataInputStream(new ByteArrayInputStream(crcBytesByChunk));
+    digester.update(input, crcsByChunk.length - 1, chunkSize);
+    digester.update(input, 1, dataSize % chunkSize);
+    byte[] digest = digester.digest();
+    assertEquals(4, digest.length);
+    int calculatedCrc = CrcUtil.readInt(digest, 0);
+    assertEquals(fullCrc, calculatedCrc);
+}

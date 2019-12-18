@@ -1,0 +1,29 @@
+@Test(timeout = 4000)
+public void testMultipleTokensDoNotDeadlock() throws IOException, InterruptedException {
+    Configuration conf = mock(Configuration.class);
+    FileSystem fs = mock(FileSystem.class);
+    doReturn(conf).when(fs).getConf();
+    // 1h
+    long distantFuture = Time.now() + 3600 * 1000;
+    Token<?> token1 = mock(Token.class);
+    doReturn(new Text("myservice1")).when(token1).getService();
+    doReturn(distantFuture).when(token1).renew(eq(conf));
+    Token<?> token2 = mock(Token.class);
+    doReturn(new Text("myservice2")).when(token2).getService();
+    doReturn(distantFuture).when(token2).renew(eq(conf));
+    RenewableFileSystem fs1 = mock(RenewableFileSystem.class);
+    doReturn(conf).when(fs1).getConf();
+    doReturn(token1).when(fs1).getRenewToken();
+    RenewableFileSystem fs2 = mock(RenewableFileSystem.class);
+    doReturn(conf).when(fs2).getConf();
+    doReturn(token2).when(fs2).getRenewToken();
+    renewer.addRenewAction(fs1);
+    renewer.addRenewAction(fs2);
+    assertEquals(2, renewer.getRenewQueueLength());
+    renewer.removeRenewAction(fs1);
+    assertEquals(1, renewer.getRenewQueueLength());
+    renewer.removeRenewAction(fs2);
+    assertEquals(0, renewer.getRenewQueueLength());
+    verify(token1).cancel(eq(conf));
+    verify(token2).cancel(eq(conf));
+}

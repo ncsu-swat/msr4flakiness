@@ -1,0 +1,20 @@
+@Test
+public void testPositiveLruMetadataCacheFs() throws Exception {
+    // Init 2nd har file system on the same underlying FS, so the
+    // metadata gets reused:
+    HarFileSystem hfs = new HarFileSystem(localFileSystem);
+    URI uri = new URI("har://" + harPath.toString());
+    hfs.initialize(uri, new Configuration());
+    // the metadata should be reused from cache:
+    assertTrue(hfs.getMetadata() == harFileSystem.getMetadata());
+    // Create more hars, until the cache is full + 1; the last creation should evict the first entry from the cache
+    for (int i = 0; i <= hfs.METADATA_CACHE_ENTRIES_DEFAULT; i++) {
+        Path p = new Path(rootPath, "path1/path2/my" + i + ".har");
+        createHarFileSystem(conf, p);
+    }
+    // The first entry should not be in the cache anymore:
+    hfs = new HarFileSystem(localFileSystem);
+    uri = new URI("har://" + harPath.toString());
+    hfs.initialize(uri, new Configuration());
+    assertTrue(hfs.getMetadata() != harFileSystem.getMetadata());
+}

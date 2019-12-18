@@ -1,0 +1,15 @@
+@Test(timeout = 5000)
+public void testProtoBufRpc2() throws Exception {
+    TestRpcService2 client = getClient2();
+    // Test ping method
+    client.ping2(null, newEmptyRequest());
+    // Test echo method
+    EchoResponseProto echoResponse = client.echo2(null, newEchoRequest("hello"));
+    assertThat(echoResponse.getMessage()).isEqualTo("hello");
+    // Ensure RPC metrics are updated
+    MetricsRecordBuilder rpcMetrics = getMetrics(server.getRpcMetrics().name());
+    assertCounterGt("RpcQueueTimeNumOps", 0L, rpcMetrics);
+    assertCounterGt("RpcProcessingTimeNumOps", 0L, rpcMetrics);
+    MetricsRecordBuilder rpcDetailedMetrics = getMetrics(server.getRpcDetailedMetrics().name());
+    assertCounterGt("Echo2NumOps", 0L, rpcDetailedMetrics);
+}

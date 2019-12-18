@@ -1,0 +1,19 @@
+@Test
+public void testDefaultAcl() {
+    ServiceAuthorizationManager serviceAuthorizationManager = new ServiceAuthorizationManager();
+    Configuration conf = new Configuration();
+    // test without setting a default acl
+    conf.set(ACL_CONFIG, "user1 group1");
+    serviceAuthorizationManager.refresh(conf, new TestPolicyProvider());
+    AccessControlList acl = serviceAuthorizationManager.getProtocolsAcls(TestProtocol.class);
+    assertEquals("user1 group1", acl.getAclString());
+    acl = serviceAuthorizationManager.getProtocolsAcls(TestProtocol1.class);
+    assertEquals(AccessControlList.WILDCARD_ACL_VALUE, acl.getAclString());
+    // test with a default acl
+    conf.set(CommonConfigurationKeys.HADOOP_SECURITY_SERVICE_AUTHORIZATION_DEFAULT_ACL, "user2 group2");
+    serviceAuthorizationManager.refresh(conf, new TestPolicyProvider());
+    acl = serviceAuthorizationManager.getProtocolsAcls(TestProtocol.class);
+    assertEquals("user1 group1", acl.getAclString());
+    acl = serviceAuthorizationManager.getProtocolsAcls(TestProtocol1.class);
+    assertEquals("user2 group2", acl.getAclString());
+}

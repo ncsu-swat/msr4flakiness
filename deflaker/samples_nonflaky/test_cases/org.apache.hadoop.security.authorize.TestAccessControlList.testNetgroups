@@ -1,0 +1,64 @@
+/**
+ * Test the netgroups (groups in ACL rules that start with @)
+ *
+ * This is a  manual test because it requires:
+ *   - host setup
+ *   - native code compiled
+ *   - specify the group mapping class
+ *
+ * Host setup:
+ *
+ * /etc/nsswitch.conf should have a line like this:
+ * netgroup: files
+ *
+ * /etc/netgroup should be (the whole file):
+ * lasVegas (,elvis,)
+ * memphis (,elvis,) (,jerryLeeLewis,)
+ *
+ * To run this test:
+ *
+ * export JAVA_HOME='path/to/java'
+ * ant \
+ *   -Dtestcase=TestAccessControlList \
+ *   -Dtest.output=yes \
+ *   -DTestAccessControlListGroupMapping=$className \
+ *   compile-native test
+ *
+ * where $className is one of the classes that provide group
+ * mapping services, i.e. classes that implement
+ * GroupMappingServiceProvider interface, at this time:
+ *   - org.apache.hadoop.security.JniBasedUnixGroupsNetgroupMapping
+ *   - org.apache.hadoop.security.ShellBasedUnixGroupsNetgroupMapping
+ */
+@Test
+public void testNetgroups() throws Exception {
+    if (!NativeCodeLoader.isNativeCodeLoaded()) {
+        LOG.info("Not testing netgroups, " + "this test only runs when native code is compiled");
+        return;
+    }
+    String groupMappingClassName = System.getProperty("TestAccessControlListGroupMapping");
+    if (groupMappingClassName == null) {
+        LOG.info("Not testing netgroups, no group mapping class specified, " + "use -DTestAccessControlListGroupMapping=$className to specify " + "group mapping class (must implement GroupMappingServiceProvider " + "interface and support netgroups)");
+        return;
+    }
+    LOG.info("Testing netgroups using: " + groupMappingClassName);
+    Configuration conf = new Configuration();
+    conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_GROUP_MAPPING, groupMappingClassName);
+    Groups groups = Groups.getUserToGroupsMappingService(conf);
+    AccessControlList acl;
+    // create these ACLs to populate groups cache
+    // plain
+    acl = new AccessControlList("ja my");
+    // netgroup
+    acl = new AccessControlList("sinatra ratpack,@lasVegas");
+    // no user
+    acl = new AccessControlList(" somegroup,@someNetgroup");
+    // this ACL will be used for testing ACLs
+    acl = new AccessControlList("carlPerkins ratpack,@lasVegas");
+    acl.addGroup("@memphis");
+    // validate the netgroups before and after rehresh to make
+    // sure refresh works correctly
+    validateNetgroups(groups, acl);
+    groups.refresh();
+    validateNetgroups(groups, acl);
+}

@@ -1,0 +1,21 @@
+@Test
+public void testTableCaching() throws IOException {
+    File mapFile = File.createTempFile(getClass().getSimpleName() + ".testTableCaching", ".txt");
+    Files.asCharSink(mapFile, Charsets.UTF_8).write(hostName1 + " /rack1\n" + hostName2 + "\t/rack2\n");
+    mapFile.deleteOnExit();
+    TableMapping mapping = new TableMapping();
+    Configuration conf = new Configuration();
+    conf.set(NET_TOPOLOGY_TABLE_MAPPING_FILE_KEY, mapFile.getCanonicalPath());
+    mapping.setConf(conf);
+    List<String> names = new ArrayList<String>();
+    names.add(hostName1);
+    names.add(hostName2);
+    List<String> result1 = mapping.resolve(names);
+    assertEquals(names.size(), result1.size());
+    assertEquals("/rack1", result1.get(0));
+    assertEquals("/rack2", result1.get(1));
+    // unset the file, see if it gets read again
+    conf.set(NET_TOPOLOGY_TABLE_MAPPING_FILE_KEY, "some bad value for a file");
+    List<String> result2 = mapping.resolve(names);
+    assertEquals(result1, result2);
+}

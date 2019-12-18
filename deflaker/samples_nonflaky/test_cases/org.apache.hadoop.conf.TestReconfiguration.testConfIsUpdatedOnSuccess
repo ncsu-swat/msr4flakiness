@@ -1,0 +1,18 @@
+/**
+ * Ensure that {@link ReconfigurableBase#reconfigureProperty} updates the
+ * parent's cached configuration on success.
+ * @throws IOException
+ */
+@Test(timeout = 300000)
+public void testConfIsUpdatedOnSuccess() throws ReconfigurationException {
+    final String property = "FOO";
+    final String value1 = "value1";
+    final String value2 = "value2";
+    final Configuration conf = new Configuration();
+    conf.set(property, value1);
+    final Configuration newConf = new Configuration();
+    newConf.set(property, value2);
+    final ReconfigurableBase reconfigurable = makeReconfigurable(conf, newConf, Arrays.asList(property));
+    reconfigurable.reconfigureProperty(property, value2);
+    assertThat(reconfigurable.getConf().get(property), is(value2));
+}

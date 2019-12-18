@@ -1,0 +1,22 @@
+@Test
+public void testGetUGIFromExternalSubject() throws Exception {
+    KerberosPrincipal principal = new KerberosPrincipal("user");
+    File keytab = new File(workDir, "user.keytab");
+    kdc.createPrincipal(keytab, principal.getName());
+    UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal.getName(), keytab.getPath());
+    Subject subject = ugi.getSubject();
+    removeUser(subject);
+    // first call to get the ugi should add the User instance w/o a login
+    // context.
+    UserGroupInformation ugi1 = UserGroupInformation.getUGIFromSubject(subject);
+    Assert.assertSame(subject, ugi1.getSubject());
+    User user = getUser(subject);
+    Assert.assertNotNull(user);
+    Assert.assertEquals(principal.getName(), user.getName());
+    Assert.assertNull(user.getLogin());
+    // subsequent call should not change the existing User instance.
+    UserGroupInformation ugi2 = UserGroupInformation.getUGIFromSubject(subject);
+    Assert.assertSame(subject, ugi2.getSubject());
+    Assert.assertSame(user, getUser(ugi2.getSubject()));
+    Assert.assertNull(user.getLogin());
+}

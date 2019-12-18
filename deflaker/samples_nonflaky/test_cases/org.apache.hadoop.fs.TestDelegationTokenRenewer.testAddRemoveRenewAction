@@ -1,0 +1,27 @@
+@Test
+public void testAddRemoveRenewAction() throws IOException, InterruptedException {
+    Text service = new Text("myservice");
+    Configuration conf = mock(Configuration.class);
+    Token<?> token = mock(Token.class);
+    doReturn(service).when(token).getService();
+    doAnswer(new Answer<Long>() {
+
+        public Long answer(InvocationOnMock invocation) {
+            return Time.now() + RENEW_CYCLE;
+        }
+    }).when(token).renew(any(Configuration.class));
+    RenewableFileSystem fs = mock(RenewableFileSystem.class);
+    doReturn(conf).when(fs).getConf();
+    doReturn(token).when(fs).getRenewToken();
+    renewer.addRenewAction(fs);
+    assertEquals("FileSystem not added to DelegationTokenRenewer", 1, renewer.getRenewQueueLength());
+    Thread.sleep(RENEW_CYCLE * 2);
+    verify(token, atLeast(2)).renew(eq(conf));
+    verify(token, atMost(3)).renew(eq(conf));
+    verify(token, never()).cancel(any(Configuration.class));
+    renewer.removeRenewAction(fs);
+    verify(token).cancel(eq(conf));
+    verify(fs, never()).getDelegationToken(null);
+    verify(fs, never()).setDelegationToken(any());
+    assertEquals("FileSystem not removed from DelegationTokenRenewer", 0, renewer.getRenewQueueLength());
+}

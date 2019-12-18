@@ -1,0 +1,35 @@
+@Test
+public void testIncludes() throws Exception {
+    tearDown();
+    System.out.println("XXX testIncludes");
+    out = new BufferedWriter(new FileWriter(CONFIG2));
+    startConfig();
+    appendProperty("a", "b");
+    appendProperty("c", "d");
+    endConfig();
+    File fileUri = new File(new URI(CONFIG_FOR_URI));
+    out = new BufferedWriter(new FileWriter(fileUri));
+    startConfig();
+    appendProperty("e", "f");
+    appendProperty("g", "h");
+    endConfig();
+    out = new BufferedWriter(new FileWriter(CONFIG));
+    startConfig();
+    startInclude(CONFIG2);
+    endInclude();
+    startInclude(CONFIG_FOR_URI);
+    endInclude();
+    appendProperty("i", "j");
+    appendProperty("k", "l");
+    endConfig();
+    // verify that the includes file contains all properties
+    Path fileResource = new Path(CONFIG);
+    conf.addResource(fileResource);
+    assertEquals(conf.get("a"), "b");
+    assertEquals(conf.get("c"), "d");
+    assertEquals(conf.get("e"), "f");
+    assertEquals(conf.get("g"), "h");
+    assertEquals(conf.get("i"), "j");
+    assertEquals(conf.get("k"), "l");
+    tearDown();
+}

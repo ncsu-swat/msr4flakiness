@@ -1,0 +1,17 @@
+@Test
+public void testCountingBloomFilter() {
+    int hashId = Hash.JENKINS_HASH;
+    CountingBloomFilter filter = new CountingBloomFilter(bitSize, hashFunctionNumber, hashId);
+    Key key = new Key(new byte[] { 48, 48 });
+    filter.add(key);
+    assertTrue("CountingBloomFilter.membership error ", filter.membershipTest(key));
+    assertTrue("CountingBloomFilter.approximateCount error", filter.approximateCount(key) == 1);
+    filter.add(key);
+    assertTrue("CountingBloomFilter.approximateCount error", filter.approximateCount(key) == 2);
+    filter.delete(key);
+    assertTrue("CountingBloomFilter.membership error ", filter.membershipTest(key));
+    filter.delete(key);
+    assertFalse("CountingBloomFilter.membership error ", filter.membershipTest(key));
+    assertTrue("CountingBloomFilter.approximateCount error", filter.approximateCount(key) == 0);
+    BloomFilterCommonTester.of(hashId, numInsertions).withFilterInstance(filter).withTestCases(ImmutableSet.of(BloomFilterTestStrategy.KEY_TEST_STRATEGY, BloomFilterTestStrategy.ADD_KEYS_STRATEGY, BloomFilterTestStrategy.EXCEPTIONS_CHECK_STRATEGY, BloomFilterTestStrategy.ODD_EVEN_ABSENT_STRATEGY, BloomFilterTestStrategy.WRITE_READ_STRATEGY, BloomFilterTestStrategy.FILTER_OR_STRATEGY, BloomFilterTestStrategy.FILTER_XOR_STRATEGY)).test();
+}

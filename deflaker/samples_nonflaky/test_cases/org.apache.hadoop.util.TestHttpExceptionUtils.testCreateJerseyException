@@ -1,0 +1,12 @@
+@Test
+public void testCreateJerseyException() throws IOException {
+    Exception ex = new IOException("Hello IOEX");
+    Response response = HttpExceptionUtils.createJerseyExceptionResponse(Response.Status.INTERNAL_SERVER_ERROR, ex);
+    Assert.assertEquals(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode(), response.getStatus());
+    Assert.assertArrayEquals(Arrays.asList(MediaType.APPLICATION_JSON_TYPE).toArray(), response.getMetadata().get("Content-Type").toArray());
+    Map entity = (Map) response.getEntity();
+    entity = (Map) entity.get(HttpExceptionUtils.ERROR_JSON);
+    Assert.assertEquals(IOException.class.getName(), entity.get(HttpExceptionUtils.ERROR_CLASSNAME_JSON));
+    Assert.assertEquals(IOException.class.getSimpleName(), entity.get(HttpExceptionUtils.ERROR_EXCEPTION_JSON));
+    Assert.assertEquals("Hello IOEX", entity.get(HttpExceptionUtils.ERROR_MESSAGE_JSON));
+}

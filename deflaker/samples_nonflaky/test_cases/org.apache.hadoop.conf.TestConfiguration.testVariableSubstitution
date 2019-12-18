@@ -1,0 +1,33 @@
+@Test
+public void testVariableSubstitution() throws IOException {
+    // stubbing only environment dependent functions
+    Configuration mock = Mockito.spy(conf);
+    Mockito.when(mock.getProperty("user.name")).thenReturn("hadoop_user");
+    Mockito.when(mock.getenv("FILE_NAME")).thenReturn("hello");
+    out = new BufferedWriter(new FileWriter(CONFIG));
+    startConfig();
+    declareProperty("my.int", "${intvar}", "42");
+    declareProperty("intvar", "42", "42");
+    declareProperty("my.base", "/tmp/${user.name}", "/tmp/hadoop_user");
+    declareProperty("my.file", "${env.FILE_NAME}", "hello");
+    declareProperty("my.suffix", ".txt", ".txt");
+    declareProperty("my.relfile", "${my.file}${my.suffix}", "hello.txt");
+    declareProperty("my.fullfile", "${my.base}/${my.file}${my.suffix}", "/tmp/hadoop_user/hello.txt");
+    // check that undefined variables are returned as-is
+    declareProperty("my.failsexpand", "a${my.undefvar}b", "a${my.undefvar}b");
+    // check that multiple variable references are resolved
+    declareProperty("my.user.group", "${user.name} ${user.name}", "hadoop_user hadoop_user");
+    endConfig();
+    Path fileResource = new Path(CONFIG);
+    mock.addResource(fileResource);
+    for (Prop p : props) {
+        System.out.println("p=" + p.name);
+        String gotVal = mock.get(p.name);
+        String gotRawVal = mock.getRaw(p.name);
+        assertEq(p.val, gotRawVal);
+        assertEq(p.expectEval, gotVal);
+    }
+    // check that expansion also occurs for getInt()
+    assertTrue(mock.getInt("intvar", -1) == 42);
+    assertTrue(mock.getInt("my.int", -1) == 42);
+}

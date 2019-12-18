@@ -1,0 +1,21 @@
+@Test
+public void test() throws InterruptedException, IOException {
+    AtomicBoolean pass = new AtomicBoolean(true);
+    Thread reloginThread = new Thread(() -> relogin(pass), "Relogin");
+    AtomicBoolean running = new AtomicBoolean(true);
+    Thread[] getServiceTicketThreads = new Thread[numThreads];
+    for (int i = 0; i < numThreads; i++) {
+        String serverProtocol = serverProtocols[i];
+        getServiceTicketThreads[i] = new Thread(() -> getServiceTicket(running, serverProtocol), "GetServiceTicket-" + i);
+    }
+    for (Thread getServiceTicketThread : getServiceTicketThreads) {
+        getServiceTicketThread.start();
+    }
+    reloginThread.start();
+    reloginThread.join();
+    running.set(false);
+    for (Thread getServiceTicketThread : getServiceTicketThreads) {
+        getServiceTicketThread.join();
+    }
+    assertTrue("tgt is not the first ticket after relogin", pass.get());
+}

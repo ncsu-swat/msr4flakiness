@@ -1,0 +1,18 @@
+@Test
+public void testUGIRefreshFromKeytabDisabled() throws Exception {
+    GenericTestUtils.setLogLevel(UserGroupInformation.LOG, Level.DEBUG);
+    final Configuration conf = new Configuration();
+    conf.setLong(HADOOP_KERBEROS_MIN_SECONDS_BEFORE_RELOGIN, 1);
+    conf.setBoolean(HADOOP_KERBEROS_KEYTAB_LOGIN_AUTORENEWAL_ENABLED, false);
+    SecurityUtil.setAuthenticationMethod(UserGroupInformation.AuthenticationMethod.KERBEROS, conf);
+    UserGroupInformation.setConfiguration(conf);
+    String principal = "bar";
+    File keytab = new File(workDir, "bar.keytab");
+    kdc.createPrincipal(keytab, principal);
+    UserGroupInformation.loginUserFromKeytab(principal, keytab.getPath());
+    UserGroupInformation ugi = UserGroupInformation.getLoginUser();
+    Assert.assertEquals(UserGroupInformation.AuthenticationMethod.KERBEROS, ugi.getAuthenticationMethod());
+    Assert.assertTrue(ugi.isFromKeytab());
+    Assert.assertFalse(UserGroupInformation.isKerberosKeyTabLoginRenewalEnabled());
+    Assert.assertFalse(UserGroupInformation.getKerberosLoginRenewalExecutor().isPresent());
+}

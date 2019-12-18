@@ -1,0 +1,42 @@
+/**
+ * Test blocking when queue is empty
+ * @throws Exception
+ */
+@Test
+public void testEmptyBlocking() throws Exception {
+    testEmptyBlocking(0);
+    testEmptyBlocking(100);
+}
+private void testEmptyBlocking(int awhile) throws Exception {
+    final SinkQueue<Integer> q = new SinkQueue<Integer>(2);
+    final Runnable trigger = mock(Runnable.class);
+    // try consuming emtpy equeue and blocking
+    Thread t = new Thread() {
+
+        @Override
+        public void run() {
+            try {
+                assertEquals("element", 1, (int) q.dequeue());
+                q.consume(new Consumer<Integer>() {
+
+                    @Override
+                    public void consume(Integer e) {
+                        assertEquals("element", 2, (int) e);
+                        trigger.run();
+                    }
+                });
+            } catch (InterruptedException e) {
+                LOG.warn("Interrupted", e);
+            }
+        }
+    };
+    t.start();
+    // Should work with or without sleep
+    if (awhile > 0) {
+        Thread.sleep(awhile);
+    }
+    q.enqueue(1);
+    q.enqueue(2);
+    t.join();
+    verify(trigger).run();
+}

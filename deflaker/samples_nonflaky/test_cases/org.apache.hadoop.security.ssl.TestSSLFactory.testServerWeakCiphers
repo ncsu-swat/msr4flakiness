@@ -1,0 +1,57 @@
+@Test
+public void testServerWeakCiphers() throws Exception {
+    // a simple test case to verify that SSL server rejects weak cipher suites,
+    // inspired by https://docs.oracle.com/javase/8/docs/technotes/guides/
+    // security/jsse/samples/sslengine/SSLEngineSimpleDemo.java
+    // set up a client and a server SSLEngine object, and let them exchange
+    // data over ByteBuffer instead of network socket.
+    GenericTestUtils.setLogLevel(SSLFactory.LOG, Level.DEBUG);
+    final Configuration conf = createConfiguration(true, true);
+    SSLFactory serverSSLFactory = new SSLFactory(SSLFactory.Mode.SERVER, conf);
+    SSLFactory clientSSLFactory = new SSLFactory(SSLFactory.Mode.CLIENT, conf);
+    serverSSLFactory.init();
+    clientSSLFactory.init();
+    SSLEngine serverSSLEngine = serverSSLFactory.createSSLEngine();
+    SSLEngine clientSSLEngine = clientSSLFactory.createSSLEngine();
+    // client selects cipher suites excluded by server
+    clientSSLEngine.setEnabledCipherSuites(StringUtils.getTrimmedStrings(excludeCiphers));
+    // use the same buffer size for server and client.
+    SSLSession session = clientSSLEngine.getSession();
+    int appBufferMax = session.getApplicationBufferSize();
+    int netBufferMax = session.getPacketBufferSize();
+    ByteBuffer clientOut = ByteBuffer.wrap("client".getBytes());
+    ByteBuffer clientIn = ByteBuffer.allocate(appBufferMax);
+    ByteBuffer serverOut = ByteBuffer.wrap("server".getBytes());
+    ByteBuffer serverIn = ByteBuffer.allocate(appBufferMax);
+    // send data from client to server
+    ByteBuffer cTOs = ByteBuffer.allocateDirect(netBufferMax);
+    // send data from server to client
+    ByteBuffer sTOc = ByteBuffer.allocateDirect(netBufferMax);
+    boolean dataDone = false;
+    try {
+        /**
+         * Server and client engines call wrap()/unwrap() to perform handshaking,
+         * until both engines are closed.
+         */
+        while (!isEngineClosed(clientSSLEngine) || !isEngineClosed(serverSSLEngine)) {
+            LOG.info("client wrap " + wrap(clientSSLEngine, clientOut, cTOs));
+            LOG.info("server wrap " + wrap(serverSSLEngine, serverOut, sTOc));
+            cTOs.flip();
+            sTOc.flip();
+            LOG.info("client unwrap " + unwrap(clientSSLEngine, sTOc, clientIn));
+            LOG.info("server unwrap " + unwrap(serverSSLEngine, cTOs, serverIn));
+            cTOs.compact();
+            sTOc.compact();
+            if (!dataDone && (clientOut.limit() == serverIn.position()) && (serverOut.limit() == clientIn.position())) {
+                checkTransfer(serverOut, clientIn);
+                checkTransfer(clientOut, serverIn);
+                LOG.info("closing client");
+                clientSSLEngine.closeOutbound();
+                dataDone = true;
+            }
+        }
+        Assert.fail("The exception was not thrown");
+    } catch (SSLHandshakeException e) {
+        GenericTestUtils.assertExceptionContains("no cipher suites in common", e);
+    }
+}

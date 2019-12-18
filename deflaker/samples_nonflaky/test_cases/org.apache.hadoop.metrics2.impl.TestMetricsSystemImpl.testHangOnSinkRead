@@ -1,0 +1,20 @@
+/**
+ * HADOOP-11932
+ */
+@Test(timeout = 5000)
+public void testHangOnSinkRead() throws Exception {
+    new ConfigBuilder().add("*.period", 8).add("test.sink.test.class", TestSink.class.getName()).save(TestMetricsConfig.getTestFilename("hadoop-metrics2-test"));
+    MetricsSystemImpl ms = new MetricsSystemImpl("Test");
+    ms.start();
+    try {
+        CountDownLatch collectingLatch = new CountDownLatch(1);
+        MetricsSink sink = new TestClosableSink(collectingLatch);
+        ms.registerSink("closeableSink", "The sink will be used to test closeability", sink);
+        // trigger metric collection first time
+        ms.onTimerEvent();
+        // Make sure that sink is collecting metrics
+        assertTrue(collectingLatch.await(1, TimeUnit.SECONDS));
+    } finally {
+        ms.stop();
+    }
+}

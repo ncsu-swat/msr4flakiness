@@ -1,0 +1,29 @@
+/**
+ * Tests use of multi-byte characters in property names and values.  This test
+ * round-trips multi-byte string literals through saving and loading of config
+ * and asserts that the same values were read.
+ */
+@Test
+public void testMultiByteCharacters() throws IOException {
+    String priorDefaultEncoding = System.getProperty("file.encoding");
+    try {
+        System.setProperty("file.encoding", "US-ASCII");
+        String name = "multi_byte_\u611b_name";
+        String value = "multi_byte_\u0641_value";
+        out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(CONFIG_MULTI_BYTE), "UTF-8"));
+        startConfig();
+        declareProperty(name, value, value);
+        endConfig();
+        Configuration conf = new Configuration(false);
+        conf.addResource(new Path(CONFIG_MULTI_BYTE));
+        assertEquals(value, conf.get(name));
+        try (FileOutputStream fos = new FileOutputStream(CONFIG_MULTI_BYTE_SAVED)) {
+            conf.writeXml(fos);
+        }
+        conf = new Configuration(false);
+        conf.addResource(new Path(CONFIG_MULTI_BYTE_SAVED));
+        assertEquals(value, conf.get(name));
+    } finally {
+        System.setProperty("file.encoding", priorDefaultEncoding);
+    }
+}

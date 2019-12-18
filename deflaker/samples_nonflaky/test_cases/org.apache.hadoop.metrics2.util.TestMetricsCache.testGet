@@ -1,0 +1,13 @@
+@SuppressWarnings("deprecation")
+@Test
+public void testGet() {
+    MetricsCache cache = new MetricsCache();
+    assertNull("empty", cache.get("r", Arrays.asList(makeTag("t", "t"))));
+    MetricsRecord mr = makeRecord("r", Arrays.asList(makeTag("t", "t")), Arrays.asList(makeMetric("m", 1)));
+    cache.update(mr);
+    MetricsCache.Record cr = cache.get("r", mr.tags());
+    LOG.debug("tags=" + mr.tags() + " cr=" + cr);
+    assertNotNull("Got record", cr);
+    assertEquals("contains 1 metric", 1, cr.metrics().size());
+    checkMetricValue("new metric value", cr, "m", 1);
+}

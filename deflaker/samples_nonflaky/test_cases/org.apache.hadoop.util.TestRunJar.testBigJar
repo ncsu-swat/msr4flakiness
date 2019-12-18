@@ -1,0 +1,28 @@
+/**
+ * Test unjarring a big file. This checks appending the remainder of the file
+ * to the tee output stream in RunJar.unJarAndSave.
+ */
+@SuppressWarnings("deprecation")
+@Test
+public void testBigJar() throws Exception {
+    Random r = new Random(System.currentTimeMillis());
+    File dir = new File(TEST_ROOT_DIR, Long.toHexString(r.nextLong()));
+    Assert.assertTrue(dir.mkdirs());
+    File input = generateBigJar(dir);
+    File output = new File(dir, "job2.jar");
+    try {
+        try (InputStream is = new FileInputStream(input)) {
+            RunJar.unJarAndSave(is, dir, "job2.jar", Pattern.compile(".*"));
+        }
+        Assert.assertEquals(input.length(), output.length());
+        for (int i = 0; i < 10; ++i) {
+            File subdir = new File(dir, ((i % 2 == 0) ? "dir/" : ""));
+            File f = new File(subdir, "f" + Integer.toString(i));
+            Assert.assertEquals(756, f.length());
+        }
+    } finally {
+        // Clean up
+        FileSystem fs = LocalFileSystem.getLocal(new Configuration());
+        fs.delete(new Path(dir.getAbsolutePath()), true);
+    }
+}

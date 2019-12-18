@@ -1,0 +1,28 @@
+/**
+ * test constructor
+ */
+@Test(timeout = 30000)
+public void testConstructorWithRules() throws Exception {
+    // security off, but use rules if explicitly set
+    conf.set(HADOOP_SECURITY_AUTH_TO_LOCAL, "RULE:[1:$1@$0](.*@OTHER.REALM)s/(.*)@.*/other-$1/");
+    conf.set(HADOOP_SECURITY_AUTH_TO_LOCAL_MECHANISM, "hadoop");
+    UserGroupInformation.setConfiguration(conf);
+    testConstructorSuccess("user1", "user1");
+    testConstructorSuccess("user4@OTHER.REALM", "other-user4");
+    // failure test
+    testConstructorFailures("user2@DEFAULT.REALM");
+    testConstructorFailures("user3/cron@DEFAULT.REALM");
+    testConstructorFailures("user5/cron@OTHER.REALM");
+    // with MIT
+    conf.set(HADOOP_SECURITY_AUTH_TO_LOCAL_MECHANISM, "mit");
+    UserGroupInformation.setConfiguration(conf);
+    testConstructorSuccess("user2@DEFAULT.REALM", "user2@DEFAULT.REALM");
+    testConstructorSuccess("user3/cron@DEFAULT.REALM", "user3/cron@DEFAULT.REALM");
+    testConstructorSuccess("user5/cron@OTHER.REALM", "user5/cron@OTHER.REALM");
+    // failures
+    testConstructorFailures("user6@example.com@OTHER.REALM");
+    testConstructorFailures("user7@example.com@DEFAULT.REALM");
+    testConstructorFailures(null);
+    testConstructorFailures("");
+    conf.set(HADOOP_SECURITY_AUTH_TO_LOCAL_MECHANISM, "hadoop");
+}

@@ -1,0 +1,19 @@
+@Test
+public void testFailureWriteMetaBlocksWithSameName() throws IOException {
+    if (skip)
+        return;
+    writer.append("keyX".getBytes(), "valueX".getBytes());
+    // create a new metablock
+    DataOutputStream outMeta = writer.prepareMetaBlock("testX", Compression.Algorithm.GZ.getName());
+    outMeta.write(123);
+    outMeta.write("foo".getBytes());
+    outMeta.close();
+    // add the same metablock
+    try {
+        writer.prepareMetaBlock("testX", Compression.Algorithm.GZ.getName());
+        Assert.fail("Cannot create metablocks with the same name.");
+    } catch (Exception e) {
+    // noop, expecting exceptions
+    }
+    closeOutput();
+}

@@ -1,0 +1,22 @@
+@Test(timeout = 5000)
+public void testDFInvalidPath() throws Exception {
+    // Generate a path that doesn't exist
+    Random random = new Random(0xDEADBEEFl);
+    File file = null;
+    byte[] bytes = new byte[64];
+    while (file == null) {
+        random.nextBytes(bytes);
+        final String invalid = new String("/" + bytes);
+        final File invalidFile = new File(invalid);
+        if (!invalidFile.exists()) {
+            file = invalidFile;
+        }
+    }
+    DF df = new DF(file, 0l);
+    try {
+        df.getMount();
+    } catch (FileNotFoundException e) {
+        // expected, since path does not exist
+        GenericTestUtils.assertExceptionContains(file.getName(), e);
+    }
+}

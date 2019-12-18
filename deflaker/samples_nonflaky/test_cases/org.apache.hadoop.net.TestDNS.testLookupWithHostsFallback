@@ -1,0 +1,27 @@
+/**
+ * Test that when using an invalid DNS server with hosts file fallback,
+ * we are able to get the hostname from the hosts file.
+ *
+ * This test may fail on some misconfigured test machines that don't have
+ * an entry for "localhost" in their hosts file. This entry is correctly
+ * configured out of the box on common Linux distributions and OS X.
+ *
+ * Windows refuses to resolve 127.0.0.1 to "localhost" despite the presence of
+ * this entry in the hosts file.  We skip the test on Windows to avoid
+ * reporting a spurious failure.
+ *
+ * @throws Exception
+ */
+@Test(timeout = 60000)
+public void testLookupWithHostsFallback() throws Exception {
+    assumeNotWindows();
+    final String oldHostname = changeDnsCachedHostname(DUMMY_HOSTNAME);
+    try {
+        String hostname = DNS.getDefaultHost(getLoopbackInterface(), INVALID_DNS_SERVER, true);
+        // Expect to get back something other than the cached host name.
+        assertThat(hostname, not(DUMMY_HOSTNAME));
+    } finally {
+        // Restore DNS#cachedHostname for subsequent tests.
+        changeDnsCachedHostname(oldHostname);
+    }
+}

@@ -1,0 +1,33 @@
+@Test
+public void testRetryInterruptible() throws Throwable {
+    final UnreliableInterface unreliable = (UnreliableInterface) RetryProxy.create(UnreliableInterface.class, unreliableImpl, retryUpToMaximumTimeWithFixedSleep(10, 10, TimeUnit.SECONDS));
+    final CountDownLatch latch = new CountDownLatch(1);
+    final AtomicReference<Thread> futureThread = new AtomicReference<Thread>();
+    ExecutorService exec = Executors.newSingleThreadExecutor();
+    Future<Throwable> future = exec.submit(new Callable<Throwable>() {
+
+        @Override
+        public Throwable call() throws Exception {
+            futureThread.set(Thread.currentThread());
+            latch.countDown();
+            try {
+                unreliable.alwaysFailsWithFatalException();
+            } catch (UndeclaredThrowableException ute) {
+                return ute.getCause();
+            }
+            return null;
+        }
+    });
+    latch.await();
+    // time to fail and sleep
+    Thread.sleep(1000);
+    assertTrue(futureThread.get().isAlive());
+    futureThread.get().interrupt();
+    // should return immediately
+    Throwable e = future.get(1, TimeUnit.SECONDS);
+    assertNotNull(e);
+    assertEquals(InterruptedIOException.class, e.getClass());
+    assertEquals("Retry interrupted", e.getMessage());
+    assertEquals(InterruptedException.class, e.getCause().getClass());
+    assertEquals("sleep interrupted", e.getCause().getMessage());
+}

@@ -1,0 +1,15 @@
+@Test
+public void testLocate() throws IOException {
+    if (skip)
+        return;
+    writeRecords(3 * records1stBlock);
+    Reader reader = new Reader(fs.open(path), fs.getFileStatus(path).getLen(), conf);
+    Scanner scanner = reader.createScanner();
+    locate(scanner, composeSortedKey(KEY, 2).getBytes());
+    locate(scanner, composeSortedKey(KEY, records1stBlock - 1).getBytes());
+    locate(scanner, composeSortedKey(KEY, records1stBlock).getBytes());
+    Location locX = locate(scanner, "keyX".getBytes());
+    Assert.assertEquals(scanner.endLocation, locX);
+    scanner.close();
+    reader.close();
+}

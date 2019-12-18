@@ -1,0 +1,17 @@
+/**
+ * verify that retry of network errors verifies active by session id and
+ * becomes standby if they dont match. monitoring is started.
+ */
+@Test
+public void testCreateNodeResultRetryBecomeStandby() {
+    elector.joinElection(data);
+    elector.processResult(Code.CONNECTIONLOSS.intValue(), ZK_LOCK_NAME, mockZK, ZK_LOCK_NAME);
+    elector.processResult(Code.NODEEXISTS.intValue(), ZK_LOCK_NAME, mockZK, ZK_LOCK_NAME);
+    verifyExistCall(1);
+    Stat stat = new Stat();
+    stat.setEphemeralOwner(0);
+    Mockito.when(mockZK.getSessionId()).thenReturn(1L);
+    elector.processResult(Code.OK.intValue(), ZK_LOCK_NAME, mockZK, stat);
+    Mockito.verify(mockApp, Mockito.times(1)).becomeStandby();
+    verifyExistCall(1);
+}

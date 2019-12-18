@@ -1,0 +1,24 @@
+@Test
+public void testBindError() throws Exception {
+    Configuration conf = new Configuration();
+    ServerSocket socket = new ServerSocket();
+    InetSocketAddress address = new InetSocketAddress("0.0.0.0", 0);
+    socket.bind(address);
+    try {
+        int min = socket.getLocalPort();
+        conf.set("TestRange", min + "-" + min);
+        ServerSocket socket2 = new ServerSocket();
+        InetSocketAddress address2 = new InetSocketAddress("0.0.0.0", 0);
+        boolean caught = false;
+        try {
+            Server.bind(socket2, address2, 10, conf, "TestRange");
+        } catch (BindException e) {
+            caught = true;
+        } finally {
+            socket2.close();
+        }
+        assertTrue("Failed to catch the expected bind exception", caught);
+    } finally {
+        socket.close();
+    }
+}

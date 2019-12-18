@@ -1,0 +1,15 @@
+@Test(timeout = 60000)
+public void testRequestWithAuthorization() throws Exception {
+    HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
+    HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
+    final Base64 base64 = new Base64(0);
+    String credentials = base64.encodeToString("bjones:p@ssw0rd".getBytes());
+    String authHeader = HttpConstants.BASIC + " " + credentials;
+    Mockito.when(request.getHeader(HttpConstants.AUTHORIZATION_HEADER)).thenReturn(authHeader);
+    AuthenticationToken token = handler.authenticate(request, response);
+    Assert.assertNotNull(token);
+    Mockito.verify(response).setStatus(HttpServletResponse.SC_OK);
+    Assert.assertEquals(TYPE, token.getType());
+    Assert.assertEquals("bjones", token.getUserName());
+    Assert.assertEquals("bjones", token.getName());
+}

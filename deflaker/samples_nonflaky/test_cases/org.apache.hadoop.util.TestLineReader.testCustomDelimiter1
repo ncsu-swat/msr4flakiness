@@ -1,0 +1,49 @@
+/**
+ * TEST_1: The test scenario is the tail of the buffer equals the starting
+ * character/s of delimiter.
+ *
+ * The Test Data is such that,
+ *
+ * 1) we will have "&lt;/entity&gt;" as delimiter
+ *
+ * 2) The tail of the current buffer would be "&lt;/" which matches with the
+ * starting character sequence of delimiter.
+ *
+ * 3) The Head of the next buffer would be "id&gt;" which does NOT match with
+ * the remaining characters of delimiter.
+ *
+ * 4) Input data would be prefixed by char 'a' about
+ * numberOfCharToFillTheBuffer times. So that, one iteration to buffer the
+ * input data, would end at '&lt;/' ie equals starting 2 char of delimiter
+ *
+ * 5) For this we would take BufferSize as 64 * 1024;
+ *
+ * Check Condition In the second key value pair, the value should contain
+ * "&lt;/" from currentToken and "id&gt;" from next token
+ */
+@Test
+public void testCustomDelimiter1() throws Exception {
+    final String delimiter = "</entity>";
+    // Ending part of Input Data Buffer
+    // It contains '</' ie delimiter character
+    final String currentBufferTailToken = "</entity><entity><id>Gelesh</";
+    // Supposing the start of next buffer is this
+    final String nextBufferHeadToken = "id><name>Omathil</name></entity>";
+    // Expected must capture from both the buffer, excluding Delimiter
+    final String expected = (currentBufferTailToken + nextBufferHeadToken).replace(delimiter, "");
+    final String testPartOfInput = currentBufferTailToken + nextBufferHeadToken;
+    final int bufferSize = 64 * 1024;
+    int numberOfCharToFillTheBuffer = bufferSize - currentBufferTailToken.length();
+    final char[] fillBuffer = new char[numberOfCharToFillTheBuffer];
+    // char 'a' as a filler for the test string
+    Arrays.fill(fillBuffer, 'a');
+    final StringBuilder fillerString = new StringBuilder();
+    final String testData = fillerString + testPartOfInput;
+    final LineReader lineReader = new LineReader(new ByteArrayInputStream(testData.getBytes(StandardCharsets.UTF_8)), delimiter.getBytes(StandardCharsets.UTF_8));
+    final Text line = new Text();
+    lineReader.readLine(line);
+    lineReader.close();
+    Assert.assertEquals(fillerString.toString(), line.toString());
+    lineReader.readLine(line);
+    Assert.assertEquals(expected, line.toString());
+}

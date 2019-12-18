@@ -1,0 +1,21 @@
+@Test
+@SuppressWarnings("unchecked")
+public void testWriteJson() throws Exception {
+    StringWriter sw = new StringWriter();
+    ConfServlet.writeResponse(getTestConf(), sw, "json");
+    String json = sw.toString();
+    boolean foundSetting = false;
+    Object parsed = JSON.parse(json);
+    Object[] properties = ((Map<String, Object[]>) parsed).get("properties");
+    for (Object o : properties) {
+        Map<String, Object> propertyInfo = (Map<String, Object>) o;
+        String key = (String) propertyInfo.get("key");
+        String val = (String) propertyInfo.get("value");
+        String resource = (String) propertyInfo.get("resource");
+        System.err.println("k: " + key + " v: " + val + " r: " + resource);
+        if (TEST_KEY.equals(key) && TEST_VAL.equals(val) && "programmatically".equals(resource)) {
+            foundSetting = true;
+        }
+    }
+    assertTrue(foundSetting);
+}

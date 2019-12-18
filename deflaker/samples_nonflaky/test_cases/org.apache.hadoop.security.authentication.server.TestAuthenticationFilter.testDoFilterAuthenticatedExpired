@@ -1,0 +1,32 @@
+@Test
+public void testDoFilterAuthenticatedExpired() throws Exception {
+    String secret = "secret";
+    AuthenticationFilter filter = new AuthenticationFilter();
+    try {
+        FilterConfig config = Mockito.mock(FilterConfig.class);
+        Mockito.when(config.getInitParameter("management.operation.return")).thenReturn("true");
+        Mockito.when(config.getInitParameter(AuthenticationFilter.AUTH_TYPE)).thenReturn(DummyAuthenticationHandler.class.getName());
+        Mockito.when(config.getInitParameter(AuthenticationFilter.SIGNATURE_SECRET)).thenReturn(secret);
+        Mockito.when(config.getInitParameterNames()).thenReturn(new Vector<String>(Arrays.asList(AuthenticationFilter.AUTH_TYPE, AuthenticationFilter.SIGNATURE_SECRET, "management.operation.return")).elements());
+        getMockedServletContextWithStringSigner(config);
+        filter.init(config);
+        HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
+        Mockito.when(request.getRequestURL()).thenReturn(new StringBuffer("http://foo:8080/bar"));
+        AuthenticationToken token = new AuthenticationToken("u", "p", DummyAuthenticationHandler.TYPE);
+        token.setExpires(System.currentTimeMillis() - TOKEN_VALIDITY_SEC);
+        SignerSecretProvider secretProvider = StringSignerSecretProviderCreator.newStringSignerSecretProvider();
+        Properties secretProviderProps = new Properties();
+        secretProviderProps.setProperty(AuthenticationFilter.SIGNATURE_SECRET, secret);
+        secretProvider.init(secretProviderProps, null, TOKEN_VALIDITY_SEC);
+        Signer signer = new Signer(secretProvider);
+        String tokenSigned = signer.sign(token.toString());
+        Cookie cookie = new Cookie(AuthenticatedURL.AUTH_COOKIE, tokenSigned);
+        Mockito.when(request.getCookies()).thenReturn(new Cookie[] { cookie });
+        HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
+        Mockito.when(response.containsHeader("WWW-Authenticate")).thenReturn(true);
+        FilterChain chain = Mockito.mock(FilterChain.class);
+        verifyUnauthorized(filter, request, response, chain);
+    } finally {
+        filter.destroy();
+    }
+}

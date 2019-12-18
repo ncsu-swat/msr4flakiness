@@ -1,0 +1,18 @@
+@Test
+public void testClientWithoutServer() throws Exception {
+    TestRpcService proxy;
+    short invalidPort = 20;
+    InetSocketAddress invalidAddress = new InetSocketAddress(ADDRESS, invalidPort);
+    long invalidClientVersion = 1L;
+    try {
+        proxy = RPC.getProxy(TestRpcService.class, invalidClientVersion, invalidAddress, conf);
+        // Test echo method
+        proxy.echo(null, newEchoRequest("hello"));
+        fail("We should not have reached here");
+    } catch (ServiceException ioe) {
+        // this is what we expected
+        if (!(ioe.getCause() instanceof ConnectException)) {
+            fail("We should not have reached here");
+        }
+    }
+}

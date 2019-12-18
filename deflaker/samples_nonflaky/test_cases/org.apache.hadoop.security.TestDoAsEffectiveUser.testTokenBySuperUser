@@ -1,0 +1,37 @@
+/*
+   * The user gets the token via a superuser. Server should authenticate
+   * this user. 
+   */
+@Test
+public void testTokenBySuperUser() throws Exception {
+    TestTokenSecretManager sm = new TestTokenSecretManager();
+    final Configuration newConf = new Configuration(masterConf);
+    SecurityUtil.setAuthenticationMethod(AuthenticationMethod.KERBEROS, newConf);
+    // Set RPC engine to protobuf RPC engine
+    RPC.setProtocolEngine(newConf, TestRpcService.class, ProtobufRpcEngine.class);
+    UserGroupInformation.setConfiguration(newConf);
+    final Server server = setupTestServer(newConf, 5, sm);
+    final UserGroupInformation current = UserGroupInformation.createUserForTesting(REAL_USER_NAME, GROUP_NAMES);
+    refreshConf(newConf);
+    TestTokenIdentifier tokenId = new TestTokenIdentifier(new Text(current.getUserName()), new Text("SomeSuperUser"));
+    Token<TestTokenIdentifier> token = new Token<>(tokenId, sm);
+    SecurityUtil.setTokenService(token, addr);
+    current.addToken(token);
+    String retVal = current.doAs(new PrivilegedExceptionAction<String>() {
+
+        @Override
+        public String run() throws Exception {
+            try {
+                client = getClient(addr, newConf);
+                return client.getCurrentUser(null, newEmptyRequest()).getUser();
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw e;
+            } finally {
+                stop(server, client);
+            }
+        }
+    });
+    String expected = REAL_USER_NAME + " (auth:TOKEN) via SomeSuperUser (auth:SIMPLE)";
+    Assert.assertEquals(retVal + "!=" + expected, expected, retVal);
+}

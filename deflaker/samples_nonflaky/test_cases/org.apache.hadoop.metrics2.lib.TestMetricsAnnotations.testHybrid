@@ -1,0 +1,19 @@
+@Test
+public void testHybrid() {
+    HybridMetrics metrics = new HybridMetrics();
+    MetricsSource source = MetricsAnnotations.makeSource(metrics);
+    assertSame(metrics, source);
+    metrics.C0.incr();
+    MetricsRecordBuilder rb = getMetrics(source);
+    MetricsCollector collector = rb.parent();
+    verify(collector).addRecord("foo");
+    verify(collector).addRecord("bar");
+    verify(collector).addRecord(info("HybridMetrics", "HybridMetrics"));
+    verify(rb).setContext("foocontext");
+    verify(rb).addCounter(info("C1", "C1 desc"), 1);
+    verify(rb).setContext("barcontext");
+    verify(rb).addGauge(info("G1", "G1 desc"), 1);
+    verify(rb).add(tag(MsInfo.Context, "hybrid"));
+    verify(rb).addCounter(info("C0", "C0 desc"), 1);
+    verify(rb).addGauge(info("G0", "G0"), 0);
+}

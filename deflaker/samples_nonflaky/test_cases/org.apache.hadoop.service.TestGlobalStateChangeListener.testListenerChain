@@ -1,0 +1,57 @@
+/**
+ * Create a chain of listeners and set one in the middle to fail; verify that
+ * those in front got called, and those after did not.
+ */
+@Test
+public void testListenerChain() {
+    // create and register the listeners
+    LoggingStateChangeListener logListener = new LoggingStateChangeListener();
+    register(logListener);
+    BreakableStateChangeListener l0 = new BreakableStateChangeListener("l0");
+    register(l0);
+    listener.setFailingState(Service.STATE.STARTED);
+    register();
+    BreakableStateChangeListener l3 = new BreakableStateChangeListener("l3");
+    register(l3);
+    // create and init a service.
+    BreakableService service = new BreakableService();
+    service.init(new Configuration());
+    assertServiceStateInited(service);
+    assertListenerState(l0, Service.STATE.INITED);
+    assertListenerState(listener, Service.STATE.INITED);
+    assertListenerState(l3, Service.STATE.INITED);
+    service.start();
+    // expect that listener l1 and the failing listener are in start, but
+    // not the final one
+    assertServiceStateStarted(service);
+    assertListenerState(l0, Service.STATE.STARTED);
+    assertListenerEventCount(l0, 2);
+    assertListenerState(listener, Service.STATE.STARTED);
+    assertListenerEventCount(listener, 2);
+    // this is the listener that is not expected to have been invoked
+    assertListenerState(l3, Service.STATE.INITED);
+    assertListenerEventCount(l3, 1);
+    // stop the service
+    service.stop();
+    // listeners are all updated
+    assertListenerEventCount(l0, 3);
+    assertListenerEventCount(listener, 3);
+    assertListenerEventCount(l3, 2);
+    // can all be unregistered in any order
+    unregister(logListener);
+    unregister(l0);
+    unregister(l3);
+    // check that the listeners are all unregistered, even
+    // though they were registered in a different order.
+    // rather than do this by doing unregister checks, a new service is created
+    service = new BreakableService();
+    // this service is initialized
+    service.init(new Configuration());
+    // it is asserted that the event count has not changed for the unregistered
+    // listeners
+    assertListenerEventCount(l0, 3);
+    assertListenerEventCount(l3, 2);
+    // except for the one listener that was not unregistered, which
+    // has incremented by one
+    assertListenerEventCount(listener, 4);
+}

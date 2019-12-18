@@ -1,0 +1,22 @@
+@Test
+public void testAddDelegationTokens() throws Exception {
+    Credentials creds = new Credentials();
+    Token<?>[] fs1Tokens = addTokensWithCreds(fs1, creds);
+    assertEquals(1, fs1Tokens.length);
+    assertEquals(1, creds.numberOfTokens());
+    Token<?>[] fs2Tokens = addTokensWithCreds(fs2, creds);
+    assertEquals(1, fs2Tokens.length);
+    assertEquals(2, creds.numberOfTokens());
+    Credentials savedCreds = creds;
+    creds = new Credentials();
+    // should get the same set of tokens as explicitly fetched above
+    Token<?>[] viewFsTokens = viewFs.addDelegationTokens("me", creds);
+    assertEquals(2, viewFsTokens.length);
+    assertTrue(creds.getAllTokens().containsAll(savedCreds.getAllTokens()));
+    assertEquals(savedCreds.numberOfTokens(), creds.numberOfTokens());
+    // should get none, already have all tokens
+    viewFsTokens = viewFs.addDelegationTokens("me", creds);
+    assertEquals(0, viewFsTokens.length);
+    assertTrue(creds.getAllTokens().containsAll(savedCreds.getAllTokens()));
+    assertEquals(savedCreds.numberOfTokens(), creds.numberOfTokens());
+}

@@ -1,0 +1,28 @@
+/**
+ * Simulate the carrier process of the trash emptier restarts,
+ * verify it honors the <b>fs.trash.interval</b> before and after restart.
+ * @throws Exception
+ */
+@Test
+public void testTrashRestarts() throws Exception {
+    Configuration conf = new Configuration();
+    conf.setClass("fs.trash.classname", AuditableTrashPolicy.class, TrashPolicy.class);
+    conf.setClass("fs.file.impl", TestLFS.class, FileSystem.class);
+    // in milliseconds for test
+    conf.set(FS_TRASH_INTERVAL_KEY, "50");
+    Trash trash = new Trash(conf);
+    // create 5 checkpoints
+    for (int i = 0; i < 5; i++) {
+        trash.checkpoint();
+    }
+    // Run the trash emptier for 120ms, it should run
+    // 2 times deletion as the interval is 50ms.
+    // Verify the checkpoints number when shutting down the emptier.
+    verifyAuditableTrashEmptier(trash, 120, 3);
+    // reconfigure the interval to 100 ms
+    conf.set(FS_TRASH_INTERVAL_KEY, "100");
+    Trash trashNew = new Trash(conf);
+    // Run the trash emptier for 120ms, it should run
+    // 1 time deletion.
+    verifyAuditableTrashEmptier(trashNew, 120, 2);
+}

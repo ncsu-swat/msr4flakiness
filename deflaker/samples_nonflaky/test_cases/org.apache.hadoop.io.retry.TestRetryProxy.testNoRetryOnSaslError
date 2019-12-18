@@ -1,0 +1,15 @@
+@Test
+public void testNoRetryOnSaslError() throws Exception {
+    RetryPolicy policy = mock(RetryPolicy.class);
+    RetryPolicy realPolicy = RetryPolicies.failoverOnNetworkException(5);
+    setupMockPolicy(policy, realPolicy);
+    UnreliableInterface unreliable = (UnreliableInterface) RetryProxy.create(UnreliableInterface.class, unreliableImpl, policy);
+    try {
+        unreliable.failsWithSASLExceptionTenTimes();
+        fail("Should fail");
+    } catch (SaslException e) {
+        // expected
+        verify(policy, times(1)).shouldRetry(any(Exception.class), anyInt(), anyInt(), anyBoolean());
+        assertEquals(RetryDecision.FAIL, caughtRetryAction.action);
+    }
+}

@@ -1,0 +1,16 @@
+// test meta blocks for tfiles
+@Test
+public void testMetaBlocks() throws IOException {
+    Path mFile = new Path(ROOT, "meta.tfile");
+    FSDataOutputStream fout = createFSOutput(mFile);
+    Writer writer = new Writer(fout, minBlockSize, "none", null, conf);
+    someTestingWithMetaBlock(writer, "none");
+    writer.close();
+    fout.close();
+    FSDataInputStream fin = fs.open(mFile);
+    Reader reader = new Reader(fin, fs.getFileStatus(mFile).getLen(), conf);
+    someReadingWithMetaBlock(reader);
+    fs.delete(mFile, true);
+    reader.close();
+    fin.close();
+}

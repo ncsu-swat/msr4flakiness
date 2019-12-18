@@ -1,0 +1,27 @@
+/**
+ * Test that the roll time updates correctly.
+ */
+@Test
+public void testUpdateRollTime() {
+    RollingFileSystemSink rfsSink = new RollingFileSystemSink(1000, 0);
+    Calendar calendar = Calendar.getInstance();
+    calendar.set(Calendar.MILLISECOND, 0);
+    calendar.set(Calendar.SECOND, 0);
+    calendar.set(Calendar.MINUTE, 0);
+    calendar.set(Calendar.HOUR, 0);
+    calendar.set(Calendar.DAY_OF_YEAR, 1);
+    calendar.set(Calendar.YEAR, 2016);
+    rfsSink.nextFlush = Calendar.getInstance();
+    rfsSink.nextFlush.setTime(calendar.getTime());
+    rfsSink.updateFlushTime(calendar.getTime());
+    assertEquals("The next roll time should have been 1 second in the future", calendar.getTimeInMillis() + 1000, rfsSink.nextFlush.getTimeInMillis());
+    rfsSink.nextFlush.setTime(calendar.getTime());
+    calendar.add(Calendar.MILLISECOND, 10);
+    rfsSink.updateFlushTime(calendar.getTime());
+    assertEquals("The next roll time should have been 990 ms in the future", calendar.getTimeInMillis() + 990, rfsSink.nextFlush.getTimeInMillis());
+    rfsSink.nextFlush.setTime(calendar.getTime());
+    calendar.add(Calendar.SECOND, 2);
+    calendar.add(Calendar.MILLISECOND, 10);
+    rfsSink.updateFlushTime(calendar.getTime());
+    assertEquals("The next roll time should have been 990 ms in the future", calendar.getTimeInMillis() + 990, rfsSink.nextFlush.getTimeInMillis());
+}

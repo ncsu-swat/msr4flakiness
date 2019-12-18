@@ -1,0 +1,25 @@
+/**
+ * Add a bunch of subnets and IPSs to the file
+ * setup a low cache refresh
+ * test for inclusion
+ * Check for exclusion
+ * Remove a bunch of subnets and Ips
+ * wait for cache timeout.
+ * test for inclusion
+ * Check for exclusion
+ */
+@Test
+public void testRemovalWithRefresh() throws IOException, InterruptedException {
+    String[] ips = { "10.119.103.112", "10.221.102.0/23", "10.222.0.0/16", "10.113.221.221", "10.113.221.222" };
+    TestFileBasedIPList.createFileWithEntries("ips.txt", ips);
+    CacheableIPList cipl = new CacheableIPList(new FileBasedIPList("ips.txt"), 100);
+    assertTrue("10.113.221.222 is not in the list", cipl.isIn("10.113.221.222"));
+    assertTrue("10.222.103.121 is not in the list", cipl.isIn("10.222.103.121"));
+    TestFileBasedIPList.removeFile("ips.txt");
+    String[] ips2 = { "10.119.103.112", "10.221.102.0/23", "10.113.221.221" };
+    TestFileBasedIPList.createFileWithEntries("ips.txt", ips2);
+    cipl.refresh();
+    assertFalse("10.113.221.222 is in the list", cipl.isIn("10.113.221.222"));
+    assertFalse("10.222.103.121 is  in the list", cipl.isIn("10.222.103.121"));
+    TestFileBasedIPList.removeFile("ips.txt");
+}

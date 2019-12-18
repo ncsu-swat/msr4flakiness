@@ -1,0 +1,17 @@
+@Test
+public void testExceptionCallingLoadWithoutBackgroundRefreshReturnsOldValue() throws Exception {
+    conf.setLong(CommonConfigurationKeys.HADOOP_SECURITY_GROUPS_CACHE_SECS, 1);
+    conf.setBoolean(CommonConfigurationKeys.HADOOP_SECURITY_GROUPS_CACHE_BACKGROUND_RELOAD, false);
+    FakeTimer timer = new FakeTimer();
+    final Groups groups = new Groups(conf, timer);
+    groups.cacheGroupsAdd(Arrays.asList(myGroups));
+    groups.refresh();
+    FakeGroupMapping.clearBlackList();
+    // First populate the cash
+    assertThat(groups.getGroups("me").size()).isEqualTo(2);
+    // Advance the timer so a refresh is required
+    timer.advance(2 * 1000);
+    // This call should throw an exception
+    FakeGroupMapping.setThrowException(true);
+    assertThat(groups.getGroups("me").size()).isEqualTo(2);
+}

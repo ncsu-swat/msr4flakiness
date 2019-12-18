@@ -1,0 +1,18 @@
+@Test(timeout = 60000)
+public void testWrapExceptionWithMessage() {
+    IOException ex;
+    ex = new IOException("Induced exception");
+    ex = KerberosAuthenticator.wrapExceptionWithMessage(ex, "Error while " + "authenticating with endpoint: localhost");
+    Assert.assertEquals("Induced exception", ex.getCause().getMessage());
+    Assert.assertEquals("Error while authenticating with endpoint: localhost", ex.getMessage());
+    ex = new AuthenticationException("Auth exception");
+    ex = KerberosAuthenticator.wrapExceptionWithMessage(ex, "Error while " + "authenticating with endpoint: localhost");
+    Assert.assertEquals("Auth exception", ex.getCause().getMessage());
+    Assert.assertEquals("Error while authenticating with endpoint: localhost", ex.getMessage());
+    // Test for Exception with  no (String) constructor
+    // redirect the LOG to and check log message
+    ex = new CharacterCodingException();
+    Exception ex2 = KerberosAuthenticator.wrapExceptionWithMessage(ex, "Error while authenticating with endpoint: localhost");
+    Assert.assertTrue(ex instanceof CharacterCodingException);
+    Assert.assertTrue(ex.equals(ex2));
+}

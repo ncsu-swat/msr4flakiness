@@ -1,0 +1,13 @@
+// we still can scan records in an unsorted TFile
+@Test
+public void testFailureScannerWithKeys() throws IOException {
+    try (Reader reader = new Reader(fs.open(path), fs.getFileStatus(path).getLen(), conf)) {
+        assertThat(reader.isSorted()).isFalse();
+        assertThat(reader.getEntryCount()).isEqualTo(4);
+        try {
+            reader.createScannerByKey("aaa".getBytes(), "zzz".getBytes());
+            fail("Failed to catch creating scanner with keys on unsorted file.");
+        } catch (RuntimeException expected) {
+        }
+    }
+}

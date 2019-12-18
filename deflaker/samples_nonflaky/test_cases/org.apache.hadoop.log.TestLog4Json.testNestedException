@@ -1,0 +1,25 @@
+@Test
+public void testNestedException() throws Throwable {
+    Exception e = new NoRouteToHostException("that box caught fire 3 years ago");
+    Exception ioe = new IOException("Datacenter problems", e);
+    ThrowableInformation ti = new ThrowableInformation(ioe);
+    Log4Json l4j = new Log4Json();
+    long timeStamp = Time.now();
+    String outcome = l4j.toJson(new StringWriter(), "testNestedException", timeStamp, "INFO", "quoted\"", "new line\n and {}", ti).toString();
+    println("testNestedException", outcome);
+    ContainerNode rootNode = Log4Json.parse(outcome);
+    assertEntryEquals(rootNode, Log4Json.LEVEL, "INFO");
+    assertEntryEquals(rootNode, Log4Json.NAME, "testNestedException");
+    assertEntryEquals(rootNode, Log4Json.TIME, timeStamp);
+    assertEntryEquals(rootNode, Log4Json.EXCEPTION_CLASS, ioe.getClass().getName());
+    JsonNode node = assertNodeContains(rootNode, Log4Json.STACK);
+    assertTrue("Not an array: " + node, node.isArray());
+    node = assertNodeContains(rootNode, Log4Json.DATE);
+    assertTrue("Not a string: " + node, node.isTextual());
+    // rather than try and make assertions about the format of the text
+    // message equalling another ISO date, this test asserts that the hypen
+    // and colon characters are in the string.
+    String dateText = node.textValue();
+    assertTrue("No '-' in " + dateText, dateText.contains("-"));
+    assertTrue("No '-' in " + dateText, dateText.contains(":"));
+}

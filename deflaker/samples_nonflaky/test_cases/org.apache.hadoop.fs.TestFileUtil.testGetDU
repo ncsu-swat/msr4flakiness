@@ -1,0 +1,50 @@
+/**
+ * Test that getDU is able to handle cycles caused due to symbolic links
+ * and that directory sizes are not added to the final calculated size
+ * @throws IOException
+ */
+@Test(timeout = 30000)
+public void testGetDU() throws Exception {
+    setupDirs();
+    long du = FileUtil.getDU(TEST_DIR);
+    // Only two files (in partitioned).  Each has 3 characters + system-specific
+    // line separator.
+    final long expected = 2 * (3 + System.getProperty("line.separator").length());
+    Assert.assertEquals(expected, du);
+    // target file does not exist:
+    final File doesNotExist = new File(tmp, "QuickBrownFoxJumpsOverTheLazyDog");
+    long duDoesNotExist = FileUtil.getDU(doesNotExist);
+    assertEquals(0, duDoesNotExist);
+    // target file is not a directory:
+    File notADirectory = new File(partitioned, "part-r-00000");
+    long duNotADirectoryActual = FileUtil.getDU(notADirectory);
+    long duNotADirectoryExpected = 3 + System.getProperty("line.separator").length();
+    assertEquals(duNotADirectoryExpected, duNotADirectoryActual);
+    try {
+        // one of target files is not accessible, but the containing directory
+        // is accessible:
+        try {
+            FileUtil.chmod(notADirectory.getAbsolutePath(), "0000");
+        } catch (InterruptedException ie) {
+            // should never happen since that method never throws InterruptedException.
+            assertNull(ie);
+        }
+        assertFalse(FileUtil.canRead(notADirectory));
+        final long du3 = FileUtil.getDU(partitioned);
+        assertEquals(expected, du3);
+        // some target files and containing directory are not accessible:
+        try {
+            FileUtil.chmod(partitioned.getAbsolutePath(), "0000");
+        } catch (InterruptedException ie) {
+            // should never happen since that method never throws InterruptedException.
+            assertNull(ie);
+        }
+        assertFalse(FileUtil.canRead(partitioned));
+        final long du4 = FileUtil.getDU(partitioned);
+        assertEquals(0, du4);
+    } finally {
+        // Restore the permissions so that we can delete the folder
+        // in @After method:
+        FileUtil.chmod(partitioned.getAbsolutePath(), "0777", true);
+    }
+}

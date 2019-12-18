@@ -1,0 +1,23 @@
+@Test
+public void testServiceStop() {
+    ServiceManager serviceManager = new ServiceManager("ServiceManager");
+    // Add services
+    for (int i = 0; i < NUM_OF_SERVICES; i++) {
+        CompositeServiceImpl service = new CompositeServiceImpl(i);
+        if (i == FAILED_SERVICE_SEQ_NUMBER) {
+            service.setThrowExceptionOnStop(true);
+        }
+        serviceManager.addTestService(service);
+    }
+    CompositeServiceImpl[] services = serviceManager.getServices().toArray(new CompositeServiceImpl[0]);
+    Configuration conf = new Configuration();
+    // Initialise the composite service
+    serviceManager.init(conf);
+    serviceManager.start();
+    // Stop the composite service
+    try {
+        serviceManager.stop();
+    } catch (ServiceTestRuntimeException e) {
+    }
+    assertInState(STATE.STOPPED, services);
+}

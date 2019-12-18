@@ -1,0 +1,14 @@
+@Test
+public void testIPRange() {
+    Configuration conf = new Configuration();
+    conf.set(DefaultImpersonationProvider.getTestProvider().getProxySuperuserGroupConfKey(REAL_USER_NAME), "*");
+    conf.set(DefaultImpersonationProvider.getTestProvider().getProxySuperuserIpConfKey(REAL_USER_NAME), PROXY_IP_RANGE);
+    ProxyUsers.refreshSuperUserGroupsConfiguration(conf);
+    // First try proxying a group that's allowed
+    UserGroupInformation realUserUgi = UserGroupInformation.createRemoteUser(REAL_USER_NAME);
+    UserGroupInformation proxyUserUgi = UserGroupInformation.createProxyUserForTesting(PROXY_USER_NAME, realUserUgi, GROUP_NAMES);
+    // From good IP
+    assertAuthorized(proxyUserUgi, "10.222.0.0");
+    // From bad IP
+    assertNotAuthorized(proxyUserUgi, "10.221.0.0");
+}

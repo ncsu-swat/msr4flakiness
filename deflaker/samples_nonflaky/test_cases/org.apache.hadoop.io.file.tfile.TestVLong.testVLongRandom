@@ -1,0 +1,24 @@
+@Test
+public void testVLongRandom() throws IOException {
+    int count = 1024 * 1024;
+    long[] data = new long[count];
+    Random rng = new Random();
+    for (int i = 0; i < data.length; ++i) {
+        int shift = rng.nextInt(Long.SIZE) + 1;
+        long mask = (1L << shift) - 1;
+        long a = ((long) rng.nextInt()) << 32;
+        long b = ((long) rng.nextInt()) & 0xffffffffL;
+        data[i] = (a + b) & mask;
+    }
+    FSDataOutputStream out = fs.create(path);
+    for (int i = 0; i < data.length; ++i) {
+        Utils.writeVLong(out, data[i]);
+    }
+    out.close();
+    FSDataInputStream in = fs.open(path);
+    for (int i = 0; i < data.length; ++i) {
+        assertThat(Utils.readVLong(in)).isEqualTo(data[i]);
+    }
+    in.close();
+    fs.delete(path, false);
+}

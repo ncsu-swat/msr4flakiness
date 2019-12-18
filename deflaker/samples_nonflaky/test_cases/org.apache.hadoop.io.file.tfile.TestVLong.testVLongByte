@@ -1,0 +1,15 @@
+@Test
+public void testVLongByte() throws IOException {
+    FSDataOutputStream out = fs.create(path);
+    for (int i = Byte.MIN_VALUE; i <= Byte.MAX_VALUE; ++i) {
+        Utils.writeVLong(out, i);
+    }
+    out.close();
+    Assert.assertEquals("Incorrect encoded size", (1 << Byte.SIZE) + 96, fs.getFileStatus(path).getLen());
+    FSDataInputStream in = fs.open(path);
+    for (int i = Byte.MIN_VALUE; i <= Byte.MAX_VALUE; ++i) {
+        assertThat(Utils.readVLong(in)).isEqualTo(i);
+    }
+    in.close();
+    fs.delete(path, false);
+}

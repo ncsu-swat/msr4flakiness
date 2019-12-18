@@ -1,0 +1,20 @@
+@Test
+public void testProxyUsersWithProviderOverride() throws Exception {
+    Configuration conf = new Configuration();
+    conf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_IMPERSONATION_PROVIDER_CLASS, "org.apache.hadoop.security.authorize.TestProxyUsers$TestDummyImpersonationProvider");
+    ProxyUsers.refreshSuperUserGroupsConfiguration(conf);
+    // First try proxying a group that's allowed
+    UserGroupInformation realUserUgi = UserGroupInformation.createUserForTesting(REAL_USER_NAME, SUDO_GROUP_NAMES);
+    UserGroupInformation proxyUserUgi = UserGroupInformation.createProxyUserForTesting(PROXY_USER_NAME, realUserUgi, GROUP_NAMES);
+    // From good IP
+    assertAuthorized(proxyUserUgi, "1.2.3.4");
+    // From bad IP
+    assertAuthorized(proxyUserUgi, "1.2.3.5");
+    // Now try proxying a group that's not allowed
+    realUserUgi = UserGroupInformation.createUserForTesting(REAL_USER_NAME, GROUP_NAMES);
+    proxyUserUgi = UserGroupInformation.createProxyUserForTesting(PROXY_USER_NAME, realUserUgi, GROUP_NAMES);
+    // From good IP
+    assertNotAuthorized(proxyUserUgi, "1.2.3.4");
+    // From bad IP
+    assertNotAuthorized(proxyUserUgi, "1.2.3.5");
+}

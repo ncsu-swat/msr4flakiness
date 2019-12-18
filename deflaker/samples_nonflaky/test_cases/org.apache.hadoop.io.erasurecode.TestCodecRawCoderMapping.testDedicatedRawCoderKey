@@ -1,0 +1,21 @@
+@Test
+public void testDedicatedRawCoderKey() {
+    ErasureCoderOptions coderOptions = new ErasureCoderOptions(numDataUnit, numParityUnit);
+    String dummyFactName = "DummyNoneExistingFactory";
+    // set the dummy factory to raw coders then fail to create any rs raw coder.
+    conf.set(CodecUtil.IO_ERASURECODE_CODEC_RS_RAWCODERS_KEY, dummyFactName);
+    try {
+        CodecUtil.createRawEncoder(conf, ErasureCodeConstants.RS_CODEC_NAME, coderOptions);
+        Assert.fail();
+    } catch (Exception e) {
+        GenericTestUtils.assertExceptionContains("Fail to create raw erasure encoder with given codec: rs", e);
+    }
+    // now create the raw coder with rs-legacy, which should throw exception
+    conf.set(CodecUtil.IO_ERASURECODE_CODEC_RS_LEGACY_RAWCODERS_KEY, dummyFactName);
+    try {
+        CodecUtil.createRawEncoder(conf, ErasureCodeConstants.RS_LEGACY_CODEC_NAME, coderOptions);
+        Assert.fail();
+    } catch (Exception e) {
+        GenericTestUtils.assertExceptionContains("Fail to create raw erasure encoder with given codec: rs", e);
+    }
+}

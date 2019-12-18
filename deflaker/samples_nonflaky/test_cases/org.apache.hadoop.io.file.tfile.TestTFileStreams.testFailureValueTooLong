@@ -1,0 +1,22 @@
+@Test
+public void testFailureValueTooLong() throws IOException {
+    if (skip)
+        return;
+    DataOutputStream outKey = writer.prepareAppendKey(4);
+    outKey.write("key0".getBytes());
+    outKey.close();
+    DataOutputStream outValue = writer.prepareAppendValue(3);
+    try {
+        outValue.write("value0".getBytes());
+        outValue.close();
+        fail("Value is longer than expected.");
+    } catch (Exception e) {
+    // noop, expecting an exception
+    }
+    try {
+        outKey.close();
+        outKey.close();
+    } catch (Exception e) {
+        fail("Second or more close() should have no effect.");
+    }
+}

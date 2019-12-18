@@ -1,0 +1,14 @@
+@SuppressWarnings("deprecation")
+@Test
+public void testDrainToWithLimit() {
+    Configuration conf = new Configuration();
+    conf.setInt("ns." + FairCallQueue.IPC_CALLQUEUE_PRIORITY_LEVELS_KEY, 2);
+    FairCallQueue<Schedulable> fcq2 = new FairCallQueue<Schedulable>(2, 10, "ns", conf);
+    // Start with 3 in fcq, to be drained
+    for (int i = 0; i < 3; i++) {
+        fcq.offer(mockCall("c"));
+    }
+    fcq.drainTo(fcq2, 2);
+    assertEquals(1, fcq.size());
+    assertEquals(2, fcq2.size());
+}

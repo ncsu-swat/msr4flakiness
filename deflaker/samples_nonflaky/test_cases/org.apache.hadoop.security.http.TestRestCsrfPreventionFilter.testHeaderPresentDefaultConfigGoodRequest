@@ -1,0 +1,18 @@
+@Test
+public void testHeaderPresentDefaultConfigGoodRequest() throws ServletException, IOException {
+    // Setup the configuration settings of the server
+    FilterConfig filterConfig = Mockito.mock(FilterConfig.class);
+    Mockito.when(filterConfig.getInitParameter(RestCsrfPreventionFilter.CUSTOM_HEADER_PARAM)).thenReturn(null);
+    Mockito.when(filterConfig.getInitParameter(RestCsrfPreventionFilter.CUSTOM_METHODS_TO_IGNORE_PARAM)).thenReturn(null);
+    // CSRF HAS been sent
+    HttpServletRequest mockReq = Mockito.mock(HttpServletRequest.class);
+    Mockito.when(mockReq.getHeader(RestCsrfPreventionFilter.HEADER_DEFAULT)).thenReturn("valueUnimportant");
+    // Objects to verify interactions based on request
+    HttpServletResponse mockRes = Mockito.mock(HttpServletResponse.class);
+    FilterChain mockChain = Mockito.mock(FilterChain.class);
+    // Object under test
+    RestCsrfPreventionFilter filter = new RestCsrfPreventionFilter();
+    filter.init(filterConfig);
+    filter.doFilter(mockReq, mockRes, mockChain);
+    Mockito.verify(mockChain).doFilter(mockReq, mockRes);
+}

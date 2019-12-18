@@ -1,0 +1,112 @@
+/**
+ * Test reconfiguring a Reconfigurable.
+ */
+@Test
+public void testReconfigure() {
+    ReconfigurableDummy dummy = new ReconfigurableDummy(conf1);
+    assertTrue(PROP1 + " set to wrong value ", dummy.getConf().get(PROP1).equals(VAL1));
+    assertTrue(PROP2 + " set to wrong value ", dummy.getConf().get(PROP2).equals(VAL1));
+    assertTrue(PROP3 + " set to wrong value ", dummy.getConf().get(PROP3).equals(VAL1));
+    assertTrue(PROP4 + " set to wrong value ", dummy.getConf().get(PROP4) == null);
+    assertTrue(PROP5 + " set to wrong value ", dummy.getConf().get(PROP5) == null);
+    assertTrue(PROP1 + " should be reconfigurable ", dummy.isPropertyReconfigurable(PROP1));
+    assertTrue(PROP2 + " should be reconfigurable ", dummy.isPropertyReconfigurable(PROP2));
+    assertFalse(PROP3 + " should not be reconfigurable ", dummy.isPropertyReconfigurable(PROP3));
+    assertTrue(PROP4 + " should be reconfigurable ", dummy.isPropertyReconfigurable(PROP4));
+    assertFalse(PROP5 + " should not be reconfigurable ", dummy.isPropertyReconfigurable(PROP5));
+    // change something to the same value as before
+    {
+        boolean exceptionCaught = false;
+        try {
+            dummy.reconfigureProperty(PROP1, VAL1);
+            assertTrue(PROP1 + " set to wrong value ", dummy.getConf().get(PROP1).equals(VAL1));
+        } catch (ReconfigurationException e) {
+            exceptionCaught = true;
+        }
+        assertFalse("received unexpected exception", exceptionCaught);
+    }
+    // change something to null
+    {
+        boolean exceptionCaught = false;
+        try {
+            dummy.reconfigureProperty(PROP1, null);
+            assertTrue(PROP1 + "set to wrong value ", dummy.getConf().get(PROP1) == null);
+        } catch (ReconfigurationException e) {
+            exceptionCaught = true;
+        }
+        assertFalse("received unexpected exception", exceptionCaught);
+    }
+    // change something to a different value than before
+    {
+        boolean exceptionCaught = false;
+        try {
+            dummy.reconfigureProperty(PROP1, VAL2);
+            assertTrue(PROP1 + "set to wrong value ", dummy.getConf().get(PROP1).equals(VAL2));
+        } catch (ReconfigurationException e) {
+            exceptionCaught = true;
+        }
+        assertFalse("received unexpected exception", exceptionCaught);
+    }
+    // set unset property to null
+    {
+        boolean exceptionCaught = false;
+        try {
+            dummy.reconfigureProperty(PROP4, null);
+            assertTrue(PROP4 + "set to wrong value ", dummy.getConf().get(PROP4) == null);
+        } catch (ReconfigurationException e) {
+            exceptionCaught = true;
+        }
+        assertFalse("received unexpected exception", exceptionCaught);
+    }
+    // set unset property
+    {
+        boolean exceptionCaught = false;
+        try {
+            dummy.reconfigureProperty(PROP4, VAL1);
+            assertTrue(PROP4 + "set to wrong value ", dummy.getConf().get(PROP4).equals(VAL1));
+        } catch (ReconfigurationException e) {
+            exceptionCaught = true;
+        }
+        assertFalse("received unexpected exception", exceptionCaught);
+    }
+    // try to set unset property to null (not reconfigurable)
+    {
+        boolean exceptionCaught = false;
+        try {
+            dummy.reconfigureProperty(PROP5, null);
+        } catch (ReconfigurationException e) {
+            exceptionCaught = true;
+        }
+        assertTrue("did not receive expected exception", exceptionCaught);
+    }
+    // try to set unset property to value (not reconfigurable)
+    {
+        boolean exceptionCaught = false;
+        try {
+            dummy.reconfigureProperty(PROP5, VAL1);
+        } catch (ReconfigurationException e) {
+            exceptionCaught = true;
+        }
+        assertTrue("did not receive expected exception", exceptionCaught);
+    }
+    // try to change property to value (not reconfigurable)
+    {
+        boolean exceptionCaught = false;
+        try {
+            dummy.reconfigureProperty(PROP3, VAL2);
+        } catch (ReconfigurationException e) {
+            exceptionCaught = true;
+        }
+        assertTrue("did not receive expected exception", exceptionCaught);
+    }
+    // try to change property to null (not reconfigurable)
+    {
+        boolean exceptionCaught = false;
+        try {
+            dummy.reconfigureProperty(PROP3, null);
+        } catch (ReconfigurationException e) {
+            exceptionCaught = true;
+        }
+        assertTrue("did not receive expected exception", exceptionCaught);
+    }
+}

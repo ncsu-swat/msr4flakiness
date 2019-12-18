@@ -1,0 +1,12 @@
+@Test
+public void testWhitespaceAndCommentsInConfig() throws BadFencingConfigurationException {
+    NodeFencer fencer = setupFencer("\n" + " # the next one will always fail\n" + " " + AlwaysFailFencer.class.getName() + "(foo) # <- fails\n" + AlwaysSucceedFencer.class.getName() + "(bar) \n");
+    assertTrue(fencer.fence(MOCK_TARGET));
+    // One call to each, since top fencer fails
+    assertEquals(1, AlwaysFailFencer.fenceCalled);
+    assertSame(MOCK_TARGET, AlwaysFailFencer.fencedSvc);
+    assertEquals(1, AlwaysSucceedFencer.fenceCalled);
+    assertSame(MOCK_TARGET, AlwaysSucceedFencer.fencedSvc);
+    assertEquals("foo", AlwaysFailFencer.callArgs.get(0));
+    assertEquals("bar", AlwaysSucceedFencer.callArgs.get(0));
+}

@@ -1,0 +1,22 @@
+@Test
+public void testPutMetrics2() {
+    GraphiteSink sink = new GraphiteSink();
+    List<MetricsTag> tags = new ArrayList<MetricsTag>();
+    tags.add(new MetricsTag(MsInfo.Context, "all"));
+    tags.add(new MetricsTag(MsInfo.Hostname, null));
+    Set<AbstractMetric> metrics = new HashSet<AbstractMetric>();
+    metrics.add(makeMetric("foo1", 1));
+    metrics.add(makeMetric("foo2", 2));
+    MetricsRecord record = new MetricsRecordImpl(MsInfo.Context, (long) 10000, tags, metrics);
+    ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
+    final GraphiteSink.Graphite mockGraphite = makeGraphite();
+    Whitebox.setInternalState(sink, "graphite", mockGraphite);
+    sink.putMetrics(record);
+    try {
+        verify(mockGraphite).write(argument.capture());
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+    String result = argument.getValue();
+    assertEquals(true, result.equals("null.all.Context.Context=all.foo1 1 10\n" + "null.all.Context.Context=all.foo2 2 10\n") || result.equals("null.all.Context.Context=all.foo2 2 10\n" + "null.all.Context.Context=all.foo1 1 10\n"));
+}

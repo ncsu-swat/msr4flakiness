@@ -1,0 +1,11 @@
+@Test(timeout = 60000)
+public void testRequestWithInvalidAuthorization() throws Exception {
+    HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
+    HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
+    final Base64 base64 = new Base64(0);
+    String credentials = "bjones:invalidpassword";
+    Mockito.when(request.getHeader(HttpConstants.AUTHORIZATION_HEADER)).thenReturn(base64.encodeToString(credentials.getBytes()));
+    Assert.assertNull(handler.authenticate(request, response));
+    Mockito.verify(response).setHeader(WWW_AUTHENTICATE, HttpConstants.BASIC);
+    Mockito.verify(response).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+}

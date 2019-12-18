@@ -1,0 +1,36 @@
+/**
+ * Test the single-file method HardLink.createHardLink().
+ * Also tests getLinkCount() with values greater than one.
+ */
+@Test
+public void testCreateHardLink() throws IOException {
+    // hardlink a single file and confirm expected result
+    createHardLink(x1, x1_one);
+    assertTrue(x1_one.exists());
+    // x1 and x1_one are linked now
+    assertEquals(2, getLinkCount(x1));
+    // so they both have count "2"
+    assertEquals(2, getLinkCount(x1_one));
+    // confirm that x2, which we didn't change, still shows count "1"
+    assertEquals(1, getLinkCount(x2));
+    // now do a few more
+    createHardLink(x2, y_one);
+    createHardLink(x3, x3_one);
+    assertEquals(2, getLinkCount(x2));
+    assertEquals(2, getLinkCount(x3));
+    // create another link to a file that already has count 2
+    createHardLink(x1, x11_one);
+    // x1, x1_one, and x11_one
+    assertEquals(3, getLinkCount(x1));
+    // are all linked, so they
+    assertEquals(3, getLinkCount(x1_one));
+    // should all have count "3"
+    assertEquals(3, getLinkCount(x11_one));
+    // validate by contents
+    validateTgtOne();
+    // validate that change of content is reflected in the other linked files
+    appendToFile(x1_one, str3);
+    assertTrue(fetchFileContents(x1_one).equals(str1 + str3));
+    assertTrue(fetchFileContents(x11_one).equals(str1 + str3));
+    assertTrue(fetchFileContents(x1).equals(str1 + str3));
+}

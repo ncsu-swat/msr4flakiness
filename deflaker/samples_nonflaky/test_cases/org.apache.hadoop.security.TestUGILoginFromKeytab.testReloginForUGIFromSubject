@@ -1,0 +1,36 @@
+@Test
+public void testReloginForUGIFromSubject() throws Exception {
+    KerberosPrincipal principal1 = new KerberosPrincipal("user1");
+    File keytab1 = new File(workDir, "user1.keytab");
+    kdc.createPrincipal(keytab1, principal1.getName());
+    KerberosPrincipal principal2 = new KerberosPrincipal("user2");
+    File keytab2 = new File(workDir, "user2.keytab");
+    kdc.createPrincipal(keytab2, principal2.getName());
+    // Login a user and remove the User instance so it looks like an
+    // "external" subject.
+    final Subject extSubject = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal2.getName(), keytab2.getPath()).getSubject();
+    removeUser(extSubject);
+    // Login another user.
+    UserGroupInformation.loginUserFromKeytab(principal1.getName(), keytab1.getPath());
+    final UserGroupInformation loginUser = UserGroupInformation.getLoginUser();
+    loginUser.doAs(new PrivilegedExceptionAction<Void>() {
+
+        @Override
+        public Void run() throws IOException {
+            KerberosTicket loginTicket = checkTicketAndKeytab(loginUser, principal1, true);
+            // get the ugi for the previously logged in subject.
+            UserGroupInformation extSubjectUser = UserGroupInformation.getUGIFromSubject(extSubject);
+            KerberosTicket ticket = checkTicketAndKeytab(extSubjectUser, principal2, false);
+            // verify login user got a new ticket.
+            loginUser.reloginFromKeytab();
+            KerberosTicket newLoginTicket = checkTicketAndKeytab(loginUser, principal1, true);
+            Assert.assertNotEquals(loginTicket.getAuthTime(), newLoginTicket.getAuthTime());
+            // verify an "external" subject ticket does not change.
+            extSubjectUser.reloginFromKeytab();
+            Assert.assertSame(ticket, checkTicketAndKeytab(extSubjectUser, principal2, false));
+            // verify subject ugi relogin did not affect the login user.
+            Assert.assertSame(newLoginTicket, checkTicketAndKeytab(loginUser, principal1, true));
+            return null;
+        }
+    });
+}

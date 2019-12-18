@@ -1,0 +1,30 @@
+// don't write a new header if no data are written after reset
+@Test
+public void testIdempotentResetState() throws IOException {
+    DataOutputBuffer dob = new DataOutputBuffer();
+    CompressionOutputStream cmpOut = codec.createOutputStream(dob);
+    cmpOut.write(DATA1.getBytes(StandardCharsets.UTF_8));
+    cmpOut.finish();
+    cmpOut.finish();
+    cmpOut.finish();
+    cmpOut.resetState();
+    cmpOut.resetState();
+    cmpOut.finish();
+    cmpOut.resetState();
+    cmpOut.close();
+    dob.close();
+    DataInputBuffer dib = new DataInputBuffer();
+    dib.reset(dob.getData(), 0, dob.getLength());
+    CompressionInputStream cmpIn = codec.createInputStream(dib);
+    byte[] buf = new byte[1024];
+    StringBuilder result = new StringBuilder();
+    int len = 0;
+    while (true) {
+        len = cmpIn.read(buf);
+        if (len < 0) {
+            break;
+        }
+        result.append(new String(buf, 0, len, StandardCharsets.UTF_8));
+    }
+    assertEquals("Output must match input", DATA1, result.toString());
+}

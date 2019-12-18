@@ -1,0 +1,19 @@
+/**
+ * Low level conf value extraction test...just to make sure
+ * that all works at the lower level.
+ * @throws Throwable
+ */
+@Test
+public void testConfExtraction() throws Throwable {
+    ExitTrackingServiceLauncher<Service> launcher = new ExitTrackingServiceLauncher<>(RunningService.NAME);
+    launcher.bindCommandOptions();
+    Configuration conf = newConf("propagated", "true");
+    assertEquals("true", conf.get("propagated", "unset"));
+    Configuration extracted = new Configuration(false);
+    List<String> argsList = asList("Name", ARG_CONF_PREFIXED, configFile(conf));
+    List<String> args = launcher.extractCommandOptions(extracted, argsList);
+    if (!args.isEmpty()) {
+        assertEquals("args beginning with " + args.get(0), 0, args.size());
+    }
+    assertEquals("true", extracted.get("propagated", "unset"));
+}

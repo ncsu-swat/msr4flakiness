@@ -1,0 +1,24 @@
+/*
+   * Test the multi-file method HardLink.createHardLinkMult(),
+   * multiple files within a directory into one target directory
+   */
+@Test
+public void testCreateHardLinkMult() throws IOException {
+    // hardlink a whole list of three files at once
+    String[] fileNames = src.list();
+    createHardLinkMult(src, fileNames, tgt_mult);
+    // validate by link count - each file has been linked once,
+    // so each count is "2"
+    assertEquals(2, getLinkCount(x1));
+    assertEquals(2, getLinkCount(x2));
+    assertEquals(2, getLinkCount(x3));
+    assertEquals(2, getLinkCount(x1_mult));
+    assertEquals(2, getLinkCount(x2_mult));
+    assertEquals(2, getLinkCount(x3_mult));
+    // validate by contents
+    validateTgtMult();
+    // validate that change of content is reflected in the other linked files
+    appendToFile(x1_mult, str3);
+    assertTrue(fetchFileContents(x1_mult).equals(str1 + str3));
+    assertTrue(fetchFileContents(x1).equals(str1 + str3));
+}

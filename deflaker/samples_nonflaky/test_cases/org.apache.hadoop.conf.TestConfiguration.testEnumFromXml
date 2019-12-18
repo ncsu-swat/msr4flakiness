@@ -1,0 +1,19 @@
+@Test
+public void testEnumFromXml() throws IOException {
+    out = new BufferedWriter(new FileWriter(CONFIG_FOR_ENUM));
+    startConfig();
+    appendProperty("test.enum", " \t \n   FOO \t \n");
+    appendProperty("test.enum2", " \t \n   Yak.FOO \t \n");
+    endConfig();
+    Configuration conf = new Configuration();
+    Path fileResource = new Path(CONFIG_FOR_ENUM);
+    conf.addResource(fileResource);
+    assertSame(Yak.FOO, conf.getEnum("test.enum", Yak.FOO));
+    boolean fail = false;
+    try {
+        conf.getEnum("test.enum2", Yak.FOO);
+    } catch (IllegalArgumentException e) {
+        fail = true;
+    }
+    assertTrue(fail);
+}

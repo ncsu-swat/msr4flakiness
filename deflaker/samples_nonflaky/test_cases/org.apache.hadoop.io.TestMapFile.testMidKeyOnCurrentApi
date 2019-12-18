@@ -1,0 +1,21 @@
+/**
+ * test {@code MapFile.Reader.midKey() } method
+ */
+@Test
+public void testMidKeyOnCurrentApi() throws Exception {
+    // Write a mapfile of simple data: keys are
+    final String TEST_PREFIX = "testMidKeyOnCurrentApi.mapfile";
+    MapFile.Writer writer = null;
+    MapFile.Reader reader = null;
+    try {
+        writer = createWriter(TEST_PREFIX, IntWritable.class, IntWritable.class);
+        // 0,1,....9
+        int SIZE = 10;
+        for (int i = 0; i < SIZE; i++) writer.append(new IntWritable(i), new IntWritable(i));
+        writer.close();
+        reader = createReader(TEST_PREFIX, IntWritable.class);
+        assertEquals(new IntWritable((SIZE - 1) / 2), reader.midKey());
+    } finally {
+        IOUtils.cleanupWithLogger(LOG, writer, reader);
+    }
+}

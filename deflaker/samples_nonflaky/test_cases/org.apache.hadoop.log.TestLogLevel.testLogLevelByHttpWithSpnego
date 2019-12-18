@@ -1,0 +1,16 @@
+/**
+ * Server runs HTTP + SPNEGO.
+ *
+ * @throws Exception
+ */
+@Test(timeout = 60000)
+public void testLogLevelByHttpWithSpnego() throws Exception {
+    testDynamicLogLevel(LogLevel.PROTOCOL_HTTP, LogLevel.PROTOCOL_HTTP, true);
+    try {
+        testDynamicLogLevel(LogLevel.PROTOCOL_HTTP, LogLevel.PROTOCOL_HTTPS, true);
+        fail("A HTTPS Client should not have succeeded in connecting to a " + "HTTP server");
+    } catch (SSLException e) {
+        GenericTestUtils.assertExceptionContains("Error while authenticating " + "with endpoint", e);
+        GenericTestUtils.assertExceptionContains("recognized SSL message", e.getCause());
+    }
+}

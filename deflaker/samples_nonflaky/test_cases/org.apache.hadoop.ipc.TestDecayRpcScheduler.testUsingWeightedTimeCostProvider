@@ -1,0 +1,38 @@
+@Test
+public void testUsingWeightedTimeCostProvider() {
+    scheduler = getSchedulerWithWeightedTimeCostProvider(3);
+    // 3 details in increasing order of cost. Although medium has a longer
+    // duration, the shared lock is weighted less than the exclusive lock
+    ProcessingDetails callDetailsLow = new ProcessingDetails(TimeUnit.MILLISECONDS);
+    callDetailsLow.set(ProcessingDetails.Timing.LOCKFREE, 1);
+    ProcessingDetails callDetailsMedium = new ProcessingDetails(TimeUnit.MILLISECONDS);
+    callDetailsMedium.set(ProcessingDetails.Timing.LOCKSHARED, 500);
+    ProcessingDetails callDetailsHigh = new ProcessingDetails(TimeUnit.MILLISECONDS);
+    callDetailsHigh.set(ProcessingDetails.Timing.LOCKEXCLUSIVE, 100);
+    for (int i = 0; i < 10; i++) {
+        scheduler.addResponseTime("ignored", mockCall("LOW"), callDetailsLow);
+    }
+    scheduler.addResponseTime("ignored", mockCall("MED"), callDetailsMedium);
+    scheduler.addResponseTime("ignored", mockCall("HIGH"), callDetailsHigh);
+    assertEquals(0, scheduler.getPriorityLevel(mockCall("LOW")));
+    assertEquals(1, scheduler.getPriorityLevel(mockCall("MED")));
+    assertEquals(2, scheduler.getPriorityLevel(mockCall("HIGH")));
+    assertEquals(3, scheduler.getUniqueIdentityCount());
+    long totalCallInitial = scheduler.getTotalRawCallVolume();
+    assertEquals(totalCallInitial, scheduler.getTotalCallVolume());
+    scheduler.forceDecay();
+    // Relative priorities should stay the same after a single decay
+    assertEquals(0, scheduler.getPriorityLevel(mockCall("LOW")));
+    assertEquals(1, scheduler.getPriorityLevel(mockCall("MED")));
+    assertEquals(2, scheduler.getPriorityLevel(mockCall("HIGH")));
+    assertEquals(3, scheduler.getUniqueIdentityCount());
+    assertEquals(totalCallInitial, scheduler.getTotalRawCallVolume());
+    assertTrue(scheduler.getTotalCallVolume() < totalCallInitial);
+    for (int i = 0; i < 100; i++) {
+        scheduler.forceDecay();
+    }
+    // After enough decay cycles, all callers should be high priority again
+    assertEquals(0, scheduler.getPriorityLevel(mockCall("LOW")));
+    assertEquals(0, scheduler.getPriorityLevel(mockCall("MED")));
+    assertEquals(0, scheduler.getPriorityLevel(mockCall("HIGH")));
+}

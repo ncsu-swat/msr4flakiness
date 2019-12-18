@@ -1,0 +1,32 @@
+/**
+ * Test whether configuration changes are visible in another thread.
+ */
+@Test
+public void testThread() throws ReconfigurationException {
+    ReconfigurableDummy dummy = new ReconfigurableDummy(conf1);
+    assertTrue(dummy.getConf().get(PROP1).equals(VAL1));
+    Thread dummyThread = new Thread(dummy);
+    dummyThread.start();
+    try {
+        Thread.sleep(500);
+    } catch (InterruptedException ignore) {
+    // do nothing
+    }
+    dummy.reconfigureProperty(PROP1, VAL2);
+    long endWait = Time.now() + 2000;
+    while (dummyThread.isAlive() && Time.now() < endWait) {
+        try {
+            Thread.sleep(50);
+        } catch (InterruptedException ignore) {
+        // do nothing
+        }
+    }
+    assertFalse("dummy thread should not be alive", dummyThread.isAlive());
+    dummy.running = false;
+    try {
+        dummyThread.join();
+    } catch (InterruptedException ignore) {
+    // do nothing
+    }
+    assertTrue(PROP1 + " is set to wrong value", dummy.getConf().get(PROP1).equals(VAL2));
+}

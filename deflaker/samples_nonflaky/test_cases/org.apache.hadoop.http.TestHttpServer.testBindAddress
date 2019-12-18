@@ -1,0 +1,25 @@
+@Test
+public void testBindAddress() throws Exception {
+    checkBindAddress("localhost", 0, false).stop();
+    // hang onto this one for a bit more testing
+    HttpServer2 myServer = checkBindAddress("localhost", 0, false);
+    HttpServer2 myServer2 = null;
+    try {
+        int port = myServer.getConnectorAddress(0).getPort();
+        // it's already in use, true = expect a higher port
+        myServer2 = checkBindAddress("localhost", port, true);
+        // try to reuse the port
+        port = myServer2.getConnectorAddress(0).getPort();
+        myServer2.stop();
+        // not bound
+        assertNull(myServer2.getConnectorAddress(0));
+        myServer2.openListeners();
+        // expect same port
+        assertEquals(port, myServer2.getConnectorAddress(0).getPort());
+    } finally {
+        myServer.stop();
+        if (myServer2 != null) {
+            myServer2.stop();
+        }
+    }
+}

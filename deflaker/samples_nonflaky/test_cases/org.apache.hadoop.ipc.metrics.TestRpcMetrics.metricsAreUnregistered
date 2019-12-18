@@ -1,0 +1,19 @@
+@Test
+public void metricsAreUnregistered() throws Exception {
+    Configuration conf = new Configuration();
+    Server server = new Server("0.0.0.0", 0, LongWritable.class, 1, conf) {
+
+        @Override
+        public Writable call(RPC.RpcKind rpcKind, String protocol, Writable param, long receiveTime) throws Exception {
+            return null;
+        }
+    };
+    MetricsSystem metricsSystem = DefaultMetricsSystem.instance();
+    RpcMetrics rpcMetrics = server.getRpcMetrics();
+    RpcDetailedMetrics rpcDetailedMetrics = server.getRpcDetailedMetrics();
+    assertNotNull(metricsSystem.getSource(rpcMetrics.name()));
+    assertNotNull(metricsSystem.getSource(rpcDetailedMetrics.name()));
+    server.stop();
+    assertNull(metricsSystem.getSource(rpcMetrics.name()));
+    assertNull(metricsSystem.getSource(rpcDetailedMetrics.name()));
+}

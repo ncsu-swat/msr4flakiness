@@ -1,0 +1,26 @@
+/**
+ * Ensure that {@link ReconfigurableBase#startReconfigurationTask} updates
+ * its parent's cached configuration on success.
+ * @throws IOException
+ */
+@Test(timeout = 300000)
+public void testConfIsUpdatedOnSuccessAsync() throws ReconfigurationException, TimeoutException, InterruptedException, IOException {
+    final String property = "FOO";
+    final String value1 = "value1";
+    final String value2 = "value2";
+    final Configuration conf = new Configuration();
+    conf.set(property, value1);
+    final Configuration newConf = new Configuration();
+    newConf.set(property, value2);
+    final ReconfigurableBase reconfigurable = makeReconfigurable(conf, newConf, Arrays.asList(property));
+    // Kick off a reconfiguration task and wait until it completes.
+    reconfigurable.startReconfigurationTask();
+    GenericTestUtils.waitFor(new Supplier<Boolean>() {
+
+        @Override
+        public Boolean get() {
+            return reconfigurable.getReconfigurationTaskStatus().stopped();
+        }
+    }, 100, 60000);
+    assertThat(reconfigurable.getConf().get(property), is(value2));
+}

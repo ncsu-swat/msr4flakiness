@@ -1,0 +1,12 @@
+@Test
+public void recordBuilderShouldNoOpIfFiltered() {
+    SubsetConfiguration fc = new ConfigBuilder().add("p.exclude", "foo").subset("p");
+    MetricsCollectorImpl mb = new MetricsCollectorImpl();
+    mb.setRecordFilter(newGlobFilter(fc));
+    MetricsRecordBuilderImpl rb = mb.addRecord("foo");
+    rb.tag(info("foo", ""), "value").addGauge(info("g0", ""), 1);
+    assertEquals("no tags", 0, rb.tags().size());
+    assertEquals("no metrics", 0, rb.metrics().size());
+    assertNull("null record", rb.getRecord());
+    assertEquals("no records", 0, mb.getRecords().size());
+}

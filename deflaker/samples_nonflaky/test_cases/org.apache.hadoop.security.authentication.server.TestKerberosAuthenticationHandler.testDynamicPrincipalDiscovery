@@ -1,0 +1,24 @@
+/**
+ * Tests dynamic configuration of HTTP principals.
+ * @throws Exception
+ */
+@Test
+public void testDynamicPrincipalDiscovery() throws Exception {
+    String[] keytabUsers = new String[] { "HTTP/host1", "HTTP/host2", "HTTP2/host1", "XHTTP/host" };
+    String keytab = KerberosTestUtils.getKeytabFile();
+    getKdc().createPrincipal(new File(keytab), keytabUsers);
+    // destroy handler created in setUp()
+    handler.destroy();
+    Properties props = new Properties();
+    props.setProperty(KerberosAuthenticationHandler.KEYTAB, keytab);
+    props.setProperty(KerberosAuthenticationHandler.PRINCIPAL, "*");
+    handler = getNewAuthenticationHandler();
+    handler.init(props);
+    Assert.assertEquals(KerberosTestUtils.getKeytabFile(), handler.getKeytab());
+    Set<KerberosPrincipal> loginPrincipals = handler.getPrincipals();
+    for (String user : keytabUsers) {
+        Principal principal = new KerberosPrincipal(user + "@" + KerberosTestUtils.getRealm());
+        boolean expected = user.startsWith("HTTP/");
+        Assert.assertEquals("checking for " + user, expected, loginPrincipals.contains(principal));
+    }
+}

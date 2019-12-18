@@ -1,0 +1,18 @@
+/**
+ * This tests that the time-bounded wait for a proxy operation works, and
+ * times out.
+ *
+ * @throws Throwable any exception other than that which was expected
+ */
+@Test(timeout = 50000)
+public void testWaitForProxy() throws Throwable {
+    RpcThread worker = new RpcThread(0);
+    worker.start();
+    worker.join();
+    Throwable caught = worker.getCaught();
+    Throwable cause = caught.getCause();
+    Assert.assertNotNull("No exception was raised", cause);
+    if (!(cause instanceof ConnectException)) {
+        throw caught;
+    }
+}

@@ -1,0 +1,28 @@
+/**
+ * Test that the ZKFC successfully quits the election when it fails to
+ * become active. This allows the old node to successfully fail back.
+ */
+@Test
+public void testBecomingActiveFails() throws Exception {
+    cluster.start();
+    DummyHAService svc1 = cluster.getService(1);
+    LOG.info("Making svc1 fail to become active");
+    cluster.setFailToBecomeActive(1, true);
+    LOG.info("Faking svc0 unhealthy, should NOT successfully " + "failover to svc1");
+    cluster.setHealthy(0, false);
+    cluster.waitForHealthState(0, State.SERVICE_UNHEALTHY);
+    cluster.waitForActiveLockHolder(null);
+    Mockito.verify(svc1.proxy, Mockito.timeout(2000).atLeastOnce()).transitionToActive(Mockito.<StateChangeRequestInfo>any());
+    cluster.waitForHAState(0, HAServiceState.INITIALIZING);
+    cluster.waitForHAState(1, HAServiceState.STANDBY);
+    LOG.info("Faking svc0 healthy again, should go back to svc0");
+    cluster.setHealthy(0, true);
+    cluster.waitForHAState(0, HAServiceState.ACTIVE);
+    cluster.waitForHAState(1, HAServiceState.STANDBY);
+    cluster.waitForActiveLockHolder(0);
+    // Ensure that we can fail back to svc1  once it it is able
+    // to become active (e.g the admin has restarted it)
+    LOG.info("Allowing svc1 to become active, expiring svc0");
+    svc1.failToBecomeActive = false;
+    cluster.expireAndVerifyFailover(0, 1);
+}

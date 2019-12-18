@@ -1,0 +1,19 @@
+@Test
+@SuppressWarnings("deprecation")
+public void testParseThresholds() {
+    // Defaults vary by number of queues
+    Configuration conf = new Configuration();
+    scheduler = new DecayRpcScheduler(1, "", conf);
+    assertEqualDecimalArrays(new double[] {}, scheduler.getThresholds());
+    scheduler = new DecayRpcScheduler(2, "", conf);
+    assertEqualDecimalArrays(new double[] { 0.5 }, scheduler.getThresholds());
+    scheduler = new DecayRpcScheduler(3, "", conf);
+    assertEqualDecimalArrays(new double[] { 0.25, 0.5 }, scheduler.getThresholds());
+    scheduler = new DecayRpcScheduler(4, "", conf);
+    assertEqualDecimalArrays(new double[] { 0.125, 0.25, 0.5 }, scheduler.getThresholds());
+    // Custom
+    conf = new Configuration();
+    conf.set("ns." + DecayRpcScheduler.IPC_FCQ_DECAYSCHEDULER_THRESHOLDS_KEY, "1, 10, 20, 50, 85");
+    scheduler = new DecayRpcScheduler(6, "ns", conf);
+    assertEqualDecimalArrays(new double[] { 0.01, 0.1, 0.2, 0.5, 0.85 }, scheduler.getThresholds());
+}

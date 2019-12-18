@@ -1,0 +1,38 @@
+@Test
+public void testCompare() throws Exception {
+    DataOutputBuffer out1 = new DataOutputBuffer();
+    DataOutputBuffer out2 = new DataOutputBuffer();
+    DataOutputBuffer out3 = new DataOutputBuffer();
+    Text.Comparator comparator = new Text.Comparator();
+    for (int i = 0; i < NUM_ITERATIONS; i++) {
+        // reset output buffer
+        out1.reset();
+        out2.reset();
+        out3.reset();
+        // generate two random strings
+        String str1 = getTestString();
+        String str2 = getTestString();
+        if (i == 0) {
+            str1 = getLongString();
+            str2 = getLongString();
+        } else {
+            str1 = getTestString();
+            str2 = getTestString();
+        }
+        // convert to texts
+        Text txt1 = new Text(str1);
+        Text txt2 = new Text(str2);
+        Text txt3 = new Text(str1);
+        // serialize them
+        txt1.write(out1);
+        txt2.write(out2);
+        txt3.write(out3);
+        // compare two strings by looking at their binary formats
+        int ret1 = comparator.compare(out1.getData(), 0, out1.getLength(), out2.getData(), 0, out2.getLength());
+        // compare two strings
+        int ret2 = txt1.compareTo(txt2);
+        assertEquals(ret1, ret2);
+        assertEquals("Equivalence of different txt objects, same content", 0, txt1.compareTo(txt3));
+        assertEquals("Equvalence of data output buffers", 0, comparator.compare(out1.getData(), 0, out3.getLength(), out3.getData(), 0, out3.getLength()));
+    }
+}

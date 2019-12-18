@@ -1,0 +1,45 @@
+/**
+ * Test LocalFileSystem.setPermission.
+ */
+@Test
+public void testLocalFSsetPermission() throws IOException {
+    assumeNotWindows();
+    Configuration conf = new Configuration();
+    conf.set(CommonConfigurationKeys.FS_PERMISSIONS_UMASK_KEY, "044");
+    LocalFileSystem localfs = FileSystem.getLocal(conf);
+    Path f = null;
+    Path f1 = null;
+    Path f2 = null;
+    String filename = "foo";
+    String filename1 = "foo1";
+    String filename2 = "foo2";
+    FsPermission perm = new FsPermission((short) 0755);
+    try {
+        f = writeFile(localfs, filename);
+        f1 = writeFile(localfs, filename1, perm);
+        f2 = writeFile(localfs, filename2);
+        FsPermission initialPermission = getPermission(localfs, f);
+        assertEquals(FsPermission.getFileDefault().applyUMask(FsPermission.getUMask(conf)), initialPermission);
+        initialPermission = getPermission(localfs, f1);
+        assertEquals(perm.applyUMask(FsPermission.getUMask(conf)), initialPermission);
+        initialPermission = getPermission(localfs, f2);
+        Path copyPath = new Path(TEST_PATH_PREFIX + "/foo_copy");
+        localfs.rename(f2, copyPath);
+        FsPermission copyPermission = getPermission(localfs, copyPath);
+        assertEquals(copyPermission, initialPermission);
+        f2 = copyPath;
+        // create files and manipulate them.
+        FsPermission all = new FsPermission((short) 0777);
+        FsPermission none = new FsPermission((short) 0);
+        localfs.setPermission(f, none);
+        assertEquals(none, getPermission(localfs, f));
+        localfs.setPermission(f, all);
+        assertEquals(all, getPermission(localfs, f));
+    } finally {
+        cleanup(localfs, f);
+        cleanup(localfs, f1);
+        if (localfs.exists(f2)) {
+            localfs.delete(f2, true);
+        }
+    }
+}

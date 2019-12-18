@@ -1,0 +1,23 @@
+@Test
+public void testNamespace() throws Exception {
+    Timing timing = new Timing();
+    ChildReaper reaper = null;
+    CuratorFramework client = CuratorFrameworkFactory.builder().connectString(server.getConnectString()).sessionTimeoutMs(timing.session()).connectionTimeoutMs(timing.connection()).retryPolicy(new RetryOneTime(1)).namespace("foo").build();
+    try {
+        client.start();
+        for (int i = 0; i < 10; ++i) {
+            client.create().creatingParentsIfNeeded().forPath("/test/" + Integer.toString(i));
+        }
+        reaper = new ChildReaper(client, "/test", Reaper.Mode.REAP_UNTIL_DELETE, 1);
+        reaper.start();
+        timing.forWaiting().sleepABit();
+        Stat stat = client.checkExists().forPath("/test");
+        assertThat(stat.getNumChildren()).isZero();
+        stat = client.usingNamespace(null).checkExists().forPath("/foo/test");
+        assertThat(stat).isNotNull();
+        assertThat(stat.getNumChildren()).isZero();
+    } finally {
+        CloseableUtils.closeQuietly(reaper);
+        CloseableUtils.closeQuietly(client);
+    }
+}

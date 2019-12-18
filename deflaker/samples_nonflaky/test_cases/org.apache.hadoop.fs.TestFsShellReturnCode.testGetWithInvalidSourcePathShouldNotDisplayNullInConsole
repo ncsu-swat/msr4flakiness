@@ -1,0 +1,30 @@
+@Test(timeout = 30000)
+public void testGetWithInvalidSourcePathShouldNotDisplayNullInConsole() throws Exception {
+    Configuration conf = new Configuration();
+    FsShell shell = new FsShell();
+    shell.setConf(conf);
+    final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+    final PrintStream out = new PrintStream(bytes);
+    final PrintStream oldErr = System.err;
+    System.setErr(out);
+    final String results;
+    try {
+        Path tdir = new Path(TEST_ROOT_DIR, "notNullCopy");
+        fileSys.delete(tdir, true);
+        fileSys.mkdirs(tdir);
+        String[] args = new String[3];
+        args[0] = "-get";
+        args[1] = new Path(tdir.toUri().getPath(), "/invalidSrc").toString();
+        args[2] = new Path(tdir.toUri().getPath(), "/invalidDst").toString();
+        assertTrue("file exists", !fileSys.exists(new Path(args[1])));
+        assertTrue("file exists", !fileSys.exists(new Path(args[2])));
+        int run = shell.run(args);
+        results = bytes.toString();
+        assertEquals("Return code should be 1", 1, run);
+        assertTrue(" Null is coming when source path is invalid. ", !results.contains("get: null"));
+        assertTrue(" Not displaying the intended message ", results.contains("get: `" + args[1] + "': No such file or directory"));
+    } finally {
+        IOUtils.closeStream(out);
+        System.setErr(oldErr);
+    }
+}

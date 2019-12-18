@@ -1,0 +1,23 @@
+@Test
+public void testTokenWithValidActivityInterval() throws Exception {
+    // Provide token containing valid maxInactive value.
+    // The token is active.
+    // The server has maxInactiveInterval configured to -1.(disabled)
+    // The server shall authorize the access, but should not drop a new cookie
+    long maxInactives = System.currentTimeMillis() + TOKEN_MAX_INACTIVE_INTERVAL;
+    long expires = System.currentTimeMillis() + TOKEN_VALIDITY_SEC;
+    _testDoFilterAuthenticationMaxInactiveInterval(maxInactives, -1, expires, // authorized
+    true, // newCookie
+    false);
+    // Provide token containing valid maxInactive value.
+    // The token is active.
+    // The server has maxInactiveInterval configured to value
+    // greater than 0.(enabled)
+    // The server shall authorize the access and drop a new cookie
+    // with renewed activity interval
+    maxInactives = System.currentTimeMillis() + TOKEN_MAX_INACTIVE_INTERVAL;
+    expires = System.currentTimeMillis() + TOKEN_VALIDITY_SEC;
+    _testDoFilterAuthenticationMaxInactiveInterval(maxInactives, TOKEN_MAX_INACTIVE_INTERVAL, expires, // authorized
+    true, // newCookie
+    true);
+}

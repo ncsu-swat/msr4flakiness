@@ -1,0 +1,32 @@
+// check listing of multiple files
+@Test
+public void processPathFiles() throws IOException {
+    TestFile testfile01 = new TestFile("testDir01", "testFile01");
+    TestFile testfile02 = new TestFile("testDir02", "testFile02");
+    TestFile testfile03 = new TestFile("testDir03", "testFile03");
+    TestFile testfile04 = new TestFile("testDir04", "testFile04");
+    TestFile testfile05 = new TestFile("testDir05", "testFile05");
+    TestFile testfile06 = new TestFile("testDir06", "testFile06");
+    LinkedList<PathData> pathData = new LinkedList<PathData>();
+    pathData.add(testfile01.getPathData());
+    pathData.add(testfile02.getPathData());
+    pathData.add(testfile03.getPathData());
+    pathData.add(testfile04.getPathData());
+    pathData.add(testfile05.getPathData());
+    pathData.add(testfile06.getPathData());
+    PrintStream out = mock(PrintStream.class);
+    Ls ls = new Ls();
+    ls.out = out;
+    LinkedList<String> options = new LinkedList<String>();
+    ls.processOptions(options);
+    String lineFormat = TestFile.computeLineFormat(pathData);
+    ls.processArguments(pathData);
+    InOrder inOrder = inOrder(out);
+    inOrder.verify(out).println(testfile01.formatLineMtime(lineFormat));
+    inOrder.verify(out).println(testfile02.formatLineMtime(lineFormat));
+    inOrder.verify(out).println(testfile03.formatLineMtime(lineFormat));
+    inOrder.verify(out).println(testfile04.formatLineMtime(lineFormat));
+    inOrder.verify(out).println(testfile05.formatLineMtime(lineFormat));
+    inOrder.verify(out).println(testfile06.formatLineMtime(lineFormat));
+    verifyNoMoreInteractions(out);
+}

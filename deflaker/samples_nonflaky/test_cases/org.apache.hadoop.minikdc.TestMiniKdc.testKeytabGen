@@ -1,0 +1,12 @@
+@Test
+public void testKeytabGen() throws Exception {
+    MiniKdc kdc = getKdc();
+    File workDir = getWorkDir();
+    kdc.createPrincipal(new File(workDir, "keytab"), "foo/bar", "bar/foo");
+    List<PrincipalName> principalNameList = Keytab.loadKeytab(new File(workDir, "keytab")).getPrincipals();
+    Set<String> principals = new HashSet<String>();
+    for (PrincipalName principalName : principalNameList) {
+        principals.add(principalName.getName());
+    }
+    Assert.assertEquals(new HashSet<String>(Arrays.asList("foo/bar@" + kdc.getRealm(), "bar/foo@" + kdc.getRealm())), principals);
+}

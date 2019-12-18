@@ -1,0 +1,19 @@
+@Test
+public void processPathWithQuotasBySSDStorageTypesHeader() throws Exception {
+    Path path = new Path("mockfs:/test");
+    when(mockFs.getFileStatus(eq(path))).thenReturn(fileStat);
+    PrintStream out = mock(PrintStream.class);
+    Count count = new Count();
+    count.out = out;
+    LinkedList<String> options = new LinkedList<String>();
+    options.add("-q");
+    options.add("-v");
+    options.add("-t");
+    options.add("SSD");
+    options.add("dummy");
+    count.processOptions(options);
+    String withStorageTypeHeader = // <----13---> <-------17------>
+    "    SSD_QUOTA     REM_SSD_QUOTA " + "PATHNAME";
+    verify(out).println(withStorageTypeHeader);
+    verifyNoMoreInteractions(out);
+}

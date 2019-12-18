@@ -1,0 +1,17 @@
+@Test
+public void testGcTimeMonitorPresence() {
+    gcTimeMonitor = new GcTimeMonitor(60000, 1000, 70, null);
+    gcTimeMonitor.start();
+    JvmMetrics jvmMetrics = new JvmMetrics("test", "test");
+    jvmMetrics.setGcTimeMonitor(gcTimeMonitor);
+    MetricsRecordBuilder rb = getMetrics(jvmMetrics);
+    MetricsCollector mc = rb.parent();
+    verify(mc).addRecord(JvmMetrics);
+    verify(rb).tag(ProcessName, "test");
+    verify(rb).tag(SessionId, "test");
+    for (JvmMetricsInfo info : JvmMetricsInfo.values()) {
+        if (info.name().equals("GcTimePercentage")) {
+            verify(rb).addGauge(eq(info), anyInt());
+        }
+    }
+}

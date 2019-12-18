@@ -1,0 +1,23 @@
+@Test
+public void testLibjarsOption() throws Exception {
+    File tmpJar = new File(testDir, "tmp.jar");
+    Path tmpJarPath = new Path(tmpJar.toString());
+    localFs.create(tmpJarPath);
+    String[] args = new String[2];
+    // pass a libjars option
+    // first, pass the jar directly
+    args[0] = "-libjars";
+    // Convert a file to a URI as File.toString() is not a valid URI on
+    // all platforms and GenericOptionsParser accepts only valid URIs
+    args[1] = tmpJar.toURI().toString();
+    new GenericOptionsParser(conf, args);
+    String libjars = conf.get("tmpjars");
+    assertNotNull("libjars is null", libjars);
+    assertEquals("libjars does not match", localFs.makeQualified(tmpJarPath).toString(), libjars);
+    // now test the wildcard
+    args[1] = testDir.toURI().toString() + "*";
+    new GenericOptionsParser(conf, args);
+    libjars = conf.get("tmpjars");
+    assertNotNull("libjars is null", libjars);
+    assertEquals("libjars does not match", localFs.makeQualified(tmpJarPath).toString(), libjars);
+}

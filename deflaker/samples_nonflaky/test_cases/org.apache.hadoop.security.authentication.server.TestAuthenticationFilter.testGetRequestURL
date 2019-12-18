@@ -1,0 +1,18 @@
+@Test
+public void testGetRequestURL() throws Exception {
+    AuthenticationFilter filter = new AuthenticationFilter();
+    try {
+        FilterConfig config = Mockito.mock(FilterConfig.class);
+        Mockito.when(config.getInitParameter("management.operation.return")).thenReturn("true");
+        Mockito.when(config.getInitParameter(AuthenticationFilter.AUTH_TYPE)).thenReturn(DummyAuthenticationHandler.class.getName());
+        Mockito.when(config.getInitParameterNames()).thenReturn(new Vector<String>(Arrays.asList(AuthenticationFilter.AUTH_TYPE, "management.operation.return")).elements());
+        getMockedServletContextWithStringSigner(config);
+        filter.init(config);
+        HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
+        Mockito.when(request.getRequestURL()).thenReturn(new StringBuffer("http://foo:8080/bar"));
+        Mockito.when(request.getQueryString()).thenReturn("a=A&b=B");
+        Assert.assertEquals("http://foo:8080/bar?a=A&b=B", filter.getRequestURL(request));
+    } finally {
+        filter.destroy();
+    }
+}

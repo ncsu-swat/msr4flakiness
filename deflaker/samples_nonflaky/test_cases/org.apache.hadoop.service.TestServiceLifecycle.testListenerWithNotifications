@@ -1,0 +1,23 @@
+/**
+ * This test verifies that you can block waiting for something to happen
+ * and use notifications to manage it
+ * @throws Throwable on a failure
+ */
+@Test
+public void testListenerWithNotifications() throws Throwable {
+    // this tests that a listener can get notified when a service is stopped
+    AsyncSelfTerminatingService service = new AsyncSelfTerminatingService(2000);
+    NotifyingListener listener = new NotifyingListener();
+    service.registerServiceListener(listener);
+    service.init(new Configuration());
+    service.start();
+    assertServiceInState(service, Service.STATE.STARTED);
+    long start = System.currentTimeMillis();
+    synchronized (listener) {
+        listener.wait(20000);
+    }
+    long duration = System.currentTimeMillis() - start;
+    assertEquals(Service.STATE.STOPPED, listener.notifyingState);
+    assertServiceInState(service, Service.STATE.STOPPED);
+    assertTrue("Duration of " + duration + " too long", duration < 10000);
+}

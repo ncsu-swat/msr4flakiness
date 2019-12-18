@@ -1,0 +1,17 @@
+@Test
+public void testTouchz() throws Exception {
+    // Ensure newFile does not exist
+    final String newFileName = "newFile";
+    final Path newFile = new Path(newFileName);
+    lfs.delete(newFile, true);
+    assertThat(lfs.exists(newFile), is(false));
+    assertThat("Expected successful touchz on a new file", shellRun("-touchz", newFileName), is(0));
+    shellRun("-ls", newFileName);
+    assertThat("Expected successful touchz on an existing zero-length file", shellRun("-touchz", newFileName), is(0));
+    // Ensure noDir does not exist
+    final String noDirName = "noDir";
+    final Path noDir = new Path(noDirName);
+    lfs.delete(noDir, true);
+    assertThat(lfs.exists(noDir), is(false));
+    assertThat("Expected failed touchz in a non-existent directory", shellRun("-touchz", noDirName + "/foo"), is(not(0)));
+}

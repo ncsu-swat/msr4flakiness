@@ -1,0 +1,23 @@
+@Test
+public void testPublish() throws IOException {
+    // GIVEN
+    MetricsSystem metrics = DefaultMetricsSystem.instance();
+    metrics.init("test");
+    PrometheusMetricsSink sink = new PrometheusMetricsSink();
+    metrics.register("Prometheus", "Prometheus", sink);
+    TestMetrics testMetrics = metrics.register("TestMetrics", "Testing metrics", new TestMetrics());
+    metrics.start();
+    testMetrics.numBucketCreateFails.incr();
+    metrics.publishMetricsNow();
+    ByteArrayOutputStream stream = new ByteArrayOutputStream();
+    OutputStreamWriter writer = new OutputStreamWriter(stream, UTF_8);
+    // WHEN
+    sink.writeMetrics(writer);
+    writer.flush();
+    // THEN
+    String writtenMetrics = stream.toString(UTF_8.name());
+    System.out.println(writtenMetrics);
+    Assert.assertTrue("The expected metric line is missing from prometheus metrics output", writtenMetrics.contains("test_metrics_num_bucket_create_fails{context=\"dfs\""));
+    metrics.stop();
+    metrics.shutdown();
+}

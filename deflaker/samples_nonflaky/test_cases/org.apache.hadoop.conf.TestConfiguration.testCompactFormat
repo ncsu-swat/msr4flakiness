@@ -1,0 +1,22 @@
+@Test
+public void testCompactFormat() throws IOException {
+    out = new BufferedWriter(new FileWriter(CONFIG));
+    startConfig();
+    appendCompactFormatProperty("a", "b");
+    appendCompactFormatProperty("c", "d", true);
+    appendCompactFormatProperty("e", "f", false, "g");
+    endConfig();
+    Path fileResource = new Path(CONFIG);
+    Configuration conf = new Configuration(false);
+    conf.addResource(fileResource);
+    assertEquals("b", conf.get("a"));
+    assertEquals("d", conf.get("c"));
+    Set<String> s = conf.getFinalParameters();
+    assertEquals(1, s.size());
+    assertTrue(s.contains("c"));
+    assertEquals("f", conf.get("e"));
+    String[] sources = conf.getPropertySources("e");
+    assertEquals(2, sources.length);
+    assertEquals("g", sources[0]);
+    assertEquals(fileResource.toString(), sources[1]);
+}

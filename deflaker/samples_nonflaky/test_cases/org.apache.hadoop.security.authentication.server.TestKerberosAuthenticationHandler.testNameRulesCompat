@@ -1,0 +1,19 @@
+@Test
+public void testNameRulesCompat() throws Exception {
+    KerberosName kn = new KerberosName(KerberosTestUtils.getServerPrincipal());
+    Assert.assertEquals(KerberosTestUtils.getRealm(), kn.getRealm());
+    // destroy handler created in setUp()
+    handler.destroy();
+    handler = getNewAuthenticationHandler();
+    Properties props = getDefaultProperties();
+    props.setProperty(KerberosAuthenticationHandler.NAME_RULES, "RULE:[1:$1@$0](.*@BAR)s/@.*//\nDEFAULT");
+    props.setProperty(KerberosAuthenticationHandler.RULE_MECHANISM, KerberosName.MECHANISM_MIT);
+    try {
+        handler.init(props);
+    } catch (Exception ex) {
+    }
+    kn = new KerberosName("bar@BAR");
+    Assert.assertEquals("bar", kn.getShortName());
+    kn = new KerberosName("bar@FOO");
+    Assert.assertEquals("bar@FOO", kn.getShortName());
+}

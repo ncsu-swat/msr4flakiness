@@ -1,0 +1,15 @@
+@Test(timeout = 60000)
+public void testNotAuthenticatedWithMultiAuthHandler() throws Exception {
+    AuthenticatorTestCase auth = new AuthenticatorTestCase();
+    AuthenticatorTestCase.setAuthenticationHandlerConfig(getMultiAuthHandlerConfiguration());
+    auth.start();
+    try {
+        URL url = new URL(auth.getBaseURL());
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.connect();
+        Assert.assertEquals(HttpURLConnection.HTTP_UNAUTHORIZED, conn.getResponseCode());
+        Assert.assertTrue(conn.getHeaderField(KerberosAuthenticator.WWW_AUTHENTICATE) != null);
+    } finally {
+        auth.stop();
+    }
+}

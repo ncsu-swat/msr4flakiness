@@ -1,0 +1,23 @@
+@Test
+public void testThreadBlockedWhenExpiredEntryExistsWithoutBackgroundRefresh() throws Exception {
+    conf.setLong(CommonConfigurationKeys.HADOOP_SECURITY_GROUPS_CACHE_SECS, 1);
+    conf.setBoolean(CommonConfigurationKeys.HADOOP_SECURITY_GROUPS_CACHE_BACKGROUND_RELOAD, false);
+    FakeTimer timer = new FakeTimer();
+    final Groups groups = new Groups(conf, timer);
+    groups.cacheGroupsAdd(Arrays.asList(myGroups));
+    groups.refresh();
+    FakeGroupMapping.clearBlackList();
+    // We make an initial request to populate the cache
+    groups.getGroups("me");
+    // Further lookups will have a delay
+    FakeGroupMapping.setGetGroupsDelayMs(100);
+    // add another group
+    groups.cacheGroupsAdd(Arrays.asList("grp3"));
+    int startingRequestCount = FakeGroupMapping.getRequestCount();
+    // Then expire that entry
+    timer.advance(4 * 1000);
+    // Now get the cache entry - it should block and return the new
+    // 3 group value
+    assertThat(groups.getGroups("me").size()).isEqualTo(3);
+    assertEquals(startingRequestCount + 1, FakeGroupMapping.getRequestCount());
+}

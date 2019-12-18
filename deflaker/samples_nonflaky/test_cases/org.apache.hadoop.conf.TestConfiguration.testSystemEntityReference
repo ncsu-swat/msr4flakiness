@@ -1,0 +1,20 @@
+@Test
+public void testSystemEntityReference() throws Exception {
+    tearDown();
+    out = new BufferedWriter(new FileWriter(CONFIG2));
+    out.write("d");
+    out.close();
+    out = new BufferedWriter(new FileWriter(CONFIG));
+    writeHeader();
+    declareSystemEntity("configuration", "d", new Path(CONFIG2).toUri().toString());
+    writeConfiguration();
+    appendProperty("a", "b");
+    appendProperty("c", "&d;");
+    endConfig();
+    // verify that the includes file contains all properties
+    Path fileResource = new Path(CONFIG);
+    conf.addResource(fileResource);
+    assertEquals(conf.get("a"), "b");
+    assertEquals(conf.get("c"), "d");
+    tearDown();
+}

@@ -1,0 +1,27 @@
+@SuppressWarnings("deprecation")
+@Test
+public void testCloseForErroneousSequenceFile() throws IOException {
+    Configuration conf = new Configuration();
+    LocalFileSystem fs = FileSystem.getLocal(conf);
+    // create an empty file (which is not a valid sequence file)
+    Path path = new Path(GenericTestUtils.getTempPath("broken.seq"));
+    fs.create(path).close();
+    // try to create SequenceFile.Reader
+    final TestFSDataInputStream[] openedFile = new TestFSDataInputStream[1];
+    try {
+        new SequenceFile.Reader(fs, path, conf) {
+
+            // this method is called by the SequenceFile.Reader constructor, overwritten, so we can access the opened file
+            @Override
+            protected FSDataInputStream openFile(FileSystem fs, Path file, int bufferSize, long length) throws IOException {
+                final InputStream in = super.openFile(fs, file, bufferSize, length);
+                openedFile[0] = new TestFSDataInputStream(in);
+                return openedFile[0];
+            }
+        };
+        fail("IOException expected.");
+    } catch (IOException expected) {
+    }
+    assertNotNull(path + " should have been opened.", openedFile[0]);
+    assertTrue("InputStream for " + path + " should have been closed.", openedFile[0].isClosed());
+}

@@ -1,0 +1,18 @@
+@Test
+@SuppressWarnings({ "rawtypes", "unchecked" })
+public void testWritableComparatorJavaSerialization() throws Exception {
+    Serialization ser = new JavaSerialization();
+    Serializer<TestWC> serializer = ser.getSerializer(TestWC.class);
+    DataOutputBuffer dob = new DataOutputBuffer();
+    serializer.open(dob);
+    TestWC orig = new TestWC(0);
+    serializer.serialize(orig);
+    serializer.close();
+    Deserializer<TestWC> deserializer = ser.getDeserializer(TestWC.class);
+    DataInputBuffer dib = new DataInputBuffer();
+    dib.reset(dob.getData(), 0, dob.getLength());
+    deserializer.open(dib);
+    TestWC deser = deserializer.deserialize(null);
+    deserializer.close();
+    assertEquals(orig, deser);
+}

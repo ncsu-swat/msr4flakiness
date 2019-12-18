@@ -1,0 +1,15 @@
+@Test(timeout = 10000)
+public void testAddUninitedSiblingInInit() throws Throwable {
+    CompositeService parent = new CompositeService("parent");
+    BreakableService sibling = new BreakableService();
+    parent.addService(new AddSiblingService(parent, sibling, STATE.INITED));
+    parent.init(new Configuration());
+    try {
+        parent.start();
+        fail("Expected an exception, got " + parent);
+    } catch (ServiceStateException e) {
+    // expected
+    }
+    parent.stop();
+    assertEquals("Incorrect number of services", 2, parent.getServices().size());
+}

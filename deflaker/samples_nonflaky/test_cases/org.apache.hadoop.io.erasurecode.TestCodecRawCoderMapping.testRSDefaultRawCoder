@@ -1,0 +1,19 @@
+@Test
+public void testRSDefaultRawCoder() {
+    ErasureCoderOptions coderOptions = new ErasureCoderOptions(numDataUnit, numParityUnit);
+    // should return default raw coder of rs codec
+    RawErasureEncoder encoder = CodecUtil.createRawEncoder(conf, ErasureCodeConstants.RS_CODEC_NAME, coderOptions);
+    RawErasureDecoder decoder = CodecUtil.createRawDecoder(conf, ErasureCodeConstants.RS_CODEC_NAME, coderOptions);
+    if (ErasureCodeNative.isNativeCodeLoaded()) {
+        Assert.assertTrue(encoder instanceof NativeRSRawEncoder);
+        Assert.assertTrue(decoder instanceof NativeRSRawDecoder);
+    } else {
+        Assert.assertTrue(encoder instanceof RSRawEncoder);
+        Assert.assertTrue(decoder instanceof RSRawDecoder);
+    }
+    // should return default raw coder of rs-legacy codec
+    encoder = CodecUtil.createRawEncoder(conf, ErasureCodeConstants.RS_LEGACY_CODEC_NAME, coderOptions);
+    Assert.assertTrue(encoder instanceof RSLegacyRawEncoder);
+    decoder = CodecUtil.createRawDecoder(conf, ErasureCodeConstants.RS_LEGACY_CODEC_NAME, coderOptions);
+    Assert.assertTrue(decoder instanceof RSLegacyRawDecoder);
+}

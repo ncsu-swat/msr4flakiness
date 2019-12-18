@@ -1,0 +1,30 @@
+@Test
+public void testServiceStartup() {
+    ServiceManager serviceManager = new ServiceManager("ServiceManager");
+    // Add services
+    for (int i = 0; i < NUM_OF_SERVICES; i++) {
+        CompositeServiceImpl service = new CompositeServiceImpl(i);
+        if (i == FAILED_SERVICE_SEQ_NUMBER) {
+            service.setThrowExceptionOnStart(true);
+        }
+        serviceManager.addTestService(service);
+    }
+    CompositeServiceImpl[] services = serviceManager.getServices().toArray(new CompositeServiceImpl[0]);
+    Configuration conf = new Configuration();
+    // Initialise the composite service
+    serviceManager.init(conf);
+    // Start the composite service
+    try {
+        serviceManager.start();
+        fail("Exception should have been thrown due to startup failure of last service");
+    } catch (ServiceTestRuntimeException e) {
+        for (int i = 0; i < NUM_OF_SERVICES - 1; i++) {
+            if (i >= FAILED_SERVICE_SEQ_NUMBER && STOP_ONLY_STARTED_SERVICES) {
+                // Failed service state should be INITED
+                assertEquals("Service state should have been ", STATE.INITED, services[NUM_OF_SERVICES - 1].getServiceState());
+            } else {
+                assertEquals("Service state should have been ", STATE.STOPPED, services[i].getServiceState());
+            }
+        }
+    }
+}

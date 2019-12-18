@@ -1,0 +1,42 @@
+@Test
+public void testDumpConfiguratioWithoutDefaults() throws IOException {
+    // check for case when default resources are not loaded
+    Configuration config = new Configuration(false);
+    StringWriter outWriter = new StringWriter();
+    Configuration.dumpConfiguration(config, outWriter);
+    String jsonStr = outWriter.toString();
+    ObjectMapper mapper = new ObjectMapper();
+    JsonConfiguration jconf = mapper.readValue(jsonStr, JsonConfiguration.class);
+    // ensure that no properties are loaded.
+    assertEquals(0, jconf.getProperties().length);
+    // add 2 keys
+    out = new BufferedWriter(new FileWriter(CONFIG));
+    startConfig();
+    appendProperty("test.key1", "value1");
+    appendProperty("test.key2", "value2", true);
+    endConfig();
+    Path fileResource = new Path(CONFIG);
+    config.addResource(fileResource);
+    out.close();
+    outWriter = new StringWriter();
+    Configuration.dumpConfiguration(config, outWriter);
+    jsonStr = outWriter.toString();
+    mapper = new ObjectMapper();
+    jconf = mapper.readValue(jsonStr, JsonConfiguration.class);
+    HashMap<String, JsonProperty> confDump = new HashMap<String, JsonProperty>();
+    for (JsonProperty prop : jconf.getProperties()) {
+        confDump.put(prop.getKey(), prop);
+    }
+    // ensure only 2 keys are loaded
+    assertEquals(2, jconf.getProperties().length);
+    // ensure the values are consistent
+    assertEquals(confDump.get("test.key1").getValue(), "value1");
+    assertEquals(confDump.get("test.key2").getValue(), "value2");
+    // check the final tag
+    assertEquals(false, confDump.get("test.key1").getIsFinal());
+    assertEquals(true, confDump.get("test.key2").getIsFinal());
+    // check the resource for each property
+    for (JsonProperty prop : jconf.getProperties()) {
+        assertEquals(fileResource.toString(), prop.getResource());
+    }
+}

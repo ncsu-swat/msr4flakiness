@@ -1,0 +1,25 @@
+/**
+ * Test the correctness under try-with-resource syntax.
+ *
+ * @throws Exception
+ */
+@Test
+public void testTryWithResourceSyntax() throws Exception {
+    AutoCloseableLock lock = new AutoCloseableLock();
+    try (AutoCloseableLock localLock = lock.acquire()) {
+        assertEquals(localLock, lock);
+        assertTrue(lock.isLocked());
+        Thread competingThread = new Thread() {
+
+            @Override
+            public void run() {
+                assertTrue(lock.isLocked());
+                assertFalse(lock.tryLock());
+            }
+        };
+        competingThread.start();
+        competingThread.join();
+        assertTrue(localLock.isLocked());
+    }
+    assertFalse(lock.isLocked());
+}

@@ -1,0 +1,29 @@
+@Test
+public void testCreateFileAndMkdirs() throws IOException {
+    Path test_dir = new Path(TEST_ROOT_DIR, "test_dir");
+    Path test_file = new Path(test_dir, "file1");
+    assertTrue(fileSys.mkdirs(test_dir));
+    final int fileSize = new Random().nextInt(1 << 20) + 1;
+    writeFile(fileSys, test_file, fileSize);
+    {
+        // check FileStatus and ContentSummary
+        final FileStatus status = fileSys.getFileStatus(test_file);
+        Assert.assertEquals(fileSize, status.getLen());
+        final ContentSummary summary = fileSys.getContentSummary(test_dir);
+        Assert.assertEquals(fileSize, summary.getLength());
+    }
+    // creating dir over a file
+    Path bad_dir = new Path(test_file, "another_dir");
+    try {
+        fileSys.mkdirs(bad_dir);
+        fail("Failed to detect existing file in path");
+    } catch (ParentNotDirectoryException e) {
+    // Expected
+    }
+    try {
+        fileSys.mkdirs(null);
+        fail("Failed to detect null in mkdir arg");
+    } catch (IllegalArgumentException e) {
+    // Expected
+    }
+}

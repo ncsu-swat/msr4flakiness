@@ -1,0 +1,28 @@
+@Test
+public void testOverlay() throws IOException {
+    out = new BufferedWriter(new FileWriter(CONFIG));
+    startConfig();
+    appendProperty("a", "b");
+    appendProperty("b", "c");
+    appendProperty("d", "e");
+    appendProperty("e", "f", true);
+    endConfig();
+    out = new BufferedWriter(new FileWriter(CONFIG2));
+    startConfig();
+    appendProperty("a", "b");
+    appendProperty("b", "d");
+    appendProperty("e", "e");
+    endConfig();
+    Path fileResource = new Path(CONFIG);
+    conf.addResource(fileResource);
+    // set dynamically something
+    conf.set("c", "d");
+    conf.set("a", "d");
+    Configuration clone = new Configuration(conf);
+    clone.addResource(new Path(CONFIG2));
+    assertEquals(clone.get("a"), "d");
+    assertEquals(clone.get("b"), "d");
+    assertEquals(clone.get("c"), "d");
+    assertEquals(clone.get("d"), "e");
+    assertEquals(clone.get("e"), "f");
+}

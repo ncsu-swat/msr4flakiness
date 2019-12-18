@@ -1,0 +1,24 @@
+@Test
+public void testCrossOriginFilter() throws ServletException, IOException {
+    // Setup the configuration settings of the server
+    Map<String, String> conf = new HashMap<String, String>();
+    conf.put(CrossOriginFilter.ALLOWED_ORIGINS, "example.com");
+    FilterConfig filterConfig = new FilterConfigTest(conf);
+    // Origin is not specified for same origin requests
+    HttpServletRequest mockReq = Mockito.mock(HttpServletRequest.class);
+    Mockito.when(mockReq.getHeader(CrossOriginFilter.ORIGIN)).thenReturn("example.com");
+    Mockito.when(mockReq.getHeader(CrossOriginFilter.ACCESS_CONTROL_REQUEST_METHOD)).thenReturn("GET");
+    Mockito.when(mockReq.getHeader(CrossOriginFilter.ACCESS_CONTROL_REQUEST_HEADERS)).thenReturn("X-Requested-With");
+    // Objects to verify interactions based on request
+    HttpServletResponse mockRes = Mockito.mock(HttpServletResponse.class);
+    FilterChain mockChain = Mockito.mock(FilterChain.class);
+    // Object under test
+    CrossOriginFilter filter = new CrossOriginFilter();
+    filter.init(filterConfig);
+    filter.doFilter(mockReq, mockRes, mockChain);
+    Mockito.verify(mockRes).setHeader(CrossOriginFilter.ACCESS_CONTROL_ALLOW_ORIGIN, "example.com");
+    Mockito.verify(mockRes).setHeader(CrossOriginFilter.ACCESS_CONTROL_ALLOW_CREDENTIALS, Boolean.TRUE.toString());
+    Mockito.verify(mockRes).setHeader(CrossOriginFilter.ACCESS_CONTROL_ALLOW_METHODS, filter.getAllowedMethodsHeader());
+    Mockito.verify(mockRes).setHeader(CrossOriginFilter.ACCESS_CONTROL_ALLOW_HEADERS, filter.getAllowedHeadersHeader());
+    Mockito.verify(mockChain).doFilter(mockReq, mockRes);
+}

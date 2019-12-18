@@ -1,0 +1,24 @@
+@Test
+public void testEqualsAndHashCode() {
+    Map<String, String> extraMap = new TreeMap<>();
+    extraMap.put("key", "value");
+    ECSchema[] schemas = new ECSchema[] { new ECSchema("one", 1, 2, null), new ECSchema("two", 1, 2, null), new ECSchema("one", 2, 2, null), new ECSchema("one", 1, 1, null), new ECSchema("one", 1, 2, extraMap) };
+    for (int i = 0; i < schemas.length; i++) {
+        final ECSchema ei = schemas[i];
+        // Check identity
+        ECSchema temp = new ECSchema(ei.getCodecName(), ei.getNumDataUnits(), ei.getNumParityUnits(), ei.getExtraOptions());
+        assertEquals(ei, temp);
+        assertEquals(ei.hashCode(), temp.hashCode());
+        // Check against other schemas
+        for (int j = 0; j < schemas.length; j++) {
+            final ECSchema ej = schemas[j];
+            if (i == j) {
+                assertEquals(ei, ej);
+                assertEquals(ei.hashCode(), ej.hashCode());
+            } else {
+                assertNotEquals(ei, ej);
+                assertNotEquals(ei, ej.hashCode());
+            }
+        }
+    }
+}

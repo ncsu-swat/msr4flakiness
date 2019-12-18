@@ -1,0 +1,16 @@
+@Test
+public void testNoManifest() throws Exception {
+    File dir = GenericTestUtils.getTestDir(TestJarFinder.class.getName() + "-testNoManifest");
+    delete(dir);
+    dir.mkdirs();
+    File propsFile = new File(dir, "props.properties");
+    Writer writer = new FileWriter(propsFile);
+    new Properties().store(writer, "");
+    writer.close();
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    JarOutputStream zos = new JarOutputStream(baos);
+    JarFinder.jarDir(dir, "", zos);
+    JarInputStream jis = new JarInputStream(new ByteArrayInputStream(baos.toByteArray()));
+    Assert.assertNotNull(jis.getManifest());
+    jis.close();
+}

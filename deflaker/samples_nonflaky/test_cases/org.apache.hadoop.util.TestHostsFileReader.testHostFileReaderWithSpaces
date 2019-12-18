@@ -1,0 +1,27 @@
+/*
+   * Test if spaces are allowed in host names
+   */
+@Test
+public void testHostFileReaderWithSpaces() throws Exception {
+    FileWriter efw = new FileWriter(excludesFile);
+    FileWriter ifw = new FileWriter(includesFile);
+    efw.write("#DFS-Hosts-excluded\n");
+    efw.write("   somehost somehost2");
+    efw.write("   somehost3 # somehost4");
+    efw.close();
+    ifw.write("#Hosts-in-DFS\n");
+    ifw.write("   somehost somehost2");
+    ifw.write("   somehost3 # somehost4");
+    ifw.close();
+    HostsFileReader hfp = new HostsFileReader(includesFile, excludesFile);
+    int includesLen = hfp.getHosts().size();
+    int excludesLen = hfp.getExcludedHosts().size();
+    assertEquals(3, includesLen);
+    assertEquals(3, excludesLen);
+    assertTrue(hfp.getHosts().contains("somehost3"));
+    assertFalse(hfp.getHosts().contains("somehost5"));
+    assertFalse(hfp.getHosts().contains("somehost4"));
+    assertTrue(hfp.getExcludedHosts().contains("somehost3"));
+    assertFalse(hfp.getExcludedHosts().contains("somehost5"));
+    assertFalse(hfp.getExcludedHosts().contains("somehost4"));
+}

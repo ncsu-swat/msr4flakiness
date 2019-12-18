@@ -1,0 +1,23 @@
+/**
+ * Test reserved characters in URIs (and therefore Paths)
+ */
+@Test(timeout = 30000)
+public void testReservedCharacters() throws URISyntaxException, IOException {
+    // URI encodes the path
+    assertEquals("/foo%20bar", new URI(null, null, "/foo bar", null, null).getRawPath());
+    // URI#getPath decodes the path
+    assertEquals("/foo bar", new URI(null, null, "/foo bar", null, null).getPath());
+    // URI#toString returns an encoded path
+    assertEquals("/foo%20bar", new URI(null, null, "/foo bar", null, null).toString());
+    assertEquals("/foo%20bar", new Path("/foo bar").toUri().toString());
+    // Reserved chars are not encoded
+    assertEquals("/foo;bar", new URI("/foo;bar").getPath());
+    assertEquals("/foo;bar", new URI("/foo;bar").getRawPath());
+    assertEquals("/foo+bar", new URI("/foo+bar").getPath());
+    assertEquals("/foo+bar", new URI("/foo+bar").getRawPath());
+    // URI#getPath decodes the path part (and URL#getPath does not decode)
+    assertEquals("/foo bar", new Path("http://localhost/foo bar").toUri().getPath());
+    assertEquals("/foo%20bar", new Path("http://localhost/foo bar").toUri().toURL().getPath());
+    assertEquals("/foo?bar", new URI("http", "localhost", "/foo?bar", null, null).getPath());
+    assertEquals("/foo%3Fbar", new URI("http", "localhost", "/foo?bar", null, null).toURL().getPath());
+}

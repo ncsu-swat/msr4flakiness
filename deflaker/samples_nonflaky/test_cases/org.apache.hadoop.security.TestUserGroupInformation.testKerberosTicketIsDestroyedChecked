@@ -1,0 +1,24 @@
+@Test
+public void testKerberosTicketIsDestroyedChecked() throws Exception {
+    // Create UserGroupInformation
+    GenericTestUtils.setLogLevel(UserGroupInformation.LOG, Level.DEBUG);
+    Set<User> users = new HashSet<>();
+    users.add(new User("Foo"));
+    Subject subject = new Subject(true, users, new HashSet<>(), new HashSet<>());
+    UserGroupInformation ugi = spy(new UserGroupInformation(subject));
+    // throw IOException in the middle of the autoRenewalForUserCreds
+    doThrow(new IOException()).when(ugi).reloginFromTicketCache();
+    // Create and destroy the KerberosTicket, so endTime will be null
+    Date d = new Date();
+    KerberosPrincipal kp = new KerberosPrincipal("Foo");
+    KerberosTicket tgt = spy(new KerberosTicket(new byte[] {}, kp, kp, new byte[] {}, 0, null, d, d, d, d, null));
+    tgt.destroy();
+    // run AutoRenewalForUserCredsRunnable with this
+    UserGroupInformation.AutoRenewalForUserCredsRunnable userCredsRunnable = ugi.new TicketCacheRenewalRunnable(tgt, Boolean.toString(Boolean.TRUE), 100);
+    // Set the runnable to not to run in a loop
+    userCredsRunnable.setRunRenewalLoop(false);
+    // there should be no exception when calling this
+    userCredsRunnable.run();
+    // isDestroyed should be called at least once
+    Mockito.verify(tgt, atLeastOnce()).isDestroyed();
+}

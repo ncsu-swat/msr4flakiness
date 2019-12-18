@@ -1,0 +1,29 @@
+// we still can scan records in an unsorted TFile
+@Test
+public void testScan() throws IOException {
+    try (Reader reader = new Reader(fs.open(path), fs.getFileStatus(path).getLen(), conf)) {
+        assertThat(reader.isSorted()).isFalse();
+        assertThat(reader.getEntryCount()).isEqualTo(4);
+        try (Scanner scanner = reader.createScanner()) {
+            // read key and value
+            byte[] kbuf = new byte[BUF_SIZE];
+            int klen = scanner.entry().getKeyLength();
+            scanner.entry().getKey(kbuf);
+            assertThat(new String(kbuf, 0, klen)).isEqualTo("keyZ");
+            byte[] vbuf = new byte[BUF_SIZE];
+            int vlen = scanner.entry().getValueLength();
+            scanner.entry().getValue(vbuf);
+            assertThat(new String(vbuf, 0, vlen)).isEqualTo("valueZ");
+            scanner.advance();
+            // now try get value first
+            vbuf = new byte[BUF_SIZE];
+            vlen = scanner.entry().getValueLength();
+            scanner.entry().getValue(vbuf);
+            assertThat(new String(vbuf, 0, vlen)).isEqualTo("valueM");
+            kbuf = new byte[BUF_SIZE];
+            klen = scanner.entry().getKeyLength();
+            scanner.entry().getKey(kbuf);
+            assertThat(new String(kbuf, 0, klen)).isEqualTo("keyM");
+        }
+    }
+}

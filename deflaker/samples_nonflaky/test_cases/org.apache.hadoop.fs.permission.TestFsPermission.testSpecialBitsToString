@@ -1,0 +1,23 @@
+@Test
+public void testSpecialBitsToString() {
+    for (boolean sb : new boolean[] { false, true }) {
+        for (FsAction u : FsAction.values()) {
+            for (FsAction g : FsAction.values()) {
+                for (FsAction o : FsAction.values()) {
+                    FsPermission f = new FsPermission(u, g, o, sb);
+                    String fString = f.toString();
+                    // Check that sticky bit is represented correctly.
+                    if (f.getStickyBit() && f.getOtherAction().implies(EXECUTE))
+                        assertEquals('t', fString.charAt(8));
+                    else if (f.getStickyBit() && !f.getOtherAction().implies(EXECUTE))
+                        assertEquals('T', fString.charAt(8));
+                    else if (!f.getStickyBit() && f.getOtherAction().implies(EXECUTE))
+                        assertEquals('x', fString.charAt(8));
+                    else
+                        assertEquals('-', fString.charAt(8));
+                    assertEquals(9, fString.length());
+                }
+            }
+        }
+    }
+}

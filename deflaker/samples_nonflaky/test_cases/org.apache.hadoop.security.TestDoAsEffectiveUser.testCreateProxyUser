@@ -1,0 +1,19 @@
+/**
+ * Test method for
+ * {@link org.apache.hadoop.security.UserGroupInformation#createProxyUser(java.lang.String, org.apache.hadoop.security.UserGroupInformation)}
+ * .
+ */
+@Test
+public void testCreateProxyUser() throws Exception {
+    // ensure that doAs works correctly
+    UserGroupInformation realUserUgi = UserGroupInformation.createRemoteUser(REAL_USER_NAME);
+    UserGroupInformation proxyUserUgi = UserGroupInformation.createProxyUser(PROXY_USER_NAME, realUserUgi);
+    UserGroupInformation curUGI = proxyUserUgi.doAs(new PrivilegedExceptionAction<UserGroupInformation>() {
+
+        @Override
+        public UserGroupInformation run() throws IOException {
+            return UserGroupInformation.getCurrentUser();
+        }
+    });
+    Assert.assertEquals(PROXY_USER_NAME + " (auth:PROXY) via " + REAL_USER_NAME + " (auth:SIMPLE)", curUGI.toString());
+}

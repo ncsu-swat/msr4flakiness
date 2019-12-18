@@ -1,0 +1,23 @@
+/**
+ * test {@code MapFile.Writer} constructor with IOException
+ */
+@Test
+public void testPathExplosionWriterCreation() {
+    Path path = new Path(TEST_DIR, "testPathExplosionWriterCreation.mapfile");
+    String TEST_ERROR_MESSAGE = "Mkdirs failed to create directory " + path.getName();
+    MapFile.Writer writer = null;
+    try {
+        FileSystem fsSpy = spy(FileSystem.get(conf));
+        Path pathSpy = spy(path);
+        when(fsSpy.mkdirs(path)).thenThrow(new IOException(TEST_ERROR_MESSAGE));
+        when(pathSpy.getFileSystem(conf)).thenReturn(fsSpy);
+        writer = new MapFile.Writer(conf, pathSpy, MapFile.Writer.keyClass(IntWritable.class), MapFile.Writer.valueClass(IntWritable.class));
+        fail("fail in testPathExplosionWriterCreation !!!");
+    } catch (IOException ex) {
+        assertEquals("testPathExplosionWriterCreation ex message error !!!", ex.getMessage(), TEST_ERROR_MESSAGE);
+    } catch (Exception e) {
+        fail("fail in testPathExplosionWriterCreation. Other ex !!!");
+    } finally {
+        IOUtils.cleanupWithLogger(LOG, writer);
+    }
+}

@@ -1,0 +1,17 @@
+@Test(timeout = 60000)
+public void testBadFile() throws IOException {
+    File mapFile = File.createTempFile(getClass().getSimpleName() + ".testBadFile", ".txt");
+    Files.asCharSink(mapFile, Charsets.UTF_8).write("bad contents");
+    mapFile.deleteOnExit();
+    TableMapping mapping = new TableMapping();
+    Configuration conf = new Configuration();
+    conf.set(NET_TOPOLOGY_TABLE_MAPPING_FILE_KEY, mapFile.getCanonicalPath());
+    mapping.setConf(conf);
+    List<String> names = new ArrayList<String>();
+    names.add(hostName1);
+    names.add(hostName2);
+    List<String> result = mapping.resolve(names);
+    assertEquals(names.size(), result.size());
+    assertEquals(result.get(0), NetworkTopology.DEFAULT_RACK);
+    assertEquals(result.get(1), NetworkTopology.DEFAULT_RACK);
+}

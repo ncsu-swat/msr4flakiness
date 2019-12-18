@@ -1,0 +1,27 @@
+@Test(timeout = 30000)
+public void testUGIAuthMethodInRealUser() throws Exception {
+    final UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+    UserGroupInformation proxyUgi = UserGroupInformation.createProxyUser("proxy", ugi);
+    final AuthenticationMethod am = AuthenticationMethod.KERBEROS;
+    ugi.setAuthenticationMethod(am);
+    Assert.assertEquals(am, ugi.getAuthenticationMethod());
+    Assert.assertEquals(AuthenticationMethod.PROXY, proxyUgi.getAuthenticationMethod());
+    Assert.assertEquals(am, UserGroupInformation.getRealAuthenticationMethod(proxyUgi));
+    proxyUgi.doAs(new PrivilegedExceptionAction<Object>() {
+
+        @Override
+        public Object run() throws IOException {
+            Assert.assertEquals(AuthenticationMethod.PROXY, UserGroupInformation.getCurrentUser().getAuthenticationMethod());
+            Assert.assertEquals(am, UserGroupInformation.getCurrentUser().getRealUser().getAuthenticationMethod());
+            return null;
+        }
+    });
+    UserGroupInformation proxyUgi2 = new UserGroupInformation(proxyUgi.getSubject());
+    proxyUgi2.setAuthenticationMethod(AuthenticationMethod.PROXY);
+    Assert.assertEquals(proxyUgi, proxyUgi2);
+    // Equality should work if authMethod is null
+    UserGroupInformation realugi = UserGroupInformation.getCurrentUser();
+    UserGroupInformation proxyUgi3 = UserGroupInformation.createProxyUser("proxyAnother", realugi);
+    UserGroupInformation proxyUgi4 = new UserGroupInformation(proxyUgi3.getSubject());
+    Assert.assertEquals(proxyUgi3, proxyUgi4);
+}

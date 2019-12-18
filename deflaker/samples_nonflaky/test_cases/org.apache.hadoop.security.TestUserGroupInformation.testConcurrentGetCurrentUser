@@ -1,0 +1,67 @@
+// verify that getCurrentUser on the same and different subjects can be
+// concurrent.  Ie. no synchronization.
+@Test(timeout = 8000)
+public void testConcurrentGetCurrentUser() throws Exception {
+    final CyclicBarrier barrier = new CyclicBarrier(2);
+    final CountDownLatch latch = new CountDownLatch(1);
+    final UserGroupInformation testUgi1 = UserGroupInformation.createRemoteUser("testUgi1");
+    final UserGroupInformation testUgi2 = UserGroupInformation.createRemoteUser("testUgi2");
+    // swap the User with a spy to allow getCurrentUser to block when the
+    // spy is called for the user name.
+    Set<Principal> principals = testUgi1.getSubject().getPrincipals();
+    User user = testUgi1.getSubject().getPrincipals(User.class).iterator().next();
+    final User spyUser = Mockito.spy(user);
+    principals.remove(user);
+    principals.add(spyUser);
+    when(spyUser.getName()).thenAnswer(new Answer<String>() {
+
+        @Override
+        public String answer(InvocationOnMock invocation) throws Throwable {
+            latch.countDown();
+            barrier.await();
+            return (String) invocation.callRealMethod();
+        }
+    });
+    // wait for the thread to block on the barrier in getCurrentUser.
+    Future<UserGroupInformation> blockingLookup = Executors.newSingleThreadExecutor().submit(new Callable<UserGroupInformation>() {
+
+        @Override
+        public UserGroupInformation call() throws Exception {
+            return testUgi1.doAs(new PrivilegedExceptionAction<UserGroupInformation>() {
+
+                @Override
+                public UserGroupInformation run() throws Exception {
+                    return UserGroupInformation.getCurrentUser();
+                }
+            });
+        }
+    });
+    latch.await();
+    // old versions of mockito synchronize on returning mocked answers so
+    // the blocked getCurrentUser will block all other calls to getName.
+    // workaround this by swapping out the spy with the original User.
+    principals.remove(spyUser);
+    principals.add(user);
+    // concurrent getCurrentUser on ugi1 should not be blocked.
+    UserGroupInformation ugi;
+    ugi = testUgi1.doAs(new PrivilegedExceptionAction<UserGroupInformation>() {
+
+        @Override
+        public UserGroupInformation run() throws Exception {
+            return UserGroupInformation.getCurrentUser();
+        }
+    });
+    assertSame(testUgi1.getSubject(), ugi.getSubject());
+    // concurrent getCurrentUser on ugi2 should not be blocked.
+    ugi = testUgi2.doAs(new PrivilegedExceptionAction<UserGroupInformation>() {
+
+        @Override
+        public UserGroupInformation run() throws Exception {
+            return UserGroupInformation.getCurrentUser();
+        }
+    });
+    assertSame(testUgi2.getSubject(), ugi.getSubject());
+    // unblock the original call.
+    barrier.await();
+    assertSame(testUgi1.getSubject(), blockingLookup.get().getSubject());
+}

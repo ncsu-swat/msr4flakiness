@@ -1,0 +1,34 @@
+/**
+ * Test that, when ZooKeeper fails, the system remains in its
+ * current state, without triggering any failovers, and without
+ * causing the active node to enter standby state.
+ */
+@Test
+public void testZooKeeperFailure() throws Exception {
+    cluster.start();
+    // Record initial ZK sessions
+    long session0 = cluster.getElector(0).getZKSessionIdForTests();
+    long session1 = cluster.getElector(1).getZKSessionIdForTests();
+    LOG.info("====== Stopping ZK server");
+    stopServer();
+    waitForServerDown(hostPort, CONNECTION_TIMEOUT);
+    LOG.info("====== Waiting for services to enter NEUTRAL mode");
+    cluster.waitForElectorState(0, ActiveStandbyElector.State.NEUTRAL);
+    cluster.waitForElectorState(1, ActiveStandbyElector.State.NEUTRAL);
+    LOG.info("====== Checking that the services didn't change HA state");
+    assertEquals(HAServiceState.ACTIVE, cluster.getService(0).state);
+    assertEquals(HAServiceState.STANDBY, cluster.getService(1).state);
+    LOG.info("====== Restarting server");
+    startServer();
+    waitForServerUp(hostPort, CONNECTION_TIMEOUT);
+    // Nodes should go back to their original states, since they re-obtain
+    // the same sessions.
+    cluster.waitForElectorState(0, ActiveStandbyElector.State.ACTIVE);
+    cluster.waitForElectorState(1, ActiveStandbyElector.State.STANDBY);
+    // Check HA states didn't change.
+    cluster.waitForHAState(0, HAServiceState.ACTIVE);
+    cluster.waitForHAState(1, HAServiceState.STANDBY);
+    // Check they re-used the same sessions and didn't spuriously reconnect
+    assertEquals(session0, cluster.getElector(0).getZKSessionIdForTests());
+    assertEquals(session1, cluster.getElector(1).getZKSessionIdForTests());
+}

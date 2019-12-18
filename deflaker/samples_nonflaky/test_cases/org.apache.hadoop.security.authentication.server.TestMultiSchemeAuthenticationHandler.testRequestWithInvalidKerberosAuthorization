@@ -1,0 +1,15 @@
+@Test(timeout = 60000)
+public void testRequestWithInvalidKerberosAuthorization() throws Exception {
+    String token = new Base64(0).encodeToString(new byte[] { 0, 1, 2 });
+    HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
+    HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
+    Mockito.when(request.getHeader(AUTHORIZATION_HEADER)).thenReturn(NEGOTIATE + token);
+    try {
+        handler.authenticate(request, response);
+        Assert.fail();
+    } catch (AuthenticationException ex) {
+    // Expected
+    } catch (Exception ex) {
+        Assert.fail("Wrong exception :" + ex);
+    }
+}

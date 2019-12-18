@@ -1,0 +1,21 @@
+@Test
+public void testShellCommandTimeout() throws Throwable {
+    Assume.assumeFalse(WINDOWS);
+    String rootDir = rootTestDir.getAbsolutePath();
+    File shellFile = new File(rootDir, "timeout.sh");
+    String timeoutCommand = "sleep 4; echo \"hello\"";
+    Shell.ShellCommandExecutor shexc;
+    try (PrintWriter writer = new PrintWriter(new FileOutputStream(shellFile))) {
+        writer.println(timeoutCommand);
+        writer.close();
+    }
+    FileUtil.setExecutable(shellFile, true);
+    shexc = new Shell.ShellCommandExecutor(new String[] { shellFile.getAbsolutePath() }, null, null, 100);
+    try {
+        shexc.execute();
+    } catch (Exception e) {
+    // When timing out exception is thrown.
+    }
+    shellFile.delete();
+    assertTrue("Script did not timeout", shexc.isTimedOut());
+}

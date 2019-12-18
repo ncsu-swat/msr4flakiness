@@ -1,0 +1,25 @@
+@Test
+public void testWeakRefClearing() {
+    // Allocate and return 10 buffers.
+    List<ByteBuffer> bufs = Lists.newLinkedList();
+    for (int i = 0; i < 10; i++) {
+        ByteBuffer buf = pool.getBuffer(100);
+        bufs.add(buf);
+    }
+    for (ByteBuffer buf : bufs) {
+        pool.returnBuffer(buf);
+    }
+    assertEquals(10, pool.countBuffersOfSize(100));
+    // Clear out any references to the buffers, and force
+    // GC. Weak refs should get cleared.
+    bufs.clear();
+    bufs = null;
+    for (int i = 0; i < 3; i++) {
+        System.gc();
+    }
+    ByteBuffer buf = pool.getBuffer(100);
+    // the act of getting a buffer should clear all the nulled
+    // references from the pool.
+    assertEquals(0, pool.countBuffersOfSize(100));
+    pool.returnBuffer(buf);
+}

@@ -1,0 +1,20 @@
+@Test
+public void testMultiStageMixed() throws IOException {
+    CrcComposer digester = CrcComposer.newStripedCrcComposer(type, chunkSize, cellSize);
+    // First combine chunks into cells.
+    DataInputStream input = new DataInputStream(new ByteArrayInputStream(crcBytesByChunk));
+    digester.update(input, crcsByChunk.length - 1, chunkSize);
+    digester.update(input, 1, dataSize % chunkSize);
+    byte[] digest = digester.digest();
+    // Second, individually combine cells into full crc.
+    digester = CrcComposer.newCrcComposer(type, cellSize);
+    for (int i = 0; i < digest.length - 4; i += 4) {
+        int cellCrc = CrcUtil.readInt(digest, i);
+        digester.update(cellCrc, cellSize);
+    }
+    digester.update(digest, digest.length - 4, 4, dataSize % cellSize);
+    digest = digester.digest();
+    assertEquals(4, digest.length);
+    int calculatedCrc = CrcUtil.readInt(digest, 0);
+    assertEquals(fullCrc, calculatedCrc);
+}

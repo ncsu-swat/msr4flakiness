@@ -1,0 +1,13 @@
+@Test
+public void testCopyBytesShouldCloseInputSteamWhenOutputStreamCloseThrowsException() throws Exception {
+    InputStream inputStream = Mockito.mock(InputStream.class);
+    OutputStream outputStream = Mockito.mock(OutputStream.class);
+    Mockito.doReturn(-1).when(inputStream).read(new byte[1]);
+    Mockito.doThrow(new IOException()).when(outputStream).close();
+    try {
+        IOUtils.copyBytes(inputStream, outputStream, 1, true);
+    } catch (IOException e) {
+    }
+    Mockito.verify(inputStream, Mockito.atLeastOnce()).close();
+    Mockito.verify(outputStream, Mockito.atLeastOnce()).close();
+}

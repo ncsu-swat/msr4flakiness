@@ -1,0 +1,20 @@
+/**
+ * verify quit election terminates connection and there are no new watches.
+ * next call to joinElection creates new connection and performs election
+ */
+@Test
+public void testQuitElection() throws Exception {
+    elector.joinElection(data);
+    Mockito.verify(mockZK, Mockito.times(0)).close();
+    elector.quitElection(true);
+    Mockito.verify(mockZK, Mockito.times(1)).close();
+    // no watches added
+    verifyExistCall(0);
+    byte[] data = new byte[8];
+    elector.joinElection(data);
+    // getNewZooKeeper called 2 times. once in constructor and once now
+    Assert.assertEquals(2, count);
+    elector.processResult(Code.NODEEXISTS.intValue(), ZK_LOCK_NAME, mockZK, ZK_LOCK_NAME);
+    Mockito.verify(mockApp, Mockito.times(1)).becomeStandby();
+    verifyExistCall(1);
+}

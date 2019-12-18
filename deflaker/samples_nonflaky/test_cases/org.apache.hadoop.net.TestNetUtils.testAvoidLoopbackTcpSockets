@@ -1,0 +1,26 @@
+/**
+ * Test that we can't accidentally connect back to the connecting socket due
+ * to a quirk in the TCP spec.
+ *
+ * This is a regression test for HADOOP-6722.
+ */
+@Test
+public void testAvoidLoopbackTcpSockets() throws Throwable {
+    Configuration conf = new Configuration();
+    Socket socket = NetUtils.getDefaultSocketFactory(conf).createSocket();
+    socket.bind(new InetSocketAddress("127.0.0.1", 0));
+    System.err.println("local address: " + socket.getLocalAddress());
+    System.err.println("local port: " + socket.getLocalPort());
+    try {
+        NetUtils.connect(socket, new InetSocketAddress(socket.getLocalAddress(), socket.getLocalPort()), 20000);
+        socket.close();
+        fail("Should not have connected");
+    } catch (ConnectException ce) {
+        System.err.println("Got exception: " + ce);
+        assertInException(ce, "resulted in a loopback");
+    } catch (SocketException se) {
+        // Some TCP stacks will actually throw their own Invalid argument exception
+        // here. This is also OK.
+        assertInException(se, "Invalid argument");
+    }
+}

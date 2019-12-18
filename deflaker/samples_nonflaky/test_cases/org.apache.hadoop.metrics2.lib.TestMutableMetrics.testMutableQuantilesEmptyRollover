@@ -1,0 +1,17 @@
+/**
+ * Test that {@link MutableQuantiles} rolls over correctly even if no items
+ * have been added to the window
+ */
+@Test(timeout = 30000)
+public void testMutableQuantilesEmptyRollover() throws Exception {
+    MetricsRecordBuilder mb = mockMetricsRecordBuilder();
+    MetricsRegistry registry = new MetricsRegistry("test");
+    // Use a 5s rollover period
+    MutableQuantiles quantiles = registry.newQuantiles("foo", "stat", "Ops", "Latency", 5);
+    // Check it initially
+    quantiles.snapshot(mb, true);
+    verify(mb).addGauge(info("FooNumOps", "Number of ops for stat with 5s interval"), (long) 0);
+    Thread.sleep(6000);
+    quantiles.snapshot(mb, false);
+    verify(mb, times(2)).addGauge(info("FooNumOps", "Number of ops for stat with 5s interval"), (long) 0);
+}

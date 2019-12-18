@@ -1,0 +1,19 @@
+/**
+ * Test for the case that UserGroupInformation.getCurrentUser()
+ * is called when the AccessControlContext has a Subject associated
+ * with it, but that Subject was not created by Hadoop (ie it has no
+ * associated User principal)
+ */
+@Test(timeout = 30000)
+public void testUGIUnderNonHadoopContext() throws Exception {
+    Subject nonHadoopSubject = new Subject();
+    Subject.doAs(nonHadoopSubject, new PrivilegedExceptionAction<Void>() {
+
+        @Override
+        public Void run() throws IOException {
+            UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+            assertNotNull(ugi);
+            return null;
+        }
+    });
+}

@@ -1,0 +1,27 @@
+/**
+ * Verify the access for /logs, /stacks, /conf, and /logLevel
+ * servlets, when authentication filters are set, but authorization is not
+ * enabled.
+ * @throws Exception
+ */
+@Test
+public void testDisabledAuthorizationOfDefaultServlets() throws Exception {
+    Configuration conf = new Configuration();
+    // Authorization is disabled by default
+    conf.set(HttpServer2.FILTER_INITIALIZER_PROPERTY, DummyFilterInitializer.class.getName());
+    conf.set(CommonConfigurationKeys.HADOOP_SECURITY_GROUP_MAPPING, MyGroupsProvider.class.getName());
+    Groups.getUserToGroupsMappingService(conf);
+    MyGroupsProvider.clearMapping();
+    MyGroupsProvider.mapping.put("userA", Arrays.asList("groupA"));
+    MyGroupsProvider.mapping.put("userB", Arrays.asList("groupB"));
+    HttpServer2 myServer = new HttpServer2.Builder().setName("test").addEndpoint(new URI("http://localhost:0")).setFindPort(true).build();
+    myServer.setAttribute(HttpServer2.CONF_CONTEXT_ATTRIBUTE, conf);
+    myServer.start();
+    String serverURL = "http://" + NetUtils.getHostPortString(myServer.getConnectorAddress(0)) + "/";
+    for (String servlet : new String[] { "conf", "logs", "stacks", "logLevel" }) {
+        for (String user : new String[] { "userA", "userB" }) {
+            assertEquals(HttpURLConnection.HTTP_OK, getHttpStatusCode(serverURL + servlet, user));
+        }
+    }
+    myServer.stop();
+}

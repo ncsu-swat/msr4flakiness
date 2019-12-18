@@ -1,0 +1,21 @@
+@Test
+public void testDuplicates() throws IOException {
+    assumeNotWindows();
+    String GET_ALL_USERS_CMD = "echo \"root:x:0:0:root:/root:/bin/bash\n" + "hdfs:x:11501:10787:Grid Distributed File System:/home/hdfs:/bin/bash\n" + "hdfs:x:11502:10788:Grid Distributed File System:/home/hdfs:/bin/bash\n" + "hdfs1:x:11501:10787:Grid Distributed File System:/home/hdfs:/bin/bash\n" + "hdfs2:x:11502:10787:Grid Distributed File System:/home/hdfs:/bin/bash\n" + "bin:x:2:2:bin:/bin:/bin/sh\n" + "bin:x:1:1:bin:/bin:/sbin/nologin\n" + "daemon:x:1:1:daemon:/usr/sbin:/bin/sh\n" + "daemon:x:2:2:daemon:/sbin:/sbin/nologin\"" + " | cut -d: -f1,3";
+    String GET_ALL_GROUPS_CMD = "echo \"hdfs:*:11501:hrt_hdfs\n" + "mapred:x:497\n" + "mapred2:x:497\n" + "mapred:x:498\n" + "mapred3:x:498\"" + " | cut -d: -f1,3";
+    // Maps for id to name map
+    BiMap<Integer, String> uMap = HashBiMap.create();
+    BiMap<Integer, String> gMap = HashBiMap.create();
+    ShellBasedIdMapping.updateMapInternal(uMap, "user", GET_ALL_USERS_CMD, ":", EMPTY_PASS_THROUGH_MAP);
+    assertEquals(5, uMap.size());
+    assertEquals("root", uMap.get(0));
+    assertEquals("hdfs", uMap.get(11501));
+    assertEquals("hdfs2", uMap.get(11502));
+    assertEquals("bin", uMap.get(2));
+    assertEquals("daemon", uMap.get(1));
+    ShellBasedIdMapping.updateMapInternal(gMap, "group", GET_ALL_GROUPS_CMD, ":", EMPTY_PASS_THROUGH_MAP);
+    assertTrue(gMap.size() == 3);
+    assertEquals("hdfs", gMap.get(11501));
+    assertEquals("mapred", gMap.get(497));
+    assertEquals("mapred3", gMap.get(498));
+}

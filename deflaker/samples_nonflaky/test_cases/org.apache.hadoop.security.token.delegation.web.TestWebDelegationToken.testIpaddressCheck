@@ -1,0 +1,31 @@
+@Test
+public void testIpaddressCheck() throws Exception {
+    final Server jetty = createJettyServer();
+    ServletContextHandler context = new ServletContextHandler();
+    context.setContextPath("/foo");
+    jetty.setHandler(context);
+    context.addFilter(new FilterHolder(IpAddressBasedPseudoDTAFilter.class), "/*", EnumSet.of(DispatcherType.REQUEST));
+    context.addServlet(new ServletHolder(UGIServlet.class), "/bar");
+    try {
+        jetty.start();
+        final URL url = new URL(getJettyURL() + "/foo/bar");
+        UserGroupInformation ugi = UserGroupInformation.createRemoteUser(FOO_USER);
+        ugi.doAs(new PrivilegedExceptionAction<Void>() {
+
+            @Override
+            public Void run() throws Exception {
+                DelegationTokenAuthenticatedURL.Token token = new DelegationTokenAuthenticatedURL.Token();
+                DelegationTokenAuthenticatedURL aUrl = new DelegationTokenAuthenticatedURL();
+                // user ok-user via proxyuser foo
+                HttpURLConnection conn = aUrl.openConnection(url, token, OK_USER);
+                Assert.assertEquals(HttpURLConnection.HTTP_OK, conn.getResponseCode());
+                List<String> ret = IOUtils.readLines(conn.getInputStream());
+                Assert.assertEquals(1, ret.size());
+                Assert.assertEquals("realugi=" + FOO_USER + ":remoteuser=" + OK_USER + ":ugi=" + OK_USER, ret.get(0));
+                return null;
+            }
+        });
+    } finally {
+        jetty.stop();
+    }
+}

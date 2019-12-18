@@ -1,0 +1,16 @@
+@Test
+public void testGetClasses() throws IOException {
+    out = new BufferedWriter(new FileWriter(CONFIG));
+    startConfig();
+    appendProperty("test.classes1", "java.lang.Integer,java.lang.String");
+    appendProperty("test.classes2", " java.lang.Integer , java.lang.String ");
+    endConfig();
+    Path fileResource = new Path(CONFIG);
+    conf.addResource(fileResource);
+    String[] expectedNames = { "java.lang.Integer", "java.lang.String" };
+    Class<?>[] defaultClasses = {};
+    Class<?>[] classes1 = conf.getClasses("test.classes1", defaultClasses);
+    Class<?>[] classes2 = conf.getClasses("test.classes2", defaultClasses);
+    assertArrayEquals(expectedNames, extractClassNames(classes1));
+    assertArrayEquals(expectedNames, extractClassNames(classes2));
+}

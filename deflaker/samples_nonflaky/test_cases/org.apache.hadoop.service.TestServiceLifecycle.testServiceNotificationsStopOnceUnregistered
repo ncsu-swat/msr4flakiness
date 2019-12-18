@@ -1,0 +1,18 @@
+/**
+ * Test that when a service listener is unregistered, it stops being invoked
+ * @throws Throwable on a failure
+ */
+@Test
+public void testServiceNotificationsStopOnceUnregistered() throws Throwable {
+    BreakableService svc = new BreakableService(false, false, false);
+    BreakableStateChangeListener listener = new BreakableStateChangeListener();
+    svc.registerServiceListener(listener);
+    svc.init(new Configuration());
+    assertEventCount(listener, 1);
+    svc.unregisterServiceListener(listener);
+    svc.start();
+    assertEventCount(listener, 1);
+    svc.stop();
+    assertEventCount(listener, 1);
+    svc.stop();
+}

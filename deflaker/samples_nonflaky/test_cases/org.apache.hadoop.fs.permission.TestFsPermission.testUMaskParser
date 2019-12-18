@@ -1,0 +1,16 @@
+@Test
+public void testUMaskParser() throws IOException {
+    Configuration conf = new Configuration();
+    // Ensure that we get the right octal values back for all legal values
+    for (FsAction u : FsAction.values()) {
+        for (FsAction g : FsAction.values()) {
+            for (FsAction o : FsAction.values()) {
+                FsPermission f = new FsPermission(u, g, o);
+                String asOctal = String.format("%1$03o", f.toShort());
+                conf.set(FsPermission.UMASK_LABEL, asOctal);
+                FsPermission fromConf = FsPermission.getUMask(conf);
+                assertEquals(f, fromConf);
+            }
+        }
+    }
+}

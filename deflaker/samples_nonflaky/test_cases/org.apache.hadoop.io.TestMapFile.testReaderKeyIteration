@@ -1,0 +1,36 @@
+/**
+ * test {@code MapFile.Reader.next(key, value)} for iteration.
+ */
+@Test
+public void testReaderKeyIteration() {
+    final String TEST_METHOD_KEY = "testReaderKeyIteration.mapfile";
+    int SIZE = 10;
+    int ITERATIONS = 5;
+    MapFile.Writer writer = null;
+    MapFile.Reader reader = null;
+    try {
+        writer = createWriter(TEST_METHOD_KEY, IntWritable.class, Text.class);
+        int start = 0;
+        for (int i = 0; i < SIZE; i++) writer.append(new IntWritable(i), new Text("Value:" + i));
+        writer.close();
+        reader = createReader(TEST_METHOD_KEY, IntWritable.class);
+        // test iteration
+        Writable startValue = new Text("Value:" + start);
+        int i = 0;
+        while (i++ < ITERATIONS) {
+            IntWritable key = new IntWritable(start);
+            Writable value = startValue;
+            while (reader.next(key, value)) {
+                assertNotNull(key);
+                assertNotNull(value);
+            }
+            reader.reset();
+        }
+        assertTrue("reader seek error !!!", reader.seek(new IntWritable(SIZE / 2)));
+        assertFalse("reader seek error !!!", reader.seek(new IntWritable(SIZE * 2)));
+    } catch (IOException ex) {
+        fail("reader seek error !!!");
+    } finally {
+        IOUtils.cleanupWithLogger(LOG, writer, reader);
+    }
+}

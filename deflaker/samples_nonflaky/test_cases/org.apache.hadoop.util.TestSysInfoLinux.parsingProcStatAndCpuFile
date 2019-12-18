@@ -1,0 +1,54 @@
+/**
+ * Test parsing /proc/stat and /proc/cpuinfo
+ * @throws IOException
+ */
+@Test
+public void parsingProcStatAndCpuFile() throws IOException {
+    // Write fake /proc/cpuinfo file.
+    long numProcessors = 8;
+    long cpuFrequencyKHz = 2392781;
+    String fileContent = "";
+    for (int i = 0; i < numProcessors; i++) {
+        fileContent += String.format(CPUINFO_FORMAT, i, cpuFrequencyKHz / 1000D, 0, 0) + "\n";
+    }
+    File tempFile = new File(FAKE_CPUFILE);
+    tempFile.deleteOnExit();
+    FileWriter fWriter = new FileWriter(FAKE_CPUFILE);
+    fWriter.write(fileContent);
+    fWriter.close();
+    assertEquals(plugin.getNumProcessors(), numProcessors);
+    assertEquals(plugin.getCpuFrequency(), cpuFrequencyKHz);
+    // Write fake /proc/stat file.
+    long uTime = 54972994;
+    long nTime = 188860;
+    long sTime = 19803373;
+    tempFile = new File(FAKE_STATFILE);
+    tempFile.deleteOnExit();
+    updateStatFile(uTime, nTime, sTime);
+    assertEquals(plugin.getCumulativeCpuTime(), FAKE_JIFFY_LENGTH * (uTime + nTime + sTime));
+    assertEquals(plugin.getCpuUsagePercentage(), (float) (CpuTimeTracker.UNAVAILABLE), 0.0);
+    assertEquals(plugin.getNumVCoresUsed(), (float) (CpuTimeTracker.UNAVAILABLE), 0.0);
+    // Advance the time and sample again to test the CPU usage calculation
+    uTime += 100L;
+    plugin.advanceTime(200L);
+    updateStatFile(uTime, nTime, sTime);
+    assertEquals(plugin.getCumulativeCpuTime(), FAKE_JIFFY_LENGTH * (uTime + nTime + sTime));
+    assertEquals(plugin.getCpuUsagePercentage(), 6.25F, 0.0);
+    assertEquals(plugin.getNumVCoresUsed(), 0.5F, 0.0);
+    // Advance the time and sample again. This time, we call getCpuUsagePercentage() only.
+    uTime += 600L;
+    plugin.advanceTime(300L);
+    updateStatFile(uTime, nTime, sTime);
+    assertEquals(plugin.getCpuUsagePercentage(), 25F, 0.0);
+    assertEquals(plugin.getNumVCoresUsed(), 2F, 0.0);
+    // Advance very short period of time (one jiffy length).
+    // In this case, CPU usage should not be updated.
+    uTime += 1L;
+    plugin.advanceTime(1L);
+    updateStatFile(uTime, nTime, sTime);
+    assertEquals(plugin.getCumulativeCpuTime(), FAKE_JIFFY_LENGTH * (uTime + nTime + sTime));
+    assertEquals(plugin.getCpuUsagePercentage(), 25F, // CPU usage is not updated.
+    0.0);
+    assertEquals(plugin.getNumVCoresUsed(), 2F, // CPU usage is not updated.
+    0.0);
+}

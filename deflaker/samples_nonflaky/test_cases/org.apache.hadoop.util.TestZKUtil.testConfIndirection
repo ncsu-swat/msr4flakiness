@@ -1,0 +1,14 @@
+@Test
+public void testConfIndirection() throws IOException {
+    assertNull(ZKUtil.resolveConfIndirection(null));
+    assertEquals("x", ZKUtil.resolveConfIndirection("x"));
+    TEST_FILE.getParentFile().mkdirs();
+    Files.asCharSink(TEST_FILE, Charsets.UTF_8).write("hello world");
+    assertEquals("hello world", ZKUtil.resolveConfIndirection("@" + TEST_FILE.getAbsolutePath()));
+    try {
+        ZKUtil.resolveConfIndirection("@" + BOGUS_FILE);
+        fail("Did not throw for non-existent file reference");
+    } catch (FileNotFoundException fnfe) {
+        assertTrue(fnfe.getMessage().startsWith(BOGUS_FILE));
+    }
+}

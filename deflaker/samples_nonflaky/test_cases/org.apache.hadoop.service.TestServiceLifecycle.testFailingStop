@@ -1,0 +1,18 @@
+/**
+ * verify that when a service fails during its stop operation,
+ * its state does not change.
+ * @throws Throwable if necessary
+ */
+@Test
+public void testFailingStop() throws Throwable {
+    BreakableService svc = new BreakableService(false, false, true);
+    svc.init(new Configuration());
+    svc.start();
+    try {
+        svc.stop();
+        fail("Expected a failure, got " + svc);
+    } catch (BreakableService.BrokenLifecycleEvent e) {
+    // expected
+    }
+    assertStateCount(svc, Service.STATE.STOPPED, 1);
+}

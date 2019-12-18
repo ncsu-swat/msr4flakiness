@@ -1,0 +1,55 @@
+/**
+ * given user name - get all the groups.
+ * Needs to happen before creating the test users
+ */
+@Test(timeout = 30000)
+public void testGetServerSideGroups() throws IOException, InterruptedException {
+    // get the user name
+    Process pp = Runtime.getRuntime().exec("whoami");
+    BufferedReader br = new BufferedReader(new InputStreamReader(pp.getInputStream()));
+    String userName = br.readLine().trim();
+    // If on windows domain, token format is DOMAIN\\user and we want to
+    // extract only the user name
+    if (Shell.WINDOWS) {
+        int sp = userName.lastIndexOf('\\');
+        if (sp != -1) {
+            userName = userName.substring(sp + 1);
+        }
+        // user names are case insensitive on Windows. Make consistent
+        userName = StringUtils.toLowerCase(userName);
+    }
+    // get the groups
+    pp = Runtime.getRuntime().exec(Shell.WINDOWS ? Shell.getWinUtilsPath() + " groups -F" : "id -Gn " + userName);
+    br = new BufferedReader(new InputStreamReader(pp.getInputStream()));
+    String line = br.readLine();
+    System.out.println(userName + ":" + line);
+    Set<String> groups = new LinkedHashSet<String>();
+    String[] tokens = line.split(Shell.TOKEN_SEPARATOR_REGEX);
+    for (String s : tokens) {
+        groups.add(s);
+    }
+    final UserGroupInformation login = UserGroupInformation.getCurrentUser();
+    String loginUserName = login.getShortUserName();
+    if (Shell.WINDOWS) {
+        // user names are case insensitive on Windows. Make consistent
+        loginUserName = StringUtils.toLowerCase(loginUserName);
+    }
+    assertEquals(userName, loginUserName);
+    String[] gi = login.getGroupNames();
+    assertEquals(groups.size(), gi.length);
+    for (int i = 0; i < gi.length; i++) {
+        assertTrue(groups.contains(gi[i]));
+    }
+    final UserGroupInformation fakeUser = UserGroupInformation.createRemoteUser("foo.bar");
+    fakeUser.doAs(new PrivilegedExceptionAction<Object>() {
+
+        @Override
+        public Object run() throws IOException {
+            UserGroupInformation current = UserGroupInformation.getCurrentUser();
+            assertFalse(current.equals(login));
+            assertEquals(current, fakeUser);
+            assertEquals(0, current.getGroupNames().length);
+            return null;
+        }
+    });
+}

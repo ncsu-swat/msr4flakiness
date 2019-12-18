@@ -1,0 +1,13 @@
+@Test
+public void testFileSystemEmptyPath() throws Throwable {
+    File tempFile = File.createTempFile("Keyval", ".json");
+    Path tempPath = new Path(tempFile.toURI());
+    LocalFileSystem fs = FileSystem.getLocal(new Configuration());
+    try {
+        LambdaTestUtils.intercept(EOFException.class, () -> serDeser.load(fs, tempPath));
+        fs.delete(tempPath, false);
+        LambdaTestUtils.intercept(FileNotFoundException.class, () -> serDeser.load(fs, tempPath));
+    } finally {
+        fs.delete(tempPath, false);
+    }
+}

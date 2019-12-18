@@ -1,0 +1,25 @@
+@Test(timeout = 60000)
+public void testNonDefaultNonBrowserUserAgentAsBrowser() throws Exception {
+    HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
+    HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
+    if (handler != null) {
+        handler.destroy();
+        handler = null;
+    }
+    handler = getNewAuthenticationHandler();
+    Properties props = getDefaultProperties();
+    props.setProperty("alt-kerberos.non-browser.user-agents", "foo, bar");
+    try {
+        handler.init(props);
+    } catch (Exception ex) {
+        handler = null;
+        throw ex;
+    }
+    // Pretend we're something that will not match with "foo" (or "bar")
+    Mockito.when(request.getHeader("User-Agent")).thenReturn("blah");
+    // Should use alt authentication
+    AuthenticationToken token = handler.authenticate(request, response);
+    Assert.assertEquals("A", token.getUserName());
+    Assert.assertEquals("B", token.getName());
+    Assert.assertEquals(getExpectedType(), token.getType());
+}

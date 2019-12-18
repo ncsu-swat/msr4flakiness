@@ -1,0 +1,18 @@
+/**
+ * Filters should accepts unmatched item when both include and
+ * exclude patterns are present.
+ */
+@Test
+public void shouldAcceptUnmatchedWhenBothAreConfigured() {
+    SubsetConfiguration c = new ConfigBuilder().add("p.include", "foo").add("p.include.tags", "foo:f").add("p.exclude", "bar").add("p.exclude.tags", "bar:b").subset("p");
+    shouldAccept(c, "foo");
+    shouldAccept(c, Arrays.asList(tag("foo", "", "f")));
+    shouldAccept(c, mockMetricsRecord("foo", Arrays.asList(tag("foo", "", "f"))));
+    shouldReject(c, "bar");
+    shouldReject(c, Arrays.asList(tag("bar", "", "b")));
+    shouldReject(c, mockMetricsRecord("bar", Arrays.asList(tag("foo", "", "f"))));
+    shouldReject(c, mockMetricsRecord("foo", Arrays.asList(tag("bar", "", "b"))));
+    shouldAccept(c, "foobar");
+    shouldAccept(c, Arrays.asList(tag("foobar", "", "")));
+    shouldAccept(c, mockMetricsRecord("foobar", Arrays.asList(tag("foobar", "", ""))));
+}

@@ -1,0 +1,23 @@
+/**
+ * Test exclusive access of the lock.
+ * @throws Exception
+ */
+@Test(timeout = 10000)
+public void testMultipleThread() throws Exception {
+    String testname = name.getMethodName();
+    InstrumentedLock lock = new InstrumentedLock(testname, LOG, 0, 300);
+    lock.lock();
+    try {
+        Thread competingThread = new Thread() {
+
+            @Override
+            public void run() {
+                assertFalse(lock.tryLock());
+            }
+        };
+        competingThread.start();
+        competingThread.join();
+    } finally {
+        lock.unlock();
+    }
+}

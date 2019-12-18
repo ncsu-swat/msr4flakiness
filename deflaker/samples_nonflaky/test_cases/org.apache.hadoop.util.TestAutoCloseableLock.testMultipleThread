@@ -1,0 +1,25 @@
+/**
+ * Test when lock is acquired, no other thread can
+ * lock it.
+ *
+ * @throws Exception
+ */
+@Test
+public void testMultipleThread() throws Exception {
+    AutoCloseableLock lock = new AutoCloseableLock();
+    lock.acquire();
+    assertTrue(lock.isLocked());
+    Thread competingThread = new Thread() {
+
+        @Override
+        public void run() {
+            assertTrue(lock.isLocked());
+            assertFalse(lock.tryLock());
+        }
+    };
+    competingThread.start();
+    competingThread.join();
+    assertTrue(lock.isLocked());
+    lock.release();
+    assertFalse(lock.isLocked());
+}

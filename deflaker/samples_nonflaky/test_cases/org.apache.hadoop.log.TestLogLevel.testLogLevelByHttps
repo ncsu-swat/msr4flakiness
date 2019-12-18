@@ -1,0 +1,16 @@
+/**
+ * Server runs HTTPS, no SPNEGO.
+ *
+ * @throws Exception
+ */
+@Test(timeout = 60000)
+public void testLogLevelByHttps() throws Exception {
+    testDynamicLogLevel(LogLevel.PROTOCOL_HTTPS, LogLevel.PROTOCOL_HTTPS, false);
+    try {
+        testDynamicLogLevel(LogLevel.PROTOCOL_HTTPS, LogLevel.PROTOCOL_HTTP, false);
+        fail("A HTTP Client should not have succeeded in connecting to a " + "HTTPS server");
+    } catch (SocketException e) {
+        GenericTestUtils.assertExceptionContains("Error while authenticating " + "with endpoint", e);
+        GenericTestUtils.assertExceptionContains("Unexpected end of file from server", e.getCause());
+    }
+}

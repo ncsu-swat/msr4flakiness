@@ -1,0 +1,44 @@
+/**
+ * Test concurrent consumer access, which is illegal
+ * @throws Exception
+ */
+@Test
+public void testConcurrentConsumers() throws Exception {
+    final SinkQueue<Integer> q = newSleepingConsumerQueue(2, 1);
+    assertTrue("should enqueue", q.enqueue(2));
+    assertEquals("queue back", 2, (int) q.back());
+    // should not block
+    assertTrue("should drop", !q.enqueue(3));
+    shouldThrowCME(new Fun() {
+
+        @Override
+        public void run() {
+            q.clear();
+        }
+    });
+    shouldThrowCME(new Fun() {
+
+        @Override
+        public void run() throws Exception {
+            q.consume(null);
+        }
+    });
+    shouldThrowCME(new Fun() {
+
+        @Override
+        public void run() throws Exception {
+            q.consumeAll(null);
+        }
+    });
+    shouldThrowCME(new Fun() {
+
+        @Override
+        public void run() throws Exception {
+            q.dequeue();
+        }
+    });
+    // The queue should still be in consistent state after all the exceptions
+    assertEquals("queue size", 2, q.size());
+    assertEquals("queue front", 1, (int) q.front());
+    assertEquals("queue back", 2, (int) q.back());
+}

@@ -1,0 +1,21 @@
+/**
+ * Shut down from inited
+ */
+@Test
+public void testServiceStopFromInited() {
+    ServiceManager serviceManager = new ServiceManager("ServiceManager");
+    // Add services
+    for (int i = 0; i < NUM_OF_SERVICES; i++) {
+        CompositeServiceImpl service = new CompositeServiceImpl(i);
+        serviceManager.addTestService(service);
+    }
+    CompositeServiceImpl[] services = serviceManager.getServices().toArray(new CompositeServiceImpl[0]);
+    serviceManager.init(new Configuration());
+    serviceManager.stop();
+    if (STOP_ONLY_STARTED_SERVICES) {
+        // this policy => no services were stopped
+        assertInState(STATE.INITED, services);
+    } else {
+        assertInState(STATE.STOPPED, services);
+    }
+}

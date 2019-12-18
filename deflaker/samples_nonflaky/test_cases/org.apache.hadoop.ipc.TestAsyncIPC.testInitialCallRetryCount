@@ -1,0 +1,32 @@
+/**
+ * Test if the rpc server gets the default retry count (0) from client.
+ *
+ * @throws ExecutionException
+ * @throws InterruptedException
+ */
+@Test(timeout = 60000)
+public void testInitialCallRetryCount() throws IOException, InterruptedException, ExecutionException {
+    // Override client to store the call id
+    final Client client = new Client(LongWritable.class, conf);
+    // Attach a listener that tracks every call ID received by the server.
+    final TestServer server = new TestIPC.TestServer(1, false, conf);
+    server.callListener = new Runnable() {
+
+        @Override
+        public void run() {
+            // we have not set the retry count for the client, thus on the server
+            // side we should see retry count as 0
+            Assert.assertEquals(0, Server.getCallRetryCount());
+        }
+    };
+    try {
+        InetSocketAddress addr = NetUtils.getConnectAddress(server);
+        server.start();
+        final AsyncCaller caller = new AsyncCaller(client, addr, 10);
+        caller.run();
+        caller.assertReturnValues();
+    } finally {
+        client.stop();
+        server.stop();
+    }
+}

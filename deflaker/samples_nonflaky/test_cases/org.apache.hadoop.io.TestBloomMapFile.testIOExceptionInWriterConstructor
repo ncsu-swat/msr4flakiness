@@ -1,0 +1,22 @@
+/**
+ * test {@link BloomMapFile.Reader} constructor with
+ * IOException
+ */
+@Test
+public void testIOExceptionInWriterConstructor() {
+    Path dirNameSpy = spy(TEST_FILE);
+    BloomMapFile.Reader reader = null;
+    BloomMapFile.Writer writer = null;
+    try {
+        writer = new BloomMapFile.Writer(conf, TEST_FILE, MapFile.Writer.keyClass(IntWritable.class), MapFile.Writer.valueClass(Text.class));
+        writer.append(new IntWritable(1), new Text("123124142"));
+        writer.close();
+        when(dirNameSpy.getFileSystem(conf)).thenThrow(new IOException());
+        reader = new BloomMapFile.Reader(dirNameSpy, conf, MapFile.Reader.comparator(new WritableComparator(IntWritable.class)));
+        assertNull("testIOExceptionInWriterConstructor error !!!", reader.getBloomFilter());
+    } catch (Exception ex) {
+        fail("unexpect ex in testIOExceptionInWriterConstructor !!!");
+    } finally {
+        IOUtils.cleanupWithLogger(LOG, writer, reader);
+    }
+}

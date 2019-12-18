@@ -1,0 +1,20 @@
+/**
+ * test {@code EnumSetWritable.write(DataOutputBuffer out)}
+ *  and iteration by TestEnumSet through iterator().
+ */
+@Test
+public void testEnumSetWritableWriteRead() throws Exception {
+    EnumSetWritable<TestEnumSet> srcSet = new EnumSetWritable<TestEnumSet>(EnumSet.of(TestEnumSet.APPEND, TestEnumSet.CREATE), TestEnumSet.class);
+    DataOutputBuffer out = new DataOutputBuffer();
+    srcSet.write(out);
+    EnumSetWritable<TestEnumSet> dstSet = new EnumSetWritable<TestEnumSet>();
+    DataInputBuffer in = new DataInputBuffer();
+    in.reset(out.getData(), out.getLength());
+    dstSet.readFields(in);
+    EnumSet<TestEnumSet> result = dstSet.get();
+    Iterator<TestEnumSet> dstIter = result.iterator();
+    Iterator<TestEnumSet> srcIter = srcSet.iterator();
+    while (dstIter.hasNext() && srcIter.hasNext()) {
+        assertEquals("testEnumSetWritableWriteRead error !!!", dstIter.next(), srcIter.next());
+    }
+}

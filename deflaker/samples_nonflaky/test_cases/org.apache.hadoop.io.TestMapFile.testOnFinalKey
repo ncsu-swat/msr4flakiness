@@ -1,0 +1,23 @@
+/**
+ * test {@code MapFile.Reader.finalKey()} method
+ */
+@Test
+public void testOnFinalKey() {
+    final String TEST_METHOD_KEY = "testOnFinalKey.mapfile";
+    int SIZE = 10;
+    MapFile.Writer writer = null;
+    MapFile.Reader reader = null;
+    try {
+        writer = createWriter(TEST_METHOD_KEY, IntWritable.class, IntWritable.class);
+        for (int i = 0; i < SIZE; i++) writer.append(new IntWritable(i), new IntWritable(i));
+        writer.close();
+        reader = createReader(TEST_METHOD_KEY, IntWritable.class);
+        IntWritable expectedKey = new IntWritable(0);
+        reader.finalKey(expectedKey);
+        assertEquals("testOnFinalKey not same !!!", expectedKey, new IntWritable(9));
+    } catch (IOException ex) {
+        fail("testOnFinalKey error !!!");
+    } finally {
+        IOUtils.cleanupWithLogger(LOG, writer, reader);
+    }
+}

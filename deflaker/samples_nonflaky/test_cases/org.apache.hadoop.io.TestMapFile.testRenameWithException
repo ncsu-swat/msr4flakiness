@@ -1,0 +1,26 @@
+/**
+ * test {@code MapFile.rename()}
+ *  method with throwing {@code IOException}
+ */
+@Test
+public void testRenameWithException() {
+    final String ERROR_MESSAGE = "Can't rename file";
+    final String NEW_FILE_NAME = "test-new.mapfile";
+    final String OLD_FILE_NAME = "test-old.mapfile";
+    MapFile.Writer writer = null;
+    try {
+        FileSystem fs = FileSystem.getLocal(conf);
+        FileSystem spyFs = spy(fs);
+        writer = createWriter(OLD_FILE_NAME, IntWritable.class, IntWritable.class);
+        writer.close();
+        Path oldDir = new Path(TEST_DIR, OLD_FILE_NAME);
+        Path newDir = new Path(TEST_DIR, NEW_FILE_NAME);
+        when(spyFs.rename(oldDir, newDir)).thenThrow(new IOException(ERROR_MESSAGE));
+        MapFile.rename(spyFs, oldDir.toString(), newDir.toString());
+        fail("testRenameWithException no exception error !!!");
+    } catch (IOException ex) {
+        assertEquals("testRenameWithException invalid IOExceptionMessage !!!", ex.getMessage(), ERROR_MESSAGE);
+    } finally {
+        IOUtils.cleanupWithLogger(LOG, writer);
+    }
+}

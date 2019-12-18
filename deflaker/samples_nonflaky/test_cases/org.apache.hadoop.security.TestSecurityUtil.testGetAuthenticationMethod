@@ -1,0 +1,22 @@
+@Test
+public void testGetAuthenticationMethod() {
+    Configuration conf = new Configuration();
+    // default is simple
+    conf.unset(HADOOP_SECURITY_AUTHENTICATION);
+    assertEquals(SIMPLE, SecurityUtil.getAuthenticationMethod(conf));
+    // simple
+    conf.set(HADOOP_SECURITY_AUTHENTICATION, "simple");
+    assertEquals(SIMPLE, SecurityUtil.getAuthenticationMethod(conf));
+    // kerberos
+    conf.set(HADOOP_SECURITY_AUTHENTICATION, "kerberos");
+    assertEquals(KERBEROS, SecurityUtil.getAuthenticationMethod(conf));
+    // bad value
+    conf.set(HADOOP_SECURITY_AUTHENTICATION, "kaboom");
+    String error = null;
+    try {
+        SecurityUtil.getAuthenticationMethod(conf);
+    } catch (Exception e) {
+        error = e.toString();
+    }
+    assertEquals("java.lang.IllegalArgumentException: " + "Invalid attribute value for " + HADOOP_SECURITY_AUTHENTICATION + " of kaboom", error);
+}

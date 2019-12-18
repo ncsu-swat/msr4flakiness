@@ -1,0 +1,26 @@
+/**
+ * verify that successful znode create result becomes active and monitoring is
+ * started
+ */
+@Test
+public void testCreateNodeResultBecomeActive() throws Exception {
+    mockNoPriorActive();
+    elector.joinElection(data);
+    elector.processResult(Code.OK.intValue(), ZK_LOCK_NAME, mockZK, ZK_LOCK_NAME);
+    Mockito.verify(mockApp, Mockito.times(1)).becomeActive();
+    verifyExistCall(1);
+    // monitor callback verifies the leader is ephemeral owner of lock but does
+    // not call becomeActive since its already active
+    Stat stat = new Stat();
+    stat.setEphemeralOwner(1L);
+    Mockito.when(mockZK.getSessionId()).thenReturn(1L);
+    elector.processResult(Code.OK.intValue(), ZK_LOCK_NAME, mockZK, stat);
+    // should not call neutral mode/standby/active
+    Mockito.verify(mockApp, Mockito.times(0)).enterNeutralMode();
+    Mockito.verify(mockApp, Mockito.times(0)).becomeStandby();
+    Mockito.verify(mockApp, Mockito.times(1)).becomeActive();
+    // another joinElection not called.
+    Mockito.verify(mockZK, Mockito.times(1)).create(ZK_LOCK_NAME, data, Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL, elector, mockZK);
+    // no new monitor called
+    verifyExistCall(1);
+}

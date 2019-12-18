@@ -1,0 +1,24 @@
+@Test
+public void testNoErrors() throws Exception {
+    final AtomicInteger threadsRun = new AtomicInteger();
+    TestContext ctx = new TestContext();
+    for (int i = 0; i < 3; i++) {
+        ctx.addThread(new TestingThread(ctx) {
+
+            @Override
+            public void doWork() throws Exception {
+                threadsRun.incrementAndGet();
+            }
+        });
+    }
+    assertEquals(0, threadsRun.get());
+    ctx.startThreads();
+    long st = Time.now();
+    ctx.waitFor(30000);
+    long et = Time.now();
+    // All threads should have run
+    assertEquals(3, threadsRun.get());
+    // Test shouldn't have waited the full 30 seconds, since
+    // the threads exited faster than that.
+    assertTrue("Test took " + (et - st) + "ms", et - st < 5000);
+}

@@ -1,0 +1,25 @@
+@Test
+public void testMultipleLoggersWithValues() {
+    helper = new LogThrottlingHelper(LOG_PERIOD, "foo", timer);
+    assertTrue(helper.record("foo", 0).shouldLog());
+    assertTrue(helper.record("bar", 0, 2).shouldLog());
+    assertTrue(helper.record("baz", 0, 3, 3).shouldLog());
+    // "bar"/"baz" should not log yet because "foo" hasn't been triggered
+    assertFalse(helper.record("bar", LOG_PERIOD, 2).shouldLog());
+    assertFalse(helper.record("baz", LOG_PERIOD, 3, 3).shouldLog());
+    // All should log once the period has elapsed
+    LogAction foo = helper.record("foo", LOG_PERIOD);
+    LogAction bar = helper.record("bar", LOG_PERIOD, 2);
+    LogAction baz = helper.record("baz", LOG_PERIOD, 3, 3);
+    assertTrue(foo.shouldLog());
+    assertTrue(bar.shouldLog());
+    assertTrue(baz.shouldLog());
+    assertEquals(1, foo.getCount());
+    assertEquals(2, bar.getCount());
+    assertEquals(2, baz.getCount());
+    assertEquals(2.0, bar.getStats(0).getMean(), 0.01);
+    assertEquals(3.0, baz.getStats(0).getMean(), 0.01);
+    assertEquals(3.0, baz.getStats(1).getMean(), 0.01);
+    assertEquals(2.0, helper.getCurrentStats("bar", 0).getMax(), 0);
+    assertEquals(3.0, helper.getCurrentStats("baz", 0).getMax(), 0);
+}

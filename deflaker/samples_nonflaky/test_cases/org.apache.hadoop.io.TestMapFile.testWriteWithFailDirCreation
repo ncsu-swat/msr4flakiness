@@ -1,0 +1,22 @@
+/**
+ * test throwing {@code IOException} in {@code MapFile.Writer} constructor
+ */
+@Test
+public void testWriteWithFailDirCreation() {
+    String ERROR_MESSAGE = "Mkdirs failed to create directory";
+    Path dirName = new Path(TEST_DIR, "fail.mapfile");
+    MapFile.Writer writer = null;
+    try {
+        FileSystem fs = FileSystem.getLocal(conf);
+        FileSystem spyFs = spy(fs);
+        Path pathSpy = spy(dirName);
+        when(pathSpy.getFileSystem(conf)).thenReturn(spyFs);
+        when(spyFs.mkdirs(dirName)).thenReturn(false);
+        writer = new MapFile.Writer(conf, pathSpy, MapFile.Writer.keyClass(IntWritable.class), MapFile.Writer.valueClass(Text.class));
+        fail("testWriteWithFailDirCreation error !!!");
+    } catch (IOException ex) {
+        assertTrue("testWriteWithFailDirCreation ex error !!!", ex.getMessage().startsWith(ERROR_MESSAGE));
+    } finally {
+        IOUtils.cleanupWithLogger(LOG, writer);
+    }
+}

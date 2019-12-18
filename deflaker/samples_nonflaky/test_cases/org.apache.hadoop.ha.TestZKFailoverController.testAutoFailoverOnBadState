@@ -1,0 +1,15 @@
+/**
+ * Test that, when the health monitor indicates bad health status,
+ * failover is triggered. Also ensures that graceful active->standby
+ * transition is used when possible, falling back to fencing when
+ * the graceful approach fails.
+ */
+@Test
+public void testAutoFailoverOnBadState() throws Exception {
+    cluster.start();
+    DummyHAService svc0 = cluster.getService(0);
+    LOG.info("Faking svc0 to change the state, should failover to svc1");
+    svc0.state = HAServiceState.STANDBY;
+    // Should fail back to svc0 at this point
+    cluster.waitForHAState(1, HAServiceState.ACTIVE);
+}

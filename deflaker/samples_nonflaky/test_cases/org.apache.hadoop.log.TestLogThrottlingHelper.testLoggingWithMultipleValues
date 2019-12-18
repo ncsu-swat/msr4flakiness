@@ -1,0 +1,18 @@
+@Test
+public void testLoggingWithMultipleValues() {
+    assertTrue(helper.record(1).shouldLog());
+    for (int i = 0; i < 4; i++) {
+        timer.advance(LOG_PERIOD / 5);
+        int base = i % 2 == 0 ? 0 : 1;
+        assertFalse(helper.record(base, base * 2).shouldLog());
+    }
+    timer.advance(LOG_PERIOD);
+    LogAction action = helper.record(0.5, 1.0);
+    assertTrue(action.shouldLog());
+    assertEquals(5, action.getCount());
+    for (int i = 1; i <= 2; i++) {
+        assertEquals(0.5 * i, action.getStats(i - 1).getMean(), 0.01);
+        assertEquals(1.0 * i, action.getStats(i - 1).getMax(), 0.01);
+        assertEquals(0.0, action.getStats(i - 1).getMin(), 0.01);
+    }
+}

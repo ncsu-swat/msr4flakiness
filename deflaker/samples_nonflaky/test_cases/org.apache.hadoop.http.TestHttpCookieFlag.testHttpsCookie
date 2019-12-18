@@ -1,0 +1,12 @@
+@Test
+public void testHttpsCookie() throws IOException, GeneralSecurityException {
+    URL base = new URL("https://" + NetUtils.getHostPortString(server.getConnectorAddress(1)));
+    HttpsURLConnection conn = (HttpsURLConnection) new URL(base, "/echo").openConnection();
+    conn.setSSLSocketFactory(clientSslFactory.createSSLSocketFactory());
+    String header = conn.getHeaderField("Set-Cookie");
+    List<HttpCookie> cookies = HttpCookie.parse(header);
+    Assert.assertTrue(!cookies.isEmpty());
+    Assert.assertTrue(header.contains("; HttpOnly"));
+    Assert.assertTrue(cookies.get(0).getSecure());
+    Assert.assertTrue("token".equals(cookies.get(0).getValue()));
+}

@@ -1,0 +1,24 @@
+@Test
+public void testFailureKeyLongerThan64K_2() throws IOException {
+    if (skip)
+        return;
+    DataOutputStream outKey = writer.prepareAppendKey(-1);
+    try {
+        byte[] buf = new byte[K];
+        Random rand = new Random();
+        for (int nx = 0; nx < K + 2; nx++) {
+            rand.nextBytes(buf);
+            outKey.write(buf);
+        }
+        outKey.close();
+        fail("Failed to handle key longer than 64K.");
+    } catch (EOFException e) {
+    // noop, expecting exceptions
+    } finally {
+        try {
+            closeOutput();
+        } catch (Exception e) {
+        // no-op
+        }
+    }
+}

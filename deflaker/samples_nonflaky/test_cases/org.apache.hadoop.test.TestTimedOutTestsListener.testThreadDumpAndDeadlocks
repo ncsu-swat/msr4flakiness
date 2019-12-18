@@ -1,0 +1,19 @@
+@Test(timeout = 30000)
+public void testThreadDumpAndDeadlocks() throws Exception {
+    new Deadlock();
+    String s = null;
+    while (true) {
+        s = TimedOutTestsListener.buildDeadlockInfo();
+        if (s != null)
+            break;
+        Thread.sleep(100);
+    }
+    Assert.assertEquals(3, countStringOccurrences(s, "BLOCKED"));
+    Failure failure = new Failure(null, new Exception(TimedOutTestsListener.TEST_TIMED_OUT_PREFIX));
+    StringWriter writer = new StringWriter();
+    new TimedOutTestsListener(new PrintWriter(writer)).testFailure(failure);
+    String out = writer.toString();
+    Assert.assertTrue(out.contains("THREAD DUMP"));
+    Assert.assertTrue(out.contains("DEADLOCKS DETECTED"));
+    System.out.println(out);
+}

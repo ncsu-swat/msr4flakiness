@@ -1,0 +1,23 @@
+@Test
+public void testConstructUrlsFromClasspath() throws Exception {
+    File file = new File(testDir, "file");
+    assertTrue("Create file", file.createNewFile());
+    File dir = new File(testDir, "dir");
+    assertTrue("Make dir", dir.mkdir());
+    File jarsDir = new File(testDir, "jarsdir");
+    assertTrue("Make jarsDir", jarsDir.mkdir());
+    File nonJarFile = new File(jarsDir, "nonjar");
+    assertTrue("Create non-jar file", nonJarFile.createNewFile());
+    File jarFile = new File(jarsDir, "a.jar");
+    assertTrue("Create jar file", jarFile.createNewFile());
+    File nofile = new File(testDir, "nofile");
+    // don't create nofile
+    StringBuilder cp = new StringBuilder();
+    cp.append(file.getAbsolutePath()).append(File.pathSeparator).append(dir.getAbsolutePath()).append(File.pathSeparator).append(jarsDir.getAbsolutePath() + "/*").append(File.pathSeparator).append(nofile.getAbsolutePath()).append(File.pathSeparator).append(nofile.getAbsolutePath() + "/*").append(File.pathSeparator);
+    URL[] urls = constructUrlsFromClasspath(cp.toString());
+    assertEquals(3, urls.length);
+    assertEquals(file.toURI().toURL(), urls[0]);
+    assertEquals(dir.toURI().toURL(), urls[1]);
+    assertEquals(jarFile.toURI().toURL(), urls[2]);
+// nofile should be ignored
+}

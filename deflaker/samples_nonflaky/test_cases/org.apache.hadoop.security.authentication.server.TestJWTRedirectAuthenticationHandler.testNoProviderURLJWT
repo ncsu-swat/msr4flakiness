@@ -1,0 +1,22 @@
+@Test
+public void testNoProviderURLJWT() throws Exception {
+    try {
+        handler.setPublicKey(publicKey);
+        Properties props = getProperties();
+        props.remove(JWTRedirectAuthenticationHandler.AUTHENTICATION_PROVIDER_URL);
+        handler.init(props);
+        SignedJWT jwt = getJWT("bob", new Date(new Date().getTime() + 5000), privateKey);
+        Cookie cookie = new Cookie("hadoop-jwt", jwt.serialize());
+        HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
+        Mockito.when(request.getCookies()).thenReturn(new Cookie[] { cookie });
+        Mockito.when(request.getRequestURL()).thenReturn(new StringBuffer(SERVICE_URL));
+        HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
+        Mockito.when(response.encodeRedirectURL(SERVICE_URL)).thenReturn(SERVICE_URL);
+        AuthenticationToken token = handler.alternateAuthenticate(request, response);
+        fail("alternateAuthentication should have thrown an AuthenticationException");
+    } catch (ServletException se) {
+        assertTrue(se.getMessage().contains("Authentication provider URL must not be null"));
+    } catch (AuthenticationException ae) {
+        fail("alternateAuthentication should NOT have thrown a AuthenticationException");
+    }
+}

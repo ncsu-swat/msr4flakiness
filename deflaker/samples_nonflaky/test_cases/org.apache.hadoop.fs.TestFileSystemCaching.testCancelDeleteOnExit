@@ -1,0 +1,18 @@
+@Test
+public void testCancelDeleteOnExit() throws IOException {
+    FileSystem mockFs = mock(FileSystem.class);
+    try (FileSystem fs = new FilterFileSystem(mockFs)) {
+        Path path = new Path("/a");
+        // don't delete on close if path existed, but later cancelled
+        when(mockFs.getFileStatus(eq(path))).thenReturn(new FileStatus());
+        assertTrue(fs.deleteOnExit(path));
+        verify(mockFs).getFileStatus(eq(path));
+        assertTrue(fs.cancelDeleteOnExit(path));
+        // false because not registered
+        assertFalse(fs.cancelDeleteOnExit(path));
+        reset(mockFs);
+        fs.close();
+    }
+    verify(mockFs, never()).getFileStatus(any(Path.class));
+    verify(mockFs, never()).delete(any(Path.class), anyBoolean());
+}

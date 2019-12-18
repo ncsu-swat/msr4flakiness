@@ -1,0 +1,25 @@
+@Test
+public void testLightWeightCache() {
+    // test randomized creation expiration with zero access expiration
+    {
+        final long creationExpiration = ran.nextInt(1024) + 1;
+        check(1, creationExpiration, 0L, 1 << 10, 65537);
+        check(17, creationExpiration, 0L, 1 << 16, 17);
+        check(255, creationExpiration, 0L, 1 << 16, 65537);
+    }
+    // test randomized creation/access expiration periods
+    for (int i = 0; i < 3; i++) {
+        final long creationExpiration = ran.nextInt(1024) + 1;
+        final long accessExpiration = ran.nextInt(1024) + 1;
+        check(1, creationExpiration, accessExpiration, 1 << 10, 65537);
+        check(17, creationExpiration, accessExpiration, 1 << 16, 17);
+        check(255, creationExpiration, accessExpiration, 1 << 16, 65537);
+    }
+    // test size limit
+    final int dataSize = 1 << 16;
+    for (int i = 0; i < 10; i++) {
+        final int modulus = ran.nextInt(1024) + 1;
+        final int sizeLimit = ran.nextInt(modulus) + 1;
+        checkSizeLimit(sizeLimit, dataSize, modulus);
+    }
+}

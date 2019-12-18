@@ -1,0 +1,23 @@
+/**
+ * Have the services fail their health checks half the time,
+ * causing the master role to bounce back and forth in the
+ * cluster. Meanwhile, causes ZK to disconnect clients every
+ * 50ms, to trigger the retry code and failures to become active.
+ */
+@Test(timeout = (STRESS_RUNTIME_SECS + EXTRA_TIMEOUT_SECS) * 1000)
+public void testRandomHealthAndDisconnects() throws Exception {
+    long runFor = STRESS_RUNTIME_SECS * 1000;
+    Mockito.doAnswer(new RandomlyThrow(0)).when(cluster.getService(0).proxy).monitorHealth();
+    Mockito.doAnswer(new RandomlyThrow(1)).when(cluster.getService(1).proxy).monitorHealth();
+    conf.setInt(CommonConfigurationKeys.HA_FC_ELECTOR_ZK_OP_RETRIES_KEY, 100);
+    // Don't start until after the above mocking. Otherwise we can get
+    // Mockito errors if the HM calls the proxy in the middle of
+    // setting up the mock.
+    cluster.start();
+    long st = Time.now();
+    while (Time.now() - st < runFor) {
+        cluster.getTestContext().checkException();
+        serverFactory.closeAll();
+        Thread.sleep(50);
+    }
+}

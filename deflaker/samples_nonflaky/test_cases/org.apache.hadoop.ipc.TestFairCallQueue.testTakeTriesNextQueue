@@ -1,0 +1,13 @@
+@Test
+public void testTakeTriesNextQueue() throws InterruptedException {
+    // A mux which only draws from q 0
+    RpcMultiplexer q0mux = mock(RpcMultiplexer.class);
+    when(q0mux.getAndAdvanceCurrentIndex()).thenReturn(0);
+    fcq.setMultiplexer(q0mux);
+    // Make a FCQ filled with calls in q 1 but empty in q 0
+    Schedulable call = mockCall("c", 1);
+    fcq.put(call);
+    // Take from q1 even though mux said q0, since q0 empty
+    assertEquals(call, fcq.take());
+    assertEquals(0, fcq.size());
+}

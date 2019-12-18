@@ -1,0 +1,16 @@
+@Test
+public void testHttpResponseCustomHeaders() throws Exception {
+    Configuration conf = new Configuration();
+    String key = "customKey";
+    String value = "customValue";
+    conf.set(HttpServer2.HTTP_HEADER_PREFIX + key, value);
+    HttpServer2 httpServer = createTestServer(conf);
+    try {
+        HttpURLConnection conn = getHttpURLConnection(httpServer);
+        assertEquals(HttpServer2.X_XSS_PROTECTION.split(":")[1], conn.getHeaderField(HttpServer2.X_XSS_PROTECTION.split(":")[0]));
+        assertEquals(HttpServer2.X_CONTENT_TYPE_OPTIONS.split(":")[1], conn.getHeaderField(HttpServer2.X_CONTENT_TYPE_OPTIONS.split(":")[0]));
+        assertEquals(value, conn.getHeaderField(key));
+    } finally {
+        httpServer.stop();
+    }
+}

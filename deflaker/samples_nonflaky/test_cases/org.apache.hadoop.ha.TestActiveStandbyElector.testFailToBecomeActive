@@ -1,0 +1,18 @@
+/**
+ * Verify that, when the callback fails to enter active state,
+ * the elector rejoins the election after sleeping for a short period.
+ */
+@Test
+public void testFailToBecomeActive() throws Exception {
+    mockNoPriorActive();
+    elector.joinElection(data);
+    Assert.assertEquals(0, elector.sleptFor);
+    Mockito.doThrow(new ServiceFailedException("failed to become active")).when(mockApp).becomeActive();
+    elector.processResult(Code.OK.intValue(), ZK_LOCK_NAME, mockZK, ZK_LOCK_NAME);
+    // Should have tried to become active
+    Mockito.verify(mockApp).becomeActive();
+    // should re-join
+    Mockito.verify(mockZK, Mockito.times(2)).create(ZK_LOCK_NAME, data, Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL, elector, mockZK);
+    Assert.assertEquals(2, count);
+    Assert.assertTrue(elector.sleptFor > 0);
+}

@@ -1,0 +1,19 @@
+@Test
+public void testGracefulFailoverFailBecomingActive() throws Exception {
+    cluster.start();
+    cluster.waitForActiveLockHolder(0);
+    cluster.setFailToBecomeActive(1, true);
+    // Ask for failover, it should fail and report back to user.
+    try {
+        cluster.getService(1).getZKFCProxy(conf, 5000).gracefulFailover();
+        fail("Did not fail to graceful failover when target failed " + "to become active!");
+    } catch (ServiceFailedException sfe) {
+        GenericTestUtils.assertExceptionContains("Couldn't make " + cluster.getService(1) + " active", sfe);
+        GenericTestUtils.assertExceptionContains("injected failure", sfe);
+    }
+    // No fencing
+    assertEquals(0, cluster.getService(0).fenceCount);
+    assertEquals(0, cluster.getService(1).fenceCount);
+    // Service 0 should go back to being active after the failed failover
+    cluster.waitForActiveLockHolder(0);
+}

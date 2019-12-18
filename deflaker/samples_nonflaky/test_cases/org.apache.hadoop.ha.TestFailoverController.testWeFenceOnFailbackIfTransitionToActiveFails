@@ -1,0 +1,20 @@
+@Test
+public void testWeFenceOnFailbackIfTransitionToActiveFails() throws Exception {
+    DummyHAService svc1 = new DummyHAService(HAServiceState.ACTIVE, svc1Addr);
+    DummyHAService svc2 = new DummyHAService(HAServiceState.STANDBY, svc2Addr);
+    Mockito.doThrow(new ServiceFailedException("Failed!")).when(svc2.proxy).transitionToActive(anyReqInfo());
+    svc1.fencer = svc2.fencer = setupFencer(AlwaysSucceedFencer.class.getName());
+    AlwaysSucceedFencer.fenceCalled = 0;
+    try {
+        doFailover(svc1, svc2, false, false);
+        fail("Failed over to service that won't transition to active");
+    } catch (FailoverFailedException ffe) {
+    // Expected
+    }
+    // We failed to failover. We did not fence svc1 because it cooperated
+    // and we didn't force it, so we failed back to svc1 and fenced svc2.
+    // Note svc2 still thinks it's active, that's OK, we fenced it.
+    assertEquals(HAServiceState.ACTIVE, svc1.state);
+    assertEquals(1, AlwaysSucceedFencer.fenceCalled);
+    assertSame(svc2, AlwaysSucceedFencer.fencedSvc);
+}

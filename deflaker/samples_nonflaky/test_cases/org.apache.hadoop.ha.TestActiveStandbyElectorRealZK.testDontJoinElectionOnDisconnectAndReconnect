@@ -1,0 +1,13 @@
+@Test(timeout = 15000)
+public void testDontJoinElectionOnDisconnectAndReconnect() throws Exception {
+    electors[0].ensureParentZNode();
+    stopServer();
+    ActiveStandbyElectorTestUtil.waitForElectorState(null, electors[0], State.NEUTRAL);
+    startServer();
+    waitForServerUp(hostPort, CONNECTION_TIMEOUT);
+    // Have to sleep to allow time for the clients to reconnect.
+    Thread.sleep(2000);
+    Mockito.verify(cbs[0], Mockito.never()).becomeActive();
+    Mockito.verify(cbs[1], Mockito.never()).becomeActive();
+    checkFatalsAndReset();
+}

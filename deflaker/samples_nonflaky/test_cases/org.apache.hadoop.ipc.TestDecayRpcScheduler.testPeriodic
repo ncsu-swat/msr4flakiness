@@ -1,0 +1,17 @@
+@Test(timeout = 2000)
+@SuppressWarnings("deprecation")
+public void testPeriodic() throws InterruptedException {
+    Configuration conf = new Configuration();
+    conf.set("ns." + DecayRpcScheduler.IPC_FCQ_DECAYSCHEDULER_PERIOD_KEY, "10");
+    conf.set("ns." + DecayRpcScheduler.IPC_FCQ_DECAYSCHEDULER_FACTOR_KEY, "0.5");
+    scheduler = new DecayRpcScheduler(1, "ns", conf);
+    assertEquals(10, scheduler.getDecayPeriodMillis());
+    assertEquals(0, scheduler.getTotalCallSnapshot());
+    for (int i = 0; i < 64; i++) {
+        getPriorityIncrementCallCount("A");
+    }
+    // It should eventually decay to zero
+    while (scheduler.getTotalCallSnapshot() > 0) {
+        sleep(10);
+    }
+}

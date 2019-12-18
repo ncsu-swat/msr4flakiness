@@ -1,0 +1,18 @@
+@Test
+public void testCreateServletException() throws IOException {
+    StringWriter writer = new StringWriter();
+    PrintWriter printWriter = new PrintWriter(writer);
+    HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
+    Mockito.when(response.getWriter()).thenReturn(printWriter);
+    int status = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
+    Exception ex = new IOException("Hello IOEX");
+    HttpExceptionUtils.createServletExceptionResponse(response, status, ex);
+    Mockito.verify(response).setStatus(status);
+    Mockito.verify(response).setContentType(Mockito.eq("application/json"));
+    ObjectMapper mapper = new ObjectMapper();
+    Map json = mapper.readValue(writer.toString(), Map.class);
+    json = (Map) json.get(HttpExceptionUtils.ERROR_JSON);
+    Assert.assertEquals(IOException.class.getName(), json.get(HttpExceptionUtils.ERROR_CLASSNAME_JSON));
+    Assert.assertEquals(IOException.class.getSimpleName(), json.get(HttpExceptionUtils.ERROR_EXCEPTION_JSON));
+    Assert.assertEquals("Hello IOEX", json.get(HttpExceptionUtils.ERROR_MESSAGE_JSON));
+}

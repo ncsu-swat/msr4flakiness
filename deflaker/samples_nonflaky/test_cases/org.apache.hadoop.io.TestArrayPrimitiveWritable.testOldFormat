@@ -1,0 +1,25 @@
+@Test
+public void testOldFormat() throws IOException {
+    // Make sure we still correctly write the old format if desired.
+    // Write the data array with old ObjectWritable API
+    // which will set allowCompactArrays false.
+    ObjectWritable.writeObject(out, i, i.getClass(), null);
+    // Get ready to read it back
+    in.reset(out.getData(), out.getLength());
+    // Read the int[] object as written by ObjectWritable, but
+    // "going around" ObjectWritable
+    @SuppressWarnings("deprecation")
+    String className = UTF8.readString(in);
+    assertEquals("The int[] written by ObjectWritable as a non-compact array " + "was not labelled as an array of int", i.getClass().getName(), className);
+    int length = in.readInt();
+    assertEquals("The int[] written by ObjectWritable as a non-compact array " + "was not expected length", i.length, length);
+    int[] readValue = new int[length];
+    try {
+        for (int i = 0; i < length; i++) {
+            readValue[i] = (int) ((Integer) ObjectWritable.readObject(in, null));
+        }
+    } catch (Exception e) {
+        fail("The int[] written by ObjectWritable as a non-compact array " + "was corrupted.  Failed to correctly read int[] of length " + length + ". Got exception:\n" + StringUtils.stringifyException(e));
+    }
+    assertTrue("The int[] written by ObjectWritable as a non-compact array " + "was corrupted.", Arrays.equals(i, readValue));
+}

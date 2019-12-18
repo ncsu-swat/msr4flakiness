@@ -1,0 +1,25 @@
+/**
+ * Check if Client is interrupted after handling
+ * InterruptedException during cleanup
+ */
+@Test(timeout = 30000)
+public void testInterrupted() {
+    Client client = new Client(LongWritable.class, conf);
+    Client.getClientExecutor().submit(new Runnable() {
+
+        public void run() {
+            while (true) ;
+        }
+    });
+    Thread.currentThread().interrupt();
+    client.stop();
+    try {
+        assertTrue(Thread.currentThread().isInterrupted());
+        LOG.info("Expected thread interrupt during client cleanup");
+    } catch (AssertionError e) {
+        LOG.error("The Client did not interrupt after handling an Interrupted Exception");
+        Assert.fail("The Client did not interrupt after handling an Interrupted Exception");
+    }
+    // Clear Thread interrupt
+    Thread.interrupted();
+}

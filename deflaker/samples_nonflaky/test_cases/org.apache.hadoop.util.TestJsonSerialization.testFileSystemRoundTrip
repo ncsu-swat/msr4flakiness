@@ -1,0 +1,13 @@
+@Test
+public void testFileSystemRoundTrip() throws Throwable {
+    File tempFile = File.createTempFile("Keyval", ".json");
+    tempFile.delete();
+    Path tempPath = new Path(tempFile.toURI());
+    LocalFileSystem fs = FileSystem.getLocal(new Configuration());
+    try {
+        serDeser.save(fs, tempPath, source, false);
+        assertEquals(source, serDeser.load(fs, tempPath));
+    } finally {
+        fs.delete(tempPath, false);
+    }
+}

@@ -1,0 +1,14 @@
+@Test
+public void testConfRpc() throws IOException {
+    Server server = newServerBuilder(conf).setNumHandlers(1).setVerbose(false).build();
+    // Just one handler
+    int confQ = conf.getInt(CommonConfigurationKeys.IPC_SERVER_HANDLER_QUEUE_SIZE_KEY, CommonConfigurationKeys.IPC_SERVER_HANDLER_QUEUE_SIZE_DEFAULT);
+    assertEquals(confQ, server.getMaxQueueSize());
+    int confReaders = conf.getInt(CommonConfigurationKeys.IPC_SERVER_RPC_READ_THREADS_KEY, CommonConfigurationKeys.IPC_SERVER_RPC_READ_THREADS_DEFAULT);
+    assertEquals(confReaders, server.getNumReaders());
+    server = newServerBuilder(conf).setNumHandlers(1).setnumReaders(3).setQueueSizePerHandler(200).setVerbose(false).build();
+    assertEquals(3, server.getNumReaders());
+    assertEquals(200, server.getMaxQueueSize());
+    server = newServerBuilder(conf).setQueueSizePerHandler(10).setNumHandlers(2).setVerbose(false).build();
+    assertEquals(2 * 10, server.getMaxQueueSize());
+}

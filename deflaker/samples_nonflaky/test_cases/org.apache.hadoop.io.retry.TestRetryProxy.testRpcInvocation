@@ -1,0 +1,25 @@
+/**
+ * Test for {@link RetryInvocationHandler#isRpcInvocation(Object)}
+ */
+@Test
+public void testRpcInvocation() throws Exception {
+    // For a proxy method should return true
+    final UnreliableInterface unreliable = (UnreliableInterface) RetryProxy.create(UnreliableInterface.class, unreliableImpl, RETRY_FOREVER);
+    assertTrue(RetryInvocationHandler.isRpcInvocation(unreliable));
+    final AtomicInteger count = new AtomicInteger();
+    // Embed the proxy in ProtocolTranslator
+    ProtocolTranslator xlator = new ProtocolTranslator() {
+
+        @Override
+        public Object getUnderlyingProxyObject() {
+            count.getAndIncrement();
+            return unreliable;
+        }
+    };
+    // For a proxy wrapped in ProtocolTranslator method should return true
+    assertTrue(RetryInvocationHandler.isRpcInvocation(xlator));
+    // Ensure underlying proxy was looked at
+    assertEquals(1, count.get());
+    // For non-proxy the method must return false
+    assertFalse(RetryInvocationHandler.isRpcInvocation(new Object()));
+}

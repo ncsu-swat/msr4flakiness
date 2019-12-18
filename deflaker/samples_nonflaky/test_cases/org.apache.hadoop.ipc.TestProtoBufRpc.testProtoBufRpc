@@ -1,0 +1,24 @@
+@Test(timeout = 5000)
+public void testProtoBufRpc() throws Exception {
+    TestRpcService client = getClient(addr, conf);
+    testProtoBufRpc(client);
+}
+// separated test out so that other tests can call it.
+public static void testProtoBufRpc(TestRpcService client) throws Exception {
+    // Test ping method
+    client.ping(null, newEmptyRequest());
+    // Test echo method
+    EchoRequestProto echoRequest = EchoRequestProto.newBuilder().setMessage("hello").build();
+    EchoResponseProto echoResponse = client.echo(null, echoRequest);
+    assertThat(echoResponse.getMessage()).isEqualTo("hello");
+    // Test error method - error should be thrown as RemoteException
+    try {
+        client.error(null, newEmptyRequest());
+        fail("Expected exception is not thrown");
+    } catch (ServiceException e) {
+        RemoteException re = (RemoteException) e.getCause();
+        RpcServerException rse = (RpcServerException) re.unwrapRemoteException(RpcServerException.class);
+        assertThat(rse).isNotNull();
+        assertThat(re.getErrorCode()).isEqualTo(RpcErrorCodeProto.ERROR_RPC_SERVER);
+    }
+}

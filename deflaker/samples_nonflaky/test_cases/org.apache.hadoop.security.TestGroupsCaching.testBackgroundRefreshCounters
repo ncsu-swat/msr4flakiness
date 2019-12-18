@@ -1,0 +1,36 @@
+@Test
+public void testBackgroundRefreshCounters() throws IOException, InterruptedException {
+    conf.setLong(CommonConfigurationKeys.HADOOP_SECURITY_GROUPS_CACHE_SECS, 1);
+    conf.setBoolean(CommonConfigurationKeys.HADOOP_SECURITY_GROUPS_CACHE_BACKGROUND_RELOAD, true);
+    conf.setInt(CommonConfigurationKeys.HADOOP_SECURITY_GROUPS_CACHE_BACKGROUND_RELOAD_THREADS, 2);
+    FakeTimer timer = new FakeTimer();
+    final Groups groups = new Groups(conf, timer);
+    groups.cacheGroupsAdd(Arrays.asList(myGroups));
+    groups.refresh();
+    FakeGroupMapping.clearBlackList();
+    // populate the cache
+    String[] grps = { "one", "two", "three", "four", "five" };
+    for (String g : grps) {
+        groups.getGroups(g);
+    }
+    // expire the cache
+    timer.advance(2 * 1000);
+    FakeGroupMapping.pause();
+    // Request all groups again, as there are 2 threads to process them
+    // 3 should get queued and 2 should be running
+    for (String g : grps) {
+        groups.getGroups(g);
+    }
+    waitForGroupCounters(groups, 3, 2, 0, 0);
+    FakeGroupMapping.resume();
+    // Once resumed, all results should be returned immediately
+    waitForGroupCounters(groups, 0, 0, 5, 0);
+    // Now run again, this time throwing exceptions but no delay
+    timer.advance(2 * 1000);
+    FakeGroupMapping.setGetGroupsDelayMs(0);
+    FakeGroupMapping.setThrowException(true);
+    for (String g : grps) {
+        groups.getGroups(g);
+    }
+    waitForGroupCounters(groups, 0, 0, 5, 5);
+}

@@ -1,0 +1,27 @@
+@Test
+public void testGetJarsInDirectory() throws Exception {
+    List<Path> jars = FileUtil.getJarsInDirectory("/foo/bar/bogus/");
+    assertTrue("no jars should be returned for a bogus path", jars.isEmpty());
+    // setup test directory for files
+    assertFalse(tmp.exists());
+    assertTrue(tmp.mkdirs());
+    // create jar files to be returned
+    File jar1 = new File(tmp, "wildcard1.jar");
+    File jar2 = new File(tmp, "wildcard2.JAR");
+    List<File> matches = Arrays.asList(jar1, jar2);
+    for (File match : matches) {
+        assertTrue("failure creating file: " + match, match.createNewFile());
+    }
+    // create non-jar files, which we expect to not be included in the result
+    assertTrue(new File(tmp, "text.txt").createNewFile());
+    assertTrue(new File(tmp, "executable.exe").createNewFile());
+    assertTrue(new File(tmp, "README").createNewFile());
+    // pass in the directory
+    String directory = tmp.getCanonicalPath();
+    jars = FileUtil.getJarsInDirectory(directory);
+    assertEquals("there should be 2 jars", 2, jars.size());
+    for (Path jar : jars) {
+        URL url = jar.toUri().toURL();
+        assertTrue("the jar should match either of the jars", url.equals(jar1.toURI().toURL()) || url.equals(jar2.toURI().toURL()));
+    }
+}

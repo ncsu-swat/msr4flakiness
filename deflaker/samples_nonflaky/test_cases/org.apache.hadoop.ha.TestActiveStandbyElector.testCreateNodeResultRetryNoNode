@@ -1,0 +1,16 @@
+/**
+ * verify that if create znode results in nodeexists and that znode is deleted
+ * before exists() watch is set then the return of the exists() method results
+ * in attempt to re-create the znode and become active
+ */
+@Test
+public void testCreateNodeResultRetryNoNode() {
+    elector.joinElection(data);
+    elector.processResult(Code.CONNECTIONLOSS.intValue(), ZK_LOCK_NAME, mockZK, ZK_LOCK_NAME);
+    elector.processResult(Code.CONNECTIONLOSS.intValue(), ZK_LOCK_NAME, mockZK, ZK_LOCK_NAME);
+    elector.processResult(Code.NODEEXISTS.intValue(), ZK_LOCK_NAME, mockZK, ZK_LOCK_NAME);
+    verifyExistCall(1);
+    elector.processResult(Code.NONODE.intValue(), ZK_LOCK_NAME, mockZK, (Stat) null);
+    Mockito.verify(mockApp, Mockito.times(1)).enterNeutralMode();
+    Mockito.verify(mockZK, Mockito.times(4)).create(ZK_LOCK_NAME, data, Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL, elector, mockZK);
+}

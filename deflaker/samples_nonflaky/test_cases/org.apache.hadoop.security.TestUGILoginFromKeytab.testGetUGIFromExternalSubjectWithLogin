@@ -1,0 +1,18 @@
+@Test
+public void testGetUGIFromExternalSubjectWithLogin() throws Exception {
+    KerberosPrincipal principal = new KerberosPrincipal("user");
+    File keytab = new File(workDir, "user.keytab");
+    kdc.createPrincipal(keytab, principal.getName());
+    // alter the User's login context to appear to be a foreign and
+    // unmanagable context.
+    UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal.getName(), keytab.getPath());
+    Subject subject = ugi.getSubject();
+    User user = getUser(subject);
+    final LoginContext dummyLogin = Mockito.mock(LoginContext.class);
+    user.setLogin(dummyLogin);
+    // nothing should change.
+    UserGroupInformation ugi2 = UserGroupInformation.getUGIFromSubject(subject);
+    Assert.assertSame(subject, ugi2.getSubject());
+    Assert.assertSame(user, getUser(ugi2.getSubject()));
+    Assert.assertSame(dummyLogin, user.getLogin());
+}

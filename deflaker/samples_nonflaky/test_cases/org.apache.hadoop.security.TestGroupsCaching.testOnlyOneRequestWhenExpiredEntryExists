@@ -1,0 +1,38 @@
+@Test
+public void testOnlyOneRequestWhenExpiredEntryExists() throws Exception {
+    conf.setLong(CommonConfigurationKeys.HADOOP_SECURITY_GROUPS_CACHE_SECS, 1);
+    FakeTimer timer = new FakeTimer();
+    final Groups groups = new Groups(conf, timer);
+    groups.cacheGroupsAdd(Arrays.asList(myGroups));
+    groups.refresh();
+    FakeGroupMapping.clearBlackList();
+    FakeGroupMapping.setGetGroupsDelayMs(100);
+    // We make an initial request to populate the cache
+    groups.getGroups("me");
+    int startingRequestCount = FakeGroupMapping.getRequestCount();
+    // Then expire that entry
+    timer.advance(400 * 1000);
+    Thread.sleep(100);
+    ArrayList<Thread> threads = new ArrayList<Thread>();
+    for (int i = 0; i < 10; i++) {
+        threads.add(new Thread() {
+
+            public void run() {
+                try {
+                    assertEquals(2, groups.getGroups("me").size());
+                } catch (IOException e) {
+                    fail("Should not happen");
+                }
+            }
+        });
+    }
+    // We start a bunch of threads who all see the cached value
+    for (Thread t : threads) {
+        t.start();
+    }
+    for (Thread t : threads) {
+        t.join();
+    }
+    // Only one extra request is made
+    assertEquals(startingRequestCount + 1, FakeGroupMapping.getRequestCount());
+}

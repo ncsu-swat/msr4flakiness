@@ -1,0 +1,16 @@
+@Test
+public void testFailoverOnStandbyException() throws UnreliableException, IOException, StandbyException {
+    UnreliableInterface unreliable = (UnreliableInterface) RetryProxy.create(UnreliableInterface.class, newFlipFlopProxyProvider(), RetryPolicies.failoverOnNetworkException(1));
+    assertEquals("impl1", unreliable.succeedsOnceThenFailsReturningString());
+    try {
+        unreliable.succeedsOnceThenFailsReturningString();
+        fail("should not have succeeded twice");
+    } catch (UnreliableException e) {
+        // Make sure there was no failover on normal exception.
+        assertEquals("impl1", e.getMessage());
+    }
+    unreliable = (UnreliableInterface) RetryProxy.create(UnreliableInterface.class, newFlipFlopProxyProvider(TypeOfExceptionToFailWith.STANDBY_EXCEPTION, TypeOfExceptionToFailWith.UNRELIABLE_EXCEPTION), RetryPolicies.failoverOnNetworkException(1));
+    assertEquals("impl1", unreliable.succeedsOnceThenFailsReturningString());
+    // Make sure we fail over since the first implementation threw a StandbyException
+    assertEquals("impl2", unreliable.succeedsOnceThenFailsReturningString());
+}

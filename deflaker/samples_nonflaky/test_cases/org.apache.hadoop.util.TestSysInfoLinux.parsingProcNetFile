@@ -1,0 +1,18 @@
+/**
+ * Test parsing /proc/net/dev
+ * @throws IOException
+ */
+@Test
+public void parsingProcNetFile() throws IOException {
+    long numBytesReadIntf1 = 2097172468L;
+    long numBytesWrittenIntf1 = 1355620114L;
+    long numBytesReadIntf2 = 1097172460L;
+    long numBytesWrittenIntf2 = 1055620110L;
+    File tempFile = new File(FAKE_NETFILE);
+    tempFile.deleteOnExit();
+    FileWriter fWriter = new FileWriter(FAKE_NETFILE);
+    fWriter.write(String.format(NETINFO_FORMAT, numBytesReadIntf1, numBytesWrittenIntf1, numBytesReadIntf2, numBytesWrittenIntf2));
+    fWriter.close();
+    assertEquals(plugin.getNetworkBytesRead(), numBytesReadIntf1 + numBytesReadIntf2);
+    assertEquals(plugin.getNetworkBytesWritten(), numBytesWrittenIntf1 + numBytesWrittenIntf2);
+}

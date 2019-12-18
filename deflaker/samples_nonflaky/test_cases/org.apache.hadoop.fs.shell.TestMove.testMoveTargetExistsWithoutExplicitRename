@@ -1,0 +1,36 @@
+@Test
+public void testMoveTargetExistsWithoutExplicitRename() throws Exception {
+    Path srcPath = new Path("mockfs:/file");
+    Path targetPath = new Path("mockfs:/fold0");
+    Path dupPath = new Path("mockfs:/fold0/file");
+    Path srcPath2 = new Path("mockfs://user/file");
+    Path targetPath2 = new Path("mockfs://user/fold0");
+    Path dupPath2 = new Path("mockfs://user/fold0/file");
+    InstrumentedRenameCommand cmd;
+    String[] cmdargs = new String[] { "mockfs:/file", "mockfs:/fold0" };
+    FileStatus src_fileStat, target_fileStat, dup_fileStat;
+    URI myuri;
+    src_fileStat = mock(FileStatus.class);
+    target_fileStat = mock(FileStatus.class);
+    dup_fileStat = mock(FileStatus.class);
+    myuri = new URI("mockfs://user");
+    when(src_fileStat.isDirectory()).thenReturn(false);
+    when(target_fileStat.isDirectory()).thenReturn(true);
+    when(dup_fileStat.isDirectory()).thenReturn(false);
+    when(src_fileStat.getPath()).thenReturn(srcPath2);
+    when(target_fileStat.getPath()).thenReturn(targetPath2);
+    when(dup_fileStat.getPath()).thenReturn(dupPath2);
+    when(mockFs.getFileStatus(eq(srcPath))).thenReturn(src_fileStat);
+    when(mockFs.getFileStatus(eq(targetPath))).thenReturn(target_fileStat);
+    when(mockFs.getFileStatus(eq(dupPath))).thenReturn(dup_fileStat);
+    when(mockFs.getFileStatus(eq(srcPath2))).thenReturn(src_fileStat);
+    when(mockFs.getFileStatus(eq(targetPath2))).thenReturn(target_fileStat);
+    when(mockFs.getFileStatus(eq(dupPath2))).thenReturn(dup_fileStat);
+    when(mockFs.getUri()).thenReturn(myuri);
+    cmd = new InstrumentedRenameCommand();
+    cmd.setConf(conf);
+    cmd.setOverwrite(true);
+    cmd.run(cmdargs);
+    // make sure command failed with the proper exception
+    assertTrue("Rename should have failed with path exists exception", cmd.error instanceof PathExistsException);
+}

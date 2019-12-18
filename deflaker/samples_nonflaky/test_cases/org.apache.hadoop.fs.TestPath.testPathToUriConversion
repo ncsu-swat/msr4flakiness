@@ -1,0 +1,21 @@
+/**
+ * Test URIs created from Path objects
+ */
+@Test(timeout = 30000)
+public void testPathToUriConversion() throws URISyntaxException, IOException {
+    // Path differs from URI in that it ignores the query part..
+    assertEquals("? mark char in to URI", new URI(null, null, "/foo?bar", null, null), new Path("/foo?bar").toUri());
+    assertEquals("escape slashes chars in to URI", new URI(null, null, "/foo\"bar", null, null), new Path("/foo\"bar").toUri());
+    assertEquals("spaces in chars to URI", new URI(null, null, "/foo bar", null, null), new Path("/foo bar").toUri());
+    // therefore "foo?bar" is a valid Path, so a URI created from a Path
+    // has path "foo?bar" where in a straight URI the path part is just "foo"
+    assertEquals("/foo?bar", new Path("http://localhost/foo?bar").toUri().getPath());
+    assertEquals("/foo", new URI("http://localhost/foo?bar").getPath());
+    // The path part handling in Path is equivalent to URI
+    assertEquals(new URI("/foo;bar").getPath(), new Path("/foo;bar").toUri().getPath());
+    assertEquals(new URI("/foo;bar"), new Path("/foo;bar").toUri());
+    assertEquals(new URI("/foo+bar"), new Path("/foo+bar").toUri());
+    assertEquals(new URI("/foo-bar"), new Path("/foo-bar").toUri());
+    assertEquals(new URI("/foo=bar"), new Path("/foo=bar").toUri());
+    assertEquals(new URI("/foo,bar"), new Path("/foo,bar").toUri());
+}

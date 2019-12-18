@@ -1,0 +1,14 @@
+@Test
+public void testFilter() throws Exception {
+    FilterConfig config = mockConfig("myuser");
+    StaticUserFilter suf = new StaticUserFilter();
+    suf.init(config);
+    ArgumentCaptor<HttpServletRequestWrapper> wrapperArg = ArgumentCaptor.forClass(HttpServletRequestWrapper.class);
+    FilterChain chain = mock(FilterChain.class);
+    suf.doFilter(mock(HttpServletRequest.class), mock(ServletResponse.class), chain);
+    Mockito.verify(chain).doFilter(wrapperArg.capture(), any());
+    HttpServletRequestWrapper wrapper = wrapperArg.getValue();
+    assertEquals("myuser", wrapper.getUserPrincipal().getName());
+    assertEquals("myuser", wrapper.getRemoteUser());
+    suf.destroy();
+}

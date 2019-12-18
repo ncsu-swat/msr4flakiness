@@ -1,0 +1,23 @@
+/**
+ * Show that if the service failed during an init
+ * operation, stop was called.
+ */
+@Test
+public void testStopFailingInitAndStop() throws Throwable {
+    BreakableService svc = new BreakableService(true, false, true);
+    svc.registerServiceListener(new LoggingStateChangeListener());
+    try {
+        svc.init(new Configuration());
+        fail("Expected a failure, got " + svc);
+    } catch (BreakableService.BrokenLifecycleEvent e) {
+        assertEquals(Service.STATE.INITED, e.state);
+    }
+    // the service state is stopped
+    assertServiceStateStopped(svc);
+    assertEquals(Service.STATE.INITED, svc.getFailureState());
+    Throwable failureCause = svc.getFailureCause();
+    assertNotNull("Null failure cause in " + svc, failureCause);
+    BreakableService.BrokenLifecycleEvent cause = (BreakableService.BrokenLifecycleEvent) failureCause;
+    assertNotNull("null state in " + cause + " raised by " + svc, cause.state);
+    assertEquals(Service.STATE.INITED, cause.state);
+}

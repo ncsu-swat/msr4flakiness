@@ -1,0 +1,24 @@
+/**
+ * This test triggers a failure in the listener - the expectation is that the
+ * service has already reached it's desired state, purely because the
+ * notifications take place afterwards.
+ */
+@Test
+public void testListenerFailure() {
+    listener.setFailingState(Service.STATE.INITED);
+    register();
+    BreakableStateChangeListener l2 = new BreakableStateChangeListener();
+    register(l2);
+    BreakableService service = new BreakableService();
+    service.init(new Configuration());
+    // expected notifications to fail
+    // still should record its invocation
+    assertListenerState(listener, Service.STATE.INITED);
+    assertListenerEventCount(listener, 1);
+    // and second listener didn't get notified of anything
+    assertListenerEventCount(l2, 0);
+    // service should still consider itself started
+    assertServiceStateInited(service);
+    service.start();
+    service.stop();
+}

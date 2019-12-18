@@ -1,0 +1,13 @@
+/**
+ * Ensure that normal IO exceptions don't result in a failover.
+ */
+@Test
+public void testExpectedIOException() {
+    UnreliableInterface unreliable = (UnreliableInterface) RetryProxy.create(UnreliableInterface.class, newFlipFlopProxyProvider(TypeOfExceptionToFailWith.REMOTE_EXCEPTION, TypeOfExceptionToFailWith.UNRELIABLE_EXCEPTION), RetryPolicies.failoverOnNetworkException(RetryPolicies.TRY_ONCE_THEN_FAIL, 10, 1000, 10000));
+    try {
+        unreliable.failsIfIdentifierDoesntMatch("no-such-identifier");
+        fail("Should have thrown *some* exception");
+    } catch (Exception e) {
+        assertTrue("Expected IOE but got " + e.getClass(), e instanceof IOException);
+    }
+}

@@ -1,0 +1,17 @@
+@Test
+public void testHangingSink() {
+    new ConfigBuilder().add("*.period", 8).add("test.sink.test.class", TestSink.class.getName()).add("test.sink.hanging.retry.delay", "1").add("test.sink.hanging.retry.backoff", "1.01").add("test.sink.hanging.retry.count", "0").save(TestMetricsConfig.getTestFilename("hadoop-metrics2-test"));
+    MetricsSystemImpl ms = new MetricsSystemImpl("Test");
+    ms.start();
+    TestSource s = ms.register("s3", "s3 desc", new TestSource("s3rec"));
+    s.c1.incr();
+    HangingSink hanging = new HangingSink();
+    ms.registerSink("hanging", "Hang the sink!", hanging);
+    ms.publishMetricsNow();
+    assertEquals(1L, ms.droppedPubAll.value());
+    assertFalse(hanging.getInterrupted());
+    ms.stop();
+    ms.shutdown();
+    assertTrue(hanging.getInterrupted());
+    assertTrue("The sink didn't get called after its first hang " + "for subsequent records.", hanging.getGotCalledSecondTime());
+}

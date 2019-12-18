@@ -1,0 +1,45 @@
+/**
+ * Test a race condition when updating the JMX cache (HADOOP-12482):
+ * 1. Thread A reads the JMX metric every 2 JMX cache TTL. It marks the JMX
+ *    cache to be updated by marking lastRecs to null. After this it adds a
+ *    new key to the metrics. The next call to read should pick up this new
+ *    key.
+ * 2. Thread B triggers JMX metric update every 1 JMX cache TTL. It assigns
+ *    lastRecs to a new object (not null any more).
+ * 3. Thread A tries to read JMX metric again, sees lastRecs is not null and
+ *    does not update JMX cache. As a result the read does not pickup the new
+ *    metric.
+ * @throws Exception
+ */
+@Test
+public void testMetricCacheUpdateRace() throws Exception {
+    // Create test source with a single metric counter of value 1.
+    TestMetricsSource source = new TestMetricsSource();
+    MetricsSourceBuilder sourceBuilder = MetricsAnnotations.newSourceBuilder(source);
+    // ms
+    final long JMX_CACHE_TTL = 250;
+    List<MetricsTag> injectedTags = new ArrayList<>();
+    MetricsSourceAdapter sourceAdapter = new MetricsSourceAdapter("test", "test", "test JMX cache update race condition", sourceBuilder.build(), injectedTags, null, null, JMX_CACHE_TTL, false);
+    ScheduledExecutorService updaterExecutor = Executors.newScheduledThreadPool(1, new ThreadFactoryBuilder().build());
+    ScheduledExecutorService readerExecutor = Executors.newScheduledThreadPool(1, new ThreadFactoryBuilder().build());
+    final AtomicBoolean hasError = new AtomicBoolean(false);
+    // Wake up every 1 JMX cache TTL to set lastRecs before updateJmxCache() is
+    // called.
+    SourceUpdater srcUpdater = new SourceUpdater(sourceAdapter, hasError);
+    ScheduledFuture<?> updaterFuture = updaterExecutor.scheduleAtFixedRate(srcUpdater, sourceAdapter.getJmxCacheTTL(), sourceAdapter.getJmxCacheTTL(), TimeUnit.MILLISECONDS);
+    srcUpdater.setFuture(updaterFuture);
+    // Wake up every 2 JMX cache TTL so updateJmxCache() will try to update
+    // JMX cache.
+    SourceReader srcReader = new SourceReader(source, sourceAdapter, hasError);
+    ScheduledFuture<?> readerFuture = readerExecutor.scheduleAtFixedRate(srcReader, // set JMX info cache at the beginning
+    0, 2 * sourceAdapter.getJmxCacheTTL(), TimeUnit.MILLISECONDS);
+    srcReader.setFuture(readerFuture);
+    // Let the threads do their work.
+    Thread.sleep(RACE_TEST_RUNTIME);
+    assertFalse("Hit error", hasError.get());
+    // cleanup
+    updaterExecutor.shutdownNow();
+    readerExecutor.shutdownNow();
+    updaterExecutor.awaitTermination(1000, TimeUnit.MILLISECONDS);
+    readerExecutor.awaitTermination(1000, TimeUnit.MILLISECONDS);
+}

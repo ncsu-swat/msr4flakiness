@@ -1,0 +1,18 @@
+@Test
+public void testMultiChunkFile() throws Exception {
+    Path testPath = new Path(TEST_ROOT_DIR, "testMultiChunk");
+    FSDataOutputStream fout = localFs.create(testPath);
+    for (int i = 0; i < 1000; i++) {
+        fout.write(("testing" + i).getBytes());
+    }
+    fout.close();
+    // Exercise some boundary cases - a divisor of the chunk size
+    // the chunk size, 2x chunk size, and +/-1 around these.
+    readFile(localFs, testPath, 128);
+    readFile(localFs, testPath, 511);
+    readFile(localFs, testPath, 512);
+    readFile(localFs, testPath, 513);
+    readFile(localFs, testPath, 1023);
+    readFile(localFs, testPath, 1024);
+    readFile(localFs, testPath, 1025);
+}

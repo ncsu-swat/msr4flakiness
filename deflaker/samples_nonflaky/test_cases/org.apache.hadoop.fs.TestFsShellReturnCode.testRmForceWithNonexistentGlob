@@ -1,0 +1,18 @@
+@Test(timeout = 30000)
+public void testRmForceWithNonexistentGlob() throws Exception {
+    Configuration conf = new Configuration();
+    FsShell shell = new FsShell();
+    shell.setConf(conf);
+    final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+    final PrintStream err = new PrintStream(bytes);
+    final PrintStream oldErr = System.err;
+    System.setErr(err);
+    try {
+        int exit = shell.run(new String[] { "-rm", "-f", "nomatch*" });
+        assertEquals(0, exit);
+        assertTrue(bytes.toString().isEmpty());
+    } finally {
+        IOUtils.closeStream(err);
+        System.setErr(oldErr);
+    }
+}

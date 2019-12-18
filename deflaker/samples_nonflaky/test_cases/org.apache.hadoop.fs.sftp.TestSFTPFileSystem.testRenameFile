@@ -1,0 +1,18 @@
+/**
+ * Test renaming a file.
+ *
+ * @throws Exception
+ */
+@Test
+public void testRenameFile() throws Exception {
+    byte[] data = "dingos".getBytes();
+    Path file1 = touch(localFs, name.getMethodName().toLowerCase() + "1");
+    Path file2 = new Path(localDir, name.getMethodName().toLowerCase() + "2");
+    assertTrue(sftpFs.rename(file1, file2));
+    assertTrue(sftpFs.exists(file2));
+    assertFalse(sftpFs.exists(file1));
+    assertTrue(localFs.exists(file2));
+    assertFalse(localFs.exists(file1));
+    assertTrue(sftpFs.delete(file2, false));
+    assertThat(((SFTPFileSystem) sftpFs).getConnectionPool().getLiveConnCount(), is(1));
+}

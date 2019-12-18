@@ -1,0 +1,76 @@
+@Test(timeout = 30000)
+public void testReaderExceptions() throws Exception {
+    Server server = null;
+    TestRpcService proxy = null;
+    // will attempt to return this exception from a reader with and w/o
+    // the connection closing.
+    IOException expectedIOE = new TestReaderException("testing123");
+    @SuppressWarnings("serial")
+    IOException rseError = new RpcServerException("keepalive", expectedIOE) {
+
+        @Override
+        public RpcStatusProto getRpcStatusProto() {
+            return RpcStatusProto.ERROR;
+        }
+    };
+    @SuppressWarnings("serial")
+    IOException rseFatal = new RpcServerException("disconnect", expectedIOE) {
+
+        @Override
+        public RpcStatusProto getRpcStatusProto() {
+            return RpcStatusProto.FATAL;
+        }
+    };
+    try {
+        RPC.Builder builder = newServerBuilder(conf).setQueueSizePerHandler(1).setNumHandlers(1).setVerbose(true);
+        server = setupTestServer(builder);
+        Whitebox.setInternalState(server, "rpcRequestClass", FakeRequestClass.class);
+        MutableCounterLong authMetric = (MutableCounterLong) Whitebox.getInternalState(server.getRpcMetrics(), "rpcAuthorizationSuccesses");
+        proxy = getClient(addr, conf);
+        boolean isDisconnected = true;
+        Connection lastConn = null;
+        long expectedAuths = 0;
+        // fuzz the client.
+        for (int i = 0; i < 128; i++) {
+            String reqName = "request[" + i + "]";
+            int r = ThreadLocalRandom.current().nextInt();
+            final boolean doDisconnect = r % 4 == 0;
+            LOG.info("TestDisconnect request[" + i + "] " + " shouldConnect=" + isDisconnected + " willDisconnect=" + doDisconnect);
+            if (isDisconnected) {
+                expectedAuths++;
+            }
+            try {
+                FakeRequestClass.exception = doDisconnect ? rseFatal : rseError;
+                proxy.ping(null, newEmptyRequest());
+                fail(reqName + " didn't fail");
+            } catch (ServiceException e) {
+                RemoteException re = (RemoteException) e.getCause();
+                assertEquals(reqName, expectedIOE, re.unwrapRemoteException());
+            }
+            // check authorizations to ensure new connection when expected,
+            // then conclusively determine if connections are disconnected
+            // correctly.
+            assertEquals(reqName, expectedAuths, authMetric.value());
+            if (!doDisconnect) {
+                // if it wasn't fatal, verify there's only one open connection.
+                Connection[] conns = server.getConnections();
+                assertEquals(reqName, 1, conns.length);
+                // verify whether the connection should have been reused.
+                if (isDisconnected) {
+                    assertNotSame(reqName, lastConn, conns[0]);
+                } else {
+                    assertSame(reqName, lastConn, conns[0]);
+                }
+                lastConn = conns[0];
+            } else if (lastConn != null) {
+                // avoid race condition in server where connection may not be
+                // fully removed yet.  just make sure it's marked for being closed.
+                // the open connection checks above ensure correct behavior.
+                assertTrue(reqName, lastConn.shouldClose());
+            }
+            isDisconnected = doDisconnect;
+        }
+    } finally {
+        stop(server, proxy);
+    }
+}

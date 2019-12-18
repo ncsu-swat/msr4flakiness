@@ -1,0 +1,22 @@
+/**
+ * This test verifies that resultion queries get relayed to the inner rack
+ * @throws Throwable on any problem
+ */
+@Test
+public void testCachingRelaysResolveQueries() throws Throwable {
+    StaticMapping mapping = newInstance();
+    mapping.setConf(createConf("top"));
+    StaticMapping staticMapping = mapping;
+    CachedDNSToSwitchMapping cachedMap = new CachedDNSToSwitchMapping(staticMapping);
+    assertMapSize(cachedMap, 0);
+    // add a node to the static map
+    StaticMapping.addNodeToRack("n1", "/r1");
+    // verify it is there
+    assertMapSize(staticMapping, 1);
+    // verify that the cache hasn't picked it up yet
+    assertMapSize(cachedMap, 0);
+    // now relay the query
+    cachedMap.resolve(createQueryList());
+    // and verify the cache is no longer empty
+    assertMapSize(cachedMap, 2);
+}

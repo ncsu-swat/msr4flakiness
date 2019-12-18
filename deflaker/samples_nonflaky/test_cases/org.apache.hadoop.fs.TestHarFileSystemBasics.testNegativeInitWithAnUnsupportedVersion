@@ -1,0 +1,21 @@
+@Test
+public void testNegativeInitWithAnUnsupportedVersion() throws Exception {
+    // NB: should wait at least 1 second to ensure the timestamp of the master
+    // index will change upon the writing, because Linux seems to update the
+    // file modification
+    // time with 1 second accuracy:
+    Thread.sleep(1000);
+    // write an unsupported version:
+    writeVersionToMasterIndexImpl(7777, new Path(harPath, "_masterindex"));
+    // init the Har:
+    final HarFileSystem hfs = new HarFileSystem(localFileSystem);
+    // the metadata should *not* be reused from cache:
+    assertFalse(hfs.getMetadata() == harFileSystem.getMetadata());
+    final URI uri = new URI("har://" + harPath.toString());
+    try {
+        hfs.initialize(uri, new Configuration());
+        Assert.fail("IOException expected.");
+    } catch (IOException ioe) {
+    // ok, expected.
+    }
+}

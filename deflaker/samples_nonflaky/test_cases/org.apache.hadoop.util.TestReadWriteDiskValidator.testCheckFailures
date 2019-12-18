@@ -1,0 +1,36 @@
+@Test
+public void testCheckFailures() throws Throwable {
+    ReadWriteDiskValidator readWriteDiskValidator = (ReadWriteDiskValidator) DiskValidatorFactory.getInstance(ReadWriteDiskValidator.NAME);
+    // create a temporary test directory under the system test directory
+    File testDir = Files.createTempDirectory(Paths.get(System.getProperty("test.build.data")), "test").toFile();
+    try {
+        Shell.execCommand(Shell.getSetPermissionCommand("000", false, testDir.getAbsolutePath()));
+    } catch (Exception e) {
+        testDir.delete();
+        throw e;
+    }
+    try {
+        readWriteDiskValidator.checkStatus(testDir);
+        fail("Disk check should fail.");
+    } catch (DiskErrorException e) {
+        assertEquals("Disk Check failed!", e.getMessage());
+    }
+    MetricsSource source = ms.getSource(ReadWriteDiskValidatorMetrics.sourceName(testDir.toString()));
+    MetricsCollectorImpl collector = new MetricsCollectorImpl();
+    source.getMetrics(collector, true);
+    try {
+        readWriteDiskValidator.checkStatus(testDir);
+        fail("Disk check should fail.");
+    } catch (DiskErrorException e) {
+        assertEquals("Disk Check failed!", e.getMessage());
+    }
+    source.getMetrics(collector, true);
+    // verify the first metrics record
+    MetricsRecords.assertMetric(collector.getRecords().get(0), "FailureCount", 1);
+    Long lastFailureTime1 = (Long) MetricsRecords.getMetricValueByName(collector.getRecords().get(0), "LastFailureTime");
+    // verify the second metrics record
+    MetricsRecords.assertMetric(collector.getRecords().get(1), "FailureCount", 2);
+    Long lastFailureTime2 = (Long) MetricsRecords.getMetricValueByName(collector.getRecords().get(1), "LastFailureTime");
+    assertTrue("The first failure time should be less than the second one", lastFailureTime1 < lastFailureTime2);
+    testDir.delete();
+}

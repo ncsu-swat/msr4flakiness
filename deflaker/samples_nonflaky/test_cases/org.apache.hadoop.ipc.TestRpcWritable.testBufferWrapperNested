@@ -1,0 +1,28 @@
+@Test
+public void testBufferWrapperNested() throws IOException {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    DataOutputStream dos = new DataOutputStream(baos);
+    writable.write(dos);
+    message1.writeDelimitedTo(dos);
+    message2.writeDelimitedTo(dos);
+    ByteBuffer bb = ByteBuffer.wrap(baos.toByteArray());
+    RpcWritable.Buffer buf1 = RpcWritable.Buffer.wrap(bb);
+    Assert.assertEquals(baos.size(), bb.remaining());
+    Assert.assertEquals(baos.size(), buf1.remaining());
+    Object actual = buf1.newInstance(LongWritable.class, null);
+    Assert.assertEquals(writable, actual);
+    int left = bb.remaining();
+    Assert.assertTrue(left > 0);
+    Assert.assertEquals(left, buf1.remaining());
+    // original bb now appears empty, but rpc writable has a slice of the bb.
+    RpcWritable.Buffer buf2 = buf1.newInstance(RpcWritable.Buffer.class, null);
+    Assert.assertEquals(0, bb.remaining());
+    Assert.assertEquals(0, buf1.remaining());
+    Assert.assertEquals(left, buf2.remaining());
+    actual = buf2.getValue(EchoRequestProto.getDefaultInstance());
+    Assert.assertEquals(message1, actual);
+    Assert.assertTrue(buf2.remaining() > 0);
+    actual = buf2.getValue(EchoRequestProto.getDefaultInstance());
+    Assert.assertEquals(message2, actual);
+    Assert.assertEquals(0, buf2.remaining());
+}

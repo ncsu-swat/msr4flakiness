@@ -1,0 +1,15 @@
+// Test simple compression.
+@Test
+public void testSingleCompress() throws IOException {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    CompressionOutputStream cmpOut = codec.createOutputStream(baos);
+    cmpOut.write(DATA1.getBytes(StandardCharsets.UTF_8));
+    cmpOut.finish();
+    cmpOut.close();
+    ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+    GZIPInputStream cmpIn = new GZIPInputStream(bais);
+    byte[] buf = new byte[1024];
+    int len = cmpIn.read(buf);
+    String result = new String(buf, 0, len, StandardCharsets.UTF_8);
+    assertEquals("Input must match output", DATA1, result);
+}

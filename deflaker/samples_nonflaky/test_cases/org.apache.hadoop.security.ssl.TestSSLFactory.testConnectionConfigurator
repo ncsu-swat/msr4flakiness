@@ -1,0 +1,15 @@
+@Test
+public void testConnectionConfigurator() throws Exception {
+    Configuration conf = createConfiguration(false, true);
+    conf.set(SSLFactory.SSL_HOSTNAME_VERIFIER_KEY, "STRICT_IE6");
+    SSLFactory sslFactory = new SSLFactory(SSLFactory.Mode.CLIENT, conf);
+    try {
+        sslFactory.init();
+        HttpsURLConnection sslConn = (HttpsURLConnection) new URL("https://foo").openConnection();
+        Assert.assertNotSame("STRICT_IE6", sslConn.getHostnameVerifier().toString());
+        sslFactory.configure(sslConn);
+        Assert.assertEquals("STRICT_IE6", sslConn.getHostnameVerifier().toString());
+    } finally {
+        sslFactory.destroy();
+    }
+}

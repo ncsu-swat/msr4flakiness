@@ -1,0 +1,11 @@
+@Test
+public void testInterruptedCreate() throws Exception {
+    whenFsCreate().thenThrow(new InterruptedIOException());
+    when(mockFs.getFileStatus(eq(tmpPath))).thenReturn(fileStat);
+    FSDataInputStream in = mock(FSDataInputStream.class);
+    tryCopyStream(in, false);
+    verify(mockFs, never()).rename(any(Path.class), any(Path.class));
+    verify(mockFs, never()).delete(eq(tmpPath), anyBoolean());
+    verify(mockFs, never()).delete(eq(path), anyBoolean());
+    verify(mockFs, never()).close();
+}

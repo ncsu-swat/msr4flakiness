@@ -1,0 +1,38 @@
+@Test
+public void testEntriesExpireIfBackgroundRefreshFails() throws Exception {
+    conf.setLong(CommonConfigurationKeys.HADOOP_SECURITY_GROUPS_CACHE_SECS, 1);
+    conf.setBoolean(CommonConfigurationKeys.HADOOP_SECURITY_GROUPS_CACHE_BACKGROUND_RELOAD, true);
+    FakeTimer timer = new FakeTimer();
+    final Groups groups = new Groups(conf, timer);
+    groups.cacheGroupsAdd(Arrays.asList(myGroups));
+    groups.refresh();
+    FakeGroupMapping.clearBlackList();
+    // We make an initial request to populate the cache
+    groups.getGroups("me");
+    // Now make all calls to the FakeGroupMapper throw exceptions
+    FakeGroupMapping.setThrowException(true);
+    // The cache entry expires for refresh after 1 second
+    // It expires for eviction after 1 * 10 seconds after it was last written
+    // So if we call getGroups repeatedly over 9 seconds, 9 refreshes should
+    // be triggered which will fail to update the key, but the keys old value
+    // will be retrievable until it is evicted after about 10 seconds.
+    for (int i = 0; i < 9; i++) {
+        assertThat(groups.getGroups("me").size()).isEqualTo(2);
+        timer.advance(1 * 1000);
+    }
+    // Wait until the 11th second. The call to getGroups should throw
+    // an exception as the key will have been evicted and FakeGroupMapping
+    // will throw IO Exception when it is asked for new groups. In this case
+    // load must be called synchronously as there is no key present
+    timer.advance(2 * 1000);
+    try {
+        groups.getGroups("me");
+        fail("Should have thrown an exception here");
+    } catch (Exception e) {
+    // pass
+    }
+    // Finally check groups are retrieve again after FakeGroupMapping
+    // stops throw exceptions
+    FakeGroupMapping.setThrowException(false);
+    assertThat(groups.getGroups("me").size()).isEqualTo(2);
+}

@@ -1,0 +1,21 @@
+/**
+ * Tests if the results are correct if no samples are inserted, dry run of
+ * empty roll over.
+ */
+@Test(timeout = 30000)
+public void testRollingAveragesEmptyRollover() throws Exception {
+    final MetricsRecordBuilder rb = mockMetricsRecordBuilder();
+    /* 5s interval and 2 windows */
+    try (MutableRollingAverages rollingAverages = new MutableRollingAverages("Time")) {
+        rollingAverages.replaceScheduledTask(2, 5, TimeUnit.SECONDS);
+        /* Check it initially */
+        rollingAverages.snapshot(rb, true);
+        verify(rb, never()).addGauge(info("FooRollingAvgTime", "Rolling average time for foo"), (long) 0);
+        verify(rb, never()).addGauge(info("BarAvgTime", "Rolling average time for bar"), (long) 0);
+        /* sleep 6s longer than 5s interval to wait for rollover done */
+        Thread.sleep(6000);
+        rollingAverages.snapshot(rb, false);
+        verify(rb, never()).addGauge(info("FooRollingAvgTime", "Rolling average time for foo"), (long) 0);
+        verify(rb, never()).addGauge(info("BarAvgTime", "Rolling average time for bar"), (long) 0);
+    }
+}

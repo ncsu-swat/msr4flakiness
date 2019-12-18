@@ -1,0 +1,12 @@
+/**
+ * verify that more than 3 network error retries result fatalError
+ */
+@Test
+public void testStatNodeRetry() {
+    elector.joinElection(data);
+    elector.processResult(Code.CONNECTIONLOSS.intValue(), ZK_LOCK_NAME, mockZK, (Stat) null);
+    elector.processResult(Code.CONNECTIONLOSS.intValue(), ZK_LOCK_NAME, mockZK, (Stat) null);
+    elector.processResult(Code.CONNECTIONLOSS.intValue(), ZK_LOCK_NAME, mockZK, (Stat) null);
+    elector.processResult(Code.CONNECTIONLOSS.intValue(), ZK_LOCK_NAME, mockZK, (Stat) null);
+    Mockito.verify(mockApp, Mockito.times(1)).notifyFatalError("Received stat error from Zookeeper. code:CONNECTIONLOSS. " + "Not retrying further znode monitoring connection errors.");
+}

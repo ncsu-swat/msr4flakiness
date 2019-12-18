@@ -1,0 +1,44 @@
+@SuppressWarnings("deprecation")
+@Test
+public void testMembershipTest() throws Exception {
+    // write the file
+    FileSystem fs = FileSystem.getLocal(conf);
+    Path qualifiedDirName = fs.makeQualified(TEST_DIR);
+    conf.setInt("io.mapfile.bloom.size", 2048);
+    BloomMapFile.Writer writer = null;
+    BloomMapFile.Reader reader = null;
+    try {
+        writer = new BloomMapFile.Writer(conf, fs, qualifiedDirName.toString(), IntWritable.class, Text.class);
+        IntWritable key = new IntWritable();
+        Text value = new Text();
+        for (int i = 0; i < 2000; i += 2) {
+            key.set(i);
+            value.set("00" + i);
+            writer.append(key, value);
+        }
+        writer.close();
+        reader = new BloomMapFile.Reader(fs, qualifiedDirName.toString(), conf);
+        // check false positives rate
+        int falsePos = 0;
+        int falseNeg = 0;
+        for (int i = 0; i < 2000; i++) {
+            key.set(i);
+            boolean exists = reader.probablyHasKey(key);
+            if (i % 2 == 0) {
+                if (!exists)
+                    falseNeg++;
+            } else {
+                if (exists)
+                    falsePos++;
+            }
+        }
+        reader.close();
+        fs.delete(qualifiedDirName, true);
+        System.out.println("False negatives: " + falseNeg);
+        assertEquals(0, falseNeg);
+        System.out.println("False positives: " + falsePos);
+        assertTrue(falsePos < 2);
+    } finally {
+        IOUtils.cleanupWithLogger(LOG, writer, reader);
+    }
+}

@@ -1,0 +1,22 @@
+// from Mockito mocks
+@SuppressWarnings("unchecked")
+@Test(timeout = 30000)
+public <T extends TokenIdentifier> void testAddCreds() throws Exception {
+    UserGroupInformation ugi = UserGroupInformation.createRemoteUser("someone");
+    Text service = new Text("service");
+    Token<T> t1 = mock(Token.class);
+    when(t1.getService()).thenReturn(service);
+    Token<T> t2 = mock(Token.class);
+    when(t2.getService()).thenReturn(new Text("service2"));
+    byte[] secret = new byte[] {};
+    Text secretKey = new Text("sshhh");
+    // fill credentials
+    Credentials creds = new Credentials();
+    creds.addToken(t1.getService(), t1);
+    creds.addToken(t2.getService(), t2);
+    creds.addSecretKey(secretKey, secret);
+    // add creds to ugi, and check ugi
+    ugi.addCredentials(creds);
+    checkTokens(ugi, t1, t2);
+    assertSame(secret, ugi.getCredentials().getSecretKey(secretKey));
+}

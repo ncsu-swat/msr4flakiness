@@ -1,0 +1,20 @@
+@Test
+public void testRpcResponseLimit() throws Throwable {
+    Server server = new TestServer(1, false);
+    InetSocketAddress addr = NetUtils.getConnectAddress(server);
+    server.start();
+    conf.setInt(CommonConfigurationKeys.IPC_MAXIMUM_RESPONSE_LENGTH, 0);
+    Client client = new Client(LongWritable.class, conf);
+    call(client, 0, addr, conf);
+    conf.setInt(CommonConfigurationKeys.IPC_MAXIMUM_RESPONSE_LENGTH, 4);
+    client = new Client(LongWritable.class, conf);
+    try {
+        call(client, 0, addr, conf);
+    } catch (IOException ioe) {
+        Assert.assertNotNull(ioe);
+        Assert.assertEquals(RpcException.class, ioe.getClass());
+        Assert.assertEquals("RPC response exceeds maximum data length", ioe.getMessage());
+        return;
+    }
+    Assert.fail("didn't get limit exceeded");
+}

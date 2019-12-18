@@ -1,0 +1,34 @@
+@Test(timeout = 30000)
+public void testUnTar() throws IOException {
+    setupDirs();
+    // make a simple tar:
+    final File simpleTar = new File(del, FILE);
+    OutputStream os = new FileOutputStream(simpleTar);
+    TarOutputStream tos = new TarOutputStream(os);
+    try {
+        TarEntry te = new TarEntry("/bar/foo");
+        byte[] data = "some-content".getBytes("UTF-8");
+        te.setSize(data.length);
+        tos.putNextEntry(te);
+        tos.write(data);
+        tos.closeEntry();
+        tos.flush();
+        tos.finish();
+    } finally {
+        tos.close();
+    }
+    // successfully untar it into an existing dir:
+    FileUtil.unTar(simpleTar, tmp);
+    // check result:
+    assertTrue(new File(tmp, "/bar/foo").exists());
+    assertEquals(12, new File(tmp, "/bar/foo").length());
+    final File regularFile = new File(tmp, "QuickBrownFoxJumpsOverTheLazyDog");
+    regularFile.createNewFile();
+    assertTrue(regularFile.exists());
+    try {
+        FileUtil.unTar(simpleTar, regularFile);
+        assertTrue("An IOException expected.", false);
+    } catch (IOException ioe) {
+    // okay
+    }
+}

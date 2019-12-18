@@ -1,0 +1,43 @@
+@Test
+public void testGetNextRetryTime() throws Exception {
+    GenericTestUtils.setLogLevel(UserGroupInformation.LOG, Level.DEBUG);
+    final long reloginInterval = 1;
+    final long reloginIntervalMs = reloginInterval * 1000;
+    // Relogin happens every 1 second.
+    conf.setLong(HADOOP_KERBEROS_MIN_SECONDS_BEFORE_RELOGIN, reloginInterval);
+    SecurityUtil.setAuthenticationMethod(AuthenticationMethod.KERBEROS, conf);
+    UserGroupInformation.setConfiguration(conf);
+    // Suppose tgt start time is now, end time is 20 seconds from now.
+    final long now = Time.now();
+    final Date endDate = new Date(now + 20000);
+    // Explicitly test the exponential back-off logic.
+    // Suppose some time (10 seconds) passed.
+    // Verify exponential backoff and max=(login interval before endTime).
+    final long currentTime = now + 10000;
+    final long endTime = endDate.getTime();
+    assertEquals(0, UserGroupInformation.metrics.getRenewalFailures().value());
+    RetryPolicy rp = RetryPolicies.exponentialBackoffRetry(Long.SIZE - 2, 1000, TimeUnit.MILLISECONDS);
+    long lastRetry = UserGroupInformation.getNextTgtRenewalTime(endTime, currentTime, rp);
+    assertWithinBounds(UserGroupInformation.metrics.getRenewalFailures().value(), lastRetry, reloginIntervalMs, currentTime);
+    UserGroupInformation.metrics.getRenewalFailures().incr();
+    lastRetry = UserGroupInformation.getNextTgtRenewalTime(endTime, currentTime, rp);
+    assertWithinBounds(UserGroupInformation.metrics.getRenewalFailures().value(), lastRetry, reloginIntervalMs, currentTime);
+    UserGroupInformation.metrics.getRenewalFailures().incr();
+    lastRetry = UserGroupInformation.getNextTgtRenewalTime(endTime, currentTime, rp);
+    assertWithinBounds(UserGroupInformation.metrics.getRenewalFailures().value(), lastRetry, reloginIntervalMs, currentTime);
+    UserGroupInformation.metrics.getRenewalFailures().incr();
+    lastRetry = UserGroupInformation.getNextTgtRenewalTime(endTime, currentTime, rp);
+    assertWithinBounds(UserGroupInformation.metrics.getRenewalFailures().value(), lastRetry, reloginIntervalMs, currentTime);
+    // last try should be right before expiry.
+    UserGroupInformation.metrics.getRenewalFailures().incr();
+    lastRetry = UserGroupInformation.getNextTgtRenewalTime(endTime, currentTime, rp);
+    String str = "5th retry, now:" + currentTime + ", retry:" + lastRetry;
+    LOG.info(str);
+    assertEquals(str, endTime - reloginIntervalMs, lastRetry);
+    // make sure no more retries after (tgt endTime - login interval).
+    UserGroupInformation.metrics.getRenewalFailures().incr();
+    lastRetry = UserGroupInformation.getNextTgtRenewalTime(endTime, currentTime, rp);
+    str = "overflow retry, now:" + currentTime + ", retry:" + lastRetry;
+    LOG.info(str);
+    assertEquals(str, endTime - reloginIntervalMs, lastRetry);
+}

@@ -1,0 +1,19 @@
+@Test
+public void testGlobThrowsExceptionForUnreadableDir() throws Exception {
+    Path obscuredDir = new Path("foo");
+    // so foo is non-empty
+    Path subDir = new Path(obscuredDir, "bar");
+    fs.mkdirs(subDir);
+    // no access
+    fs.setPermission(obscuredDir, new FsPermission((short) 0));
+    try {
+        PathData.expandAsGlob("foo/*", conf);
+        Assert.fail("Should throw IOException");
+    } catch (IOException ioe) {
+    // expected
+    } finally {
+        // make sure the test directory can be deleted
+        // default
+        fs.setPermission(obscuredDir, new FsPermission((short) 0755));
+    }
+}

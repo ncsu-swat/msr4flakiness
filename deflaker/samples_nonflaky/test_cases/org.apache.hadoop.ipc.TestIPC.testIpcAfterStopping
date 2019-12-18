@@ -1,0 +1,13 @@
+@Test(timeout = 30000, expected = IOException.class)
+public void testIpcAfterStopping() throws IOException {
+    // start server
+    Server server = new TestServer(5, false);
+    InetSocketAddress addr = NetUtils.getConnectAddress(server);
+    server.start();
+    // start client
+    Client client = new Client(LongWritable.class, conf);
+    call(client, addr, 0, conf);
+    client.stop();
+    // This call should throw IOException.
+    call(client, addr, 0, conf);
+}

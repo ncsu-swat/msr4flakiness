@@ -1,0 +1,10 @@
+@Test
+public void testGetGroupsWithConnectionClosed() throws NamingException {
+    // The case mocks connection is closed/gc-ed, so the first search call throws CommunicationException,
+    // then after reconnected return the user NamingEnumeration first, and then the group
+    when(getContext().search(anyString(), anyString(), any(Object[].class), any(SearchControls.class))).thenThrow(new CommunicationException("Connection is closed")).thenReturn(getUserNames(), getGroupNames());
+    // Although connection is down but after reconnected
+    // it still should retrieve the result groups
+    // 1 is the first failure call
+    doTestGetGroups(Arrays.asList(getTestGroups()), 1 + 2);
+}

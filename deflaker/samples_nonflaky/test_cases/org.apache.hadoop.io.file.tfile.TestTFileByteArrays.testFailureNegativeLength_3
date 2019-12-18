@@ -1,0 +1,27 @@
+@Test
+public void testFailureNegativeLength_3() throws IOException {
+    if (skip)
+        return;
+    writeRecords(3);
+    Reader reader = new Reader(fs.open(path), fs.getFileStatus(path).getLen(), conf);
+    Scanner scanner = reader.createScanner();
+    try {
+        // test negative array offset
+        try {
+            scanner.seekTo("keyY".getBytes(), -1, 4);
+            Assert.fail("Failed to handle negative offset.");
+        } catch (Exception e) {
+        // noop, expecting exceptions
+        }
+        // test negative array length
+        try {
+            scanner.seekTo("keyY".getBytes(), 0, -2);
+            Assert.fail("Failed to handle negative key length.");
+        } catch (Exception e) {
+        // noop, expecting exceptions
+        }
+    } finally {
+        reader.close();
+        scanner.close();
+    }
+}

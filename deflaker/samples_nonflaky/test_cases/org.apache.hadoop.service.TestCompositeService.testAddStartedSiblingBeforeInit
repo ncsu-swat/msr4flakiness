@@ -1,0 +1,15 @@
+@Test(timeout = 10000)
+public void testAddStartedSiblingBeforeInit() throws Throwable {
+    CompositeService parent = new CompositeService("parent");
+    BreakableService sibling = new BreakableService();
+    sibling.init(new Configuration());
+    sibling.start();
+    parent.addService(new AddSiblingService(parent, sibling, STATE.NOTINITED));
+    parent.init(new Configuration());
+    assertInState(STATE.STARTED, sibling);
+    parent.start();
+    assertInState(STATE.STARTED, sibling);
+    parent.stop();
+    assertInState(STATE.STARTED, sibling);
+    assertEquals("Incorrect number of services", 1, parent.getServices().size());
+}

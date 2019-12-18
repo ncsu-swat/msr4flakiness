@@ -1,0 +1,18 @@
+@Test
+public void testFailoverFromFaultyServiceSucceeds() throws Exception {
+    DummyHAService svc1 = new DummyHAService(HAServiceState.ACTIVE, svc1Addr);
+    Mockito.doThrow(new ServiceFailedException("Failed!")).when(svc1.proxy).transitionToStandby(anyReqInfo());
+    DummyHAService svc2 = new DummyHAService(HAServiceState.STANDBY, svc2Addr);
+    svc1.fencer = svc2.fencer = setupFencer(AlwaysSucceedFencer.class.getName());
+    AlwaysSucceedFencer.fenceCalled = 0;
+    try {
+        doFailover(svc1, svc2, false, false);
+    } catch (FailoverFailedException ffe) {
+        fail("Faulty active prevented failover");
+    }
+    // svc1 still thinks it's active, that's OK, it was fenced
+    assertEquals(1, AlwaysSucceedFencer.fenceCalled);
+    assertSame(svc1, AlwaysSucceedFencer.fencedSvc);
+    assertEquals(HAServiceState.ACTIVE, svc1.state);
+    assertEquals(HAServiceState.ACTIVE, svc2.state);
+}

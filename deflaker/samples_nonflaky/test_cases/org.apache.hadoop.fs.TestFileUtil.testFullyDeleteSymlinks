@@ -1,0 +1,27 @@
+/**
+ * Tests if fullyDelete deletes
+ * (a) symlink to file only and not the file pointed to by symlink.
+ * (b) symlink to dir only and not the dir pointed to by symlink.
+ * @throws IOException
+ */
+@Test(timeout = 30000)
+public void testFullyDeleteSymlinks() throws IOException {
+    setupDirs();
+    File link = new File(del, LINK);
+    Assert.assertEquals(5, del.list().length);
+    // Since tmpDir is symlink to tmp, fullyDelete(tmpDir) should not
+    // delete contents of tmp. See setupDirs for details.
+    boolean ret = FileUtil.fullyDelete(link);
+    Assert.assertTrue(ret);
+    Assert.assertFalse(link.exists());
+    Assert.assertEquals(4, del.list().length);
+    validateTmpDir();
+    File linkDir = new File(del, "tmpDir");
+    // Since tmpDir is symlink to tmp, fullyDelete(tmpDir) should not
+    // delete contents of tmp. See setupDirs for details.
+    ret = FileUtil.fullyDelete(linkDir);
+    Assert.assertTrue(ret);
+    Assert.assertFalse(linkDir.exists());
+    Assert.assertEquals(3, del.list().length);
+    validateTmpDir();
+}

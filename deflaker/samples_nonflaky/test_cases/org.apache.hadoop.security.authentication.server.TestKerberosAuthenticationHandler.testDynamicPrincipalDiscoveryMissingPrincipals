@@ -1,0 +1,24 @@
+/**
+ * Tests dynamic principal discovery for missing principals.
+ * @throws Exception
+ */
+@Test
+public void testDynamicPrincipalDiscoveryMissingPrincipals() throws Exception {
+    String[] keytabUsers = new String[] { "hdfs/localhost" };
+    String keytab = KerberosTestUtils.getKeytabFile();
+    getKdc().createPrincipal(new File(keytab), keytabUsers);
+    // destroy handler created in setUp()
+    handler.destroy();
+    Properties props = new Properties();
+    props.setProperty(KerberosAuthenticationHandler.KEYTAB, keytab);
+    props.setProperty(KerberosAuthenticationHandler.PRINCIPAL, "*");
+    handler = getNewAuthenticationHandler();
+    try {
+        handler.init(props);
+        Assert.fail("init should have failed");
+    } catch (ServletException ex) {
+        Assert.assertEquals("Principals do not exist in the keytab", ex.getCause().getMessage());
+    } catch (Throwable t) {
+        Assert.fail("wrong exception: " + t);
+    }
+}

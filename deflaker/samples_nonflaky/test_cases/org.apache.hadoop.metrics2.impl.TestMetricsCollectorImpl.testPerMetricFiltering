@@ -1,0 +1,12 @@
+@Test
+public void testPerMetricFiltering() {
+    SubsetConfiguration fc = new ConfigBuilder().add("p.exclude", "foo").subset("p");
+    MetricsCollectorImpl mb = new MetricsCollectorImpl();
+    mb.setMetricFilter(newGlobFilter(fc));
+    MetricsRecordBuilderImpl rb = mb.addRecord("foo");
+    rb.tag(info("foo", ""), "").addCounter(info("c0", ""), 0).addGauge(info("foo", ""), 1);
+    assertEquals("1 tag", 1, rb.tags().size());
+    assertEquals("1 metric", 1, rb.metrics().size());
+    assertEquals("expect foo tag", "foo", rb.tags().get(0).name());
+    assertEquals("expect c0", "c0", rb.metrics().get(0).name());
+}

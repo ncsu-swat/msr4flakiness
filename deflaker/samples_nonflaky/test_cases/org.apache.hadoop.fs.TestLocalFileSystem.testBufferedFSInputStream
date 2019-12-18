@@ -1,0 +1,44 @@
+/**
+ * Regression test for HADOOP-9307: BufferedFSInputStream returning
+ * wrong results after certain sequences of seeks and reads.
+ */
+@Test
+public void testBufferedFSInputStream() throws IOException {
+    Configuration conf = new Configuration();
+    conf.setClass("fs.file.impl", RawLocalFileSystem.class, FileSystem.class);
+    conf.setInt(CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_KEY, 4096);
+    FileSystem fs = FileSystem.newInstance(conf);
+    byte[] buf = new byte[10 * 1024];
+    new Random().nextBytes(buf);
+    // Write random bytes to file
+    FSDataOutputStream stream = fs.create(TEST_PATH);
+    try {
+        stream.write(buf);
+    } finally {
+        stream.close();
+    }
+    Random r = new Random();
+    FSDataInputStream stm = fs.open(TEST_PATH);
+    // Record the sequence of seeks and reads which trigger a failure.
+    int[] seeks = new int[10];
+    int[] reads = new int[10];
+    try {
+        for (int i = 0; i < 1000; i++) {
+            int seekOff = r.nextInt(buf.length);
+            int toRead = r.nextInt(Math.min(buf.length - seekOff, 32000));
+            seeks[i % seeks.length] = seekOff;
+            reads[i % reads.length] = toRead;
+            verifyRead(stm, buf, seekOff, toRead);
+        }
+    } catch (AssertionError afe) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Sequence of actions:\n");
+        for (int j = 0; j < seeks.length; j++) {
+            sb.append("seek @ ").append(seeks[j]).append("  ").append("read ").append(reads[j]).append("\n");
+        }
+        System.err.println(sb.toString());
+        throw afe;
+    } finally {
+        stm.close();
+    }
+}

@@ -1,0 +1,22 @@
+@Test
+public void testNoExpirationJWT() throws Exception {
+    try {
+        handler.setPublicKey(publicKey);
+        Properties props = getProperties();
+        handler.init(props);
+        SignedJWT jwt = getJWT("bob", null, privateKey);
+        Cookie cookie = new Cookie("hadoop-jwt", jwt.serialize());
+        HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
+        Mockito.when(request.getCookies()).thenReturn(new Cookie[] { cookie });
+        Mockito.when(request.getRequestURL()).thenReturn(new StringBuffer(SERVICE_URL));
+        HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
+        Mockito.when(response.encodeRedirectURL(SERVICE_URL)).thenReturn(SERVICE_URL);
+        AuthenticationToken token = handler.alternateAuthenticate(request, response);
+        Assert.assertNotNull("Token should not be null.", token);
+        Assert.assertEquals("bob", token.getUserName());
+    } catch (ServletException se) {
+        fail("alternateAuthentication should NOT have thrown a ServletException");
+    } catch (AuthenticationException ae) {
+        fail("alternateAuthentication should NOT have thrown a AuthenticationException");
+    }
+}

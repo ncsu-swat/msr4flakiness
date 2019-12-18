@@ -1,0 +1,19 @@
+@Test
+public void testTryOnceThenFail() throws Exception {
+    RetryPolicy policy = mock(TryOnceThenFail.class);
+    RetryPolicy realPolicy = TRY_ONCE_THEN_FAIL;
+    setupMockPolicy(policy, realPolicy);
+    UnreliableInterface unreliable = (UnreliableInterface) RetryProxy.create(UnreliableInterface.class, unreliableImpl, policy);
+    unreliable.alwaysSucceeds();
+    try {
+        unreliable.failsOnceThenSucceeds();
+        fail("Should fail");
+    } catch (UnreliableException e) {
+        // expected
+        verify(policy, times(1)).shouldRetry(any(Exception.class), anyInt(), anyInt(), anyBoolean());
+        assertEquals(RetryDecision.FAIL, caughtRetryAction.action);
+        assertEquals("try once and fail.", caughtRetryAction.reason);
+    } catch (Exception e) {
+        fail("Other exception other than UnreliableException should also get " + "failed.");
+    }
+}

@@ -1,0 +1,10 @@
+@Test
+public void testWithProxyGroupsAndUsersWithSpaces() throws Exception {
+    Configuration conf = new Configuration();
+    conf.set(DefaultImpersonationProvider.getTestProvider().getProxySuperuserUserConfKey(REAL_USER_NAME), StringUtils.join(",", Arrays.asList(PROXY_USER_NAME + " ", AUTHORIZED_PROXY_USER_NAME, "ONEMORE")));
+    conf.set(DefaultImpersonationProvider.getTestProvider().getProxySuperuserGroupConfKey(REAL_USER_NAME), StringUtils.join(",", Arrays.asList(GROUP_NAMES)));
+    conf.set(DefaultImpersonationProvider.getTestProvider().getProxySuperuserIpConfKey(REAL_USER_NAME), PROXY_IP);
+    ProxyUsers.refreshSuperUserGroupsConfiguration(conf);
+    Collection<String> groupsToBeProxied = ProxyUsers.getDefaultImpersonationProvider().getProxyGroups().get(DefaultImpersonationProvider.getTestProvider().getProxySuperuserGroupConfKey(REAL_USER_NAME));
+    assertEquals(GROUP_NAMES.length, groupsToBeProxied.size());
+}

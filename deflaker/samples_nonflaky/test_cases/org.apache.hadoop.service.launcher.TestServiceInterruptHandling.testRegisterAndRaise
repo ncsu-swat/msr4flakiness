@@ -1,0 +1,15 @@
+@Test
+public void testRegisterAndRaise() throws Throwable {
+    InterruptCatcher catcher = new InterruptCatcher();
+    String name = IrqHandler.CONTROL_C;
+    IrqHandler irqHandler = new IrqHandler(name, catcher);
+    irqHandler.bind();
+    assertEquals(0, irqHandler.getSignalCount());
+    irqHandler.raise();
+    // allow for an async event
+    Thread.sleep(500);
+    IrqHandler.InterruptData data = catcher.interruptData;
+    assertNotNull("interrupt data", data);
+    assertEquals(name, data.getName());
+    assertEquals(1, irqHandler.getSignalCount());
+}

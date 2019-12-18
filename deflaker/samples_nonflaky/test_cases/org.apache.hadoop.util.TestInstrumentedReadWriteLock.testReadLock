@@ -1,0 +1,32 @@
+/**
+ * Tests the read lock.
+ * @throws Exception
+ */
+@Test(timeout = 10000)
+public void testReadLock() throws Exception {
+    String testname = name.getMethodName();
+    InstrumentedReadWriteLock readWriteLock = new InstrumentedReadWriteLock(true, testname, LOG, 2000, 300);
+    final AutoCloseableLock readLock = new AutoCloseableLock(readWriteLock.readLock());
+    final AutoCloseableLock writeLock = new AutoCloseableLock(readWriteLock.writeLock());
+    try (AutoCloseableLock lock = readLock.acquire()) {
+        Thread competingReadThread = new Thread() {
+
+            @Override
+            public void run() {
+                assertTrue(readLock.tryLock());
+                readLock.release();
+            }
+        };
+        competingReadThread.start();
+        competingReadThread.join();
+        Thread competingWriteThread = new Thread() {
+
+            @Override
+            public void run() {
+                assertFalse(writeLock.tryLock());
+            }
+        };
+        competingWriteThread.start();
+        competingWriteThread.join();
+    }
+}

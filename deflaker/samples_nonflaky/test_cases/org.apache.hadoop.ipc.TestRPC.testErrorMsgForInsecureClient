@@ -1,0 +1,44 @@
+@Test
+public void testErrorMsgForInsecureClient() throws IOException {
+    Server server;
+    TestRpcService proxy = null;
+    Configuration serverConf = new Configuration(conf);
+    SecurityUtil.setAuthenticationMethod(AuthenticationMethod.KERBEROS, serverConf);
+    UserGroupInformation.setConfiguration(serverConf);
+    server = setupTestServer(serverConf, 5);
+    boolean succeeded = false;
+    try {
+        UserGroupInformation.setConfiguration(conf);
+        proxy = getClient(addr, conf);
+        proxy.echo(null, newEchoRequest(""));
+    } catch (ServiceException e) {
+        assertTrue(e.getCause() instanceof RemoteException);
+        RemoteException re = (RemoteException) e.getCause();
+        LOG.info("LOGGING MESSAGE: " + re.getLocalizedMessage());
+        assertEquals("RPC error code should be UNAUTHORIZED", RpcErrorCodeProto.FATAL_UNAUTHORIZED, re.getErrorCode());
+        assertTrue(re.unwrapRemoteException() instanceof AccessControlException);
+        succeeded = true;
+    } finally {
+        stop(server, proxy);
+    }
+    assertTrue(succeeded);
+    conf.setInt(CommonConfigurationKeys.IPC_SERVER_RPC_READ_THREADS_KEY, 2);
+    UserGroupInformation.setConfiguration(serverConf);
+    server = setupTestServer(serverConf, 5);
+    succeeded = false;
+    proxy = null;
+    try {
+        UserGroupInformation.setConfiguration(conf);
+        proxy = getClient(addr, conf);
+        proxy.echo(null, newEchoRequest(""));
+    } catch (ServiceException e) {
+        RemoteException re = (RemoteException) e.getCause();
+        LOG.info("LOGGING MESSAGE: " + re.getLocalizedMessage());
+        assertEquals("RPC error code should be UNAUTHORIZED", RpcErrorCodeProto.FATAL_UNAUTHORIZED, re.getErrorCode());
+        assertTrue(re.unwrapRemoteException() instanceof AccessControlException);
+        succeeded = true;
+    } finally {
+        stop(server, proxy);
+    }
+    assertTrue(succeeded);
+}

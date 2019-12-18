@@ -1,0 +1,20 @@
+/**
+ * A simple test to test that for the configured ports, the resolver
+ * can return the current SASL properties.
+ */
+@Test
+public void testResolver() {
+    Configuration conf = new Configuration();
+    conf.set("ingress.port.sasl.configured.ports", "444,555,666,777");
+    conf.set("ingress.port.sasl.prop.444", "authentication");
+    conf.set("ingress.port.sasl.prop.555", "authentication,privacy");
+    conf.set("ingress.port.sasl.prop.666", "privacy");
+    IngressPortBasedResolver resolver = new IngressPortBasedResolver();
+    resolver.setConf(conf);
+    // the client address does not matter, give it a null
+    assertEquals("auth", resolver.getServerProperties(null, 444).get(Sasl.QOP));
+    assertEquals("auth,auth-conf", resolver.getServerProperties(null, 555).get(Sasl.QOP));
+    assertEquals("auth-conf", resolver.getServerProperties(null, 666).get(Sasl.QOP));
+    assertEquals("auth-conf", resolver.getServerProperties(null, 777).get(Sasl.QOP));
+    assertEquals("auth", resolver.getServerProperties(null, 888).get(Sasl.QOP));
+}
