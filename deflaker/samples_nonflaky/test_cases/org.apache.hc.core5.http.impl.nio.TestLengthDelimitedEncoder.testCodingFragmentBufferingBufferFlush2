@@ -1,0 +1,17 @@
+@Test
+public void testCodingFragmentBufferingBufferFlush2() throws Exception {
+    final WritableByteChannelMock channel = Mockito.spy(new WritableByteChannelMock(64));
+    final SessionOutputBuffer outbuf = Mockito.spy(new SessionOutputBufferImpl(1024, 128));
+    final BasicHttpTransportMetrics metrics = new BasicHttpTransportMetrics();
+    final LengthDelimitedEncoder encoder = new LengthDelimitedEncoder(channel, outbuf, metrics, 100, 8);
+    Assert.assertEquals(5, encoder.write(CodecTestUtils.wrap("stuff")));
+    Assert.assertEquals(16, encoder.write(CodecTestUtils.wrap("-much more stuff")));
+    Mockito.verify(channel, Mockito.times(2)).write(ArgumentMatchers.<ByteBuffer>any());
+    Mockito.verify(outbuf, Mockito.times(1)).write(ArgumentMatchers.<ByteBuffer>any());
+    Mockito.verify(outbuf, Mockito.times(1)).flush(channel);
+    Assert.assertEquals(21, metrics.getBytesTransferred());
+    Assert.assertEquals(0, outbuf.length());
+    outbuf.flush(channel);
+    final String s = channel.dump(StandardCharsets.US_ASCII);
+    Assert.assertEquals("stuff-much more stuff", s);
+}

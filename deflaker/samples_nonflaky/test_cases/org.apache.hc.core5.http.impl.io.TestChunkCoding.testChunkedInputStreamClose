@@ -1,0 +1,25 @@
+@Test
+public void testChunkedInputStreamClose() throws IOException {
+    final String s = "5\r\n01234\r\n5\r\n56789\r\n0\r\n";
+    final SessionInputBuffer inBuffer = new SessionInputBufferImpl(16);
+    final ByteArrayInputStream inputStream = new ByteArrayInputStream(s.getBytes(StandardCharsets.ISO_8859_1));
+    final ChunkedInputStream in = new ChunkedInputStream(inBuffer, inputStream);
+    in.close();
+    in.close();
+    try {
+        in.read();
+        Assert.fail("StreamClosedException expected");
+    } catch (final StreamClosedException expected) {
+    }
+    final byte[] tmp = new byte[10];
+    try {
+        in.read(tmp);
+        Assert.fail("StreamClosedException expected");
+    } catch (final StreamClosedException expected) {
+    }
+    try {
+        in.read(tmp, 0, tmp.length);
+        Assert.fail("StreamClosedException expected");
+    } catch (final StreamClosedException expected) {
+    }
+}

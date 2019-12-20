@@ -1,0 +1,23 @@
+@Test
+public void testSerialization() throws Exception {
+    final ByteArrayBuffer orig = new ByteArrayBuffer(32);
+    orig.append(1);
+    orig.append(2);
+    orig.append(3);
+    final ByteArrayOutputStream outbuffer = new ByteArrayOutputStream();
+    try (final ObjectOutputStream outStream = new ObjectOutputStream(outbuffer)) {
+        outStream.writeObject(orig);
+    }
+    final byte[] raw = outbuffer.toByteArray();
+    final ByteArrayInputStream inBuffer = new ByteArrayInputStream(raw);
+    final ObjectInputStream inStream = new ObjectInputStream(inBuffer);
+    final ByteArrayBuffer clone = (ByteArrayBuffer) inStream.readObject();
+    Assert.assertEquals(orig.capacity(), clone.capacity());
+    Assert.assertEquals(orig.length(), clone.length());
+    final byte[] data = clone.toByteArray();
+    Assert.assertNotNull(data);
+    Assert.assertEquals(3, data.length);
+    Assert.assertEquals(1, data[0]);
+    Assert.assertEquals(2, data[1]);
+    Assert.assertEquals(3, data[2]);
+}

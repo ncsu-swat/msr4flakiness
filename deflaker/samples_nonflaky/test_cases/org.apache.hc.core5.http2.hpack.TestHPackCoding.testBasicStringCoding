@@ -1,0 +1,15 @@
+@Test
+public void testBasicStringCoding() throws Exception {
+    final HPackEncoder encoder = new HPackEncoder(StandardCharsets.US_ASCII);
+    final HPackDecoder decoder = new HPackDecoder(StandardCharsets.US_ASCII);
+    final ByteArrayBuffer buffer = new ByteArrayBuffer(16);
+    encoder.encodeString(buffer, "this and that", false);
+    final StringBuilder strBuf = new StringBuilder();
+    decoder.decodeString(ByteBuffer.wrap(buffer.array(), 0, buffer.length()), strBuf);
+    Assert.assertEquals("this and that", strBuf.toString());
+    buffer.clear();
+    strBuf.setLength(0);
+    encoder.encodeString(buffer, "this and that and Huffman", true);
+    decoder.decodeString(ByteBuffer.wrap(buffer.array(), 0, buffer.length()), strBuf);
+    Assert.assertEquals("this and that and Huffman", strBuf.toString());
+}

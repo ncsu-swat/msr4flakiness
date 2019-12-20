@@ -1,0 +1,19 @@
+@Test
+public void defaultTestsWithMockedAdapter() throws Exception {
+    final Set<String> calledMethodSet = new HashSet<>();
+    final ClientTestingAdapter adapter = new ClientTestingAdapter() {
+
+        @Override
+        public Map<String, Object> execute(final String defaultURI, final Map<String, Object> request, final TestingFrameworkRequestHandler requestHandler, final Map<String, Object> responseExpectations) throws TestingFrameworkException {
+            calledMethodSet.add((String) request.get(METHOD));
+            return alreadyCheckedResponse();
+        }
+    };
+    // create the framework without deleting the default tests.
+    final TestingFramework framework = new TestingFramework();
+    framework.setAdapter(adapter);
+    framework.runTests();
+    for (final String method : TestingFramework.ALL_METHODS) {
+        Assert.assertTrue("Method not in default tests.  method=" + method, calledMethodSet.contains(method));
+    }
+}

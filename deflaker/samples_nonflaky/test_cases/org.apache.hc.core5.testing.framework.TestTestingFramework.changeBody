@@ -1,0 +1,22 @@
+@Test
+public void changeBody() throws Exception {
+    final ClientTestingAdapter adapter = new ClassicTestClientTestingAdapter() {
+
+        @Override
+        public Map<String, Object> execute(final String defaultURI, final Map<String, Object> request, final TestingFrameworkRequestHandler requestHandler, final Map<String, Object> responseExpectations) throws TestingFrameworkException {
+            // change the request from what is expected.
+            final String body = (String) request.get(BODY);
+            Assert.assertNotNull(body);
+            request.put(BODY, request.get(BODY) + "junk");
+            return super.execute(defaultURI, request, requestHandler, responseExpectations);
+        }
+    };
+    final TestingFramework framework = newFrameworkAndSetAdapter(adapter);
+    framework.addTest();
+    try {
+        framework.runTests();
+        Assert.fail("WebServerTestingFrameworkException should have been thrown");
+    } catch (final TestingFrameworkException e) {
+    // expected
+    }
+}

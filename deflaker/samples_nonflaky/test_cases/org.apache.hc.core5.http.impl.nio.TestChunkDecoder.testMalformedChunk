@@ -1,0 +1,15 @@
+@Test
+public void testMalformedChunk() throws Exception {
+    final String s = "5\r\n01234----------------------------------------------------------" + "-----------------------------------------------------------------------------" + "-----------------------------------------------------------------------------";
+    final ReadableByteChannel channel = new ReadableByteChannelMock(new String[] { s }, StandardCharsets.US_ASCII);
+    final SessionInputBuffer inbuf = new SessionInputBufferImpl(32, 32, 0, StandardCharsets.US_ASCII);
+    final BasicHttpTransportMetrics metrics = new BasicHttpTransportMetrics();
+    final ChunkDecoder decoder = new ChunkDecoder(channel, inbuf, metrics);
+    final ByteBuffer dst = ByteBuffer.allocate(1024);
+    try {
+        decoder.read(dst);
+        Assert.fail("MalformedChunkCodingException should have been thrown");
+    } catch (final MalformedChunkCodingException ex) {
+    // expected
+    }
+}

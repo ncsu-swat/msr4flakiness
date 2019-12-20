@@ -1,0 +1,26 @@
+@Test
+public void responseContentTypeCheck() throws Exception {
+    final ClientTestingAdapter adapter = new ClientTestingAdapter() {
+
+        @Override
+        public Map<String, Object> execute(final String defaultURI, final Map<String, Object> request, final TestingFrameworkRequestHandler requestHandler, final Map<String, Object> responseExpectations) {
+            Assert.assertEquals(TestingFramework.DEFAULT_RESPONSE_CONTENT_TYPE, responseExpectations.get(CONTENT_TYPE));
+            final Map<String, Object> response = new HashMap<>();
+            response.put(STATUS, TestingFramework.ALREADY_CHECKED);
+            response.put(HEADERS, TestingFramework.ALREADY_CHECKED);
+            // return the expected body
+            response.put(BODY, TestingFramework.DEFAULT_RESPONSE_BODY);
+            // return a different content type than expected.
+            response.put(CONTENT_TYPE, ContentType.DEFAULT_TEXT);
+            return response;
+        }
+    };
+    final TestingFramework framework = newFrameworkAndSetAdapter(adapter);
+    framework.addTest();
+    try {
+        framework.runTests();
+        Assert.fail("WebServerTestingFrameworkException should have been thrown");
+    } catch (final TestingFrameworkException e) {
+    // expected
+    }
+}

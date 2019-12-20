@@ -1,0 +1,23 @@
+@Test
+public void testChunkedConsistence() throws IOException {
+    final String input = "76126;27823abcd;:q38a-\nkjc\rk%1ad\tkh/asdui\r\njkh+?\\suweb";
+    final SessionOutputBuffer outbuffer = new SessionOutputBufferImpl(16);
+    final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    final ChunkedOutputStream out = new ChunkedOutputStream(outbuffer, outputStream, 2048);
+    out.write(input.getBytes(StandardCharsets.ISO_8859_1));
+    out.flush();
+    out.close();
+    out.close();
+    final SessionInputBuffer inBuffer = new SessionInputBufferImpl(16);
+    final ByteArrayInputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
+    final ChunkedInputStream in = new ChunkedInputStream(inBuffer, inputStream);
+    final byte[] d = new byte[10];
+    final ByteArrayOutputStream result = new ByteArrayOutputStream();
+    int len = 0;
+    while ((len = in.read(d)) > 0) {
+        result.write(d, 0, len);
+    }
+    final String output = new String(result.toByteArray(), StandardCharsets.ISO_8859_1);
+    Assert.assertEquals(input, output);
+    in.close();
+}

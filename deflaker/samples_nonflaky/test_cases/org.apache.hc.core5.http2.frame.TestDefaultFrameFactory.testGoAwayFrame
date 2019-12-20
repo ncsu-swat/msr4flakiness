@@ -1,0 +1,15 @@
+@Test
+public void testGoAwayFrame() throws Exception {
+    final FrameFactory frameFactory = new DefaultFrameFactory();
+    final Frame<ByteBuffer> goAwayFrame = frameFactory.createGoAway(13, H2Error.INTERNAL_ERROR, "Oopsie");
+    Assert.assertEquals(FrameType.GOAWAY.value, goAwayFrame.getType());
+    Assert.assertEquals(0, goAwayFrame.getStreamId());
+    Assert.assertEquals(0, goAwayFrame.getFlags());
+    final ByteBuffer payload = goAwayFrame.getPayload();
+    Assert.assertNotNull(payload);
+    Assert.assertEquals(13, payload.getInt());
+    Assert.assertEquals(H2Error.INTERNAL_ERROR.getCode(), payload.getInt());
+    final byte[] tmp = new byte[payload.remaining()];
+    payload.get(tmp);
+    Assert.assertEquals("Oopsie", new String(tmp, StandardCharsets.US_ASCII));
+}

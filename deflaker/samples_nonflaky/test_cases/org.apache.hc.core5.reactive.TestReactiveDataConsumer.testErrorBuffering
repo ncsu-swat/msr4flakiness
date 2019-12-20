@@ -1,0 +1,12 @@
+@Test
+public void testErrorBuffering() throws Exception {
+    final ReactiveDataConsumer consumer = new ReactiveDataConsumer();
+    final ByteBuffer data = ByteBuffer.wrap(new byte[1024]);
+    final RuntimeException ex = new RuntimeException();
+    consumer.consume(data.duplicate());
+    consumer.consume(data.duplicate());
+    consumer.consume(data.duplicate());
+    consumer.failed(ex);
+    final Notification<ByteBuffer> result = Flowable.fromPublisher(consumer).materialize().singleOrError().blockingGet();
+    Assert.assertSame(ex, result.getError());
+}

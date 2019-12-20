@@ -1,0 +1,29 @@
+@Test
+public void testWriteTo() throws Exception {
+    final File tmpfile = File.createTempFile("testfile", ".txt");
+    tmpfile.deleteOnExit();
+    final FileOutputStream outStream = new FileOutputStream(tmpfile);
+    outStream.write(0);
+    outStream.write(1);
+    outStream.write(2);
+    outStream.write(3);
+    outStream.close();
+    final FileEntity httpentity = new FileEntity(tmpfile, ContentType.TEXT_PLAIN);
+    final ByteArrayOutputStream out = new ByteArrayOutputStream();
+    httpentity.writeTo(out);
+    final byte[] bytes = out.toByteArray();
+    Assert.assertNotNull(bytes);
+    Assert.assertEquals(tmpfile.length(), bytes.length);
+    for (int i = 0; i < 4; i++) {
+        Assert.assertEquals(i, bytes[i]);
+    }
+    if (!tmpfile.delete()) {
+        Assert.fail("Failed to delete: " + tmpfile);
+    }
+    try {
+        httpentity.writeTo(null);
+        Assert.fail("IllegalArgumentException should have been thrown");
+    } catch (final IllegalArgumentException ex) {
+    // expected
+    }
+}

@@ -1,0 +1,28 @@
+@Test
+public void testHeaderEntrySizeNonAscii() throws Exception {
+    final ByteArrayBuffer buffer = new ByteArrayBuffer(128);
+    final Header header = new BasicHeader("hello", constructHelloString(SWISS_GERMAN_HELLO, 1));
+    final OutboundDynamicTable outboundTable1 = new OutboundDynamicTable();
+    final HPackEncoder encoder1 = new HPackEncoder(outboundTable1, StandardCharsets.ISO_8859_1);
+    final InboundDynamicTable inboundTable1 = new InboundDynamicTable();
+    final HPackDecoder decoder1 = new HPackDecoder(inboundTable1, StandardCharsets.ISO_8859_1);
+    encoder1.setMaxTableSize(48);
+    decoder1.setMaxTableSize(48);
+    encoder1.encodeHeader(buffer, header);
+    assertHeaderEquals(header, decoder1.decodeHeader(ByteBuffer.wrap(buffer.array(), 0, buffer.length())));
+    Assert.assertEquals(1, outboundTable1.dynamicLength());
+    Assert.assertEquals(1, inboundTable1.dynamicLength());
+    assertHeaderEquals(header, outboundTable1.getDynamicEntry(0));
+    assertHeaderEquals(header, inboundTable1.getDynamicEntry(0));
+    buffer.clear();
+    final OutboundDynamicTable outboundTable2 = new OutboundDynamicTable();
+    final HPackEncoder encoder2 = new HPackEncoder(outboundTable2, StandardCharsets.UTF_8);
+    final InboundDynamicTable inboundTable2 = new InboundDynamicTable();
+    final HPackDecoder decoder2 = new HPackDecoder(inboundTable2, StandardCharsets.UTF_8);
+    encoder2.setMaxTableSize(48);
+    decoder2.setMaxTableSize(48);
+    encoder2.encodeHeader(buffer, header);
+    assertHeaderEquals(header, decoder2.decodeHeader(ByteBuffer.wrap(buffer.array(), 0, buffer.length())));
+    Assert.assertEquals(0, outboundTable2.dynamicLength());
+    Assert.assertEquals(0, inboundTable2.dynamicLength());
+}

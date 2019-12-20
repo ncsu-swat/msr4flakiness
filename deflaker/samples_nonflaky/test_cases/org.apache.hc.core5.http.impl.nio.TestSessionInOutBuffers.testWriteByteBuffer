@@ -1,0 +1,12 @@
+@Test
+public void testWriteByteBuffer() throws Exception {
+    final byte[] pattern = "0123456789ABCDEF0123456789ABCDEF".getBytes(StandardCharsets.US_ASCII);
+    final SessionOutputBuffer outbuf = new SessionOutputBufferImpl(4096, 1024);
+    final ReadableByteChannel src = newChannel(pattern);
+    outbuf.write(src);
+    final ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+    final WritableByteChannel channel = newChannel(outStream);
+    while (outbuf.flush(channel) > 0) {
+    }
+    Assert.assertEquals(ByteBuffer.wrap(pattern), ByteBuffer.wrap(outStream.toByteArray()));
+}

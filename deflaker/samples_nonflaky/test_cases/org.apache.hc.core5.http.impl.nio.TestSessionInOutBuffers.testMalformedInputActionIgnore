@@ -1,0 +1,15 @@
+@Test
+public void testMalformedInputActionIgnore() throws Exception {
+    final String s = constructString(SWISS_GERMAN_HELLO);
+    final byte[] tmp = s.getBytes(StandardCharsets.ISO_8859_1);
+    final CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder();
+    decoder.onMalformedInput(CodingErrorAction.IGNORE);
+    decoder.onUnmappableCharacter(CodingErrorAction.IGNORE);
+    final SessionInputBuffer inbuf = new SessionInputBufferImpl(16, 16, 0, decoder);
+    final ReadableByteChannel channel = newChannel(tmp);
+    while (inbuf.fill(channel) > 0) {
+    }
+    final CharArrayBuffer chbuffer = new CharArrayBuffer(16);
+    inbuf.readLine(chbuffer, true);
+    Assert.assertEquals("Grezi_zm", chbuffer.toString());
+}

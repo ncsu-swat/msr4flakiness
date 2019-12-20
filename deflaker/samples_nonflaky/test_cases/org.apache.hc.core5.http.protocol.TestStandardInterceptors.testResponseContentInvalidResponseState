@@ -1,0 +1,21 @@
+@Test
+public void testResponseContentInvalidResponseState() throws Exception {
+    final ResponseContent interceptor = new ResponseContent();
+    final HttpContext context = new BasicHttpContext(null);
+    try {
+        final ClassicHttpResponse response = new BasicClassicHttpResponse(HttpStatus.SC_OK, "OK");
+        response.addHeader(new BasicHeader(HttpHeaders.CONTENT_LENGTH, "10"));
+        interceptor.process(response, response.getEntity(), context);
+        Assert.fail("ProtocolException should have been thrown");
+    } catch (final ProtocolException ex) {
+    // expected
+    }
+    try {
+        final ClassicHttpResponse response = new BasicClassicHttpResponse(HttpStatus.SC_OK, "OK");
+        response.addHeader(new BasicHeader(HttpHeaders.TRANSFER_ENCODING, "stuff"));
+        interceptor.process(response, response.getEntity(), context);
+        Assert.fail("ProtocolException should have been thrown");
+    } catch (final ProtocolException ex) {
+    // expected
+    }
+}

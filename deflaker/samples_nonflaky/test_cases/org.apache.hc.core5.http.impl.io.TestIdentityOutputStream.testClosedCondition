@@ -1,0 +1,19 @@
+@Test
+public void testClosedCondition() throws Exception {
+    final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    final SessionOutputBuffer outbuffer = new SessionOutputBufferImpl(16);
+    final OutputStream out = new IdentityOutputStream(outbuffer, outputStream);
+    out.close();
+    out.close();
+    try {
+        final byte[] tmp = new byte[2];
+        out.write(tmp, 0, tmp.length);
+        Assert.fail("StreamClosedException expected");
+    } catch (final StreamClosedException expected) {
+    }
+    try {
+        out.write('a');
+        Assert.fail("StreamClosedException expected");
+    } catch (final IOException expected) {
+    }
+}

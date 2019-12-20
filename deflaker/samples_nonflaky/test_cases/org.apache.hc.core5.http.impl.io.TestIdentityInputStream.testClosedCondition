@@ -1,0 +1,21 @@
+@Test
+public void testClosedCondition() throws Exception {
+    final byte[] input = new byte[] { 'a', 'b', 'c' };
+    final ByteArrayInputStream inputStream = new ByteArrayInputStream(input);
+    final SessionInputBuffer inBuffer = new SessionInputBufferImpl(16);
+    final IdentityInputStream in = new IdentityInputStream(inBuffer, inputStream);
+    in.close();
+    in.close();
+    Assert.assertEquals(0, in.available());
+    final byte[] tmp = new byte[2];
+    try {
+        in.read(tmp, 0, tmp.length);
+        Assert.fail("StreamClosedException expected");
+    } catch (final StreamClosedException expected) {
+    }
+    try {
+        in.read();
+        Assert.fail("StreamClosedException expected");
+    } catch (final StreamClosedException expected) {
+    }
+}

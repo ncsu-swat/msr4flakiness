@@ -1,0 +1,24 @@
+@Test
+public void testResumeOnSocketTimeoutInChunk() throws IOException {
+    final String s = "5\000\r\000\n\00001234\r\n\0005\r\n56789\r\na\r\n0123456789\r\n\0000\r\n";
+    final SessionInputBuffer inBuffer = new SessionInputBufferImpl(16);
+    final TimeoutByteArrayInputStream inputStream = new TimeoutByteArrayInputStream(s.getBytes(StandardCharsets.ISO_8859_1));
+    final ChunkedInputStream in = new ChunkedInputStream(inBuffer, inputStream);
+    final byte[] tmp = new byte[3];
+    int bytesRead = 0;
+    int timeouts = 0;
+    int i = 0;
+    while (i != -1) {
+        try {
+            i = in.read(tmp);
+            if (i > 0) {
+                bytesRead += i;
+            }
+        } catch (final InterruptedIOException ex) {
+            timeouts++;
+        }
+    }
+    Assert.assertEquals(20, bytesRead);
+    Assert.assertEquals(5, timeouts);
+    in.close();
+}

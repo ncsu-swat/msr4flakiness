@@ -1,0 +1,12 @@
+@Test
+public void testFullResponseBuffering() throws Exception {
+    // Due to inherent race conditions, is possible for the entire response to be buffered and completed before
+    // the Subscriber shows up. This must be handled correctly.
+    final ReactiveDataConsumer consumer = new ReactiveDataConsumer();
+    final ByteBuffer data = ByteBuffer.wrap(new byte[1024]);
+    consumer.consume(data.duplicate());
+    consumer.consume(data.duplicate());
+    consumer.consume(data.duplicate());
+    consumer.streamEnd(null);
+    Assert.assertEquals(Flowable.fromPublisher(consumer).count().blockingGet().longValue(), 3L);
+}

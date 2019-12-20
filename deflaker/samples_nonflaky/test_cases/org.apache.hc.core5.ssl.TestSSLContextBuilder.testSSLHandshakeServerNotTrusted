@@ -1,0 +1,34 @@
+@Test
+public void testSSLHandshakeServerNotTrusted() throws Exception {
+    thrown.expect(IOException.class);
+    final URL resource1 = getResource("/test-server.p12");
+    final String storePassword = "nopassword";
+    final String keyPassword = "nopassword";
+    final SSLContext serverSslContext = SSLContextBuilder.create().loadKeyMaterial(resource1, storePassword.toCharArray(), keyPassword.toCharArray()).build();
+    Assert.assertNotNull(serverSslContext);
+    final URL resource2 = getResource("/test.p12");
+    final SSLContext clientSslContext = SSLContextBuilder.create().loadTrustMaterial(resource2, storePassword.toCharArray()).build();
+    Assert.assertNotNull(clientSslContext);
+    final ServerSocket serverSocket = serverSslContext.getServerSocketFactory().createServerSocket();
+    serverSocket.bind(new InetSocketAddress(0));
+    this.executorService = Executors.newSingleThreadExecutor();
+    this.executorService.submit(new Callable<Boolean>() {
+
+        @Override
+        public Boolean call() throws Exception {
+            final SSLSocket socket = (SSLSocket) serverSocket.accept();
+            try {
+                socket.getSession();
+            } finally {
+                socket.close();
+            }
+            return Boolean.FALSE;
+        }
+    });
+    final int localPort = serverSocket.getLocalPort();
+    try (final SSLSocket clientSocket = (SSLSocket) clientSslContext.getSocketFactory().createSocket()) {
+        clientSocket.connect(new InetSocketAddress("localhost", localPort), TIMEOUT.toMillisecondsIntBound());
+        clientSocket.setSoTimeout(TIMEOUT.toMillisecondsIntBound());
+        clientSocket.startHandshake();
+    }
+}

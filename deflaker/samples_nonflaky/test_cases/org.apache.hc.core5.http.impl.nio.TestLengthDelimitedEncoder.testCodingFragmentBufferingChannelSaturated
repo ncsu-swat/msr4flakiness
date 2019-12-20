@@ -1,0 +1,24 @@
+@Test
+public void testCodingFragmentBufferingChannelSaturated() throws Exception {
+    final WritableByteChannelMock channel = Mockito.spy(new WritableByteChannelMock(64, 8));
+    final SessionOutputBuffer outbuf = Mockito.spy(new SessionOutputBufferImpl(1024, 128));
+    final BasicHttpTransportMetrics metrics = new BasicHttpTransportMetrics();
+    final LengthDelimitedEncoder encoder = new LengthDelimitedEncoder(channel, outbuf, metrics, 100, 3);
+    Assert.assertEquals(5, encoder.write(CodecTestUtils.wrap("stuff")));
+    Assert.assertEquals(1, encoder.write(CodecTestUtils.wrap("-")));
+    Assert.assertEquals(1, encoder.write(CodecTestUtils.wrap("-")));
+    Assert.assertEquals(1, encoder.write(CodecTestUtils.wrap("-")));
+    Assert.assertEquals(1, encoder.write(CodecTestUtils.wrap("-")));
+    Assert.assertEquals(1, encoder.write(CodecTestUtils.wrap("-")));
+    Assert.assertEquals(1, encoder.write(CodecTestUtils.wrap("-")));
+    Assert.assertEquals(0, encoder.write(CodecTestUtils.wrap("-")));
+    Assert.assertEquals(0, encoder.write(CodecTestUtils.wrap("more stuff")));
+    Mockito.verify(channel, Mockito.times(5)).write(ArgumentMatchers.<ByteBuffer>any());
+    Mockito.verify(outbuf, Mockito.times(6)).write(ArgumentMatchers.<ByteBuffer>any());
+    Mockito.verify(outbuf, Mockito.times(4)).flush(channel);
+    Assert.assertEquals(8, metrics.getBytesTransferred());
+    outbuf.flush(channel);
+    final String s = channel.dump(StandardCharsets.US_ASCII);
+    Assert.assertEquals("stuff---", s);
+    Assert.assertEquals(3, outbuf.length());
+}

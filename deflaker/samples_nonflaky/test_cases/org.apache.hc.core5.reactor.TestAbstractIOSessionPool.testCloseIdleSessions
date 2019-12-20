@@ -1,0 +1,14 @@
+@Test
+public void testCloseIdleSessions() throws Exception {
+    final AbstractIOSessionPool.PoolEntry entry1 = impl.getPoolEntry("host1");
+    Assert.assertThat(entry1, CoreMatchers.notNullValue());
+    entry1.session = ioSession1;
+    final AbstractIOSessionPool.PoolEntry entry2 = impl.getPoolEntry("host2");
+    Assert.assertThat(entry2, CoreMatchers.notNullValue());
+    entry2.session = ioSession2;
+    impl.closeIdle(TimeValue.ZERO_MILLISECONDS);
+    Mockito.verify(impl).closeSession(ioSession1, CloseMode.GRACEFUL);
+    Mockito.verify(impl).closeSession(ioSession2, CloseMode.GRACEFUL);
+    Assert.assertThat(entry1.session, CoreMatchers.nullValue());
+    Assert.assertThat(entry2.session, CoreMatchers.nullValue());
+}

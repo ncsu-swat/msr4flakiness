@@ -1,0 +1,12 @@
+@Test
+public void testAbortConnectionIOError() throws Exception {
+    Mockito.when(eofwatcher.streamAbort(Mockito.<InputStream>any())).thenThrow(new IOException());
+    try {
+        eofstream.abort();
+        Assert.fail("IOException expected");
+    } catch (final IOException ex) {
+    }
+    Assert.assertTrue(eofstream.isSelfClosed());
+    Assert.assertNull(eofstream.getWrappedStream());
+    Mockito.verify(eofwatcher).streamAbort(inStream);
+}

@@ -1,0 +1,32 @@
+@Test
+public void modifyRequestCalled() throws Exception {
+    final TestingFrameworkRequestHandler mockRequestHandler = Mockito.mock(TestingFrameworkRequestHandler.class);
+    final String UNLIKELY_ITEM = "something_unlikely_to_be_in_a_real_request";
+    final ClientTestingAdapter adapter = new ClientTestingAdapter() {
+
+        @Override
+        public Map<String, Object> execute(final String defaultURI, final Map<String, Object> request, final TestingFrameworkRequestHandler requestHandler, final Map<String, Object> responseExpectations) throws TestingFrameworkException {
+            // make sure the modifyRequest method was called by seeing if the request was modified.
+            Assert.assertTrue("modifyRequest should have been called.", request.containsKey(UNLIKELY_ITEM));
+            final Map<String, Object> response = new HashMap<>();
+            response.put(STATUS, responseExpectations.get(STATUS));
+            response.put(BODY, responseExpectations.get(BODY));
+            response.put(CONTENT_TYPE, responseExpectations.get(CONTENT_TYPE));
+            response.put(HEADERS, responseExpectations.get(HEADERS));
+            return response;
+        }
+
+        @Override
+        public Map<String, Object> modifyRequest(final Map<String, Object> request) {
+            // let the adapter change the request if needed.
+            request.put(UNLIKELY_ITEM, new Object());
+            return super.modifyRequest(request);
+        }
+    };
+    final TestingFramework framework = newFrameworkAndSetAdapter(adapter);
+    framework.setRequestHandler(mockRequestHandler);
+    framework.addTest();
+    framework.runTests();
+    // assertNothingThrown() should have been called.
+    Mockito.verify(mockRequestHandler).assertNothingThrown();
+}

@@ -1,0 +1,14 @@
+@Test
+public void testChunkedOutputStream() throws IOException {
+    final SessionOutputBuffer outbuffer = new SessionOutputBufferImpl(16);
+    final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    final ChunkedOutputStream out = new ChunkedOutputStream(outbuffer, outputStream, 2);
+    out.write('1');
+    out.write('2');
+    out.write('3');
+    out.write('4');
+    out.finish();
+    out.close();
+    final String content = new String(outputStream.toByteArray(), StandardCharsets.US_ASCII);
+    Assert.assertEquals("2\r\n12\r\n2\r\n34\r\n0\r\n\r\n", content);
+}

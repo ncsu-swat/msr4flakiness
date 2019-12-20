@@ -1,0 +1,28 @@
+@Test
+public void testStreamThatEndsNormally() throws Exception {
+    final ReactiveDataConsumer consumer = new ReactiveDataConsumer();
+    final List<ByteBuffer> output = Collections.synchronizedList(new ArrayList<ByteBuffer>());
+    final CountDownLatch complete = new CountDownLatch(1);
+    Observable.fromPublisher(consumer).materialize().forEach(new Consumer<Notification<ByteBuffer>>() {
+
+        @Override
+        public void accept(final Notification<ByteBuffer> byteBufferNotification) throws Exception {
+            if (byteBufferNotification.isOnComplete()) {
+                complete.countDown();
+            } else if (byteBufferNotification.isOnNext()) {
+                output.add(byteBufferNotification.getValue());
+            } else {
+                throw new IllegalArgumentException();
+            }
+        }
+    });
+    consumer.consume(ByteBuffer.wrap(new byte[] { '1' }));
+    consumer.consume(ByteBuffer.wrap(new byte[] { '2' }));
+    consumer.consume(ByteBuffer.wrap(new byte[] { '3' }));
+    consumer.streamEnd(null);
+    Assert.assertTrue("Stream did not finish before timeout", complete.await(1, TimeUnit.SECONDS));
+    Assert.assertEquals(3, output.size());
+    Assert.assertEquals(ByteBuffer.wrap(new byte[] { '1' }), output.get(0));
+    Assert.assertEquals(ByteBuffer.wrap(new byte[] { '2' }), output.get(1));
+    Assert.assertEquals(ByteBuffer.wrap(new byte[] { '3' }), output.get(2));
+}

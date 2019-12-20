@@ -1,0 +1,11 @@
+@Test
+public void testChunkedOutputStreamLargeChunk() throws IOException {
+    final SessionOutputBuffer outbuffer = new SessionOutputBufferImpl(16);
+    final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    final ChunkedOutputStream out = new ChunkedOutputStream(outbuffer, outputStream, 2);
+    out.write(new byte[] { '1', '2', '3', '4' });
+    out.finish();
+    out.close();
+    final String content = new String(outputStream.toByteArray(), StandardCharsets.US_ASCII);
+    Assert.assertEquals("4\r\n1234\r\n0\r\n\r\n", content);
+}

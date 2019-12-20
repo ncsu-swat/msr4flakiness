@@ -1,0 +1,18 @@
+@Test
+public void testProduceDataWithBuffering1() throws Exception {
+    final AsyncEntityProducer producer = new ChunkByteAsyncEntityProducer(5, ContentType.TEXT_PLAIN, new byte[] { '1', '2', '3' }, new byte[] { '4', '5', '6' }, new byte[] { '7', '8' }, new byte[] { '9', '0' });
+    final WritableByteChannelMock byteChannel = new WritableByteChannelMock(1024);
+    final DataStreamChannel streamChannel = new BasicDataStreamChannel(byteChannel);
+    producer.produce(streamChannel);
+    Assert.assertTrue(byteChannel.isOpen());
+    Assert.assertEquals("", byteChannel.dump(StandardCharsets.US_ASCII));
+    producer.produce(streamChannel);
+    Assert.assertTrue(byteChannel.isOpen());
+    Assert.assertEquals("123", byteChannel.dump(StandardCharsets.US_ASCII));
+    producer.produce(streamChannel);
+    Assert.assertTrue(byteChannel.isOpen());
+    Assert.assertEquals("45678", byteChannel.dump(StandardCharsets.US_ASCII));
+    producer.produce(streamChannel);
+    Assert.assertFalse(byteChannel.isOpen());
+    Assert.assertEquals("90", byteChannel.dump(StandardCharsets.US_ASCII));
+}

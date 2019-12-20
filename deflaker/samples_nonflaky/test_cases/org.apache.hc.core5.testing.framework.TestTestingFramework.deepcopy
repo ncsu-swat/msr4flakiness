@@ -1,0 +1,25 @@
+@Test
+public void deepcopy() throws Exception {
+    // save a copy of the headers to make sure they haven't changed at the end of this test.
+    @SuppressWarnings("unchecked")
+    final Map<String, String> headersCopy = (Map<String, String>) TestingFramework.deepcopy(TestingFramework.DEFAULT_RESPONSE_HEADERS);
+    Assert.assertEquals(TestingFramework.DEFAULT_RESPONSE_HEADERS, headersCopy);
+    final Map<String, Object> deepMap = new HashMap<>();
+    deepMap.put(HEADERS, TestingFramework.DEFAULT_RESPONSE_HEADERS);
+    @SuppressWarnings("unchecked")
+    final Map<String, Object> deepMapCopy = (Map<String, Object>) TestingFramework.deepcopy(deepMap);
+    Assert.assertEquals(deepMap, deepMapCopy);
+    @SuppressWarnings("unchecked")
+    final Map<String, String> headersMap = (Map<String, String>) deepMapCopy.get(HEADERS);
+    Assert.assertEquals(headersCopy, headersMap);
+    // now make sure the default headers have not changed for some unexpected reason.
+    Assert.assertEquals(TestingFramework.DEFAULT_RESPONSE_HEADERS, headersCopy);
+}
+private Object deepcopy(final Object obj) {
+    try {
+        return TestingFramework.deepcopy(obj);
+    } catch (final Exception e) {
+        Assert.fail("deepcopy failed: " + e.getMessage());
+        return null;
+    }
+}

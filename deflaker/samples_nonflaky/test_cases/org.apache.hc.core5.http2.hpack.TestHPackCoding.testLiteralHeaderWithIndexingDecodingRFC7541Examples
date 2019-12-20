@@ -1,0 +1,11 @@
+@Test
+public void testLiteralHeaderWithIndexingDecodingRFC7541Examples() throws Exception {
+    final ByteBuffer src = createByteBuffer(0x40, 0x0a, 0x63, 0x75, 0x73, 0x74, 0x6f, 0x6d, 0x2d, 0x6b, 0x65, 0x79, 0x0d, 0x63, 0x75, 0x73, 0x74, 0x6f, 0x6d, 0x2d, 0x68, 0x65, 0x61, 0x64, 0x65, 0x72);
+    final InboundDynamicTable dynamicTable = new InboundDynamicTable();
+    final HPackDecoder decoder = new HPackDecoder(dynamicTable, StandardCharsets.US_ASCII);
+    final Header header = decoder.decodeLiteralHeader(src, HPackRepresentation.WITH_INDEXING);
+    assertHeaderEquals(new BasicHeader("custom-key", "custom-header"), header);
+    Assert.assertFalse("Decoding completed", src.hasRemaining());
+    Assert.assertEquals(1, dynamicTable.dynamicLength());
+    assertHeaderEquals(header, dynamicTable.getDynamicEntry(0));
+}

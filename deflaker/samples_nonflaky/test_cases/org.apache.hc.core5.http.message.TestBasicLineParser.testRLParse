@@ -1,0 +1,27 @@
+@Test
+public void testRLParse() throws Exception {
+    final CharArrayBuffer buf = new CharArrayBuffer(64);
+    // typical request line
+    buf.clear();
+    buf.append("GET /stuff HTTP/1.1");
+    RequestLine requestline = this.parser.parseRequestLine(buf);
+    Assert.assertEquals("GET /stuff HTTP/1.1", requestline.toString());
+    Assert.assertEquals(Method.GET.name(), requestline.getMethod());
+    Assert.assertEquals("/stuff", requestline.getUri());
+    Assert.assertEquals(HttpVersion.HTTP_1_1, requestline.getProtocolVersion());
+    // Lots of blanks
+    buf.clear();
+    buf.append("  GET    /stuff   HTTP/1.1   ");
+    requestline = this.parser.parseRequestLine(buf);
+    Assert.assertEquals("GET /stuff HTTP/1.1", requestline.toString());
+    Assert.assertEquals(Method.GET.name(), requestline.getMethod());
+    Assert.assertEquals("/stuff", requestline.getUri());
+    Assert.assertEquals(HttpVersion.HTTP_1_1, requestline.getProtocolVersion());
+    // this is not strictly valid, but is lenient
+    buf.clear();
+    buf.append("\rGET /stuff HTTP/1.1");
+    requestline = this.parser.parseRequestLine(buf);
+    Assert.assertEquals(Method.GET.name(), requestline.getMethod());
+    Assert.assertEquals("/stuff", requestline.getUri());
+    Assert.assertEquals(HttpVersion.HTTP_1_1, requestline.getProtocolVersion());
+}

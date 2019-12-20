@@ -1,0 +1,17 @@
+@Test
+public void testCreateEntityLengthDelimited() throws Exception {
+    final InputStream inStream = Mockito.mock(InputStream.class);
+    final ClassicHttpResponse message = new BasicClassicHttpResponse(200, "OK");
+    message.addHeader("Content-Length", "10");
+    message.addHeader("Content-Type", "stuff");
+    message.addHeader("Content-Encoding", "chunked");
+    final HttpEntity entity = conn.createIncomingEntity(message, conn.inBuffer, inStream, 10);
+    Assert.assertNotNull(entity);
+    Assert.assertFalse(entity.isChunked());
+    Assert.assertEquals(10, entity.getContentLength());
+    Assert.assertEquals("stuff", entity.getContentType());
+    Assert.assertEquals("chunked", entity.getContentEncoding());
+    final InputStream content = entity.getContent();
+    Assert.assertNotNull(content);
+    Assert.assertTrue((content instanceof ContentLengthInputStream));
+}

@@ -1,0 +1,23 @@
+@Test
+public void changeParameter() throws Exception {
+    final ClientTestingAdapter adapter = new ClassicTestClientTestingAdapter() {
+
+        @Override
+        public Map<String, Object> execute(final String defaultURI, final Map<String, Object> request, final TestingFrameworkRequestHandler requestHandler, final Map<String, Object> responseExpectations) throws TestingFrameworkException {
+            // change the request from what is expected.
+            @SuppressWarnings("unchecked")
+            final Map<String, String> query = (Map<String, String>) request.get(QUERY);
+            Assert.assertTrue(query.containsKey("p1"));
+            query.put("p1", query.get("p1") + "junk");
+            return super.execute(defaultURI, request, requestHandler, responseExpectations);
+        }
+    };
+    final TestingFramework framework = newFrameworkAndSetAdapter(adapter);
+    framework.addTest();
+    try {
+        framework.runTests();
+        Assert.fail("WebServerTestingFrameworkException should have been thrown");
+    } catch (final TestingFrameworkException e) {
+    // expected
+    }
+}

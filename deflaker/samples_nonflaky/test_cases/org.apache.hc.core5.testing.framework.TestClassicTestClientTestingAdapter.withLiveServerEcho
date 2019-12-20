@@ -1,0 +1,26 @@
+@Test
+public void withLiveServerEcho() throws Exception {
+    final ClientTestingAdapter adapter = new ClassicTestClientTestingAdapter();
+    // Initialize the server-side request handler
+    server.registerHandler("/echo/*", new EchoHandler());
+    this.server.start();
+    final HttpHost target = new HttpHost("localhost", this.server.getPort());
+    final String defaultURI = target.toString();
+    final Map<String, Object> request = new HashMap<>();
+    request.put(PATH, ECHO_PATH);
+    request.put(METHOD, Method.POST.name());
+    final String body = "mybody";
+    request.put(BODY, body);
+    final Map<String, Object> responseExpectations = new HashMap<>();
+    final TestingFrameworkRequestHandler requestHandler = Mockito.mock(TestingFrameworkRequestHandler.class);
+    final Map<String, Object> response = adapter.execute(defaultURI, request, requestHandler, responseExpectations);
+    Assert.assertNotNull("response should not be null", response);
+    Assert.assertEquals("status unexpected", 200, response.get(STATUS));
+    @SuppressWarnings("unchecked")
+    final Map<String, Object> headers = (Map<String, Object>) response.get(HEADERS);
+    Assert.assertNotNull("headers should be in the response", headers);
+    Assert.assertFalse(headers.isEmpty());
+    final String returnedBody = (String) response.get(BODY);
+    Assert.assertNotNull("body should be in the response", returnedBody);
+    Assert.assertEquals("Body should be echoed", body, returnedBody);
+}

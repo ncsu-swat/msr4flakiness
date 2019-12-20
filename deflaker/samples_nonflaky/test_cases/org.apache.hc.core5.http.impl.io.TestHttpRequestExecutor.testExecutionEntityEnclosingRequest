@@ -1,0 +1,21 @@
+@Test
+public void testExecutionEntityEnclosingRequest() throws Exception {
+    final HttpProcessor httprocessor = Mockito.mock(HttpProcessor.class);
+    final HttpClientConnection conn = Mockito.mock(HttpClientConnection.class);
+    final HttpRequestExecutor executor = new HttpRequestExecutor();
+    final HttpCoreContext context = HttpCoreContext.create();
+    final ClassicHttpRequest request = new BasicClassicHttpRequest(Method.POST, "/");
+    final HttpEntity entity = Mockito.mock(HttpEntity.class);
+    request.setEntity(entity);
+    executor.preProcess(request, httprocessor, context);
+    Mockito.verify(httprocessor).process(request, request.getEntity(), context);
+    Mockito.when(conn.receiveResponseHeader()).thenReturn(new BasicClassicHttpResponse(200, "OK"));
+    final ClassicHttpResponse response = executor.execute(request, conn, context);
+    Mockito.verify(conn).sendRequestHeader(request);
+    Mockito.verify(conn).sendRequestEntity(request);
+    Mockito.verify(conn).flush();
+    Mockito.verify(conn).receiveResponseHeader();
+    Mockito.verify(conn).receiveResponseEntity(response);
+    executor.postProcess(response, httprocessor, context);
+    Mockito.verify(httprocessor).process(response, response.getEntity(), context);
+}

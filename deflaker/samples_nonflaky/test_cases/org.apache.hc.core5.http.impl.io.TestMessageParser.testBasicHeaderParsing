@@ -1,0 +1,15 @@
+@Test
+public void testBasicHeaderParsing() throws Exception {
+    final String s = "header1: stuff\r\n" + "header2:  stuff \r\n" + "header3: stuff\r\n" + "     and more stuff\r\n" + "\t and even more stuff\r\n" + "     \r\n" + "\r\n";
+    final ByteArrayInputStream inputStream = new ByteArrayInputStream(s.getBytes(StandardCharsets.US_ASCII));
+    final SessionInputBuffer inBuffer = new SessionInputBufferImpl(16, StandardCharsets.US_ASCII.newDecoder());
+    final Header[] headers = AbstractMessageParser.parseHeaders(inBuffer, inputStream, -1, -1, null);
+    Assert.assertNotNull(headers);
+    Assert.assertEquals(3, headers.length);
+    Assert.assertEquals("header1", headers[0].getName());
+    Assert.assertEquals("stuff", headers[0].getValue());
+    Assert.assertEquals("header2", headers[1].getName());
+    Assert.assertEquals("stuff", headers[1].getValue());
+    Assert.assertEquals("header3", headers[2].getName());
+    Assert.assertEquals("stuff and more stuff and even more stuff", headers[2].getValue());
+}

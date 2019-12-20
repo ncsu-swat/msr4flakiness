@@ -1,0 +1,14 @@
+@Test
+public void testResponseConnControlEntityUnknownContentLengthExplicitKeepAlive() throws Exception {
+    final HttpContext context = new BasicHttpContext(null);
+    final BasicClassicHttpRequest request = new BasicClassicHttpRequest(Method.GET, "/");
+    request.addHeader(new BasicHeader(HttpHeaders.CONNECTION, "keep-alive"));
+    context.setAttribute(HttpCoreContext.HTTP_REQUEST, request);
+    final ClassicHttpResponse response = new BasicClassicHttpResponse(HttpStatus.SC_OK, "OK");
+    response.setEntity(new BasicHttpEntity(EmptyInputStream.INSTANCE, null));
+    final ResponseConnControl interceptor = new ResponseConnControl();
+    interceptor.process(response, response.getEntity(), context);
+    final Header header = response.getFirstHeader(HttpHeaders.CONNECTION);
+    Assert.assertNotNull(header);
+    Assert.assertEquals("keep-alive", header.getValue());
+}

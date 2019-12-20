@@ -1,0 +1,38 @@
+@Test
+public void testMultibyteCodedReadWriteLine() throws Exception {
+    final String s1 = constructString(SWISS_GERMAN_HELLO);
+    final String s2 = constructString(RUSSIAN_HELLO);
+    final String s3 = "Like hello and stuff";
+    final SessionOutputBuffer outbuf = new SessionOutputBufferImpl(1024, 16, StandardCharsets.UTF_8.newEncoder());
+    final CharArrayBuffer chbuffer = new CharArrayBuffer(32);
+    for (int i = 0; i < 10; i++) {
+        chbuffer.clear();
+        chbuffer.append(s1);
+        outbuf.writeLine(chbuffer);
+        chbuffer.clear();
+        chbuffer.append(s2);
+        outbuf.writeLine(chbuffer);
+        chbuffer.clear();
+        chbuffer.append(s3);
+        outbuf.writeLine(chbuffer);
+    }
+    final ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+    final WritableByteChannel outChannel = newChannel(outStream);
+    outbuf.flush(outChannel);
+    final byte[] tmp = outStream.toByteArray();
+    final ReadableByteChannel channel = newChannel(tmp);
+    final SessionInputBuffer inbuf = new SessionInputBufferImpl(16, 16, 0, StandardCharsets.UTF_8.newDecoder());
+    while (inbuf.fill(channel) > 0) {
+    }
+    for (int i = 0; i < 10; i++) {
+        chbuffer.clear();
+        inbuf.readLine(chbuffer, true);
+        Assert.assertEquals(s1, chbuffer.toString());
+        chbuffer.clear();
+        inbuf.readLine(chbuffer, true);
+        Assert.assertEquals(s2, chbuffer.toString());
+        chbuffer.clear();
+        inbuf.readLine(chbuffer, true);
+        Assert.assertEquals(s3, chbuffer.toString());
+    }
+}

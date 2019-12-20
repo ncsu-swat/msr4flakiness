@@ -1,0 +1,19 @@
+@Test
+public void testWriteTo() throws Exception {
+    final Serializable serializableObj = new SerializableObject();
+    final SerializableEntity httpentity = new SerializableEntity(serializableObj, null);
+    final ByteArrayOutputStream out = new ByteArrayOutputStream();
+    httpentity.writeTo(out);
+    final byte[] bytes = out.toByteArray();
+    Assert.assertNotNull(bytes);
+    final ObjectInputStream oin = new ObjectInputStream(new ByteArrayInputStream(bytes));
+    final SerializableObject serIn = (SerializableObject) oin.readObject();
+    Assert.assertEquals(4, serIn.intValue);
+    Assert.assertEquals("Hello", serIn.stringValue);
+    try {
+        httpentity.writeTo(null);
+        Assert.fail("IllegalArgumentException should have been thrown");
+    } catch (final IllegalArgumentException ex) {
+    // expected
+    }
+}

@@ -1,0 +1,18 @@
+@Test
+public void testReadFramePartialReads() throws Exception {
+    final FrameInputBuffer inBuffer = new FrameInputBuffer(16 * 1024);
+    final ReadableByteChannelMock readableChannel = new ReadableByteChannelMock(new byte[] { 0, 0 }, new byte[] { 10, 0, 9, 0 }, new byte[] { 0, 0, 8 }, new byte[] { 4 }, new byte[] { 1, 2, 3, 4 }, new byte[] { 5, 0 }, new byte[] { 0, 0, 0 });
+    final RawFrame frame = inBuffer.read(readableChannel);
+    Assert.assertEquals(FrameType.DATA, FrameType.valueOf(frame.getType()));
+    Assert.assertEquals(FrameFlag.of(FrameFlag.END_STREAM, FrameFlag.PADDED), frame.getFlags());
+    Assert.assertEquals(8, frame.getStreamId());
+    final ByteBuffer payload = frame.getPayloadContent();
+    Assert.assertNotNull(payload);
+    Assert.assertEquals(5, payload.remaining());
+    Assert.assertEquals(1, payload.get());
+    Assert.assertEquals(2, payload.get());
+    Assert.assertEquals(3, payload.get());
+    Assert.assertEquals(4, payload.get());
+    Assert.assertEquals(5, payload.get());
+    Assert.assertEquals(-1, readableChannel.read(ByteBuffer.allocate(1024)));
+}

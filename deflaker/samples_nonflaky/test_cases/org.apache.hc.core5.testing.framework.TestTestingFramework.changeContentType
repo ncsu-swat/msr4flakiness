@@ -1,0 +1,22 @@
+@Test
+public void changeContentType() throws Exception {
+    final ClientTestingAdapter adapter = new ClassicTestClientTestingAdapter() {
+
+        @Override
+        public Map<String, Object> execute(final String defaultURI, final Map<String, Object> request, final TestingFrameworkRequestHandler requestHandler, final Map<String, Object> responseExpectations) throws TestingFrameworkException {
+            // change the request from what is expected.
+            final String contentType = (String) request.get(CONTENT_TYPE);
+            Assert.assertNotNull(contentType);
+            request.put(CONTENT_TYPE, request.get(CONTENT_TYPE) + "junk");
+            return super.execute(defaultURI, request, requestHandler, responseExpectations);
+        }
+    };
+    final TestingFramework framework = newFrameworkAndSetAdapter(adapter);
+    framework.addTest();
+    try {
+        framework.runTests();
+        Assert.fail("WebServerTestingFrameworkException should have been thrown");
+    } catch (final TestingFrameworkException e) {
+    // expected
+    }
+}

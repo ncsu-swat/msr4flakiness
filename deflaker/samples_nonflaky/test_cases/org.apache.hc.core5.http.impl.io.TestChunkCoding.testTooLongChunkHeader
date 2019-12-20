@@ -1,0 +1,23 @@
+@Test
+public void testTooLongChunkHeader() throws IOException {
+    final String s = "5; and some very looooong commend\r\n12345\r\n0\r\n";
+    final SessionInputBuffer inBuffer1 = new SessionInputBufferImpl(16);
+    final ByteArrayInputStream inputStream1 = new ByteArrayInputStream(s.getBytes(StandardCharsets.ISO_8859_1));
+    final ChunkedInputStream in1 = new ChunkedInputStream(inBuffer1, inputStream1);
+    final byte[] buffer = new byte[300];
+    Assert.assertEquals(5, in1.read(buffer));
+    in1.close();
+    final SessionInputBuffer inBuffer2 = new SessionInputBufferImpl(16, 10);
+    final ByteArrayInputStream inputStream2 = new ByteArrayInputStream(s.getBytes(StandardCharsets.ISO_8859_1));
+    final ChunkedInputStream in2 = new ChunkedInputStream(inBuffer2, inputStream2);
+    try {
+        in2.read(buffer);
+        Assert.fail("MessageConstraintException expected");
+    } catch (final MessageConstraintException ex) {
+    } finally {
+        try {
+            in2.close();
+        } catch (final MessageConstraintException ex) {
+        }
+    }
+}

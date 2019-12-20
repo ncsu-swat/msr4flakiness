@@ -1,0 +1,9 @@
+@Test
+public void testGetSessionReconnectIfClosed() throws Exception {
+    final AbstractIOSessionPool.PoolEntry entry1 = impl.getPoolEntry("somehost");
+    Assert.assertThat(entry1, CoreMatchers.notNullValue());
+    entry1.session = ioSession1;
+    Mockito.when(ioSession1.isOpen()).thenReturn(false);
+    impl.getSession("somehost", Timeout.ofSeconds(123L), null);
+    Mockito.verify(impl).connectSession(ArgumentMatchers.eq("somehost"), ArgumentMatchers.eq(Timeout.ofSeconds(123L)), ArgumentMatchers.<FutureCallback<IOSession>>any());
+}

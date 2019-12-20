@@ -1,0 +1,10 @@
+@Test
+public void testResponseContentOverwriteHeaders() throws Exception {
+    final ResponseContent interceptor = new ResponseContent(true);
+    final HttpContext context = new BasicHttpContext(null);
+    final ClassicHttpResponse response = new BasicClassicHttpResponse(HttpStatus.SC_OK, "OK");
+    response.addHeader(new BasicHeader(HttpHeaders.CONTENT_LENGTH, "10"));
+    response.addHeader(new BasicHeader(HttpHeaders.TRANSFER_ENCODING, "whatever"));
+    interceptor.process(response, response.getEntity(), context);
+    Assert.assertEquals("0", response.getFirstHeader(HttpHeaders.CONTENT_LENGTH).getValue());
+}

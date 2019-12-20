@@ -1,0 +1,14 @@
+@Test(expected = NotImplementedException.class)
+public void testWriteResponseEntityIdentity() throws Exception {
+    final ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+    Mockito.when(socket.getOutputStream()).thenReturn(outStream);
+    conn.bind(socket);
+    Assert.assertEquals(0, conn.getEndpointDetails().getResponseCount());
+    final ClassicHttpResponse response = new BasicClassicHttpResponse(200, "OK");
+    response.addHeader("Server", "test");
+    response.addHeader("Transfer-Encoding", "identity");
+    response.setEntity(new StringEntity("123", ContentType.TEXT_PLAIN));
+    conn.sendResponseHeader(response);
+    conn.sendResponseEntity(response);
+    conn.flush();
+}

@@ -1,0 +1,23 @@
+@Test
+public void changeHeader() throws Exception {
+    final ClientTestingAdapter adapter = new ClassicTestClientTestingAdapter() {
+
+        @Override
+        public Map<String, Object> execute(final String defaultURI, final Map<String, Object> request, final TestingFrameworkRequestHandler requestHandler, final Map<String, Object> responseExpectations) throws TestingFrameworkException {
+            // change the request from what is expected.
+            @SuppressWarnings("unchecked")
+            final Map<String, String> headers = (Map<String, String>) request.get(HEADERS);
+            Assert.assertTrue(headers.containsKey("header1"));
+            headers.put("header1", headers.get("header1") + "junk");
+            return super.execute(defaultURI, request, requestHandler, responseExpectations);
+        }
+    };
+    final TestingFramework framework = newFrameworkAndSetAdapter(adapter);
+    framework.addTest();
+    try {
+        framework.runTests();
+        Assert.fail("WebServerTestingFrameworkException should have been thrown");
+    } catch (final TestingFrameworkException e) {
+    // expected
+    }
+}

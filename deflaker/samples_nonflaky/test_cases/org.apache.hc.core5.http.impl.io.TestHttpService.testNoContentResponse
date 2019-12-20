@@ -1,0 +1,23 @@
+@Test
+public void testNoContentResponse() throws Exception {
+    final HttpCoreContext context = HttpCoreContext.create();
+    final ClassicHttpRequest request = new BasicClassicHttpRequest(Method.GET, "/");
+    Mockito.when(conn.receiveRequestHeader()).thenReturn(request);
+    Mockito.when(responseFactory.newHttpResponse(200)).thenReturn(response);
+    Mockito.when(handlerResolver.resolve(request, context)).thenReturn(new HttpRequestHandler() {
+
+        @Override
+        public void handle(final ClassicHttpRequest request, final ClassicHttpResponse response, final HttpContext context) throws HttpException, IOException {
+            response.setCode(HttpStatus.SC_NO_CONTENT);
+        }
+    });
+    Mockito.when(connReuseStrategy.keepAlive(request, response, context)).thenReturn(Boolean.TRUE);
+    httpservice.handleRequest(conn, context);
+    Assert.assertSame(request, context.getRequest());
+    Mockito.verify(httprocessor).process(response, response.getEntity(), context);
+    Mockito.verify(conn).sendResponseHeader(response);
+    Mockito.verify(conn, Mockito.never()).sendResponseEntity(ArgumentMatchers.<ClassicHttpResponse>any());
+    Mockito.verify(conn).flush();
+    Mockito.verify(conn, Mockito.never()).close();
+    Mockito.verify(response).close();
+}

@@ -1,0 +1,19 @@
+@Test
+public void testTerminateRequestContentLengthLong() throws Exception {
+    final ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+    Mockito.when(socket.getOutputStream()).thenReturn(outStream);
+    conn.bind(socket);
+    Assert.assertEquals(0, conn.getEndpointDetails().getRequestCount());
+    final ClassicHttpRequest request = new BasicClassicHttpRequest(Method.POST, "/stuff");
+    request.addHeader("User-Agent", "test");
+    request.addHeader("Content-Length", "3000");
+    final ByteArrayEntity entity = new ByteArrayEntity(new byte[3000], ContentType.TEXT_PLAIN, true);
+    request.setEntity(entity);
+    conn.sendRequestHeader(request);
+    conn.terminateRequest(request);
+    conn.flush();
+    Assert.assertEquals(1, conn.getEndpointDetails().getRequestCount());
+    final String s = new String(outStream.toByteArray(), StandardCharsets.US_ASCII);
+    Assert.assertEquals("POST /stuff HTTP/1.1\r\nUser-Agent: test\r\nContent-Length: " + "3000\r\n\r\n", s);
+    Assert.assertFalse(conn.isConsistent());
+}

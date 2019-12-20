@@ -1,0 +1,26 @@
+@Test
+public void testDecodingFromSessionBuffer1() throws Exception {
+    final ReadableByteChannel channel = new ReadableByteChannelMock(new String[] { "stuff;", "more stuff" }, StandardCharsets.US_ASCII);
+    final SessionInputBuffer inbuf = new SessionInputBufferImpl(1024, 256, 0, StandardCharsets.US_ASCII);
+    final BasicHttpTransportMetrics metrics = new BasicHttpTransportMetrics();
+    inbuf.fill(channel);
+    Assert.assertEquals(6, inbuf.length());
+    final LengthDelimitedDecoder decoder = new LengthDelimitedDecoder(channel, inbuf, metrics, 16);
+    final ByteBuffer dst = ByteBuffer.allocate(1024);
+    int bytesRead = decoder.read(dst);
+    Assert.assertEquals(6, bytesRead);
+    Assert.assertEquals("stuff;", CodecTestUtils.convert(dst));
+    Assert.assertFalse(decoder.isCompleted());
+    Assert.assertEquals(0, metrics.getBytesTransferred());
+    dst.clear();
+    bytesRead = decoder.read(dst);
+    Assert.assertEquals(10, bytesRead);
+    Assert.assertEquals("more stuff", CodecTestUtils.convert(dst));
+    Assert.assertTrue(decoder.isCompleted());
+    Assert.assertEquals(10, metrics.getBytesTransferred());
+    dst.clear();
+    bytesRead = decoder.read(dst);
+    Assert.assertEquals(-1, bytesRead);
+    Assert.assertTrue(decoder.isCompleted());
+    Assert.assertEquals(10, metrics.getBytesTransferred());
+}

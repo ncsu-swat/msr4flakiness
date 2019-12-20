@@ -1,0 +1,29 @@
+@Test
+public void testLeaseRelease() throws Exception {
+    final HttpConnection conn1 = Mockito.mock(HttpConnection.class);
+    final HttpConnection conn2 = Mockito.mock(HttpConnection.class);
+    final HttpConnection conn3 = Mockito.mock(HttpConnection.class);
+    final StrictConnPool<String, HttpConnection> pool = new StrictConnPool<>(2, 10);
+    final Future<PoolEntry<String, HttpConnection>> future1 = pool.lease("somehost", null);
+    final Future<PoolEntry<String, HttpConnection>> future2 = pool.lease("somehost", null);
+    final Future<PoolEntry<String, HttpConnection>> future3 = pool.lease("otherhost", null);
+    final PoolEntry<String, HttpConnection> entry1 = future1.get();
+    Assert.assertNotNull(entry1);
+    entry1.assignConnection(conn1);
+    final PoolEntry<String, HttpConnection> entry2 = future2.get();
+    Assert.assertNotNull(entry2);
+    entry2.assignConnection(conn2);
+    final PoolEntry<String, HttpConnection> entry3 = future3.get();
+    Assert.assertNotNull(entry3);
+    entry3.assignConnection(conn3);
+    pool.release(entry1, true);
+    pool.release(entry2, true);
+    pool.release(entry3, false);
+    Mockito.verify(conn1, Mockito.never()).close(ArgumentMatchers.<CloseMode>any());
+    Mockito.verify(conn2, Mockito.never()).close(ArgumentMatchers.<CloseMode>any());
+    Mockito.verify(conn3, Mockito.times(1)).close(CloseMode.GRACEFUL);
+    final PoolStats totals = pool.getTotalStats();
+    Assert.assertEquals(2, totals.getAvailable());
+    Assert.assertEquals(0, totals.getLeased());
+    Assert.assertEquals(0, totals.getPending());
+}

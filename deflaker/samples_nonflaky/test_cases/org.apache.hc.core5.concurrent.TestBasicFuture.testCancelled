@@ -1,0 +1,22 @@
+@Test
+public void testCancelled() throws Exception {
+    final BasicFutureCallback<Object> callback = new BasicFutureCallback<>();
+    final BasicFuture<Object> future = new BasicFuture<>(callback);
+    final Object result = new Object();
+    final Exception boom = new Exception();
+    future.cancel(true);
+    future.failed(boom);
+    future.completed(result);
+    Assert.assertFalse(callback.isCompleted());
+    Assert.assertNull(callback.getResult());
+    Assert.assertFalse(callback.isFailed());
+    Assert.assertNull(callback.getException());
+    Assert.assertTrue(callback.isCancelled());
+    try {
+        future.get();
+        Assert.fail("CancellationException expected");
+    } catch (final CancellationException ex) {
+    }
+    Assert.assertTrue(future.isDone());
+    Assert.assertTrue(future.isCancelled());
+}

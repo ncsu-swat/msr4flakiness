@@ -1,0 +1,20 @@
+@Test
+public void testShutdownPool() throws Exception {
+    final AbstractIOSessionPool.PoolEntry entry1 = impl.getPoolEntry("host1");
+    Assert.assertThat(entry1, CoreMatchers.notNullValue());
+    entry1.session = ioSession1;
+    final AbstractIOSessionPool.PoolEntry entry2 = impl.getPoolEntry("host2");
+    Assert.assertThat(entry2, CoreMatchers.notNullValue());
+    entry2.session = ioSession2;
+    final AbstractIOSessionPool.PoolEntry entry3 = impl.getPoolEntry("host3");
+    Assert.assertThat(entry3, CoreMatchers.notNullValue());
+    entry3.sessionFuture = connectFuture;
+    entry3.requestQueue.add(callback1);
+    entry3.requestQueue.add(callback2);
+    impl.close(CloseMode.GRACEFUL);
+    Mockito.verify(impl).closeSession(ioSession1, CloseMode.GRACEFUL);
+    Mockito.verify(impl).closeSession(ioSession2, CloseMode.GRACEFUL);
+    Mockito.verify(connectFuture).cancel(ArgumentMatchers.anyBoolean());
+    Mockito.verify(callback1).cancelled();
+    Mockito.verify(callback2).cancelled();
+}

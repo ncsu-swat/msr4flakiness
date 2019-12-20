@@ -1,0 +1,18 @@
+@Test
+public void testFlush() throws Exception {
+    final Charset charset = StandardCharsets.US_ASCII;
+    final SharedOutputBuffer outputBuffer = new SharedOutputBuffer(30);
+    final WritableByteChannelMock channel = new WritableByteChannelMock(1024);
+    final DataStreamChannel dataStreamChannel = new DataStreamChannelMock(channel);
+    outputBuffer.flush(dataStreamChannel);
+    Assert.assertEquals(0, outputBuffer.length());
+    Assert.assertEquals(30, outputBuffer.capacity());
+    final byte[] tmp = "1234567890".getBytes(charset);
+    outputBuffer.write(tmp, 0, tmp.length);
+    outputBuffer.write(tmp, 0, tmp.length);
+    outputBuffer.write('1');
+    outputBuffer.write('2');
+    outputBuffer.flush(dataStreamChannel);
+    Assert.assertEquals(0, outputBuffer.length());
+    Assert.assertEquals(30, outputBuffer.capacity());
+}

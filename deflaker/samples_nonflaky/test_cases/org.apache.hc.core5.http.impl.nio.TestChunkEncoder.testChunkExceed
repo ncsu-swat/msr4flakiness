@@ -1,0 +1,13 @@
+@Test
+public void testChunkExceed() throws Exception {
+    final WritableByteChannelMock channel = new WritableByteChannelMock(64);
+    final SessionOutputBuffer outbuf = new SessionOutputBufferImpl(16, 16);
+    final BasicHttpTransportMetrics metrics = new BasicHttpTransportMetrics();
+    final ChunkEncoder encoder = new ChunkEncoder(channel, outbuf, metrics);
+    final ByteBuffer src = CodecTestUtils.wrap("0123456789ABCDEF");
+    Assert.assertEquals(16, encoder.write(src));
+    Assert.assertEquals(0, src.remaining());
+    outbuf.flush(channel);
+    final String s = channel.dump(StandardCharsets.US_ASCII);
+    Assert.assertEquals("4\r\n0123\r\n4\r\n4567\r\n4\r\n89AB\r\n4\r\nCDEF\r\n", s);
+}

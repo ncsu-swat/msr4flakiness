@@ -1,0 +1,24 @@
+@Test
+public void testTooLongChunkHeader() throws Exception {
+    final String s = "5; and some very looooong comment\r\n12345\r\n0\r\n";
+    final ReadableByteChannel channel1 = new ReadableByteChannelMock(new String[] { s }, StandardCharsets.US_ASCII);
+    final BasicHttpTransportMetrics metrics1 = new BasicHttpTransportMetrics();
+    final SessionInputBuffer inbuf1 = new SessionInputBufferImpl(1024, 256);
+    final ChunkDecoder decoder1 = new ChunkDecoder(channel1, inbuf1, metrics1);
+    final ByteBuffer dst = ByteBuffer.allocate(1024);
+    while (dst.hasRemaining() && !decoder1.isCompleted()) {
+        decoder1.read(dst);
+    }
+    Assert.assertEquals("12345", CodecTestUtils.convert(dst));
+    Assert.assertTrue(decoder1.isCompleted());
+    final ReadableByteChannel channel2 = new ReadableByteChannelMock(new String[] { s }, StandardCharsets.US_ASCII);
+    final SessionInputBuffer inbuf2 = new SessionInputBufferImpl(1024, 256, 10);
+    final BasicHttpTransportMetrics metrics2 = new BasicHttpTransportMetrics();
+    final ChunkDecoder decoder2 = new ChunkDecoder(channel2, inbuf2, metrics2);
+    dst.clear();
+    try {
+        decoder2.read(dst);
+        Assert.fail("MessageConstraintException expected");
+    } catch (final MessageConstraintException ex) {
+    }
+}

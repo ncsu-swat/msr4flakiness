@@ -1,0 +1,31 @@
+@Test
+public void addTest() throws Exception {
+    final TestingFrameworkRequestHandler mockRequestHandler = Mockito.mock(TestingFrameworkRequestHandler.class);
+    final ClientTestingAdapter adapter = new ClientTestingAdapter() {
+
+        @Override
+        public Map<String, Object> execute(final String defaultURI, final Map<String, Object> request, final TestingFrameworkRequestHandler requestHandler, final Map<String, Object> responseExpectations) throws TestingFrameworkException {
+            Assert.assertThat(defaultURI, matchesDefaultURI());
+            Assert.assertNotNull("request should not be null", request);
+            // The request should be equal to the default request.
+            final Map<String, Object> defaultRequest = new FrameworkTest().initRequest();
+            Assert.assertEquals("The request does not match the default", defaultRequest, request);
+            Assert.assertSame("The request handler should have been passed to the adapter", mockRequestHandler, requestHandler);
+            // The responseExpectations should be equal to the default.
+            final Map<String, Object> defaultResponseExpectations = new FrameworkTest().initResponseExpectations();
+            Assert.assertEquals("The responseExpectations do not match the defaults", defaultResponseExpectations, responseExpectations);
+            final Map<String, Object> response = new HashMap<>();
+            response.put(STATUS, responseExpectations.get(STATUS));
+            response.put(BODY, responseExpectations.get(BODY));
+            response.put(CONTENT_TYPE, responseExpectations.get(CONTENT_TYPE));
+            response.put(HEADERS, responseExpectations.get(HEADERS));
+            return response;
+        }
+    };
+    final TestingFramework framework = newFrameworkAndSetAdapter(adapter);
+    framework.setRequestHandler(mockRequestHandler);
+    framework.addTest();
+    framework.runTests();
+    // assertNothingThrown() should have been called.
+    Mockito.verify(mockRequestHandler).assertNothingThrown();
+}

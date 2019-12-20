@@ -1,0 +1,16 @@
+@Test
+public void testReadByteArray() throws Exception {
+    Mockito.when(eofwatcher.eofDetected(Mockito.<InputStream>any())).thenReturn(Boolean.TRUE);
+    Mockito.when(inStream.read(Mockito.<byte[]>any(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(1, -1);
+    final byte[] tmp = new byte[1];
+    Assert.assertEquals(1, eofstream.read(tmp));
+    Assert.assertFalse(eofstream.isSelfClosed());
+    Assert.assertNotNull(eofstream.getWrappedStream());
+    Mockito.verify(eofwatcher, Mockito.never()).eofDetected(inStream);
+    Assert.assertEquals(-1, eofstream.read(tmp));
+    Assert.assertFalse(eofstream.isSelfClosed());
+    Assert.assertNull(eofstream.getWrappedStream());
+    Mockito.verify(inStream, Mockito.times(1)).close();
+    Mockito.verify(eofwatcher).eofDetected(inStream);
+    Assert.assertEquals(-1, eofstream.read(tmp));
+}

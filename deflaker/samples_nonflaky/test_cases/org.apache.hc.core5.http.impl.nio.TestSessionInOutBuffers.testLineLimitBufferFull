@@ -1,0 +1,18 @@
+@Test
+public void testLineLimitBufferFull() throws Exception {
+    final String s = "LoooooooooooooooooooooooooOOOOOOOOOOOOOOOOOOoooooooooooooooooooooong line\r\n";
+    final CharArrayBuffer line = new CharArrayBuffer(64);
+    final SessionInputBuffer inbuf1 = new SessionInputBufferImpl(32, 32);
+    final ReadableByteChannel channel1 = newChannel(s);
+    inbuf1.fill(channel1);
+    Assert.assertFalse(inbuf1.readLine(line, false));
+    line.clear();
+    final SessionInputBuffer inbuf2 = new SessionInputBufferImpl(32, 32, 10);
+    final ReadableByteChannel channel2 = newChannel(s);
+    inbuf2.fill(channel2);
+    try {
+        inbuf2.readLine(line, false);
+        Assert.fail("MessageConstraintException expected");
+    } catch (final MessageConstraintException ex) {
+    }
+}

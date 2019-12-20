@@ -1,0 +1,16 @@
+@Test
+public void testResponseConnControlStatusCode() throws Exception {
+    final HttpContext context = new BasicHttpContext(null);
+    final BasicClassicHttpRequest request = new BasicClassicHttpRequest(Method.GET, "/");
+    request.addHeader(new BasicHeader(HttpHeaders.CONNECTION, "keep-alive"));
+    context.setAttribute(HttpCoreContext.HTTP_REQUEST, request);
+    final ResponseConnControl interceptor = new ResponseConnControl();
+    final int[] statusCodes = new int[] { HttpStatus.SC_BAD_REQUEST, HttpStatus.SC_REQUEST_TIMEOUT, HttpStatus.SC_LENGTH_REQUIRED, HttpStatus.SC_REQUEST_TOO_LONG, HttpStatus.SC_REQUEST_URI_TOO_LONG, HttpStatus.SC_SERVICE_UNAVAILABLE, HttpStatus.SC_NOT_IMPLEMENTED };
+    for (final int statusCode : statusCodes) {
+        final ClassicHttpResponse response = new BasicClassicHttpResponse(statusCode, "Unreasonable");
+        interceptor.process(response, response.getEntity(), context);
+        final Header header = response.getFirstHeader(HttpHeaders.CONNECTION);
+        Assert.assertNotNull(header);
+        Assert.assertEquals("close", header.getValue());
+    }
+}

@@ -1,0 +1,14 @@
+@Test
+public void testRequestContentTypeAndEncoding() throws Exception {
+    final HttpContext context = new BasicHttpContext(null);
+    final BasicClassicHttpRequest request = new BasicClassicHttpRequest(Method.POST, "/");
+    request.setEntity(new BasicHttpEntity(EmptyInputStream.INSTANCE, ContentType.parseLenient("whatever"), "whatever"));
+    final RequestContent interceptor = new RequestContent();
+    interceptor.process(request, request.getEntity(), context);
+    final Header h1 = request.getFirstHeader(HttpHeaders.CONTENT_TYPE);
+    Assert.assertNotNull(h1);
+    Assert.assertEquals("whatever", h1.getValue());
+    final Header h2 = request.getFirstHeader(HttpHeaders.CONTENT_ENCODING);
+    Assert.assertNotNull(h2);
+    Assert.assertEquals("whatever", h2.getValue());
+}

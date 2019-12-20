@@ -1,0 +1,16 @@
+@Test
+public void testEndpointAlreadyBound() throws Exception {
+    ioReactor.start();
+    final Future<ListenerEndpoint> future1 = ioReactor.listen(new InetSocketAddress(0));
+    final ListenerEndpoint endpoint1 = future1.get();
+    final int port = ((InetSocketAddress) endpoint1.getAddress()).getPort();
+    final Future<ListenerEndpoint> future2 = ioReactor.listen(new InetSocketAddress(port));
+    try {
+        future2.get();
+        Assert.fail("ExecutionException expected");
+    } catch (final ExecutionException expected) {
+    }
+    ioReactor.close(CloseMode.GRACEFUL);
+    ioReactor.awaitShutdown(TimeValue.ofSeconds(5));
+    Assert.assertEquals(IOReactorStatus.SHUT_DOWN, ioReactor.getStatus());
+}

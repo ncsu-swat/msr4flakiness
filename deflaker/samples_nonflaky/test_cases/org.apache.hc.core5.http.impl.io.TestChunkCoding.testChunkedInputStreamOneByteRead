@@ -1,0 +1,17 @@
+// One byte read
+@Test
+public void testChunkedInputStreamOneByteRead() throws IOException {
+    final String s = "5\r\n01234\r\n5\r\n56789\r\n0\r\n";
+    final SessionInputBuffer inBuffer = new SessionInputBufferImpl(16);
+    final ByteArrayInputStream inputStream = new ByteArrayInputStream(s.getBytes(StandardCharsets.ISO_8859_1));
+    final ChunkedInputStream in = new ChunkedInputStream(inBuffer, inputStream);
+    int ch;
+    int i = '0';
+    while ((ch = in.read()) != -1) {
+        Assert.assertEquals(i, ch);
+        i++;
+    }
+    Assert.assertEquals(-1, in.read());
+    Assert.assertEquals(-1, in.read());
+    in.close();
+}

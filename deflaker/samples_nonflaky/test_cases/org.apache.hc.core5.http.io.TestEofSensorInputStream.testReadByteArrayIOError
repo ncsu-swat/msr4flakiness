@@ -1,0 +1,14 @@
+@Test
+public void testReadByteArrayIOError() throws Exception {
+    Mockito.when(eofwatcher.eofDetected(Mockito.<InputStream>any())).thenReturn(Boolean.TRUE);
+    Mockito.when(inStream.read(Mockito.<byte[]>any(), Mockito.anyInt(), Mockito.anyInt())).thenThrow(new IOException());
+    final byte[] tmp = new byte[1];
+    try {
+        eofstream.read(tmp);
+        Assert.fail("IOException expected");
+    } catch (final IOException ex) {
+    }
+    Assert.assertFalse(eofstream.isSelfClosed());
+    Assert.assertNull(eofstream.getWrappedStream());
+    Mockito.verify(eofwatcher).streamAbort(inStream);
+}

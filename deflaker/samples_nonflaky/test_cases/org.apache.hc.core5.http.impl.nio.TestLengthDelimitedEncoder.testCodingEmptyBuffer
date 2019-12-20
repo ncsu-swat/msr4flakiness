@@ -1,0 +1,16 @@
+@Test
+public void testCodingEmptyBuffer() throws Exception {
+    final WritableByteChannelMock channel = new WritableByteChannelMock(64);
+    final SessionOutputBuffer outbuf = new SessionOutputBufferImpl(1024, 128);
+    final BasicHttpTransportMetrics metrics = new BasicHttpTransportMetrics();
+    final LengthDelimitedEncoder encoder = new LengthDelimitedEncoder(channel, outbuf, metrics, 16);
+    encoder.write(CodecTestUtils.wrap("stuff;"));
+    final ByteBuffer empty = ByteBuffer.allocate(100);
+    empty.flip();
+    encoder.write(empty);
+    encoder.write(null);
+    encoder.write(CodecTestUtils.wrap("more stuff"));
+    final String s = channel.dump(StandardCharsets.US_ASCII);
+    Assert.assertTrue(encoder.isCompleted());
+    Assert.assertEquals("stuff;more stuff", s);
+}

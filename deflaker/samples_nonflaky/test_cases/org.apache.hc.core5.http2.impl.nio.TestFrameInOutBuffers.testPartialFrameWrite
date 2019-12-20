@@ -1,0 +1,14 @@
+@Test
+public void testPartialFrameWrite() throws Exception {
+    final WritableByteChannelMock writableChannel = new WritableByteChannelMock(1024, FrameConsts.HEAD_LEN + 10);
+    final FrameOutputBuffer outbuffer = new FrameOutputBuffer(16 * 1024);
+    final RawFrame frame = new RawFrame(FrameType.DATA.getValue(), FrameFlag.END_STREAM.getValue(), 5, ByteBuffer.wrap(new byte[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' }));
+    outbuffer.write(frame, writableChannel);
+    Assert.assertArrayEquals(new byte[] { 0, 0, 16, 0, 1, 0, 0, 0, 5, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57 }, writableChannel.toByteArray());
+    Assert.assertFalse(outbuffer.isEmpty());
+    outbuffer.flush(writableChannel);
+    Assert.assertArrayEquals(new byte[] { 0, 0, 16, 0, 1, 0, 0, 0, 5, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57 }, writableChannel.toByteArray());
+    writableChannel.flush();
+    outbuffer.flush(writableChannel);
+    Assert.assertArrayEquals(new byte[] { 0, 0, 16, 0, 1, 0, 0, 0, 5, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 97, 98, 99, 100, 101, 102 }, writableChannel.toByteArray());
+}

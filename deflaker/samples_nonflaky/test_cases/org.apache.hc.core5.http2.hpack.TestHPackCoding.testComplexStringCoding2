@@ -1,0 +1,20 @@
+@Test
+public void testComplexStringCoding2() throws Exception {
+    for (final Charset charset : new Charset[] { Charset.forName("KOI8-R"), StandardCharsets.UTF_8, StandardCharsets.UTF_16 }) {
+        final ByteArrayBuffer buffer = new ByteArrayBuffer(16);
+        final StringBuilder strBuf = new StringBuilder();
+        final HPackEncoder encoder = new HPackEncoder(charset);
+        final HPackDecoder decoder = new HPackDecoder(charset);
+        for (int n = 0; n < 10; n++) {
+            final String hello = constructHelloString(RUSSIAN_HELLO, 1 + 10 * n);
+            for (final boolean b : new boolean[] { false, true }) {
+                buffer.clear();
+                strBuf.setLength(0);
+                encoder.encodeString(buffer, hello, b);
+                decoder.decodeString(ByteBuffer.wrap(buffer.array(), 0, buffer.length()), strBuf);
+                final String helloBack = strBuf.toString();
+                Assert.assertEquals("charset: " + charset + "; huffman: " + b, hello, helloBack);
+            }
+        }
+    }
+}

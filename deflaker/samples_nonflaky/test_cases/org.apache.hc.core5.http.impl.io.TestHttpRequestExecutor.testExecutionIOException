@@ -1,0 +1,14 @@
+@Test
+public void testExecutionIOException() throws Exception {
+    final HttpClientConnection conn = Mockito.mock(HttpClientConnection.class);
+    final HttpRequestExecutor executor = new HttpRequestExecutor();
+    final HttpCoreContext context = HttpCoreContext.create();
+    final ClassicHttpRequest request = new BasicClassicHttpRequest(Method.GET, "/");
+    Mockito.doThrow(new IOException("Oopsie")).when(conn).sendRequestHeader(request);
+    try {
+        executor.execute(request, conn, context);
+        Assert.fail("IOException should have been thrown");
+    } catch (final IOException ex) {
+        Mockito.verify(conn).close();
+    }
+}

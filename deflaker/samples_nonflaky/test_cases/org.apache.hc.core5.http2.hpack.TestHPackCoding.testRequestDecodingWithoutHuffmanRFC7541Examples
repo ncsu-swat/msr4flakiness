@@ -1,0 +1,40 @@
+@Test
+public void testRequestDecodingWithoutHuffmanRFC7541Examples() throws Exception {
+    final ByteBuffer src1 = createByteBuffer(0x82, 0x86, 0x84, 0x41, 0x0f, 0x77, 0x77, 0x77, 0x2e, 0x65, 0x78, 0x61, 0x6d, 0x70, 0x6c, 0x65, 0x2e, 0x63, 0x6f, 0x6d);
+    final InboundDynamicTable dynamicTable = new InboundDynamicTable();
+    final HPackDecoder decoder = new HPackDecoder(dynamicTable, StandardCharsets.US_ASCII);
+    final List<Header> headers1 = decoder.decodeHeaders(src1);
+    Assert.assertEquals(4, headers1.size());
+    assertHeaderEquals(new BasicHeader(":method", "GET"), headers1.get(0));
+    assertHeaderEquals(new BasicHeader(":scheme", "http"), headers1.get(1));
+    assertHeaderEquals(new BasicHeader(":path", "/"), headers1.get(2));
+    assertHeaderEquals(new BasicHeader(":authority", "www.example.com"), headers1.get(3));
+    Assert.assertEquals(1, dynamicTable.dynamicLength());
+    assertHeaderEquals(new BasicHeader(":authority", "www.example.com"), dynamicTable.getDynamicEntry(0));
+    Assert.assertEquals(57, dynamicTable.getCurrentSize());
+    final ByteBuffer src2 = createByteBuffer(0x82, 0x86, 0x84, 0xbe, 0x58, 0x08, 0x6e, 0x6f, 0x2d, 0x63, 0x61, 0x63, 0x68, 0x65);
+    final List<Header> headers2 = decoder.decodeHeaders(src2);
+    Assert.assertEquals(5, headers2.size());
+    assertHeaderEquals(new BasicHeader(":method", "GET"), headers2.get(0));
+    assertHeaderEquals(new BasicHeader(":scheme", "http"), headers2.get(1));
+    assertHeaderEquals(new BasicHeader(":path", "/"), headers2.get(2));
+    assertHeaderEquals(new BasicHeader(":authority", "www.example.com"), headers2.get(3));
+    assertHeaderEquals(new BasicHeader("cache-control", "no-cache"), headers2.get(4));
+    Assert.assertEquals(2, dynamicTable.dynamicLength());
+    assertHeaderEquals(new BasicHeader("cache-control", "no-cache"), dynamicTable.getDynamicEntry(0));
+    assertHeaderEquals(new BasicHeader(":authority", "www.example.com"), dynamicTable.getDynamicEntry(1));
+    Assert.assertEquals(110, dynamicTable.getCurrentSize());
+    final ByteBuffer src3 = createByteBuffer(0x82, 0x87, 0x85, 0xbf, 0x40, 0x0a, 0x63, 0x75, 0x73, 0x74, 0x6f, 0x6d, 0x2d, 0x6b, 0x65, 0x79, 0x0c, 0x63, 0x75, 0x73, 0x74, 0x6f, 0x6d, 0x2d, 0x76, 0x61, 0x6c, 0x75, 0x65);
+    final List<Header> headers3 = decoder.decodeHeaders(src3);
+    Assert.assertEquals(5, headers3.size());
+    assertHeaderEquals(new BasicHeader(":method", "GET"), headers3.get(0));
+    assertHeaderEquals(new BasicHeader(":scheme", "https"), headers3.get(1));
+    assertHeaderEquals(new BasicHeader(":path", "/index.html"), headers3.get(2));
+    assertHeaderEquals(new BasicHeader(":authority", "www.example.com"), headers3.get(3));
+    assertHeaderEquals(new BasicHeader("custom-key", "custom-value"), headers3.get(4));
+    Assert.assertEquals(3, dynamicTable.dynamicLength());
+    assertHeaderEquals(new BasicHeader("custom-key", "custom-value"), dynamicTable.getDynamicEntry(0));
+    assertHeaderEquals(new BasicHeader("cache-control", "no-cache"), dynamicTable.getDynamicEntry(1));
+    assertHeaderEquals(new BasicHeader(":authority", "www.example.com"), dynamicTable.getDynamicEntry(2));
+    Assert.assertEquals(164, dynamicTable.getCurrentSize());
+}

@@ -1,0 +1,12 @@
+// Truncated stream (missing closing CRLF)
+@Test(expected = MalformedChunkCodingException.class)
+public void testCorruptChunkedInputStreamTruncatedCRLF() throws IOException {
+    final String s = "5\r\n01234";
+    final SessionInputBuffer inBuffer = new SessionInputBufferImpl(16);
+    final ByteArrayInputStream inputStream = new ByteArrayInputStream(s.getBytes(StandardCharsets.ISO_8859_1));
+    final ChunkedInputStream in = new ChunkedInputStream(inBuffer, inputStream);
+    final byte[] tmp = new byte[5];
+    Assert.assertEquals(5, in.read(tmp));
+    in.read();
+    in.close();
+}

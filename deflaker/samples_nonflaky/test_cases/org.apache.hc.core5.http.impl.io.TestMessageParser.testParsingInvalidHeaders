@@ -1,0 +1,21 @@
+@Test
+public void testParsingInvalidHeaders() throws Exception {
+    final String s1 = "    stuff\r\n" + "header1: stuff\r\n" + "\r\n";
+    final ByteArrayInputStream inputStream1 = new ByteArrayInputStream(s1.getBytes(StandardCharsets.US_ASCII));
+    final SessionInputBuffer inBuffer1 = new SessionInputBufferImpl(16, StandardCharsets.US_ASCII.newDecoder());
+    try {
+        AbstractMessageParser.parseHeaders(inBuffer1, inputStream1, -1, -1, null);
+        Assert.fail("ProtocolException should have been thrown");
+    } catch (final ProtocolException ex) {
+    // expected
+    }
+    final String s2 = "  :  stuff\r\n" + "header1: stuff\r\n" + "\r\n";
+    final ByteArrayInputStream inputStream2 = new ByteArrayInputStream(s2.getBytes(StandardCharsets.US_ASCII));
+    final SessionInputBuffer inBuffer2 = new SessionInputBufferImpl(16, StandardCharsets.US_ASCII.newDecoder());
+    try {
+        AbstractMessageParser.parseHeaders(inBuffer2, inputStream2, -1, -1, null);
+        Assert.fail("ProtocolException should have been thrown");
+    } catch (final ProtocolException ex) {
+    // expected
+    }
+}

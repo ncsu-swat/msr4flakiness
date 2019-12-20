@@ -1,0 +1,14 @@
+@Test
+public void testReadRequestHead() throws Exception {
+    final String s = "GET / HTTP/1.1\r\nUser-Agent: test\r\n\r\n";
+    final ByteArrayInputStream inStream = new ByteArrayInputStream(s.getBytes(StandardCharsets.US_ASCII));
+    Mockito.when(socket.getInputStream()).thenReturn(inStream);
+    conn.bind(socket);
+    Assert.assertEquals(0, conn.getEndpointDetails().getRequestCount());
+    final ClassicHttpRequest request = conn.receiveRequestHeader();
+    Assert.assertNotNull(request);
+    Assert.assertEquals("/", request.getPath());
+    Assert.assertEquals(Method.GET.name(), request.getMethod());
+    Assert.assertTrue(request.containsHeader("User-Agent"));
+    Assert.assertEquals(1, conn.getEndpointDetails().getRequestCount());
+}

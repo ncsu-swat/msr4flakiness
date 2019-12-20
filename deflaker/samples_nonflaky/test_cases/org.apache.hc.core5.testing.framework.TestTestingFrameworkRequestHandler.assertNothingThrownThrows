@@ -1,0 +1,21 @@
+@Test
+public void assertNothingThrownThrows() throws Exception {
+    final String errorMessage = "thrown intentionally";
+    final TestingFrameworkRequestHandler handler = new TestingFrameworkRequestHandler() {
+
+        @Override
+        public void handle(final ClassicHttpRequest request, final ClassicHttpResponse response, final HttpContext context) throws HttpException, IOException {
+            thrown = new TestingFrameworkException(errorMessage);
+        }
+    };
+    handler.handle(null, null, null);
+    try {
+        handler.assertNothingThrown();
+        Assert.fail("WebServerTestingFrameworkException should have been thrown");
+    } catch (final TestingFrameworkException e) {
+        // expected
+        Assert.assertEquals("Unexpected message", errorMessage, e.getMessage());
+    }
+    // a second call should not throw
+    handler.assertNothingThrown();
+}

@@ -1,0 +1,22 @@
+@Test
+public void changeProtocolVersion() throws Exception {
+    final ClientTestingAdapter adapter = new ClassicTestClientTestingAdapter() {
+
+        @Override
+        public Map<String, Object> execute(final String defaultURI, final Map<String, Object> request, final TestingFrameworkRequestHandler requestHandler, final Map<String, Object> responseExpectations) throws TestingFrameworkException {
+            // change the request from what is expected.
+            final ProtocolVersion protocolVersion = (ProtocolVersion) request.get(PROTOCOL_VERSION);
+            Assert.assertNotNull(protocolVersion);
+            request.put(PROTOCOL_VERSION, HttpVersion.HTTP_1_0);
+            return super.execute(defaultURI, request, requestHandler, responseExpectations);
+        }
+    };
+    final TestingFramework framework = newFrameworkAndSetAdapter(adapter);
+    framework.addTest();
+    try {
+        framework.runTests();
+        Assert.fail("WebServerTestingFrameworkException should have been thrown");
+    } catch (final TestingFrameworkException e) {
+    // expected
+    }
+}

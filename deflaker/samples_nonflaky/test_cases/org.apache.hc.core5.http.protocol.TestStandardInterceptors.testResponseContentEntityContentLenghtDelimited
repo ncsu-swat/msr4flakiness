@@ -1,0 +1,13 @@
+@Test
+public void testResponseContentEntityContentLenghtDelimited() throws Exception {
+    final HttpContext context = new BasicHttpContext(null);
+    final ClassicHttpResponse response = new BasicClassicHttpResponse(HttpStatus.SC_OK, "OK");
+    response.setEntity(new BasicHttpEntity(EmptyInputStream.INSTANCE, 10, null));
+    final ResponseContent interceptor = new ResponseContent();
+    interceptor.process(response, response.getEntity(), context);
+    final Header h1 = response.getFirstHeader(HttpHeaders.CONTENT_LENGTH);
+    Assert.assertNotNull(h1);
+    Assert.assertEquals("10", h1.getValue());
+    final Header h2 = response.getFirstHeader(HttpHeaders.TRANSFER_ENCODING);
+    Assert.assertNull(h2);
+}

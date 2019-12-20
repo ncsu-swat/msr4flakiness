@@ -1,0 +1,23 @@
+@Test
+public void bodyCheck() throws Exception {
+    final ClientTestingAdapter adapter = new ClientTestingAdapter() {
+
+        @Override
+        public Map<String, Object> execute(final String defaultURI, final Map<String, Object> request, final TestingFrameworkRequestHandler requestHandler, final Map<String, Object> responseExpectations) {
+            Assert.assertEquals(TestingFramework.DEFAULT_RESPONSE_BODY, responseExpectations.get(BODY));
+            final Map<String, Object> response = new HashMap<>();
+            response.put(STATUS, TestingFramework.ALREADY_CHECKED);
+            // return a different body than expected.
+            response.put(BODY, TestingFramework.DEFAULT_RESPONSE_BODY + "junk");
+            return response;
+        }
+    };
+    final TestingFramework framework = newFrameworkAndSetAdapter(adapter);
+    framework.addTest();
+    try {
+        framework.runTests();
+        Assert.fail("WebServerTestingFrameworkException should have been thrown");
+    } catch (final TestingFrameworkException e) {
+    // expected
+    }
+}

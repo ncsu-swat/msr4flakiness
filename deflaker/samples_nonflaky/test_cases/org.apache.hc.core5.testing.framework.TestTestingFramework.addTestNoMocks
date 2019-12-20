@@ -1,0 +1,51 @@
+@Test
+public void addTestNoMocks() throws TestingFrameworkException {
+    final TestingFramework framework = new TestingFramework(new ClassicTestClientTestingAdapter());
+    // The following test could be constructed in Groovy/Spock like this:
+    // 
+    // HttpServerTestingFramework.ALL_METHODS.each { method ->
+    // framework.addTest(
+    // request: [
+    // path: '/stuff',
+    // method:method,
+    // query: [param : 'something'],
+    // headers: [header1:'stuff', header2:'more-stuff'],
+    // contentType: 'text/plain; charset=us-ascii',
+    // body: 'What is the meaning of life?',
+    // ],
+    // response: [
+    // status:201,
+    // headers: [header3:'header_stuff',],
+    // contentType: 'text/html; charset=us-ascii',
+    // body: responseBody,
+    // ],
+    // )
+    final Map<String, Object> test = new HashMap<>();
+    // Add request.
+    final Map<String, Object> request = new HashMap<>();
+    test.put(REQUEST, request);
+    request.put(PATH, "/stuff");
+    final Map<String, Object> queryMap = new HashMap<>();
+    request.put(QUERY, queryMap);
+    queryMap.put("param", "something");
+    final Map<String, Object> requestHeadersMap = new HashMap<>();
+    request.put(HEADERS, requestHeadersMap);
+    requestHeadersMap.put("header1", "stuff");
+    requestHeadersMap.put("header2", "more-stuff");
+    request.put(CONTENT_TYPE, "text/plain; charset=us-ascii");
+    request.put(BODY, "What is the meaning of life?");
+    // Response
+    final Map<String, Object> response = new HashMap<>();
+    test.put(RESPONSE, response);
+    response.put(STATUS, 201);
+    final Map<String, Object> responseHeadersMap = new HashMap<>();
+    response.put(HEADERS, responseHeadersMap);
+    responseHeadersMap.put("header3", "header_stuff");
+    response.put(CONTENT_TYPE, "text/html; charset=us-ascii");
+    response.put(BODY, "<HTML>42</HTML>");
+    for (final String method : TestingFramework.ALL_METHODS) {
+        request.put(METHOD, method);
+        framework.addTest(test);
+    }
+    framework.runTests();
+}

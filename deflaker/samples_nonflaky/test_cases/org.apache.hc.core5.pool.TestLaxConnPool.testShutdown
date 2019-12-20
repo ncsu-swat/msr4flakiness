@@ -1,0 +1,12 @@
+@Test
+public void testShutdown() throws Exception {
+    final LaxConnPool<String, HttpConnection> pool = new LaxConnPool<>(2);
+    pool.close(CloseMode.GRACEFUL);
+    try {
+        pool.lease("somehost", null);
+        Assert.fail("IllegalStateException should have been thrown");
+    } catch (final IllegalStateException expected) {
+    }
+    // Ignored if shut down
+    pool.release(new PoolEntry<String, HttpConnection>("somehost"), true);
+}

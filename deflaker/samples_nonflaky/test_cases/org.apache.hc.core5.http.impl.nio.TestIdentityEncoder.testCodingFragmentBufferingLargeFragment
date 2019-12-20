@@ -1,0 +1,18 @@
+@Test
+public void testCodingFragmentBufferingLargeFragment() throws Exception {
+    final WritableByteChannelMock channel = Mockito.spy(new WritableByteChannelMock(64));
+    final SessionOutputBuffer outbuf = Mockito.spy(new SessionOutputBufferImpl(1024, 128));
+    final BasicHttpTransportMetrics metrics = new BasicHttpTransportMetrics();
+    final CharArrayBuffer chbuffer = new CharArrayBuffer(16);
+    chbuffer.append("header");
+    outbuf.writeLine(chbuffer);
+    final IdentityEncoder encoder = new IdentityEncoder(channel, outbuf, metrics, 2);
+    Assert.assertEquals(5, encoder.write(CodecTestUtils.wrap("stuff")));
+    Mockito.verify(channel, Mockito.times(2)).write(ArgumentMatchers.<ByteBuffer>any());
+    Mockito.verify(outbuf, Mockito.never()).write(ArgumentMatchers.<ByteBuffer>any());
+    Mockito.verify(outbuf, Mockito.times(1)).flush(channel);
+    Assert.assertEquals(13, metrics.getBytesTransferred());
+    outbuf.flush(channel);
+    final String s = channel.dump(StandardCharsets.US_ASCII);
+    Assert.assertEquals("header\r\nstuff", s);
+}

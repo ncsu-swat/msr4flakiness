@@ -1,0 +1,20 @@
+@Test
+public void testChunkedOutputStreamClose() throws IOException {
+    final SessionOutputBuffer outbuffer = new SessionOutputBufferImpl(16);
+    final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    final ChunkedOutputStream out = new ChunkedOutputStream(outbuffer, outputStream, 2048);
+    out.close();
+    out.close();
+    try {
+        out.write(new byte[] { 1, 2, 3 });
+        Assert.fail("IOException should have been thrown");
+    } catch (final IOException ex) {
+    // expected
+    }
+    try {
+        out.write(1);
+        Assert.fail("IOException should have been thrown");
+    } catch (final IOException ex) {
+    // expected
+    }
+}

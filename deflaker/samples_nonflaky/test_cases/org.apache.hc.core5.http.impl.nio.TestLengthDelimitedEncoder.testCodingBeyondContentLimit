@@ -1,0 +1,12 @@
+@Test
+public void testCodingBeyondContentLimit() throws Exception {
+    final WritableByteChannelMock channel = new WritableByteChannelMock(64);
+    final SessionOutputBuffer outbuf = new SessionOutputBufferImpl(1024, 128);
+    final BasicHttpTransportMetrics metrics = new BasicHttpTransportMetrics();
+    final LengthDelimitedEncoder encoder = new LengthDelimitedEncoder(channel, outbuf, metrics, 16);
+    encoder.write(CodecTestUtils.wrap("stuff;"));
+    encoder.write(CodecTestUtils.wrap("more stuff; and a lot more stuff"));
+    final String s = channel.dump(StandardCharsets.US_ASCII);
+    Assert.assertTrue(encoder.isCompleted());
+    Assert.assertEquals("stuff;more stuff", s);
+}

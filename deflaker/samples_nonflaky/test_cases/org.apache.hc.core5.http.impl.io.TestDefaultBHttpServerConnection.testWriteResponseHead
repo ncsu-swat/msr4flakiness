@@ -1,0 +1,14 @@
+@Test
+public void testWriteResponseHead() throws Exception {
+    final ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+    Mockito.when(socket.getOutputStream()).thenReturn(outStream);
+    conn.bind(socket);
+    Assert.assertEquals(0, conn.getEndpointDetails().getResponseCount());
+    final ClassicHttpResponse response = new BasicClassicHttpResponse(200, "OK");
+    response.addHeader("User-Agent", "test");
+    conn.sendResponseHeader(response);
+    conn.flush();
+    Assert.assertEquals(1, conn.getEndpointDetails().getResponseCount());
+    final String s = new String(outStream.toByteArray(), "ASCII");
+    Assert.assertEquals("HTTP/1.1 200 OK\r\nUser-Agent: test\r\n\r\n", s);
+}

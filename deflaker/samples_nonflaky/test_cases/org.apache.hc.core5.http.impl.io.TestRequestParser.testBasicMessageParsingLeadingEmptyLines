@@ -1,0 +1,12 @@
+@Test
+public void testBasicMessageParsingLeadingEmptyLines() throws Exception {
+    final String s = "\r\n" + "\r\n" + "GET / HTTP/1.1\r\n" + "Host: localhost\r\n" + "\r\n";
+    final ByteArrayInputStream inputStream = new ByteArrayInputStream(s.getBytes(StandardCharsets.US_ASCII));
+    final SessionInputBuffer inBuffer = new SessionInputBufferImpl(16, StandardCharsets.US_ASCII.newDecoder());
+    final DefaultHttpRequestParser parser = new DefaultHttpRequestParser(Http1Config.custom().setMaxEmptyLineCount(3).build());
+    final ClassicHttpRequest httprequest = parser.parse(inBuffer, inputStream);
+    Assert.assertEquals(Method.GET.name(), httprequest.getMethod());
+    Assert.assertEquals("/", httprequest.getPath());
+    final Header[] headers = httprequest.getHeaders();
+    Assert.assertEquals(1, headers.length);
+}

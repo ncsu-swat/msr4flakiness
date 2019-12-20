@@ -1,0 +1,13 @@
+@Test
+public void testReadResponseHead() throws Exception {
+    final String s = "HTTP/1.1 200 OK\r\nUser-Agent: test\r\n\r\n";
+    final ByteArrayInputStream inStream = new ByteArrayInputStream(s.getBytes(StandardCharsets.US_ASCII));
+    Mockito.when(socket.getInputStream()).thenReturn(inStream);
+    conn.bind(socket);
+    Assert.assertEquals(0, conn.getEndpointDetails().getResponseCount());
+    final ClassicHttpResponse response = conn.receiveResponseHeader();
+    Assert.assertNotNull(response);
+    Assert.assertEquals(200, response.getCode());
+    Assert.assertTrue(response.containsHeader("User-Agent"));
+    Assert.assertEquals(1, conn.getEndpointDetails().getResponseCount());
+}

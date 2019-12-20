@@ -1,0 +1,29 @@
+@Test
+public void changedHeaderCheck() throws Exception {
+    final ClientTestingAdapter adapter = new ClientTestingAdapter() {
+
+        @Override
+        public Map<String, Object> execute(final String defaultURI, final Map<String, Object> request, final TestingFrameworkRequestHandler requestHandler, final Map<String, Object> responseExpectations) {
+            Assert.assertEquals(TestingFramework.DEFAULT_RESPONSE_HEADERS, responseExpectations.get(HEADERS));
+            @SuppressWarnings("unchecked")
+            final Map<String, String> headersCopy = (Map<String, String>) deepcopy(responseExpectations.get(HEADERS));
+            // change a header to force an error
+            final String headerName = (String) headersCopy.keySet().toArray()[0];
+            headersCopy.put(headerName, headersCopy.get(headerName) + "junk");
+            final Map<String, Object> response = new HashMap<>();
+            response.put(STATUS, TestingFramework.ALREADY_CHECKED);
+            response.put(BODY, TestingFramework.ALREADY_CHECKED);
+            // return different headers than expected.
+            response.put(HEADERS, headersCopy);
+            return response;
+        }
+    };
+    final TestingFramework framework = newFrameworkAndSetAdapter(adapter);
+    framework.addTest();
+    try {
+        framework.runTests();
+        Assert.fail("WebServerTestingFrameworkException should have been thrown");
+    } catch (final TestingFrameworkException e) {
+    // expected
+    }
+}

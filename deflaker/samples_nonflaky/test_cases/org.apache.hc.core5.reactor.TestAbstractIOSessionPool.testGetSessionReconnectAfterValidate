@@ -1,0 +1,18 @@
+@Test
+public void testGetSessionReconnectAfterValidate() throws Exception {
+    final AbstractIOSessionPool.PoolEntry entry1 = impl.getPoolEntry("somehost");
+    Assert.assertThat(entry1, CoreMatchers.notNullValue());
+    entry1.session = ioSession1;
+    Mockito.when(ioSession1.isOpen()).thenReturn(true);
+    Mockito.doAnswer(new Answer() {
+
+        @Override
+        public Object answer(final InvocationOnMock invocation) throws Throwable {
+            final Callback<Boolean> callback = invocation.getArgument(1);
+            callback.execute(false);
+            return null;
+        }
+    }).when(impl).validateSession(ArgumentMatchers.<IOSession>any(), ArgumentMatchers.<Callback<Boolean>>any());
+    impl.getSession("somehost", Timeout.ofSeconds(123L), null);
+    Mockito.verify(impl, Mockito.times(1)).connectSession(ArgumentMatchers.eq("somehost"), ArgumentMatchers.eq(Timeout.ofSeconds(123L)), ArgumentMatchers.<FutureCallback<IOSession>>any());
+}

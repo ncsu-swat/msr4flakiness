@@ -1,0 +1,15 @@
+@Test
+public void testCodingCompleted() throws Exception {
+    final WritableByteChannelMock channel = new WritableByteChannelMock(64);
+    final SessionOutputBuffer outbuf = new SessionOutputBufferImpl(1024, 128);
+    final BasicHttpTransportMetrics metrics = new BasicHttpTransportMetrics();
+    final IdentityEncoder encoder = new IdentityEncoder(channel, outbuf, metrics);
+    encoder.write(CodecTestUtils.wrap("stuff"));
+    encoder.complete();
+    try {
+        encoder.write(CodecTestUtils.wrap("more stuff"));
+        Assert.fail("IllegalStateException should have been thrown");
+    } catch (final IllegalStateException ex) {
+    // ignore
+    }
+}

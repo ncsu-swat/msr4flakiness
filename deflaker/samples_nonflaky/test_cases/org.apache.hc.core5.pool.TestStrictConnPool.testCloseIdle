@@ -1,0 +1,42 @@
+@Test
+public void testCloseIdle() throws Exception {
+    final HttpConnection conn1 = Mockito.mock(HttpConnection.class);
+    final HttpConnection conn2 = Mockito.mock(HttpConnection.class);
+    final StrictConnPool<String, HttpConnection> pool = new StrictConnPool<>(2, 2);
+    final Future<PoolEntry<String, HttpConnection>> future1 = pool.lease("somehost", null);
+    final Future<PoolEntry<String, HttpConnection>> future2 = pool.lease("somehost", null);
+    Assert.assertTrue(future1.isDone());
+    final PoolEntry<String, HttpConnection> entry1 = future1.get();
+    Assert.assertNotNull(entry1);
+    entry1.assignConnection(conn1);
+    Assert.assertTrue(future2.isDone());
+    final PoolEntry<String, HttpConnection> entry2 = future2.get();
+    Assert.assertNotNull(entry2);
+    entry2.assignConnection(conn2);
+    entry1.updateState(null);
+    pool.release(entry1, true);
+    Thread.sleep(200L);
+    entry2.updateState(null);
+    pool.release(entry2, true);
+    pool.closeIdle(TimeValue.of(50, TimeUnit.MILLISECONDS));
+    Mockito.verify(conn1).close(CloseMode.GRACEFUL);
+    Mockito.verify(conn2, Mockito.never()).close(ArgumentMatchers.<CloseMode>any());
+    PoolStats totals = pool.getTotalStats();
+    Assert.assertEquals(1, totals.getAvailable());
+    Assert.assertEquals(0, totals.getLeased());
+    Assert.assertEquals(0, totals.getPending());
+    PoolStats stats = pool.getStats("somehost");
+    Assert.assertEquals(1, stats.getAvailable());
+    Assert.assertEquals(0, stats.getLeased());
+    Assert.assertEquals(0, stats.getPending());
+    pool.closeIdle(TimeValue.of(-1, TimeUnit.MILLISECONDS));
+    Mockito.verify(conn2).close(CloseMode.GRACEFUL);
+    totals = pool.getTotalStats();
+    Assert.assertEquals(0, totals.getAvailable());
+    Assert.assertEquals(0, totals.getLeased());
+    Assert.assertEquals(0, totals.getPending());
+    stats = pool.getStats("somehost");
+    Assert.assertEquals(0, stats.getAvailable());
+    Assert.assertEquals(0, stats.getLeased());
+    Assert.assertEquals(0, stats.getPending());
+}

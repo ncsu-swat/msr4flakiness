@@ -1,0 +1,23 @@
+@Test
+public void testGetSessionFailure() throws Exception {
+    Mockito.when(impl.connectSession(ArgumentMatchers.anyString(), ArgumentMatchers.<Timeout>any(), ArgumentMatchers.<FutureCallback<IOSession>>any())).thenReturn(connectFuture);
+    final Future<IOSession> future1 = impl.getSession("somehost", Timeout.ofSeconds(123L), null);
+    Assert.assertThat(future1, CoreMatchers.notNullValue());
+    Assert.assertThat(future1.isDone(), CoreMatchers.equalTo(false));
+    Assert.assertThat(impl.getRoutes(), CoreMatchers.hasItem("somehost"));
+    Mockito.verify(impl).connectSession(ArgumentMatchers.eq("somehost"), ArgumentMatchers.eq(Timeout.ofSeconds(123L)), ArgumentMatchers.<FutureCallback<IOSession>>any());
+    final Future<IOSession> future2 = impl.getSession("somehost", Timeout.ofSeconds(123L), null);
+    Assert.assertThat(future2, CoreMatchers.notNullValue());
+    Assert.assertThat(future2.isDone(), CoreMatchers.equalTo(false));
+    Assert.assertThat(impl.getRoutes(), CoreMatchers.hasItem("somehost"));
+    Mockito.verify(impl, Mockito.times(1)).connectSession(ArgumentMatchers.eq("somehost"), ArgumentMatchers.<Timeout>any(), ArgumentMatchers.argThat(new ArgumentMatcher<FutureCallback<IOSession>>() {
+
+        @Override
+        public boolean matches(final FutureCallback<IOSession> callback) {
+            callback.failed(new Exception("Boom"));
+            return true;
+        }
+    }));
+    Assert.assertThat(future1.isDone(), CoreMatchers.equalTo(true));
+    Assert.assertThat(future2.isDone(), CoreMatchers.equalTo(true));
+}

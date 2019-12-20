@@ -1,0 +1,21 @@
+@Test
+public void testConnectionShutdown() throws Exception {
+    final InputStream inStream = Mockito.mock(InputStream.class);
+    final OutputStream outStream = Mockito.mock(OutputStream.class);
+    Mockito.when(socket.getInputStream()).thenReturn(inStream);
+    Mockito.when(socket.getOutputStream()).thenReturn(outStream);
+    conn.bind(socket);
+    conn.ensureOpen();
+    conn.outbuffer.write(0, outStream);
+    Assert.assertTrue(conn.isOpen());
+    conn.close(CloseMode.GRACEFUL);
+    Assert.assertFalse(conn.isOpen());
+    Mockito.verify(outStream, Mockito.never()).write(ArgumentMatchers.<byte[]>any(), ArgumentMatchers.anyInt(), ArgumentMatchers.anyInt());
+    Mockito.verify(socket, Mockito.never()).shutdownInput();
+    Mockito.verify(socket, Mockito.never()).shutdownOutput();
+    Mockito.verify(socket, Mockito.times(1)).close();
+    conn.close();
+    Mockito.verify(socket, Mockito.times(1)).close();
+    conn.close(CloseMode.GRACEFUL);
+    Mockito.verify(socket, Mockito.times(1)).close();
+}

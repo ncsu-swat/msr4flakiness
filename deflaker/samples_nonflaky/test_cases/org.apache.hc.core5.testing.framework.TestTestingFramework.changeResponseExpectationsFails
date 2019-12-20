@@ -1,0 +1,25 @@
+@Test
+public void changeResponseExpectationsFails() throws Exception {
+    final ClientTestingAdapter adapter = new ClientTestingAdapter() {
+
+        @Override
+        public Map<String, Object> execute(final String defaultURI, final Map<String, Object> request, final TestingFrameworkRequestHandler requestHandler, final Map<String, Object> responseExpectations) throws TestingFrameworkException {
+            /*
+                 * The adapter should change the responseExpectations in the modifyResponseExpectations()
+                 * method before they are sent to the request handler.  The expectations should not
+                 * be changed here.
+                 */
+            // the next command should throw.
+            responseExpectations.put(STATUS, 201);
+            return null;
+        }
+    };
+    final TestingFramework framework = newFrameworkAndSetAdapter(adapter);
+    framework.addTest();
+    try {
+        framework.runTests();
+        Assert.fail("HttpServerTestingFrameworkException should have been thrown");
+    } catch (final TestingFrameworkException e) {
+    // expected
+    }
+}

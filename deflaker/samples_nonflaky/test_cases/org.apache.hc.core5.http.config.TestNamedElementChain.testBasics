@@ -1,0 +1,44 @@
+@Test
+public void testBasics() {
+    final NamedElementChain<Character> list = new NamedElementChain<>();
+    Assert.assertThat(list.getFirst(), CoreMatchers.nullValue());
+    Assert.assertThat(list.getLast(), CoreMatchers.nullValue());
+    final NamedElementChain<Character>.Node nodeA = list.addFirst('a', "a");
+    Assert.assertThat(list.getFirst(), CoreMatchers.sameInstance(nodeA));
+    Assert.assertThat(list.getLast(), CoreMatchers.sameInstance(nodeA));
+    final NamedElementChain<Character>.Node nodeB = list.addLast('b', "b");
+    Assert.assertThat(list.getFirst(), CoreMatchers.sameInstance(nodeA));
+    Assert.assertThat(list.getLast(), CoreMatchers.sameInstance(nodeB));
+    final NamedElementChain<Character>.Node nodeZ = list.addLast('z', "z");
+    Assert.assertThat(list.getFirst(), CoreMatchers.sameInstance(nodeA));
+    Assert.assertThat(list.getLast(), CoreMatchers.sameInstance(nodeZ));
+    Assert.assertThat(nodeA.getPrevious(), CoreMatchers.nullValue());
+    Assert.assertThat(nodeA.getNext(), CoreMatchers.sameInstance(nodeB));
+    Assert.assertThat(nodeB.getPrevious(), CoreMatchers.sameInstance(nodeA));
+    Assert.assertThat(nodeB.getNext(), CoreMatchers.sameInstance(nodeZ));
+    Assert.assertThat(nodeZ.getPrevious(), CoreMatchers.sameInstance(nodeB));
+    Assert.assertThat(nodeZ.getNext(), CoreMatchers.nullValue());
+    final NamedElementChain<Character>.Node nodeD = list.addAfter("b", 'd', "d");
+    Assert.assertThat(nodeD.getPrevious(), CoreMatchers.sameInstance(nodeB));
+    Assert.assertThat(nodeD.getNext(), CoreMatchers.sameInstance(nodeZ));
+    Assert.assertThat(nodeB.getNext(), CoreMatchers.sameInstance(nodeD));
+    Assert.assertThat(nodeZ.getPrevious(), CoreMatchers.sameInstance(nodeD));
+    final NamedElementChain<Character>.Node nodeC = list.addBefore("d", 'c', "c");
+    Assert.assertThat(nodeC.getPrevious(), CoreMatchers.sameInstance(nodeB));
+    Assert.assertThat(nodeC.getNext(), CoreMatchers.sameInstance(nodeD));
+    Assert.assertThat(nodeB.getNext(), CoreMatchers.sameInstance(nodeC));
+    Assert.assertThat(nodeD.getPrevious(), CoreMatchers.sameInstance(nodeC));
+    Assert.assertThat(list.getSize(), CoreMatchers.equalTo(5));
+    Assert.assertThat(list.remove("a"), CoreMatchers.is(true));
+    Assert.assertThat(list.remove("z"), CoreMatchers.is(true));
+    Assert.assertThat(list.remove("c"), CoreMatchers.is(true));
+    Assert.assertThat(list.remove("c"), CoreMatchers.is(false));
+    Assert.assertThat(list.remove("blah"), CoreMatchers.is(false));
+    Assert.assertThat(list.getFirst(), CoreMatchers.sameInstance(nodeB));
+    Assert.assertThat(list.getLast(), CoreMatchers.sameInstance(nodeD));
+    Assert.assertThat(list.getSize(), CoreMatchers.equalTo(2));
+    Assert.assertThat(list.addBefore("blah", 'e', "e"), CoreMatchers.nullValue());
+    Assert.assertThat(list.getSize(), CoreMatchers.equalTo(2));
+    Assert.assertThat(list.addAfter("yada", 'e', "e"), CoreMatchers.nullValue());
+    Assert.assertThat(list.getSize(), CoreMatchers.equalTo(2));
+}

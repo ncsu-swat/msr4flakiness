@@ -1,0 +1,13 @@
+@Test
+public void testStreamThatEndsNormally() throws Exception {
+    final Flowable<ByteBuffer> publisher = Flowable.just(ByteBuffer.wrap(new byte[] { '1', '2', '3' }), ByteBuffer.wrap(new byte[] { '4', '5', '6' }));
+    final ReactiveDataProducer producer = new ReactiveDataProducer(publisher);
+    final WritableByteChannelMock byteChannel = new WritableByteChannelMock(1024);
+    final DataStreamChannel streamChannel = new BasicDataStreamChannel(byteChannel);
+    producer.produce(streamChannel);
+    Assert.assertTrue(byteChannel.isOpen());
+    Assert.assertEquals("123456", byteChannel.dump(StandardCharsets.US_ASCII));
+    producer.produce(streamChannel);
+    Assert.assertFalse(byteChannel.isOpen());
+    Assert.assertEquals("", byteChannel.dump(StandardCharsets.US_ASCII));
+}

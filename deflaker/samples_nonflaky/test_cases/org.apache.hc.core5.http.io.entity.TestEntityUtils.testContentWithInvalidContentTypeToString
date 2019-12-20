@@ -1,0 +1,28 @@
+@Test
+public void testContentWithInvalidContentTypeToString() throws Exception {
+    final String content = constructString(RUSSIAN_HELLO);
+    final byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
+    final HttpEntity entity = new AbstractHttpEntity("text/plain; charset=nosuchcharset", null) {
+
+        @Override
+        public InputStream getContent() throws IOException, UnsupportedOperationException {
+            return new ByteArrayInputStream(bytes);
+        }
+
+        @Override
+        public boolean isStreaming() {
+            return false;
+        }
+
+        @Override
+        public long getContentLength() {
+            return bytes.length;
+        }
+
+        @Override
+        public void close() throws IOException {
+        }
+    };
+    final String s = EntityUtils.toString(entity, "UTF-8");
+    Assert.assertEquals(content, s);
+}

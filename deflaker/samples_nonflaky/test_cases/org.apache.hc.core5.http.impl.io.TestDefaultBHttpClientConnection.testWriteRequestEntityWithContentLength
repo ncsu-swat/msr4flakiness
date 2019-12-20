@@ -1,0 +1,17 @@
+@Test
+public void testWriteRequestEntityWithContentLength() throws Exception {
+    final ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+    Mockito.when(socket.getOutputStream()).thenReturn(outStream);
+    conn.bind(socket);
+    Assert.assertEquals(0, conn.getEndpointDetails().getRequestCount());
+    final ClassicHttpRequest request = new BasicClassicHttpRequest(Method.POST, "/stuff");
+    request.addHeader("User-Agent", "test");
+    request.addHeader("Content-Length", "3");
+    request.setEntity(new StringEntity("123", ContentType.TEXT_PLAIN));
+    conn.sendRequestHeader(request);
+    conn.sendRequestEntity(request);
+    conn.flush();
+    Assert.assertEquals(1, conn.getEndpointDetails().getRequestCount());
+    final String s = new String(outStream.toByteArray(), StandardCharsets.US_ASCII);
+    Assert.assertEquals("POST /stuff HTTP/1.1\r\nUser-Agent: test\r\nContent-Length: 3\r\n\r\n123", s);
+}

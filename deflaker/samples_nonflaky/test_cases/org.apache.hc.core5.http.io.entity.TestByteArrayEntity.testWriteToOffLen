@@ -1,0 +1,29 @@
+@Test
+public void testWriteToOffLen() throws Exception {
+    final byte[] bytes = "Message content".getBytes(StandardCharsets.US_ASCII);
+    final int off = 8;
+    final int len = 7;
+    final ByteArrayEntity entity = new ByteArrayEntity(bytes, off, len, null);
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    entity.writeTo(out);
+    byte[] bytes2 = out.toByteArray();
+    Assert.assertNotNull(bytes2);
+    Assert.assertEquals(len, bytes2.length);
+    for (int i = 0; i < len; i++) {
+        Assert.assertEquals(bytes[i + off], bytes2[i]);
+    }
+    out = new ByteArrayOutputStream();
+    entity.writeTo(out);
+    bytes2 = out.toByteArray();
+    Assert.assertNotNull(bytes2);
+    Assert.assertEquals(len, bytes2.length);
+    for (int i = 0; i < len; i++) {
+        Assert.assertEquals(bytes[i + off], bytes2[i]);
+    }
+    try {
+        entity.writeTo(null);
+        Assert.fail("IllegalArgumentException should have been thrown");
+    } catch (final IllegalArgumentException ex) {
+    // expected
+    }
+}

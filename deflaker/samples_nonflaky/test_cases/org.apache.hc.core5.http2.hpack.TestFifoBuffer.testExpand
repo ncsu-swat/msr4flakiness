@@ -1,0 +1,37 @@
+@Test
+public void testExpand() throws Exception {
+    final HPackHeader h1 = new HPackHeader("h", "1");
+    final HPackHeader h2 = new HPackHeader("h", "2");
+    final HPackHeader h3 = new HPackHeader("h", "3");
+    final HPackHeader h4 = new HPackHeader("h", "4");
+    for (int i = 0; i < 10; i++) {
+        final FifoBuffer fifoBuffer = new FifoBuffer(1);
+        for (int n = 0; n < i; n++) {
+            fifoBuffer.addFirst(h1);
+            fifoBuffer.removeLast();
+        }
+        Assert.assertEquals(0, fifoBuffer.size());
+        Assert.assertSame(null, fifoBuffer.getFirst());
+        Assert.assertSame(null, fifoBuffer.getLast());
+        fifoBuffer.addFirst(h1);
+        Assert.assertSame(h1, fifoBuffer.getFirst());
+        Assert.assertSame(h1, fifoBuffer.getLast());
+        Assert.assertEquals(1, fifoBuffer.size());
+        fifoBuffer.addFirst(h2);
+        Assert.assertEquals(2, fifoBuffer.size());
+        Assert.assertSame(h2, fifoBuffer.getFirst());
+        Assert.assertSame(h1, fifoBuffer.getLast());
+        fifoBuffer.addFirst(h3);
+        Assert.assertEquals(3, fifoBuffer.size());
+        Assert.assertSame(h3, fifoBuffer.getFirst());
+        Assert.assertSame(h1, fifoBuffer.getLast());
+        fifoBuffer.addFirst(h4);
+        Assert.assertEquals(4, fifoBuffer.size());
+        Assert.assertSame(h4, fifoBuffer.getFirst());
+        Assert.assertSame(h1, fifoBuffer.getLast());
+        Assert.assertSame(h4, fifoBuffer.get(0));
+        Assert.assertSame(h3, fifoBuffer.get(1));
+        Assert.assertSame(h2, fifoBuffer.get(2));
+        Assert.assertSame(h1, fifoBuffer.get(3));
+    }
+}

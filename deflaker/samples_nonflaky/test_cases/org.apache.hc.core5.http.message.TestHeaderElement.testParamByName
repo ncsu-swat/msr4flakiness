@@ -1,0 +1,17 @@
+@Test
+public void testParamByName() throws Exception {
+    final String s = "name = value; param1 = value1; param2 = value2";
+    final CharArrayBuffer buf = new CharArrayBuffer(64);
+    buf.append(s);
+    final ParserCursor cursor = new ParserCursor(0, buf.length());
+    final HeaderElement element = BasicHeaderValueParser.INSTANCE.parseHeaderElement(buf, cursor);
+    Assert.assertEquals("value1", element.getParameterByName("param1").getValue());
+    Assert.assertEquals("value2", element.getParameterByName("param2").getValue());
+    Assert.assertNull(element.getParameterByName("param3"));
+    try {
+        element.getParameterByName(null);
+        Assert.fail("IllegalArgumentException should have been thrown");
+    } catch (final IllegalArgumentException ex) {
+    // expected
+    }
+}

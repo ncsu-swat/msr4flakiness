@@ -1,0 +1,13 @@
+@Test
+public void testRequestContentOverwriteHeaders() throws Exception {
+    final RequestContent interceptor = new RequestContent(true);
+    final HttpContext context = new BasicHttpContext(null);
+    final BasicClassicHttpRequest request = new BasicClassicHttpRequest(Method.POST, "/");
+    request.addHeader(new BasicHeader(HttpHeaders.CONTENT_LENGTH, "10"));
+    request.addHeader(new BasicHeader(HttpHeaders.TRANSFER_ENCODING, "whatever"));
+    request.setEntity(new StringEntity(""));
+    interceptor.process(request, request.getEntity(), context);
+    final Header h1 = request.getFirstHeader(HttpHeaders.CONTENT_LENGTH);
+    Assert.assertNotNull(h1);
+    Assert.assertEquals("0", h1.getValue());
+}

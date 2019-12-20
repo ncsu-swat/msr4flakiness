@@ -1,0 +1,15 @@
+@Test
+public void testConvertFromFieldsBasic() throws Exception {
+    final List<Header> headers = Arrays.<Header>asList(new BasicHeader(":method", "GET"), new BasicHeader(":scheme", "http"), new BasicHeader(":authority", "www.example.com"), new BasicHeader(":path", "/"), new BasicHeader("custom123", "value"));
+    final DefaultH2RequestConverter converter = new DefaultH2RequestConverter();
+    final HttpRequest request = converter.convert(headers);
+    Assert.assertNotNull(request);
+    Assert.assertEquals("GET", request.getMethod());
+    Assert.assertEquals("http", request.getScheme());
+    Assert.assertEquals(new URIAuthority("www.example.com"), request.getAuthority());
+    Assert.assertEquals("/", request.getPath());
+    final Header[] allHeaders = request.getHeaders();
+    Assert.assertEquals(1, allHeaders.length);
+    Assert.assertEquals("custom123", allHeaders[0].getName());
+    Assert.assertEquals("value", allHeaders[0].getValue());
+}

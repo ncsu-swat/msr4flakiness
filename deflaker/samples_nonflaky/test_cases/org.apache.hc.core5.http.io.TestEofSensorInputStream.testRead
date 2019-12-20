@@ -1,0 +1,15 @@
+@Test
+public void testRead() throws Exception {
+    Mockito.when(eofwatcher.eofDetected(Mockito.<InputStream>any())).thenReturn(Boolean.TRUE);
+    Mockito.when(inStream.read()).thenReturn(0, -1);
+    Assert.assertEquals(0, eofstream.read());
+    Assert.assertFalse(eofstream.isSelfClosed());
+    Assert.assertNotNull(eofstream.getWrappedStream());
+    Mockito.verify(eofwatcher, Mockito.never()).eofDetected(inStream);
+    Assert.assertEquals(-1, eofstream.read());
+    Assert.assertFalse(eofstream.isSelfClosed());
+    Assert.assertNull(eofstream.getWrappedStream());
+    Mockito.verify(inStream, Mockito.times(1)).close();
+    Mockito.verify(eofwatcher).eofDetected(inStream);
+    Assert.assertEquals(-1, eofstream.read());
+}

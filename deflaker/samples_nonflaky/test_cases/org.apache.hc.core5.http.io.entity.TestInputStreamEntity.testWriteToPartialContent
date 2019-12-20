@@ -1,0 +1,15 @@
+@Test
+public void testWriteToPartialContent() throws Exception {
+    final String message = "Message content";
+    final byte[] bytes = message.getBytes(StandardCharsets.ISO_8859_1);
+    final InputStream inStream = new ByteArrayInputStream(bytes);
+    final int contentLength = 7;
+    final InputStreamEntity entity = new InputStreamEntity(inStream, contentLength, ContentType.TEXT_PLAIN.withCharset(StandardCharsets.ISO_8859_1));
+    final ByteArrayOutputStream out = new ByteArrayOutputStream();
+    entity.writeTo(out);
+    final byte[] writtenBytes = out.toByteArray();
+    Assert.assertNotNull(writtenBytes);
+    Assert.assertEquals(contentLength, writtenBytes.length);
+    final String s = new String(writtenBytes, StandardCharsets.ISO_8859_1.name());
+    Assert.assertEquals(message.substring(0, contentLength), s);
+}

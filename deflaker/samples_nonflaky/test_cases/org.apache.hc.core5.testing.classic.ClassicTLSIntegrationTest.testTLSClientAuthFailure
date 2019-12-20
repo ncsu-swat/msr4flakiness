@@ -1,0 +1,19 @@
+@Test(expected = IOException.class)
+public void testTLSClientAuthFailure() throws Exception {
+    server = ServerBootstrap.bootstrap().setSslContext(SSLTestContexts.createClientSSLContext()).setSocketConfig(SocketConfig.custom().setSoTimeout(TIMEOUT).build()).setSslContext(SSLTestContexts.createServerSSLContext()).setSslSetupHandler(new Callback<SSLParameters>() {
+
+        @Override
+        public void execute(final SSLParameters sslParameters) {
+            sslParameters.setNeedClientAuth(true);
+        }
+    }).setExceptionListener(LoggingExceptionListener.INSTANCE).setStreamListener(LoggingHttp1StreamListener.INSTANCE).register("*", new EchoHandler()).create();
+    server.start();
+    requester = RequesterBootstrap.bootstrap().setSslContext(SSLTestContexts.createClientSSLContext()).setSocketConfig(SocketConfig.custom().setSoTimeout(TIMEOUT).build()).setStreamListener(LoggingHttp1StreamListener.INSTANCE).setConnPoolListener(LoggingConnPoolListener.INSTANCE).create();
+    final HttpContext context = new BasicHttpContext();
+    final HttpHost target = new HttpHost("https", "localhost", server.getLocalPort());
+    final ClassicHttpRequest request1 = new BasicClassicHttpRequest(Method.POST, "/stuff");
+    request1.setEntity(new StringEntity("some stuff", ContentType.TEXT_PLAIN));
+    try (final ClassicHttpResponse response1 = requester.execute(target, request1, TIMEOUT, context)) {
+        EntityUtils.consume(response1.getEntity());
+    }
+}

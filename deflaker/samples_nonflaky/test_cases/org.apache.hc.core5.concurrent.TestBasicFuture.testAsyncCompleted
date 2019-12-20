@@ -1,0 +1,21 @@
+@Test
+public void testAsyncCompleted() throws Exception {
+    final BasicFuture<Object> future = new BasicFuture<>(null);
+    final Object result = new Object();
+    final Thread t = new Thread() {
+
+        @Override
+        public void run() {
+            try {
+                Thread.sleep(100);
+                future.completed(result);
+            } catch (final InterruptedException boom) {
+            }
+        }
+    };
+    t.setDaemon(true);
+    t.start();
+    Assert.assertSame(result, future.get(60, TimeUnit.SECONDS));
+    Assert.assertTrue(future.isDone());
+    Assert.assertFalse(future.isCancelled());
+}

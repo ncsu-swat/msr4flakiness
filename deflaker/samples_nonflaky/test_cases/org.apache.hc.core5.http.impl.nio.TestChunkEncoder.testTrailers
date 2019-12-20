@@ -1,0 +1,15 @@
+@Test
+public void testTrailers() throws IOException {
+    final WritableByteChannelMock channel = new WritableByteChannelMock(64);
+    final SessionOutputBuffer outbuf = new SessionOutputBufferImpl(1024, 128);
+    final BasicHttpTransportMetrics metrics = new BasicHttpTransportMetrics();
+    final ChunkEncoder encoder = new ChunkEncoder(channel, outbuf, metrics, 0);
+    encoder.write(CodecTestUtils.wrap("1"));
+    encoder.write(CodecTestUtils.wrap("23"));
+    encoder.complete(Arrays.asList(new BasicHeader("E", ""), new BasicHeader("Y", "Z")));
+    outbuf.flush(channel);
+    final String s = channel.dump(StandardCharsets.US_ASCII);
+    Assert.assertTrue(encoder.isCompleted());
+    Assert.assertEquals("1\r\n1\r\n2\r\n23\r\n0\r\nE: \r\nY: Z\r\n\r\n", s);
+    Assert.assertEquals("[chunk-coded; completed: true]", encoder.toString());
+}

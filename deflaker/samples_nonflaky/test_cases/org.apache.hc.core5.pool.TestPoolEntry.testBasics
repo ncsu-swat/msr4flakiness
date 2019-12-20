@@ -1,0 +1,16 @@
+@Test
+public void testBasics() throws Exception {
+    final PoolEntry<String, HttpConnection> entry1 = new PoolEntry<>("route1", TimeValue.of(10L, TimeUnit.MILLISECONDS), currentTimeSupplier);
+    Assert.assertEquals("route1", entry1.getRoute());
+    Assert.assertEquals(0, entry1.getUpdated());
+    Assert.assertEquals(Deadline.MIN_VALUE, entry1.getExpiryDeadline());
+    entry1.assignConnection(Mockito.mock(HttpConnection.class));
+    final long now = System.currentTimeMillis();
+    Assert.assertEquals("route1", entry1.getRoute());
+    Assert.assertTrue(now >= entry1.getUpdated());
+    Assert.assertEquals(entry1.getValidityDeadline(), entry1.getExpiryDeadline());
+    Assert.assertEquals(entry1.getUpdated() + 10L, entry1.getValidityDeadline().getValue());
+    entry1.discardConnection(CloseMode.IMMEDIATE);
+    Assert.assertEquals(0, entry1.getUpdated());
+    Assert.assertEquals(Deadline.MIN_VALUE, entry1.getExpiryDeadline());
+}

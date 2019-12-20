@@ -1,0 +1,14 @@
+@Test
+public void testReadToChannelWithMaxLen() throws Exception {
+    final byte[] pattern = "0123456789ABCDEF".getBytes(StandardCharsets.US_ASCII);
+    final ReadableByteChannel channel = newChannel(pattern);
+    final SessionInputBuffer inbuf = new SessionInputBufferImpl(4096, 1024, 0);
+    while (inbuf.fill(channel) > 0) {
+    }
+    final ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+    final WritableByteChannel dst = newChannel(outStream);
+    Assert.assertEquals(10, inbuf.read(dst, 10));
+    Assert.assertEquals(3, inbuf.read(dst, 3));
+    Assert.assertEquals(3, inbuf.read(dst, 10));
+    Assert.assertEquals(ByteBuffer.wrap(pattern), ByteBuffer.wrap(outStream.toByteArray()));
+}

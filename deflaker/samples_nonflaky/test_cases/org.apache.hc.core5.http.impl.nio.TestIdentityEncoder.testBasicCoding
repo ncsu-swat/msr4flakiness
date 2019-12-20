@@ -1,0 +1,15 @@
+@Test
+public void testBasicCoding() throws Exception {
+    final WritableByteChannelMock channel = new WritableByteChannelMock(64);
+    final SessionOutputBuffer outbuf = new SessionOutputBufferImpl(1024, 128);
+    final BasicHttpTransportMetrics metrics = new BasicHttpTransportMetrics();
+    final IdentityEncoder encoder = new IdentityEncoder(channel, outbuf, metrics);
+    Assert.assertEquals(5, encoder.write(CodecTestUtils.wrap("stuff")));
+    encoder.complete();
+    Assert.assertTrue(encoder.isCompleted());
+    Assert.assertEquals(5, metrics.getBytesTransferred());
+    outbuf.flush(channel);
+    final String s = channel.dump(StandardCharsets.US_ASCII);
+    Assert.assertEquals("stuff", s);
+    Assert.assertEquals("[identity; completed: true]", encoder.toString());
+}

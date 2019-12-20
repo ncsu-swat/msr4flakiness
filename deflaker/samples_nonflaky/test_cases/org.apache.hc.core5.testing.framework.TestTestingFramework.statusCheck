@@ -1,0 +1,22 @@
+@Test
+public void statusCheck() throws Exception {
+    final ClientTestingAdapter adapter = new ClientTestingAdapter() {
+
+        @Override
+        public Map<String, Object> execute(final String defaultURI, final Map<String, Object> request, final TestingFrameworkRequestHandler requestHandler, final Map<String, Object> responseExpectations) {
+            Assert.assertEquals(200, responseExpectations.get(STATUS));
+            // return a different status than expected.
+            final Map<String, Object> response = new HashMap<>();
+            response.put(STATUS, 201);
+            return response;
+        }
+    };
+    final TestingFramework framework = newFrameworkAndSetAdapter(adapter);
+    framework.addTest();
+    try {
+        framework.runTests();
+        Assert.fail("WebServerTestingFrameworkException should have been thrown");
+    } catch (final TestingFrameworkException e) {
+    // expected
+    }
+}

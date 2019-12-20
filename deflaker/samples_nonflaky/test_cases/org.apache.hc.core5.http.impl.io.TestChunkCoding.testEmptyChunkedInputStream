@@ -1,0 +1,15 @@
+@Test
+public void testEmptyChunkedInputStream() throws IOException {
+    final String s = "0\r\n";
+    final SessionInputBuffer inBuffer = new SessionInputBufferImpl(16);
+    final ByteArrayInputStream inputStream = new ByteArrayInputStream(s.getBytes(StandardCharsets.ISO_8859_1));
+    final ChunkedInputStream in = new ChunkedInputStream(inBuffer, inputStream);
+    final byte[] buffer = new byte[300];
+    final ByteArrayOutputStream out = new ByteArrayOutputStream();
+    int len;
+    while ((len = in.read(buffer)) > 0) {
+        out.write(buffer, 0, len);
+    }
+    Assert.assertEquals(0, out.size());
+    in.close();
+}

@@ -1,0 +1,21 @@
+@Test
+public void testCodingFragmentBufferingTinyFragments3() throws Exception {
+    final WritableByteChannelMock channel = Mockito.spy(new WritableByteChannelMock(64));
+    final SessionOutputBuffer outbuf = Mockito.spy(new SessionOutputBufferImpl(1024, 128));
+    final BasicHttpTransportMetrics metrics = new BasicHttpTransportMetrics();
+    final IdentityEncoder encoder = new IdentityEncoder(channel, outbuf, metrics, 3);
+    Assert.assertEquals(5, encoder.write(CodecTestUtils.wrap("stuff")));
+    Assert.assertEquals(1, encoder.write(CodecTestUtils.wrap("-")));
+    Assert.assertEquals(1, encoder.write(CodecTestUtils.wrap("-")));
+    Assert.assertEquals(1, encoder.write(CodecTestUtils.wrap("-")));
+    Assert.assertEquals(1, encoder.write(CodecTestUtils.wrap("-")));
+    Assert.assertEquals(2, encoder.write(CodecTestUtils.wrap("--")));
+    Assert.assertEquals(10, encoder.write(CodecTestUtils.wrap("more stuff")));
+    Mockito.verify(channel, Mockito.times(4)).write(ArgumentMatchers.<ByteBuffer>any());
+    Mockito.verify(outbuf, Mockito.times(5)).write(ArgumentMatchers.<ByteBuffer>any());
+    Mockito.verify(outbuf, Mockito.times(2)).flush(channel);
+    Assert.assertEquals(21, metrics.getBytesTransferred());
+    outbuf.flush(channel);
+    final String s = channel.dump(StandardCharsets.US_ASCII);
+    Assert.assertEquals("stuff------more stuff", s);
+}

@@ -1,0 +1,13 @@
+@Test
+public void testResponseContentEntityWithTrailers() throws Exception {
+    final HttpContext context = new BasicHttpContext(null);
+    final ClassicHttpResponse response = new BasicClassicHttpResponse(HttpStatus.SC_OK, "OK");
+    response.setEntity(HttpEntities.create("whatever", StandardCharsets.US_ASCII, new BasicHeader("h1", "this"), new BasicHeader("h1", "that"), new BasicHeader("h2", "this and that")));
+    final ResponseContent interceptor = new ResponseContent();
+    interceptor.process(response, response.getEntity(), context);
+    final Header header1 = response.getFirstHeader(HttpHeaders.TRANSFER_ENCODING);
+    Assert.assertNotNull(header1);
+    final Header header2 = response.getFirstHeader(HttpHeaders.TRAILER);
+    Assert.assertNotNull(header2);
+    Assert.assertEquals("h1, h2", header2.getValue());
+}

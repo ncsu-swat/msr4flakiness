@@ -1,0 +1,28 @@
+// See HTTPCORE-239
+@Test
+public void testLimitedChannel() throws Exception {
+    final WritableByteChannelMock channel = new WritableByteChannelMock(16, 16);
+    final SessionOutputBuffer outbuf = new SessionOutputBufferImpl(16, 16);
+    final BasicHttpTransportMetrics metrics = new BasicHttpTransportMetrics();
+    final ChunkEncoder encoder = new ChunkEncoder(channel, outbuf, metrics);
+    // fill up the channel
+    channel.write(CodecTestUtils.wrap("0123456789ABCDEF"));
+    // fill up the out buffer
+    outbuf.write(CodecTestUtils.wrap("0123456789ABCDEF"));
+    final ByteBuffer src = CodecTestUtils.wrap("0123456789ABCDEF");
+    Assert.assertEquals(0, encoder.write(src));
+    Assert.assertEquals(0, encoder.write(src));
+    Assert.assertEquals(0, encoder.write(src));
+    // should not be able to copy any bytes, until we flush the channel and buffer
+    channel.reset();
+    outbuf.flush(channel);
+    channel.reset();
+    Assert.assertEquals(10, encoder.write(src));
+    channel.flush();
+    Assert.assertEquals(6, encoder.write(src));
+    channel.flush();
+    Assert.assertEquals(0, encoder.write(src));
+    outbuf.flush(channel);
+    final String s = channel.dump(StandardCharsets.US_ASCII);
+    Assert.assertEquals("4\r\n0123\r\n4\r\n4567\r\n2\r\n89\r\n4\r\nABCD\r\n2\r\nEF\r\n", s);
+}

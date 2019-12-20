@@ -1,0 +1,19 @@
+@Test
+public void testReadByteBufferWithMaxLen() throws Exception {
+    final byte[] pattern = "0123456789ABCDEF".getBytes(StandardCharsets.US_ASCII);
+    final ReadableByteChannel channel = newChannel(pattern);
+    final SessionInputBuffer inbuf = new SessionInputBufferImpl(4096, 1024, 0);
+    while (inbuf.fill(channel) > 0) {
+    }
+    final ByteBuffer dst = ByteBuffer.allocate(16);
+    Assert.assertEquals(10, inbuf.read(dst, 10));
+    dst.flip();
+    Assert.assertEquals(dst, ByteBuffer.wrap(pattern, 0, 10));
+    dst.clear();
+    Assert.assertEquals(3, inbuf.read(dst, 3));
+    dst.flip();
+    Assert.assertEquals(dst, ByteBuffer.wrap(pattern, 10, 3));
+    Assert.assertEquals(3, inbuf.read(dst, 20));
+    dst.flip();
+    Assert.assertEquals(dst, ByteBuffer.wrap(pattern, 13, 3));
+}

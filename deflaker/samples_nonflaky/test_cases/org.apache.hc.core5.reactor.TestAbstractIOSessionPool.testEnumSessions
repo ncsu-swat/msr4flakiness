@@ -1,0 +1,18 @@
+@Test
+public void testEnumSessions() throws Exception {
+    final AbstractIOSessionPool.PoolEntry entry1 = impl.getPoolEntry("host1");
+    Assert.assertThat(entry1, CoreMatchers.notNullValue());
+    entry1.session = ioSession1;
+    final AbstractIOSessionPool.PoolEntry entry2 = impl.getPoolEntry("host2");
+    Assert.assertThat(entry2, CoreMatchers.notNullValue());
+    entry2.session = ioSession2;
+    impl.enumAvailable(new Callback<IOSession>() {
+
+        @Override
+        public void execute(final IOSession ioSession) {
+            ioSession.close(CloseMode.GRACEFUL);
+        }
+    });
+    Mockito.verify(ioSession1).close(CloseMode.GRACEFUL);
+    Mockito.verify(ioSession2).close(CloseMode.GRACEFUL);
+}

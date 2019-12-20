@@ -1,0 +1,12 @@
+@Test
+public void testReadToChannel() throws Exception {
+    final byte[] pattern = "0123456789ABCDEF".getBytes(StandardCharsets.US_ASCII);
+    final ReadableByteChannel channel = newChannel(pattern);
+    final SessionInputBuffer inbuf = new SessionInputBufferImpl(4096, 1024, 0);
+    while (inbuf.fill(channel) > 0) {
+    }
+    final ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+    final WritableByteChannel dst = newChannel(outStream);
+    Assert.assertEquals(16, inbuf.read(dst));
+    Assert.assertEquals(ByteBuffer.wrap(pattern), ByteBuffer.wrap(outStream.toByteArray()));
+}

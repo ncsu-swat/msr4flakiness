@@ -1,0 +1,23 @@
+@Test
+public void testMessageParsingTimeout() throws Exception {
+    final String s = "HTTP\000/1.1 200\000 OK\r\n" + "Server: wha\000tever\r\n" + "Date: some date\r\n" + "Set-Coo\000kie: c1=stuff\r\n" + "\000\r\n";
+    final TimeoutByteArrayInputStream inputStream = new TimeoutByteArrayInputStream(s.getBytes(StandardCharsets.US_ASCII));
+    final SessionInputBuffer inBuffer = new SessionInputBufferImpl(16);
+    final DefaultHttpResponseParser parser = new DefaultHttpResponseParser();
+    int timeoutCount = 0;
+    ClassicHttpResponse httpresponse = null;
+    for (int i = 0; i < 10; i++) {
+        try {
+            httpresponse = parser.parse(inBuffer, inputStream);
+            break;
+        } catch (final InterruptedIOException ex) {
+            timeoutCount++;
+        }
+    }
+    Assert.assertNotNull(httpresponse);
+    Assert.assertEquals(5, timeoutCount);
+    Assert.assertEquals(200, httpresponse.getCode());
+    Assert.assertEquals("OK", httpresponse.getReasonPhrase());
+    final Header[] headers = httpresponse.getHeaders();
+    Assert.assertEquals(3, headers.length);
+}

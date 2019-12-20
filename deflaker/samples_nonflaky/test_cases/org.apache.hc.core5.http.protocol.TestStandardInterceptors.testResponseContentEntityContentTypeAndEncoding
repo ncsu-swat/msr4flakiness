@@ -1,0 +1,14 @@
+@Test
+public void testResponseContentEntityContentTypeAndEncoding() throws Exception {
+    final HttpContext context = new BasicHttpContext(null);
+    final ClassicHttpResponse response = new BasicClassicHttpResponse(HttpStatus.SC_OK, "OK");
+    response.setEntity(new BasicHttpEntity(EmptyInputStream.INSTANCE, ContentType.parseLenient("whatever"), "whatever"));
+    final ResponseContent interceptor = new ResponseContent();
+    interceptor.process(response, response.getEntity(), context);
+    final Header h1 = response.getFirstHeader(HttpHeaders.CONTENT_TYPE);
+    Assert.assertNotNull(h1);
+    Assert.assertEquals("whatever", h1.getValue());
+    final Header h2 = response.getFirstHeader(HttpHeaders.CONTENT_ENCODING);
+    Assert.assertNotNull(h2);
+    Assert.assertEquals("whatever", h2.getValue());
+}
