@@ -1,0 +1,24 @@
+@Test
+public void testSerialization() throws Exception {
+    TestDelegationTokenIdentifier origToken = new TestDelegationTokenIdentifier(new Text("alice"), new Text("bob"), new Text("colin"));
+    TestDelegationTokenIdentifier newToken = new TestDelegationTokenIdentifier();
+    origToken.setIssueDate(123);
+    origToken.setMasterKeyId(321);
+    origToken.setMaxDate(314);
+    origToken.setSequenceNumber(12345);
+    // clone origToken into newToken
+    DataInputBuffer inBuf = new DataInputBuffer();
+    DataOutputBuffer outBuf = new DataOutputBuffer();
+    origToken.write(outBuf);
+    inBuf.reset(outBuf.getData(), 0, outBuf.getLength());
+    newToken.readFields(inBuf);
+    // now test the fields
+    assertEquals("alice", newToken.getUser().getUserName());
+    assertEquals(new Text("bob"), newToken.getRenewer());
+    assertEquals("colin", newToken.getUser().getRealUser().getUserName());
+    assertEquals(123, newToken.getIssueDate());
+    assertEquals(321, newToken.getMasterKeyId());
+    assertEquals(314, newToken.getMaxDate());
+    assertEquals(12345, newToken.getSequenceNumber());
+    assertEquals(origToken, newToken);
+}

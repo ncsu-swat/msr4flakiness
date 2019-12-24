@@ -1,0 +1,35 @@
+@Test
+public void testKerberosLogin() throws Exception {
+    MiniKdc kdc = getKdc();
+    File workDir = getWorkDir();
+    LoginContext loginContext = null;
+    try {
+        String principal = "foo";
+        File keytab = new File(workDir, "foo.keytab");
+        kdc.createPrincipal(keytab, principal);
+        Set<Principal> principals = new HashSet<Principal>();
+        principals.add(new KerberosPrincipal(principal));
+        // client login
+        Subject subject = new Subject(false, principals, new HashSet<Object>(), new HashSet<Object>());
+        loginContext = new LoginContext("", subject, null, KerberosConfiguration.createClientConfig(principal, keytab));
+        loginContext.login();
+        subject = loginContext.getSubject();
+        Assert.assertEquals(1, subject.getPrincipals().size());
+        Assert.assertEquals(KerberosPrincipal.class, subject.getPrincipals().iterator().next().getClass());
+        Assert.assertEquals(principal + "@" + kdc.getRealm(), subject.getPrincipals().iterator().next().getName());
+        loginContext.logout();
+        // server login
+        subject = new Subject(false, principals, new HashSet<Object>(), new HashSet<Object>());
+        loginContext = new LoginContext("", subject, null, KerberosConfiguration.createServerConfig(principal, keytab));
+        loginContext.login();
+        subject = loginContext.getSubject();
+        Assert.assertEquals(1, subject.getPrincipals().size());
+        Assert.assertEquals(KerberosPrincipal.class, subject.getPrincipals().iterator().next().getClass());
+        Assert.assertEquals(principal + "@" + kdc.getRealm(), subject.getPrincipals().iterator().next().getName());
+        loginContext.logout();
+    } finally {
+        if (loginContext != null && loginContext.getSubject() != null && !loginContext.getSubject().getPrivateCredentials().isEmpty()) {
+            loginContext.logout();
+        }
+    }
+}

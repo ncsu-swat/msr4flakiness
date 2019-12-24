@@ -1,0 +1,80 @@
+/**
+ * Verify hook registration, then execute the hook callback stage
+ * of shutdown to verify invocation, execution order and timeout
+ * processing.
+ */
+@Test
+public void shutdownHookManager() {
+    assertNotNull("No ShutdownHookManager", mgr);
+    assertEquals(0, mgr.getShutdownHooksInOrder().size());
+    Hook hook1 = new Hook("hook1", 0, false);
+    Hook hook2 = new Hook("hook2", 0, false);
+    Hook hook3 = new Hook("hook3", 1000, false);
+    Hook hook4 = new Hook("hook4", 25000, true);
+    Hook hook5 = new Hook("hook5", (SERVICE_SHUTDOWN_TIMEOUT_DEFAULT + 1) * 1000, true);
+    mgr.addShutdownHook(hook1, 0);
+    assertTrue(mgr.hasShutdownHook(hook1));
+    assertEquals(1, mgr.getShutdownHooksInOrder().size());
+    assertEquals(hook1, mgr.getShutdownHooksInOrder().get(0).getHook());
+    assertTrue(mgr.removeShutdownHook(hook1));
+    assertFalse(mgr.hasShutdownHook(hook1));
+    assertFalse(mgr.removeShutdownHook(hook1));
+    mgr.addShutdownHook(hook1, 0);
+    assertTrue(mgr.hasShutdownHook(hook1));
+    assertEquals(1, mgr.getShutdownHooksInOrder().size());
+    assertEquals(SERVICE_SHUTDOWN_TIMEOUT_DEFAULT, mgr.getShutdownHooksInOrder().get(0).getTimeout());
+    mgr.addShutdownHook(hook2, 1);
+    assertTrue(mgr.hasShutdownHook(hook1));
+    assertTrue(mgr.hasShutdownHook(hook2));
+    assertEquals(2, mgr.getShutdownHooksInOrder().size());
+    assertEquals(hook2, mgr.getShutdownHooksInOrder().get(0).getHook());
+    assertEquals(hook1, mgr.getShutdownHooksInOrder().get(1).getHook());
+    // Test hook finish without timeout
+    mgr.addShutdownHook(hook3, 2, 4, TimeUnit.SECONDS);
+    assertTrue(mgr.hasShutdownHook(hook3));
+    assertEquals(hook3, mgr.getShutdownHooksInOrder().get(0).getHook());
+    assertEquals(4, mgr.getShutdownHooksInOrder().get(0).getTimeout());
+    // Test hook finish with timeout; highest priority
+    int hook4timeout = 2;
+    mgr.addShutdownHook(hook4, 3, hook4timeout, TimeUnit.SECONDS);
+    assertTrue(mgr.hasShutdownHook(hook4));
+    assertEquals(hook4, mgr.getShutdownHooksInOrder().get(0).getHook());
+    assertEquals(2, mgr.getShutdownHooksInOrder().get(0).getTimeout());
+    // a default timeout hook and verify it gets the default timeout
+    mgr.addShutdownHook(hook5, 5);
+    ShutdownHookManager.HookEntry hookEntry5 = mgr.getShutdownHooksInOrder().get(0);
+    assertEquals(hook5, hookEntry5.getHook());
+    assertEquals("default timeout not used", ShutdownHookManager.getShutdownTimeout(new Configuration()), hookEntry5.getTimeout());
+    assertEquals("hook priority", 5, hookEntry5.getPriority());
+    // remove this to avoid a longer sleep in the test run
+    assertTrue("failed to remove " + hook5, mgr.removeShutdownHook(hook5));
+    // now execute the hook shutdown sequence
+    INVOCATION_COUNT.set(0);
+    LOG.info("invoking executeShutdown()");
+    int timeouts = mgr.executeShutdown();
+    LOG.info("Shutdown completed");
+    assertEquals("Number of timed out hooks", 1, timeouts);
+    List<ShutdownHookManager.HookEntry> hooks = mgr.getShutdownHooksInOrder();
+    // analyze the hooks
+    for (ShutdownHookManager.HookEntry entry : hooks) {
+        Hook hook = (Hook) entry.getHook();
+        assertTrue("Was not invoked " + hook, hook.invoked);
+        // did any hook raise an exception?
+        hook.maybeThrowAssertion();
+    }
+    // check the state of some of the invoked hooks
+    // hook4 was invoked first, but it timed out.
+    assertEquals("Expected to be invoked first " + hook4, 1, hook4.invokedOrder);
+    assertFalse("Expected to time out " + hook4, hook4.completed);
+    // hook1 completed, but in order after the others, so its start time
+    // is the longest.
+    assertTrue("Expected to complete " + hook1, hook1.completed);
+    long invocationInterval = hook1.startTime - hook4.startTime;
+    assertTrue("invocation difference too short " + invocationInterval, invocationInterval >= hook4timeout * 1000);
+    assertTrue("sleeping hook4 blocked other threads for " + invocationInterval, invocationInterval < hook4.sleepTime);
+    // finally, clear the hooks
+    mgr.clearShutdownHooks();
+    // and verify that the hooks are empty
+    assertFalse(mgr.hasShutdownHook(hook1));
+    assertEquals("shutdown hook list is not empty", 0, mgr.getShutdownHooksInOrder().size());
+}

@@ -1,0 +1,31 @@
+@Test
+public void requestMethodUnexpected() throws Exception {
+    final ClientTestingAdapter adapter = new ClassicTestClientTestingAdapter() {
+
+        @Override
+        public Map<String, Object> execute(final String defaultURI, final Map<String, Object> request, final TestingFrameworkRequestHandler requestHandler, final Map<String, Object> responseExpectations) throws TestingFrameworkException {
+            // change the request from what is expected.
+            Assert.assertTrue(request.get(METHOD).equals("GET"));
+            request.put(METHOD, "POST");
+            return super.execute(defaultURI, request, requestHandler, responseExpectations);
+        }
+    };
+    final TestingFramework framework = newFrameworkAndSetAdapter(adapter);
+    final Map<String, Object> test = new HashMap<>();
+    final Map<String, Object> request = new HashMap<>();
+    test.put(REQUEST, request);
+    request.put(NAME, "MyName");
+    framework.addTest(test);
+    try {
+        framework.runTests();
+        Assert.fail("WebServerTestingFrameworkException should have been thrown");
+    } catch (final TestingFrameworkException e) {
+        // expected
+        // make sure the HTTP Client name is in the message.
+        final String message = e.getMessage();
+        final ClientPOJOAdapter pojoAdapter = adapter.getClientPOJOAdapter();
+        final String httpClientName = pojoAdapter == null ? TestingFrameworkException.NO_HTTP_CLIENT : pojoAdapter.getClientName();
+        Assert.assertTrue("Message should contain httpClientName of " + httpClientName + "; message=" + message, message.contains(httpClientName));
+        Assert.assertTrue("Message should contain the test. message=" + message, message.contains("MyName"));
+    }
+}

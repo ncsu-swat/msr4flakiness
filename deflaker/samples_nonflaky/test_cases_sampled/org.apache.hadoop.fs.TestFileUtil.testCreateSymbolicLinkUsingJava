@@ -1,0 +1,34 @@
+@Test(timeout = 8000)
+public void testCreateSymbolicLinkUsingJava() throws IOException {
+    setupDirs();
+    final File simpleTar = new File(del, FILE);
+    OutputStream os = new FileOutputStream(simpleTar);
+    TarArchiveOutputStream tos = new TarArchiveOutputStream(os);
+    File untarFile = null;
+    try {
+        // Files to tar
+        final String tmpDir = "tmp/test";
+        File tmpDir1 = new File(tmpDir, "dir1/");
+        File tmpDir2 = new File(tmpDir, "dir2/");
+        // Delete the directories if they already exist
+        tmpDir1.mkdirs();
+        tmpDir2.mkdirs();
+        java.nio.file.Path symLink = FileSystems.getDefault().getPath(tmpDir1.getPath() + "/sl");
+        // Create Symbolic Link
+        Files.createSymbolicLink(symLink, FileSystems.getDefault().getPath(tmpDir2.getPath())).toString();
+        assertTrue(Files.isSymbolicLink(symLink.toAbsolutePath()));
+        // put entries in tar file
+        putEntriesInTar(tos, tmpDir1.getParentFile());
+        tos.close();
+        untarFile = new File(tmpDir, "2");
+        // Untar using java
+        FileUtil.unTarUsingJava(simpleTar, untarFile, false);
+        // Check symbolic link and other directories are there in untar file
+        assertTrue(Files.exists(untarFile.toPath()));
+        assertTrue(Files.exists(FileSystems.getDefault().getPath(untarFile.getPath(), tmpDir)));
+        assertTrue(Files.isSymbolicLink(FileSystems.getDefault().getPath(untarFile.getPath().toString(), symLink.toString())));
+    } finally {
+        FileUtils.deleteDirectory(new File("tmp"));
+        tos.close();
+    }
+}

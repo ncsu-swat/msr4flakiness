@@ -1,0 +1,56 @@
+/**
+ * Test addUser/Group and removeUser/Group api.
+ */
+@Test
+public void testAddRemoveAPI() {
+    AccessControlList acl;
+    Collection<String> users;
+    Collection<String> groups;
+    acl = new AccessControlList(" ");
+    assertThat(acl.getUsers().size()).isZero();
+    assertThat(acl.getGroups().size()).isZero();
+    assertThat(acl.getAclString()).isEqualTo(" ");
+    acl.addUser("drwho");
+    users = acl.getUsers();
+    assertThat(users.size()).isOne();
+    assertThat(users.iterator().next()).isEqualTo("drwho");
+    assertThat(acl.getAclString()).isEqualTo("drwho ");
+    acl.addGroup("tardis");
+    groups = acl.getGroups();
+    assertThat(groups.size()).isOne();
+    assertThat(groups.iterator().next()).isEqualTo("tardis");
+    assertThat(acl.getAclString()).isEqualTo("drwho tardis");
+    acl.addUser("joe");
+    acl.addGroup("users");
+    users = acl.getUsers();
+    assertThat(users.size()).isEqualTo(2);
+    Iterator<String> iter = users.iterator();
+    assertThat(iter.next()).isEqualTo("drwho");
+    assertThat(iter.next()).isEqualTo("joe");
+    groups = acl.getGroups();
+    assertThat(groups.size()).isEqualTo(2);
+    iter = groups.iterator();
+    assertThat(iter.next()).isEqualTo("tardis");
+    assertThat(iter.next()).isEqualTo("users");
+    assertThat(acl.getAclString()).isEqualTo("drwho,joe tardis,users");
+    acl.removeUser("joe");
+    acl.removeGroup("users");
+    users = acl.getUsers();
+    assertThat(users.size()).isOne();
+    assertFalse(users.contains("joe"));
+    groups = acl.getGroups();
+    assertThat(groups.size()).isOne();
+    assertFalse(groups.contains("users"));
+    assertThat(acl.getAclString()).isEqualTo("drwho tardis");
+    acl.removeGroup("tardis");
+    groups = acl.getGroups();
+    assertThat(groups.size()).isZero();
+    assertFalse(groups.contains("tardis"));
+    assertThat(acl.getAclString()).isEqualTo("drwho ");
+    acl.removeUser("drwho");
+    assertThat(users.size()).isZero();
+    assertFalse(users.contains("drwho"));
+    assertThat(acl.getGroups().size()).isZero();
+    assertThat(acl.getUsers().size()).isZero();
+    assertThat(acl.getAclString()).isEqualTo(" ");
+}

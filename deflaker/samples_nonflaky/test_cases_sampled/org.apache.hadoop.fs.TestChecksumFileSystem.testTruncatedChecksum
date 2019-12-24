@@ -1,0 +1,32 @@
+/**
+ * Test to ensure that if the checksum file is truncated, a
+ * ChecksumException is thrown
+ */
+@Test
+public void testTruncatedChecksum() throws Exception {
+    Path testPath = new Path(TEST_ROOT_DIR, "testtruncatedcrc");
+    FSDataOutputStream fout = localFs.create(testPath);
+    fout.write("testing truncation".getBytes());
+    fout.close();
+    // Read in the checksum
+    Path checksumFile = localFs.getChecksumFile(testPath);
+    FileSystem rawFs = localFs.getRawFileSystem();
+    FSDataInputStream checksumStream = rawFs.open(checksumFile);
+    byte[] buf = new byte[8192];
+    int read = checksumStream.read(buf, 0, buf.length);
+    checksumStream.close();
+    // Now rewrite the checksum file with the last byte missing
+    FSDataOutputStream replaceStream = rawFs.create(checksumFile);
+    replaceStream.write(buf, 0, read - 1);
+    replaceStream.close();
+    // Now reading the file should fail with a ChecksumException
+    try {
+        readFile(localFs, testPath, 1024);
+        fail("Did not throw a ChecksumException when reading truncated " + "crc file");
+    } catch (ChecksumException ie) {
+    }
+    // telling it not to verify checksums, should avoid issue.
+    localFs.setVerifyChecksum(false);
+    String str = readFile(localFs, testPath, 1024).toString();
+    assertTrue("read", "testing truncation".equals(str));
+}

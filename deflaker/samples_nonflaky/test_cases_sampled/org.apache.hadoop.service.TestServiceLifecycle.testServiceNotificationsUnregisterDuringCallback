@@ -1,0 +1,28 @@
+/**
+ * This test uses a service listener that unregisters itself during the callbacks.
+ * This a test that verifies the concurrency logic on the listener management
+ * code, that it doesn't throw any immutable state change exceptions
+ * if you change list membership during the notifications.
+ * The standard <code>AbstractService</code> implementation copies the list
+ * to an array in a <code>synchronized</code> block then iterates through
+ * the copy precisely to prevent this problem.
+ * @throws Throwable on a failure
+ */
+@Test
+public void testServiceNotificationsUnregisterDuringCallback() throws Throwable {
+    BreakableService svc = new BreakableService(false, false, false);
+    BreakableStateChangeListener listener = new SelfUnregisteringBreakableStateChangeListener();
+    BreakableStateChangeListener l2 = new BreakableStateChangeListener();
+    svc.registerServiceListener(listener);
+    svc.registerServiceListener(l2);
+    svc.init(new Configuration());
+    assertEventCount(listener, 1);
+    assertEventCount(l2, 1);
+    svc.unregisterServiceListener(listener);
+    svc.start();
+    assertEventCount(listener, 1);
+    assertEventCount(l2, 2);
+    svc.stop();
+    assertEventCount(listener, 1);
+    svc.stop();
+}

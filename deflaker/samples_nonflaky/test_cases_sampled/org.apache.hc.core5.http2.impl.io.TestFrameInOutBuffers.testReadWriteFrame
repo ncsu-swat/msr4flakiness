@@ -1,0 +1,28 @@
+@Test
+public void testReadWriteFrame() throws Exception {
+    final WritableByteChannelMock writableChannel = new WritableByteChannelMock(1024);
+    final FrameOutputBuffer outbuffer = new FrameOutputBuffer(16 * 1024);
+    final RawFrame frame = new RawFrame(FrameType.DATA.getValue(), 0, 1, ByteBuffer.wrap(new byte[] { 1, 2, 3, 4, 5 }));
+    outbuffer.write(frame, writableChannel);
+    final FrameInputBuffer inBuffer = new FrameInputBuffer(16 * 1024);
+    final byte[] bytes = writableChannel.toByteArray();
+    Assert.assertEquals(FrameConsts.HEAD_LEN + 5, bytes.length);
+    Assert.assertEquals(1, outbuffer.getMetrics().getFramesTransferred());
+    Assert.assertEquals(bytes.length, outbuffer.getMetrics().getBytesTransferred());
+    final ReadableByteChannelMock readableChannel = new ReadableByteChannelMock(bytes);
+    final RawFrame frame2 = inBuffer.read(readableChannel);
+    Assert.assertEquals(FrameType.DATA.getValue(), frame2.getType());
+    Assert.assertEquals(0, frame2.getFlags());
+    Assert.assertEquals(1L, frame2.getStreamId());
+    final ByteBuffer payload2 = frame2.getPayloadContent();
+    Assert.assertNotNull(payload2);
+    Assert.assertEquals(5, payload2.remaining());
+    Assert.assertEquals(1, payload2.get());
+    Assert.assertEquals(2, payload2.get());
+    Assert.assertEquals(3, payload2.get());
+    Assert.assertEquals(4, payload2.get());
+    Assert.assertEquals(5, payload2.get());
+    Assert.assertEquals(-1, readableChannel.read(ByteBuffer.allocate(1024)));
+    Assert.assertEquals(1, inBuffer.getMetrics().getFramesTransferred());
+    Assert.assertEquals(bytes.length, inBuffer.getMetrics().getBytesTransferred());
+}

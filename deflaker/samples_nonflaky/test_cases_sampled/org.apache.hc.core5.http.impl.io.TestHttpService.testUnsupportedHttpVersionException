@@ -1,0 +1,20 @@
+@Test
+public void testUnsupportedHttpVersionException() throws Exception {
+    final HttpCoreContext context = HttpCoreContext.create();
+    final ClassicHttpRequest request = new BasicClassicHttpRequest("whatever", "/");
+    Mockito.when(conn.receiveRequestHeader()).thenReturn(request);
+    Mockito.when(responseFactory.newHttpResponse(200)).thenReturn(response);
+    Mockito.when(handlerResolver.resolve(request, context)).thenReturn(requestHandler);
+    Mockito.doThrow(new UnsupportedHttpVersionException()).when(requestHandler).handle(request, response, context);
+    httpservice.handleRequest(conn, context);
+    final ArgumentCaptor<ClassicHttpResponse> responseCaptor = ArgumentCaptor.forClass(ClassicHttpResponse.class);
+    Mockito.verify(conn).sendResponseHeader(responseCaptor.capture());
+    final ClassicHttpResponse error = responseCaptor.getValue();
+    Assert.assertNotNull(error);
+    Assert.assertSame(request, context.getRequest());
+    Assert.assertEquals(HttpStatus.SC_HTTP_VERSION_NOT_SUPPORTED, error.getCode());
+    Mockito.verify(httprocessor).process(error, error.getEntity(), context);
+    Mockito.verify(conn).sendResponseHeader(error);
+    Mockito.verify(conn).sendResponseEntity(error);
+    Mockito.verify(conn).close();
+}

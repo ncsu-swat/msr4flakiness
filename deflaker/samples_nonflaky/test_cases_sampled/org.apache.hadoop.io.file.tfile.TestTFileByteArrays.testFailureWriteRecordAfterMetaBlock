@@ -1,0 +1,20 @@
+@Test
+public void testFailureWriteRecordAfterMetaBlock() throws IOException {
+    if (skip)
+        return;
+    // write a key/value first
+    writer.append("keyX".getBytes(), "valueX".getBytes());
+    // create a new metablock
+    DataOutputStream outMeta = writer.prepareMetaBlock("testX", Compression.Algorithm.GZ.getName());
+    outMeta.write(123);
+    outMeta.write("dummy".getBytes());
+    outMeta.close();
+    // add more key/value
+    try {
+        writer.append("keyY".getBytes(), "valueY".getBytes());
+        Assert.fail("Cannot add key/value after start adding meta blocks.");
+    } catch (Exception e) {
+    // noop, expecting exceptions
+    }
+    closeOutput();
+}

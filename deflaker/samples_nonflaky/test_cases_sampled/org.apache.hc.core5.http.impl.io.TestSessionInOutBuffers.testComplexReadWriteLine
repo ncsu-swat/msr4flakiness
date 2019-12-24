@@ -1,0 +1,67 @@
+@Test
+public void testComplexReadWriteLine() throws Exception {
+    final SessionOutputBuffer outbuf = new SessionOutputBufferImpl(1024, 16);
+    outbuf.write(ByteBuffer.wrap(new byte[] { 'a', '\n' }));
+    outbuf.write(ByteBuffer.wrap(new byte[] { '\r', '\n' }));
+    outbuf.write(ByteBuffer.wrap(new byte[] { '\r', '\r', '\n' }));
+    outbuf.write(ByteBuffer.wrap(new byte[] { '\n' }));
+    final StringBuilder buffer = new StringBuilder();
+    for (int i = 0; i < 14; i++) {
+        buffer.append("a");
+    }
+    final String s1 = buffer.toString();
+    buffer.append("\r\n");
+    outbuf.write(ByteBuffer.wrap(buffer.toString().getBytes(StandardCharsets.US_ASCII)));
+    buffer.setLength(0);
+    for (int i = 0; i < 15; i++) {
+        buffer.append("a");
+    }
+    final String s2 = buffer.toString();
+    buffer.append("\r\n");
+    outbuf.write(ByteBuffer.wrap(buffer.toString().getBytes(StandardCharsets.US_ASCII)));
+    buffer.setLength(0);
+    for (int i = 0; i < 16; i++) {
+        buffer.append("a");
+    }
+    final String s3 = buffer.toString();
+    buffer.append("\r\n");
+    outbuf.write(ByteBuffer.wrap(buffer.toString().getBytes(StandardCharsets.US_ASCII)));
+    outbuf.write(ByteBuffer.wrap(new byte[] { 'a' }));
+    final ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+    final WritableByteChannel outChannel = newChannel(outStream);
+    outbuf.flush(outChannel);
+    final ReadableByteChannel channel = newChannel(outStream.toByteArray());
+    final SessionInputBuffer inbuf = new SessionInputBufferImpl(1024, 16, 0);
+    inbuf.fill(channel);
+    final CharArrayBuffer chbuffer = new CharArrayBuffer(32);
+    chbuffer.clear();
+    inbuf.readLine(chbuffer, true);
+    Assert.assertEquals("a", chbuffer.toString());
+    chbuffer.clear();
+    inbuf.readLine(chbuffer, true);
+    Assert.assertEquals("", chbuffer.toString());
+    chbuffer.clear();
+    inbuf.readLine(chbuffer, true);
+    Assert.assertEquals("\r", chbuffer.toString());
+    chbuffer.clear();
+    inbuf.readLine(chbuffer, true);
+    Assert.assertEquals("", chbuffer.toString());
+    chbuffer.clear();
+    inbuf.readLine(chbuffer, true);
+    Assert.assertEquals(s1, chbuffer.toString());
+    chbuffer.clear();
+    inbuf.readLine(chbuffer, true);
+    Assert.assertEquals(s2, chbuffer.toString());
+    chbuffer.clear();
+    inbuf.readLine(chbuffer, true);
+    Assert.assertEquals(s3, chbuffer.toString());
+    chbuffer.clear();
+    inbuf.readLine(chbuffer, true);
+    Assert.assertEquals("a", chbuffer.toString());
+    chbuffer.clear();
+    inbuf.readLine(chbuffer, true);
+    Assert.assertFalse(inbuf.readLine(chbuffer, true));
+    chbuffer.clear();
+    inbuf.readLine(chbuffer, true);
+    Assert.assertFalse(inbuf.readLine(chbuffer, true));
+}

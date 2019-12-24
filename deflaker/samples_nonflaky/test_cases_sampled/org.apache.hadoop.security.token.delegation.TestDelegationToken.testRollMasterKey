@@ -1,0 +1,32 @@
+@Test(timeout = 10000)
+public void testRollMasterKey() throws Exception {
+    TestDelegationTokenSecretManager dtSecretManager = new TestDelegationTokenSecretManager(800, 800, 1 * 1000, 3600000);
+    try {
+        dtSecretManager.startThreads();
+        // generate a token and store the password
+        Token<TestDelegationTokenIdentifier> token = generateDelegationToken(dtSecretManager, "SomeUser", "JobTracker");
+        byte[] oldPasswd = token.getPassword();
+        // store the length of the keys list
+        int prevNumKeys = dtSecretManager.getAllKeys().length;
+        dtSecretManager.rollMasterKey();
+        Assert.assertTrue(dtSecretManager.isStoreNewMasterKeyCalled);
+        // after rolling, the length of the keys list must increase
+        int currNumKeys = dtSecretManager.getAllKeys().length;
+        assertThat(currNumKeys - prevNumKeys).isGreaterThanOrEqualTo(1);
+        // after rolling, the token that was generated earlier must
+        // still be valid (retrievePassword will fail if the token
+        // is not valid)
+        ByteArrayInputStream bi = new ByteArrayInputStream(token.getIdentifier());
+        TestDelegationTokenIdentifier identifier = dtSecretManager.createIdentifier();
+        identifier.readFields(new DataInputStream(bi));
+        byte[] newPasswd = dtSecretManager.retrievePassword(identifier);
+        // compare the passwords
+        Assert.assertEquals(oldPasswd, newPasswd);
+        // wait for keys to expire
+        while (!dtSecretManager.isRemoveStoredMasterKeyCalled) {
+            Thread.sleep(200);
+        }
+    } finally {
+        dtSecretManager.stopThreads();
+    }
+}

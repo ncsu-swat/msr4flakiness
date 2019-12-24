@@ -1,0 +1,24 @@
+@Test
+public void testThreadThrowsCheckedException() throws Exception {
+    TestContext ctx = new TestContext();
+    ctx.addThread(new TestingThread(ctx) {
+
+        @Override
+        public void doWork() throws Exception {
+            throw new IOException("my ioe");
+        }
+    });
+    ctx.startThreads();
+    long st = Time.now();
+    try {
+        ctx.waitFor(30000);
+        fail("waitFor did not throw");
+    } catch (RuntimeException rte) {
+        // expected
+        assertEquals("my ioe", rte.getCause().getMessage());
+    }
+    long et = Time.now();
+    // Test shouldn't have waited the full 30 seconds, since
+    // the thread throws faster than that
+    assertTrue("Test took " + (et - st) + "ms", et - st < 5000);
+}

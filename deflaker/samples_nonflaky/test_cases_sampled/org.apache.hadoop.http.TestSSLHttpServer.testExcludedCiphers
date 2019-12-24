@@ -1,0 +1,18 @@
+/**
+ * Test that verifies that excluded ciphers (SSL_RSA_WITH_RC4_128_SHA,
+ * TLS_ECDH_ECDSA_WITH_RC4_128_SHA,TLS_ECDH_RSA_WITH_RC4_128_SHA,
+ * TLS_ECDHE_ECDSA_WITH_RC4_128_SHA,TLS_ECDHE_RSA_WITH_RC4_128_SHA) are not
+ * available for negotiation during SSL connection.
+ */
+@Test
+public void testExcludedCiphers() throws Exception {
+    URL url = new URL(baseUrl, SERVLET_PATH_ECHO + "?a=b&c=d");
+    HttpsURLConnection conn = getConnectionWithSSLSocketFactory(url, EXCLUDED_CIPHERS);
+    assertFalse("excludedCipher list is empty", EXCLUDED_CIPHERS.isEmpty());
+    try {
+        readFromConnection(conn);
+        fail("No Ciphers in common, SSLHandshake must fail.");
+    } catch (SSLHandshakeException ex) {
+        LOG.info("No Ciphers in common, expected successful test result.", ex);
+    }
+}

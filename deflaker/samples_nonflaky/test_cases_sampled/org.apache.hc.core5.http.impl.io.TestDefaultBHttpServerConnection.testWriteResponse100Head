@@ -1,0 +1,13 @@
+@Test
+public void testWriteResponse100Head() throws Exception {
+    final ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+    Mockito.when(socket.getOutputStream()).thenReturn(outStream);
+    conn.bind(socket);
+    Assert.assertEquals(0, conn.getEndpointDetails().getResponseCount());
+    final ClassicHttpResponse response = new BasicClassicHttpResponse(100, "Go on");
+    conn.sendResponseHeader(response);
+    conn.flush();
+    Assert.assertEquals(0, conn.getEndpointDetails().getResponseCount());
+    final String s = new String(outStream.toByteArray(), "ASCII");
+    Assert.assertEquals("HTTP/1.1 100 Go on\r\n\r\n", s);
+}

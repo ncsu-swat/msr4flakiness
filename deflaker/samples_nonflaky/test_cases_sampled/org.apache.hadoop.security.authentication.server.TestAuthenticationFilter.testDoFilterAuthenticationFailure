@@ -1,0 +1,44 @@
+@Test
+public void testDoFilterAuthenticationFailure() throws Exception {
+    AuthenticationFilter filter = new AuthenticationFilter();
+    try {
+        FilterConfig config = Mockito.mock(FilterConfig.class);
+        Mockito.when(config.getInitParameter("management.operation.return")).thenReturn("true");
+        Mockito.when(config.getInitParameter(AuthenticationFilter.AUTH_TYPE)).thenReturn(DummyAuthenticationHandler.class.getName());
+        Mockito.when(config.getInitParameterNames()).thenReturn(new Vector<String>(Arrays.asList(AuthenticationFilter.AUTH_TYPE, "management.operation.return")).elements());
+        getMockedServletContextWithStringSigner(config);
+        filter.init(config);
+        HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
+        Mockito.when(request.getRequestURL()).thenReturn(new StringBuffer("http://foo:8080/bar"));
+        Mockito.when(request.getCookies()).thenReturn(new Cookie[] {});
+        Mockito.when(request.getHeader("WWW-Authenticate")).thenReturn("dummyauth");
+        HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
+        FilterChain chain = Mockito.mock(FilterChain.class);
+        final Map<String, String> cookieMap = new HashMap<String, String>();
+        Mockito.doAnswer(new Answer<Object>() {
+
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                Object[] args = invocation.getArguments();
+                parseCookieMap((String) args[1], cookieMap);
+                return null;
+            }
+        }).when(response).addHeader(Mockito.eq("Set-Cookie"), Mockito.anyString());
+        Mockito.doAnswer(new Answer<Object>() {
+
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                Assert.fail("shouldn't get here");
+                return null;
+            }
+        }).when(chain).doFilter(any(), any());
+        filter.doFilter(request, response, chain);
+        Mockito.verify(response).sendError(HttpServletResponse.SC_FORBIDDEN, "AUTH FAILED");
+        Mockito.verify(response, Mockito.never()).setHeader(Mockito.eq("WWW-Authenticate"), Mockito.anyString());
+        String value = cookieMap.get(AuthenticatedURL.AUTH_COOKIE);
+        Assert.assertNotNull("cookie missing", value);
+        Assert.assertEquals("", value);
+    } finally {
+        filter.destroy();
+    }
+}

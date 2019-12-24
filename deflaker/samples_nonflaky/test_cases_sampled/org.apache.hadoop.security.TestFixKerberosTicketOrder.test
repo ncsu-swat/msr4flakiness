@@ -1,0 +1,51 @@
+@Test
+public void test() throws Exception {
+    UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(clientPrincipal, keytabFile.getCanonicalPath());
+    ugi.doAs(new PrivilegedExceptionAction<Void>() {
+
+        @Override
+        public Void run() throws Exception {
+            SaslClient client = Sasl.createSaslClient(new String[] { AuthMethod.KERBEROS.getMechanismName() }, clientPrincipal, server1Protocol, host, props, null);
+            client.evaluateChallenge(new byte[0]);
+            client.dispose();
+            return null;
+        }
+    });
+    Subject subject = ugi.getSubject();
+    // move tgt to the last
+    for (KerberosTicket ticket : subject.getPrivateCredentials(KerberosTicket.class)) {
+        if (ticket.getServer().getName().startsWith("krbtgt")) {
+            subject.getPrivateCredentials().remove(ticket);
+            subject.getPrivateCredentials().add(ticket);
+            break;
+        }
+    }
+    // make sure the first ticket is not tgt
+    assertFalse("The first ticket is still tgt, " + "the implementation in jdk may have been changed, " + "please reconsider the problem in HADOOP-13433", subject.getPrivateCredentials().stream().filter(c -> c instanceof KerberosTicket).map(c -> ((KerberosTicket) c).getServer().getName()).findFirst().get().startsWith("krbtgt"));
+    // should fail as we send a service ticket instead of tgt to KDC.
+    intercept(SaslException.class, () -> ugi.doAs(new PrivilegedExceptionAction<Void>() {
+
+        @Override
+        public Void run() throws Exception {
+            SaslClient client = Sasl.createSaslClient(new String[] { AuthMethod.KERBEROS.getMechanismName() }, clientPrincipal, server2Protocol, host, props, null);
+            client.evaluateChallenge(new byte[0]);
+            client.dispose();
+            return null;
+        }
+    }));
+    ugi.fixKerberosTicketOrder();
+    // check if TGT is the first ticket after the fix.
+    assertTrue("The first ticket is not tgt", subject.getPrivateCredentials().stream().filter(c -> c instanceof KerberosTicket).map(c -> ((KerberosTicket) c).getServer().getName()).findFirst().get().startsWith("krbtgt"));
+    // make sure we can still get new service ticket after the fix.
+    ugi.doAs(new PrivilegedExceptionAction<Void>() {
+
+        @Override
+        public Void run() throws Exception {
+            SaslClient client = Sasl.createSaslClient(new String[] { AuthMethod.KERBEROS.getMechanismName() }, clientPrincipal, server2Protocol, host, props, null);
+            client.evaluateChallenge(new byte[0]);
+            client.dispose();
+            return null;
+        }
+    });
+    assertTrue("No service ticket for " + server2Protocol + " found", subject.getPrivateCredentials(KerberosTicket.class).stream().filter(t -> t.getServer().getName().startsWith(server2Protocol)).findAny().isPresent());
+}

@@ -1,0 +1,38 @@
+@Test
+public void testGangliaMetrics2() throws Exception {
+    // Setting long interval to avoid periodic publishing.
+    // We manually publish metrics by MeticsSystem#publishMetricsNow here.
+    ConfigBuilder cb = new ConfigBuilder().add("*.period", 120).add(testNamePrefix + ".sink.gsink30.context", // filter out only "test"
+    testNamePrefix).add(testNamePrefix + ".sink.gsink31.context", // filter out only "test"
+    testNamePrefix).save(TestMetricsConfig.getTestFilename("hadoop-metrics2-" + testNamePrefix));
+    MetricsSystemImpl ms = new MetricsSystemImpl(testNamePrefix);
+    ms.start();
+    TestSource s1 = ms.register("s1", "s1 desc", new TestSource("s1rec"));
+    s1.c1.incr();
+    s1.xxx.incr();
+    s1.g1.set(2);
+    s1.yyy.incr(2);
+    s1.s1.add(0);
+    final int expectedCountFromGanglia30 = expectedMetrics.length;
+    final int expectedCountFromGanglia31 = 2 * expectedMetrics.length;
+    // Setup test for GangliaSink30
+    AbstractGangliaSink gsink30 = new GangliaSink30();
+    gsink30.init(cb.subset(testNamePrefix));
+    MockDatagramSocket mockds30 = new MockDatagramSocket();
+    GangliaMetricsTestHelper.setDatagramSocket(gsink30, mockds30);
+    // Setup test for GangliaSink31
+    AbstractGangliaSink gsink31 = new GangliaSink31();
+    gsink31.init(cb.subset(testNamePrefix));
+    MockDatagramSocket mockds31 = new MockDatagramSocket();
+    GangliaMetricsTestHelper.setDatagramSocket(gsink31, mockds31);
+    // register the sinks
+    ms.register("gsink30", "gsink30 desc", gsink30);
+    ms.register("gsink31", "gsink31 desc", gsink31);
+    // publish the metrics
+    ms.publishMetricsNow();
+    ms.stop();
+    // check GanfliaSink30 data
+    checkMetrics(mockds30.getCapturedSend(), expectedCountFromGanglia30);
+    // check GanfliaSink31 data
+    checkMetrics(mockds31.getCapturedSend(), expectedCountFromGanglia31);
+}

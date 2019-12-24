@@ -1,0 +1,24 @@
+@Test(timeout = 15000)
+public void testMonitor() throws Exception {
+    LOG.info("Mocking bad health check, waiting for UNHEALTHY");
+    svc.isHealthy = false;
+    waitForState(hm, HealthMonitor.State.SERVICE_UNHEALTHY);
+    LOG.info("Returning to healthy state, waiting for HEALTHY");
+    svc.isHealthy = true;
+    waitForState(hm, HealthMonitor.State.SERVICE_HEALTHY);
+    LOG.info("Returning an IOException, as if node went down");
+    // should expect many rapid retries
+    int countBefore = createProxyCount.get();
+    svc.actUnreachable = true;
+    waitForState(hm, HealthMonitor.State.SERVICE_NOT_RESPONDING);
+    // Should retry several times
+    while (createProxyCount.get() < countBefore + 3) {
+        Thread.sleep(10);
+    }
+    LOG.info("Returning to healthy state, waiting for HEALTHY");
+    svc.actUnreachable = false;
+    waitForState(hm, HealthMonitor.State.SERVICE_HEALTHY);
+    hm.shutdown();
+    hm.join();
+    assertFalse(hm.isAlive());
+}

@@ -1,0 +1,28 @@
+/**
+ * Test whether the roll interval is correctly calculated from the
+ * configuration settings.
+ */
+@Test
+public void testGetRollInterval() {
+    doTestGetRollInterval(1, new String[] { "m", "min", "minute", "minutes" }, 60 * 1000L);
+    doTestGetRollInterval(1, new String[] { "h", "hr", "hour", "hours" }, 60 * 60 * 1000L);
+    doTestGetRollInterval(1, new String[] { "d", "day", "days" }, 24 * 60 * 60 * 1000L);
+    ConfigBuilder builder = new ConfigBuilder();
+    SubsetConfiguration conf = builder.add("sink.roll-interval", "1").subset("sink");
+    // We can reuse the same sink evry time because we're setting the same
+    // property every time.
+    RollingFileSystemSink sink = new RollingFileSystemSink();
+    sink.init(conf);
+    assertEquals(3600000L, sink.getRollInterval());
+    for (char c : "abcefgijklnopqrtuvwxyz".toCharArray()) {
+        builder = new ConfigBuilder();
+        conf = builder.add("sink.roll-interval", "90 " + c).subset("sink");
+        try {
+            sink.init(conf);
+            sink.getRollInterval();
+            fail("Allowed flush interval with bad units: " + c);
+        } catch (MetricsException ex) {
+        // Expected
+        }
+    }
+}

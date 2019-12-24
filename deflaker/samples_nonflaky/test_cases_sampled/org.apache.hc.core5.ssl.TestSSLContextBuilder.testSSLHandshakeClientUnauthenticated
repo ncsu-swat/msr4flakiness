@@ -1,0 +1,48 @@
+@Test
+public void testSSLHandshakeClientUnauthenticated() throws Exception {
+    final URL resource1 = getResource("/test-server.p12");
+    final String storePassword = "nopassword";
+    final String keyPassword = "nopassword";
+    final SSLContext serverSslContext = SSLContextBuilder.create().loadKeyMaterial(resource1, storePassword.toCharArray(), keyPassword.toCharArray()).build();
+    Assert.assertNotNull(serverSslContext);
+    final URL resource2 = getResource("/test-client.p12");
+    final SSLContext clientSslContext = SSLContextBuilder.create().loadTrustMaterial(resource2, storePassword.toCharArray()).build();
+    Assert.assertNotNull(clientSslContext);
+    final SSLServerSocket serverSocket = (SSLServerSocket) serverSslContext.getServerSocketFactory().createServerSocket();
+    serverSocket.setWantClientAuth(true);
+    serverSocket.bind(new InetSocketAddress(0));
+    this.executorService = Executors.newSingleThreadExecutor();
+    final Future<Principal> future = this.executorService.submit(new Callable<Principal>() {
+
+        @Override
+        public Principal call() throws Exception {
+            final SSLSocket socket = (SSLSocket) serverSocket.accept();
+            Principal clientPrincipal = null;
+            try {
+                final SSLSession session = socket.getSession();
+                try {
+                    clientPrincipal = session.getPeerPrincipal();
+                } catch (final SSLPeerUnverifiedException ignore) {
+                }
+                final OutputStream outputStream = socket.getOutputStream();
+                outputStream.write(new byte[] { 'H', 'i' });
+                outputStream.flush();
+            } finally {
+                socket.close();
+            }
+            return clientPrincipal;
+        }
+    });
+    final int localPort = serverSocket.getLocalPort();
+    try (final SSLSocket clientSocket = (SSLSocket) clientSslContext.getSocketFactory().createSocket()) {
+        clientSocket.connect(new InetSocketAddress("localhost", localPort), TIMEOUT.toMillisecondsIntBound());
+        clientSocket.setSoTimeout(TIMEOUT.toMillisecondsIntBound());
+        clientSocket.startHandshake();
+        final InputStream inputStream = clientSocket.getInputStream();
+        Assert.assertEquals('H', inputStream.read());
+        Assert.assertEquals('i', inputStream.read());
+        Assert.assertEquals(-1, inputStream.read());
+    }
+    final Principal clientPrincipal = future.get(5, TimeUnit.SECONDS);
+    Assert.assertNull(clientPrincipal);
+}

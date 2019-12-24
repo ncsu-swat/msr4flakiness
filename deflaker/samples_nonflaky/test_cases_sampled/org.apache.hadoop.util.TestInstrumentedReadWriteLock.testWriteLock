@@ -1,0 +1,49 @@
+/**
+ * Tests exclusive access of the write lock.
+ * @throws Exception
+ */
+@Test(timeout = 10000)
+public void testWriteLock() throws Exception {
+    String testname = name.getMethodName();
+    final ThreadLocal<Boolean> locked = new ThreadLocal<Boolean>();
+    locked.set(Boolean.FALSE);
+    InstrumentedReadWriteLock readWriteLock = new InstrumentedReadWriteLock(true, testname, LOG, 2000, 300);
+    final AutoCloseableLock writeLock = new AutoCloseableLock(readWriteLock.writeLock()) {
+
+        @Override
+        public AutoCloseableLock acquire() {
+            AutoCloseableLock lock = super.acquire();
+            locked.set(Boolean.TRUE);
+            return lock;
+        }
+
+        @Override
+        public void release() {
+            super.release();
+            locked.set(Boolean.FALSE);
+        }
+    };
+    final AutoCloseableLock readLock = new AutoCloseableLock(readWriteLock.readLock());
+    try (AutoCloseableLock lock = writeLock.acquire()) {
+        Thread competingWriteThread = new Thread() {
+
+            @Override
+            public void run() {
+                assertFalse(writeLock.tryLock());
+            }
+        };
+        competingWriteThread.start();
+        competingWriteThread.join();
+        Thread competingReadThread = new Thread() {
+
+            @Override
+            public void run() {
+                assertFalse(readLock.tryLock());
+            }
+        };
+        competingReadThread.start();
+        competingReadThread.join();
+    }
+    assertFalse(locked.get());
+    locked.remove();
+}

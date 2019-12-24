@@ -1,0 +1,25 @@
+/**
+ * Test that the ZKFC can gracefully cede its active status.
+ */
+@Test
+public void testCedeActive() throws Exception {
+    cluster.start();
+    DummyZKFC zkfc = cluster.getZkfc(0);
+    // It should be in active to start.
+    assertEquals(ActiveStandbyElector.State.ACTIVE, zkfc.getElectorForTests().getStateForTests());
+    // Ask it to cede active for 3 seconds. It should respond promptly
+    // (i.e. the RPC itself should not take 3 seconds!)
+    ZKFCProtocol proxy = zkfc.getLocalTarget().getZKFCProxy(conf, 5000);
+    long st = Time.now();
+    proxy.cedeActive(3000);
+    long et = Time.now();
+    assertTrue("RPC to cedeActive took " + (et - st) + " ms", et - st < 1000);
+    // Should be in "INIT" state since it's not in the election
+    // at this point.
+    assertEquals(ActiveStandbyElector.State.INIT, zkfc.getElectorForTests().getStateForTests());
+    // After the prescribed 3 seconds, should go into STANDBY state,
+    // since the other node in the cluster would have taken ACTIVE.
+    cluster.waitForElectorState(0, ActiveStandbyElector.State.STANDBY);
+    long et2 = Time.now();
+    assertTrue("Should take ~3 seconds to rejoin. Only took " + (et2 - et) + "ms before rejoining.", et2 - et > 2800);
+}

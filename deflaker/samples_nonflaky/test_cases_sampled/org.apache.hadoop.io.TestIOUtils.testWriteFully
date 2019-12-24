@@ -1,0 +1,37 @@
+@Test
+public void testWriteFully() throws IOException {
+    final int INPUT_BUFFER_LEN = 10000;
+    final int HALFWAY = 1 + (INPUT_BUFFER_LEN / 2);
+    byte[] input = new byte[INPUT_BUFFER_LEN];
+    for (int i = 0; i < input.length; i++) {
+        input[i] = (byte) (i & 0xff);
+    }
+    byte[] output = new byte[input.length];
+    try {
+        RandomAccessFile raf = new RandomAccessFile(TEST_FILE_NAME, "rw");
+        FileChannel fc = raf.getChannel();
+        ByteBuffer buf = ByteBuffer.wrap(input);
+        IOUtils.writeFully(fc, buf);
+        raf.seek(0);
+        raf.read(output);
+        for (int i = 0; i < input.length; i++) {
+            assertEquals(input[i], output[i]);
+        }
+        buf.rewind();
+        IOUtils.writeFully(fc, buf, HALFWAY);
+        for (int i = 0; i < HALFWAY; i++) {
+            assertEquals(input[i], output[i]);
+        }
+        raf.seek(0);
+        raf.read(output);
+        for (int i = HALFWAY; i < input.length; i++) {
+            assertEquals(input[i - HALFWAY], output[i]);
+        }
+        raf.close();
+    } finally {
+        File f = new File(TEST_FILE_NAME);
+        if (f.exists()) {
+            f.delete();
+        }
+    }
+}

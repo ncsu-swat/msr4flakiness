@@ -1,0 +1,57 @@
+/**
+ *  Test RPC backoff by response time of each priority level.
+ */
+@Test(timeout = 30000)
+public void testClientBackOffByResponseTime() throws Exception {
+    final TestRpcService proxy;
+    boolean succeeded = false;
+    final int numClients = 1;
+    GenericTestUtils.setLogLevel(DecayRpcScheduler.LOG, Level.DEBUG);
+    GenericTestUtils.setLogLevel(RPC.LOG, Level.DEBUG);
+    final List<Future<Void>> res = new ArrayList<Future<Void>>();
+    final ExecutorService executorService = Executors.newFixedThreadPool(numClients);
+    conf.setInt(CommonConfigurationKeys.IPC_CLIENT_CONNECT_MAX_RETRIES_KEY, 0);
+    final String ns = CommonConfigurationKeys.IPC_NAMESPACE + ".0";
+    Server server = setupDecayRpcSchedulerandTestServer(ns + ".");
+    @SuppressWarnings("unchecked")
+    CallQueueManager<Call> spy = spy((CallQueueManager<Call>) Whitebox.getInternalState(server, "callQueue"));
+    Whitebox.setInternalState(server, "callQueue", spy);
+    Exception lastException = null;
+    proxy = getClient(addr, conf);
+    try {
+        // start a sleep RPC call that sleeps 3s.
+        for (int i = 0; i < numClients; i++) {
+            res.add(executorService.submit(new Callable<Void>() {
+
+                @Override
+                public Void call() throws ServiceException, InterruptedException {
+                    proxy.sleep(null, newSleepRequest(3000));
+                    return null;
+                }
+            }));
+            verify(spy, timeout(500).times(i + 1)).addInternal(any(), eq(false));
+        }
+        // Start another sleep RPC call and verify the call is backed off due to
+        // avg response time(3s) exceeds threshold (2s).
+        try {
+            // wait for the 1st response time update
+            Thread.sleep(5500);
+            proxy.sleep(null, newSleepRequest(100));
+        } catch (ServiceException e) {
+            RemoteException re = (RemoteException) e.getCause();
+            IOException unwrapExeption = re.unwrapRemoteException();
+            if (unwrapExeption instanceof RetriableException) {
+                succeeded = true;
+            } else {
+                lastException = unwrapExeption;
+            }
+        }
+    } finally {
+        executorService.shutdown();
+        stop(server, proxy);
+    }
+    if (lastException != null) {
+        LOG.error("Last received non-RetriableException:", lastException);
+    }
+    assertTrue("RetriableException not received", succeeded);
+}

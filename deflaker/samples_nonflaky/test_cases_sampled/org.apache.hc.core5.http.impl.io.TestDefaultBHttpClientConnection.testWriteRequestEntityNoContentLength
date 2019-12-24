@@ -1,0 +1,12 @@
+@Test(expected = LengthRequiredException.class)
+public void testWriteRequestEntityNoContentLength() throws Exception {
+    final ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+    Mockito.when(socket.getOutputStream()).thenReturn(outStream);
+    conn.bind(socket);
+    Assert.assertEquals(0, conn.getEndpointDetails().getRequestCount());
+    final ClassicHttpRequest request = new BasicClassicHttpRequest(Method.POST, "/stuff");
+    request.addHeader("User-Agent", "test");
+    request.setEntity(new StringEntity("123", ContentType.TEXT_PLAIN));
+    conn.sendRequestHeader(request);
+    conn.sendRequestEntity(request);
+}

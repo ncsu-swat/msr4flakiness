@@ -1,0 +1,21 @@
+@Test
+public void testStaticMapParsing() throws IOException {
+    File tempStaticMapFile = File.createTempFile("nfs-", ".map");
+    final String staticMapFileContents = "uid 10 100\n" + "gid 10 200\n" + "uid 11 201 # comment at the end of a line\n" + "uid 12 301\n" + "# Comment at the beginning of a line\n" + "    # Comment that starts late in the line\n" + "uid 10000 10001# line without whitespace before comment\n" + "uid 13 302\n" + // Tabs instead of spaces.
+    "gid\t11\t201\n" + // Entirely empty line.
+    "\n" + "gid 12 202\n" + "uid 4294967294 123\n" + "gid 4294967295 321";
+    createStaticMapFile(tempStaticMapFile, staticMapFileContents);
+    StaticMapping parsedMap = ShellBasedIdMapping.parseStaticMap(tempStaticMapFile);
+    assertEquals(10, (int) parsedMap.uidMapping.get(100));
+    assertEquals(11, (int) parsedMap.uidMapping.get(201));
+    assertEquals(12, (int) parsedMap.uidMapping.get(301));
+    assertEquals(13, (int) parsedMap.uidMapping.get(302));
+    assertEquals(10, (int) parsedMap.gidMapping.get(200));
+    assertEquals(11, (int) parsedMap.gidMapping.get(201));
+    assertEquals(12, (int) parsedMap.gidMapping.get(202));
+    assertEquals(10000, (int) parsedMap.uidMapping.get(10001));
+    // Ensure pass-through of unmapped IDs works.
+    assertEquals(1000, (int) parsedMap.uidMapping.get(1000));
+    assertEquals(-2, (int) parsedMap.uidMapping.get(123));
+    assertEquals(-1, (int) parsedMap.gidMapping.get(321));
+}

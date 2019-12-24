@@ -1,0 +1,25 @@
+@Test(timeout = 300000)
+public void testLogExceptions() throws Exception {
+    final Configuration conf = new Configuration();
+    final Call dummyCall = new Call(0, 0, null, null);
+    Logger logger = mock(Logger.class);
+    Server server = new Server("0.0.0.0", 0, LongWritable.class, 1, conf) {
+
+        @Override
+        public Writable call(RPC.RpcKind rpcKind, String protocol, Writable param, long receiveTime) throws Exception {
+            return null;
+        }
+    };
+    server.addSuppressedLoggingExceptions(TestException1.class);
+    server.addTerseExceptions(TestException2.class);
+    // Nothing should be logged for a suppressed exception.
+    server.logException(logger, new TestException1(), dummyCall);
+    verifyZeroInteractions(logger);
+    // No stack trace should be logged for a terse exception.
+    server.logException(logger, new TestException2(), dummyCall);
+    verify(logger, times(1)).info(any());
+    // Full stack trace should be logged for other exceptions.
+    final Throwable te3 = new TestException3();
+    server.logException(logger, te3, dummyCall);
+    verify(logger, times(1)).info(any(), eq(te3));
+}

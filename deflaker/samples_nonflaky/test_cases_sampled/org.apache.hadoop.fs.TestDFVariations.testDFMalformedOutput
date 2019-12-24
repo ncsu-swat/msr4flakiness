@@ -1,0 +1,34 @@
+@Test(timeout = 5000)
+public void testDFMalformedOutput() throws Exception {
+    DF df = new DF(new File("/"), 0l);
+    BufferedReader reader = new BufferedReader(new StringReader("Filesystem     1K-blocks     Used Available Use% Mounted on\n" + "/dev/sda5       19222656 10597036   7649060  59% /"));
+    df.parseExecResult(reader);
+    df.parseOutput();
+    reader = new BufferedReader(new StringReader("Filesystem     1K-blocks     Used Available Use% Mounted on"));
+    df.parseExecResult(reader);
+    try {
+        df.parseOutput();
+        fail("Expected exception with missing line!");
+    } catch (IOException e) {
+        GenericTestUtils.assertExceptionContains("Fewer lines of output than expected", e);
+        System.out.println(e.toString());
+    }
+    reader = new BufferedReader(new StringReader("Filesystem     1K-blocks     Used Available Use% Mounted on\n" + " "));
+    df.parseExecResult(reader);
+    try {
+        df.parseOutput();
+        fail("Expected exception with empty line!");
+    } catch (IOException e) {
+        GenericTestUtils.assertExceptionContains("Unexpected empty line", e);
+        System.out.println(e.toString());
+    }
+    reader = new BufferedReader(new StringReader("Filesystem     1K-blocks     Used Available Use% Mounted on\n" + "       19222656 10597036   7649060  59% /"));
+    df.parseExecResult(reader);
+    try {
+        df.parseOutput();
+        fail("Expected exception with missing field!");
+    } catch (IOException e) {
+        GenericTestUtils.assertExceptionContains("Could not parse line: ", e);
+        System.out.println(e.toString());
+    }
+}

@@ -1,0 +1,39 @@
+@Test
+public void testSSLHandshakeServerTrusted() throws Exception {
+    final URL resource1 = getResource("/test.p12");
+    final String storePassword = "nopassword";
+    final String keyPassword = "nopassword";
+    final SSLContext serverSslContext = SSLContextBuilder.create().loadKeyMaterial(resource1, storePassword.toCharArray(), keyPassword.toCharArray()).build();
+    Assert.assertNotNull(serverSslContext);
+    final SSLContext clientSslContext = SSLContextBuilder.create().loadTrustMaterial(resource1, storePassword.toCharArray()).build();
+    Assert.assertNotNull(clientSslContext);
+    final ServerSocket serverSocket = serverSslContext.getServerSocketFactory().createServerSocket();
+    serverSocket.bind(new InetSocketAddress(0));
+    this.executorService = Executors.newSingleThreadExecutor();
+    final Future<Boolean> future = this.executorService.submit(new Callable<Boolean>() {
+
+        @Override
+        public Boolean call() throws Exception {
+            final Socket socket = serverSocket.accept();
+            try {
+                final OutputStream outputStream = socket.getOutputStream();
+                outputStream.write(new byte[] { 'H', 'i' });
+                outputStream.flush();
+            } finally {
+                socket.close();
+            }
+            return Boolean.TRUE;
+        }
+    });
+    final int localPort = serverSocket.getLocalPort();
+    try (final Socket clientSocket = clientSslContext.getSocketFactory().createSocket()) {
+        clientSocket.connect(new InetSocketAddress("localhost", localPort), TIMEOUT.toMillisecondsIntBound());
+        clientSocket.setSoTimeout(TIMEOUT.toMillisecondsIntBound());
+        final InputStream inputStream = clientSocket.getInputStream();
+        Assert.assertEquals('H', inputStream.read());
+        Assert.assertEquals('i', inputStream.read());
+        Assert.assertEquals(-1, inputStream.read());
+    }
+    final Boolean result = future.get(5, TimeUnit.SECONDS);
+    Assert.assertNotNull(result);
+}

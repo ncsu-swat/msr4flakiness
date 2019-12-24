@@ -1,0 +1,24 @@
+@Test
+public void testReadRequestEntityChunckCoded() throws Exception {
+    final String s = "POST /stuff HTTP/1.1\r\nUser-Agent: test\r\nTransfer-Encoding: " + "chunked\r\n\r\n3\r\n123\r\n0\r\n\r\n";
+    final ByteArrayInputStream inStream = new ByteArrayInputStream(s.getBytes(StandardCharsets.US_ASCII));
+    Mockito.when(socket.getInputStream()).thenReturn(inStream);
+    conn.bind(socket);
+    Assert.assertEquals(0, conn.getEndpointDetails().getRequestCount());
+    final ClassicHttpRequest request = conn.receiveRequestHeader();
+    Assert.assertNotNull(request);
+    Assert.assertEquals("/stuff", request.getPath());
+    Assert.assertEquals(Method.POST.name(), request.getMethod());
+    Assert.assertTrue(request.containsHeader("User-Agent"));
+    Assert.assertNull(request.getEntity());
+    Assert.assertEquals(1, conn.getEndpointDetails().getRequestCount());
+    conn.receiveRequestEntity(request);
+    final HttpEntity entity = request.getEntity();
+    Assert.assertNotNull(entity);
+    Assert.assertEquals(-1, entity.getContentLength());
+    Assert.assertEquals(true, entity.isChunked());
+    Assert.assertEquals(1, conn.getEndpointDetails().getRequestCount());
+    final InputStream content = entity.getContent();
+    Assert.assertNotNull(content);
+    Assert.assertTrue(content instanceof ChunkedInputStream);
+}

@@ -1,0 +1,21 @@
+@Test
+public void testRetouchedBloomFilterSpecific() {
+    int numInsertions = 1000;
+    int hashFunctionNumber = 5;
+    ImmutableSet<Integer> hashes = ImmutableSet.of(Hash.MURMUR_HASH, Hash.JENKINS_HASH);
+    for (Integer hashId : hashes) {
+        RetouchedBloomFilter filter = new RetouchedBloomFilter(bitSize, hashFunctionNumber, hashId);
+        checkOnAbsentFalsePositive(hashId, numInsertions, filter, Digits.ODD, RemoveScheme.MAXIMUM_FP);
+        filter.and(new RetouchedBloomFilter(bitSize, hashFunctionNumber, hashId));
+        checkOnAbsentFalsePositive(hashId, numInsertions, filter, Digits.EVEN, RemoveScheme.MAXIMUM_FP);
+        filter.and(new RetouchedBloomFilter(bitSize, hashFunctionNumber, hashId));
+        checkOnAbsentFalsePositive(hashId, numInsertions, filter, Digits.ODD, RemoveScheme.MINIMUM_FN);
+        filter.and(new RetouchedBloomFilter(bitSize, hashFunctionNumber, hashId));
+        checkOnAbsentFalsePositive(hashId, numInsertions, filter, Digits.EVEN, RemoveScheme.MINIMUM_FN);
+        filter.and(new RetouchedBloomFilter(bitSize, hashFunctionNumber, hashId));
+        checkOnAbsentFalsePositive(hashId, numInsertions, filter, Digits.ODD, RemoveScheme.RATIO);
+        filter.and(new RetouchedBloomFilter(bitSize, hashFunctionNumber, hashId));
+        checkOnAbsentFalsePositive(hashId, numInsertions, filter, Digits.EVEN, RemoveScheme.RATIO);
+        filter.and(new RetouchedBloomFilter(bitSize, hashFunctionNumber, hashId));
+    }
+}

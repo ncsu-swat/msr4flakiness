@@ -1,0 +1,48 @@
+/**
+ * Test that when configured, we will make the specified amount of
+ * attempts using one ldap url before failing over to the next one.
+ *
+ * This also tests that we wrap back to the first server
+ * if we've tried them all.
+ */
+@Test
+public void testFailover() throws Exception {
+    Queue<String> ldapUrls = new LinkedList<>();
+    ldapUrls.add("ldap://test");
+    ldapUrls.add("ldap://test1");
+    ldapUrls.add("ldap://test2");
+    final int numAttempts = 12;
+    final int numAttemptsBeforeFailover = 2;
+    Configuration conf = getBaseConf();
+    conf.setStrings(LDAP_URL_KEY, "ldap://test", "ldap://test1", "ldap://test2");
+    conf.setInt(LDAP_NUM_ATTEMPTS_KEY, numAttempts);
+    conf.setInt(LDAP_NUM_ATTEMPTS_BEFORE_FAILOVER_KEY, numAttemptsBeforeFailover);
+    // Set the first expected url and add it back to the queue
+    String nextLdapUrl = ldapUrls.remove();
+    DummyLdapCtxFactory.setExpectedLdapUrl(nextLdapUrl);
+    ldapUrls.add(nextLdapUrl);
+    // Number of attempts using a single ldap server url
+    final AtomicInteger serverAttempts = new AtomicInteger(numAttemptsBeforeFailover);
+    when(getContext().search(anyString(), anyString(), any(Object[].class), any(SearchControls.class))).thenAnswer(new Answer<Object>() {
+
+        @Override
+        public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+            if (serverAttempts.get() == 1) {
+                // Take the head of the queue and re-queue it to the back
+                String nextLdapUrl = ldapUrls.remove();
+                ldapUrls.add(nextLdapUrl);
+                DummyLdapCtxFactory.setExpectedLdapUrl(nextLdapUrl);
+                serverAttempts.set(numAttemptsBeforeFailover);
+            } else {
+                serverAttempts.decrementAndGet();
+            }
+            throw new CommunicationException();
+        }
+    });
+    LdapGroupsMapping groupsMapping = getGroupsMapping();
+    groupsMapping.setConf(conf);
+    List<String> groups = groupsMapping.getGroups(TEST_USER_NAME);
+    assertTrue(groups.isEmpty());
+    // Test that we made 6 attempts overall
+    verify(getContext(), times(numAttempts)).search(anyString(), anyString(), any(Object[].class), any(SearchControls.class));
+}

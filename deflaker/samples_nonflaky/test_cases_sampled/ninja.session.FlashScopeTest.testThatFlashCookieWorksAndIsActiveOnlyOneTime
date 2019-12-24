@@ -1,0 +1,22 @@
+@Test
+public void testThatFlashCookieWorksAndIsActiveOnlyOneTime() {
+    // setup this testmethod
+    Cookie cookie = Cookie.builder("NINJA_FLASH", "hello=flashScope").build();
+    when(context.getCookie("NINJA_FLASH")).thenReturn(cookie);
+    FlashScope flashCookie = new FlashScopeImpl(ninjaProperties);
+    flashCookie.init(context);
+    // make sure the old cookue gets parsed:
+    assertEquals("flashScope", flashCookie.get("hello"));
+    flashCookie.put("another message", "is there...");
+    flashCookie.put("yet another message", "is there...");
+    flashCookie.save(context);
+    // a cookie will be set => hello:flashScope
+    verify(context).addCookie(cookieCaptor.capture());
+    // verify some stuff on the set cookie
+    assertEquals("NINJA_FLASH", cookieCaptor.getValue().getName());
+    // the new flash messages must be there..
+    // but the old has disappeared (flashScope):
+    assertEquals("another+message=is+there...&yet+another+message=is+there...", cookieCaptor.getValue().getValue());
+    assertEquals(3, ((FlashScopeImpl) flashCookie).getCurrentFlashCookieData().size());
+    assertEquals(2, ((FlashScopeImpl) flashCookie).getOutgoingFlashCookieData().size());
+}

@@ -1,0 +1,33 @@
+// check reverse default ordering
+@Test
+public void processPathDirOrderDefaultReverse() throws IOException {
+    TestFile testfile01 = new TestFile("testDirectory", "testFile01");
+    TestFile testfile02 = new TestFile("testDirectory", "testFile02");
+    TestFile testfile03 = new TestFile("testDirectory", "testFile03");
+    TestFile testfile04 = new TestFile("testDirectory", "testFile04");
+    TestFile testfile05 = new TestFile("testDirectory", "testFile05");
+    TestFile testfile06 = new TestFile("testDirectory", "testFile06");
+    TestFile testDir = new TestFile("", "testDirectory");
+    testDir.setIsDir(true);
+    // add contents in non-lexigraphic order to show they get sorted
+    testDir.addContents(testfile01, testfile03, testfile05, testfile02, testfile04, testfile06);
+    LinkedList<PathData> pathData = new LinkedList<PathData>();
+    pathData.add(testDir.getPathData());
+    PrintStream out = mock(PrintStream.class);
+    Ls ls = new Ls();
+    ls.out = out;
+    LinkedList<String> options = new LinkedList<String>();
+    options.add("-r");
+    ls.processOptions(options);
+    String lineFormat = TestFile.computeLineFormat(pathData);
+    ls.processArguments(pathData);
+    InOrder inOrder = inOrder(out);
+    inOrder.verify(out).println("Found 6 items");
+    inOrder.verify(out).println(testfile06.formatLineMtime(lineFormat));
+    inOrder.verify(out).println(testfile05.formatLineMtime(lineFormat));
+    inOrder.verify(out).println(testfile04.formatLineMtime(lineFormat));
+    inOrder.verify(out).println(testfile03.formatLineMtime(lineFormat));
+    inOrder.verify(out).println(testfile02.formatLineMtime(lineFormat));
+    inOrder.verify(out).println(testfile01.formatLineMtime(lineFormat));
+    verifyNoMoreInteractions(out);
+}

@@ -1,0 +1,51 @@
+/**
+ * Tests that client generates a unique sequential call ID for each RPC call,
+ * even if multiple threads are using the same client.
+ *
+ * @throws InterruptedException
+ * @throws ExecutionException
+ */
+@Test(timeout = 60000)
+public void testUniqueSequentialCallIds() throws IOException, InterruptedException, ExecutionException {
+    int serverThreads = 10, callerCount = 100, perCallerCallCount = 100;
+    TestServer server = new TestIPC.TestServer(serverThreads, false, conf);
+    // Attach a listener that tracks every call ID received by the server. This
+    // list must be synchronized, because multiple server threads will add to
+    // it.
+    final List<Integer> callIds = Collections.synchronizedList(new ArrayList<Integer>());
+    server.callListener = new Runnable() {
+
+        @Override
+        public void run() {
+            callIds.add(Server.getCallId());
+        }
+    };
+    Client client = new Client(LongWritable.class, conf);
+    try {
+        InetSocketAddress addr = NetUtils.getConnectAddress(server);
+        server.start();
+        AsyncCaller[] callers = new AsyncCaller[callerCount];
+        for (int i = 0; i < callerCount; ++i) {
+            callers[i] = new AsyncCaller(client, addr, perCallerCallCount);
+            callers[i].start();
+        }
+        for (int i = 0; i < callerCount; ++i) {
+            callers[i].join();
+            callers[i].assertReturnValues();
+        }
+    } finally {
+        client.stop();
+        server.stop();
+    }
+    int expectedCallCount = callerCount * perCallerCallCount;
+    assertEquals(expectedCallCount, callIds.size());
+    // It is not guaranteed that the server executes requests in sequential
+    // order
+    // of client call ID, so we must sort the call IDs before checking that it
+    // contains every expected value.
+    Collections.sort(callIds);
+    final int startID = callIds.get(0).intValue();
+    for (int i = 0; i < expectedCallCount; ++i) {
+        assertEquals(startID + i, callIds.get(i).intValue());
+    }
+}

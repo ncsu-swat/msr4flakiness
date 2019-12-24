@@ -1,0 +1,58 @@
+/**
+ * This test checks the correctness of loading/setting the properties in terms
+ * of occurrence of deprecated keys.
+ * @throws IOException
+ */
+@Test
+public void testDeprecation() throws IOException {
+    addDeprecationToConfiguration();
+    out = new BufferedWriter(new FileWriter(CONFIG));
+    startConfig();
+    // load an old key and a new key.
+    appendProperty("A", "a");
+    appendProperty("D", "d");
+    // load an old key with multiple new-key mappings
+    appendProperty("P", "p");
+    endConfig();
+    Path fileResource = new Path(CONFIG);
+    conf.addResource(fileResource);
+    // check if loading of old key with multiple new-key mappings actually loads
+    // the corresponding new keys.
+    assertEquals("p", conf.get("P"));
+    assertEquals("p", conf.get("Q"));
+    assertEquals("p", conf.get("R"));
+    assertEquals("a", conf.get("A"));
+    assertEquals("a", conf.get("B"));
+    assertEquals("d", conf.get("C"));
+    assertEquals("d", conf.get("D"));
+    out = new BufferedWriter(new FileWriter(CONFIG2));
+    startConfig();
+    // load the old/new keys corresponding to the keys loaded before.
+    appendProperty("B", "b");
+    appendProperty("C", "c");
+    endConfig();
+    Path fileResource1 = new Path(CONFIG2);
+    conf.addResource(fileResource1);
+    assertEquals("b", conf.get("A"));
+    assertEquals("b", conf.get("B"));
+    assertEquals("c", conf.get("C"));
+    assertEquals("c", conf.get("D"));
+    // set new key
+    conf.set("N", "n");
+    // get old key
+    assertEquals("n", conf.get("M"));
+    // check consistency in get of old and new keys
+    assertEquals(conf.get("M"), conf.get("N"));
+    // set old key and then get new key(s).
+    conf.set("M", "m");
+    assertEquals("m", conf.get("N"));
+    conf.set("X", "x");
+    assertEquals("x", conf.get("X"));
+    assertEquals("x", conf.get("Y"));
+    assertEquals("x", conf.get("Z"));
+    // set new keys to different values
+    conf.set("Y", "y");
+    conf.set("Z", "z");
+    // get old key
+    assertEquals("z", conf.get("X"));
+}

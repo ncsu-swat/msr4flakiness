@@ -1,0 +1,46 @@
+@Test
+public void testSSLHandshakeProtocolMismatch2() throws Exception {
+    if (isWindows()) {
+        thrown.expect(IOException.class);
+    } else {
+        thrown.expect(SSLException.class);
+    }
+    final URL resource1 = getResource("/test-server.p12");
+    final String storePassword = "nopassword";
+    final String keyPassword = "nopassword";
+    final SSLContext serverSslContext = SSLContextBuilder.create().loadKeyMaterial(resource1, storePassword.toCharArray(), keyPassword.toCharArray()).build();
+    Assert.assertNotNull(serverSslContext);
+    final URL resource2 = getResource("/test-client.p12");
+    final SSLContext clientSslContext = SSLContextBuilder.create().loadTrustMaterial(resource2, storePassword.toCharArray()).build();
+    Assert.assertNotNull(clientSslContext);
+    final SSLServerSocket serverSocket = (SSLServerSocket) serverSslContext.getServerSocketFactory().createServerSocket();
+    final Set<String> supportedServerProtocols = new LinkedHashSet<>(Arrays.asList(serverSocket.getSupportedProtocols()));
+    Assert.assertTrue(supportedServerProtocols.contains("SSLv3"));
+    serverSocket.setEnabledProtocols(new String[] { "SSLv3" });
+    serverSocket.bind(new InetSocketAddress(0));
+    this.executorService = Executors.newSingleThreadExecutor();
+    this.executorService.submit(new Callable<Boolean>() {
+
+        @Override
+        public Boolean call() throws Exception {
+            final SSLSocket socket = (SSLSocket) serverSocket.accept();
+            try {
+                socket.getSession();
+            } finally {
+                socket.close();
+            }
+            return Boolean.FALSE;
+        }
+    });
+    final int localPort = serverSocket.getLocalPort();
+    try (final SSLSocket clientSocket = (SSLSocket) clientSslContext.getSocketFactory().createSocket()) {
+        final Set<String> supportedClientProtocols = new LinkedHashSet<>(Arrays.asList(clientSocket.getSupportedProtocols()));
+        Assert.assertTrue(supportedClientProtocols.contains("TLSv1"));
+        clientSocket.setEnabledProtocols(new String[] { "TLSv1" });
+        clientSocket.connect(new InetSocketAddress("localhost", localPort), TIMEOUT.toMillisecondsIntBound());
+        clientSocket.setSoTimeout(TIMEOUT.toMillisecondsIntBound());
+        clientSocket.startHandshake();
+        final InputStream inputStream = clientSocket.getInputStream();
+        Assert.assertEquals(-1, inputStream.read());
+    }
+}

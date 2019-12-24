@@ -1,0 +1,28 @@
+/**
+ * verify that retry of network errors verifies master by session id and
+ * becomes active if they match. monitoring is started.
+ */
+@Test
+public void testCreateNodeResultRetryBecomeActive() throws Exception {
+    mockNoPriorActive();
+    elector.joinElection(data);
+    elector.processResult(Code.CONNECTIONLOSS.intValue(), ZK_LOCK_NAME, mockZK, ZK_LOCK_NAME);
+    elector.processResult(Code.CONNECTIONLOSS.intValue(), ZK_LOCK_NAME, mockZK, ZK_LOCK_NAME);
+    elector.processResult(Code.CONNECTIONLOSS.intValue(), ZK_LOCK_NAME, mockZK, ZK_LOCK_NAME);
+    elector.processResult(Code.CONNECTIONLOSS.intValue(), ZK_LOCK_NAME, mockZK, ZK_LOCK_NAME);
+    // 4 errors results in fatalError
+    Mockito.verify(mockApp, Mockito.times(1)).notifyFatalError("Received create error from Zookeeper. code:CONNECTIONLOSS " + "for path " + ZK_LOCK_NAME + ". " + "Not retrying further znode create connection errors.");
+    elector.joinElection(data);
+    // recreate connection via getNewZooKeeper
+    Assert.assertEquals(2, count);
+    elector.processResult(Code.CONNECTIONLOSS.intValue(), ZK_LOCK_NAME, mockZK, ZK_LOCK_NAME);
+    elector.processResult(Code.NODEEXISTS.intValue(), ZK_LOCK_NAME, mockZK, ZK_LOCK_NAME);
+    verifyExistCall(1);
+    Stat stat = new Stat();
+    stat.setEphemeralOwner(1L);
+    Mockito.when(mockZK.getSessionId()).thenReturn(1L);
+    elector.processResult(Code.OK.intValue(), ZK_LOCK_NAME, mockZK, stat);
+    Mockito.verify(mockApp, Mockito.times(1)).becomeActive();
+    verifyExistCall(1);
+    Mockito.verify(mockZK, Mockito.times(6)).create(ZK_LOCK_NAME, data, Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL, elector, mockZK);
+}

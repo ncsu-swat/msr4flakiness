@@ -1,0 +1,36 @@
+@Test
+public void testRegisterSinksMultiplePeriods() throws Exception {
+    new ConfigBuilder().add("test.sink.test1.period", 100000).add("test.sink.test1.class", TestSink.class.getName()).add("test.sink.test2.period", 200000).add("test.sink.test2.class", TestSink.class.getName()).save(TestMetricsConfig.getTestFilename("hadoop-metrics2-test"));
+    MetricsSystemImpl ms = new MetricsSystemImpl();
+    try {
+        ms.init("test");
+        TestSink sink1 = (TestSink) ms.getSinkAdapter("test1").sink();
+        TestSink sink2 = (TestSink) ms.getSinkAdapter("test2").sink();
+        assertEquals(0, sink1.getMetricValues().size());
+        assertEquals(0, sink2.getMetricValues().size());
+        ms.onTimerEvent();
+        // Give some time for the publish event to go through
+        GenericTestUtils.waitFor(new Supplier<Boolean>() {
+
+            @Override
+            public Boolean get() {
+                return sink1.getMetricValues().size() > 0;
+            }
+        }, 10, 10000);
+        assertEquals(1, sink1.getMetricValues().size());
+        assertEquals(0, sink2.getMetricValues().size());
+        ms.onTimerEvent();
+        // Give some time for the publish event to go through
+        GenericTestUtils.waitFor(new Supplier<Boolean>() {
+
+            @Override
+            public Boolean get() {
+                return sink1.getMetricValues().size() > 1 && sink2.getMetricValues().size() > 0;
+            }
+        }, 10, 10000);
+        assertEquals(2, sink1.getMetricValues().size());
+        assertEquals(1, sink2.getMetricValues().size());
+    } finally {
+        ms.shutdown();
+    }
+}

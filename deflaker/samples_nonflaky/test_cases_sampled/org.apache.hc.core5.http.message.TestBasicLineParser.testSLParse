@@ -1,0 +1,60 @@
+@Test
+public void testSLParse() throws Exception {
+    final CharArrayBuffer buf = new CharArrayBuffer(64);
+    // typical status line
+    buf.clear();
+    buf.append("HTTP/1.1 200 OK");
+    StatusLine statusLine = this.parser.parseStatusLine(buf);
+    Assert.assertEquals("HTTP/1.1 200 OK", statusLine.toString());
+    Assert.assertEquals(HttpVersion.HTTP_1_1, statusLine.getProtocolVersion());
+    Assert.assertEquals(200, statusLine.getStatusCode());
+    Assert.assertEquals("OK", statusLine.getReasonPhrase());
+    // status line with multi word reason phrase
+    buf.clear();
+    buf.append("HTTP/1.1 404 Not Found");
+    statusLine = this.parser.parseStatusLine(buf);
+    Assert.assertEquals(404, statusLine.getStatusCode());
+    Assert.assertEquals("Not Found", statusLine.getReasonPhrase());
+    // reason phrase can be anyting
+    buf.clear();
+    buf.append("HTTP/1.1 404 Non Trouve");
+    statusLine = this.parser.parseStatusLine(buf);
+    Assert.assertEquals("Non Trouve", statusLine.getReasonPhrase());
+    // its ok to end with a \n\r
+    buf.clear();
+    buf.append("HTTP/1.1 404 Not Found\r\n");
+    statusLine = this.parser.parseStatusLine(buf);
+    Assert.assertEquals("Not Found", statusLine.getReasonPhrase());
+    // this is valid according to the Status-Line BNF
+    buf.clear();
+    buf.append("HTTP/1.1 200 ");
+    statusLine = this.parser.parseStatusLine(buf);
+    Assert.assertEquals(200, statusLine.getStatusCode());
+    Assert.assertEquals("", statusLine.getReasonPhrase());
+    // this is not strictly valid, but is lenient
+    buf.clear();
+    buf.append("HTTP/1.1 200");
+    statusLine = this.parser.parseStatusLine(buf);
+    Assert.assertEquals(200, statusLine.getStatusCode());
+    Assert.assertEquals("", statusLine.getReasonPhrase());
+    // this is not strictly valid, but is lenient
+    buf.clear();
+    buf.append("HTTP/1.1     200 OK");
+    statusLine = this.parser.parseStatusLine(buf);
+    Assert.assertEquals(200, statusLine.getStatusCode());
+    Assert.assertEquals("OK", statusLine.getReasonPhrase());
+    // this is not strictly valid, but is lenient
+    buf.clear();
+    buf.append("\nHTTP/1.1 200 OK");
+    statusLine = this.parser.parseStatusLine(buf);
+    Assert.assertEquals(200, statusLine.getStatusCode());
+    Assert.assertEquals("OK", statusLine.getReasonPhrase());
+    Assert.assertEquals(HttpVersion.HTTP_1_1, statusLine.getProtocolVersion());
+    // this is not strictly valid, but is lenient
+    buf.clear();
+    buf.append("  HTTP/1.1 200 OK");
+    statusLine = this.parser.parseStatusLine(buf);
+    Assert.assertEquals(200, statusLine.getStatusCode());
+    Assert.assertEquals("OK", statusLine.getReasonPhrase());
+    Assert.assertEquals(HttpVersion.HTTP_1_1, statusLine.getProtocolVersion());
+}

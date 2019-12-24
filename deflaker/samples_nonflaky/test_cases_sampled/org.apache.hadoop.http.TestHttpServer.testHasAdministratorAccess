@@ -1,0 +1,34 @@
+@Test
+public void testHasAdministratorAccess() throws Exception {
+    Configuration conf = new Configuration();
+    conf.setBoolean(CommonConfigurationKeys.HADOOP_SECURITY_AUTHORIZATION, false);
+    ServletContext context = Mockito.mock(ServletContext.class);
+    Mockito.when(context.getAttribute(HttpServer2.CONF_CONTEXT_ATTRIBUTE)).thenReturn(conf);
+    Mockito.when(context.getAttribute(HttpServer2.ADMINS_ACL)).thenReturn(null);
+    HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
+    Mockito.when(request.getRemoteUser()).thenReturn(null);
+    HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
+    // authorization OFF
+    Assert.assertTrue(HttpServer2.hasAdministratorAccess(context, request, response));
+    // authorization ON & user NULL
+    response = Mockito.mock(HttpServletResponse.class);
+    conf.setBoolean(CommonConfigurationKeys.HADOOP_SECURITY_AUTHORIZATION, true);
+    Assert.assertFalse(HttpServer2.hasAdministratorAccess(context, request, response));
+    Mockito.verify(response).sendError(Mockito.eq(HttpServletResponse.SC_FORBIDDEN), Mockito.anyString());
+    // authorization ON & user NOT NULL & ACLs NULL
+    response = Mockito.mock(HttpServletResponse.class);
+    Mockito.when(request.getRemoteUser()).thenReturn("foo");
+    Assert.assertTrue(HttpServer2.hasAdministratorAccess(context, request, response));
+    // authorization ON & user NOT NULL & ACLs NOT NULL & user not in ACLs
+    response = Mockito.mock(HttpServletResponse.class);
+    AccessControlList acls = Mockito.mock(AccessControlList.class);
+    Mockito.when(acls.isUserAllowed(Mockito.<UserGroupInformation>any())).thenReturn(false);
+    Mockito.when(context.getAttribute(HttpServer2.ADMINS_ACL)).thenReturn(acls);
+    Assert.assertFalse(HttpServer2.hasAdministratorAccess(context, request, response));
+    Mockito.verify(response).sendError(Mockito.eq(HttpServletResponse.SC_FORBIDDEN), Mockito.anyString());
+    // authorization ON & user NOT NULL & ACLs NOT NULL & user in in ACLs
+    response = Mockito.mock(HttpServletResponse.class);
+    Mockito.when(acls.isUserAllowed(Mockito.<UserGroupInformation>any())).thenReturn(true);
+    Mockito.when(context.getAttribute(HttpServer2.ADMINS_ACL)).thenReturn(acls);
+    Assert.assertTrue(HttpServer2.hasAdministratorAccess(context, request, response));
+}

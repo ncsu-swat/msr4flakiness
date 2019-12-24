@@ -1,0 +1,25 @@
+@Test
+public void parameterInPath() throws Exception {
+    final ClientTestingAdapter adapter = new ClassicTestClientTestingAdapter() {
+
+        @Override
+        public Map<String, Object> execute(final String defaultURI, final Map<String, Object> request, final TestingFrameworkRequestHandler requestHandler, final Map<String, Object> responseExpectations) throws TestingFrameworkException {
+            @SuppressWarnings("unchecked")
+            final Map<String, String> query = (Map<String, String>) request.get(QUERY);
+            Assert.assertTrue("Parameters appended to the path should have been put in the query.", query.containsKey("stuffParm"));
+            Assert.assertTrue(query.containsKey("stuffParm2"));
+            Assert.assertEquals("stuff", query.get("stuffParm"));
+            Assert.assertEquals("stuff2", query.get("stuffParm2"));
+            Assert.assertEquals("/stuff", request.get(PATH));
+            return alreadyCheckedResponse();
+        }
+    };
+    final TestingFramework framework = newFrameworkAndSetAdapter(adapter);
+    final Map<String, Object> test = new HashMap<>();
+    // Add request.
+    final Map<String, Object> request = new HashMap<>();
+    test.put(REQUEST, request);
+    request.put(PATH, "/stuff?stuffParm=stuff&stuffParm2=stuff2");
+    framework.addTest(test);
+    framework.runTests();
+}

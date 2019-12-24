@@ -1,0 +1,12 @@
+@Test
+public void testGetAccessTime() throws IOException {
+    Path file = touch(localFs, name.getMethodName().toLowerCase());
+    LocalFileSystem local = (LocalFileSystem) localFs;
+    java.nio.file.Path path = (local).pathToFile(file).toPath();
+    long accessTime1 = Files.readAttributes(path, BasicFileAttributes.class).lastAccessTime().toMillis();
+    // SFTPFileSystem doesn't have milliseconds. Excluding it.
+    accessTime1 = (accessTime1 / 1000) * 1000;
+    long accessTime2 = sftpFs.getFileStatus(file).getAccessTime();
+    assertEquals(accessTime1, accessTime2);
+    assertThat(((SFTPFileSystem) sftpFs).getConnectionPool().getLiveConnCount(), is(1));
+}

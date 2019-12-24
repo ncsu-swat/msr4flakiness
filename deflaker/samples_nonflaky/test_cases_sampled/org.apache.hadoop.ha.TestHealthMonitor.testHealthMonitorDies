@@ -1,0 +1,14 @@
+/**
+ * Test that the proper state is propagated when the health monitor
+ * sees an uncaught exception in its thread.
+ */
+@Test(timeout = 15000)
+public void testHealthMonitorDies() throws Exception {
+    LOG.info("Mocking RTE in health monitor, waiting for FAILED");
+    throwOOMEOnCreate = true;
+    svc.actUnreachable = true;
+    waitForState(hm, HealthMonitor.State.HEALTH_MONITOR_FAILED);
+    hm.shutdown();
+    hm.join();
+    assertFalse(hm.isAlive());
+}

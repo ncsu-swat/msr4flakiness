@@ -1,0 +1,29 @@
+/**
+ * Test modify operations (create, mkdir, delete, etc)
+ *
+ * Verify the operation via chrootedfs (ie fc) and *also* via the
+ *  target file system (ie fclocal) that has been chrooted.
+ */
+@Test
+public void testCreateDelete() throws IOException {
+    // Create file
+    fileContextTestHelper.createFileNonRecursive(fc, "/foo");
+    Assert.assertTrue(isFile(fc, new Path("/foo")));
+    Assert.assertTrue(isFile(fcTarget, new Path(chrootedTo, "foo")));
+    // Create file with recursive dir
+    fileContextTestHelper.createFile(fc, "/newDir/foo");
+    Assert.assertTrue(isFile(fc, new Path("/newDir/foo")));
+    Assert.assertTrue(isFile(fcTarget, new Path(chrootedTo, "newDir/foo")));
+    // Delete the created file
+    Assert.assertTrue(fc.delete(new Path("/newDir/foo"), false));
+    Assert.assertFalse(exists(fc, new Path("/newDir/foo")));
+    Assert.assertFalse(exists(fcTarget, new Path(chrootedTo, "newDir/foo")));
+    // Create file with a 2 component dirs recursively
+    fileContextTestHelper.createFile(fc, "/newDir/newDir2/foo");
+    Assert.assertTrue(isFile(fc, new Path("/newDir/newDir2/foo")));
+    Assert.assertTrue(isFile(fcTarget, new Path(chrootedTo, "newDir/newDir2/foo")));
+    // Delete the created file
+    Assert.assertTrue(fc.delete(new Path("/newDir/newDir2/foo"), false));
+    Assert.assertFalse(exists(fc, new Path("/newDir/newDir2/foo")));
+    Assert.assertFalse(exists(fcTarget, new Path(chrootedTo, "newDir/newDir2/foo")));
+}

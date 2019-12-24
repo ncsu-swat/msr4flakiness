@@ -1,0 +1,46 @@
+@Test(timeout = 30000)
+public void testAppend() throws Exception {
+    Path file = new Path(ROOT_PATH, "testseqappend.seq");
+    fs.delete(file, true);
+    Text key1 = new Text("Key1");
+    Text value1 = new Text("Value1");
+    Text value2 = new Text("Updated");
+    SequenceFile.Metadata metadata = new SequenceFile.Metadata();
+    metadata.set(key1, value1);
+    Writer.Option metadataOption = Writer.metadata(metadata);
+    Writer writer = SequenceFile.createWriter(conf, SequenceFile.Writer.file(file), SequenceFile.Writer.keyClass(Long.class), SequenceFile.Writer.valueClass(String.class), metadataOption);
+    writer.append(1L, "one");
+    writer.append(2L, "two");
+    writer.close();
+    verify2Values(file);
+    metadata.set(key1, value2);
+    writer = SequenceFile.createWriter(conf, SequenceFile.Writer.file(file), SequenceFile.Writer.keyClass(Long.class), SequenceFile.Writer.valueClass(String.class), SequenceFile.Writer.appendIfExists(true), metadataOption);
+    // Verify the Meta data is not changed
+    assertEquals(value1, writer.metadata.get(key1));
+    writer.append(3L, "three");
+    writer.append(4L, "four");
+    writer.close();
+    verifyAll4Values(file);
+    // Verify the Meta data readable after append
+    Reader reader = new Reader(conf, Reader.file(file));
+    assertEquals(value1, reader.getMetadata().get(key1));
+    reader.close();
+    // Verify failure if the compression details are different
+    try {
+        Option wrongCompressOption = Writer.compression(CompressionType.RECORD, new GzipCodec());
+        writer = SequenceFile.createWriter(conf, SequenceFile.Writer.file(file), SequenceFile.Writer.keyClass(Long.class), SequenceFile.Writer.valueClass(String.class), SequenceFile.Writer.appendIfExists(true), wrongCompressOption);
+        writer.close();
+        fail("Expected IllegalArgumentException for compression options");
+    } catch (IllegalArgumentException IAE) {
+    // Expected exception. Ignore it
+    }
+    try {
+        Option wrongCompressOption = Writer.compression(CompressionType.BLOCK, new DefaultCodec());
+        writer = SequenceFile.createWriter(conf, SequenceFile.Writer.file(file), SequenceFile.Writer.keyClass(Long.class), SequenceFile.Writer.valueClass(String.class), SequenceFile.Writer.appendIfExists(true), wrongCompressOption);
+        writer.close();
+        fail("Expected IllegalArgumentException for compression options");
+    } catch (IllegalArgumentException IAE) {
+    // Expected exception. Ignore it
+    }
+    fs.deleteOnExit(file);
+}

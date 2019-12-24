@@ -1,0 +1,95 @@
+// verify getting concurrent relogins blocks to avoid indeterminate
+// credentials corruption, but getting a ugi for the subject does not block.
+@Test(timeout = 180000)
+public void testConcurrentRelogin() throws Exception {
+    final CyclicBarrier barrier = new CyclicBarrier(2);
+    final CountDownLatch latch = new CountDownLatch(1);
+    assertTrue(UserGroupInformation.isSecurityEnabled());
+    KerberosPrincipal principal = new KerberosPrincipal("testUser");
+    File keytab = new File(workDir, "user1.keytab");
+    kdc.createPrincipal(keytab, principal.getName());
+    // create a keytab ugi.
+    final UserGroupInformation loginUgi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal.getName(), keytab.getPath());
+    assertEquals(AuthenticationMethod.KERBEROS, loginUgi.getAuthenticationMethod());
+    assertTrue(loginUgi.isFromKeytab());
+    // create a new ugi instance based on subject from the logged in user.
+    final UserGroupInformation clonedUgi = UserGroupInformation.getUGIFromSubject(loginUgi.getSubject());
+    assertEquals(AuthenticationMethod.KERBEROS, clonedUgi.getAuthenticationMethod());
+    assertTrue(clonedUgi.isFromKeytab());
+    // cause first relogin to block on a barrier in logout to verify relogins
+    // are atomic.
+    User user = getUser(loginUgi.getSubject());
+    final LoginContext spyLogin = Mockito.spy(user.getLogin());
+    user.setLogin(spyLogin);
+    Mockito.doAnswer(new Answer<Void>() {
+
+        @Override
+        public Void answer(InvocationOnMock invocation) throws Throwable {
+            invocation.callRealMethod();
+            latch.countDown();
+            barrier.await();
+            return null;
+        }
+    }).when(spyLogin).logout();
+    Future<Void> relogin = executor.submit(new Callable<Void>() {
+
+        @Override
+        public Void call() throws Exception {
+            Thread.currentThread().setName("relogin");
+            loginUgi.reloginFromKeytab();
+            return null;
+        }
+    });
+    // wait for the thread to block on the barrier in the logout of the
+    // relogin.
+    assertTrue("first relogin didn't block", latch.await(2, TimeUnit.SECONDS));
+    // although the logout removed the keytab instance, verify the ugi
+    // knows from its login params that it is supposed to be from a keytab.
+    assertTrue(clonedUgi.isFromKeytab());
+    // another concurrent re-login should block.
+    Mockito.doNothing().when(spyLogin).logout();
+    Mockito.doNothing().when(spyLogin).login();
+    Future<UserGroupInformation> clonedRelogin = executor.submit(new Callable<UserGroupInformation>() {
+
+        @Override
+        public UserGroupInformation call() throws Exception {
+            Thread.currentThread().setName("clonedRelogin");
+            clonedUgi.reloginFromKeytab();
+            return clonedUgi;
+        }
+    });
+    try {
+        clonedRelogin.get(2, TimeUnit.SECONDS);
+        fail("second relogin didn't block!");
+    } catch (TimeoutException te) {
+    // expected
+    }
+    // concurrent UGI instantiation should not block and again should
+    // know it's supposed to be from a keytab.
+    loginUgi.doAs(new PrivilegedExceptionAction<Void>() {
+
+        @Override
+        public Void run() throws Exception {
+            UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+            assertEquals(principal.getName(), ugi.getUserName());
+            assertTrue(ugi.isFromKeytab());
+            return null;
+        }
+    });
+    clonedUgi.doAs(new PrivilegedExceptionAction<Void>() {
+
+        @Override
+        public Void run() throws Exception {
+            UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+            assertEquals(principal.getName(), ugi.getUserName());
+            assertTrue(ugi.isFromKeytab());
+            return null;
+        }
+    });
+    // second relogin should still be blocked until the original relogin
+    // is blocked.
+    assertFalse(clonedRelogin.isDone());
+    barrier.await();
+    relogin.get();
+    clonedRelogin.get();
+}

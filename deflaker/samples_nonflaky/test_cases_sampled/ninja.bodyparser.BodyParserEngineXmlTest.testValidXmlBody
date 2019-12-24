@@ -1,0 +1,35 @@
+@Test
+public void testValidXmlBody() {
+    final String xmlDocument = String.format("<form><firstName>%s</firstName><lastName>%s</lastName><birthYear>%d</birthYear><lastSeen>%s</lastSeen></form>", BodyParserEngineXmlTest.DATA_FIRSTNAME, BodyParserEngineXmlTest.DATA_LASTNAME, BodyParserEngineXmlTest.DATA_BIRTHYEAR, BodyParserEngineXmlTest.DATA_LASTSEEN);
+    final InputStream is = new ByteArrayInputStream(xmlDocument.getBytes());
+    final XmlMapper xmlObjMapper = new XmlMapper();
+    final BodyParserEngineXml bodyParserEngineXml = new BodyParserEngineXml(xmlObjMapper);
+    SimpleTestForm testForm = null;
+    try {
+        Mockito.when(context.getInputStream()).thenReturn(is);
+    } catch (IOException ignore) {
+    }
+    try {
+        testForm = bodyParserEngineXml.invoke(context, SimpleTestForm.class);
+    } catch (BadRequestException ignore) {
+    } finally {
+        try {
+            is.close();
+        } catch (IOException ignore) {
+        }
+    }
+    final Calendar cal = Calendar.getInstance();
+    final SimpleDateFormat dateFormat = new SimpleDateFormat(BodyParserEngineXmlTest.PARSER_DATEFORMAT);
+    dateFormat.setTimeZone(TimeZone.getTimeZone(BodyParserEngineXmlTest.PARSER_DATETZ));
+    try {
+        cal.setTime(dateFormat.parse(BodyParserEngineXmlTest.DATA_LASTSEEN));
+    } catch (ParseException ignore) {
+    }
+    cal.setTimeZone(TimeZone.getTimeZone(BodyParserEngineXmlTest.PARSER_DATETZ));
+    assertTrue(testForm != null);
+    assertThat(testForm.firstName, equalTo(BodyParserEngineXmlTest.DATA_FIRSTNAME));
+    assertThat(testForm.lastName, equalTo(BodyParserEngineXmlTest.DATA_LASTNAME));
+    assertThat(testForm.birthYear, CoreMatchers.equalTo(BodyParserEngineXmlTest.DATA_BIRTHYEAR));
+    assertTrue(testForm.lastSeen != null);
+    assertTrue(testForm.lastSeen.compareTo(cal) == 0);
+}

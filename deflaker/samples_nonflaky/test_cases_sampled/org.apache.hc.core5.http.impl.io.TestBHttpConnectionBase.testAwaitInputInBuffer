@@ -1,0 +1,11 @@
+@Test
+public void testAwaitInputInBuffer() throws Exception {
+    final ByteArrayInputStream inStream = Mockito.spy(new ByteArrayInputStream(new byte[] { 1, 2, 3, 4, 5 }));
+    Mockito.when(socket.getInputStream()).thenReturn(inStream);
+    conn.bind(socket);
+    conn.ensureOpen();
+    conn.inBuffer.read(inStream);
+    Assert.assertTrue(conn.awaitInput(432));
+    Mockito.verify(socket, Mockito.never()).setSoTimeout(ArgumentMatchers.anyInt());
+    Mockito.verify(inStream, Mockito.times(1)).read(ArgumentMatchers.<byte[]>any(), ArgumentMatchers.anyInt(), ArgumentMatchers.anyInt());
+}

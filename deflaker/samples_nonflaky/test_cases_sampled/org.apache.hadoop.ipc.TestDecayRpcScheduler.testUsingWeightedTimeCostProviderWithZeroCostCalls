@@ -1,0 +1,12 @@
+@Test
+public void testUsingWeightedTimeCostProviderWithZeroCostCalls() {
+    scheduler = getSchedulerWithWeightedTimeCostProvider(2);
+    ProcessingDetails emptyDetails = new ProcessingDetails(TimeUnit.MILLISECONDS);
+    for (int i = 0; i < 1000; i++) {
+        scheduler.addResponseTime("ignored", mockCall("MANY"), emptyDetails);
+    }
+    scheduler.addResponseTime("ignored", mockCall("FEW"), emptyDetails);
+    // Since the calls are all "free", they should have the same priority
+    assertEquals(0, scheduler.getPriorityLevel(mockCall("MANY")));
+    assertEquals(0, scheduler.getPriorityLevel(mockCall("FEW")));
+}

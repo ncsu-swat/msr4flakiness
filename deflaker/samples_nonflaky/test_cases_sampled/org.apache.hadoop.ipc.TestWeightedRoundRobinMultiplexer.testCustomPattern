@@ -1,0 +1,23 @@
+@Test
+public void testCustomPattern() {
+    // 1x0 1x1
+    Configuration conf = new Configuration();
+    conf.setStrings("test.custom." + IPC_CALLQUEUE_WRRMUX_WEIGHTS_KEY, "1", "1");
+    mux = new WeightedRoundRobinMultiplexer(2, "test.custom", conf);
+    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
+    assertThat(mux.getAndAdvanceCurrentIndex()).isOne();
+    assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
+    assertThat(mux.getAndAdvanceCurrentIndex()).isOne();
+    // 1x0 3x1 2x2
+    conf.setStrings("test.custom." + IPC_CALLQUEUE_WRRMUX_WEIGHTS_KEY, "1", "3", "2");
+    mux = new WeightedRoundRobinMultiplexer(3, "test.custom", conf);
+    for (int i = 0; i < 5; i++) {
+        assertThat(mux.getAndAdvanceCurrentIndex()).isZero();
+        assertThat(mux.getAndAdvanceCurrentIndex()).isOne();
+        assertThat(mux.getAndAdvanceCurrentIndex()).isOne();
+        assertThat(mux.getAndAdvanceCurrentIndex()).isOne();
+        assertThat(mux.getAndAdvanceCurrentIndex()).isEqualTo(2);
+        assertThat(mux.getAndAdvanceCurrentIndex()).isEqualTo(2);
+    }
+// Ensure pattern repeats
+}

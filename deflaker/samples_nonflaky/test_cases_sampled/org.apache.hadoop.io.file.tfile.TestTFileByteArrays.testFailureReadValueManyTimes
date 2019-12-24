@@ -1,0 +1,20 @@
+@Test
+public void testFailureReadValueManyTimes() throws IOException {
+    if (skip)
+        return;
+    writeRecords(5);
+    Reader reader = new Reader(fs.open(path), fs.getFileStatus(path).getLen(), conf);
+    Scanner scanner = reader.createScanner();
+    byte[] vbuf = new byte[BUF_SIZE];
+    int vlen = scanner.entry().getValueLength();
+    scanner.entry().getValue(vbuf);
+    Assert.assertEquals(new String(vbuf, 0, vlen), VALUE + 0);
+    try {
+        scanner.entry().getValue(vbuf);
+        Assert.fail("Cannot get the value mlutiple times.");
+    } catch (Exception e) {
+    // noop, expecting exceptions
+    }
+    scanner.close();
+    reader.close();
+}

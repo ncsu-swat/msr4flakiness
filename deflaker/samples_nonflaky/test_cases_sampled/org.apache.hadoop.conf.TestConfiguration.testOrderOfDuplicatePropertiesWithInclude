@@ -1,0 +1,22 @@
+@Test
+public void testOrderOfDuplicatePropertiesWithInclude() throws Exception {
+    tearDown();
+    // Property "a" is set to different values inside and outside of includes.
+    out = new BufferedWriter(new FileWriter(CONFIG2));
+    startConfig();
+    appendProperty("a", "a-InsideInclude");
+    appendProperty("b", "b-InsideInclude");
+    endConfig();
+    out = new BufferedWriter(new FileWriter(CONFIG));
+    startConfig();
+    appendProperty("a", "a-OutsideInclude");
+    startInclude(CONFIG2);
+    endInclude();
+    appendProperty("b", "b-OutsideInclude");
+    endConfig();
+    Path fileResource = new Path(CONFIG);
+    conf.addResource(fileResource);
+    assertEquals("a-InsideInclude", conf.get("a"));
+    assertEquals("b-OutsideInclude", conf.get("b"));
+    tearDown();
+}

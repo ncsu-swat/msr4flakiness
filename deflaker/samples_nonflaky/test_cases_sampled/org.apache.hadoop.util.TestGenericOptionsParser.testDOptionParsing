@@ -1,0 +1,54 @@
+/**
+ * Test -D parsing
+ */
+@Test
+public void testDOptionParsing() throws Exception {
+    String[] args;
+    Map<String, String> expectedMap;
+    String[] expectedRemainingArgs;
+    args = new String[] {};
+    expectedRemainingArgs = new String[] {};
+    expectedMap = Maps.newHashMap();
+    assertDOptionParsing(args, expectedMap, expectedRemainingArgs);
+    args = new String[] { "-Dkey1=value1" };
+    expectedRemainingArgs = new String[] {};
+    expectedMap = Maps.newHashMap();
+    expectedMap.put("key1", "value1");
+    assertDOptionParsing(args, expectedMap, expectedRemainingArgs);
+    args = new String[] { "-fs", "hdfs://somefs/", "-Dkey1=value1", "arg1" };
+    expectedRemainingArgs = new String[] { "arg1" };
+    assertDOptionParsing(args, expectedMap, expectedRemainingArgs);
+    args = new String[] { "-fs", "hdfs://somefs/", "-D", "key1=value1", "arg1" };
+    assertDOptionParsing(args, expectedMap, expectedRemainingArgs);
+    if (Shell.WINDOWS) {
+        args = new String[] { "-fs", "hdfs://somefs/", "-D", "key1", "value1", "arg1" };
+        assertDOptionParsing(args, expectedMap, expectedRemainingArgs);
+        args = new String[] { "-fs", "hdfs://somefs/", "-Dkey1", "value1", "arg1" };
+        assertDOptionParsing(args, expectedMap, expectedRemainingArgs);
+        args = new String[] { "-fs", "hdfs://somefs/", "-D", "key1", "value1", "-fs", "someother", "-D", "key2", "value2", "arg1", "arg2" };
+        expectedRemainingArgs = new String[] { "arg1", "arg2" };
+        expectedMap = Maps.newHashMap();
+        expectedMap.put("key1", "value1");
+        expectedMap.put("key2", "value2");
+        assertDOptionParsing(args, expectedMap, expectedRemainingArgs);
+        args = new String[] { "-fs", "hdfs://somefs/", "-D", "key1", "value1", "-fs", "someother", "-D", "key2", "value2" };
+        expectedRemainingArgs = new String[] {};
+        assertDOptionParsing(args, expectedMap, expectedRemainingArgs);
+        args = new String[] { "-fs", "hdfs://somefs/", "-D", "key1", "value1", "-fs", "someother", "-D", "key2" };
+        expectedMap = Maps.newHashMap();
+        expectedMap.put("key1", "value1");
+        // we expect key2 not set
+        expectedMap.put("key2", null);
+        assertDOptionParsing(args, expectedMap, expectedRemainingArgs);
+    }
+    args = new String[] { "-fs", "hdfs://somefs/", "-D", "key1=value1", "-fs", "someother", "-Dkey2" };
+    expectedRemainingArgs = new String[] {};
+    expectedMap = Maps.newHashMap();
+    expectedMap.put("key1", "value1");
+    // we expect key2 not set
+    expectedMap.put("key2", null);
+    assertDOptionParsing(args, expectedMap, expectedRemainingArgs);
+    args = new String[] { "-fs", "hdfs://somefs/", "-D" };
+    expectedMap = Maps.newHashMap();
+    assertDOptionParsing(args, expectedMap, expectedRemainingArgs);
+}

@@ -1,0 +1,38 @@
+@Test
+public void testResponseEncodingWithoutHuffmanRFC7541Examples() throws Exception {
+    final OutboundDynamicTable dynamicTable = new OutboundDynamicTable();
+    dynamicTable.setMaxSize(256);
+    final HPackEncoder encoder = new HPackEncoder(dynamicTable, StandardCharsets.US_ASCII);
+    final ByteArrayBuffer buf = new ByteArrayBuffer(256);
+    final List<Header> headers1 = Arrays.<Header>asList(new BasicHeader(":status", "302"), new BasicHeader("cache-control", "private"), new BasicHeader("date", "Mon, 21 Oct 2013 20:13:21 GMT"), new BasicHeader("location", "https://www.example.com"));
+    encoder.encodeHeaders(buf, headers1, false, false);
+    final byte[] expected1 = createByteArray(0x48, 0x03, 0x33, 0x30, 0x32, 0x58, 0x07, 0x70, 0x72, 0x69, 0x76, 0x61, 0x74, 0x65, 0x61, 0x1d, 0x4d, 0x6f, 0x6e, 0x2c, 0x20, 0x32, 0x31, 0x20, 0x4f, 0x63, 0x74, 0x20, 0x32, 0x30, 0x31, 0x33, 0x20, 0x32, 0x30, 0x3a, 0x31, 0x33, 0x3a, 0x32, 0x31, 0x20, 0x47, 0x4d, 0x54, 0x6e, 0x17, 0x68, 0x74, 0x74, 0x70, 0x73, 0x3a, 0x2f, 0x2f, 0x77, 0x77, 0x77, 0x2e, 0x65, 0x78, 0x61, 0x6d, 0x70, 0x6c, 0x65, 0x2e, 0x63, 0x6f, 0x6d);
+    Assert.assertArrayEquals(expected1, buf.toByteArray());
+    Assert.assertEquals(4, dynamicTable.dynamicLength());
+    assertHeaderEquals(new BasicHeader("location", "https://www.example.com"), dynamicTable.getDynamicEntry(0));
+    assertHeaderEquals(new BasicHeader("date", "Mon, 21 Oct 2013 20:13:21 GMT"), dynamicTable.getDynamicEntry(1));
+    assertHeaderEquals(new BasicHeader("cache-control", "private"), dynamicTable.getDynamicEntry(2));
+    assertHeaderEquals(new BasicHeader(":status", "302"), dynamicTable.getDynamicEntry(3));
+    Assert.assertEquals(222, dynamicTable.getCurrentSize());
+    final List<Header> headers2 = Arrays.<Header>asList(new BasicHeader(":status", "307"), new BasicHeader("cache-control", "private"), new BasicHeader("date", "Mon, 21 Oct 2013 20:13:21 GMT"), new BasicHeader("location", "https://www.example.com"));
+    buf.clear();
+    encoder.encodeHeaders(buf, headers2, false, false);
+    final byte[] expected2 = createByteArray(0x48, 0x03, 0x33, 0x30, 0x37, 0xc1, 0xc0, 0xbf);
+    Assert.assertArrayEquals(expected2, buf.toByteArray());
+    Assert.assertEquals(4, dynamicTable.dynamicLength());
+    assertHeaderEquals(new BasicHeader(":status", "307"), dynamicTable.getDynamicEntry(0));
+    assertHeaderEquals(new BasicHeader("location", "https://www.example.com"), dynamicTable.getDynamicEntry(1));
+    assertHeaderEquals(new BasicHeader("date", "Mon, 21 Oct 2013 20:13:21 GMT"), dynamicTable.getDynamicEntry(2));
+    assertHeaderEquals(new BasicHeader("cache-control", "private"), dynamicTable.getDynamicEntry(3));
+    Assert.assertEquals(222, dynamicTable.getCurrentSize());
+    final List<Header> headers3 = Arrays.<Header>asList(new BasicHeader(":status", "200"), new BasicHeader("cache-control", "private"), new BasicHeader("date", "Mon, 21 Oct 2013 20:13:22 GMT"), new BasicHeader("location", "https://www.example.com"), new BasicHeader("content-encoding", "gzip"), new BasicHeader("set-cookie", "foo=ASDJKHQKBZXOQWEOPIUAXQWEOIU; max-age=3600; version=1"));
+    buf.clear();
+    encoder.encodeHeaders(buf, headers3, false, false);
+    final byte[] expected3 = createByteArray(0x88, 0xc1, 0x61, 0x1d, 0x4d, 0x6f, 0x6e, 0x2c, 0x20, 0x32, 0x31, 0x20, 0x4f, 0x63, 0x74, 0x20, 0x32, 0x30, 0x31, 0x33, 0x20, 0x32, 0x30, 0x3a, 0x31, 0x33, 0x3a, 0x32, 0x32, 0x20, 0x47, 0x4d, 0x54, 0xc0, 0x5a, 0x04, 0x67, 0x7a, 0x69, 0x70, 0x77, 0x38, 0x66, 0x6f, 0x6f, 0x3d, 0x41, 0x53, 0x44, 0x4a, 0x4b, 0x48, 0x51, 0x4b, 0x42, 0x5a, 0x58, 0x4f, 0x51, 0x57, 0x45, 0x4f, 0x50, 0x49, 0x55, 0x41, 0x58, 0x51, 0x57, 0x45, 0x4f, 0x49, 0x55, 0x3b, 0x20, 0x6d, 0x61, 0x78, 0x2d, 0x61, 0x67, 0x65, 0x3d, 0x33, 0x36, 0x30, 0x30, 0x3b, 0x20, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x3d, 0x31);
+    Assert.assertArrayEquals(expected3, buf.toByteArray());
+    Assert.assertEquals(3, dynamicTable.dynamicLength());
+    assertHeaderEquals(new BasicHeader("set-cookie", "foo=ASDJKHQKBZXOQWEOPIUAXQWEOIU; max-age=3600; version=1"), dynamicTable.getDynamicEntry(0));
+    assertHeaderEquals(new BasicHeader("content-encoding", "gzip"), dynamicTable.getDynamicEntry(1));
+    assertHeaderEquals(new BasicHeader("date", "Mon, 21 Oct 2013 20:13:22 GMT"), dynamicTable.getDynamicEntry(2));
+    Assert.assertEquals(215, dynamicTable.getCurrentSize());
+}

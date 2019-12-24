@@ -1,0 +1,52 @@
+/**
+ * Test whether the initial roll interval is set correctly.
+ */
+@Test
+public void testSetInitialFlushTime() {
+    RollingFileSystemSink rfsSink = new RollingFileSystemSink(1000, 0);
+    Calendar calendar = Calendar.getInstance();
+    calendar.set(Calendar.MILLISECOND, 0);
+    calendar.set(Calendar.SECOND, 0);
+    calendar.set(Calendar.MINUTE, 0);
+    calendar.set(Calendar.HOUR, 0);
+    calendar.set(Calendar.DAY_OF_YEAR, 1);
+    calendar.set(Calendar.YEAR, 2016);
+    assertNull("Last flush time should have been null prior to calling init()", rfsSink.nextFlush);
+    rfsSink.setInitialFlushTime(calendar.getTime());
+    long diff = rfsSink.nextFlush.getTimeInMillis() - calendar.getTimeInMillis();
+    assertEquals("The initial flush time was calculated incorrectly", 0L, diff);
+    calendar.set(Calendar.MILLISECOND, 10);
+    rfsSink.setInitialFlushTime(calendar.getTime());
+    diff = rfsSink.nextFlush.getTimeInMillis() - calendar.getTimeInMillis();
+    assertEquals("The initial flush time was calculated incorrectly", -10L, diff);
+    calendar.set(Calendar.SECOND, 1);
+    calendar.set(Calendar.MILLISECOND, 10);
+    rfsSink.setInitialFlushTime(calendar.getTime());
+    diff = rfsSink.nextFlush.getTimeInMillis() - calendar.getTimeInMillis();
+    assertEquals("The initial flush time was calculated incorrectly", -10L, diff);
+    // Try again with a random offset
+    rfsSink = new RollingFileSystemSink(1000, 100);
+    assertNull("Last flush time should have been null prior to calling init()", rfsSink.nextFlush);
+    calendar.set(Calendar.MILLISECOND, 0);
+    calendar.set(Calendar.SECOND, 0);
+    rfsSink.setInitialFlushTime(calendar.getTime());
+    diff = rfsSink.nextFlush.getTimeInMillis() - calendar.getTimeInMillis();
+    assertTrue("The initial flush time was calculated incorrectly: " + diff, (diff == 0L) || ((diff > -1000L) && (diff < -900L)));
+    calendar.set(Calendar.MILLISECOND, 10);
+    rfsSink.setInitialFlushTime(calendar.getTime());
+    diff = rfsSink.nextFlush.getTimeInMillis() - calendar.getTimeInMillis();
+    assertTrue("The initial flush time was calculated incorrectly: " + diff, (diff >= -10L) && (diff <= 0L) || ((diff > -1000L) && (diff < -910L)));
+    calendar.set(Calendar.SECOND, 1);
+    calendar.set(Calendar.MILLISECOND, 10);
+    rfsSink.setInitialFlushTime(calendar.getTime());
+    diff = rfsSink.nextFlush.getTimeInMillis() - calendar.getTimeInMillis();
+    assertTrue("The initial flush time was calculated incorrectly: " + diff, (diff >= -10L) && (diff <= 0L) || ((diff > -1000L) && (diff < -910L)));
+    // Now try pathological settings
+    rfsSink = new RollingFileSystemSink(1000, 1000000);
+    assertNull("Last flush time should have been null prior to calling init()", rfsSink.nextFlush);
+    calendar.set(Calendar.MILLISECOND, 1);
+    calendar.set(Calendar.SECOND, 0);
+    rfsSink.setInitialFlushTime(calendar.getTime());
+    diff = rfsSink.nextFlush.getTimeInMillis() - calendar.getTimeInMillis();
+    assertTrue("The initial flush time was calculated incorrectly: " + diff, (diff > -1000L) && (diff <= 0L));
+}

@@ -1,0 +1,26 @@
+@Test
+public // Multithreaded Test GetFormattedTimeWithDiff()
+void testGetFormattedTimeWithDiff() throws InterruptedException {
+    ExecutorService executorService = Executors.newFixedThreadPool(16);
+    final CyclicBarrier cyclicBarrier = new CyclicBarrier(10);
+    for (int i = 0; i < 10; i++) {
+        executorService.execute(new Runnable() {
+
+            @Override
+            public void run() {
+                try {
+                    cyclicBarrier.await();
+                } catch (InterruptedException | BrokenBarrierException e) {
+                // Ignored
+                }
+                final long end = System.currentTimeMillis();
+                final long start = end - 30000;
+                String formattedTime1 = StringUtils.getFormattedTimeWithDiff(FAST_DATE_FORMAT, start, end);
+                String formattedTime2 = StringUtils.getFormattedTimeWithDiff(FAST_DATE_FORMAT, start, end);
+                assertTrue("Method returned inconsistent results indicative of" + " a race condition", formattedTime1.equals(formattedTime2));
+            }
+        });
+    }
+    executorService.shutdown();
+    executorService.awaitTermination(50, TimeUnit.SECONDS);
+}

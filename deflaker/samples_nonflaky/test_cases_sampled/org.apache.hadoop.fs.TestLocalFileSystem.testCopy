@@ -1,0 +1,25 @@
+@Test
+public void testCopy() throws IOException {
+    Path src = new Path(TEST_ROOT_DIR, "dingo");
+    Path dst = new Path(TEST_ROOT_DIR, "yak");
+    writeFile(fileSys, src, 1);
+    assertTrue(FileUtil.copy(fileSys, src, fileSys, dst, true, false, conf));
+    assertTrue(!fileSys.exists(src) && fileSys.exists(dst));
+    assertTrue(FileUtil.copy(fileSys, dst, fileSys, src, false, false, conf));
+    assertTrue(fileSys.exists(src) && fileSys.exists(dst));
+    assertTrue(FileUtil.copy(fileSys, src, fileSys, dst, true, true, conf));
+    assertTrue(!fileSys.exists(src) && fileSys.exists(dst));
+    fileSys.mkdirs(src);
+    assertTrue(FileUtil.copy(fileSys, dst, fileSys, src, false, false, conf));
+    Path tmp = new Path(src, dst.getName());
+    assertTrue(fileSys.exists(tmp) && fileSys.exists(dst));
+    assertTrue(FileUtil.copy(fileSys, dst, fileSys, src, false, true, conf));
+    assertTrue(fileSys.delete(tmp, true));
+    fileSys.mkdirs(tmp);
+    try {
+        FileUtil.copy(fileSys, dst, fileSys, src, true, true, conf);
+        fail("Failed to detect existing dir");
+    } catch (IOException e) {
+    // Expected
+    }
+}

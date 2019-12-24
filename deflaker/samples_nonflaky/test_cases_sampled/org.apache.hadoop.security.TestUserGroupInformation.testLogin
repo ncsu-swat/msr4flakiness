@@ -1,0 +1,26 @@
+/**
+ * Test login method
+ */
+@Test(timeout = 30000)
+public void testLogin() throws Exception {
+    conf.set(HADOOP_USER_GROUP_METRICS_PERCENTILES_INTERVALS, String.valueOf(PERCENTILES_INTERVAL));
+    UserGroupInformation.setConfiguration(conf);
+    // login from unix
+    UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+    assertEquals(UserGroupInformation.getCurrentUser(), UserGroupInformation.getLoginUser());
+    assertTrue(ugi.getGroupNames().length >= 1);
+    verifyGroupMetrics(1);
+    // ensure that doAs works correctly
+    UserGroupInformation userGroupInfo = UserGroupInformation.createUserForTesting(USER_NAME, GROUP_NAMES);
+    UserGroupInformation curUGI = userGroupInfo.doAs(new PrivilegedExceptionAction<UserGroupInformation>() {
+
+        @Override
+        public UserGroupInformation run() throws IOException {
+            return UserGroupInformation.getCurrentUser();
+        }
+    });
+    // make sure in the scope of the doAs, the right user is current
+    assertEquals(curUGI, userGroupInfo);
+    // make sure it is not the same as the login user
+    assertFalse(curUGI.equals(UserGroupInformation.getLoginUser()));
+}

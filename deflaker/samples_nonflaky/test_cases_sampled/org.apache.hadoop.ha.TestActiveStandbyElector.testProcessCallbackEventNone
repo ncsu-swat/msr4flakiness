@@ -1,0 +1,47 @@
+/**
+ * verify behavior of watcher.process callback with non-node event
+ */
+@Test
+public void testProcessCallbackEventNone() throws Exception {
+    mockNoPriorActive();
+    elector.joinElection(data);
+    WatchedEvent mockEvent = Mockito.mock(WatchedEvent.class);
+    Mockito.when(mockEvent.getType()).thenReturn(Event.EventType.None);
+    // first SyncConnected should not do anything
+    Mockito.when(mockEvent.getState()).thenReturn(Event.KeeperState.SyncConnected);
+    elector.processWatchEvent(mockZK, mockEvent);
+    Mockito.verify(mockZK, Mockito.times(0)).exists(Mockito.anyString(), Mockito.anyBoolean(), any(), any());
+    // disconnection should enter safe mode
+    Mockito.when(mockEvent.getState()).thenReturn(Event.KeeperState.Disconnected);
+    elector.processWatchEvent(mockZK, mockEvent);
+    Mockito.verify(mockApp, Mockito.times(1)).enterNeutralMode();
+    // re-connection should monitor master status
+    Mockito.when(mockEvent.getState()).thenReturn(Event.KeeperState.SyncConnected);
+    elector.processWatchEvent(mockZK, mockEvent);
+    verifyExistCall(1);
+    Assert.assertTrue(elector.isMonitorLockNodePending());
+    elector.processResult(Code.SESSIONEXPIRED.intValue(), ZK_LOCK_NAME, mockZK, new Stat());
+    Assert.assertFalse(elector.isMonitorLockNodePending());
+    // session expired should enter safe mode and initiate re-election
+    // re-election checked via checking re-creation of new zookeeper and
+    // call to create lock znode
+    Mockito.when(mockEvent.getState()).thenReturn(Event.KeeperState.Expired);
+    elector.processWatchEvent(mockZK, mockEvent);
+    // already in safe mode above. should not enter safe mode again
+    Mockito.verify(mockApp, Mockito.times(1)).enterNeutralMode();
+    // called getNewZooKeeper to create new session. first call was in
+    // constructor
+    Assert.assertEquals(2, count);
+    // once in initial joinElection and one now
+    Mockito.verify(mockZK, Mockito.times(2)).create(ZK_LOCK_NAME, data, Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL, elector, mockZK);
+    // create znode success. become master and monitor
+    elector.processResult(Code.OK.intValue(), ZK_LOCK_NAME, mockZK, ZK_LOCK_NAME);
+    Mockito.verify(mockApp, Mockito.times(1)).becomeActive();
+    verifyExistCall(2);
+    // error event results in fatal error
+    Mockito.when(mockEvent.getState()).thenReturn(Event.KeeperState.AuthFailed);
+    elector.processWatchEvent(mockZK, mockEvent);
+    Mockito.verify(mockApp, Mockito.times(1)).notifyFatalError("Unexpected Zookeeper watch event state: AuthFailed");
+    // only 1 state change callback is called at a time
+    Mockito.verify(mockApp, Mockito.times(1)).enterNeutralMode();
+}

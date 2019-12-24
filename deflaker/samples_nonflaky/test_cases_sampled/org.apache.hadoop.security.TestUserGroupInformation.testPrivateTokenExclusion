@@ -1,0 +1,22 @@
+/**
+ * In some scenario, such as HA, delegation tokens are associated with a
+ * logical name. The tokens are cloned and are associated with the
+ * physical address of the server where the service is provided.
+ * This test ensures cloned delegated tokens are locally used
+ * and are not returned in {@link UserGroupInformation#getCredentials()}
+ */
+@Test
+public void testPrivateTokenExclusion() throws Exception {
+    UserGroupInformation ugi = UserGroupInformation.createUserForTesting("privateUser", new String[] { "PRIVATEUSERS" });
+    TestTokenIdentifier tokenId = new TestTokenIdentifier();
+    Token<TestTokenIdentifier> token = new Token<TestTokenIdentifier>(tokenId.getBytes(), "password".getBytes(), tokenId.getKind(), null);
+    ugi.addToken(new Text("regular-token"), token);
+    // Now add cloned private token
+    Text service = new Text("private-token");
+    ugi.addToken(service, token.privateClone(service));
+    Text service1 = new Text("private-token1");
+    ugi.addToken(service1, token.privateClone(service1));
+    // Ensure only non-private tokens are returned
+    Collection<Token<? extends TokenIdentifier>> tokens = ugi.getCredentials().getAllTokens();
+    assertEquals(1, tokens.size());
+}

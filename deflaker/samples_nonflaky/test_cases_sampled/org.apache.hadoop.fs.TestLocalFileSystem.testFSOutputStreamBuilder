@@ -1,0 +1,34 @@
+@Test
+public void testFSOutputStreamBuilder() throws Exception {
+    Path path = new Path(TEST_ROOT_DIR, "testBuilder");
+    try {
+        FSDataOutputStreamBuilder builder = fileSys.createFile(path).recursive();
+        FSDataOutputStream out = builder.build();
+        String content = "Create with a generic type of createFile!";
+        byte[] contentOrigin = content.getBytes("UTF8");
+        out.write(contentOrigin);
+        out.close();
+        FSDataInputStream input = fileSys.open(path);
+        byte[] buffer = new byte[(int) (fileSys.getFileStatus(path).getLen())];
+        input.readFully(0, buffer);
+        input.close();
+        Assert.assertArrayEquals("The data be read should equals with the " + "data written.", contentOrigin, buffer);
+    } catch (IOException e) {
+        throw e;
+    }
+    // Test value not being set for replication, block size, buffer size
+    // and permission
+    FSDataOutputStreamBuilder builder = fileSys.createFile(path);
+    try (FSDataOutputStream stream = builder.build()) {
+        assertThat(builder.getBlockSize()).withFailMessage("Should be default block size").isEqualTo(fileSys.getDefaultBlockSize());
+        assertThat(builder.getReplication()).withFailMessage("Should be default replication factor").isEqualTo(fileSys.getDefaultReplication());
+        assertThat(builder.getBufferSize()).withFailMessage("Should be default buffer size").isEqualTo(fileSys.getConf().getInt(IO_FILE_BUFFER_SIZE_KEY, IO_FILE_BUFFER_SIZE_DEFAULT));
+        assertThat(builder.getPermission()).withFailMessage("Should be default permission").isEqualTo(FsPermission.getFileDefault());
+    }
+    // Test set 0 to replication, block size and buffer size
+    builder = fileSys.createFile(path);
+    builder.bufferSize(0).blockSize(0).replication((short) 0);
+    assertThat(builder.getBlockSize()).withFailMessage("Block size should be 0").isZero();
+    assertThat(builder.getReplication()).withFailMessage("Replication factor should be 0").isZero();
+    assertThat(builder.getBufferSize()).withFailMessage("Buffer size should be 0").isZero();
+}

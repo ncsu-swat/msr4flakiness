@@ -1,0 +1,16 @@
+@Test(timeout = 10000)
+public void testAddStartedChildBeforeInit() throws Throwable {
+    CompositeService parent = new CompositeService("parent");
+    BreakableService child = new BreakableService();
+    child.init(new Configuration());
+    child.start();
+    AddSiblingService.addChildToService(parent, child);
+    try {
+        parent.init(new Configuration());
+        fail("Expected an exception, got " + parent);
+    } catch (ServiceStateException e) {
+    // expected
+    }
+    parent.stop();
+    assertEquals("Incorrect number of services", 1, parent.getServices().size());
+}

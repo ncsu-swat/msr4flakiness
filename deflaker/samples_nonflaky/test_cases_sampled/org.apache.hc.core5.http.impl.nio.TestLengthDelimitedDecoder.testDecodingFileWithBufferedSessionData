@@ -1,0 +1,25 @@
+@Test
+public void testDecodingFileWithBufferedSessionData() throws Exception {
+    final ReadableByteChannel channel = new ReadableByteChannelMock(new String[] { "stuff; ", "more stuff; ", "a lot more stuff!!!" }, StandardCharsets.US_ASCII);
+    final SessionInputBuffer inbuf = new SessionInputBufferImpl(1024, 256, 0, StandardCharsets.US_ASCII);
+    final BasicHttpTransportMetrics metrics = new BasicHttpTransportMetrics();
+    final LengthDelimitedDecoder decoder = new LengthDelimitedDecoder(channel, inbuf, metrics, 36);
+    final int i = inbuf.fill(channel);
+    Assert.assertEquals(7, i);
+    createTempFile();
+    final RandomAccessFile testfile = new RandomAccessFile(this.tmpfile, "rw");
+    try {
+        final FileChannel fchannel = testfile.getChannel();
+        long pos = 0;
+        while (!decoder.isCompleted()) {
+            final long bytesRead = decoder.transfer(fchannel, pos, 10);
+            if (bytesRead > 0) {
+                pos += bytesRead;
+            }
+        }
+    } finally {
+        testfile.close();
+    }
+    Assert.assertEquals(this.tmpfile.length() - 7, metrics.getBytesTransferred());
+    Assert.assertEquals("stuff; more stuff; a lot more stuff!", CodecTestUtils.readFromFile(this.tmpfile));
+}

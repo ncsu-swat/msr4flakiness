@@ -1,0 +1,30 @@
+@Test(timeout = 15000)
+public void testHandleSessionExpiration() throws Exception {
+    ActiveStandbyElectorCallback cb = cbs[0];
+    byte[] appData = appDatas[0];
+    ActiveStandbyElector elector = electors[0];
+    // Let the first elector become active
+    elector.ensureParentZNode();
+    elector.joinElection(appData);
+    ZooKeeperServer zks = getServer(serverFactory);
+    ActiveStandbyElectorTestUtil.waitForActiveLockData(null, zks, PARENT_DIR, appData);
+    Mockito.verify(cb, Mockito.timeout(1000)).becomeActive();
+    checkFatalsAndReset();
+    LOG.info("========================== Expiring session");
+    zks.closeSession(elector.getZKSessionIdForTests());
+    // Should enter neutral mode when disconnected
+    Mockito.verify(cb, Mockito.timeout(1000)).enterNeutralMode();
+    // Should re-join the election and regain active
+    ActiveStandbyElectorTestUtil.waitForActiveLockData(null, zks, PARENT_DIR, appData);
+    Mockito.verify(cb, Mockito.timeout(1000)).becomeActive();
+    checkFatalsAndReset();
+    LOG.info("========================== Quitting election");
+    elector.quitElection(false);
+    ActiveStandbyElectorTestUtil.waitForActiveLockData(null, zks, PARENT_DIR, null);
+    // Double check that we don't accidentally re-join the election
+    // due to receiving the "expired" event.
+    Thread.sleep(1000);
+    Mockito.verify(cb, Mockito.never()).becomeActive();
+    ActiveStandbyElectorTestUtil.waitForActiveLockData(null, zks, PARENT_DIR, null);
+    checkFatalsAndReset();
+}

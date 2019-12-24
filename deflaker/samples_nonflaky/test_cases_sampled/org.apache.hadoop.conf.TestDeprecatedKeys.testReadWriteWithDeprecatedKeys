@@ -1,0 +1,17 @@
+// Tests reading / writing a conf file with deprecation after setting
+@Test
+public void testReadWriteWithDeprecatedKeys() throws Exception {
+    Configuration conf = new Configuration();
+    conf.setBoolean("old.config.yet.to.be.deprecated", true);
+    Configuration.addDeprecation("old.config.yet.to.be.deprecated", new String[] { "new.conf.to.replace.deprecated.conf" });
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    String fileContents;
+    try {
+        conf.writeXml(out);
+        fileContents = out.toString();
+    } finally {
+        out.close();
+    }
+    assertTrue(fileContents.contains("old.config.yet.to.be.deprecated"));
+    assertTrue(fileContents.contains("new.conf.to.replace.deprecated.conf"));
+}

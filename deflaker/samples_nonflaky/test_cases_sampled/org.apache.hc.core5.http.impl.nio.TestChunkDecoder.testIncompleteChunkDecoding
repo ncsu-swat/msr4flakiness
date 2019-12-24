@@ -1,0 +1,29 @@
+@Test
+public void testIncompleteChunkDecoding() throws Exception {
+    final String[] chunks = { "10;", "key=\"value\"\r", "\n123456789012345", "6\r\n5\r\n12", "345\r\n6\r", "\nabcdef\r", "\n0\r\nFoot", "er1: abcde\r\nFooter2: f", "ghij\r\n\r\n" };
+    final ReadableByteChannel channel = new ReadableByteChannelMock(chunks, StandardCharsets.US_ASCII);
+    final SessionInputBuffer inbuf = new SessionInputBufferImpl(1024, 256, 0, StandardCharsets.US_ASCII);
+    final BasicHttpTransportMetrics metrics = new BasicHttpTransportMetrics();
+    final ByteBuffer dst = ByteBuffer.allocate(1024);
+    final ChunkDecoder decoder = new ChunkDecoder(channel, inbuf, metrics);
+    int bytesRead = 0;
+    while (dst.hasRemaining() && !decoder.isCompleted()) {
+        final int i = decoder.read(dst);
+        if (i > 0) {
+            bytesRead += i;
+        }
+    }
+    Assert.assertEquals(27, bytesRead);
+    Assert.assertEquals("123456789012345612345abcdef", CodecTestUtils.convert(dst));
+    Assert.assertTrue(decoder.isCompleted());
+    final List<? extends Header> trailers = decoder.getTrailers();
+    Assert.assertEquals(2, trailers.size());
+    Assert.assertEquals("Footer1", trailers.get(0).getName());
+    Assert.assertEquals("abcde", trailers.get(0).getValue());
+    Assert.assertEquals("Footer2", trailers.get(1).getName());
+    Assert.assertEquals("fghij", trailers.get(1).getValue());
+    dst.clear();
+    bytesRead = decoder.read(dst);
+    Assert.assertEquals(-1, bytesRead);
+    Assert.assertTrue(decoder.isCompleted());
+}

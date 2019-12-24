@@ -1,0 +1,41 @@
+/**
+ * testing -fileCache option
+ * @throws IOException
+ */
+@Test
+public void testTokenCacheOption() throws IOException {
+    FileSystem localFs = FileSystem.getLocal(conf);
+    File tmpFile = new File(testDir, "tokenCacheFile");
+    if (tmpFile.exists()) {
+        tmpFile.delete();
+    }
+    String[] args = new String[2];
+    // pass a files option
+    args[0] = "-tokenCacheFile";
+    args[1] = tmpFile.toURI().toString();
+    // test non existing file
+    Throwable th = null;
+    try {
+        new GenericOptionsParser(conf, args);
+    } catch (Exception e) {
+        th = e;
+    }
+    assertNotNull(th);
+    assertTrue("FileNotFoundException is not thrown", th instanceof FileNotFoundException);
+    // create file
+    Path tmpPath = localFs.makeQualified(new Path(tmpFile.toString()));
+    Token<?> token = new Token<AbstractDelegationTokenIdentifier>("identifier".getBytes(), "password".getBytes(), new Text("token-kind"), new Text("token-service"));
+    Credentials creds = new Credentials();
+    creds.addToken(new Text("token-alias"), token);
+    creds.writeTokenStorageFile(tmpPath, conf);
+    new GenericOptionsParser(conf, args);
+    String fileName = conf.get("mapreduce.job.credentials.binary");
+    assertNotNull("files is null", fileName);
+    assertEquals("files option does not match", tmpPath.toString(), fileName);
+    Credentials ugiCreds = UserGroupInformation.getCurrentUser().getCredentials();
+    assertEquals(1, ugiCreds.numberOfTokens());
+    Token<?> ugiToken = ugiCreds.getToken(new Text("token-alias"));
+    assertNotNull(ugiToken);
+    assertEquals(token, ugiToken);
+    localFs.delete(new Path(testDir.getAbsolutePath()), true);
+}

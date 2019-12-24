@@ -1,0 +1,17 @@
+@Test
+public void testChunkedOutputStreamWithTrailers() throws IOException {
+    final SessionOutputBuffer outbuffer = new SessionOutputBufferImpl(16);
+    final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    final ChunkedOutputStream out = new ChunkedOutputStream(outbuffer, outputStream, 2, new Supplier<List<? extends Header>>() {
+
+        @Override
+        public List<? extends Header> get() {
+            return Arrays.asList(new BasicHeader("E", ""), new BasicHeader("Y", "Z"));
+        }
+    });
+    out.write('x');
+    out.finish();
+    out.close();
+    final String content = new String(outputStream.toByteArray(), StandardCharsets.US_ASCII);
+    Assert.assertEquals("1\r\nx\r\n0\r\nE: \r\nY: Z\r\n\r\n", content);
+}

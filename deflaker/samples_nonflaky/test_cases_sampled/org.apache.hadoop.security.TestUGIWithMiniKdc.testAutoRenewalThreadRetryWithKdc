@@ -1,0 +1,38 @@
+@Test(timeout = 120000)
+public void testAutoRenewalThreadRetryWithKdc() throws Exception {
+    GenericTestUtils.setLogLevel(UserGroupInformation.LOG, Level.DEBUG);
+    final Configuration conf = new Configuration();
+    // can't rely on standard kinit, else test fails when user running
+    // the test is kinit'ed because the test renews _their TGT_.
+    conf.set("hadoop.kerberos.kinit.command", "bogus-kinit-cmd");
+    // Relogin every 1 second
+    conf.setLong(HADOOP_KERBEROS_MIN_SECONDS_BEFORE_RELOGIN, 1);
+    SecurityUtil.setAuthenticationMethod(UserGroupInformation.AuthenticationMethod.KERBEROS, conf);
+    UserGroupInformation.setConfiguration(conf);
+    LoginContext loginContext = null;
+    try {
+        final String principal = "foo";
+        final File workDir = new File(System.getProperty("test.dir", "target"));
+        final File keytab = new File(workDir, "foo.keytab");
+        final Set<Principal> principals = new HashSet<>();
+        principals.add(new KerberosPrincipal(principal));
+        setupKdc();
+        kdc.createPrincipal(keytab, principal);
+        UserGroupInformation.loginUserFromKeytab(principal, keytab.getPath());
+        UserGroupInformation ugi = UserGroupInformation.getLoginUser();
+        // no ticket cache, so force the thread to test for failures.
+        ugi.spawnAutoRenewalThreadForUserCreds(true);
+        // Verify retry happens. Do not verify retry count to reduce flakiness.
+        // Detailed back-off logic is tested separately in
+        // TestUserGroupInformation#testGetNextRetryTime
+        LambdaTestUtils.await(30000, 500, () -> {
+            final int count = UserGroupInformation.metrics.getRenewalFailures().value();
+            UserGroupInformation.LOG.info("Renew failure count is {}", count);
+            return count > 0;
+        });
+    } finally {
+        if (loginContext != null) {
+            loginContext.logout();
+        }
+    }
+}

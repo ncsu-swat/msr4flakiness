@@ -1,0 +1,103 @@
+@Test(timeout = 30000)
+public void testConnectionIdleTimeouts() throws Exception {
+    GenericTestUtils.setLogLevel(Server.LOG, Level.DEBUG);
+    final int maxIdle = 1000;
+    // stagger cleanups
+    final int cleanupInterval = maxIdle * 3 / 4;
+    final int killMax = 3;
+    // 1 to block, 2 batches to kill
+    final int clients = 1 + killMax * 2;
+    conf.setInt(CommonConfigurationKeysPublic.IPC_CLIENT_CONNECTION_MAXIDLETIME_KEY, maxIdle);
+    conf.setInt(CommonConfigurationKeysPublic.IPC_CLIENT_IDLETHRESHOLD_KEY, 0);
+    conf.setInt(CommonConfigurationKeysPublic.IPC_CLIENT_KILL_MAX_KEY, killMax);
+    conf.setInt(CommonConfigurationKeys.IPC_CLIENT_CONNECTION_IDLESCANINTERVAL_KEY, cleanupInterval);
+    final CyclicBarrier firstCallBarrier = new CyclicBarrier(2);
+    final CyclicBarrier callBarrier = new CyclicBarrier(clients);
+    final CountDownLatch allCallLatch = new CountDownLatch(clients);
+    final AtomicBoolean error = new AtomicBoolean();
+    final TestServer server = new TestServer(clients, false);
+    Thread[] threads = new Thread[clients];
+    try {
+        server.callListener = new Runnable() {
+
+            AtomicBoolean first = new AtomicBoolean(true);
+
+            @Override
+            public void run() {
+                try {
+                    allCallLatch.countDown();
+                    // block first call
+                    if (first.compareAndSet(true, false)) {
+                        firstCallBarrier.await();
+                    } else {
+                        callBarrier.await();
+                    }
+                } catch (Throwable t) {
+                    LOG.error(t.toString());
+                    error.set(true);
+                }
+            }
+        };
+        server.start();
+        // start client
+        final CountDownLatch callReturned = new CountDownLatch(clients - 1);
+        final InetSocketAddress addr = NetUtils.getConnectAddress(server);
+        final Configuration clientConf = new Configuration();
+        clientConf.setInt(CommonConfigurationKeysPublic.IPC_CLIENT_CONNECTION_MAXIDLETIME_KEY, 10000);
+        for (int i = 0; i < clients; i++) {
+            threads[i] = new Thread(new Runnable() {
+
+                @Override
+                public void run() {
+                    Client client = new Client(LongWritable.class, clientConf);
+                    try {
+                        call(client, Thread.currentThread().getId(), addr, clientConf);
+                        callReturned.countDown();
+                        Thread.sleep(10000);
+                    } catch (IOException e) {
+                        LOG.error(e.toString());
+                    } catch (InterruptedException e) {
+                    } finally {
+                        client.stop();
+                    }
+                }
+            });
+            threads[i].start();
+        }
+        // all calls blocked in handler so all connections made
+        allCallLatch.await();
+        assertFalse(error.get());
+        assertEquals(clients, server.getNumOpenConnections());
+        // wake up blocked calls and wait for client call to return, no
+        // connections should have closed
+        callBarrier.await();
+        callReturned.await();
+        assertEquals(clients, server.getNumOpenConnections());
+        // server won't close till maxIdle*2, so give scanning thread time to
+        // be almost ready to close idle connection.  after which it should
+        // close max connections on every cleanupInterval
+        Thread.sleep(maxIdle * 2 - cleanupInterval);
+        for (int i = clients; i > 1; i -= killMax) {
+            Thread.sleep(cleanupInterval);
+            assertFalse(error.get());
+            assertEquals(i, server.getNumOpenConnections());
+        }
+        // connection for the first blocked call should still be open
+        Thread.sleep(cleanupInterval);
+        assertFalse(error.get());
+        assertEquals(1, server.getNumOpenConnections());
+        // wake up call and ensure connection times out
+        firstCallBarrier.await();
+        Thread.sleep(maxIdle * 2);
+        assertFalse(error.get());
+        assertEquals(0, server.getNumOpenConnections());
+    } finally {
+        for (Thread t : threads) {
+            if (t != null) {
+                t.interrupt();
+                t.join();
+            }
+            server.stop();
+        }
+    }
+}

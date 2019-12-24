@@ -1,0 +1,30 @@
+/**
+ * Test LocalFileSystem.setOwner.
+ */
+@Test
+public void testLocalFSsetOwner() throws IOException {
+    assumeNotWindows();
+    Configuration conf = new Configuration();
+    conf.set(CommonConfigurationKeys.FS_PERMISSIONS_UMASK_KEY, "044");
+    LocalFileSystem localfs = FileSystem.getLocal(conf);
+    String filename = "bar";
+    Path f = writeFile(localfs, filename);
+    List<String> groups;
+    try {
+        groups = getGroups();
+        LOGGER.info("{}: {}", filename, getPermission(localfs, f));
+        // create files and manipulate them.
+        String g0 = groups.get(0);
+        localfs.setOwner(f, null, g0);
+        assertEquals(g0, getGroup(localfs, f));
+        if (groups.size() > 1) {
+            String g1 = groups.get(1);
+            localfs.setOwner(f, null, g1);
+            assertEquals(g1, getGroup(localfs, f));
+        } else {
+            LOGGER.info("Not testing changing the group since user " + "belongs to only one group.");
+        }
+    } finally {
+        cleanup(localfs, f);
+    }
+}

@@ -1,0 +1,13 @@
+@Test
+public void testUnstripedIncorrectChunkSize() throws IOException {
+    CrcComposer digester = CrcComposer.newCrcComposer(type, chunkSize);
+    // If we incorrectly specify that all CRCs ingested correspond to chunkSize
+    // when the last CRC in the array actually corresponds to
+    // dataSize % chunkSize then we expect the resulting CRC to not be equal to
+    // the fullCrc.
+    digester.update(crcBytesByChunk, 0, crcBytesByChunk.length, chunkSize);
+    byte[] digest = digester.digest();
+    assertEquals(4, digest.length);
+    int calculatedCrc = CrcUtil.readInt(digest, 0);
+    assertNotEquals(fullCrc, calculatedCrc);
+}

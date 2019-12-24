@@ -1,0 +1,32 @@
+@Test
+public void testExecutionEntityEnclosingRequest() throws Exception {
+    final HttpCoreContext context = HttpCoreContext.create();
+    final ClassicHttpRequest request = new BasicClassicHttpRequest(Method.POST, "/");
+    final InputStream inStream = Mockito.mock(InputStream.class);
+    final InputStreamEntity entity = new InputStreamEntity(inStream, -1, null);
+    request.setEntity(entity);
+    Mockito.when(conn.receiveRequestHeader()).thenReturn(request);
+    Mockito.when(responseFactory.newHttpResponse(200)).thenReturn(response);
+    Mockito.when(connReuseStrategy.keepAlive(ArgumentMatchers.eq(request), ArgumentMatchers.argThat(new ArgumentMatcher<HttpResponse>() {
+
+        @Override
+        public boolean matches(final HttpResponse errorResponse) {
+            return errorResponse.getCode() == HttpStatus.SC_NOT_IMPLEMENTED;
+        }
+    }), ArgumentMatchers.eq(context))).thenReturn(Boolean.TRUE);
+    httpservice.handleRequest(conn, context);
+    final ArgumentCaptor<ClassicHttpResponse> responseCaptor = ArgumentCaptor.forClass(ClassicHttpResponse.class);
+    Mockito.verify(conn).sendResponseHeader(responseCaptor.capture());
+    final ClassicHttpResponse response = responseCaptor.getValue();
+    Assert.assertNotNull(response);
+    Assert.assertEquals(HttpStatus.SC_NOT_IMPLEMENTED, response.getCode());
+    Assert.assertSame(request, context.getRequest());
+    Mockito.verify(httprocessor).process(request, request.getEntity(), context);
+    Mockito.verify(inStream).close();
+    Mockito.verify(httprocessor).process(response, response.getEntity(), context);
+    Mockito.verify(conn).sendResponseHeader(response);
+    Mockito.verify(conn).sendResponseEntity(response);
+    Mockito.verify(conn).flush();
+    Mockito.verify(conn, Mockito.never()).close();
+    Mockito.verify(response).close();
+}

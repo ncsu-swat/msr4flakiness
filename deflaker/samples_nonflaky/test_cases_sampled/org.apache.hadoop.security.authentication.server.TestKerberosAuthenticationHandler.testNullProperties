@@ -1,0 +1,19 @@
+@Test
+public void testNullProperties() throws Exception {
+    KerberosName kn = new KerberosName(KerberosTestUtils.getServerPrincipal());
+    Assert.assertEquals(KerberosTestUtils.getRealm(), kn.getRealm());
+    KerberosName.setRuleMechanism("MIT");
+    KerberosName.setRules("DEFAULT");
+    // destroy handler created in setUp()
+    handler.destroy();
+    handler = getNewAuthenticationHandler();
+    Properties props = getDefaultProperties();
+    props.remove(KerberosAuthenticationHandler.NAME_RULES);
+    props.remove(KerberosAuthenticationHandler.RULE_MECHANISM);
+    try {
+        handler.init(props);
+    } catch (Exception ex) {
+    }
+    Assert.assertEquals("MIT", KerberosName.getRuleMechanism());
+    Assert.assertEquals("DEFAULT", KerberosName.getRules());
+}

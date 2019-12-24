@@ -1,0 +1,24 @@
+/**
+ * This relates to MAPREDUCE-7184, where the openFile() call's
+ * CRC count wasn't making into the statistics for the current thread.
+ * If the evaluation was in a separate thread you'd expect that,
+ * but if the completable future is in fact being synchronously completed
+ * it should not happen.
+ */
+@Test
+public void testReadIncludesCRCwithBuilders() throws Throwable {
+    final Path file = new Path(TEST_ROOT_DIR, "testReadIncludesCRCwithBuilders");
+    Statistics stats = getFileStatistics();
+    // write the file using the builder API
+    assertWritesCRC("createFile()", file, () -> writeData(fileSys.createFile(file).overwrite(true).recursive().build()), false);
+    // now read back the data, again with the builder API
+    final long bytesRead0 = stats.getBytesRead();
+    fileSys.openFile(file).build().get().close();
+    assertEquals("Bytes read in openFile() call with stats " + stats, CRC_SIZE, stats.getBytesRead() - bytesRead0);
+    // now write with overwrite = true
+    assertWritesCRC("createFileNonRecursive()", file, () -> {
+        try (FSDataOutputStream s = fileSys.createFile(file).overwrite(true).build()) {
+            s.write(DATA);
+        }
+    }, true);
+}

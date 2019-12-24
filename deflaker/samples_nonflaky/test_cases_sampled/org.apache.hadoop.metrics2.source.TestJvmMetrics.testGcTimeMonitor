@@ -1,0 +1,47 @@
+@Test
+public void testGcTimeMonitor() {
+    class Alerter implements GcTimeMonitor.GcTimeAlertHandler {
+
+        private volatile int numAlerts;
+
+        private volatile int maxGcTimePercentage;
+
+        @Override
+        public void alert(GcTimeMonitor.GcData gcData) {
+            numAlerts++;
+            if (gcData.getGcTimePercentage() > maxGcTimePercentage) {
+                maxGcTimePercentage = gcData.getGcTimePercentage();
+            }
+        }
+    }
+    Alerter alerter = new Alerter();
+    // Alerter should be called if GC takes >= 10%
+    int alertGcPerc = 10;
+    gcTimeMonitor = new GcTimeMonitor(60 * 1000, 100, alertGcPerc, alerter);
+    gcTimeMonitor.start();
+    int maxGcTimePercentage = 0;
+    long gcCount = 0;
+    // Generate a lot of garbage for some time and verify that the monitor
+    // reports at least some percentage of time in GC pauses, and that the
+    // alerter is invoked at least once.
+    List<String> garbageStrings = new ArrayList<>();
+    long startTime = System.currentTimeMillis();
+    // Run this for at least 1 sec for our monitor to collect enough data
+    while (System.currentTimeMillis() - startTime < 1000) {
+        for (int j = 0; j < 100000; j++) {
+            garbageStrings.add("Long string prefix just to fill memory with garbage " + j);
+        }
+        garbageStrings.clear();
+        System.gc();
+        GcTimeMonitor.GcData gcData = gcTimeMonitor.getLatestGcData();
+        int gcTimePercentage = gcData.getGcTimePercentage();
+        if (gcTimePercentage > maxGcTimePercentage) {
+            maxGcTimePercentage = gcTimePercentage;
+        }
+        gcCount = gcData.getAccumulatedGcCount();
+    }
+    Assert.assertTrue(maxGcTimePercentage > 0);
+    Assert.assertTrue(gcCount > 0);
+    Assert.assertTrue(alerter.numAlerts > 0);
+    Assert.assertTrue(alerter.maxGcTimePercentage >= alertGcPerc);
+}

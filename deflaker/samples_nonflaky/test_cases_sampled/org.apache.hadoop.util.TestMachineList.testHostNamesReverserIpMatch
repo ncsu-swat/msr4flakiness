@@ -1,0 +1,20 @@
+@Test
+public void testHostNamesReverserIpMatch() throws UnknownHostException {
+    // create MachineList with a list of of Hostnames
+    InetAddress addressHost1 = InetAddress.getByName("1.2.3.1");
+    InetAddress addressHost4 = InetAddress.getByName("1.2.3.4");
+    InetAddress addressMockHost4 = Mockito.mock(InetAddress.class);
+    Mockito.when(addressMockHost4.getCanonicalHostName()).thenReturn("host4");
+    InetAddress addressMockHost5 = Mockito.mock(InetAddress.class);
+    Mockito.when(addressMockHost5.getCanonicalHostName()).thenReturn("host5");
+    MachineList.InetAddressFactory addressFactory = Mockito.mock(MachineList.InetAddressFactory.class);
+    Mockito.when(addressFactory.getByName("1.2.3.4")).thenReturn(addressMockHost4);
+    Mockito.when(addressFactory.getByName("1.2.3.5")).thenReturn(addressMockHost5);
+    Mockito.when(addressFactory.getByName("host1")).thenReturn(addressHost1);
+    Mockito.when(addressFactory.getByName("host4")).thenReturn(addressHost4);
+    MachineList ml = new MachineList(StringUtils.getTrimmedStringCollection(HOST_LIST), addressFactory);
+    // test for inclusion with an known IP
+    assertTrue(ml.includes("1.2.3.4"));
+    // test for exclusion with an unknown IP
+    assertFalse(ml.includes("1.2.3.5"));
+}

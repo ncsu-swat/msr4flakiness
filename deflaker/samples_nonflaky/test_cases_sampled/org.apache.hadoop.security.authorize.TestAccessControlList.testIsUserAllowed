@@ -1,0 +1,40 @@
+/**
+ * Verify the method isUserAllowed()
+ */
+@Test
+public void testIsUserAllowed() {
+    AccessControlList acl;
+    UserGroupInformation drwho = UserGroupInformation.createUserForTesting("drwho@EXAMPLE.COM", new String[] { "aliens", "humanoids", "timelord" });
+    UserGroupInformation susan = UserGroupInformation.createUserForTesting("susan@EXAMPLE.COM", new String[] { "aliens", "humanoids", "timelord" });
+    UserGroupInformation barbara = UserGroupInformation.createUserForTesting("barbara@EXAMPLE.COM", new String[] { "humans", "teachers" });
+    UserGroupInformation ian = UserGroupInformation.createUserForTesting("ian@EXAMPLE.COM", new String[] { "humans", "teachers" });
+    acl = new AccessControlList("drwho humanoids");
+    assertUserAllowed(drwho, acl);
+    assertUserAllowed(susan, acl);
+    assertUserNotAllowed(barbara, acl);
+    assertUserNotAllowed(ian, acl);
+    acl = new AccessControlList("drwho");
+    assertUserAllowed(drwho, acl);
+    assertUserNotAllowed(susan, acl);
+    assertUserNotAllowed(barbara, acl);
+    assertUserNotAllowed(ian, acl);
+    acl = new AccessControlList("drwho ");
+    assertUserAllowed(drwho, acl);
+    assertUserNotAllowed(susan, acl);
+    assertUserNotAllowed(barbara, acl);
+    assertUserNotAllowed(ian, acl);
+    acl = new AccessControlList(" humanoids");
+    assertUserAllowed(drwho, acl);
+    assertUserAllowed(susan, acl);
+    assertUserNotAllowed(barbara, acl);
+    assertUserNotAllowed(ian, acl);
+    acl = new AccessControlList("drwho,ian aliens,teachers");
+    assertUserAllowed(drwho, acl);
+    assertUserAllowed(susan, acl);
+    assertUserAllowed(barbara, acl);
+    assertUserAllowed(ian, acl);
+    acl = new AccessControlList("");
+    UserGroupInformation spyUser = spy(drwho);
+    acl.isUserAllowed(spyUser);
+    verify(spyUser, never()).getGroupNames();
+}

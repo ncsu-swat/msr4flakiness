@@ -1,0 +1,16 @@
+@Test
+public void testGracefulFailoverFailBecomingStandbyAndFailFence() throws Exception {
+    cluster.start();
+    cluster.waitForActiveLockHolder(0);
+    // Ask for failover when old node fails to transition to standby.
+    // This should trigger fencing, since the cedeActive() command
+    // still works, but leaves the breadcrumb in place.
+    cluster.setFailToBecomeStandby(0, true);
+    cluster.setFailToFence(0, true);
+    try {
+        cluster.getService(1).getZKFCProxy(conf, 5000).gracefulFailover();
+        fail("Failover should have failed when old node wont fence");
+    } catch (ServiceFailedException sfe) {
+        GenericTestUtils.assertExceptionContains("Unable to fence " + cluster.getService(0), sfe);
+    }
+}

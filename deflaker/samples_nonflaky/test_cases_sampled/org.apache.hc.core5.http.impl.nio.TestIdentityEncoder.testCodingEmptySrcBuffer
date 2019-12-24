@@ -1,0 +1,17 @@
+@Test
+public void testCodingEmptySrcBuffer() throws Exception {
+    final WritableByteChannelMock channel = new WritableByteChannelMock(64);
+    final SessionOutputBuffer outbuf = new SessionOutputBufferImpl(1024, 128);
+    final BasicHttpTransportMetrics metrics = new BasicHttpTransportMetrics();
+    final IdentityEncoder encoder = new IdentityEncoder(channel, outbuf, metrics);
+    encoder.write(CodecTestUtils.wrap("stuff"));
+    final ByteBuffer empty = ByteBuffer.allocate(100);
+    empty.flip();
+    encoder.write(empty);
+    encoder.write(null);
+    encoder.complete();
+    outbuf.flush(channel);
+    final String s = channel.dump(StandardCharsets.US_ASCII);
+    Assert.assertTrue(encoder.isCompleted());
+    Assert.assertEquals("stuff", s);
+}

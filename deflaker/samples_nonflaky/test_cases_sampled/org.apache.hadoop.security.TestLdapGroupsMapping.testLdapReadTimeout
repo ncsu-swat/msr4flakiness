@@ -1,0 +1,52 @@
+/**
+ * Test that if the {@link LdapGroupsMapping#READ_TIMEOUT} is set in the
+ * configuration, the LdapGroupsMapping query will timeout by this value if
+ * it does not get a LDAP response from the server.
+ *
+ * @throws IOException
+ * @throws InterruptedException
+ */
+@Test(timeout = 30000)
+public void testLdapReadTimeout() throws IOException, InterruptedException {
+    // 4s
+    final int readTimeoutMs = 4 * 1000;
+    try (ServerSocket serverSock = new ServerSocket(0)) {
+        final CountDownLatch finLatch = new CountDownLatch(1);
+        // Below we create a LDAP server which will accept a client request,
+        // authenticate it successfully; but it will never reply to the following
+        // query request.
+        // Client of this LDAP server is expected to get a read timeout.
+        final Thread ldapServer = new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+                try {
+                    try (Socket clientSock = serverSock.accept()) {
+                        IOUtils.skipFully(clientSock.getInputStream(), 1);
+                        clientSock.getOutputStream().write(AUTHENTICATE_SUCCESS_MSG);
+                        finLatch.await();
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        ldapServer.start();
+        final LdapGroupsMapping mapping = new LdapGroupsMapping();
+        String ldapUrl = "ldap://localhost:" + serverSock.getLocalPort();
+        final Configuration conf = getBaseConf(ldapUrl, null);
+        conf.setInt(READ_TIMEOUT, readTimeoutMs);
+        mapping.setConf(conf);
+        try {
+            mapping.doGetGroups("hadoop", 1);
+            fail("The LDAP query should have timed out!");
+        } catch (NamingException ne) {
+            LOG.debug("Got the exception while LDAP querying: ", ne);
+            assertExceptionContains("LDAP response read timed out, timeout used:" + readTimeoutMs + "ms", ne);
+            assertExceptionContains("remaining name", ne);
+        } finally {
+            finLatch.countDown();
+        }
+        ldapServer.join();
+    }
+}

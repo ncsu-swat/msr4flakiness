@@ -1,0 +1,23 @@
+/*
+   * Group lookup should not happen for static users
+   */
+@Test
+public void testGroupLookupForStaticUsers() throws Exception {
+    conf.setClass(CommonConfigurationKeys.HADOOP_SECURITY_GROUP_MAPPING, FakeunPrivilegedGroupMapping.class, ShellBasedUnixGroupsMapping.class);
+    conf.set(CommonConfigurationKeys.HADOOP_USER_GROUP_STATIC_OVERRIDES, "me=;user1=group1;user2=group1,group2");
+    Groups groups = new Groups(conf);
+    List<String> userGroups = groups.getGroups("me");
+    assertTrue("non-empty groups for static user", userGroups.isEmpty());
+    assertFalse("group lookup done for static user", FakeunPrivilegedGroupMapping.invoked);
+    List<String> expected = new ArrayList<String>();
+    expected.add("group1");
+    FakeunPrivilegedGroupMapping.invoked = false;
+    userGroups = groups.getGroups("user1");
+    assertTrue("groups not correct", expected.equals(userGroups));
+    assertFalse("group lookup done for unprivileged user", FakeunPrivilegedGroupMapping.invoked);
+    expected.add("group2");
+    FakeunPrivilegedGroupMapping.invoked = false;
+    userGroups = groups.getGroups("user2");
+    assertTrue("groups not correct", expected.equals(userGroups));
+    assertFalse("group lookup done for unprivileged user", FakeunPrivilegedGroupMapping.invoked);
+}

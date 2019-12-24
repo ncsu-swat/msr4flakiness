@@ -1,0 +1,64 @@
+/**
+ * Test the lock logs warning when lock held time is greater than threshold
+ * and not log warning otherwise.
+ * @throws Exception
+ */
+@Test(timeout = 10000)
+public void testLockLongHoldingReport() throws Exception {
+    String testname = name.getMethodName();
+    final AtomicLong time = new AtomicLong(0);
+    Timer mclock = new Timer() {
+
+        @Override
+        public long monotonicNow() {
+            return time.get();
+        }
+    };
+    Lock mlock = mock(Lock.class);
+    final AtomicLong wlogged = new AtomicLong(0);
+    final AtomicLong wsuppresed = new AtomicLong(0);
+    InstrumentedLock lock = new InstrumentedLock(testname, LOG, mlock, 2000, 300, mclock) {
+
+        @Override
+        void logWarning(long lockHeldTime, long suppressed) {
+            wlogged.incrementAndGet();
+            wsuppresed.set(suppressed);
+        }
+    };
+    // do not log warning when the lock held time is short
+    // t = 0
+    lock.lock();
+    time.set(200);
+    // t = 200
+    lock.unlock();
+    assertEquals(0, wlogged.get());
+    assertEquals(0, wsuppresed.get());
+    // t = 200
+    lock.lock();
+    time.set(700);
+    // t = 700
+    lock.unlock();
+    assertEquals(1, wlogged.get());
+    assertEquals(0, wsuppresed.get());
+    // despite the lock held time is greater than threshold
+    // suppress the log warning due to the logging gap
+    // (not recorded in wsuppressed until next log message)
+    // t = 700
+    lock.lock();
+    time.set(1100);
+    // t = 1100
+    lock.unlock();
+    assertEquals(1, wlogged.get());
+    assertEquals(0, wsuppresed.get());
+    // log a warning message when the lock held time is greater the threshold
+    // and the logging time gap is satisfied. Also should display suppressed
+    // previous warnings.
+    time.set(2400);
+    // t = 2400
+    lock.lock();
+    time.set(2800);
+    // t = 2800
+    lock.unlock();
+    assertEquals(2, wlogged.get());
+    assertEquals(1, wsuppresed.get());
+}

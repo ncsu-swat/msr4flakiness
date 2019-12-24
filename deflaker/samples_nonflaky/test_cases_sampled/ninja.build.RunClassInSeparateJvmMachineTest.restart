@@ -1,0 +1,20 @@
+@Test
+public void restart() throws Exception {
+    RunClassInSeparateJvmMachine rcsjm = new RunClassInSeparateJvmMachine("FakeDaemon", FakeDaemonMain.class.getName(), getOurClassPath(), Collections.EMPTY_LIST, new File("."));
+    // override output so we can capture it
+    final ByteArrayOutputStream baos1 = new ByteArrayOutputStream();
+    rcsjm.setOutput(baos1);
+    rcsjm.restart();
+    StartedProcess startedProcess1 = rcsjm.getActiveProcess();
+    assertTrue(isAlive(startedProcess1.getProcess()));
+    waitOrTimeout(fakeDaemonCondition(baos1), Timeout.timeout(Duration.millis(10000)));
+    // override output so we can capture it
+    final ByteArrayOutputStream baos2 = new ByteArrayOutputStream();
+    rcsjm.setOutput(baos2);
+    rcsjm.restart();
+    StartedProcess startedProcess2 = rcsjm.getActiveProcess();
+    assertTrue(isAlive(startedProcess2.getProcess()));
+    assertFalse(isAlive(startedProcess1.getProcess()));
+    assertFalse(startedProcess1.equals(startedProcess2));
+    waitOrTimeout(fakeDaemonCondition(baos2), Timeout.timeout(Duration.millis(10000)));
+}

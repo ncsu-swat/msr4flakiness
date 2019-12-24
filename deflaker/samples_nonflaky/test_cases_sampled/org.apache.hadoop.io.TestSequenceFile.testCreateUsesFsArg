@@ -1,0 +1,14 @@
+/**
+ * Test that makes sure the FileSystem passed to createWriter
+ * @throws Exception
+ */
+@SuppressWarnings("deprecation")
+@Test
+public void testCreateUsesFsArg() throws Exception {
+    FileSystem fs = FileSystem.getLocal(conf);
+    FileSystem spyFs = Mockito.spy(fs);
+    Path p = new Path(GenericTestUtils.getTempPath("testCreateUsesFSArg.seq"));
+    SequenceFile.Writer writer = SequenceFile.createWriter(spyFs, conf, p, NullWritable.class, NullWritable.class);
+    writer.close();
+    Mockito.verify(spyFs).getDefaultReplication(p);
+}

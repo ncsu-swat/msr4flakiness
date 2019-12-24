@@ -1,0 +1,26 @@
+@Test
+public void withLiveServerCustomRequestHandler() throws Exception {
+    final ClientTestingAdapter adapter = new ClassicTestClientTestingAdapter();
+    final TestingFrameworkRequestHandler requestHandler = new TestingFrameworkRequestHandler() {
+
+        @Override
+        public void handle(final ClassicHttpRequest request, final ClassicHttpResponse response, final HttpContext context) throws HttpException, IOException {
+            try {
+                Assert.assertEquals("method not expected", "junk", request.getMethod());
+            } catch (final Throwable t) {
+                thrown = t;
+            }
+        }
+    };
+    server.registerHandler("/custom/*", requestHandler);
+    this.server.start();
+    final HttpHost target = new HttpHost("localhost", this.server.getPort());
+    final String defaultURI = target.toString();
+    final Map<String, Object> responseExpectations = new HashMap<>();
+    final Map<String, Object> request = new HashMap<>();
+    request.put(PATH, CUSTOM_PATH);
+    for (final String method : TestingFramework.ALL_METHODS) {
+        request.put(METHOD, method);
+        adapter.execute(defaultURI, request, requestHandler, responseExpectations);
+    }
+}

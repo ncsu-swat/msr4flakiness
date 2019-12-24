@@ -1,0 +1,28 @@
+@Test
+public void testGetWithDefaultAndContextAndResult() {
+    when(ninjaProperties.getStringArray(NinjaConstant.applicationLanguages)).thenReturn(new String[] { "en", "de", "fr-FR" });
+    Lang lang = new LangImpl(ninjaProperties);
+    Messages messages = new MessagesImpl(ninjaProperties, lang);
+    result = Results.ok();
+    // test with context Accept Header
+    when(context.getAcceptLanguage()).thenReturn("en-US");
+    // that will refer to messages_en.properties:
+    assertEquals("this is the placeholder: test_parameter", messages.get("message_with_placeholder", context, Optional.of(result), "test_parameter").get());
+    when(context.getAcceptLanguage()).thenReturn("en-CA");
+    assertEquals("this is the placeholder: test_parameter", messages.get("message_with_placeholder", context, Optional.of(result), "test_parameter").get());
+    when(context.getAcceptLanguage()).thenReturn("en-UK");
+    assertEquals("this is the placeholder: test_parameter", messages.get("message_with_placeholder", context, Optional.of(result), "test_parameter").get());
+    // that will refer to messages_de.properties:
+    lang.setLanguage("de", result);
+    assertEquals("Toröööö - das ist der platzhalter: test_parameter", messages.get("message_with_placeholder", context, Optional.of(result), "test_parameter").get());
+    lang.setLanguage("de-DE", result);
+    assertEquals("Toröööö - das ist der platzhalter: test_parameter", messages.get("message_with_placeholder", context, Optional.of(result), "test_parameter").get());
+    // that forced language from context works with empty result
+    result = Results.ok();
+    when(context.getCookie(Mockito.anyString())).thenReturn(Cookie.builder("name", "fr-FR").build());
+    assertEquals("c'est le placeholder: test_parameter", messages.get("message_with_placeholder", context, Optional.of(result), "test_parameter").get());
+    // and the result overwrites it again...
+    result = Results.ok();
+    lang.setLanguage("de-DE", result);
+    assertEquals("Toröööö - das ist der platzhalter: test_parameter", messages.get("message_with_placeholder", context, Optional.of(result), "test_parameter").get());
+}

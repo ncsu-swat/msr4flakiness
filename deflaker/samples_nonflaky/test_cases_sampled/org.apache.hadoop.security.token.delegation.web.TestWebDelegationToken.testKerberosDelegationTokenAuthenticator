@@ -1,0 +1,71 @@
+@Test
+public void testKerberosDelegationTokenAuthenticator() throws Exception {
+    testKerberosDelegationTokenAuthenticator(false);
+}
+private void testKerberosDelegationTokenAuthenticator(final boolean doAs) throws Exception {
+    final String doAsUser = doAs ? OK_USER : null;
+    File testDir = new File("target/" + UUID.randomUUID().toString());
+    Assert.assertTrue(testDir.mkdirs());
+    MiniKdc kdc = new MiniKdc(MiniKdc.createConf(), testDir);
+    final Server jetty = createJettyServer();
+    ServletContextHandler context = new ServletContextHandler();
+    context.setContextPath("/foo");
+    jetty.setHandler(context);
+    context.addFilter(new FilterHolder(KDTAFilter.class), "/*", EnumSet.of(DispatcherType.REQUEST));
+    context.addServlet(new ServletHolder(UserServlet.class), "/bar");
+    org.apache.hadoop.conf.Configuration conf = new org.apache.hadoop.conf.Configuration();
+    conf.set("hadoop.security.authentication", "kerberos");
+    conf.set("java.security.krb5.realm", KerberosTestUtils.getRealm());
+    try {
+        kdc.start();
+        File keytabFile = new File(testDir, "test.keytab");
+        kdc.createPrincipal(keytabFile, "client", "HTTP/localhost");
+        KDTAFilter.keytabFile = keytabFile.getAbsolutePath();
+        jetty.start();
+        final DelegationTokenAuthenticatedURL.Token token = new DelegationTokenAuthenticatedURL.Token();
+        final DelegationTokenAuthenticatedURL aUrl = new DelegationTokenAuthenticatedURL();
+        final URL url = new URL(getJettyURL() + "/foo/bar");
+        try {
+            aUrl.getDelegationToken(url, token, FOO_USER, doAsUser);
+            Assert.fail();
+        } catch (AuthenticationException ex) {
+            Assert.assertTrue(ex.getCause().getMessage().contains("GSSException"));
+        }
+        doAsKerberosUser("client", keytabFile.getAbsolutePath(), new Callable<Void>() {
+
+            @Override
+            public Void call() throws Exception {
+                aUrl.getDelegationToken(url, token, doAs ? doAsUser : "client", doAsUser);
+                Assert.assertNotNull(token.getDelegationToken());
+                Assert.assertEquals(new Text("token-kind"), token.getDelegationToken().getKind());
+                // Make sure the token belongs to the right owner
+                ByteArrayInputStream buf = new ByteArrayInputStream(token.getDelegationToken().getIdentifier());
+                DataInputStream dis = new DataInputStream(buf);
+                DelegationTokenIdentifier id = new DelegationTokenIdentifier(new Text("token-kind"));
+                id.readFields(dis);
+                dis.close();
+                Assert.assertEquals(doAs ? new Text(OK_USER) : new Text("client"), id.getOwner());
+                if (doAs) {
+                    Assert.assertEquals(new Text("client"), id.getRealUser());
+                }
+                aUrl.renewDelegationToken(url, token, doAsUser);
+                Assert.assertNotNull(token.getDelegationToken());
+                aUrl.getDelegationToken(url, token, FOO_USER, doAsUser);
+                Assert.assertNotNull(token.getDelegationToken());
+                try {
+                    aUrl.renewDelegationToken(url, token, doAsUser);
+                    Assert.fail();
+                } catch (Exception ex) {
+                    Assert.assertTrue(ex.getMessage().contains("403"));
+                }
+                aUrl.getDelegationToken(url, token, FOO_USER, doAsUser);
+                aUrl.cancelDelegationToken(url, token, doAsUser);
+                Assert.assertNull(token.getDelegationToken());
+                return null;
+            }
+        });
+    } finally {
+        jetty.stop();
+        kdc.stop();
+    }
+}

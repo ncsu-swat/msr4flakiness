@@ -1,0 +1,32 @@
+@Test
+public void testDefaultOptionsValue() throws Exception {
+    final Collection<String> headers = new ArrayList<String>();
+    FilterConfig filterConfig = Mockito.mock(FilterConfig.class);
+    Mockito.when(filterConfig.getInitParameter(XFrameOptionsFilter.CUSTOM_HEADER_PARAM)).thenReturn(null);
+    HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
+    HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
+    FilterChain chain = Mockito.mock(FilterChain.class);
+    Mockito.doAnswer(new Answer() {
+
+        @Override
+        public Object answer(InvocationOnMock invocation) throws Throwable {
+            Object[] args = invocation.getArguments();
+            Assert.assertTrue("header should be visible inside chain and filters.", ((HttpServletResponse) args[1]).containsHeader(X_FRAME_OPTIONS));
+            return null;
+        }
+    }).when(chain).doFilter(any(), any());
+    Mockito.doAnswer(new Answer() {
+
+        @Override
+        public Object answer(InvocationOnMock invocation) throws Throwable {
+            Object[] args = invocation.getArguments();
+            Assert.assertTrue("Options value incorrect should be DENY but is: " + args[1], "DENY".equals(args[1]));
+            headers.add((String) args[1]);
+            return null;
+        }
+    }).when(response).setHeader(any(), any());
+    XFrameOptionsFilter filter = new XFrameOptionsFilter();
+    filter.init(filterConfig);
+    filter.doFilter(request, response, chain);
+    assertThat(headers.size()).withFailMessage("X-Frame-Options count not equal to 1.").isOne();
+}

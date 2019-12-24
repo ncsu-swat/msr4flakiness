@@ -1,0 +1,22 @@
+@Test
+@SuppressWarnings("unchecked")
+public void testDelegationTokenSelector() throws Exception {
+    TestDelegationTokenSecretManager dtSecretManager = new TestDelegationTokenSecretManager(24 * 60 * 60 * 1000, 10 * 1000, 1 * 1000, 3600000);
+    try {
+        dtSecretManager.startThreads();
+        AbstractDelegationTokenSelector ds = new AbstractDelegationTokenSelector<TestDelegationTokenIdentifier>(KIND);
+        // Creates a collection of tokens
+        Token<TestDelegationTokenIdentifier> token1 = generateDelegationToken(dtSecretManager, "SomeUser1", "JobTracker");
+        token1.setService(new Text("MY-SERVICE1"));
+        Token<TestDelegationTokenIdentifier> token2 = generateDelegationToken(dtSecretManager, "SomeUser2", "JobTracker");
+        token2.setService(new Text("MY-SERVICE2"));
+        List<Token<TestDelegationTokenIdentifier>> tokens = new ArrayList<Token<TestDelegationTokenIdentifier>>();
+        tokens.add(token1);
+        tokens.add(token2);
+        // try to select a token with a given service name (created earlier)
+        Token<TestDelegationTokenIdentifier> t = ds.selectToken(new Text("MY-SERVICE1"), tokens);
+        Assert.assertEquals(t, token1);
+    } finally {
+        dtSecretManager.stopThreads();
+    }
+}

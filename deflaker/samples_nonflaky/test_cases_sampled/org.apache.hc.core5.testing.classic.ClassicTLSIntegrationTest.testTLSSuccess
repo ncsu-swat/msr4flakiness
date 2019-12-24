@@ -1,0 +1,26 @@
+@Test
+public void testTLSSuccess() throws Exception {
+    server = ServerBootstrap.bootstrap().setSocketConfig(SocketConfig.custom().setSoTimeout(TIMEOUT).build()).setSslContext(SSLTestContexts.createServerSSLContext()).setExceptionListener(LoggingExceptionListener.INSTANCE).setStreamListener(LoggingHttp1StreamListener.INSTANCE).register("*", new EchoHandler()).create();
+    server.start();
+    final AtomicReference<SSLSession> sslSessionRef = new AtomicReference<>(null);
+    requester = RequesterBootstrap.bootstrap().setSslContext(SSLTestContexts.createClientSSLContext()).setSslSessionVerifier(new SSLSessionVerifier() {
+
+        @Override
+        public void verify(final HttpHost endpoint, final SSLSession sslSession) throws SSLException {
+            sslSessionRef.set(sslSession);
+        }
+    }).setSocketConfig(SocketConfig.custom().setSoTimeout(TIMEOUT).build()).setStreamListener(LoggingHttp1StreamListener.INSTANCE).setConnPoolListener(LoggingConnPoolListener.INSTANCE).create();
+    final HttpContext context = new BasicHttpContext();
+    final HttpHost target = new HttpHost("https", "localhost", server.getLocalPort());
+    final ClassicHttpRequest request1 = new BasicClassicHttpRequest(Method.POST, "/stuff");
+    request1.setEntity(new StringEntity("some stuff", ContentType.TEXT_PLAIN));
+    try (final ClassicHttpResponse response1 = requester.execute(target, request1, TIMEOUT, context)) {
+        Assert.assertThat(response1.getCode(), CoreMatchers.equalTo(HttpStatus.SC_OK));
+        final String body1 = EntityUtils.toString(response1.getEntity());
+        Assert.assertThat(body1, CoreMatchers.equalTo("some stuff"));
+    }
+    final SSLSession sslSession = sslSessionRef.getAndSet(null);
+    final ProtocolVersion tlsVersion = TLS.parse(sslSession.getProtocol());
+    Assert.assertThat(tlsVersion.greaterEquals(TLS.V_1_2.version), CoreMatchers.equalTo(true));
+    Assert.assertThat(sslSession.getPeerPrincipal().getName(), CoreMatchers.equalTo("CN=localhost,OU=Apache HttpComponents,O=Apache Software Foundation"));
+}

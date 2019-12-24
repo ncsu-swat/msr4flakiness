@@ -1,0 +1,20 @@
+// @SuppressWarnings("deprecation")
+@Test
+public void stopExitsWhenMaxRuntimeReached() throws InterruptedException {
+    // runtime of 0 means wait forever, so use 1 ms instead
+    int maxFlushTime = 1;
+    int loopLen = 10;
+    ListAppender<Integer> la = delayingListAppender;
+    asyncAppenderBase.addAppender(la);
+    asyncAppenderBase.setMaxFlushTime(maxFlushTime);
+    asyncAppenderBase.start();
+    for (int i = 0; i < loopLen; i++) {
+        asyncAppenderBase.doAppend(i);
+    }
+    asyncAppenderBase.stop();
+    // confirms that stop exited when runtime reached
+    statusChecker.assertContainsMatch("Max queue flush timeout \\(" + maxFlushTime + " ms\\) exceeded.");
+    asyncAppenderBase.worker.join();
+    // confirms that all entries do end up being flushed if we wait long enough
+    verify(la, loopLen);
+}

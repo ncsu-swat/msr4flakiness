@@ -1,0 +1,31 @@
+@Test
+public void testAppendBytes() throws WriterException {
+    // Should use appendNumericBytes.
+    // 1 = 01 = 0001 in 4 bits.
+    BitArray bits = new BitArray();
+    Encoder.appendBytes("1", Mode.NUMERIC, bits, Encoder.DEFAULT_BYTE_MODE_ENCODING);
+    assertEquals(" ...X", bits.toString());
+    // Should use appendAlphanumericBytes.
+    // A = 10 = 0xa = 001010 in 6 bits
+    bits = new BitArray();
+    Encoder.appendBytes("A", Mode.ALPHANUMERIC, bits, Encoder.DEFAULT_BYTE_MODE_ENCODING);
+    assertEquals(" ..X.X.", bits.toString());
+    // Lower letters such as 'a' cannot be encoded in MODE_ALPHANUMERIC.
+    try {
+        Encoder.appendBytes("a", Mode.ALPHANUMERIC, bits, Encoder.DEFAULT_BYTE_MODE_ENCODING);
+    } catch (WriterException we) {
+    // good
+    }
+    // Should use append8BitBytes.
+    // 0x61, 0x62, 0x63
+    bits = new BitArray();
+    Encoder.appendBytes("abc", Mode.BYTE, bits, Encoder.DEFAULT_BYTE_MODE_ENCODING);
+    assertEquals(" .XX....X .XX...X. .XX...XX", bits.toString());
+    // Anything can be encoded in QRCode.MODE_8BIT_BYTE.
+    Encoder.appendBytes("\0", Mode.BYTE, bits, Encoder.DEFAULT_BYTE_MODE_ENCODING);
+    // Should use appendKanjiBytes.
+    // 0x93, 0x5f
+    bits = new BitArray();
+    Encoder.appendBytes(shiftJISString(bytes(0x93, 0x5f)), Mode.KANJI, bits, Encoder.DEFAULT_BYTE_MODE_ENCODING);
+    assertEquals(" .XX.XX.. XXXXX", bits.toString());
+}

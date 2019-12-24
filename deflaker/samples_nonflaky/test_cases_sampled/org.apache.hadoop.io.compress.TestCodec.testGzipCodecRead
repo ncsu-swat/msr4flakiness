@@ -1,0 +1,31 @@
+@Test
+public void testGzipCodecRead() throws IOException {
+    // Create a gzipped file and try to read it back, using a decompressor
+    // from the CodecPool.
+    // Don't use native libs for this test.
+    Configuration conf = new Configuration();
+    ZlibFactory.setNativeZlibLoaded(false);
+    // Ensure that the CodecPool has a BuiltInZlibInflater in it.
+    Decompressor zlibDecompressor = ZlibFactory.getZlibDecompressor(conf);
+    assertNotNull("zlibDecompressor is null!", zlibDecompressor);
+    assertTrue("ZlibFactory returned unexpected inflator", zlibDecompressor instanceof BuiltInZlibInflater);
+    CodecPool.returnDecompressor(zlibDecompressor);
+    // Now create a GZip text file.
+    Path f = new Path(GenericTestUtils.getTempPath("testGzipCodecRead.txt.gz"));
+    BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(f.toString()))));
+    final String msg = "This is the message in the file!";
+    bw.write(msg);
+    bw.close();
+    // Now read it back, using the CodecPool to establish the
+    // decompressor to use.
+    CompressionCodecFactory ccf = new CompressionCodecFactory(conf);
+    CompressionCodec codec = ccf.getCodec(f);
+    Decompressor decompressor = CodecPool.getDecompressor(codec);
+    FileSystem fs = FileSystem.getLocal(conf);
+    InputStream is = fs.open(f);
+    is = codec.createInputStream(is, decompressor);
+    BufferedReader br = new BufferedReader(new InputStreamReader(is));
+    String line = br.readLine();
+    assertEquals("Didn't get the same message back!", msg, line);
+    br.close();
+}

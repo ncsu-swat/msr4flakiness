@@ -1,0 +1,21 @@
+@Test
+public void deepcopyOfTest() throws Exception {
+    final ClientTestingAdapter adapter = new ClientTestingAdapter() {
+
+        @Override
+        public Map<String, Object> execute(final String defaultURI, final Map<String, Object> request, final TestingFrameworkRequestHandler requestHandler, final Map<String, Object> responseExpectations) throws TestingFrameworkException {
+            Assert.assertEquals(201, responseExpectations.get(STATUS));
+            return alreadyCheckedResponse();
+        }
+    };
+    final TestingFramework framework = newFrameworkAndSetAdapter(adapter);
+    final Map<String, Object> test = new HashMap<>();
+    final Map<String, Object> response = new HashMap<>();
+    test.put(RESPONSE, response);
+    response.put(STATUS, 201);
+    framework.addTest(test);
+    // Make sure the framework makes a copy of the test for itself.
+    // This put should be ignored by the framework.
+    response.put(STATUS, 300);
+    framework.runTests();
+}

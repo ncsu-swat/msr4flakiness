@@ -1,0 +1,25 @@
+/**
+ * Test that, if the standby node is unhealthy, it doesn't try to become
+ * active
+ */
+@Test
+public void testDontFailoverToUnhealthyNode() throws Exception {
+    cluster.start();
+    // Make svc1 unhealthy, and wait for its FC to notice the bad health.
+    cluster.setHealthy(1, false);
+    cluster.waitForHealthState(1, HealthMonitor.State.SERVICE_UNHEALTHY);
+    // Expire svc0
+    cluster.getElector(0).preventSessionReestablishmentForTests();
+    try {
+        cluster.expireActiveLockHolder(0);
+        LOG.info("Expired svc0's ZK session. Waiting a second to give svc1" + " a chance to take the lock, if it is ever going to.");
+        Thread.sleep(1000);
+        // Ensure that no one holds the lock.
+        cluster.waitForActiveLockHolder(null);
+    } finally {
+        LOG.info("Allowing svc0's elector to re-establish its connection");
+        cluster.getElector(0).allowSessionReestablishmentForTests();
+    }
+    // svc0 should get the lock again
+    cluster.waitForActiveLockHolder(0);
+}

@@ -1,0 +1,22 @@
+@Test
+public void testChooseMode() throws WriterException {
+    // Numeric mode.
+    assertSame(Mode.NUMERIC, Encoder.chooseMode("0"));
+    assertSame(Mode.NUMERIC, Encoder.chooseMode("0123456789"));
+    // Alphanumeric mode.
+    assertSame(Mode.ALPHANUMERIC, Encoder.chooseMode("A"));
+    assertSame(Mode.ALPHANUMERIC, Encoder.chooseMode("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:"));
+    // 8-bit byte mode.
+    assertSame(Mode.BYTE, Encoder.chooseMode("a"));
+    assertSame(Mode.BYTE, Encoder.chooseMode("#"));
+    assertSame(Mode.BYTE, Encoder.chooseMode(""));
+    // Kanji mode.  We used to use MODE_KANJI for these, but we stopped
+    // doing that as we cannot distinguish Shift_JIS from other encodings
+    // from data bytes alone.  See also comments in qrcode_encoder.h.
+    // AIUE in Hiragana in Shift_JIS
+    assertSame(Mode.BYTE, Encoder.chooseMode(shiftJISString(bytes(0x8, 0xa, 0x8, 0xa, 0x8, 0xa, 0x8, 0xa6))));
+    // Nihon in Kanji in Shift_JIS.
+    assertSame(Mode.BYTE, Encoder.chooseMode(shiftJISString(bytes(0x9, 0xf, 0x9, 0x7b))));
+    // Sou-Utsu-Byou in Kanji in Shift_JIS.
+    assertSame(Mode.BYTE, Encoder.chooseMode(shiftJISString(bytes(0xe, 0x4, 0x9, 0x5, 0x9, 0x61))));
+}

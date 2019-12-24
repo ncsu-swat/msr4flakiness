@@ -1,0 +1,28 @@
+@Test
+public void testGetMetricsAndJmx() throws Exception {
+    // create test source with a single metric counter of value 0
+    TestSource source = new TestSource("test");
+    MetricsSourceBuilder sb = MetricsAnnotations.newSourceBuilder(source);
+    final MetricsSource s = sb.build();
+    List<MetricsTag> injectedTags = new ArrayList<MetricsTag>();
+    MetricsSourceAdapter sa = new MetricsSourceAdapter("test", "test", "test desc", s, injectedTags, null, null, 1, false);
+    // all metrics are initially assumed to have changed
+    MetricsCollectorImpl builder = new MetricsCollectorImpl();
+    Iterable<MetricsRecordImpl> metricsRecords = sa.getMetrics(builder, true);
+    // Validate getMetrics and JMX initial values
+    MetricsRecordImpl metricsRecord = metricsRecords.iterator().next();
+    assertEquals(0L, metricsRecord.metrics().iterator().next().value().longValue());
+    // skip JMX cache TTL
+    Thread.sleep(100);
+    assertEquals(0L, (Number) sa.getAttribute("C1"));
+    // change metric value
+    source.incrementCnt();
+    // validate getMetrics and JMX
+    builder = new MetricsCollectorImpl();
+    metricsRecords = sa.getMetrics(builder, true);
+    metricsRecord = metricsRecords.iterator().next();
+    assertTrue(metricsRecord.metrics().iterator().hasNext());
+    // skip JMX cache TTL
+    Thread.sleep(100);
+    assertEquals(1L, (Number) sa.getAttribute("C1"));
+}

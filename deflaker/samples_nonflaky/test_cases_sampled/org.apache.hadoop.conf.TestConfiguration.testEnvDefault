@@ -1,0 +1,35 @@
+@Test
+public void testEnvDefault() throws IOException {
+    Configuration mock = Mockito.spy(conf);
+    Mockito.when(mock.getenv("NULL_VALUE")).thenReturn(null);
+    Mockito.when(mock.getenv("EMPTY_VALUE")).thenReturn("");
+    Mockito.when(mock.getenv("SOME_VALUE")).thenReturn("some value");
+    out = new BufferedWriter(new FileWriter(CONFIG));
+    startConfig();
+    // if var is unbound, literal ${var} is returned
+    declareProperty("null1", "${env.NULL_VALUE}", "${env.NULL_VALUE}");
+    declareProperty("null2", "${env.NULL_VALUE-a}", "a");
+    declareProperty("null3", "${env.NULL_VALUE:-b}", "b");
+    declareProperty("empty1", "${env.EMPTY_VALUE}", "");
+    declareProperty("empty2", "${env.EMPTY_VALUE-c}", "");
+    declareProperty("empty3", "${env.EMPTY_VALUE:-d}", "d");
+    declareProperty("some1", "${env.SOME_VALUE}", "some value");
+    declareProperty("some2", "${env.SOME_VALUE-e}", "some value");
+    declareProperty("some3", "${env.SOME_VALUE:-f}", "some value");
+    // some edge cases
+    declareProperty("edge1", "${env.NULL_VALUE-g-h}", "g-h");
+    declareProperty("edge2", "${env.NULL_VALUE:-i:-j}", "i:-j");
+    declareProperty("edge3", "${env.NULL_VALUE-}", "");
+    declareProperty("edge4", "${env.NULL_VALUE:-}", "");
+    declareProperty("edge5", "${env.NULL_VALUE:}", "${env.NULL_VALUE:}");
+    endConfig();
+    Path fileResource = new Path(CONFIG);
+    mock.addResource(fileResource);
+    for (Prop p : props) {
+        System.out.println("p=" + p.name);
+        String gotVal = mock.get(p.name);
+        String gotRawVal = mock.getRaw(p.name);
+        assertEq(p.val, gotRawVal);
+        assertEq(p.expectEval, gotVal);
+    }
+}

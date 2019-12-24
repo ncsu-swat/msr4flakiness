@@ -1,0 +1,47 @@
+/**
+ * Tests that client generates a unique sequential call ID for each RPC call,
+ * even if multiple threads are using the same client.
+ * @throws InterruptedException
+ */
+@Test(timeout = 60000)
+public void testUniqueSequentialCallIds() throws IOException, InterruptedException {
+    int serverThreads = 10, callerCount = 100, perCallerCallCount = 100;
+    TestServer server = new TestServer(serverThreads, false);
+    // Attach a listener that tracks every call ID received by the server.  This
+    // list must be synchronized, because multiple server threads will add to it.
+    final List<Integer> callIds = Collections.synchronizedList(new ArrayList<Integer>());
+    server.callListener = new Runnable() {
+
+        @Override
+        public void run() {
+            callIds.add(Server.getCallId());
+        }
+    };
+    Client client = new Client(LongWritable.class, conf);
+    try {
+        InetSocketAddress addr = NetUtils.getConnectAddress(server);
+        server.start();
+        SerialCaller[] callers = new SerialCaller[callerCount];
+        for (int i = 0; i < callerCount; ++i) {
+            callers[i] = new SerialCaller(client, addr, perCallerCallCount);
+            callers[i].start();
+        }
+        for (int i = 0; i < callerCount; ++i) {
+            callers[i].join();
+            assertFalse(callers[i].failed);
+        }
+    } finally {
+        client.stop();
+        server.stop();
+    }
+    int expectedCallCount = callerCount * perCallerCallCount;
+    assertEquals(expectedCallCount, callIds.size());
+    // It is not guaranteed that the server executes requests in sequential order
+    // of client call ID, so we must sort the call IDs before checking that it
+    // contains every expected value.
+    Collections.sort(callIds);
+    final int startID = callIds.get(0).intValue();
+    for (int i = 0; i < expectedCallCount; ++i) {
+        assertEquals(startID + i, callIds.get(i).intValue());
+    }
+}

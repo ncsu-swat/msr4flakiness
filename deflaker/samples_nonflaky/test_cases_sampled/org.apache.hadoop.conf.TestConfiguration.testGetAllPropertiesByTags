@@ -1,0 +1,41 @@
+@Test
+public void testGetAllPropertiesByTags() throws Exception {
+    try {
+        out = new BufferedWriter(new FileWriter(CONFIG_CORE));
+        startConfig();
+        appendProperty("hadoop.tags.system", "YARN,HDFS,NAMENODE");
+        appendProperty("hadoop.tags.custom", "MYCUSTOMTAG");
+        appendPropertyByTag("dfs.cblock.trace.io", "false", "YARN");
+        appendPropertyByTag("dfs.replication", "1", "HDFS");
+        appendPropertyByTag("dfs.namenode.logging.level", "INFO", "NAMENODE");
+        appendPropertyByTag("dfs.random.key", "XYZ", "MYCUSTOMTAG");
+        endConfig();
+        Path fileResource = new Path(CONFIG_CORE);
+        conf.addResource(fileResource);
+        conf.getProps();
+    } finally {
+        out.close();
+    }
+    System.out.println(Files.readAllLines(Paths.get(CONFIG_CORE)));
+    List<String> tagList = new ArrayList<>();
+    tagList.add("YARN");
+    tagList.add("HDFS");
+    tagList.add("NAMENODE");
+    Properties properties = conf.getAllPropertiesByTags(tagList);
+    String[] sources = conf.getPropertySources("dfs.replication");
+    assertTrue(sources.length == 1);
+    assertTrue(Arrays.toString(sources).contains("core-site.xml"));
+    assertEq(3, properties.size());
+    assertEq(true, properties.containsKey("dfs.namenode.logging.level"));
+    assertEq(true, properties.containsKey("dfs.replication"));
+    assertEq(true, properties.containsKey("dfs.cblock.trace.io"));
+    assertEq(false, properties.containsKey("namenode.host"));
+    properties = conf.getAllPropertiesByTag("DEBUG");
+    assertEq(0, properties.size());
+    assertEq(false, properties.containsKey("dfs.namenode.logging.level"));
+    assertEq(true, conf.isPropertyTag("YARN"));
+    assertEq(true, conf.isPropertyTag("HDFS"));
+    assertEq(true, conf.isPropertyTag("NAMENODE"));
+    assertEq(true, conf.isPropertyTag("MYCUSTOMTAG"));
+    assertEq(false, conf.isPropertyTag("CMYCUSTOMTAG2"));
+}

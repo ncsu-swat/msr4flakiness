@@ -1,0 +1,29 @@
+@Test(timeout = 30000)
+public void testReload() throws Exception {
+    KeyPair kp = generateKeyPair("RSA");
+    cert1 = generateCertificate("CN=Cert1", kp, 30, "SHA1withRSA");
+    cert2 = generateCertificate("CN=Cert2", kp, 30, "SHA1withRSA");
+    String truststoreLocation = BASEDIR + "/testreload.jks";
+    createTrustStore(truststoreLocation, "password", "cert1", cert1);
+    final ReloadingX509TrustManager tm = new ReloadingX509TrustManager("jks", truststoreLocation, "password", 10);
+    try {
+        tm.init();
+        assertEquals(1, tm.getAcceptedIssuers().length);
+        // Wait so that the file modification time is different
+        Thread.sleep((tm.getReloadInterval() + 1000));
+        // Add another cert
+        Map<String, X509Certificate> certs = new HashMap<String, X509Certificate>();
+        certs.put("cert1", cert1);
+        certs.put("cert2", cert2);
+        createTrustStore(truststoreLocation, "password", certs);
+        GenericTestUtils.waitFor(new Supplier<Boolean>() {
+
+            @Override
+            public Boolean get() {
+                return tm.getAcceptedIssuers().length == 2;
+            }
+        }, (int) tm.getReloadInterval(), 10000);
+    } finally {
+        tm.destroy();
+    }
+}

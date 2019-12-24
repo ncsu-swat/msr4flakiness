@@ -1,0 +1,13 @@
+@Test
+public void testBadUmasks() {
+    Configuration conf = new Configuration();
+    for (String b : new String[] { "1777", "22", "99", "foo", "" }) {
+        conf.set(FsPermission.UMASK_LABEL, b);
+        try {
+            FsPermission.getUMask(conf);
+            fail("Shouldn't have been able to parse bad umask");
+        } catch (IllegalArgumentException iae) {
+            assertTrue("Exception should specify parsing error and invalid umask: " + iae.getMessage(), isCorrectExceptionMessage(iae.getMessage(), b));
+        }
+    }
+}

@@ -1,0 +1,25 @@
+@Test
+public void testMultiQRCodes() throws Exception {
+    // Very basic test for now
+    Path testBase = AbstractBlackBoxTestCase.buildTestBase("src/test/resources/blackbox/multi-qrcode-1");
+    Path testImage = testBase.resolve("1.png");
+    BufferedImage image = ImageIO.read(testImage.toFile());
+    LuminanceSource source = new BufferedImageLuminanceSource(image);
+    BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
+    MultipleBarcodeReader reader = new QRCodeMultiReader();
+    Result[] results = reader.decodeMultiple(bitmap);
+    assertNotNull(results);
+    assertEquals(4, results.length);
+    Collection<String> barcodeContents = new HashSet<>();
+    for (Result result : results) {
+        barcodeContents.add(result.getText());
+        assertEquals(BarcodeFormat.QR_CODE, result.getBarcodeFormat());
+        assertNotNull(result.getResultMetadata());
+    }
+    Collection<String> expectedContents = new HashSet<>();
+    expectedContents.add("You earned the class a 5 MINUTE DANCE PARTY!!  Awesome!  Way to go!  Let's boogie!");
+    expectedContents.add("You earned the class 5 EXTRA MINUTES OF RECESS!!  Fabulous!!  Way to go!!");
+    expectedContents.add("You get to SIT AT MRS. SIGMON'S DESK FOR A DAY!!  Awesome!!  Way to go!! Guess I better clean up! :)");
+    expectedContents.add("You get to CREATE OUR JOURNAL PROMPT FOR THE DAY!  Yay!  Way to go!  ");
+    assertEquals(expectedContents, barcodeContents);
+}

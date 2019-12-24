@@ -1,0 +1,28 @@
+/**
+ * Test the add by name method
+ */
+@Test
+public void testAddByName() {
+    MetricsRecordBuilder rb = mockMetricsRecordBuilder();
+    final MetricsRegistry r = new MetricsRegistry("test");
+    r.add("s1", 42);
+    r.get("s1").snapshot(rb);
+    verify(rb).addCounter(info("S1NumOps", "Number of ops for s1"), 1L);
+    verify(rb).addGauge(info("S1AvgTime", "Average time for s1"), 42.0);
+    r.newCounter("c1", "test add", 1);
+    r.newGauge("g1", "test add", 1);
+    expectMetricsException("Unsupported add", new Runnable() {
+
+        @Override
+        public void run() {
+            r.add("c1", 42);
+        }
+    });
+    expectMetricsException("Unsupported add", new Runnable() {
+
+        @Override
+        public void run() {
+            r.add("g1", 42);
+        }
+    });
+}

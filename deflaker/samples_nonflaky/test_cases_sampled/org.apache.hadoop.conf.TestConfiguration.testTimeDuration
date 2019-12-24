@@ -1,0 +1,37 @@
+@Test
+public void testTimeDuration() {
+    Configuration conf = new Configuration(false);
+    assertEquals(7000L, conf.getTimeDuration("test.time.a", 7L, SECONDS, MILLISECONDS));
+    conf.setTimeDuration("test.time.a", 7L, SECONDS);
+    assertEquals("7s", conf.get("test.time.a"));
+    assertEquals(0L, conf.getTimeDuration("test.time.a", 30, MINUTES));
+    assertEquals(0L, conf.getTimeDuration("test.time.a", 30, SECONDS, MINUTES));
+    assertEquals(7L, conf.getTimeDuration("test.time.a", 30, SECONDS));
+    assertEquals(7L, conf.getTimeDuration("test.time.a", 30, MILLISECONDS, SECONDS));
+    assertEquals(7000L, conf.getTimeDuration("test.time.a", 30, MILLISECONDS));
+    assertEquals(7000000L, conf.getTimeDuration("test.time.a", 30, MICROSECONDS));
+    assertEquals(7000000000L, conf.getTimeDuration("test.time.a", 30, NANOSECONDS));
+    conf.setTimeDuration("test.time.b", 1, DAYS);
+    assertEquals("1d", conf.get("test.time.b"));
+    assertEquals(1, conf.getTimeDuration("test.time.b", 1, DAYS));
+    assertEquals(24, conf.getTimeDuration("test.time.b", 1, HOURS));
+    assertEquals(MINUTES.convert(1, DAYS), conf.getTimeDuration("test.time.b", 1, MINUTES));
+    // check default
+    assertEquals(30L, conf.getTimeDuration("test.time.X", 30, SECONDS));
+    conf.set("test.time.X", "30");
+    assertEquals(30L, conf.getTimeDuration("test.time.X", 40, SECONDS));
+    assertEquals(30000L, conf.getTimeDuration("test.time.X", 40, SECONDS, MILLISECONDS));
+    assertEquals(10L, conf.getTimeDuration("test.time.c", "10", SECONDS));
+    assertEquals(30L, conf.getTimeDuration("test.time.c", "30s", SECONDS));
+    assertEquals(120L, conf.getTimeDuration("test.time.c", "2m", SECONDS));
+    conf.set("test.time.c", "30");
+    assertEquals(30L, conf.getTimeDuration("test.time.c", "40s", SECONDS));
+    // check suffix insensitive
+    conf.set("test.time.d", "30S");
+    assertEquals(30L, conf.getTimeDuration("test.time.d", 40, SECONDS));
+    for (Configuration.ParsedTimeDuration ptd : Configuration.ParsedTimeDuration.values()) {
+        conf.setTimeDuration("test.time.unit", 1, ptd.unit());
+        assertEquals(1 + ptd.suffix(), conf.get("test.time.unit"));
+        assertEquals(1, conf.getTimeDuration("test.time.unit", 2, ptd.unit()));
+    }
+}

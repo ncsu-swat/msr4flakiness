@@ -1,0 +1,71 @@
+/**
+ * verify behavior of watcher.process with node event
+ */
+@Test
+public void testProcessCallbackEventNode() throws Exception {
+    mockNoPriorActive();
+    elector.joinElection(data);
+    // make the object go into the monitoring state
+    elector.processResult(Code.NODEEXISTS.intValue(), ZK_LOCK_NAME, mockZK, ZK_LOCK_NAME);
+    Mockito.verify(mockApp, Mockito.times(1)).becomeStandby();
+    verifyExistCall(1);
+    Assert.assertTrue(elector.isMonitorLockNodePending());
+    Stat stat = new Stat();
+    stat.setEphemeralOwner(0L);
+    Mockito.when(mockZK.getSessionId()).thenReturn(1L);
+    elector.processResult(Code.OK.intValue(), ZK_LOCK_NAME, mockZK, stat);
+    Assert.assertFalse(elector.isMonitorLockNodePending());
+    WatchedEvent mockEvent = Mockito.mock(WatchedEvent.class);
+    Mockito.when(mockEvent.getPath()).thenReturn(ZK_LOCK_NAME);
+    // monitoring should be setup again after event is received
+    Mockito.when(mockEvent.getType()).thenReturn(Event.EventType.NodeDataChanged);
+    elector.processWatchEvent(mockZK, mockEvent);
+    verifyExistCall(2);
+    Assert.assertTrue(elector.isMonitorLockNodePending());
+    elector.processResult(Code.OK.intValue(), ZK_LOCK_NAME, mockZK, stat);
+    Assert.assertFalse(elector.isMonitorLockNodePending());
+    // monitoring should be setup again after event is received
+    Mockito.when(mockEvent.getType()).thenReturn(Event.EventType.NodeChildrenChanged);
+    elector.processWatchEvent(mockZK, mockEvent);
+    verifyExistCall(3);
+    Assert.assertTrue(elector.isMonitorLockNodePending());
+    elector.processResult(Code.OK.intValue(), ZK_LOCK_NAME, mockZK, stat);
+    Assert.assertFalse(elector.isMonitorLockNodePending());
+    // lock node deletion when in standby mode should create znode again
+    // successful znode creation enters active state and sets monitor
+    Mockito.when(mockEvent.getType()).thenReturn(Event.EventType.NodeDeleted);
+    elector.processWatchEvent(mockZK, mockEvent);
+    // enterNeutralMode not called when app is standby and leader is lost
+    Mockito.verify(mockApp, Mockito.times(0)).enterNeutralMode();
+    // once in initial joinElection() and one now
+    Mockito.verify(mockZK, Mockito.times(2)).create(ZK_LOCK_NAME, data, Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL, elector, mockZK);
+    elector.processResult(Code.OK.intValue(), ZK_LOCK_NAME, mockZK, ZK_LOCK_NAME);
+    Mockito.verify(mockApp, Mockito.times(1)).becomeActive();
+    verifyExistCall(4);
+    Assert.assertTrue(elector.isMonitorLockNodePending());
+    stat.setEphemeralOwner(1L);
+    elector.processResult(Code.OK.intValue(), ZK_LOCK_NAME, mockZK, stat);
+    Assert.assertFalse(elector.isMonitorLockNodePending());
+    // lock node deletion in active mode should enter neutral mode and create
+    // znode again successful znode creation enters active state and sets
+    // monitor
+    Mockito.when(mockEvent.getType()).thenReturn(Event.EventType.NodeDeleted);
+    elector.processWatchEvent(mockZK, mockEvent);
+    Mockito.verify(mockApp, Mockito.times(1)).enterNeutralMode();
+    // another joinElection called
+    Mockito.verify(mockZK, Mockito.times(3)).create(ZK_LOCK_NAME, data, Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL, elector, mockZK);
+    elector.processResult(Code.OK.intValue(), ZK_LOCK_NAME, mockZK, ZK_LOCK_NAME);
+    Mockito.verify(mockApp, Mockito.times(2)).becomeActive();
+    verifyExistCall(5);
+    Assert.assertTrue(elector.isMonitorLockNodePending());
+    elector.processResult(Code.OK.intValue(), ZK_LOCK_NAME, mockZK, stat);
+    Assert.assertFalse(elector.isMonitorLockNodePending());
+    // bad path name results in fatal error
+    Mockito.when(mockEvent.getPath()).thenReturn(null);
+    elector.processWatchEvent(mockZK, mockEvent);
+    Mockito.verify(mockApp, Mockito.times(1)).notifyFatalError("Unexpected watch error from Zookeeper");
+    // fatal error means no new connection other than one from constructor
+    Assert.assertEquals(1, count);
+    // no new watches after fatal error
+    verifyExistCall(5);
+}

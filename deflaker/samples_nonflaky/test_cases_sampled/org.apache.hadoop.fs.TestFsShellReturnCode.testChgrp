@@ -1,0 +1,42 @@
+/**
+ * Test Chgrp 1. Create and write file on FS 2. Verify that exit code for
+ * chgrp on existing file is 0 3. Verify that exit code for chgrp on
+ * non-existing file is 1 4. Verify that exit code for chgrp with glob input
+ * on non-existing file is 1 5. Verify that exit code for chgrp with glob
+ * input on existing file in 0
+ *
+ * @throws Exception
+ */
+@Test(timeout = 30000)
+public void testChgrp() throws Exception {
+    Path p1 = new Path(TEST_ROOT_DIR, "testChgrp/fileExists");
+    final String f1 = p1.toUri().getPath();
+    final String f2 = new Path(TEST_ROOT_DIR, "testChgrp/fileDoesNotExist").toUri().getPath();
+    final String f3 = new Path(TEST_ROOT_DIR, "testChgrp/nonExistingfiles*").toUri().getPath();
+    final Path p4 = new Path(TEST_ROOT_DIR, "testChgrp/file1");
+    final Path p5 = new Path(TEST_ROOT_DIR, "testChgrp/file2");
+    final Path p6 = new Path(TEST_ROOT_DIR, "testChgrp/file3");
+    final String f7 = new Path(TEST_ROOT_DIR, "testChgrp/file*").toUri().getPath();
+    // create and write test file
+    writeFile(fileSys, p1);
+    assertTrue(fileSys.exists(p1));
+    // Test 1: exit code for chgrp on existing file is 0
+    change(0, null, "admin", f1);
+    // Test 2: exit code for chgrp on non existing path is 1
+    change(1, null, "admin", f2);
+    // exit code used to be for last item
+    change(1, null, "admin", f2, f1);
+    // Test 3: exit code for chgrp on non-existing path with globbed input is 1
+    change(1, null, "admin", f3);
+    change(1, null, "admin", f3, f1);
+    // create required files
+    writeFile(fileSys, p4);
+    assertTrue(fileSys.exists(p4));
+    writeFile(fileSys, p5);
+    assertTrue(fileSys.exists(p5));
+    writeFile(fileSys, p6);
+    assertTrue(fileSys.exists(p6));
+    // Test 4: exit code for chgrp on existing path with globbed input is 0
+    change(0, null, "admin", f7);
+    change(1, null, "admin", f2, f7);
+}

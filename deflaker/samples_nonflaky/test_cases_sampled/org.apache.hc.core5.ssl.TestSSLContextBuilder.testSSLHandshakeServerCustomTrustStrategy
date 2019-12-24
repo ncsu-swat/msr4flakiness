@@ -1,0 +1,62 @@
+@Test
+public void testSSLHandshakeServerCustomTrustStrategy() throws Exception {
+    final URL resource1 = getResource("/test-server.p12");
+    final String storePassword = "nopassword";
+    final String keyPassword = "nopassword";
+    final SSLContext serverSslContext = SSLContextBuilder.create().loadKeyMaterial(resource1, storePassword.toCharArray(), keyPassword.toCharArray()).build();
+    Assert.assertNotNull(serverSslContext);
+    final AtomicReference<X509Certificate[]> certChainRef = new AtomicReference<>();
+    final TrustStrategy trustStrategy = new TrustStrategy() {
+
+        @Override
+        public boolean isTrusted(final X509Certificate[] chain, final String authType) throws CertificateException {
+            certChainRef.set(chain);
+            return true;
+        }
+    };
+    final SSLContext clientSslContext = SSLContextBuilder.create().loadTrustMaterial(trustStrategy).build();
+    Assert.assertNotNull(clientSslContext);
+    final ServerSocket serverSocket = serverSslContext.getServerSocketFactory().createServerSocket();
+    serverSocket.bind(new InetSocketAddress(0));
+    this.executorService = Executors.newSingleThreadExecutor();
+    final Future<Boolean> future = this.executorService.submit(new Callable<Boolean>() {
+
+        @Override
+        public Boolean call() throws Exception {
+            final Socket socket = serverSocket.accept();
+            try {
+                final OutputStream outputStream = socket.getOutputStream();
+                outputStream.write(new byte[] { 'H', 'i' });
+                outputStream.flush();
+            } finally {
+                socket.close();
+            }
+            return Boolean.TRUE;
+        }
+    });
+    final int localPort = serverSocket.getLocalPort();
+    try (final SSLSocket clientSocket = (SSLSocket) clientSslContext.getSocketFactory().createSocket()) {
+        clientSocket.connect(new InetSocketAddress("localhost", localPort), TIMEOUT.toMillisecondsIntBound());
+        clientSocket.setSoTimeout(TIMEOUT.toMillisecondsIntBound());
+        final InputStream inputStream = clientSocket.getInputStream();
+        Assert.assertEquals('H', inputStream.read());
+        Assert.assertEquals('i', inputStream.read());
+        Assert.assertEquals(-1, inputStream.read());
+    }
+    final Boolean result = future.get(5, TimeUnit.SECONDS);
+    Assert.assertNotNull(result);
+    final X509Certificate[] certs = certChainRef.get();
+    Assert.assertNotNull(certs);
+    Assert.assertEquals(2, certs.length);
+    final X509Certificate cert1 = certs[0];
+    final Principal subjectDN1 = cert1.getSubjectDN();
+    Assert.assertNotNull(subjectDN1);
+    Assert.assertEquals("CN=Test Server, OU=HttpComponents Project, O=Apache Software Foundation", subjectDN1.getName());
+    final X509Certificate cert2 = certs[1];
+    final Principal subjectDN2 = cert2.getSubjectDN();
+    Assert.assertNotNull(subjectDN2);
+    Assert.assertEquals("EMAILADDRESS=dev@hc.apache.org, " + "CN=Test CA, OU=HttpComponents Project, O=Apache Software Foundation", subjectDN2.getName());
+    final Principal issuerDN = cert2.getIssuerDN();
+    Assert.assertNotNull(issuerDN);
+    Assert.assertEquals("EMAILADDRESS=dev@hc.apache.org, " + "CN=Test CA, OU=HttpComponents Project, O=Apache Software Foundation", issuerDN.getName());
+}

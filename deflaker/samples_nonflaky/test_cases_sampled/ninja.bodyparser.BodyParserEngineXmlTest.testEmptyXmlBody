@@ -1,0 +1,23 @@
+@Test
+public void testEmptyXmlBody() {
+    final String xmlDocument = "";
+    final InputStream is = new ByteArrayInputStream(xmlDocument.getBytes());
+    final XmlMapper xmlObjMapper = new XmlMapper();
+    final BodyParserEngineXml bodyParserEngineXml = new BodyParserEngineXml(xmlObjMapper);
+    boolean badRequestThrown = false;
+    try {
+        Mockito.when(context.getInputStream()).thenReturn(is);
+    } catch (IOException ignore) {
+    }
+    try {
+        bodyParserEngineXml.invoke(context, SimpleTestForm.class);
+    } catch (BadRequestException ignore) {
+        badRequestThrown = true;
+    } finally {
+        try {
+            is.close();
+        } catch (IOException ignore) {
+        }
+    }
+    assertTrue(badRequestThrown);
+}

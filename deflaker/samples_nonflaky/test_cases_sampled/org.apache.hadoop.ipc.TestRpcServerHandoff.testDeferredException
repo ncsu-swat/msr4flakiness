@@ -1,0 +1,29 @@
+@Test(timeout = 10000)
+public void testDeferredException() throws IOException, InterruptedException, ExecutionException {
+    ServerForHandoffTest server = new ServerForHandoffTest(2);
+    server.start();
+    try {
+        InetSocketAddress serverAddress = NetUtils.getConnectAddress(server);
+        byte[] requestBytes = generateRandomBytes(1024);
+        ClientCallable clientCallable = new ClientCallable(serverAddress, conf, requestBytes);
+        FutureTask<Writable> future = new FutureTask<Writable>(clientCallable);
+        Thread clientThread = new Thread(future);
+        clientThread.start();
+        server.awaitInvocation();
+        awaitResponseTimeout(future);
+        server.sendError();
+        try {
+            future.get();
+            Assert.fail("Call succeeded. Was expecting an exception");
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            Assert.assertTrue(cause instanceof RemoteException);
+            RemoteException re = (RemoteException) cause;
+            Assert.assertTrue(re.toString().contains("DeferredError"));
+        }
+    } finally {
+        if (server != null) {
+            server.stop();
+        }
+    }
+}

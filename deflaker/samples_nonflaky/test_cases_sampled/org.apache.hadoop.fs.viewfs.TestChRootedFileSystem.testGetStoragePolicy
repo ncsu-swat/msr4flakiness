@@ -1,0 +1,12 @@
+@Test(timeout = 30000)
+public void testGetStoragePolicy() throws Exception {
+    Path storagePolicyPath = new Path("/storagePolicy");
+    Path chRootedStoragePolicyPath = new Path("/a/b/storagePolicy");
+    Configuration conf = new Configuration();
+    conf.setClass("fs.mockfs.impl", MockFileSystem.class, FileSystem.class);
+    URI chrootUri = URI.create("mockfs://foo/a/b");
+    ChRootedFileSystem chrootFs = new ChRootedFileSystem(chrootUri, conf);
+    FileSystem mockFs = ((FilterFileSystem) chrootFs.getRawFileSystem()).getRawFileSystem();
+    chrootFs.getStoragePolicy(storagePolicyPath);
+    verify(mockFs).getStoragePolicy(chRootedStoragePolicyPath);
+}

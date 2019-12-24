@@ -1,0 +1,26 @@
+/**
+ * Test parsing /proc/diskstats
+ * @throws IOException
+ */
+@Test
+public void parsingProcDisksFile() throws IOException {
+    long numSectorsReadsda = 1790549L;
+    long numSectorsWrittensda = 1839071L;
+    long numSectorsReadsdc = 20541402L;
+    long numSectorsWrittensdc = 32617658L;
+    long numSectorsReadsde = 19439751L;
+    long numSectorsWrittensde = 31838072L;
+    long numSectorsReadsdf = 20334546L;
+    long numSectorsWrittensdf = 33168970L;
+    File tempFile = new File(FAKE_DISKSFILE);
+    tempFile.deleteOnExit();
+    FileWriter fWriter = new FileWriter(FAKE_DISKSFILE);
+    fWriter.write(String.format(DISKSINFO_FORMAT, numSectorsReadsda, numSectorsWrittensda, numSectorsReadsdc, numSectorsWrittensdc, numSectorsReadsde, numSectorsWrittensde, numSectorsReadsdf, numSectorsWrittensdf));
+    fWriter.close();
+    long expectedNumSectorsRead = numSectorsReadsda + numSectorsReadsdc + numSectorsReadsde + numSectorsReadsdf;
+    long expectedNumSectorsWritten = numSectorsWrittensda + numSectorsWrittensdc + numSectorsWrittensde + numSectorsWrittensdf;
+    // use non-default sector size
+    int diskSectorSize = FakeLinuxResourceCalculatorPlugin.SECTORSIZE;
+    assertEquals(expectedNumSectorsRead * diskSectorSize, plugin.getStorageBytesRead());
+    assertEquals(expectedNumSectorsWritten * diskSectorSize, plugin.getStorageBytesWritten());
+}

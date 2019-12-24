@@ -1,0 +1,26 @@
+@Test(timeout = 30000)
+public void testReloadCorruptTrustStore() throws Exception {
+    KeyPair kp = generateKeyPair("RSA");
+    cert1 = generateCertificate("CN=Cert1", kp, 30, "SHA1withRSA");
+    cert2 = generateCertificate("CN=Cert2", kp, 30, "SHA1withRSA");
+    String truststoreLocation = BASEDIR + "/testcorrupt.jks";
+    createTrustStore(truststoreLocation, "password", "cert1", cert1);
+    ReloadingX509TrustManager tm = new ReloadingX509TrustManager("jks", truststoreLocation, "password", 10);
+    try {
+        tm.init();
+        assertEquals(1, tm.getAcceptedIssuers().length);
+        final X509Certificate cert = tm.getAcceptedIssuers()[0];
+        // Wait so that the file modification time is different
+        Thread.sleep((tm.getReloadInterval() + 1000));
+        assertFalse(reloaderLog.getOutput().contains(ReloadingX509TrustManager.RELOAD_ERROR_MESSAGE));
+        OutputStream os = new FileOutputStream(truststoreLocation);
+        os.write(1);
+        os.close();
+        waitForFailedReloadAtLeastOnce((int) tm.getReloadInterval());
+        assertEquals(1, tm.getAcceptedIssuers().length);
+        assertEquals(cert, tm.getAcceptedIssuers()[0]);
+    } finally {
+        reloaderLog.stopCapturing();
+        tm.destroy();
+    }
+}

@@ -1,0 +1,45 @@
+@Test(timeout = 30000)
+public /*
+   * Test method copy(FileSystem srcFS, Path src, File dst, boolean deleteSource, Configuration conf)
+   */
+void testCopy5() throws IOException {
+    setupDirs();
+    URI uri = tmp.toURI();
+    Configuration conf = new Configuration();
+    FileSystem fs = FileSystem.newInstance(uri, conf);
+    final String content = "some-content";
+    File srcFile = createFile(tmp, "src", content);
+    Path srcPath = new Path(srcFile.toURI());
+    // copy regular file:
+    final File dest = new File(del, "dest");
+    boolean result = FileUtil.copy(fs, srcPath, dest, false, conf);
+    assertTrue(result);
+    assertTrue(dest.exists());
+    assertEquals(content.getBytes().length + System.getProperty("line.separator").getBytes().length, dest.length());
+    // should not be deleted
+    assertTrue(srcFile.exists());
+    // copy regular file, delete src:
+    dest.delete();
+    assertTrue(!dest.exists());
+    result = FileUtil.copy(fs, srcPath, dest, true, conf);
+    assertTrue(result);
+    assertTrue(dest.exists());
+    assertEquals(content.getBytes().length + System.getProperty("line.separator").getBytes().length, dest.length());
+    // should be deleted
+    assertTrue(!srcFile.exists());
+    // copy a dir:
+    dest.delete();
+    assertTrue(!dest.exists());
+    srcPath = new Path(partitioned.toURI());
+    result = FileUtil.copy(fs, srcPath, dest, true, conf);
+    assertTrue(result);
+    assertTrue(dest.exists() && dest.isDirectory());
+    File[] files = dest.listFiles();
+    assertTrue(files != null);
+    assertEquals(2, files.length);
+    for (File f : files) {
+        assertEquals(3 + System.getProperty("line.separator").getBytes().length, f.length());
+    }
+    // should be deleted
+    assertTrue(!partitioned.exists());
+}

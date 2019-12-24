@@ -1,0 +1,32 @@
+@Test(timeout = 60000)
+public void testAdditionsAndRemovals() {
+    IdentityHashStore<Key, Integer> store = new IdentityHashStore<Key, Integer>(0);
+    final int NUM_KEYS = 1000;
+    LOG.debug("generating " + NUM_KEYS + " keys");
+    final List<Key> keys = new ArrayList<Key>(NUM_KEYS);
+    for (int i = 0; i < NUM_KEYS; i++) {
+        keys.add(new Key("key " + i));
+    }
+    for (int i = 0; i < NUM_KEYS; i++) {
+        store.put(keys.get(i), i);
+    }
+    store.visitAll(new Visitor<Key, Integer>() {
+
+        @Override
+        public void accept(Key k, Integer v) {
+            Assert.assertTrue(keys.contains(k));
+        }
+    });
+    for (int i = 0; i < NUM_KEYS; i++) {
+        Assert.assertEquals(Integer.valueOf(i), store.remove(keys.get(i)));
+    }
+    store.visitAll(new Visitor<Key, Integer>() {
+
+        @Override
+        public void accept(Key k, Integer v) {
+            Assert.fail("expected all entries to be removed");
+        }
+    });
+    Assert.assertTrue("expected the store to be " + "empty, but found " + store.numElements() + " elements.", store.isEmpty());
+    Assert.assertEquals(1024, store.capacity());
+}

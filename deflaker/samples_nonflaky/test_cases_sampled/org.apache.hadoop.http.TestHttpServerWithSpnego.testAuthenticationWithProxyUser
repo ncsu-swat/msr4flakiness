@@ -1,0 +1,67 @@
+/**
+ * groupA
+ *  - userA
+ * groupB
+ *  - userA, userB
+ * groupC
+ *  - userC
+ * SPNEGO filter has been enabled.
+ * userA has the privilege to impersonate users in groupB.
+ * userA has admin access to all default servlets, but userB
+ * and userC don't have. So "/logs" can only be accessed by userA.
+ * @throws Exception
+ */
+@Test
+public void testAuthenticationWithProxyUser() throws Exception {
+    Configuration spengoConf = getSpengoConf(new Configuration());
+    // setup logs dir
+    System.setProperty("hadoop.log.dir", testRootDir.getAbsolutePath());
+    // Setup user group
+    UserGroupInformation.createUserForTesting("userA", new String[] { "groupA", "groupB" });
+    UserGroupInformation.createUserForTesting("userB", new String[] { "groupB" });
+    UserGroupInformation.createUserForTesting("userC", new String[] { "groupC" });
+    // Make userA impersonate users in groupB
+    spengoConf.set("hadoop.proxyuser.userA.hosts", "*");
+    spengoConf.set("hadoop.proxyuser.userA.groups", "groupB");
+    ProxyUsers.refreshSuperUserGroupsConfiguration(spengoConf);
+    HttpServer2 httpServer = null;
+    try {
+        // Create http server to test.
+        httpServer = getCommonBuilder().setConf(spengoConf).setACL(new AccessControlList("userA groupA")).build();
+        httpServer.start();
+        // Get signer to encrypt token
+        Signer signer = getSignerToEncrypt();
+        // setup auth token for userA
+        AuthenticatedURL.Token token = getEncryptedAuthToken(signer, "userA");
+        String serverURL = "http://" + NetUtils.getHostPortString(httpServer.getConnectorAddress(0)) + "/";
+        // The default authenticator is kerberos.
+        AuthenticatedURL authUrl = new AuthenticatedURL();
+        // userA impersonates userB, it's allowed.
+        for (String servlet : new String[] { "stacks", "jmx", "conf" }) {
+            HttpURLConnection conn = authUrl.openConnection(new URL(serverURL + servlet + "?doAs=userB"), token);
+            Assert.assertEquals(HttpURLConnection.HTTP_OK, conn.getResponseCode());
+        }
+        // userA cannot impersonate userC, it fails.
+        for (String servlet : new String[] { "stacks", "jmx", "conf" }) {
+            HttpURLConnection conn = authUrl.openConnection(new URL(serverURL + servlet + "?doAs=userC"), token);
+            Assert.assertEquals(HttpURLConnection.HTTP_FORBIDDEN, conn.getResponseCode());
+        }
+        // "/logs" and "/logLevel" require admin authorization,
+        // only userA has the access.
+        for (String servlet : new String[] { "logLevel", "logs" }) {
+            HttpURLConnection conn = authUrl.openConnection(new URL(serverURL + servlet), token);
+            Assert.assertEquals(HttpURLConnection.HTTP_OK, conn.getResponseCode());
+        }
+        // Setup token for userB
+        token = getEncryptedAuthToken(signer, "userB");
+        // userB cannot access these servlets.
+        for (String servlet : new String[] { "logLevel", "logs" }) {
+            HttpURLConnection conn = authUrl.openConnection(new URL(serverURL + servlet), token);
+            Assert.assertEquals(HttpURLConnection.HTTP_FORBIDDEN, conn.getResponseCode());
+        }
+    } finally {
+        if (httpServer != null) {
+            httpServer.stop();
+        }
+    }
+}

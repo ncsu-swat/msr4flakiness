@@ -1,0 +1,39 @@
+/**
+ * Test the correctness with try-with-resource syntax.
+ * @throws Exception
+ */
+@Test(timeout = 10000)
+public void testTryWithResourceSyntax() throws Exception {
+    String testname = name.getMethodName();
+    final AtomicReference<Thread> lockThread = new AtomicReference<>(null);
+    Lock lock = new InstrumentedLock(testname, LOG, 0, 300) {
+
+        @Override
+        public void lock() {
+            super.lock();
+            lockThread.set(Thread.currentThread());
+        }
+
+        @Override
+        public void unlock() {
+            super.unlock();
+            lockThread.set(null);
+        }
+    };
+    AutoCloseableLock acl = new AutoCloseableLock(lock);
+    try (AutoCloseable localLock = acl.acquire()) {
+        assertEquals(acl, localLock);
+        Thread competingThread = new Thread() {
+
+            @Override
+            public void run() {
+                assertNotEquals(Thread.currentThread(), lockThread.get());
+                assertFalse(lock.tryLock());
+            }
+        };
+        competingThread.start();
+        competingThread.join();
+        assertEquals(Thread.currentThread(), lockThread.get());
+    }
+    assertNull(lockThread.get());
+}

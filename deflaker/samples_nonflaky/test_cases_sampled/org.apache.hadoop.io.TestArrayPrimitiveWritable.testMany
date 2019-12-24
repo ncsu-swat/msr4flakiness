@@ -1,0 +1,27 @@
+@Test
+public void testMany() throws IOException {
+    // Write a big set of data, one of each primitive type array
+    for (Object x : bigSet) {
+        // write each test object two ways
+        // First, transparently via ObjectWritable
+        ObjectWritable.writeObject(out, x, x.getClass(), null, true);
+        // Second, explicitly via ArrayPrimitiveWritable
+        (new ArrayPrimitiveWritable(x)).write(out);
+    }
+    // Now read the data back in
+    in.reset(out.getData(), out.getLength());
+    for (int x = 0; x < resultSet.length; ) {
+        // First, transparently
+        resultSet[x++] = ObjectWritable.readObject(in, null);
+        // Second, explicitly
+        ArrayPrimitiveWritable apw = new ArrayPrimitiveWritable();
+        apw.readFields(in);
+        resultSet[x++] = apw.get();
+    }
+    // validate data structures and values
+    assertEquals(expectedResultSet.length, resultSet.length);
+    for (int x = 0; x < resultSet.length; x++) {
+        assertEquals("ComponentType of array " + x, expectedResultSet[x].getClass().getComponentType(), resultSet[x].getClass().getComponentType());
+    }
+    assertTrue("In and Out arrays didn't match values", Arrays.deepEquals(expectedResultSet, resultSet));
+}

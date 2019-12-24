@@ -1,0 +1,17 @@
+@Test
+public void testFailoverOnNetworkExceptionIdempotentOperation() throws UnreliableException, IOException, StandbyException {
+    UnreliableInterface unreliable = (UnreliableInterface) RetryProxy.create(UnreliableInterface.class, newFlipFlopProxyProvider(TypeOfExceptionToFailWith.IO_EXCEPTION, TypeOfExceptionToFailWith.UNRELIABLE_EXCEPTION), RetryPolicies.failoverOnNetworkException(1));
+    assertEquals("impl1", unreliable.succeedsOnceThenFailsReturningString());
+    try {
+        unreliable.succeedsOnceThenFailsReturningString();
+        fail("should not have succeeded twice");
+    } catch (IOException e) {
+        // Make sure we *don't* fail over since the first implementation threw an
+        // IOException and this method is not idempotent
+        assertEquals("impl1", e.getMessage());
+    }
+    assertEquals("impl1", unreliable.succeedsOnceThenFailsReturningStringIdempotent());
+    // Make sure we fail over since the first implementation threw an
+    // IOException and this method is idempotent.
+    assertEquals("impl2", unreliable.succeedsOnceThenFailsReturningStringIdempotent());
+}

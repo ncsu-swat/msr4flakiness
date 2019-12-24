@@ -1,0 +1,21 @@
+@Test
+public void testFailoverFromNonExistantServiceWithFencer() throws Exception {
+    DummyHAService svc1 = spy(new DummyHAService(null, svc1Addr));
+    // Getting a proxy to a dead server will throw IOException on call,
+    // not on creation of the proxy.
+    HAServiceProtocol errorThrowingProxy = Mockito.mock(HAServiceProtocol.class, Mockito.withSettings().defaultAnswer(new ThrowsException(new IOException("Could not connect to host"))).extraInterfaces(Closeable.class));
+    Mockito.doNothing().when((Closeable) errorThrowingProxy).close();
+    Mockito.doReturn(errorThrowingProxy).when(svc1).getProxy(Mockito.<Configuration>any(), Mockito.anyInt());
+    DummyHAService svc2 = new DummyHAService(HAServiceState.STANDBY, svc2Addr);
+    svc1.fencer = svc2.fencer = setupFencer(AlwaysSucceedFencer.class.getName());
+    try {
+        doFailover(svc1, svc2, false, false);
+    } catch (FailoverFailedException ffe) {
+        fail("Non-existant active prevented failover");
+    }
+    // Verify that the proxy created to try to make it go to standby
+    // gracefully used the right rpc timeout
+    Mockito.verify(svc1).getProxy(Mockito.<Configuration>any(), Mockito.eq(CommonConfigurationKeys.HA_FC_GRACEFUL_FENCE_TIMEOUT_DEFAULT));
+    // Don't check svc1 because we can't reach it, but that's OK, it's been fenced.
+    assertEquals(HAServiceState.ACTIVE, svc2.state);
+}

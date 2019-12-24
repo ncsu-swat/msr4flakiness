@@ -1,0 +1,34 @@
+@Test
+public void testSlowRpc() throws IOException, ServiceException {
+    Server server;
+    TestRpcService proxy = null;
+    System.out.println("Testing Slow RPC");
+    // create a server with two handlers
+    server = setupTestServer(conf, 2);
+    try {
+        // create a client
+        proxy = getClient(addr, conf);
+        SlowRPC slowrpc = new SlowRPC(proxy);
+        Thread thread = new Thread(slowrpc, "SlowRPC");
+        // send a slow RPC, which won't return until two fast pings
+        thread.start();
+        assertTrue("Slow RPC should not have finished1.", !slowrpc.isDone());
+        // first fast ping
+        slowrpc.ping(false);
+        // verify that the first RPC is still stuck
+        assertTrue("Slow RPC should not have finished2.", !slowrpc.isDone());
+        // second fast ping
+        slowrpc.ping(false);
+        // Now the slow ping should be able to be executed
+        while (!slowrpc.isDone()) {
+            System.out.println("Waiting for slow RPC to get done.");
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+            }
+        }
+    } finally {
+        System.out.println("Down slow rpc testing");
+        stop(server, proxy);
+    }
+}

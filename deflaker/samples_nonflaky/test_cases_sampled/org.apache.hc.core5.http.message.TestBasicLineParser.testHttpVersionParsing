@@ -1,0 +1,24 @@
+@Test
+public void testHttpVersionParsing() throws Exception {
+    final CharArrayBuffer buffer = new CharArrayBuffer(16);
+    buffer.append("HTTP/1.1");
+    ParserCursor cursor = new ParserCursor(0, buffer.length());
+    HttpVersion version = (HttpVersion) parser.parseProtocolVersion(buffer, cursor);
+    Assert.assertEquals("HTTP protocol name", "HTTP", version.getProtocol());
+    Assert.assertEquals("HTTP major version number", 1, version.getMajor());
+    Assert.assertEquals("HTTP minor version number", 1, version.getMinor());
+    Assert.assertEquals("HTTP version number", "HTTP/1.1", version.toString());
+    Assert.assertEquals(buffer.length(), cursor.getPos());
+    Assert.assertTrue(cursor.atEnd());
+    buffer.clear();
+    buffer.append("HTTP/1.123 123");
+    cursor = new ParserCursor(0, buffer.length());
+    version = (HttpVersion) parser.parseProtocolVersion(buffer, cursor);
+    Assert.assertEquals("HTTP protocol name", "HTTP", version.getProtocol());
+    Assert.assertEquals("HTTP major version number", 1, version.getMajor());
+    Assert.assertEquals("HTTP minor version number", 123, version.getMinor());
+    Assert.assertEquals("HTTP version number", "HTTP/1.123", version.toString());
+    Assert.assertEquals(' ', buffer.charAt(cursor.getPos()));
+    Assert.assertEquals(buffer.length() - 4, cursor.getPos());
+    Assert.assertFalse(cursor.atEnd());
+}

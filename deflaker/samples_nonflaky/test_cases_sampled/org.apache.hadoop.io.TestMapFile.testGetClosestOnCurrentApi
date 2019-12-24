@@ -1,0 +1,46 @@
+/**
+ * test {@code MapFile.Reader.getClosest()} method
+ */
+@Test
+public void testGetClosestOnCurrentApi() throws Exception {
+    final String TEST_PREFIX = "testGetClosestOnCurrentApi.mapfile";
+    MapFile.Writer writer = null;
+    MapFile.Reader reader = null;
+    try {
+        writer = createWriter(TEST_PREFIX, Text.class, Text.class);
+        int FIRST_KEY = 1;
+        // Test keys: 11,21,31,...,91
+        for (int i = FIRST_KEY; i < 100; i += 10) {
+            Text t = new Text(Integer.toString(i));
+            writer.append(t, t);
+        }
+        writer.close();
+        reader = createReader(TEST_PREFIX, Text.class);
+        Text key = new Text("55");
+        Text value = new Text();
+        // Test get closest with step forward
+        Text closest = (Text) reader.getClosest(key, value);
+        assertEquals(new Text("61"), closest);
+        // Test get closest with step back
+        closest = (Text) reader.getClosest(key, value, true);
+        assertEquals(new Text("51"), closest);
+        // Test get closest when we pass explicit key
+        final Text explicitKey = new Text("21");
+        closest = (Text) reader.getClosest(explicitKey, value);
+        assertEquals(new Text("21"), explicitKey);
+        // Test what happens at boundaries. Assert if searching a key that is
+        // less than first key in the mapfile, that the first key is returned.
+        key = new Text("00");
+        closest = (Text) reader.getClosest(key, value);
+        assertEquals(FIRST_KEY, Integer.parseInt(closest.toString()));
+        // Assert that null is returned if key is > last entry in mapfile.
+        key = new Text("92");
+        closest = (Text) reader.getClosest(key, value);
+        assertNull("Not null key in testGetClosestWithNewCode", closest);
+        // If we were looking for the key before, we should get the last key
+        closest = (Text) reader.getClosest(key, value, true);
+        assertEquals(new Text("91"), closest);
+    } finally {
+        IOUtils.cleanupWithLogger(LOG, writer, reader);
+    }
+}

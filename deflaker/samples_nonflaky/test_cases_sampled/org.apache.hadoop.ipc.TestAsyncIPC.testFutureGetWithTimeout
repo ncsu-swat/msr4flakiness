@@ -1,0 +1,16 @@
+@Test(timeout = 60000)
+public void testFutureGetWithTimeout() throws IOException, InterruptedException, ExecutionException {
+    // GenericTestUtils.setLogLevel(AsyncGetFuture.LOG, Level.ALL);
+    final Server server = new TestIPC.TestServer(10, true, conf);
+    final InetSocketAddress addr = NetUtils.getConnectAddress(server);
+    server.start();
+    final Client client = new Client(LongWritable.class, conf);
+    try {
+        final AsyncCaller caller = new AsyncCaller(client, addr, 10);
+        caller.run();
+        caller.assertReturnValues(10, TimeUnit.MILLISECONDS);
+    } finally {
+        client.stop();
+        server.stop();
+    }
+}

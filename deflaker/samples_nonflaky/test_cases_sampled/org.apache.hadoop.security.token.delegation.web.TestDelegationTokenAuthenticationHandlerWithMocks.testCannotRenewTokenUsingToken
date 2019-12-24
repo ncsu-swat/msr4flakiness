@@ -1,0 +1,17 @@
+@Test
+public void testCannotRenewTokenUsingToken() throws Exception {
+    DelegationTokenAuthenticator.DelegationTokenOperation op = DelegationTokenAuthenticator.DelegationTokenOperation.RENEWDELEGATIONTOKEN;
+    HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
+    Mockito.when(request.getMethod()).thenReturn(op.getHttpMethod());
+    HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
+    Mockito.when(response.getWriter()).thenReturn(new PrintWriter(new StringWriter()));
+    String tokenStr = getToken();
+    // Try renew a token using itself, should get 401.
+    Mockito.when(request.getQueryString()).thenReturn(DelegationTokenAuthenticator.OP_PARAM + "=" + op.toString() + "&" + DelegationTokenAuthenticator.TOKEN_PARAM + "=" + tokenStr + "&" + DelegationTokenAuthenticator.DELEGATION_PARAM + "=" + tokenStr);
+    Mockito.reset(response);
+    StringWriter writer = new StringWriter();
+    PrintWriter pwriter = new PrintWriter(writer);
+    Mockito.when(response.getWriter()).thenReturn(pwriter);
+    Assert.assertFalse(handler.managementOperation(null, request, response));
+    Mockito.verify(response).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+}

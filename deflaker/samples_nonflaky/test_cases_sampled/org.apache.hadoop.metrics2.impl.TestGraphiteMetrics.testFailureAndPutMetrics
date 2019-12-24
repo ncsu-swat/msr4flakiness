@@ -1,0 +1,26 @@
+@Test
+public void testFailureAndPutMetrics() throws IOException {
+    GraphiteSink sink = new GraphiteSink();
+    List<MetricsTag> tags = new ArrayList<MetricsTag>();
+    tags.add(new MetricsTag(MsInfo.Context, "all"));
+    tags.add(new MetricsTag(MsInfo.Hostname, "host"));
+    Set<AbstractMetric> metrics = new HashSet<AbstractMetric>();
+    metrics.add(makeMetric("foo1", 1.25));
+    metrics.add(makeMetric("foo2", 2.25));
+    MetricsRecord record = new MetricsRecordImpl(MsInfo.Context, (long) 10000, tags, metrics);
+    final GraphiteSink.Graphite mockGraphite = makeGraphite();
+    Whitebox.setInternalState(sink, "graphite", mockGraphite);
+    // throw exception when first try
+    doThrow(new IOException("IO exception")).when(mockGraphite).write(anyString());
+    sink.putMetrics(record);
+    verify(mockGraphite).write(anyString());
+    verify(mockGraphite).close();
+    // reset mock and try again
+    reset(mockGraphite);
+    when(mockGraphite.isConnected()).thenReturn(false);
+    ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
+    sink.putMetrics(record);
+    verify(mockGraphite).write(argument.capture());
+    String result = argument.getValue();
+    assertEquals(true, result.equals("null.all.Context.Context=all.Hostname=host.foo1 1.25 10\n" + "null.all.Context.Context=all.Hostname=host.foo2 2.25 10\n") || result.equals("null.all.Context.Context=all.Hostname=host.foo2 2.25 10\n" + "null.all.Context.Context=all.Hostname=host.foo1 1.25 10\n"));
+}

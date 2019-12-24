@@ -1,0 +1,18 @@
+@Test
+public void testFcqBackwardCompatibility() throws InterruptedException {
+    // Test BackwardCompatibility to ensure existing FCQ deployment still
+    // work without explicitly specifying DecayRpcScheduler
+    Configuration conf = new Configuration();
+    final String ns = CommonConfigurationKeys.IPC_NAMESPACE + ".0";
+    final String queueClassName = "org.apache.hadoop.ipc.FairCallQueue";
+    conf.setStrings(ns + "." + CommonConfigurationKeys.IPC_CALLQUEUE_IMPL_KEY, queueClassName);
+    // Specify only Fair Call Queue without a scheduler
+    // Ensure the DecayScheduler will be added to avoid breaking.
+    Class<? extends RpcScheduler> scheduler = Server.getSchedulerClass(ns, conf);
+    assertTrue(scheduler.getCanonicalName().equals("org.apache.hadoop.ipc.DecayRpcScheduler"));
+    Class<? extends BlockingQueue<FakeCall>> queue = (Class<? extends BlockingQueue<FakeCall>>) getQueueClass(ns, conf);
+    assertTrue(queue.getCanonicalName().equals(queueClassName));
+    manager = new CallQueueManager<FakeCall>(queue, scheduler, false, 8, "", conf);
+    // Default FCQ has 4 levels and the max capacity is 8
+    assertCanPut(manager, 3, 3);
+}

@@ -1,0 +1,32 @@
+@Test
+public void testTLSClientAuthFailure() throws Exception {
+    server = AsyncServerBootstrap.bootstrap().setLookupRegistry(new UriPatternMatcher<Supplier<AsyncServerExchangeHandler>>()).setIOReactorConfig(IOReactorConfig.custom().setSoTimeout(TIMEOUT).build()).setTlsStrategy(new BasicServerTlsStrategy(SSLTestContexts.createServerSSLContext(), SecureAllPortsStrategy.INSTANCE, new SSLSessionInitializer() {
+
+        @Override
+        public void initialize(final NamedEndpoint endpoint, final SSLEngine sslEngine) {
+            sslEngine.setNeedClientAuth(true);
+        }
+    }, null)).setStreamListener(LoggingHttp1StreamListener.INSTANCE_SERVER).setIOSessionDecorator(LoggingIOSessionDecorator.INSTANCE).setExceptionCallback(LoggingExceptionCallback.INSTANCE).setIOSessionListener(LoggingIOSessionListener.INSTANCE).register("*", new Supplier<AsyncServerExchangeHandler>() {
+
+        @Override
+        public AsyncServerExchangeHandler get() {
+            return new EchoHandler(2048);
+        }
+    }).create();
+    server.start();
+    requester = H2RequesterBootstrap.bootstrap().setIOReactorConfig(IOReactorConfig.custom().setSoTimeout(TIMEOUT).build()).setTlsStrategy(new BasicClientTlsStrategy(SSLTestContexts.createClientSSLContext())).setStreamListener(LoggingHttp1StreamListener.INSTANCE_CLIENT).setConnPoolListener(LoggingConnPoolListener.INSTANCE).setIOSessionDecorator(LoggingIOSessionDecorator.INSTANCE).setExceptionCallback(LoggingExceptionCallback.INSTANCE).setIOSessionListener(LoggingIOSessionListener.INSTANCE).create();
+    server.start();
+    final Future<ListenerEndpoint> future = server.listen(new InetSocketAddress(0));
+    final ListenerEndpoint listener = future.get();
+    final InetSocketAddress address = (InetSocketAddress) listener.getAddress();
+    requester.start();
+    final HttpHost target = new HttpHost("https", "localhost", address.getPort());
+    final Future<Message<HttpResponse, String>> resultFuture1 = requester.execute(new BasicRequestProducer(Method.POST, target, "/stuff", new StringAsyncEntityProducer("some stuff", ContentType.TEXT_PLAIN)), new BasicResponseConsumer<>(new StringAsyncEntityConsumer()), TIMEOUT, null);
+    try {
+        resultFuture1.get(TIMEOUT.getDuration(), TIMEOUT.getTimeUnit());
+        Assert.fail("ExecutionException expected");
+    } catch (final ExecutionException ex) {
+        final Throwable cause = ex.getCause();
+        Assert.assertThat(cause, CoreMatchers.<Throwable>instanceOf(IOException.class));
+    }
+}

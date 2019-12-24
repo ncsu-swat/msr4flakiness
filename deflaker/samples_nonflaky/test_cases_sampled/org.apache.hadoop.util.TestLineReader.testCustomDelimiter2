@@ -1,0 +1,33 @@
+/**
+ * TEST_2: The test scenario is such that, the character/s preceding the
+ * delimiter, equals the starting character/s of delimiter.
+ */
+@Test
+public void testCustomDelimiter2() throws Exception {
+    final String delimiter = "record";
+    final StringBuilder testStringBuilder = new StringBuilder();
+    testStringBuilder.append(delimiter).append("Kerala ");
+    testStringBuilder.append(delimiter).append("Bangalore");
+    testStringBuilder.append(delimiter).append(" North Korea");
+    testStringBuilder.append(delimiter).append(delimiter).append("Guantanamo");
+    // ~EOF with 're'
+    testStringBuilder.append(delimiter + "ecord" + "recor" + "core");
+    final String testData = testStringBuilder.toString();
+    final LineReader lineReader = new LineReader(new ByteArrayInputStream(testData.getBytes(StandardCharsets.UTF_8)), delimiter.getBytes((StandardCharsets.UTF_8)));
+    final Text line = new Text();
+    lineReader.readLine(line);
+    Assert.assertEquals("", line.toString());
+    lineReader.readLine(line);
+    Assert.assertEquals("Kerala ", line.toString());
+    lineReader.readLine(line);
+    Assert.assertEquals("Bangalore", line.toString());
+    lineReader.readLine(line);
+    Assert.assertEquals(" North Korea", line.toString());
+    lineReader.readLine(line);
+    Assert.assertEquals("", line.toString());
+    lineReader.readLine(line);
+    Assert.assertEquals("Guantanamo", line.toString());
+    lineReader.readLine(line);
+    Assert.assertEquals(("ecord" + "recor" + "core"), line.toString());
+    lineReader.close();
+}

@@ -1,0 +1,15 @@
+@Test
+public void testPropertySource() throws IOException {
+    out = new BufferedWriter(new FileWriter(CONFIG));
+    startConfig();
+    appendProperty("test.foo", "bar");
+    endConfig();
+    Path fileResource = new Path(CONFIG);
+    conf.addResource(fileResource);
+    conf.set("fs.defaultFS", "value");
+    String[] sources = conf.getPropertySources("test.foo");
+    assertEquals(1, sources.length);
+    assertEquals("Resource string returned for a file-loaded property" + " must be a proper absolute path", fileResource, new Path(sources[0]));
+    assertArrayEquals("Resource string returned for a set() property must be " + "\"programmatically\"", new String[] { "programmatically" }, conf.getPropertySources("fs.defaultFS"));
+    assertArrayEquals("Resource string returned for an unset property must " + "be null", null, conf.getPropertySources("fs.defaultFoo"));
+}

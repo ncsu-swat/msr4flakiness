@@ -1,0 +1,80 @@
+@Test
+public void testRawHttpCalls() throws Exception {
+    final Server jetty = createJettyServer();
+    ServletContextHandler context = new ServletContextHandler();
+    context.setContextPath("/foo");
+    jetty.setHandler(context);
+    context.addFilter(new FilterHolder(AFilter.class), "/*", EnumSet.of(DispatcherType.REQUEST));
+    context.addServlet(new ServletHolder(PingServlet.class), "/bar");
+    try {
+        jetty.start();
+        URL nonAuthURL = new URL(getJettyURL() + "/foo/bar");
+        URL authURL = new URL(getJettyURL() + "/foo/bar?authenticated=foo");
+        // unauthenticated access to URL
+        HttpURLConnection conn = (HttpURLConnection) nonAuthURL.openConnection();
+        Assert.assertEquals(HttpURLConnection.HTTP_UNAUTHORIZED, conn.getResponseCode());
+        // authenticated access to URL
+        conn = (HttpURLConnection) authURL.openConnection();
+        Assert.assertEquals(HttpURLConnection.HTTP_OK, conn.getResponseCode());
+        // unauthenticated access to get delegation token
+        URL url = new URL(nonAuthURL.toExternalForm() + "?op=GETDELEGATIONTOKEN");
+        conn = (HttpURLConnection) url.openConnection();
+        Assert.assertEquals(HttpURLConnection.HTTP_UNAUTHORIZED, conn.getResponseCode());
+        // authenticated access to get delegation token
+        url = new URL(authURL.toExternalForm() + "&op=GETDELEGATIONTOKEN&renewer=foo");
+        conn = (HttpURLConnection) url.openConnection();
+        Assert.assertEquals(HttpURLConnection.HTTP_OK, conn.getResponseCode());
+        ObjectMapper mapper = new ObjectMapper();
+        Map map = mapper.readValue(conn.getInputStream(), Map.class);
+        String dt = (String) ((Map) map.get("Token")).get("urlString");
+        Assert.assertNotNull(dt);
+        // delegation token access to URL
+        url = new URL(nonAuthURL.toExternalForm() + "?delegation=" + dt);
+        conn = (HttpURLConnection) url.openConnection();
+        Assert.assertEquals(HttpURLConnection.HTTP_OK, conn.getResponseCode());
+        // delegation token and authenticated access to URL
+        url = new URL(authURL.toExternalForm() + "&delegation=" + dt);
+        conn = (HttpURLConnection) url.openConnection();
+        Assert.assertEquals(HttpURLConnection.HTTP_OK, conn.getResponseCode());
+        // renewew delegation token, unauthenticated access to URL
+        url = new URL(nonAuthURL.toExternalForm() + "?op=RENEWDELEGATIONTOKEN&token=" + dt);
+        conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("PUT");
+        Assert.assertEquals(HttpURLConnection.HTTP_UNAUTHORIZED, conn.getResponseCode());
+        // renewew delegation token, authenticated access to URL
+        url = new URL(authURL.toExternalForm() + "&op=RENEWDELEGATIONTOKEN&token=" + dt);
+        conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("PUT");
+        Assert.assertEquals(HttpURLConnection.HTTP_OK, conn.getResponseCode());
+        // renewew delegation token, authenticated access to URL, not renewer
+        url = new URL(getJettyURL() + "/foo/bar?authenticated=bar&op=RENEWDELEGATIONTOKEN&token=" + dt);
+        conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("PUT");
+        Assert.assertEquals(HttpURLConnection.HTTP_FORBIDDEN, conn.getResponseCode());
+        // cancel delegation token, nonauthenticated access to URL
+        url = new URL(nonAuthURL.toExternalForm() + "?op=CANCELDELEGATIONTOKEN&token=" + dt);
+        conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("PUT");
+        Assert.assertEquals(HttpURLConnection.HTTP_OK, conn.getResponseCode());
+        // cancel canceled delegation token, nonauthenticated access to URL
+        url = new URL(nonAuthURL.toExternalForm() + "?op=CANCELDELEGATIONTOKEN&token=" + dt);
+        conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("PUT");
+        Assert.assertEquals(HttpURLConnection.HTTP_NOT_FOUND, conn.getResponseCode());
+        // get new delegation token
+        url = new URL(authURL.toExternalForm() + "&op=GETDELEGATIONTOKEN&renewer=foo");
+        conn = (HttpURLConnection) url.openConnection();
+        Assert.assertEquals(HttpURLConnection.HTTP_OK, conn.getResponseCode());
+        mapper = new ObjectMapper();
+        map = mapper.readValue(conn.getInputStream(), Map.class);
+        dt = (String) ((Map) map.get("Token")).get("urlString");
+        Assert.assertNotNull(dt);
+        // cancel delegation token, authenticated access to URL
+        url = new URL(authURL.toExternalForm() + "&op=CANCELDELEGATIONTOKEN&token=" + dt);
+        conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("PUT");
+        Assert.assertEquals(HttpURLConnection.HTTP_OK, conn.getResponseCode());
+    } finally {
+        jetty.stop();
+    }
+}

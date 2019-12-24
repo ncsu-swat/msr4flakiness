@@ -1,0 +1,36 @@
+@Test
+public void testGetAllWithContextAndResult() {
+    when(ninjaProperties.getStringArray(NinjaConstant.applicationLanguages)).thenReturn(new String[] { "en", "de", "fr-FR" });
+    Lang lang = new LangImpl(ninjaProperties);
+    Messages messages = new MessagesImpl(ninjaProperties, lang);
+    result = Results.ok();
+    when(context.getAcceptLanguage()).thenReturn("en-US");
+    // US locale testing:
+    Map<Object, Object> map = messages.getAll(context, Optional.of(result));
+    assertEquals(5, map.keySet().size());
+    assertTrue(map.containsKey("language"));
+    assertTrue(map.containsKey("message_with_placeholder"));
+    assertTrue(map.containsKey("a_property_only_in_the_defaultLanguage"));
+    assertTrue(map.containsKey("a_propert_with_commas"));
+    assertEquals("english", map.get("language"));
+    // GERMAN locale testing:
+    lang.setLanguage("de", result);
+    map = messages.getAll(context, Optional.of(result));
+    assertEquals(5, map.keySet().size());
+    assertTrue(map.containsKey("language"));
+    assertTrue(map.containsKey("message_with_placeholder"));
+    assertTrue(map.containsKey("a_property_only_in_the_defaultLanguage"));
+    assertTrue(map.containsKey("a_propert_with_commas"));
+    assertEquals("deutsch", map.get("language"));
+    assertEquals("Toröööö - das ist der platzhalter: {0}", map.get("message_with_placeholder"));
+    // reset result and set context cookie:
+    result = Results.ok();
+    when(context.getCookie(Mockito.anyString())).thenReturn(Cookie.builder("name", "en").build());
+    map = messages.getAll(context, Optional.of(result));
+    assertEquals(5, map.keySet().size());
+    assertTrue(map.containsKey("language"));
+    assertTrue(map.containsKey("message_with_placeholder"));
+    assertTrue(map.containsKey("a_property_only_in_the_defaultLanguage"));
+    assertTrue(map.containsKey("a_propert_with_commas"));
+    assertEquals("english", map.get("language"));
+}

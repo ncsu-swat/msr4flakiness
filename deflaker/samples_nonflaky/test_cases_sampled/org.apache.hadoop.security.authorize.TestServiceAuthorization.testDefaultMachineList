@@ -1,0 +1,27 @@
+@Test
+public void testDefaultMachineList() throws UnknownHostException {
+    UserGroupInformation drwho = UserGroupInformation.createUserForTesting("drwho@EXAMPLE.COM", new String[] { "group1", "group2" });
+    ServiceAuthorizationManager serviceAuthorizationManager = new ServiceAuthorizationManager();
+    Configuration conf = new Configuration();
+    // test without setting a default MachineList
+    serviceAuthorizationManager.refresh(conf, new TestPolicyProvider());
+    try {
+        serviceAuthorizationManager.authorize(drwho, TestProtocol.class, conf, InetAddress.getByName(UNAUTHORIZED_IP));
+    } catch (AuthorizationException e) {
+        fail();
+    }
+    // test with a default MachineList
+    conf.set("security.service.authorization.default.hosts", IP_RANGE);
+    serviceAuthorizationManager.refresh(conf, new TestPolicyProvider());
+    try {
+        serviceAuthorizationManager.authorize(drwho, TestProtocol.class, conf, InetAddress.getByName(UNAUTHORIZED_IP));
+        fail();
+    } catch (AuthorizationException e) {
+    // expects Exception
+    }
+    try {
+        serviceAuthorizationManager.authorize(drwho, TestProtocol.class, conf, InetAddress.getByName("10.222.0.0"));
+    } catch (AuthorizationException e) {
+        fail();
+    }
+}

@@ -1,0 +1,43 @@
+@Test
+public void testCallSequence() {
+    ServiceManager serviceManager = new ServiceManager("ServiceManager");
+    // Add services
+    for (int i = 0; i < NUM_OF_SERVICES; i++) {
+        CompositeServiceImpl service = new CompositeServiceImpl(i);
+        serviceManager.addTestService(service);
+    }
+    CompositeServiceImpl[] services = serviceManager.getServices().toArray(new CompositeServiceImpl[0]);
+    assertEquals("Number of registered services ", NUM_OF_SERVICES, services.length);
+    Configuration conf = new Configuration();
+    // Initialise the composite service
+    serviceManager.init(conf);
+    // verify they were all inited
+    assertInState(STATE.INITED, services);
+    // Verify the init() call sequence numbers for every service
+    for (int i = 0; i < NUM_OF_SERVICES; i++) {
+        assertEquals("For " + services[i] + " service, init() call sequence number should have been ", i, services[i].getCallSequenceNumber());
+    }
+    // Reset the call sequence numbers
+    resetServices(services);
+    serviceManager.start();
+    // verify they were all started
+    assertInState(STATE.STARTED, services);
+    // Verify the start() call sequence numbers for every service
+    for (int i = 0; i < NUM_OF_SERVICES; i++) {
+        assertEquals("For " + services[i] + " service, start() call sequence number should have been ", i, services[i].getCallSequenceNumber());
+    }
+    resetServices(services);
+    serviceManager.stop();
+    // verify they were all stopped
+    assertInState(STATE.STOPPED, services);
+    // Verify the stop() call sequence numbers for every service
+    for (int i = 0; i < NUM_OF_SERVICES; i++) {
+        assertEquals("For " + services[i] + " service, stop() call sequence number should have been ", ((NUM_OF_SERVICES - 1) - i), services[i].getCallSequenceNumber());
+    }
+    // Try to stop again. This should be a no-op.
+    serviceManager.stop();
+    // Verify that stop() call sequence numbers for every service don't change.
+    for (int i = 0; i < NUM_OF_SERVICES; i++) {
+        assertEquals("For " + services[i] + " service, stop() call sequence number should have been ", ((NUM_OF_SERVICES - 1) - i), services[i].getCallSequenceNumber());
+    }
+}

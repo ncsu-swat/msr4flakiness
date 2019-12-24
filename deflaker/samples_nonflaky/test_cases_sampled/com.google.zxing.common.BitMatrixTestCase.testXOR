@@ -1,0 +1,40 @@
+@Test
+public void testXOR() {
+    BitMatrix emptyMatrix = new BitMatrix(3, 3);
+    BitMatrix fullMatrix = new BitMatrix(3, 3);
+    fullMatrix.setRegion(0, 0, 3, 3);
+    BitMatrix centerMatrix = new BitMatrix(3, 3);
+    centerMatrix.setRegion(1, 1, 1, 1);
+    BitMatrix invertedCenterMatrix = fullMatrix.clone();
+    invertedCenterMatrix.unset(1, 1);
+    BitMatrix badMatrix = new BitMatrix(4, 4);
+    testXOR(emptyMatrix, emptyMatrix, emptyMatrix);
+    testXOR(emptyMatrix, centerMatrix, centerMatrix);
+    testXOR(emptyMatrix, fullMatrix, fullMatrix);
+    testXOR(centerMatrix, emptyMatrix, centerMatrix);
+    testXOR(centerMatrix, centerMatrix, emptyMatrix);
+    testXOR(centerMatrix, fullMatrix, invertedCenterMatrix);
+    testXOR(invertedCenterMatrix, emptyMatrix, invertedCenterMatrix);
+    testXOR(invertedCenterMatrix, centerMatrix, fullMatrix);
+    testXOR(invertedCenterMatrix, fullMatrix, centerMatrix);
+    testXOR(fullMatrix, emptyMatrix, fullMatrix);
+    testXOR(fullMatrix, centerMatrix, invertedCenterMatrix);
+    testXOR(fullMatrix, fullMatrix, emptyMatrix);
+    try {
+        emptyMatrix.clone().xor(badMatrix);
+        fail();
+    } catch (IllegalArgumentException ex) {
+    // good
+    }
+    try {
+        badMatrix.clone().xor(emptyMatrix);
+        fail();
+    } catch (IllegalArgumentException ex) {
+    // good
+    }
+}
+private static void testXOR(BitMatrix dataMatrix, BitMatrix flipMatrix, BitMatrix expectedMatrix) {
+    BitMatrix matrix = dataMatrix.clone();
+    matrix.xor(flipMatrix);
+    assertEquals(expectedMatrix, matrix);
+}

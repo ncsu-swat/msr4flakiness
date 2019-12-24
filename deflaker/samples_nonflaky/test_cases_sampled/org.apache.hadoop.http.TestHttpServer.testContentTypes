@@ -1,0 +1,28 @@
+@Test
+public void testContentTypes() throws Exception {
+    // Static CSS files should have text/css
+    URL cssUrl = new URL(baseUrl, "/static/test.css");
+    HttpURLConnection conn = (HttpURLConnection) cssUrl.openConnection();
+    conn.connect();
+    assertEquals(200, conn.getResponseCode());
+    assertEquals("text/css", conn.getContentType());
+    // Servlets should have text/plain with proper encoding by default
+    URL servletUrl = new URL(baseUrl, "/echo?a=b");
+    conn = (HttpURLConnection) servletUrl.openConnection();
+    conn.connect();
+    assertEquals(200, conn.getResponseCode());
+    assertEquals(MediaType.TEXT_PLAIN + ";" + JettyUtils.UTF_8, conn.getContentType());
+    // We should ignore parameters for mime types - ie a parameter
+    // ending in .css should not change mime type
+    servletUrl = new URL(baseUrl, "/echo?a=b.css");
+    conn = (HttpURLConnection) servletUrl.openConnection();
+    conn.connect();
+    assertEquals(200, conn.getResponseCode());
+    assertEquals(MediaType.TEXT_PLAIN + ";" + JettyUtils.UTF_8, conn.getContentType());
+    // Servlets that specify text/html should get that content type
+    servletUrl = new URL(baseUrl, "/htmlcontent");
+    conn = (HttpURLConnection) servletUrl.openConnection();
+    conn.connect();
+    assertEquals(200, conn.getResponseCode());
+    assertEquals(MediaType.TEXT_HTML + ";" + JettyUtils.UTF_8, conn.getContentType());
+}

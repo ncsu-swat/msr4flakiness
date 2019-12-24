@@ -1,0 +1,49 @@
+@Test
+public void testRpcMetrics() throws Exception {
+    final Server server;
+    TestRpcService proxy = null;
+    final int interval = 1;
+    conf.setBoolean(CommonConfigurationKeys.RPC_METRICS_QUANTILE_ENABLE, true);
+    conf.set(CommonConfigurationKeys.RPC_METRICS_PERCENTILES_INTERVALS_KEY, "" + interval);
+    server = setupTestServer(conf, 5);
+    String testUser = "testUser";
+    UserGroupInformation anotherUser = UserGroupInformation.createRemoteUser(testUser);
+    TestRpcService proxy2 = anotherUser.doAs(new PrivilegedAction<TestRpcService>() {
+
+        public TestRpcService run() {
+            try {
+                return RPC.getProxy(TestRpcService.class, 0, server.getListenerAddress(), conf);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
+    });
+    try {
+        proxy = getClient(addr, conf);
+        for (int i = 0; i < 1000; i++) {
+            proxy.ping(null, newEmptyRequest());
+            proxy.echo(null, newEchoRequest("" + i));
+            proxy2.echo(null, newEchoRequest("" + i));
+        }
+        MetricsRecordBuilder rpcMetrics = getMetrics(server.getRpcMetrics().name());
+        assertEquals("Expected correct rpc queue count", 3000, getLongCounter("RpcQueueTimeNumOps", rpcMetrics));
+        assertEquals("Expected correct rpc processing count", 3000, getLongCounter("RpcProcessingTimeNumOps", rpcMetrics));
+        assertEquals("Expected correct rpc lock wait count", 3000, getLongCounter("RpcLockWaitTimeNumOps", rpcMetrics));
+        assertEquals("Expected zero rpc lock wait time", 0, getDoubleGauge("RpcLockWaitTimeAvgTime", rpcMetrics), 0.001);
+        MetricsAsserts.assertQuantileGauges("RpcQueueTime" + interval + "s", rpcMetrics);
+        MetricsAsserts.assertQuantileGauges("RpcProcessingTime" + interval + "s", rpcMetrics);
+        String actualUserVsCon = MetricsAsserts.getStringMetric("NumOpenConnectionsPerUser", rpcMetrics);
+        String proxyUser = UserGroupInformation.getCurrentUser().getShortUserName();
+        assertTrue(actualUserVsCon.contains("\"" + proxyUser + "\":1"));
+        assertTrue(actualUserVsCon.contains("\"" + testUser + "\":1"));
+        proxy.lockAndSleep(null, newSleepRequest(5));
+        rpcMetrics = getMetrics(server.getRpcMetrics().name());
+        assertGauge("RpcLockWaitTimeAvgTime", 10000.0, rpcMetrics);
+    } finally {
+        if (proxy2 != null) {
+            RPC.stopProxy(proxy2);
+        }
+        stop(server, proxy);
+    }
+}

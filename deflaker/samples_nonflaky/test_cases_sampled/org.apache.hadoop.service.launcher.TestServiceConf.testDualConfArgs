@@ -1,0 +1,17 @@
+@Test
+public void testDualConfArgs() throws Throwable {
+    ExitTrackingServiceLauncher<Service> launcher = new ExitTrackingServiceLauncher<>(RunningService.NAME);
+    launcher.bindCommandOptions();
+    String key1 = "key1";
+    Configuration conf1 = newConf(key1, "true");
+    String key2 = "file2";
+    Configuration conf2 = newConf(key2, "7");
+    Configuration extracted = new Configuration(false);
+    List<String> argsList = asList("Name", ARG_CONF_PREFIXED, configFile(conf1), ARG_CONF_PREFIXED, configFile(conf2));
+    List<String> args = launcher.extractCommandOptions(extracted, argsList);
+    if (!args.isEmpty()) {
+        assertEquals("args beginning with " + args.get(0), 0, args.size());
+    }
+    assertTrue(extracted.getBoolean(key1, false));
+    assertEquals(7, extracted.getInt(key2, -1));
+}

@@ -1,0 +1,41 @@
+@Test
+public void testExceptionOnBackgroundRefreshHandled() throws Exception {
+    conf.setLong(CommonConfigurationKeys.HADOOP_SECURITY_GROUPS_CACHE_SECS, 1);
+    conf.setBoolean(CommonConfigurationKeys.HADOOP_SECURITY_GROUPS_CACHE_BACKGROUND_RELOAD, true);
+    FakeTimer timer = new FakeTimer();
+    final Groups groups = new Groups(conf, timer);
+    groups.cacheGroupsAdd(Arrays.asList(myGroups));
+    groups.refresh();
+    FakeGroupMapping.clearBlackList();
+    // We make an initial request to populate the cache
+    groups.getGroups("me");
+    // add another group
+    groups.cacheGroupsAdd(Arrays.asList("grp3"));
+    int startingRequestCount = FakeGroupMapping.getRequestCount();
+    // Arrange for an exception to occur only on the
+    // second call
+    FakeGroupMapping.setThrowException(true);
+    // Then expire that entry
+    timer.advance(4 * 1000);
+    // Pause the getGroups operation and this will delay the cache refresh
+    FakeGroupMapping.pause();
+    // Now get the cache entry - it should return immediately
+    // with the old value and the cache will not have completed
+    // a request to getGroups yet.
+    assertThat(groups.getGroups("me").size()).isEqualTo(2);
+    assertEquals(startingRequestCount, FakeGroupMapping.getRequestCount());
+    // Resume the getGroups operation and the cache can get refreshed
+    FakeGroupMapping.resume();
+    // Now wait for the refresh done, because of the exception, we expect
+    // a onFailure callback gets called and the counter for failure is 1
+    waitForGroupCounters(groups, 0, 0, 0, 1);
+    FakeGroupMapping.setThrowException(false);
+    assertEquals(startingRequestCount + 1, FakeGroupMapping.getRequestCount());
+    assertThat(groups.getGroups("me").size()).isEqualTo(2);
+    // Now the 3rd call to getGroups above will have kicked off
+    // another refresh that updates the cache, since it no longer gives
+    // exception, we now expect the counter for success is 1.
+    waitForGroupCounters(groups, 0, 0, 1, 1);
+    assertEquals(startingRequestCount + 2, FakeGroupMapping.getRequestCount());
+    assertThat(groups.getGroups("me").size()).isEqualTo(3);
+}

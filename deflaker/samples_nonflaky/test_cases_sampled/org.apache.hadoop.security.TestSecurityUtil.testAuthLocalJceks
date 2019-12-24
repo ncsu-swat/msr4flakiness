@@ -1,0 +1,18 @@
+@Test
+public void testAuthLocalJceks() throws Exception {
+    File localJceksFile = File.createTempFile(getClass().getSimpleName() + ".testAuthLocalJceks-", ".localjceks");
+    populateLocalJceksTestFile(localJceksFile.getAbsolutePath());
+    try {
+        String localJceksUri = "localjceks://file/" + localJceksFile.getAbsolutePath();
+        Configuration conf = new Configuration();
+        conf.set(CredentialProviderFactory.CREDENTIAL_PROVIDER_PATH, localJceksUri);
+        List<ZKAuthInfo> zkAuths = SecurityUtil.getZKAuthInfos(conf, CommonConfigurationKeys.ZK_AUTH);
+        assertEquals(1, zkAuths.size());
+        ZKAuthInfo zkAuthInfo = zkAuths.get(0);
+        assertEquals("a_scheme", zkAuthInfo.getScheme());
+        assertArrayEquals("a_password".getBytes(), zkAuthInfo.getAuth());
+    } finally {
+        boolean deleted = localJceksFile.delete();
+        assertTrue(deleted);
+    }
+}
