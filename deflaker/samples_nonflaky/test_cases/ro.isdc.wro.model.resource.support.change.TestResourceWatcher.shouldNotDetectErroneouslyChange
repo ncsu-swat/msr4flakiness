@@ -1,0 +1,18 @@
+/**
+ * Fix the issue described <a href="https://github.com/alexo/wro4j/issues/72">here</a>.
+ */
+@Test
+public void shouldNotDetectErroneouslyChange() throws Exception {
+    createDefaultInjector().inject(victim);
+    // first check will always detect changes.
+    victim.check(cacheKey2, resourceWatcherCallback);
+    when(mockLocator.locate(RESOURCE_JS_URI)).thenAnswer(answerWithContent("changed"));
+    victim.check(cacheKey2, resourceWatcherCallback);
+    verify(resourceWatcherCallback, Mockito.atLeastOnce()).onGroupChanged(Mockito.any(CacheKey.class));
+    verify(resourceWatcherCallback, Mockito.atLeastOnce()).onResourceChanged(Mockito.any(Resource.class));
+    Mockito.reset(resourceWatcherCallback);
+    // next check should find no change
+    victim.check(cacheKey2, resourceWatcherCallback);
+    verify(resourceWatcherCallback, Mockito.never()).onGroupChanged(Mockito.any(CacheKey.class));
+    verify(resourceWatcherCallback, Mockito.never()).onResourceChanged(Mockito.any(Resource.class));
+}

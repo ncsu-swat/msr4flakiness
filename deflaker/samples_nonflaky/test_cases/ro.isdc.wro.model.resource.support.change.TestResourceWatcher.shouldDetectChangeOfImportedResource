@@ -1,0 +1,15 @@
+@Test
+public void shouldDetectChangeOfImportedResource() throws Exception {
+    final String importResourceUri = "imported.css";
+    final CacheKey cacheEntry = new CacheKey(GROUP_NAME, ResourceType.CSS, true);
+    victim = new ResourceWatcher();
+    createDefaultInjector().inject(victim);
+    when(mockLocator.locate(Mockito.anyString())).thenAnswer(answerWithContent("initial"));
+    when(mockLocator.locate("/" + Mockito.eq(RESOURCE_CSS_URI))).thenAnswer(answerWithContent(String.format("@import url(%s)", importResourceUri)));
+    victim.check(cacheEntry, resourceWatcherCallback);
+    when(mockLocator.locate(Mockito.anyString())).thenAnswer(answerWithContent("changed"));
+    when(mockLocator.locate("/" + Mockito.eq(RESOURCE_CSS_URI))).thenAnswer(answerWithContent(String.format("@import url(%s)", importResourceUri)));
+    victim.check(cacheEntry);
+    verify(resourceWatcherCallback).onGroupChanged(Mockito.any(CacheKey.class));
+    verify(resourceWatcherCallback).onResourceChanged(Mockito.any(Resource.class));
+}

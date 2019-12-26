@@ -1,0 +1,49 @@
+@Test
+public void shouldCheckForChangeAsynchronously() throws Exception {
+    final int timeout = 100;
+    Context.get().getConfig().setConnectionTimeout(timeout);
+    final String invalidUrl = "http://localhost:1/";
+    when(request.getRequestURL()).thenReturn(new StringBuffer(invalidUrl));
+    when(request.getServletPath()).thenReturn("");
+    final AtomicReference<Callable<Void>> asyncInvoker = new AtomicReference<Callable<Void>>();
+    final AtomicReference<Exception> exceptionHolder = new AtomicReference<Exception>();
+    victim = new ResourceWatcher() {
+
+        @Override
+        void submit(final Callable<Void> callable) {
+            try {
+                final Callable<Void> decorated = new ContextPropagatingCallable<Void>(callable) {
+
+                    @Override
+                    public Void call() throws Exception {
+                        try {
+                            callable.call();
+                            return null;
+                        } catch (final Exception e) {
+                            exceptionHolder.set(e);
+                            throw e;
+                        } finally {
+                            asyncInvoker.set(callable);
+                        }
+                    }
+                };
+                super.submit(decorated);
+            } finally {
+            }
+        }
+    };
+    createDefaultInjector().inject(victim);
+    Context.get().getConfig().setResourceWatcherAsync(true);
+    victim.tryAsyncCheck(cacheKey);
+    WroTestUtils.waitUntil(new Function<Void, Boolean>() {
+
+        public Boolean apply(final Void input) throws Exception {
+            return asyncInvoker.get() != null;
+        }
+    }, timeout * 3);
+    assertNotNull(asyncInvoker.get());
+    assertNotNull(exceptionHolder.get());
+    // We expect a request to fail, since a request a localhost using some port from where we expect to get no response.
+    LOG.debug("Exception: {}", exceptionHolder.get().getClass());
+    assertTrue(exceptionHolder.get() instanceof IOException);
+}

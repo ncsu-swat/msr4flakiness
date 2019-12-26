@@ -1,0 +1,22 @@
+@Test
+public void shouldInvokeCallbackWhenChangeIsDetected() throws Exception {
+    final CallbackRegistryHolder callbackRegistryHolder = new CallbackRegistryHolder();
+    final AtomicBoolean flag = new AtomicBoolean();
+    final Injector injector = createDefaultInjector();
+    injector.inject(victim);
+    injector.inject(callbackRegistryHolder);
+    callbackRegistryHolder.registry.registerCallback(new ObjectFactory<LifecycleCallback>() {
+
+        public LifecycleCallback create() {
+            return new LifecycleCallbackSupport() {
+
+                @Override
+                public void onResourceChanged(final Resource resource) {
+                    flag.set(true);
+                }
+            };
+        }
+    });
+    victim.check(cacheKey);
+    assertTrue(flag.get());
+}

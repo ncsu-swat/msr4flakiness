@@ -1,0 +1,9 @@
+@Test
+public void shouldAssumeResourceNotChangedWhenStreamIsUnavailable() throws Exception {
+    createDefaultInjector().inject(victim);
+    final ResourceChangeDetector mockChangeDetector = Mockito.spy(victim.getResourceChangeDetector());
+    Mockito.when(mockLocator.locate(Mockito.anyString())).thenThrow(new IOException("Resource is unavailable"));
+    victim.check(cacheKey, resourceWatcherCallback);
+    verify(resourceWatcherCallback, never()).onGroupChanged(Mockito.any(CacheKey.class));
+    verify(mockChangeDetector, never()).checkChangeForGroup(Mockito.anyString(), Mockito.anyString());
+}

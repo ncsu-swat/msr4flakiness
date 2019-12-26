@@ -1,0 +1,24 @@
+@Test
+public void createValidModel() {
+    factory = new GroovyModelFactory() {
+
+        @Override
+        protected InputStream getModelResourceAsStream() throws IOException {
+            return TestGroovyModelFactory.class.getResourceAsStream("wro.groovy");
+        }
+    };
+    final WroModel model = factory.create();
+    assertNotNull(model);
+    final WroModelInspector modelInspector = new WroModelInspector(model);
+    assertEquals(Arrays.asList("g1", "g2"), new WroModelInspector(model).getGroupNames());
+    assertEquals(2, modelInspector.getGroupByName("g1").getResources().size());
+    assertTrue(modelInspector.getGroupByName("g1").getResources().get(0).isMinimize());
+    assertEquals("/static/app.js", modelInspector.getGroupByName("g1").getResources().get(0).getUri());
+    assertEquals(ResourceType.JS, modelInspector.getGroupByName("g1").getResources().get(0).getType());
+    assertTrue(modelInspector.getGroupByName("g1").getResources().get(1).isMinimize());
+    assertEquals("/static/app.css", modelInspector.getGroupByName("g1").getResources().get(1).getUri());
+    assertEquals(ResourceType.CSS, modelInspector.getGroupByName("g1").getResources().get(1).getType());
+    assertEquals(2, modelInspector.getGroupByName("g2").getResources().size());
+    assertFalse(modelInspector.getGroupByName("g2").getResources().get(1).isMinimize());
+    LOG.debug("model: ", model);
+}

@@ -1,0 +1,14 @@
+@Test
+public void shouldCorrectlyDetectFilesFromFoldersWithDirectoriesOnlyAsChildren() {
+    final WroModel model = new WroModel();
+    final String uri = String.format(ClasspathUriLocator.PREFIX + "%s/expander/subfolder/**.js", WroUtil.toPackageAsFolder(getClass()));
+    model.addGroup(new Group("group").addResource(Resource.create(uri, ResourceType.JS)));
+    Mockito.when(decoratedFactory.create()).thenReturn(model);
+    final WroModel changedModel = transformer.transform(model);
+    LOG.debug("model: {}", changedModel);
+    final String resultPathPrefix = String.format("%s%s/expander/subfolder", ClasspathUriLocator.PREFIX, WroUtil.toPackageAsFolder(getClass()));
+    final Group group = new WroModelInspector(changedModel).getGroupByName("group");
+    assertEquals(2, group.getResources().size());
+    assertEquals(resultPathPrefix + "/folder1/script1.js", group.getResources().get(0).getUri());
+    assertEquals(resultPathPrefix + "/folder2/script2.js", group.getResources().get(1).getUri());
+}

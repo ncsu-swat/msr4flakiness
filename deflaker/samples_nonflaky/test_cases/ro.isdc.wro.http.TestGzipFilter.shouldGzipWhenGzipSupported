@@ -1,0 +1,16 @@
+@Test
+public void shouldGzipWhenGzipSupported() throws Exception {
+    markGzipAsAllowed();
+    final String content = "sampleContent";
+    final InputStream sourceStream = new ByteArrayInputStream(content.getBytes());
+    final ByteArrayOutputStream targetStream = new ByteArrayOutputStream();
+    when(mockRequest.getInputStream()).thenReturn(new DelegatingServletInputStream(sourceStream));
+    when(mockResponse.getOutputStream()).thenReturn(new DelegatingServletOutputStream(targetStream));
+    victim.doFilter(mockRequest, mockResponse, mockFilterChain);
+    // not the same response is chained
+    verify(mockFilterChain, Mockito.never()).doFilter(mockRequest, mockResponse);
+    // chain is invoked but with a different response
+    verify(mockFilterChain, Mockito.times(1)).doFilter(Mockito.eq(mockRequest), Mockito.any(HttpServletResponse.class));
+    final InputStream ungzippedStream = new GZIPInputStream(new ByteArrayInputStream(targetStream.toByteArray()));
+    assertEquals(content, IOUtils.toString(ungzippedStream));
+}

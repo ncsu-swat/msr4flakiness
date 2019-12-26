@@ -1,0 +1,13 @@
+@Test
+public void shouldApplyNamingStrategyConcurrently() throws Exception {
+    final Properties configProperties = new Properties();
+    configProperties.setProperty(ConfigurableNamingStrategy.KEY, FolderHashEncoderNamingStrategy.ALIAS);
+    victim.setConfigProperties(configProperties);
+    WroTestUtils.runConcurrently(ContextPropagatingCallable.decorate(new Callable<Void>() {
+
+        public Void call() throws Exception {
+            victim.create().getNamingStrategy().rename("", new ByteArrayInputStream("".getBytes()));
+            return null;
+        }
+    }));
+}

@@ -1,0 +1,11 @@
+@Test
+public void shouldNotAddRedundantNewLinesAfterMerge() throws Exception {
+    final List<Resource> resources = new ArrayList<Resource>();
+    resources.add(Resource.create("1\n\n", ResourceType.JS));
+    resources.add(Resource.create("2", ResourceType.JS));
+    final UriLocatorFactory locatorFactory = new SimpleUriLocatorFactory().addLocator(WroTestUtils.createResourceMockingLocator());
+    final WroManagerFactory managerFactory = new BaseWroManagerFactory().setUriLocatorFactory(locatorFactory).setProcessorsFactory(new SimpleProcessorsFactory());
+    InjectorBuilder.create(managerFactory).build().inject(victim);
+    final String result = victim.processAndMerge(resources, false);
+    compare("1\n2", result);
+}

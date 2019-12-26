@@ -1,0 +1,22 @@
+@Test
+public void shouldLeaveContentUnchangedWhenAProcessorFails() {
+    final CacheKey key = new CacheKey(groupName, ResourceType.JS, true);
+    final Group group = new Group(groupName).addResource(Resource.create("1.js")).addResource(Resource.create("2.js"));
+    final WroModelFactory modelFactory = WroTestUtils.simpleModelFactory(new WroModel().addGroup(group));
+    // the locator which returns the name of the resource as its content
+    final UriLocatorFactory locatorFactory = new SimpleUriLocatorFactory().addLocator(WroTestUtils.createResourceMockingLocator());
+    final ResourcePreProcessor failingPreProcessor = new ResourcePreProcessor() {
+
+        public void process(final Resource resource, final Reader reader, final Writer writer) throws IOException {
+            throw new IOException("BOOM!");
+        }
+    };
+    final ProcessorsFactory processorsFactory = new SimpleProcessorsFactory().addPreProcessor(failingPreProcessor).addPostProcessor(new ProcessorDecorator(failingPreProcessor));
+    final BaseWroManagerFactory managerFactory = new BaseWroManagerFactory().setModelFactory(modelFactory).setUriLocatorFactory(locatorFactory);
+    managerFactory.setProcessorsFactory(processorsFactory);
+    final WroConfiguration config = new WroConfiguration();
+    config.setIgnoreFailingProcessor(true);
+    initVictim(config, managerFactory);
+    final String actual = victim.process(key);
+    WroTestUtils.compare("1.js\n2.js", actual);
+}

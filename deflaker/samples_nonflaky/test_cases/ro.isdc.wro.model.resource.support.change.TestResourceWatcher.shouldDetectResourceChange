@@ -1,0 +1,13 @@
+@Test
+public void shouldDetectResourceChange() throws Exception {
+    // flag used to assert that the expected code was invoked
+    createDefaultInjector().inject(victim);
+    victim.check(cacheKey, resourceWatcherCallback);
+    assertFalse(victim.getResourceChangeDetector().checkChangeForGroup(RESOURCE_CSS_URI, GROUP_NAME));
+    Mockito.when(mockLocator.locate(Mockito.anyString())).thenReturn(new ByteArrayInputStream("different".getBytes()));
+    final ArgumentCaptor<CacheKey> argumentCaptor = ArgumentCaptor.forClass(CacheKey.class);
+    victim.check(cacheKey);
+    assertTrue(victim.getResourceChangeDetector().checkChangeForGroup(RESOURCE_CSS_URI, GROUP_NAME));
+    Mockito.verify(resourceWatcherCallback).onGroupChanged(argumentCaptor.capture());
+    assertEquals(GROUP_NAME, argumentCaptor.getValue().getGroupName());
+}
