@@ -33,10 +33,12 @@ def consolidate_results(project, project_dir, nonf_outfile, oth_outfile):
 
 
 if __name__ == '__main__':
-    all_projects = os.listdir(os.path.join('deflaker', 'reruns'))
+    all_projects = [p for p in os.listdir(os.path.join('deflaker', 'reruns')) 
+                    if os.path.isdir(os.path.join('deflaker', 'reruns', p))
+                    and "-100" not in p]  # skipping 100 runs for now
     
     for project in all_projects:
-        if project in ['spring-boot', 'assertj-core', 'okhttp', 'hbase']:
+        if project in ['spring-boot', 'assertj-core', 'okhttp', 'hbase']:  # wrong log format
             continue
         project_dir = os.path.join('deflaker', 'reruns', project)
         nonf_outfile = os.path.join(project_dir, 'nonflaky_list.txt')
