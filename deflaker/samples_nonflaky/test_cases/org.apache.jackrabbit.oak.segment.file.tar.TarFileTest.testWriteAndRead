@@ -1,0 +1,16 @@
+@Test
+public void testWriteAndRead() throws IOException {
+    UUID id = UUID.randomUUID();
+    long msb = id.getMostSignificantBits();
+    // OAK-1672
+    long lsb = id.getLeastSignificantBits() & (-1 >>> 4);
+    byte[] data = "Hello, World!".getBytes(UTF_8);
+    try (TarWriter writer = new TarWriter(archiveManager, "data00000a.tar")) {
+        writer.writeEntry(msb, lsb, data, 0, data.length, generation(0));
+        assertEquals(Buffer.wrap(data), writer.readEntry(msb, lsb));
+    }
+    try (TarReader reader = TarReader.open("data00000a.tar", archiveManager)) {
+        assertEquals(getWriteAndReadExpectedSize(), reader.size());
+        assertEquals(Buffer.wrap(data), reader.readEntry(msb, lsb));
+    }
+}

@@ -1,0 +1,34 @@
+@Test
+public void testRestrictions() throws Exception {
+    String[] names = acl.getRestrictionNames();
+    assertNotNull(names);
+    assertEquals(4, names.length);
+    assertArrayEquals(new String[] { REP_GLOB, REP_NT_NAMES, REP_PREFIXES, REP_ITEM_NAMES }, names);
+    assertEquals(PropertyType.STRING, acl.getRestrictionType(names[0]));
+    assertEquals(PropertyType.NAME, acl.getRestrictionType(names[1]));
+    assertEquals(PropertyType.STRING, acl.getRestrictionType(names[2]));
+    assertEquals(PropertyType.NAME, acl.getRestrictionType(names[3]));
+    Privilege[] writePriv = privilegesFromNames(JCR_WRITE);
+    // add entry without restr. -> must succeed
+    assertTrue(acl.addAccessControlEntry(testPrincipal, writePriv));
+    assertEquals(1, acl.getAccessControlEntries().length);
+    // ... again -> no modification.
+    assertFalse(acl.addAccessControlEntry(testPrincipal, writePriv));
+    assertEquals(1, acl.getAccessControlEntries().length);
+    // ... again using different method -> no modification.
+    assertFalse(acl.addEntry(testPrincipal, writePriv, true));
+    assertEquals(1, acl.getAccessControlEntries().length);
+    // ... complementary entry -> must modify the acl
+    assertTrue(acl.addEntry(testPrincipal, writePriv, false));
+    assertEquals(1, acl.getAccessControlEntries().length);
+    // add an entry with a restrictions:
+    Map<String, Value> restrictions = Collections.singletonMap(REP_GLOB, getValueFactory().createValue("/.*"));
+    assertTrue(acl.addEntry(testPrincipal, writePriv, false, restrictions));
+    assertEquals(2, acl.getAccessControlEntries().length);
+    // ... same again -> no modification.
+    assertFalse(acl.addEntry(testPrincipal, writePriv, false, restrictions));
+    assertEquals(2, acl.getAccessControlEntries().length);
+    // ... complementary entry -> must modify the acl.
+    assertTrue(acl.addEntry(testPrincipal, writePriv, true, restrictions));
+    assertEquals(2, acl.getAccessControlEntries().length);
+}

@@ -1,0 +1,21 @@
+/**
+ * Invalidate after staging before upload.
+ * @throws Exception
+ */
+@Test
+public void testInvalidate() throws Exception {
+    // add load
+    List<ListenableFuture<Integer>> futures = put(folder);
+    // Check invalidate
+    stagingCache.invalidate(ID_PREFIX + 0);
+    File file = stagingCache.getIfPresent(ID_PREFIX + 0);
+    assertNull(file);
+    // start
+    taskLatch.countDown();
+    callbackLatch.countDown();
+    waitFinish(futures);
+    assertCacheStats(stagingCache, 0, 0, 1, 1);
+    // Should not return anything
+    file = stagingCache.getIfPresent(ID_PREFIX + 0);
+    assertNull(file);
+}

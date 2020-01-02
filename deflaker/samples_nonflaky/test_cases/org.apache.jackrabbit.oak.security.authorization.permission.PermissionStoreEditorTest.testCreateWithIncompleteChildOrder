@@ -1,0 +1,13 @@
+@Test
+public void testCreateWithIncompleteChildOrder() {
+    NodeState ace = mockACE(PRINCIPAL_NAME);
+    NodeState nodeState = mock(NodeState.class);
+    when(nodeState.getNames(OAK_CHILD_ORDER)).thenReturn(ImmutableSet.of("c1", "c2"));
+    when(nodeState.getChildNodeCount(anyLong())).thenReturn(Long.valueOf(3));
+    when(nodeState.getChildNodeNames()).thenReturn(ImmutableSet.of("c1", "c2", "c3"));
+    when(nodeState.getChildNode(anyString())).thenReturn(ace);
+    createPermissionStoreEditor(nodeState, mock(NodeBuilder.class));
+    verify(nodeState, times(3)).getChildNode(anyString());
+    verify(isACE, times(3)).apply(ace);
+    verify(isGrantACE, times(3)).apply(ace);
+}

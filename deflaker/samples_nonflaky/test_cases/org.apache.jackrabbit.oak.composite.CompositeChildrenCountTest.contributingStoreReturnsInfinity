@@ -1,0 +1,21 @@
+@Test
+public void contributingStoreReturnsInfinity() {
+    MountInfoProvider mip = Mounts.newBuilder().readOnlyMount("libs", "/libs", "/libs1", "/libs2", "/libs3", "/libs4").build();
+    NodeStore globalStore = new MemoryNodeStore();
+    NodeStore libsStore = new MemoryNodeStore();
+    List<MountedNodeStore> mounts = Lists.newArrayList();
+    mounts.add(new MountedNodeStore(mip.getMountByName("libs"), libsStore));
+    CompositeNodeStore compositeNodeStore = new CompositeNodeStore(mip, globalStore, mounts);
+    CompositeNodeStoreBuilder b = new CompositeNodeStoreBuilder(compositeNodeStore.ctx);
+    TestingNodeState globalTestingNS = b.configureMount("/", 5);
+    TestingNodeState libsTestingNS = b.configureMount("/libs", MAX_VALUE);
+    CompositeNodeState mns = b.getNodeState();
+    assertEquals(MAX_VALUE, mns.getChildNodeCount(100));
+    assertEquals(5, globalTestingNS.fetchedChildren);
+    assertEquals(0, libsTestingNS.fetchedChildren);
+    globalTestingNS.fetchedChildren = 0;
+    libsTestingNS.fetchedChildren = 0;
+    assertEquals(MAX_VALUE, mns.builder().getChildNodeCount(100));
+    assertEquals(5, globalTestingNS.fetchedChildren);
+    assertEquals(0, libsTestingNS.fetchedChildren);
+}

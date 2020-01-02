@@ -1,0 +1,26 @@
+@Test
+public void testReindexHidden() throws Exception {
+    NodeState before = EmptyNodeState.EMPTY_NODE;
+    NodeBuilder builder = before.builder();
+    builder.child(":testRoot").setProperty("foo", "abc");
+    createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "rootIndex", false, false, ImmutableSet.of("foo"), null);
+    NodeState after = builder.getNodeState();
+    NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+    // first check that the index content nodes exist
+    NodeState ns = checkPathExists(indexed, INDEX_DEFINITIONS_NAME, "rootIndex");
+    NodeState index = checkPathExists(ns, INDEX_CONTENT_NODE_NAME);
+    PropertyState ps = ns.getProperty(REINDEX_PROPERTY_NAME);
+    assertNotNull(ps);
+    assertFalse(ps.getValue(Type.BOOLEAN));
+    assertFalse(index.getChildNodeCount(1) > 0);
+    before = indexed;
+    builder = before.builder();
+    builder.child(INDEX_DEFINITIONS_NAME).child("rootIndex").setProperty("reindex", true);
+    after = builder.getNodeState();
+    indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+    index = checkPathExists(ns, INDEX_CONTENT_NODE_NAME);
+    ps = ns.getProperty(REINDEX_PROPERTY_NAME);
+    assertNotNull(ps);
+    assertFalse(ps.getValue(Type.BOOLEAN));
+    assertFalse(index.getChildNodeCount(1) > 0);
+}

@@ -1,0 +1,13 @@
+@Test
+public void encodeResponse() throws Exception {
+    EmbeddedChannel channel = new EmbeddedChannel(new GetReferencesResponseEncoder());
+    channel.writeOutbound(new GetReferencesResponse("clientId", "a", asList("b", "c")));
+    ByteBuf buffer = (ByteBuf) channel.readOutbound();
+    String body = "a:b,c";
+    byte[] data = body.getBytes(Charsets.UTF_8);
+    ByteBuf expected = Unpooled.buffer();
+    expected.writeInt(data.length + 1);
+    expected.writeByte(Messages.HEADER_REFERENCES);
+    expected.writeBytes(data);
+    assertEquals(expected, buffer);
+}

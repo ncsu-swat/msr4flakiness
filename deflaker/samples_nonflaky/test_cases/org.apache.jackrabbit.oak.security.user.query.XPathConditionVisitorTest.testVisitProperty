@@ -1,0 +1,15 @@
+@Test
+public void testVisitProperty() throws Exception {
+    Value v = getValueFactory(root).createValue(SERACH_EXPR);
+    for (RelationOp op : RelationOp.values()) {
+        if (op == RelationOp.EX || op == RelationOp.LIKE) {
+            continue;
+        }
+        visitor.visit(new Condition.Property(REL_PATH, op, v));
+        String s = statement.toString();
+        String expected = QueryUtils.escapeForQuery(REL_PATH) + op.getOp() + QueryUtil.format(v);
+        assertEquals(expected, s);
+        // reset statement for next operation
+        statement.delete(0, statement.length());
+    }
+}

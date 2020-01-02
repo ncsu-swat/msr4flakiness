@@ -1,0 +1,12 @@
+@Test
+public void testCreateWithNonAceChildren() {
+    NodeState nodeState = mock(NodeState.class);
+    when(nodeState.getNames(OAK_CHILD_ORDER)).thenReturn(ImmutableSet.of("c1", "c2", "c3"));
+    when(nodeState.getName(JCR_PRIMARYTYPE)).thenReturn(NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+    when(nodeState.getNames(JCR_MIXINTYPES)).thenReturn(Collections.emptySet());
+    when(nodeState.getChildNode(anyString())).thenReturn(nodeState);
+    new PermissionStoreEditor("/test", AccessControlConstants.REP_POLICY, nodeState, mock(NodeBuilder.class), isACE, isGrantACE, bitsProvider, restrictionProvider, getTreeProvider());
+    verify(nodeState, times(3)).getChildNode(anyString());
+    verify(isACE, times(3)).apply(nodeState);
+    verify(isGrantACE, never()).apply(nodeState);
+}

@@ -1,0 +1,32 @@
+@Test
+public void testAggregationFilterByPrincipals() throws Exception {
+    Principal principal = new PrincipalImpl("matchingPrincipal");
+    Set<Principal> matchingSet = ImmutableSet.of(principal);
+    Set<Principal> notMatching = ImmutableSet.of(EveryonePrincipal.getInstance());
+    JackrabbitAccessControlManager acMgr1 = mock(JackrabbitAccessControlManager.class, withSettings().extraInterfaces(PolicyOwner.class));
+    JackrabbitAccessControlManager acMgr2 = mock(JackrabbitAccessControlManager.class, withSettings().extraInterfaces(PolicyOwner.class));
+    for (JackrabbitAccessControlManager acMgr : new JackrabbitAccessControlManager[] { acMgr1, acMgr2 }) {
+        when(acMgr.getApplicablePolicies(any(Principal.class))).thenReturn(new JackrabbitAccessControlPolicy[0]);
+        when(acMgr.getPolicies(any(Principal.class))).thenReturn(new JackrabbitAccessControlPolicy[0]);
+        when(acMgr.getEffectivePolicies(any(Set.class))).thenReturn(new JackrabbitAccessControlPolicy[0]);
+    }
+    AggregationFilter aggregationFilter = mock(AggregationFilter.class);
+    when(aggregationFilter.stop(acMgr1, matchingSet)).thenReturn(true);
+    CompositeAccessControlManager composite = createComposite(aggregationFilter, acMgr1, acMgr2);
+    // must not call AggregationFilter
+    composite.getApplicablePolicies(principal);
+    // must not call AggregationFilter
+    composite.getPolicies(principal);
+    // must call AggregationFilter
+    composite.getEffectivePolicies(matchingSet);
+    verify(aggregationFilter, times(1)).stop(acMgr1, matchingSet);
+    verify(aggregationFilter, never()).stop(acMgr2, matchingSet);
+    verify(acMgr1, times(1)).getEffectivePolicies(matchingSet);
+    verify(acMgr2, never()).getEffectivePolicies(matchingSet);
+    // must call AggregationFilter but not trigger stop
+    composite.getEffectivePolicies(notMatching);
+    verify(aggregationFilter, times(1)).stop(acMgr1, notMatching);
+    verify(aggregationFilter, times(1)).stop(acMgr2, notMatching);
+    verify(acMgr1, times(1)).getEffectivePolicies(notMatching);
+    verify(acMgr2, times(1)).getEffectivePolicies(notMatching);
+}

@@ -1,0 +1,14 @@
+@Test
+public void consistencyCheckOnlyActiveDeletion() throws Exception {
+    Cluster cluster = new Cluster("cluster1");
+    BlobStore s = cluster.blobStore;
+    BlobIdTracker tracker = (BlobIdTracker) ((BlobTrackingStore) s).getTracker();
+    DataStoreState state = init(cluster.nodeStore, 0);
+    List<String> addlAdded = doActiveDelete(cluster.nodeStore, (DataStoreBlobStore) cluster.blobStore, tracker, folder, 0, 2);
+    List<String> addlPresent = Lists.newArrayList(addlAdded.get(2), addlAdded.get(3));
+    List<String> activeDeleted = Lists.newArrayList(addlAdded.get(0), addlAdded.get(1));
+    state.blobsPresent.addAll(addlPresent);
+    state.blobsAdded.addAll(addlPresent);
+    // Since datastore in consistent state and only active deletions the missing list should be empty
+    assertEquals(0, cluster.gc.checkConsistency());
+}

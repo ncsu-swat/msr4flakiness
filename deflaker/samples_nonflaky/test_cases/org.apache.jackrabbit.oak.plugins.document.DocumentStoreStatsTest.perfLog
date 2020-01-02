@@ -1,0 +1,23 @@
+@Test
+public void perfLog() throws Exception {
+    String logName = DocumentStoreStats.class.getName() + ".perf";
+    LogCustomizer customLogs = LogCustomizer.forLogger(logName).filter(Level.TRACE).create();
+    enableLevel(logName, Level.INFO);
+    customLogs.starting();
+    // No logs untill debug enabled
+    stats.doneFindAndModify(100, Collection.NODES, "foo", true, true, 0);
+    assertEquals(0, customLogs.getLogs().size());
+    stats.doneFindAndModify(TimeUnit.SECONDS.toNanos(10), Collection.NODES, "foo", true, true, 0);
+    assertEquals(0, customLogs.getLogs().size());
+    // Change level to DEBUG - Now threshold rule applies
+    enableLevel(logName, Level.DEBUG);
+    stats.doneFindAndModify(100, Collection.NODES, "foo", true, true, 0);
+    assertEquals(0, customLogs.getLogs().size());
+    stats.doneFindAndModify(TimeUnit.SECONDS.toNanos(10), Collection.NODES, "foo", true, true, 0);
+    assertEquals(1, customLogs.getLogs().size());
+    // With trace level everything is logged
+    enableLevel(logName, Level.TRACE);
+    stats.doneFindAndModify(100, Collection.NODES, "foo", true, true, 0);
+    assertEquals(2, customLogs.getLogs().size());
+    customLogs.finished();
+}

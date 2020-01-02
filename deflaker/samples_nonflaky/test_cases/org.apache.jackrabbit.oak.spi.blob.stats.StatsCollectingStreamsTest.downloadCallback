@@ -1,0 +1,16 @@
+@Test
+public void downloadCallback() throws Exception {
+    NullInputStream in = new NullInputStream(1042);
+    TestCollector stats = new TestCollector();
+    InputStream wrappedStream = StatsCollectingStreams.wrap(stats, "foo", in);
+    assertEquals(0, stats.callbackCount);
+    // Copy the content to get size
+    CountingOutputStream cos = new CountingOutputStream(new NullOutputStream());
+    IOUtils.copy(wrappedStream, cos);
+    assertEquals(1042, cos.getCount());
+    // Stream not closed so no callback
+    assertEquals(0, stats.callbackCount);
+    wrappedStream.close();
+    assertEquals(1042, stats.size);
+    assertEquals(1, stats.downloadCompletedCount);
+}

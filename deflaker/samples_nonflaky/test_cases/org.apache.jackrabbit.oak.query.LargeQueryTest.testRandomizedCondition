@@ -1,0 +1,21 @@
+@Test
+public void testRandomizedCondition() throws ParseException {
+    Random r = new Random(0);
+    for (int i = 0; i < 5000; i++) {
+        testRandomizedCondition(r.nextInt());
+    }
+}
+private void testRandomizedCondition(int seed) throws ParseException {
+    Random r = new Random(seed);
+    StringBuilder buff = new StringBuilder("//*[");
+    buff.append(randomCondition(r));
+    buff.append("]");
+    String xpath = buff.toString();
+    XPathToSQL2Converter conv = new XPathToSQL2Converter();
+    String sql2 = conv.convert(xpath);
+    int xpathIndex = sql2.lastIndexOf(" /* xpath: ");
+    sql2 = sql2.substring(0, xpathIndex);
+    // should use union now
+    assertTrue(sql2.indexOf(" or ") < 0);
+    parser.parse(sql2);
+}

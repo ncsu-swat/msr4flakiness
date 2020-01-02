@@ -1,0 +1,14 @@
+@Test
+public void testSuccessfulCheckOfHeadAndCheckpointsWithoutFilterPaths() throws Exception {
+    StringWriter strOut = new StringWriter();
+    StringWriter strErr = new StringWriter();
+    PrintWriter outWriter = new PrintWriter(strOut, true);
+    PrintWriter errWriter = new PrintWriter(strErr, true);
+    Set<String> filterPaths = new LinkedHashSet<>();
+    filterPaths.add("/");
+    Check.builder().withPath(new File(temporaryFolder.getRoot().getAbsolutePath())).withDebugInterval(Long.MAX_VALUE).withFilterPaths(filterPaths).withCheckBinaries(true).withCheckHead(true).withCheckpoints(checkpoints).withIOStatistics(true).withOutWriter(outWriter).withErrWriter(errWriter).build().run();
+    outWriter.close();
+    errWriter.close();
+    assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Checking checkpoints", "Searched through 1 revisions and 2 checkpoints", "Checked 7 nodes and 21 properties", "Path / is consistent"));
+    assertExpectedOutput(strErr.toString(), Lists.newArrayList(""));
+}

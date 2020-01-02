@@ -1,0 +1,8 @@
+@Test(expected = InvalidIndexException.class)
+public void testInvalidEntrySize() throws Exception {
+    Buffer entries = Buffer.allocate(IndexEntryV1.SIZE);
+    entries.duplicate().putLong(0).putLong(0).putInt(0).putInt(0).putInt(0);
+    Buffer buffer = Buffer.allocate(IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE);
+    buffer.duplicate().put(entries.duplicate()).putInt(checksum(entries)).putInt(1).putInt(IndexEntryV1.SIZE + IndexV1.FOOTER_SIZE).putInt(IndexLoaderV1.MAGIC);
+    assertInvalidIndexException(buffer, "Invalid entry size");
+}

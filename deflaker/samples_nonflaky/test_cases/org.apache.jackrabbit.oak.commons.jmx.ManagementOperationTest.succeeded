@@ -1,0 +1,16 @@
+@Test
+public void succeeded() throws InterruptedException, ExecutionException, TimeoutException {
+    ManagementOperation<Long> op = newManagementOperation("test", new Callable<Long>() {
+
+        @Override
+        public Long call() throws Exception {
+            return 42L;
+        }
+    });
+    executor.execute(op);
+    assertEquals(42L, (long) op.get(5, SECONDS));
+    assertTrue(op.isDone());
+    Status status = op.getStatus();
+    assertEquals(op.getId(), status.getId());
+    assertEquals(SUCCEEDED, status.getCode());
+}

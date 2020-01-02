@@ -1,0 +1,26 @@
+@Test
+public void counter() throws Exception {
+    AtomicLong simpleStats = new AtomicLong();
+    Counter counter = registry.counter("test");
+    CompositeStats counterStats = new CompositeStats(simpleStats, counter);
+    counterStats.inc();
+    assertEquals(1, simpleStats.get());
+    assertEquals(1, counter.getCount());
+    assertEquals(1, counterStats.getCount());
+    counterStats.inc();
+    counterStats.inc();
+    assertEquals(3, simpleStats.get());
+    counterStats.dec();
+    assertEquals(2, simpleStats.get());
+    assertEquals(2, counter.getCount());
+    counterStats.inc(7);
+    assertEquals(9, simpleStats.get());
+    assertEquals(9, counter.getCount());
+    counterStats.dec(5);
+    assertEquals(4, simpleStats.get());
+    assertEquals(4, counter.getCount());
+    assertFalse(counterStats.isMeter());
+    assertFalse(counterStats.isTimer());
+    assertTrue(counterStats.isCounter());
+    assertNotNull(counterStats.getCounter());
+}

@@ -1,0 +1,26 @@
+@Test
+public void timestampInJournalEntry() throws Exception {
+    FileStore fileStore = fileStoreBuilder(tempFolder.getRoot()).withMaxFileSize(5).withSegmentCacheSize(0).withStringCacheSize(0).withTemplateCacheSize(0).withMemoryMapping(true).build();
+    SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+    long startTime = System.currentTimeMillis();
+    for (int i = 0; i < 5; i++) {
+        NodeBuilder root = nodeStore.getRoot().builder();
+        root.child("c" + i);
+        nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        fileStore.flush();
+    }
+    fileStore.close();
+    File journal = new File(tempFolder.getRoot(), "journal.log");
+    List<String> lines = Files.readLines(journal, Charset.defaultCharset());
+    assertFalse(lines.isEmpty());
+    String line = lines.get(0);
+    List<String> parts = journalParts(line);
+    assertEquals(3, parts.size());
+    long entryTime = Long.valueOf(parts.get(2));
+    assertTrue(entryTime >= startTime);
+    JournalReader jr = new JournalReader(new LocalJournalFile(journal));
+    JournalEntry journalEntry = jr.next();
+    assertEquals(journalParts(lines.get(lines.size() - 1)).get(0), journalEntry.getRevision());
+    assertEquals(journalParts(lines.get(lines.size() - 1)).get(2), String.valueOf(journalEntry.getTimestamp()));
+    jr.close();
+}

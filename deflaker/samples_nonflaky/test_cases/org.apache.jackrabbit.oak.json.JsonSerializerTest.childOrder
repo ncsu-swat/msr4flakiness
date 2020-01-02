@@ -1,0 +1,23 @@
+@Test
+public void childOrder() throws Exception {
+    NodeBuilder builder = EMPTY_NODE.builder();
+    builder.child("a");
+    builder.child("b");
+    builder.child("c");
+    List<String> expectedOrder = Arrays.asList("a", "c", "b");
+    builder.setProperty(":childOrder", expectedOrder, Type.NAMES);
+    NodeState state = builder.getNodeState();
+    String json = serialize(state);
+    JsopReader reader = new JsopTokenizer(json);
+    List<String> childNames = Lists.newArrayList();
+    reader.read('{');
+    do {
+        String key = reader.readString();
+        reader.read(':');
+        if (reader.matches('{')) {
+            childNames.add(key);
+            reader.matches('}');
+        }
+    } while (reader.matches(','));
+    assertEquals(expectedOrder, childNames);
+}

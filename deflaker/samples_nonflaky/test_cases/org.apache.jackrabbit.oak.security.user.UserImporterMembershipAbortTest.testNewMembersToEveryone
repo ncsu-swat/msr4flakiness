@@ -1,0 +1,10 @@
+@Test(expected = ConstraintViolationException.class)
+public void testNewMembersToEveryone() throws Exception {
+    groupTree.setProperty(REP_MEMBERS, ImmutableList.of(knownMemberContentId), Type.STRINGS);
+    groupTree.setProperty(REP_PRINCIPAL_NAME, EveryonePrincipal.NAME);
+    Tree userTree = createUserTree();
+    String contentId = userProvider.getContentID(userTree);
+    assertTrue(importer.handlePropInfo(userTree, createPropInfo(REP_AUTHORIZABLE_ID, TEST_USER_ID), mockPropertyDefinition(NT_REP_AUTHORIZABLE, false)));
+    assertTrue(importer.handlePropInfo(groupTree, createPropInfo(REP_MEMBERS, contentId), mockPropertyDefinition(NT_REP_MEMBER_REFERENCES, true)));
+    importer.processReferences();
+}

@@ -1,0 +1,14 @@
+@Test
+public void testBuildNoExistingEntries() {
+    when(store.getNumEntries(anyString(), anyLong())).thenReturn(NumEntries.ZERO);
+    when(store.load(anyString())).thenReturn(new PrincipalPermissionEntries(0));
+    Set<String> principalNames = Sets.newHashSet("noEntries", "noEntries2", "noEntries3");
+    assertTrue(permissionCacheBuilder.init(principalNames, Long.MAX_VALUE));
+    PermissionCache cache = permissionCacheBuilder.build();
+    assertEquals(EMPTY_CLASS_NAME, cache.getClass().getName());
+    assertTrue(cache.getEntries(PathUtils.ROOT_PATH).isEmpty());
+    assertTrue(cache.getEntries(mock(Tree.class)).isEmpty());
+    verify(store, times(3)).getNumEntries(anyString(), anyLong());
+    verify(store, never()).load(anyString());
+    verify(store, never()).load(anyString(), anyString());
+}

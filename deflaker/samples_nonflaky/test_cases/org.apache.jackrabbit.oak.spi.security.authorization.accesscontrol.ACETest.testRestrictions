@@ -1,0 +1,16 @@
+@Test
+public void testRestrictions() throws Exception {
+    Restriction r = new RestrictionImpl(PropertyStates.createProperty("r", "v"), false);
+    Restriction r2 = new RestrictionImpl(PropertyStates.createProperty("r2", ImmutableList.of("v"), Type.STRINGS), false);
+    Set<Restriction> restrictions = Sets.newHashSet(r, r2);
+    ACE ace = new ACE(testPrincipal, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ), true, restrictions, getNamePathMapper()) {
+
+        @Override
+        public Privilege[] getPrivileges() {
+            return new Privilege[0];
+        }
+    };
+    assertFalse(ace.getRestrictions().isEmpty());
+    assertNotSame(restrictions, ace.getRestrictions());
+    assertTrue(Iterables.elementsEqual(restrictions, ace.getRestrictions()));
+}

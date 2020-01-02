@@ -1,0 +1,19 @@
+@Test
+public void testVisitImpersonationGroup() throws Exception {
+    UserManager uMgr = getUserManager(root);
+    Group g = null;
+    try {
+        g = uMgr.createGroup("g");
+        root.commit();
+        Condition.Impersonation c = new Condition.Impersonation(g.getPrincipal().getName());
+        visitor.visit(c);
+        String s = statement.toString();
+        assertTrue(s.contains(UserConstants.REP_IMPERSONATORS));
+        assertFalse(s.contains("@rcj:primaryType='" + UserConstants.NT_REP_USER + "'"));
+    } finally {
+        if (g != null) {
+            g.remove();
+            root.commit();
+        }
+    }
+}

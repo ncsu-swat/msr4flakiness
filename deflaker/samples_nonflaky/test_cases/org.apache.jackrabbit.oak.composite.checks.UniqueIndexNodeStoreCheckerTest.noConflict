@@ -1,0 +1,12 @@
+@Test
+public void noConflict() throws Exception {
+    MemoryNodeStore globalStore = new MemoryNodeStore();
+    MemoryNodeStore mountedStore = new MemoryNodeStore();
+    populateStore(globalStore, b -> b.child("first").setProperty("foo", "baz"));
+    populateStore(mountedStore, b -> b.child("libs").child("first").setProperty("foo", "bar"));
+    UniqueIndexNodeStoreChecker checker = new UniqueIndexNodeStoreChecker();
+    Context ctx = checker.createContext(globalStore, mip);
+    ErrorHolder error = new ErrorHolder();
+    checker.check(new MountedNodeStore(mip.getMountByName("libs"), mountedStore), TreeFactory.createReadOnlyTree(mountedStore.getRoot()), error, ctx);
+    error.end();
+}

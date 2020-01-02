@@ -1,0 +1,17 @@
+@Test
+public void testRegisterChildrenTracker() {
+    NodeDocumentCache cache = createCache();
+    Path parent = Path.fromString("/parent");
+    CacheChangesTracker tracker = cache.registerTracker(getKeyLowerLimit(parent), getKeyUpperLimit(parent));
+    assertFalse(tracker.mightBeenAffected("2:/parent/xyz"));
+    assertFalse(tracker.mightBeenAffected("2:/parent/abc"));
+    cache.put(createDoc("2:/parent/xyz"));
+    assertTrue(tracker.mightBeenAffected("2:/parent/xyz"));
+    cache.invalidate("2:/parent/abc");
+    assertTrue(tracker.mightBeenAffected("2:/parent/abc"));
+    cache.invalidate("2:/other-parent/abc");
+    assertFalse(tracker.mightBeenAffected("2:/other-parent/abc"));
+    tracker.close();
+    cache.invalidate("2:/parent/123");
+    assertFalse(tracker.mightBeenAffected("2:/parent/123"));
+}

@@ -1,0 +1,14 @@
+@Test
+public // GC should fail
+void testOnly1ClusterMark() throws Exception {
+    log.debug("Running testOnly1ClusterMark()");
+    // Only run the mark phase on one cluster
+    cluster1.gc.collectGarbage(true);
+    // Execute the gc with sweep
+    cluster1.gc.collectGarbage(false);
+    Set<String> existing = cluster1.getExistingBlobIds();
+    log.debug("Existing blobs {}", existing);
+    assertTrue((cluster1.getInitBlobs().size() + cluster2.getInitBlobs().size()) <= existing.size());
+    assertTrue(existing.containsAll(cluster2.getInitBlobs()));
+    assertTrue(existing.containsAll(cluster1.getInitBlobs()));
+}

@@ -1,0 +1,40 @@
+@Test
+public void maxMemory() throws Exception {
+    // calculate memory for a few actions and use as memory maximum
+    long maxMemory = 0;
+    List<CacheAction> actions = new ArrayList<>();
+    for (int i = 0; i < 10; i++) {
+        CacheAction a = new DummyCacheWriteAction("id-" + i, 0);
+        actions.add(a);
+        maxMemory += a.getMemory();
+    }
+    CacheActionDispatcher dispatcher = new CacheActionDispatcher(maxMemory);
+    // adding actions to the queue must all succeed
+    for (CacheAction a : actions) {
+        assertTrue(dispatcher.add(a));
+    }
+    // adding more must be rejected
+    assertFalse(dispatcher.add(new DummyCacheWriteAction("foo", 0)));
+    // drain the queue
+    Thread t = new Thread(dispatcher);
+    t.start();
+    for (int i = 0; i < 100; i++) {
+        if (dispatcher.getMemory() == 0) {
+            break;
+        }
+        Thread.sleep(20);
+    }
+    assertEquals(0, dispatcher.getMemory());
+    dispatcher.stop();
+    t.join();
+    // must be able to add again
+    assertTrue(dispatcher.add(actions.get(0)));
+    // but not if it exceeds the maximum memory
+    String id = "abcdef";
+    CacheAction big;
+    do {
+        big = new DummyCacheWriteAction(id, 0);
+        id = id + id;
+    } while (big.getMemory() < maxMemory);
+    assertFalse(dispatcher.add(big));
+}

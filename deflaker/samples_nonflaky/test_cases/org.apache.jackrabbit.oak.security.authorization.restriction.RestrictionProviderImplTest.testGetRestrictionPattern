@@ -1,0 +1,22 @@
+@Test
+public void testGetRestrictionPattern() throws Exception {
+    Map<PropertyState, RestrictionPattern> map = newHashMap();
+    map.put(PropertyStates.createProperty(REP_GLOB, "/*/jcr:content"), GlobPattern.create("/testPath", "/*/jcr:content"));
+    List<String> ntNames = ImmutableList.of(JcrConstants.NT_FOLDER, JcrConstants.NT_LINKEDFILE);
+    map.put(PropertyStates.createProperty(REP_NT_NAMES, ntNames, Type.NAMES), new NodeTypePattern(ntNames));
+    Tree tree = TreeUtil.getOrAddChild(root.getTree("/"), "testPath", JcrConstants.NT_UNSTRUCTURED);
+    Tree restrictions = TreeUtil.addChild(tree, REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
+    // test restrictions individually
+    for (Map.Entry<PropertyState, RestrictionPattern> entry : map.entrySet()) {
+        restrictions.setProperty(entry.getKey());
+        RestrictionPattern pattern = provider.getPattern("/testPath", restrictions);
+        assertEquals(entry.getValue(), pattern);
+        restrictions.removeProperty(entry.getKey().getName());
+    }
+    // test combination on multiple restrictions
+    for (Map.Entry<PropertyState, RestrictionPattern> entry : map.entrySet()) {
+        restrictions.setProperty(entry.getKey());
+    }
+    RestrictionPattern pattern = provider.getPattern("/testPath", restrictions);
+    assertTrue(pattern instanceof CompositePattern);
+}

@@ -1,0 +1,54 @@
+// OAK-8106
+@Test
+public void resetBranchWithFirstRebaseBranchCommit() throws CommitFailedException {
+    final long branchCommits = 5;
+    final int updateLimit = 100;
+    final DocumentNodeStore ns = builderProvider.newBuilder().setUpdateLimit(updateLimit).setAsyncDelay(0).getNodeStore();
+    // do not retry merges
+    ns.setMaxBackOffMillis(0);
+    NodeBuilder nb = ns.getRoot().builder();
+    nb.child("foo");
+    try {
+        ns.merge(nb, new CommitHook() {
+
+            @NotNull
+            @Override
+            public NodeState processCommit(NodeState before, NodeState after, CommitInfo info) throws CommitFailedException {
+                // add more nodes to create branch commits
+                DocumentRootBuilder nb = (DocumentRootBuilder) after.builder();
+                for (int i = 0; i < branchCommits; i++) {
+                    // add a node with a different merge
+                    addNodes(ns, "/baz/node-" + i);
+                    // now force a rebase
+                    nb.rebase();
+                    // and add nodes until a branch commit is created
+                    NodeBuilder child = nb.child("bar").child("node-" + i);
+                    for (int j = 0; j < updateLimit; j++) {
+                        child.child("node-" + j);
+                    }
+                }
+                // eventually fail the commit to trigger a reset
+                throw new CommitFailedException(CommitFailedException.OAK, Integer.MAX_VALUE, "failure");
+            }
+        }, CommitInfo.EMPTY);
+        fail("Merge must fail with CommitFailedException");
+    } catch (CommitFailedException e) {
+        if (e.getCode() != Integer.MAX_VALUE) {
+            throw e;
+        }
+    // otherwise expected
+    }
+    Path bar = Path.fromString("/bar");
+    // verify reset cleaned up properly
+    for (NodeDocument doc : Utils.getAllDocuments(ns.getDocumentStore())) {
+        Path p = doc.getPath();
+        if (bar.isAncestorOf(p) || bar.equals(p)) {
+            String path = p.toString();
+            assertThat(path, doc.getLocalRevisions().keySet(), is(empty()));
+            assertThat(path, doc.getLocalCommitRoot().keySet(), is(empty()));
+            assertThat(path, doc.getDeleted().keySet(), is(empty()));
+            assertThat(path, doc.getLocalBranchCommits(), is(empty()));
+            assertTrue(path, doc.wasDeletedOnce());
+        }
+    }
+}

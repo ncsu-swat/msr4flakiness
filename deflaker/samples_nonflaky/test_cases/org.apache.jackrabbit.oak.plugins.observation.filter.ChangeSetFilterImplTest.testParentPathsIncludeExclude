@@ -1,0 +1,32 @@
+@Test
+public void testParentPathsIncludeExclude() throws Exception {
+    ChangeSetFilterImpl prefilter = new ChangeSetFilterImpl(s("/"), true, null, s("/excluded"), s(), s(), s());
+    assertFalse(prefilter.excludes(newChangeSet(5, s("/a", "/b"), s("a", "b"), s(), s())));
+    assertTrue(prefilter.excludes(newChangeSet(5, s("/excluded/foo", "/excluded/bar"), s("foo", "bar"), s(), s())));
+    prefilter = new ChangeSetFilterImpl(s("/included"), true, null, s("/excluded"), s(), s(), s());
+    assertTrue(prefilter.excludes(newChangeSet(5, s("/a", "/b"), s(), s(), s())));
+    assertFalse(prefilter.excludes(newChangeSet(5, s("/included/a", "/included/b"), s(), s(), s())));
+    assertTrue(prefilter.excludes(newChangeSet(5, s("/excluded/foo", "/excluded/bar"), s(), s(), s())));
+    prefilter = new ChangeSetFilterImpl(s("/foo/**/included/**"), true, /*ignored for globs */
+    null, s("/excluded"), s(), s(), s());
+    assertTrue(prefilter.excludes(newChangeSet(5, s("/a", "/b"), s(), s(), s())));
+    assertTrue(prefilter.excludes(newChangeSet(5, s("/included/a", "/included/b"), s(), s(), s())));
+    assertFalse(prefilter.excludes(newChangeSet(5, s("/foo/included/a"), s(), s(), s())));
+    assertTrue(prefilter.excludes(newChangeSet(5, s("/included/b"), s(), s(), s())));
+    assertFalse(prefilter.excludes(newChangeSet(5, s("/foo/bar/included/a", "/included/b"), s(), s(), s())));
+    assertTrue(prefilter.excludes(newChangeSet(5, s("/excluded/foo", "/excluded/bar"), s(), s(), s())));
+    prefilter = new ChangeSetFilterImpl(s("/main/**/included"), true, null, s("/main/excluded"), s(), s(), s());
+    assertTrue(prefilter.excludes(newChangeSet(5, s("/main", "/main/foo"), s(), s(), s())));
+    assertFalse(prefilter.excludes(newChangeSet(5, s("/main/included", "/main/excluded"), s(), s(), s())));
+    assertTrue(prefilter.excludes(newChangeSet(5, s("/main/excluded/included", "/main/excluded"), s(), s(), s())));
+    prefilter = new ChangeSetFilterImpl(s("/main/included/**"), true, null, s("/main/excluded"), s(), s(), s());
+    assertTrue(prefilter.excludes(newChangeSet(5, s("/main", "/main/foo"), s(), s(), s())));
+    assertTrue(prefilter.excludes(newChangeSet(5, s("/main/excluded"), s(), s(), s())));
+    assertFalse(prefilter.excludes(newChangeSet(5, s("/main/included"), s(), s(), s())));
+    assertTrue(prefilter.excludes(newChangeSet(5, s("/main/excluded/included", "/main/excluded"), s(), s(), s())));
+    prefilter = new ChangeSetFilterImpl(s("/main/inc-*/**"), true, null, s("/main/excluded"), s(), s(), s());
+    assertTrue(prefilter.excludes(newChangeSet(5, s("/main", "/main/foo"), s(), s(), s())));
+    assertTrue(prefilter.excludes(newChangeSet(5, s("/main/excluded"), s(), s(), s())));
+    assertFalse(prefilter.excludes(newChangeSet(5, s("/main/inc-luded"), s(), s(), s())));
+    assertTrue(prefilter.excludes(newChangeSet(5, s("/main/excluded/included", "/main/excluded"), s(), s(), s())));
+}

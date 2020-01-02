@@ -1,0 +1,14 @@
+@Test
+public void testBindRestrictionProviderWithoutAuthorizationConfig() {
+    registration.activate(context.bundleContext(), configWithRequiredServiceIds("serviceId"));
+    RestrictionProvider mockRp = mock(RestrictionProvider.class);
+    ServiceReference sr = when(mock(ServiceReference.class).getProperty(SERVICE_PID)).thenReturn("serviceId").getMock();
+    registration.bindRestrictionProvider(sr, mockRp);
+    SecurityProvider service = context.getService(SecurityProvider.class);
+    assertNotNull(service);
+    AuthorizationConfiguration ac = service.getConfiguration(AuthorizationConfiguration.class);
+    assertTrue(ac instanceof CompositeAuthorizationConfiguration);
+    // empty composite configuration => empty rp
+    RestrictionProvider rp = ac.getRestrictionProvider();
+    assertSame(RestrictionProvider.EMPTY, rp);
+}

@@ -1,0 +1,17 @@
+@Test
+public void testSetPrincipalPolicyForRepositoryLevel() throws Exception {
+    assertEquals(0, acMgr.getPolicies((String) null).length);
+    JackrabbitAccessControlPolicy[] policies = acMgr.getApplicablePolicies(testPrincipal);
+    ACL acl = (ACL) policies[0];
+    Map<String, Value> restrictions = new HashMap<>();
+    restrictions.put(REP_NODE_PATH, getValueFactory().createValue("", PropertyType.STRING));
+    Privilege[] privs = privilegesFromNames(PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT);
+    assertTrue(acl.addEntry(testPrincipal, privs, true, restrictions));
+    acMgr.setPolicy(acl.getPath(), acl);
+    AccessControlPolicy[] repoLevelPolicies = acMgr.getPolicies((String) null);
+    assertEquals(1, repoLevelPolicies.length);
+    AccessControlEntry[] entries = ((JackrabbitAccessControlList) repoLevelPolicies[0]).getAccessControlEntries();
+    assertEquals(1, entries.length);
+    assertArrayEquals(privs, entries[0].getPrivileges());
+    assertEquals(testPrincipal, entries[0].getPrincipal());
+}

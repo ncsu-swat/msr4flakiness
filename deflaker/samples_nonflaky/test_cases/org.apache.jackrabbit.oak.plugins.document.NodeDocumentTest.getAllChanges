@@ -1,0 +1,14 @@
+@Test
+public void getAllChanges() throws Exception {
+    final int NUM_CHANGES = 200;
+    DocumentNodeStore ns = createTestStore(NUM_CHANGES);
+    Revision previous = ns.newRevision();
+    NodeDocument root = getRootDocument(ns.getDocumentStore());
+    for (Revision r : root.getAllChanges()) {
+        assertTrue(previous.compareRevisionTime(r) > 0);
+        previous = r;
+    }
+    // NUM_CHANGES + one revision when node was created
+    assertEquals(NUM_CHANGES + 1, Iterables.size(root.getAllChanges()));
+    ns.dispose();
+}

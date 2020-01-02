@@ -1,0 +1,27 @@
+@Test
+public void testQueue() throws IOException, InterruptedException {
+    Set<UUID> added = Collections.synchronizedSet(new HashSet<>());
+    Semaphore semaphore = new Semaphore(0);
+    queue = new SegmentWriteQueue((tarEntry, data, offset, size) -> {
+        try {
+            semaphore.acquire();
+        } catch (InterruptedException e) {
+        }
+        added.add(new UUID(tarEntry.getMsb(), tarEntry.getLsb()));
+    });
+    for (int i = 0; i < 10; i++) {
+        queue.addToQueue(tarEntry(i), EMPTY_DATA, 0, 0);
+    }
+    for (int i = 0; i < 10; i++) {
+        assertNotNull("Segments should be available for read", queue.read(uuid(i)));
+    }
+    assertFalse("Queue shouldn't be empty", queue.isEmpty());
+    semaphore.release(Integer.MAX_VALUE);
+    while (!queue.isEmpty()) {
+        Thread.sleep(10);
+    }
+    assertEquals("There should be 10 segments consumed", 10, added.size());
+    for (int i = 0; i < 10; i++) {
+        assertTrue("Missing consumed segment", added.contains(uuid(i)));
+    }
+}

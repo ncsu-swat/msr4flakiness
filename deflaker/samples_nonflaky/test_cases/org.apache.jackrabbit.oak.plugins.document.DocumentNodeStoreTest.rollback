@@ -1,0 +1,69 @@
+@Test
+public void rollback() throws Exception {
+    final Map<Thread, Semaphore> locks = Collections.synchronizedMap(new HashMap<Thread, Semaphore>());
+    final Semaphore created = new Semaphore(0);
+    DocumentStore docStore = new MemoryDocumentStore() {
+
+        @Override
+        public <T extends Document> List<T> createOrUpdate(Collection<T> collection, List<UpdateOp> updateOps) {
+            Semaphore semaphore = locks.get(Thread.currentThread());
+            List<T> result = super.createOrUpdate(collection, updateOps);
+            if (semaphore != null) {
+                created.release();
+                semaphore.acquireUninterruptibly();
+            }
+            return result;
+        }
+    };
+    final List<Exception> exceptions = new ArrayList<Exception>();
+    final DocumentMK mk = builderProvider.newBuilder().setDocumentStore(docStore).setAsyncDelay(0).open();
+    final DocumentNodeStore store = mk.getNodeStore();
+    NodeBuilder builder = store.getRoot().builder();
+    builder.child("deletedNode");
+    builder.child("updateNode").setProperty("foo", "bar");
+    merge(store, builder);
+    builder = store.getRoot().builder();
+    builder.child("deletedNode").remove();
+    merge(store, builder);
+    final RevisionVector head = store.getHeadRevision();
+    Thread writer = new Thread(new Runnable() {
+
+        @Override
+        public void run() {
+            Commit c = new CommitBuilder(store, store.newRevision(), head).addNode(Path.fromString("/newConflictingNode")).addNode(Path.fromString("/deletedNode")).updateProperty(Path.fromString("/updateNode"), "foo", "baz").build();
+            try {
+                c.apply();
+            } catch (Exception e) {
+                c.rollback();
+                exceptions.add(e);
+            }
+        }
+    });
+    final Semaphore s = new Semaphore(0);
+    locks.put(writer, s);
+    // will block in DocumentStore.create()
+    writer.start();
+    // wait for writer to create nodes
+    created.acquireUninterruptibly();
+    // commit will succeed and add collision marker to writer commit
+    Revision r = store.newRevision();
+    Commit c = new CommitBuilder(store, r, head).addNode(Path.fromString("/newConflictingNode")).addNode(Path.fromString("/newNonConflictingNode")).build();
+    c.apply();
+    // allow writer to continue
+    s.release(10);
+    writer.join();
+    assertEquals("expected exception", 1, exceptions.size());
+    String id = Utils.getIdFromPath("/newConflictingNode");
+    NodeDocument doc = docStore.find(NODES, id);
+    assertNotNull("document with id " + id + " does not exist", doc);
+    assertTrue("document with id " + id + " should get _deletedOnce marked due to rollback", doc.wasDeletedOnce());
+    id = Utils.getIdFromPath("/newNonConflictingNode");
+    doc = docStore.find(NODES, id);
+    assertNull("document with id " + id + " must not have _deletedOnce", doc.get(NodeDocument.DELETED_ONCE));
+    id = Utils.getIdFromPath("/deletedNode");
+    doc = docStore.find(NODES, id);
+    assertTrue("document with id " + id + " should get _deletedOnce marked due to rollback", doc.wasDeletedOnce());
+    id = Utils.getIdFromPath("/updateNode");
+    doc = docStore.find(NODES, id);
+    assertNull("document with id " + id + " must not have _deletedOnce despite rollback", doc.get(NodeDocument.DELETED_ONCE));
+}

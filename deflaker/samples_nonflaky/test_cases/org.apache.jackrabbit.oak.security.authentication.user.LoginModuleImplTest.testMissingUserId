@@ -1,0 +1,34 @@
+@Test
+public void testMissingUserId() throws Exception {
+    UserAuthenticationFactory factory = (configuration, root, userId) -> new Authentication() {
+
+        @Override
+        public boolean authenticate(@Nullable Credentials credentials) {
+            return true;
+        }
+
+        @Nullable
+        @Override
+        public String getUserId() {
+            return null;
+        }
+
+        @Nullable
+        @Override
+        public Principal getUserPrincipal() {
+            return null;
+        }
+    };
+    CallbackHandler cbh = new TestCallbackHandler(factory);
+    Subject subject = new Subject(false, Sets.newHashSet(), ImmutableSet.of(), Sets.newHashSet());
+    LoginModuleImpl loginModule = new LoginModuleImpl();
+    loginModule.initialize(subject, cbh, Maps.newHashMap(), Maps.newHashMap());
+    assertTrue(loginModule.login());
+    assertTrue(loginModule.commit());
+    AuthInfo authInfo = subject.getPublicCredentials(AuthInfo.class).iterator().next();
+    assertNull(authInfo.getUserID());
+    assertTrue(subject.getPrincipals().isEmpty());
+    assertTrue(loginModule.logout());
+    assertTrue(subject.getPublicCredentials().isEmpty());
+    assertTrue(subject.getPrincipals().isEmpty());
+}

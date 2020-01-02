@@ -1,0 +1,29 @@
+@Test
+public void importData_UpdatedIndexDefinition() throws Exception {
+    NodeBuilder builder = store.getRoot().builder();
+    builder.child("idx-a").setProperty("type", "property");
+    builder.child("idx-a").setProperty("foo", "bar");
+    store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    createIndexDirs("/idx-a");
+    // We remove foo property here
+    builder = store.getRoot().builder();
+    builder.child("idx-a").removeProperty("foo");
+    store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    IndexImporter importer = new IndexImporter(store, temporaryFolder.getRoot(), provider, NOOP_LOCK);
+    IndexImporterProvider provider = new IndexImporterProvider() {
+
+        @Override
+        public void importIndex(NodeState root, NodeBuilder defn, File indexDir) {
+            // Foo property should be set by virtue of import from json
+            assertEquals("bar", defn.getString("foo"));
+        }
+
+        @Override
+        public String getType() {
+            return "property";
+        }
+    };
+    importer.addImporterProvider(provider);
+    importer.switchLanes();
+    importer.importIndexData();
+}

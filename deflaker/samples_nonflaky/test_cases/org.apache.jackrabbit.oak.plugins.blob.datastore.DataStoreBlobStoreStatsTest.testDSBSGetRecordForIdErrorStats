@@ -1,0 +1,17 @@
+@Test
+public void testDSBSGetRecordForIdErrorStats() throws IOException, RepositoryException {
+    DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withErrorOnGetRecord());
+    DataRecord rec = dsbs.addRecord(getTestInputStream());
+    long getRecForIdErrorCount = stats.getGetRecordForIdErrorCount();
+    long getRecForIdErrorCountLastMinute = getLastMinuteStats(stats.getGetRecordForIdErrorCountHistory());
+    long downloadErrorCount = stats.getDownloadErrorCount();
+    try {
+        dsbs.getRecordForId(rec.getIdentifier());
+    } catch (DataStoreException e) {
+    }
+    assertEquals(getRecForIdErrorCount + 1, stats.getGetRecordForIdErrorCount());
+    assertEquals(getRecForIdErrorCountLastMinute + 1, waitForMetric(input -> getLastMinuteStats(input.getGetRecordForIdErrorCountHistory()), stats, 1L, 0L).longValue());
+    // Ensure that the metrics don't overlap.  Calling getRecordForId() shouldn't increment
+    // the download error counts (which pertain to readBlob()).
+    assertEquals(downloadErrorCount, stats.getDownloadErrorCount());
+}

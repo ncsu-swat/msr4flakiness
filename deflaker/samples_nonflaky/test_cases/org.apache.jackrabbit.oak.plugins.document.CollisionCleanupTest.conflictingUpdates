@@ -1,0 +1,21 @@
+@Test
+public void conflictingUpdates() throws Exception {
+    NodeBuilder builder = ns1.getRoot().builder();
+    builder.child("test").setProperty("p", 0L, Type.LONG);
+    merge(ns1, builder);
+    ns1.runBackgroundOperations();
+    ns2.runBackgroundOperations();
+    List<Callable<Void>> tasks = new ArrayList<>();
+    tasks.add(new Updater(ns1));
+    tasks.add(new Updater(ns2));
+    executor.invokeAll(tasks);
+    String id = Utils.getIdFromPath("/test");
+    ns1.addSplitCandidate(id);
+    ns1.runBackgroundOperations();
+    ns2.addSplitCandidate(id);
+    ns2.runBackgroundOperations();
+    DocumentStore store = ns1.getDocumentStore();
+    NodeDocument doc = store.find(NODES, id);
+    assertNotNull(doc);
+    assertThat(doc.getValueMap(COLLISIONS).keySet(), empty());
+}

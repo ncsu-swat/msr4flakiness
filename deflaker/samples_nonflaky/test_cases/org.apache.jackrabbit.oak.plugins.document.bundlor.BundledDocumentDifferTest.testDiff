@@ -1,0 +1,24 @@
+@Test
+public void testDiff() throws Exception {
+    NodeBuilder builder = createContentStructure();
+    NodeState r1 = merge(store, builder);
+    builder = store.getRoot().builder();
+    childBuilder(builder, "/test/book.jpg/jcr:content").setProperty("foo", "bar");
+    NodeState r2 = merge(store, builder);
+    JsopWriter w = new JsopBuilder();
+    String path = "/test";
+    assertTrue(differ.diff(dns(r1, path), dns(r2, path), w));
+    assertTrue(w.toString().isEmpty());
+    w = new JsopBuilder();
+    path = "/test/book.jpg";
+    assertFalse(differ.diff(dns(r1, path), dns(r2, path), w));
+    assertEquals("^\"jcr:content\":{}", w.toString());
+    builder = store.getRoot().builder();
+    childBuilder(builder, "/test/book.jpg/foo");
+    NodeState r3 = merge(store, builder);
+    w = new JsopBuilder();
+    path = "/test/book.jpg";
+    // As there is a non bundled child differ should return true to continue diffing
+    assertTrue(differ.diff(dns(r1, path), dns(r3, path), w));
+    assertEquals("^\"jcr:content\":{}", w.toString());
+}

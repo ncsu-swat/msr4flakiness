@@ -1,0 +1,21 @@
+/**
+ * Test case illustrating OAK-8081, where a given 'aceTree' is not covered by the authorization-context and thus
+ * the AccessControlValidator will still fail.
+ */
+@Test(expected = CommitFailedException.class)
+public void testRestrictionsUsedByOtherModule2() throws Exception {
+    AuthorizationConfiguration sc = mock(AuthorizationConfiguration.class);
+    // new acNode is not covered by Context.definesTree
+    when(sc.getContext()).thenReturn(new Context.Default());
+    when(sc.getParameters()).thenReturn(ConfigurationParameters.EMPTY);
+    SecurityProviderHelper.updateConfig(getSecurityProvider(), sc, AuthorizationConfiguration.class);
+    Tree acNode = TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), "notCoveredByContext", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+    RestrictionProvider rp = new RestrictionProviderImpl();
+    Restriction r = rp.createRestriction(PathUtils.ROOT_PATH, REP_ITEM_NAMES, new Value[] { getValueFactory(root).createValue("someName", PropertyType.NAME) });
+    rp.writeRestrictions(PathUtils.ROOT_PATH, acNode, ImmutableSet.of(r));
+    try {
+        root.commit();
+    } catch (CommitFailedException e) {
+        throw assertCommitFailedException(e, CommitFailedException.ACCESS_CONTROL, 2);
+    }
+}

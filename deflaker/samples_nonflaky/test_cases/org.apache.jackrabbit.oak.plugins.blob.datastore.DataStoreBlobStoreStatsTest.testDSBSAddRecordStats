@@ -1,0 +1,20 @@
+@Test
+public void testDSBSAddRecordStats() throws IOException, RepositoryException {
+    DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withWriteDelay(1000));
+    long addRecordCount = stats.getAddRecordCount();
+    long addRecordSize = stats.getAddRecordTotalSize();
+    long addRecordCountLastMinute = getLastMinuteStats(stats.getAddRecordCountHistory());
+    long addRecordSizeLastMinute = getLastMinuteStats(stats.getAddRecordSizeHistory());
+    long addRecordTimeLastMinute = getLastMinuteStats(stats.getAddRecordRateHistory());
+    long uploadCount = stats.getUploadCount();
+    dsbs.addRecord(getTestInputStream());
+    dsbs.addRecord(getTestInputStream(), new BlobOptions());
+    assertEquals(addRecordCount + 2, stats.getAddRecordCount());
+    assertEquals(addRecordSize + BLOB_LEN * 2, stats.getAddRecordTotalSize());
+    assertEquals(addRecordCountLastMinute + 2, waitForMetric(input -> getLastMinuteStats(input.getAddRecordCountHistory()), stats, 2L, 0L).longValue());
+    assertEquals(addRecordSizeLastMinute + BLOB_LEN * 2, waitForMetric(input -> getLastMinuteStats(input.getAddRecordSizeHistory()), stats, (long) BLOB_LEN * 2, 0L).longValue());
+    assertTrue(addRecordTimeLastMinute < waitForNonzeroMetric(input -> getLastMinuteStats(input.getAddRecordRateHistory()), stats));
+    // Ensure that the metrics don't overlap.  Calling addRecord() shouldn't increment
+    // the upload counts (which pertain to writeBlob()).
+    assertEquals(uploadCount, stats.getUploadCount());
+}

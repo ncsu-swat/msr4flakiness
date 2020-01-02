@@ -1,0 +1,30 @@
+@Test
+public void unionSortQueries() throws Exception {
+    // create test data
+    Tree test = root.getTree("/").addChild("test");
+    root.commit();
+    int seed = -3;
+    for (int i = 0; i < 5; i++) {
+        Tree a = test.addChild("a" + i);
+        a.setProperty("x", "a" + i);
+        seed += 3;
+        a.setProperty("w", seed);
+    }
+    seed = -2;
+    for (int i = 0; i < 5; i++) {
+        Tree a = test.addChild("b" + i);
+        a.setProperty("y", "b" + i);
+        seed += 3;
+        a.setProperty("w", seed);
+    }
+    seed = -1;
+    for (int i = 0; i < 5; i++) {
+        Tree a = test.addChild("c" + i);
+        a.setProperty("z", "c" + i);
+        seed += 3;
+        a.setProperty("w", seed);
+    }
+    root.commit();
+    assertQuery("/jcr:root//element(*, nt:base)[(@x = 'a4' or @y = 'b3')] order by @w", XPATH, asList("/test/b3", "/test/a4"));
+    assertQuery("/jcr:root//element(*, nt:base)[(@x = 'a3' or @y = 'b0' or @z = 'c2')] order by @w", XPATH, asList("/test/b0", "/test/c2", "/test/a3"));
+}

@@ -1,0 +1,20 @@
+@Test
+public void testRemoveNodeWithJr2Flag() throws Exception {
+    /* allow READ/WRITE privilege for testUser at 'path' */
+    setupPermission("/a", testPrincipal, true, PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE);
+    /* deny REMOVE_NODE privilege at subtree. */
+    setupPermission("/a/b", testPrincipal, false, PrivilegeConstants.JCR_REMOVE_NODE);
+    Root testRoot = getTestRoot();
+    AccessControlManager acMgr = getAccessControlManager(testRoot);
+    assertTrue(acMgr.hasPrivileges("/a", privilegesFromNames(PrivilegeConstants.REP_WRITE)));
+    assertFalse(acMgr.hasPrivileges("/a/b", privilegesFromNames(PrivilegeConstants.JCR_REMOVE_NODE)));
+    // removing the tree must fail
+    try {
+        testRoot.getTree("/a").remove();
+        testRoot.commit();
+        fail();
+    } catch (CommitFailedException e) {
+        // success
+        assertTrue(e.isAccessViolation());
+    }
+}

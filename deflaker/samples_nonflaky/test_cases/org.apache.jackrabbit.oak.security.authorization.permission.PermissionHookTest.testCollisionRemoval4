@@ -1,0 +1,39 @@
+@Test
+public void testCollisionRemoval4() throws Exception {
+    Tree testRoot = getPrincipalRoot(testPrincipal);
+    String aPath = testPath + "/AaAa";
+    String bPath = testPath + "/BBBB";
+    String cPath = testPath + "/AaBB";
+    if (aPath.hashCode() == bPath.hashCode() && bPath.hashCode() == cPath.hashCode()) {
+        String name = aPath.hashCode() + "";
+        Tree parent = root.getTree(testPath);
+        Tree aa = TreeUtil.addChild(parent, "AaAa", JcrConstants.NT_UNSTRUCTURED);
+        addACE(aa.getPath(), testPrincipal, JCR_READ);
+        Tree bb = TreeUtil.addChild(parent, "BBBB", JcrConstants.NT_UNSTRUCTURED);
+        addACE(bb.getPath(), testPrincipal, JCR_READ);
+        Tree cc = TreeUtil.addChild(parent, "AaBB", JcrConstants.NT_UNSTRUCTURED);
+        addACE(cc.getPath(), testPrincipal, JCR_READ);
+        root.commit();
+        Set<String> paths = Sets.newHashSet(aPath, bPath, cPath);
+        paths.add(testPath);
+        assertEquals(2, testRoot.getChildrenCount(Long.MAX_VALUE));
+        assertEquals(paths, getAccessControlledPaths(testRoot));
+        assertNumPermissionsProperty(paths.size(), testRoot);
+        String toRemove = null;
+        for (String path : paths) {
+            if (testRoot.hasChild(name) && path.equals(getAccessControlledPath(testRoot.getChild(name)))) {
+                toRemove = path;
+                break;
+            }
+        }
+        assertNotNull(toRemove);
+        paths.remove(toRemove);
+        root.getTree(toRemove).remove();
+        root.commit();
+        assertEquals(2, testRoot.getChildrenCount(Long.MAX_VALUE));
+        assertTrue(testRoot.hasChild(toRemove.hashCode() + ""));
+        assertNotEquals(toRemove, getAccessControlledPath(testRoot.getChild(name)));
+        assertEquals(paths, getAccessControlledPaths(testRoot));
+        assertNumPermissionsProperty(paths.size(), testRoot);
+    }
+}

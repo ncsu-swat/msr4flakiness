@@ -1,0 +1,29 @@
+@Test
+public void gcForcedRetrieve() throws Exception {
+    Cluster cluster = new Cluster("cluster1");
+    BlobStore s = cluster.blobStore;
+    BlobIdTracker tracker = (BlobIdTracker) ((BlobTrackingStore) s).getTracker();
+    DataStoreState state = init(cluster.nodeStore, 0);
+    ScheduledFuture<?> scheduledFuture = newSingleThreadScheduledExecutor().schedule(tracker.new SnapshotJob(), 0, MILLISECONDS);
+    scheduledFuture.get();
+    // All blobs added should be tracked now
+    assertEquals(state.blobsAdded, retrieveTracked(tracker));
+    // Do addition and deletion which would not have been tracked as yet
+    Set<String> newBlobs = addNodeSpecialChars(cluster.nodeStore);
+    state.blobsAdded.addAll(newBlobs);
+    state.blobsPresent.addAll(newBlobs);
+    // The new blobs should not be found now as new snapshot not done
+    assertEquals(Sets.difference(state.blobsAdded, retrieveTracked(tracker)), newBlobs);
+    // force gc to retrieve blob ids from datastore
+    cluster.gc.collectGarbage(false, true);
+    Set<String> existingAfterGC = iterate(s);
+    // Check the state of the blob store after gc
+    assertEquals(state.blobsPresent, existingAfterGC);
+    // Tracked blobs should reflect deletions after gc and also the additions after
+    assertEquals(state.blobsPresent, retrieveTracked(tracker));
+    // Create a snapshot
+    scheduledFuture = newSingleThreadScheduledExecutor().schedule(tracker.new SnapshotJob(), 0, MILLISECONDS);
+    scheduledFuture.get();
+    // Tracked blobs should reflect deletions after gc and the deleted should not get resurrected
+    assertEquals(state.blobsPresent, retrieveTracked(tracker));
+}

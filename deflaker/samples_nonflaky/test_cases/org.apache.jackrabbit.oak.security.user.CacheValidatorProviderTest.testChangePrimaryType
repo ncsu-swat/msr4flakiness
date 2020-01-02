@@ -1,0 +1,17 @@
+@Test
+public void testChangePrimaryType() throws RepositoryException {
+    for (Authorizable a : authorizables) {
+        try {
+            Tree node = getAuthorizableTree(a);
+            Tree cache = TreeUtil.addChild(node, "childNode", JcrConstants.NT_UNSTRUCTURED);
+            root.commit();
+            cache.setProperty(JCR_PRIMARYTYPE, CacheConstants.NT_REP_CACHE, Type.NAME);
+            cache.setProperty(CacheConstants.REP_EXPIRATION, 1L, Type.LONG);
+            root.commit();
+            fail("Changing primary type of residual node below an user/group to rep:Cache must fail.");
+        } catch (CommitFailedException e) {
+            assertTrue(e.isConstraintViolation());
+            assertEquals(34, e.getCode());
+        }
+    }
+}

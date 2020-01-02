@@ -1,0 +1,16 @@
+/**
+ * @since OAK 1.0
+ */
+@Test
+public void testGetEffectivePolicies() throws Exception {
+    // grant 'testUser' READ + READ_AC privileges at 'path'
+    Privilege[] privileges = privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
+    setupPolicy(testPath, privileges);
+    root.commit();
+    testRoot.refresh();
+    assertTrue(testAcMgr.hasPrivileges(testPath, privileges));
+    // diff to jr core: getEffectivePolicies will just return the policies
+    // accessible for the editing session but not throw an exception.
+    AccessControlPolicy[] effective = testAcMgr.getEffectivePolicies(testPath);
+    assertPolicies(effective, 1);
+}

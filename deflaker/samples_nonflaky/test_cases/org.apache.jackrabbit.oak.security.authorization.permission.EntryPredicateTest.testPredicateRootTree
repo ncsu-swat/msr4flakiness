@@ -1,0 +1,19 @@
+@Test
+public void testPredicateRootTree() {
+    Tree tree = mockTree(PathUtils.ROOT_PATH, null);
+    when(tree.isRoot()).thenReturn(true);
+    EntryPredicate pred = EntryPredicate.create(tree, null, true);
+    assertEquals(PathUtils.ROOT_PATH, pred.getPath());
+    // pattern doesn't match path
+    when(pattern.matches(tree, null)).thenReturn(false);
+    assertFalse(pred.apply(entry));
+    assertFalse(pred.apply(entry, true));
+    assertFalse(pred.apply(entry, false));
+    // pattern matches path
+    when(pattern.matches(tree, null)).thenReturn(true);
+    assertTrue(pred.apply(entry));
+    assertTrue(pred.apply(entry, true));
+    assertTrue(pred.apply(entry, false));
+    verify(tree, never()).getParent();
+    verify(pattern, times(6)).matches(tree, null);
+}

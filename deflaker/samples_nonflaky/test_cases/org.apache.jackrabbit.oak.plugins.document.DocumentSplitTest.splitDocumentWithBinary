@@ -1,0 +1,21 @@
+@Test
+public void splitDocumentWithBinary() throws Exception {
+    DocumentStore store = mk.getDocumentStore();
+    DocumentNodeStore ns = mk.getNodeStore();
+    NodeBuilder builder = ns.getRoot().builder();
+    builder.child("foo");
+    merge(ns, builder);
+    // use more than 4k of binary data (OAK-5205)
+    PropertyState binary = binaryProperty("p", randomBytes(5 * 1024));
+    for (int i = 0; i < 10; i++) {
+        builder = ns.getRoot().builder();
+        builder.child("foo").setProperty(binary);
+        merge(ns, builder);
+        ns.runBackgroundOperations();
+    }
+    NodeDocument foo = store.find(NODES, Utils.getIdFromPath("/foo"));
+    assertNotNull(foo);
+    List<NodeDocument> prevDocs = copyOf(foo.getAllPreviousDocs());
+    // all but most recent value are moved to individual previous docs
+    assertEquals(9, prevDocs.size());
+}

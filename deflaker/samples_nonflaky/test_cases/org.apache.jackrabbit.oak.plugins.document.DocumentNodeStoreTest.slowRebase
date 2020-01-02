@@ -1,0 +1,33 @@
+@Test
+public void slowRebase() throws Exception {
+    final int NUM_NODES = DocumentMK.UPDATE_LIMIT / 2;
+    final int NUM_PROPS = 10;
+    final int REBASE_COUNT = 5;
+    final DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
+    NodeBuilder builder = ns.getRoot().builder();
+    for (int i = 0; i < NUM_NODES / 2; i++) {
+        NodeBuilder c = deepTree(builder.child("n" + i), 5);
+        for (int j = 0; j < NUM_PROPS; j++) {
+            c.setProperty("p" + j, "value");
+        }
+    }
+    // 1. Prepare a large tree
+    merge(ns, builder);
+    builder = ns.getRoot().builder();
+    int[] rebaseCounts = { 2, 3, 1, 8, 3 };
+    for (int r = 0; r < REBASE_COUNT; r++) {
+        for (int i = 0; i < NUM_NODES / 2; i++) {
+            NodeBuilder c = deepTree(builder.child("n" + i), 5);
+            for (int j = 0; j < NUM_PROPS; j++) {
+                c.setProperty("q" + r + "" + j, "value");
+            }
+        }
+        // Do multiple rebase for each round of branch commit phase
+        for (int k = 0; k < rebaseCounts[r]; k++) {
+            doSomeChange(ns);
+            ns.rebase(builder);
+        }
+    }
+    LOG.info("Starting the final merge {}", new Date());
+    merge(ns, builder);
+}

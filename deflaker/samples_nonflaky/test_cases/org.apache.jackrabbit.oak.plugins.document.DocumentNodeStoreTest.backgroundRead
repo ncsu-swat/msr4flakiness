@@ -1,0 +1,53 @@
+// OAK-1254
+@Test
+public void backgroundRead() throws Exception {
+    final Semaphore semaphore = new Semaphore(1);
+    DocumentStore docStore = new MemoryDocumentStore();
+    DocumentStore testStore = new TimingDocumentStoreWrapper(docStore) {
+
+        @Override
+        public CacheInvalidationStats invalidateCache(Iterable<String> keys) {
+            super.invalidateCache(keys);
+            semaphore.acquireUninterruptibly();
+            semaphore.release();
+            return null;
+        }
+    };
+    final DocumentNodeStore store1 = builderProvider.newBuilder().setAsyncDelay(0).setDocumentStore(testStore).setClusterId(1).getNodeStore();
+    DocumentNodeStore store2 = builderProvider.newBuilder().setAsyncDelay(0).setDocumentStore(docStore).setClusterId(2).getNodeStore();
+    NodeBuilder builder = store2.getRoot().builder();
+    builder.child("node2");
+    store2.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    // force update of _lastRevs
+    store2.runBackgroundOperations();
+    // at this point only node2 must not be visible
+    assertFalse(store1.getRoot().hasChildNode("node2"));
+    builder = store1.getRoot().builder();
+    builder.child("node1");
+    NodeState root = store1.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    semaphore.acquireUninterruptibly();
+    Thread t = new Thread(new Runnable() {
+
+        @Override
+        public void run() {
+            store1.runBackgroundOperations();
+        }
+    });
+    t.start();
+    // sleep until 'background thread' invalidated cache
+    // and is waiting for semaphore
+    while (!semaphore.hasQueuedThreads()) {
+        Thread.sleep(10);
+    }
+    // must still not be visible at this state
+    try {
+        assertFalse(root.hasChildNode("node2"));
+    } finally {
+        semaphore.release();
+    }
+    t.join();
+    // background operations completed
+    root = store1.getRoot();
+    // now node2 is visible
+    assertTrue(root.hasChildNode("node2"));
+}

@@ -1,0 +1,24 @@
+@Test
+public void readOnlyCompare() throws Exception {
+    DocumentStore store = new MemoryDocumentStore();
+    DocumentNodeStore ns1 = builderProvider.newBuilder().setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+    // read-only
+    DocumentNodeStore ns2 = builderProvider.newBuilder().setDocumentStore(store).setAsyncDelay(0).setReadOnlyMode().getNodeStore();
+    NodeBuilder builder = ns1.getRoot().builder();
+    builder.child("foo");
+    merge(ns1, builder);
+    ns1.runBackgroundOperations();
+    DocumentNodeState s1 = ns2.getRoot();
+    ns2.runBackgroundOperations();
+    builder = ns1.getRoot().builder();
+    builder.child("bar");
+    merge(ns1, builder);
+    ns1.runBackgroundOperations();
+    ns2.runBackgroundOperations();
+    DocumentNodeState s2 = ns2.getRoot();
+    TrackingDiff diff = new TrackingDiff();
+    s2.compareAgainstBaseState(s1, diff);
+    assertThat(diff.deleted, is(empty()));
+    assertThat(diff.modified, is(empty()));
+    assertThat(diff.added, containsInAnyOrder("/foo", "/bar"));
+}

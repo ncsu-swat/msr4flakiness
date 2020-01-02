@@ -1,0 +1,30 @@
+@Test
+public void collisionOnForeignOrphanedBranch() throws Exception {
+    DocumentStore store = new MemoryDocumentStore();
+    DocumentNodeStore ns1 = newBuilder().setDocumentStore(store).setAsyncDelay(0).setUpdateLimit(10).setClusterId(1).build();
+    DocumentNodeStore ns2 = newBuilder().setDocumentStore(store).setAsyncDelay(0).setUpdateLimit(10).setClusterId(2).build();
+    NodeBuilder builder = ns1.getRoot().builder();
+    // force a branch commit
+    for (int i = 0; i < 20; i++) {
+        builder.child("n-" + i).setProperty("p", "v");
+    }
+    retainBranches(ns1);
+    ns1.dispose();
+    ns2.updateClusterState();
+    NodeDocument root = store.find(NODES, Utils.getIdFromPath(ROOT));
+    assertNotNull(root);
+    assertThat(root.getLocalBranchCommits(), not(empty()));
+    // but some changes are still there
+    Path p = Path.fromString("/n-0");
+    NodeDocument doc = store.find(NODES, Utils.getIdFromPath(p));
+    assertNotNull(doc);
+    assertThat(doc.getLocalBranchCommits(), not(empty()));
+    builder = ns2.getRoot().builder();
+    builder.child("n-0");
+    merge(ns2, builder);
+    // must create a collision marker for a branch commit because
+    // it is not known when ns1 was stopped
+    root = store.find(NODES, Utils.getIdFromPath(ROOT));
+    assertNotNull(root);
+    assertThat(root.getLocalMap(COLLISIONS).keySet(), not(empty()));
+}

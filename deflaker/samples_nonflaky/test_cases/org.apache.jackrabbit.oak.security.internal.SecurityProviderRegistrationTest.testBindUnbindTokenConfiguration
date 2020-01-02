@@ -1,0 +1,14 @@
+@Test
+public void testBindUnbindTokenConfiguration() throws Exception {
+    Field f = registration.getClass().getDeclaredField("tokenConfiguration");
+    f.setAccessible(true);
+    assertTrue(f.get(registration) instanceof CompositeTokenConfiguration);
+    TokenConfiguration tc = mockConfiguration(TokenConfiguration.class);
+    registration.bindTokenConfiguration(tc, PROPS);
+    CompositeTokenConfiguration composite = (CompositeTokenConfiguration) f.get(registration);
+    assertEquals(1, composite.getConfigurations().size());
+    assertTrue(composite.getConfigurations().contains(tc));
+    registration.unbindTokenConfiguration(tc, PROPS);
+    composite = (CompositeTokenConfiguration) f.get(registration);
+    assertTrue(composite.getConfigurations().isEmpty());
+}

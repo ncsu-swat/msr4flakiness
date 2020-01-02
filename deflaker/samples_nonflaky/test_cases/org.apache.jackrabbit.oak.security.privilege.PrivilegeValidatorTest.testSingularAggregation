@@ -1,0 +1,12 @@
+@Test(expected = CommitFailedException.class)
+public void testSingularAggregation() throws Exception {
+    try {
+        Tree privTree = createPrivilegeTree("test");
+        privTree.setProperty(PropertyStates.createProperty(REP_AGGREGATES, Collections.singletonList(JCR_READ), Type.NAMES));
+        PrivilegeBits.getInstance(bitsProvider.getBits(JCR_READ)).writeTo(privTree);
+        root.commit();
+        fail("Aggregation of a single privilege is invalid.");
+    } catch (CommitFailedException e) {
+        throw assertCommitFailed(e, 50);
+    }
+}

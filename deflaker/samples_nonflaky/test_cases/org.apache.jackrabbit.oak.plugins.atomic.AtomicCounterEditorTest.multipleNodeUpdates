@@ -1,0 +1,21 @@
+/**
+ * simulates the update from multiple oak instances
+ * @throws CommitFailedException
+ */
+@Test
+public void multipleNodeUpdates() throws CommitFailedException {
+    NodeBuilder builder;
+    NodeState before, after;
+    builder = EMPTY_NODE.builder();
+    before = builder.getNodeState();
+    builder = setMixin(builder);
+    builder = incrementBy(builder, INCREMENT_BY_1);
+    after = builder.getNodeState();
+    builder = HOOK_1_SYNC.processCommit(before, after, EMPTY).builder();
+    assertCounterNodeState(builder, ImmutableSet.of(PREFIX_PROP_COUNTER + "1", PREFIX_PROP_REVISION + "1"), 1);
+    before = builder.getNodeState();
+    builder = incrementBy(builder, INCREMENT_BY_1);
+    after = builder.getNodeState();
+    builder = HOOK_2_SYNC.processCommit(before, after, EMPTY).builder();
+    assertCounterNodeState(builder, ImmutableSet.of(PREFIX_PROP_COUNTER + "1", PREFIX_PROP_COUNTER + "2", PREFIX_PROP_REVISION + "1", PREFIX_PROP_REVISION + "2"), 2);
+}

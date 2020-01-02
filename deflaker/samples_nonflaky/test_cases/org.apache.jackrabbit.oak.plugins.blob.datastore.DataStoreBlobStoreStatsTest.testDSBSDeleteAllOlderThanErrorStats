@@ -1,0 +1,14 @@
+@Test
+public void testDSBSDeleteAllOlderThanErrorStats() throws IOException, RepositoryException {
+    DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withErrorOnDeleteRecord());
+    DataRecord record = dsbs.addRecord(getTestInputStream());
+    long modifiedBefore = tomorrow();
+    long deleteByDateErrorCount = stats.getDeleteByDateErrorCount();
+    long deleteByDateErrorCountLastMinute = getLastMinuteStats(stats.getDeleteByDateErrorCountHistory());
+    try {
+        dsbs.deleteAllOlderThan(modifiedBefore);
+    } catch (Exception e) {
+    }
+    assertEquals(deleteByDateErrorCount + 1, stats.getDeleteByDateErrorCount());
+    assertEquals(deleteByDateErrorCountLastMinute + 1, waitForMetric(input -> getLastMinuteStats(input.getDeleteByDateErrorCountHistory()), stats, 1L, 0L).longValue());
+}

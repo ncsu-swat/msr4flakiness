@@ -1,0 +1,71 @@
+@Test
+public void checkpointLostEventualConsistent() throws Exception {
+    MemoryNodeStore store = new MemoryNodeStore();
+    final List<NodeState> rootStates = Lists.newArrayList();
+    store.addObserver(new Observer() {
+
+        @Override
+        public void contentChanged(@NotNull NodeState root, @Nullable CommitInfo info) {
+            rootStates.add(root);
+        }
+    });
+    IndexEditorProvider provider = new PropertyIndexEditorProvider();
+    NodeBuilder builder = store.getRoot().builder();
+    createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "rootIndex", true, false, ImmutableSet.of("foo"), null).setProperty(ASYNC_PROPERTY_NAME, "async");
+    builder.child("testRoot").setProperty("foo", "abc");
+    store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    AsyncIndexUpdate pre = new AsyncIndexUpdate("async", store, provider);
+    pre.run();
+    // Create another commit so that we have two checkpoints
+    builder = store.getRoot().builder();
+    builder.child("testRoot2").setProperty("foo", "abc");
+    store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    pre.run();
+    pre.close();
+    // Look for the nodestate just before the final merge in AsyncIndexUpdate
+    // i.e. where older checkpoint was still referred and which has been "released"
+    // post last run
+    Collections.reverse(rootStates);
+    final AtomicReference<NodeState> oldRootState = new AtomicReference<NodeState>();
+    for (NodeState ns : rootStates) {
+        NodeState async = ns.getChildNode(ASYNC);
+        String checkpointName = async.getString("async");
+        if (store.retrieve(checkpointName) == null && async.getProperty(AsyncIndexUpdate.leasify("async")) == null) {
+            oldRootState.set(ns);
+            break;
+        }
+    }
+    assertNotNull(oldRootState.get());
+    final AtomicBoolean intiLeaseCalled = new AtomicBoolean(false);
+    // Here for the call to read existing NodeState we would return the old
+    // "stale" state where we have a stale checkpoint
+    store = new MemoryNodeStore(store.getRoot()) {
+
+        @Override
+        public NodeState getRoot() {
+            // Keep returning stale view untill initlease is not invoked
+            if (!intiLeaseCalled.get()) {
+                return oldRootState.get();
+            }
+            return super.getRoot();
+        }
+    };
+    final AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider) {
+
+        @Override
+        protected AsyncUpdateCallback newAsyncUpdateCallback(NodeStore store, String name, long leaseTimeOut, String beforeCheckpoint, AsyncIndexStats indexStats, AtomicBoolean stopFlag) {
+            return new AsyncUpdateCallback(store, name, leaseTimeOut, beforeCheckpoint, indexStats, stopFlag) {
+
+                @Override
+                protected void initLease() throws CommitFailedException {
+                    intiLeaseCalled.set(true);
+                    super.initLease();
+                }
+            };
+        }
+    };
+    async.run();
+    // This run should fail
+    assertTrue(async.getIndexStats().isFailing());
+    async.close();
+}

@@ -1,0 +1,19 @@
+@Test
+public void testGetPolicies() throws Exception {
+    setupPolicy(testPath);
+    root.commit();
+    testRoot.refresh();
+    PrincipalManager testPrincipalMgr = getPrincipalManager(testRoot);
+    List<Principal> principals = ImmutableList.of(testPrincipal, EveryonePrincipal.getInstance());
+    for (Principal principal : principals) {
+        if (testPrincipalMgr.hasPrincipal(principal.getName())) {
+            // testRoot can't read access control content -> doesn't see
+            // the existing policies and creates a new applicable policy.
+            AccessControlPolicy[] policies = testAcMgr.getPolicies(principal);
+            assertPolicies(policies, 0);
+        } else {
+            // testRoot can't read principal -> no policies for that principal
+            assertPolicies(testAcMgr.getPolicies(principal), 0);
+        }
+    }
+}

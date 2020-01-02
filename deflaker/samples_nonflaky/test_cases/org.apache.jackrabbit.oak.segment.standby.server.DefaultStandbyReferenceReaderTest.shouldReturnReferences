@@ -1,0 +1,17 @@
+@Test
+public void shouldReturnReferences() throws Exception {
+    try (FileStore store = newFileStore()) {
+        SegmentWriter writer = defaultSegmentWriterBuilder("test").build(store);
+        RecordId a = writer.writeNode(EmptyNodeState.EMPTY_NODE);
+        writer.flush();
+        NodeBuilder builder = EmptyNodeState.EMPTY_NODE.builder();
+        builder.setChildNode("reference", store.getReader().readNode(a));
+        RecordId b = writer.writeNode(builder.getNodeState());
+        writer.flush();
+        DefaultStandbyReferencesReader reader = new DefaultStandbyReferencesReader(store);
+        Iterator<String> i = reader.readReferences(b.getSegmentId().asUUID().toString()).iterator();
+        assertTrue(i.hasNext());
+        assertEquals(a.getSegmentId().asUUID().toString(), i.next());
+        assertFalse(i.hasNext());
+    }
+}

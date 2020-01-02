@@ -1,0 +1,11 @@
+@Test
+public void testChildNodeAddedNullPraent() throws Exception {
+    MoveTracker moveTracker = new MoveTracker();
+    moveTracker.addMove("/src", "/dest");
+    MoveAwarePermissionValidator maValidator = spy(createRootValidator(adminSession.getAuthInfo().getPrincipals(), moveTracker));
+    when(maValidator.getParentAfter()).thenReturn(null);
+    Validator validator = maValidator.childNodeAdded("dest", mock(NodeState.class));
+    assertTrue(validator instanceof VisibleValidator);
+    verify(maValidator, times(1)).checkPermissions(t.getChild("dest"), false, Permissions.ADD_NODE);
+    verify(pp, never()).isGranted(t.getChild("src"), null, Permissions.REMOVE_NODE);
+}

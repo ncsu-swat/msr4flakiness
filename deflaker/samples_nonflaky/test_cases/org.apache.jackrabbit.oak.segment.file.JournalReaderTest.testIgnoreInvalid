@@ -1,0 +1,18 @@
+@Test
+public void testIgnoreInvalid() throws IOException {
+    try (JournalReader journalReader = createJournalReader("one 1\ntwo 2\ninvalid\nthree 3 123")) {
+        assertTrue(journalReader.hasNext());
+        JournalEntry entry = journalReader.next();
+        assertEquals("three", entry.getRevision());
+        assertEquals("123", String.valueOf(entry.getTimestamp()));
+        assertTrue(journalReader.hasNext());
+        entry = journalReader.next();
+        assertEquals("two", entry.getRevision());
+        assertEquals("-1", String.valueOf(entry.getTimestamp()));
+        assertTrue(journalReader.hasNext());
+        entry = journalReader.next();
+        assertEquals("one", entry.getRevision());
+        assertEquals("-1", String.valueOf(entry.getTimestamp()));
+        assertFalse(journalReader.hasNext());
+    }
+}

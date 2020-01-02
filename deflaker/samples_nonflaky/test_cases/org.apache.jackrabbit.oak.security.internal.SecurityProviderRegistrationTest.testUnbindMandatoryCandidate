@@ -1,0 +1,13 @@
+@Test
+public void testUnbindMandatoryCandidate() {
+    registration.activate(context.bundleContext(), configWithRequiredServiceIds("actionProvider"));
+    registration.bindUserConfiguration(mockConfiguration(UserConfiguration.class));
+    AuthorizableActionProvider ap = mock(AuthorizableActionProvider.class);
+    ServiceReference sr = when(mock(ServiceReference.class).getProperty(SERVICE_PID)).thenReturn("actionProvider").getMock();
+    registration.bindAuthorizableActionProvider(sr, ap);
+    SecurityProvider service = context.getService(SecurityProvider.class);
+    assertNotNull(service);
+    registration.unbindAuthorizableActionProvider(sr, ap);
+    service = context.getService(SecurityProvider.class);
+    assertNull(service);
+}

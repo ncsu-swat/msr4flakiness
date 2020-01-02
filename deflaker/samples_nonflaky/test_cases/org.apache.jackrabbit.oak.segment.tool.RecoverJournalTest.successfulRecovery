@@ -1,0 +1,26 @@
+@Test
+public void successfulRecovery() throws Exception {
+    try (FileStore fileStore = FileStoreBuilder.fileStoreBuilder(folder.getRoot()).build()) {
+        SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+        // Assumption: a repository in the real world always has (or had at
+        // least once in the past) a checkpoint. This means that the
+        // super-root always has a `checkpoints` child node, which enables
+        // the heuristic in `RecoverJournal` to recognize the head states we
+        // are about to create as super-roots.
+        nodeStore.checkpoint(Long.MAX_VALUE);
+        for (int i = 0; i < 3; i++) {
+            NodeBuilder root = nodeStore.getRoot().builder();
+            root.setProperty("id", i);
+            nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            fileStore.flush();
+        }
+    }
+    String originalDigest = digest(file("journal.log"));
+    Set<String> originalRevisions = revisions(file("journal.log"));
+    int code = RecoverJournal.builder().withPath(folder.getRoot()).withOut(new PrintStream(new NullOutputStream())).withErr(new PrintStream(new NullOutputStream())).build().run();
+    assertEquals(0, code);
+    String backupDigest = digest(file("journal.log.bak.000"));
+    assertEquals(originalDigest, backupDigest);
+    Set<String> recoveredRevisions = revisions(file("journal.log"));
+    assertTrue(recoveredRevisions.containsAll(originalRevisions));
+}

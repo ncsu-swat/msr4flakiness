@@ -1,0 +1,20 @@
+@Test
+public void testMissingExpiration() throws Exception {
+    PrincipalProvider pp = createPrincipalProvider(systemRoot);
+    // set of principals that read from user + membership-provider -> cache being filled
+    Set<? extends Principal> principals = pp.getPrincipals(userId);
+    assertTrue(getCacheTree(systemRoot).exists());
+    // manually remove rep:expiration property to verify this doesn't cause NPE
+    Tree cache = getCacheTree(systemRoot);
+    cache.removeProperty(CacheConstants.REP_EXPIRATION);
+    systemRoot.commit(CacheValidatorProvider.asCommitAttributes());
+    assertFalse(getCacheTree(systemRoot).hasProperty(CacheConstants.REP_EXPIRATION));
+    // retrieve principals again: the cache must be treated as expired and
+    // not causing NPE although the property is missing
+    pp = createPrincipalProvider(systemRoot);
+    Set<? extends Principal> principalsAgain = pp.getPrincipals(userId);
+    assertTrue(principals.equals(principalsAgain));
+    // verify that the cache has really been updated
+    cache = getCacheTree(systemRoot);
+    assertTrue(cache.hasProperty(CacheConstants.REP_EXPIRATION));
+}

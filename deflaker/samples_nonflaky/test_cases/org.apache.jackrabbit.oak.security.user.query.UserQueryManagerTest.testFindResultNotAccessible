@@ -1,0 +1,17 @@
+@Test
+public void testFindResultNotAccessible() throws Exception {
+    user.setProperty("profile/name", valueFactory.createValue("userName"));
+    AccessControlManager acMgr = getAccessControlManager(root);
+    JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, PathUtils.concat(user.getPath(), "profile"));
+    if (acl != null && acl.addAccessControlEntry(user.getPrincipal(), privilegesFromNames(JCR_READ))) {
+        acMgr.setPolicy(acl.getPath(), acl);
+    }
+    root.commit();
+    try (ContentSession cs = login(new SimpleCredentials(user.getID(), user.getID().toCharArray()))) {
+        Root r = cs.getLatestRoot();
+        UserManagerImpl uMgr = new UserManagerImpl(r, getPartialValueFactory(), getSecurityProvider());
+        UserQueryManager uqm = new UserQueryManager(uMgr, getNamePathMapper(), ConfigurationParameters.EMPTY, r);
+        Iterator<Authorizable> result = uqm.findAuthorizables("name", "userName", AuthorizableType.USER);
+        assertFalse(result.hasNext());
+    }
+}

@@ -1,0 +1,21 @@
+@Test
+public void clear() {
+    final AtomicInteger counter = new AtomicInteger();
+    Function<Integer, String> uniqueLoader = new Function<Integer, String>() {
+
+        @Override
+        @Nullable
+        public String apply(@Nullable Integer input) {
+            return valueOf(counter.incrementAndGet());
+        }
+    };
+    StringCache c = new StringCache(0);
+    // load a new entry
+    assertEquals("1", c.get(0, 0, 0, uniqueLoader));
+    // but only once
+    assertEquals("1", c.get(0, 0, 0, uniqueLoader));
+    c.clear();
+    // after clearing the cache, load a new entry
+    assertEquals("2", c.get(0, 0, 0, uniqueLoader));
+    assertEquals("2", c.get(0, 0, 0, uniqueLoader));
+}

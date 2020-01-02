@@ -1,0 +1,33 @@
+/**
+ * OAK-3505 Provide an optionally stricter policy for missing synchronous
+ * index editor providers
+ */
+@Test
+public void testMissingProviderFailsCommit() throws Exception {
+    final IndexUpdateCallback noop = new IndexUpdateCallback() {
+
+        @Override
+        public void indexUpdate() {
+        }
+    };
+    final MissingIndexProviderStrategy mips = new MissingIndexProviderStrategy();
+    mips.setFailOnMissingIndexProvider(true);
+    EditorHook hook = new EditorHook(new EditorProvider() {
+
+        @Override
+        public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder, CommitInfo info) throws CommitFailedException {
+            return new IndexUpdate(emptyProvider(), null, after, builder, noop).withMissingProviderStrategy(mips);
+        }
+    });
+    NodeState before = builder.getNodeState();
+    createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "rootIndex", true, false, ImmutableSet.of("foo"), null);
+    builder.child(INDEX_DEFINITIONS_NAME).child("azerty");
+    builder.child("testRoot").setProperty("foo", "abc");
+    NodeState after = builder.getNodeState();
+    try {
+        hook.processCommit(before, after, CommitInfo.EMPTY);
+        fail("commit should fail on missing index provider");
+    } catch (CommitFailedException ex) {
+    // expected
+    }
+}

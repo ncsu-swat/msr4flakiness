@@ -1,0 +1,15 @@
+@Test
+public void testPreserveHistoryAfterMovingVersionable() throws RepositoryException, CommitFailedException {
+    NodeUtil node = new NodeUtil(root.getTree("/"));
+    NodeUtil testVersionable = node.addChild("testVersionable", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+    TreeUtil.addMixin(testVersionable.getTree(), JcrConstants.MIX_VERSIONABLE, root.getTree(NodeTypeConstants.NODE_TYPES_PATH), null);
+    root.commit();
+    Tree history = versionManager.getVersionHistory(testVersionable.getTree());
+    assertTrue(history.exists());
+    String historyUuid = history.getProperty(JCR_UUID).getValue(Type.STRING);
+    assertTrue(root.move("/testVersionable", "/testVersionable2"));
+    root.commit();
+    history = versionManager.getVersionHistory(root.getTree("/testVersionable2"));
+    assertTrue(history.exists());
+    assertEquals(historyUuid, history.getProperty(JCR_UUID).getValue(Type.STRING));
+}

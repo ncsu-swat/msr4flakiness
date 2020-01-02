@@ -1,0 +1,40 @@
+@Test
+public void greedyLeaseReindex() throws Exception {
+    MemoryNodeStore store = new MemoryNodeStore();
+    IndexEditorProvider provider = new PropertyIndexEditorProvider();
+    NodeBuilder builder = store.getRoot().builder();
+    createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "rootIndex", true, false, ImmutableSet.of("foo"), null).setProperty(ASYNC_PROPERTY_NAME, "async");
+    builder.child("testRoot").setProperty("foo", "abc");
+    store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    AsyncIndexUpdate pre = new AsyncIndexUpdate("async", store, provider);
+    pre.run();
+    pre.close();
+    // rm all cps to simulate 'missing cp scenario'
+    for (String cp : store.listCheckpoints()) {
+        store.release(cp);
+    }
+    final AtomicBoolean greedyLease = new AtomicBoolean(false);
+    final AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider) {
+
+        @Override
+        protected AsyncUpdateCallback newAsyncUpdateCallback(NodeStore store, String name, long leaseTimeOut, String beforeCheckpoint, AsyncIndexStats indexStats, AtomicBoolean stopFlag) {
+            return new AsyncUpdateCallback(store, name, leaseTimeOut, beforeCheckpoint, indexStats, stopFlag) {
+
+                @Override
+                protected void initLease() throws CommitFailedException {
+                    greedyLease.set(true);
+                    super.initLease();
+                }
+
+                @Override
+                protected void prepare(String afterCheckpoint) throws CommitFailedException {
+                    assertTrue(greedyLease.get());
+                    super.prepare(afterCheckpoint);
+                }
+            };
+        }
+    };
+    async.run();
+    async.close();
+    assertTrue(greedyLease.get());
+}

@@ -1,0 +1,11 @@
+@Test
+public void jmxBeanRegistrationDuplicate() throws Exception {
+    MBeanServer server = ManagementFactory.getPlatformMBeanServer();
+    Oak oak = new Oak().with(server);
+    Whiteboard wb = oak.getWhiteboard();
+    Hello hello = new Hello();
+    regs.add(WhiteboardUtils.registerMBean(wb, HelloMBean.class, hello, "test", "hello"));
+    // Second one would trigger a warning log but no affect on caller
+    regs.add(WhiteboardUtils.registerMBean(wb, HelloMBean.class, hello, "test", "hello"));
+    assertNotNull(server.getObjectInstance(new ObjectName("org.apache.jackrabbit.oak:type=test,name=hello")));
+}

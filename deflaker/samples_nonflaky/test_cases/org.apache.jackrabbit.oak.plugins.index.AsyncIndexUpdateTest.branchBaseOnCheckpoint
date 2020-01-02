@@ -1,0 +1,63 @@
+// OAK-1749
+@Test
+public void branchBaseOnCheckpoint() throws Exception {
+    final Semaphore retrieve = new Semaphore(1);
+    final Semaphore checkpoint = new Semaphore(0);
+    NodeStore store = new MemoryNodeStore() {
+
+        @Nullable
+        @Override
+        public NodeState retrieve(@NotNull String checkpoint) {
+            retrieve.acquireUninterruptibly();
+            try {
+                return super.retrieve(checkpoint);
+            } finally {
+                retrieve.release();
+            }
+        }
+
+        @NotNull
+        @Override
+        public String checkpoint(long lifetime, @NotNull Map<String, String> properties) {
+            try {
+                return super.checkpoint(lifetime, properties);
+            } finally {
+                checkpoint.release();
+            }
+        }
+    };
+    IndexEditorProvider provider = new PropertyIndexEditorProvider();
+    NodeBuilder builder = store.getRoot().builder();
+    createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo", false, ImmutableSet.of("foo"), null, TYPE, Collections.singletonMap(ASYNC_PROPERTY_NAME, "async"));
+    builder.child("test").setProperty("foo", "a");
+    builder.child("child");
+    store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    final AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
+    async.run();
+    builder = store.getRoot().builder();
+    builder.child("test").setProperty("foo", "b");
+    builder.child("child").setProperty("prop", "value");
+    store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    Thread t = new Thread(new Runnable() {
+
+        @Override
+        public void run() {
+            async.run();
+        }
+    });
+    // drain checkpoint permits
+    checkpoint.acquireUninterruptibly(checkpoint.availablePermits());
+    // block NodeStore.retrieve()
+    retrieve.acquireUninterruptibly();
+    t.start();
+    // wait until async update called checkpoint
+    retrieve.release();
+    checkpoint.acquireUninterruptibly();
+    builder = store.getRoot().builder();
+    builder.child("child").remove();
+    store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    // allow async update to proceed with NodeStore.retrieve()
+    retrieve.release();
+    t.join();
+    assertFalse(store.getRoot().hasChildNode("child"));
+}

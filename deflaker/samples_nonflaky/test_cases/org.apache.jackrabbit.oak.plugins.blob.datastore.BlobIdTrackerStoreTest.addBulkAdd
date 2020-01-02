@@ -1,0 +1,20 @@
+@Test
+public void addBulkAdd() throws IOException {
+    final BlobIdStore store = tracker.store;
+    final Set<String> initAdd = add(store, range(0, 4));
+    // Add new ids from a file
+    File temp = folder.newFile();
+    List<String> newAdd = range(5, 9);
+    initAdd.addAll(newAdd);
+    writeStrings(newAdd.iterator(), temp, false);
+    store.addRecords(temp);
+    store.snapshot();
+    Set<String> retrieved = retrieve(store);
+    assertEquals("Incorrect elements after bulk add from file", initAdd, retrieved);
+    newAdd = range(10, 14);
+    initAdd.addAll(newAdd);
+    store.addRecords(newAdd.iterator());
+    store.snapshot();
+    retrieved = retrieve(store);
+    assertEquals("Incorrect elements after bulk add from iterator", initAdd, retrieved);
+}

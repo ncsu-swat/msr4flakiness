@@ -1,0 +1,18 @@
+@Test
+public void addBundlingRoot() {
+    CommitBuilder builder = new CommitBuilder(ns, null);
+    CommitDiff diff = newCommitDiff(builder);
+    NodeBuilder ntFile = newNtFile().builder();
+    ntFile.child(JCR_CONTENT).remove();
+    diff.childNodeAdded("file", ntFile.getNodeState());
+    assertEquals(1, diff.getNumChanges());
+    Commit c = builder.build(Revision.newRevision(1));
+    Revision r = c.getRevision();
+    UpdateOp op = c.getUpdateOperationForNode(Path.fromString("/file"));
+    Map<Key, Operation> changes = op.getChanges();
+    assertThat(changes.keySet(), hasSize(4));
+    assertThat(changes, hasKey(new Key("_deleted", r)));
+    assertThat(changes, hasKey(new Key(MODIFIED_IN_SECS, null)));
+    assertThat(changes, hasKey(new Key(JCR_PRIMARYTYPE, r)));
+    assertThat(changes, hasKey(new Key(META_PROP_PATTERN, r)));
+}

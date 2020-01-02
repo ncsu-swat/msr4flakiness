@@ -1,0 +1,10 @@
+@Test
+public void remoteObserver() throws CommitFailedException {
+    store.addObserver(observer);
+    NodeBuilder builder = remote.getRoot().builder();
+    builder.child("test").setProperty("foo", "bar");
+    merge(remote, builder);
+    remote.runBackgroundOperations();
+    globalStore.runBackgroundOperations();
+    assertTrue("Node added event not observed for remote change", observer.added.containsKey("/test"));
+}

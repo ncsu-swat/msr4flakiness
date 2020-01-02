@@ -1,0 +1,18 @@
+@Test
+public void testMissingSecurityProvider() throws Exception {
+    CallbackHandler cbh = callbacks -> {
+        for (Callback callback : callbacks) {
+            if (callback instanceof RepositoryCallback) {
+                ((RepositoryCallback) callback).setSecurityProvider(null);
+                ((RepositoryCallback) callback).setContentRepository(getContentRepository());
+            } else {
+                throw new UnsupportedCallbackException(callback);
+            }
+        }
+    };
+    LoginModuleImpl loginModule = new LoginModuleImpl();
+    loginModule.initialize(new Subject(), cbh, Maps.newHashMap(), Maps.newHashMap());
+    assertFalse(loginModule.login());
+    assertFalse(loginModule.commit());
+    assertFalse(loginModule.logout());
+}

@@ -1,0 +1,28 @@
+@Test
+public void testPathNotOverflown() throws Exception {
+    Root root = session.getLatestRoot();
+    Tree rootTree = root.getTree("/test");
+    Set<String> expectedParentPaths = Sets.newHashSet();
+    expectedParentPaths.add("/test");
+    Set<String> expectedParentNodeNames = Sets.newHashSet();
+    expectedParentNodeNames.add("test");
+    Set<String> expectedParentNodeTypes = Sets.newHashSet();
+    expectedParentNodeTypes.add("test:parentType");
+    // do maxItems-1 iterations only, as the above already adds 1 item - to
+    // avoid overflowing
+    for (int i = 0; i < collectorProvider.getMaxItems() - 1; i++) {
+        Tree aChild = rootTree.addChild("manychildren" + i);
+        aChild.setProperty("aProperty", "foo");
+        aChild.setProperty(JcrConstants.JCR_PRIMARYTYPE, "aChildPrimaryType" + i, Type.NAME);
+        expectedParentPaths.add("/test/manychildren" + i);
+        expectedParentNodeNames.add("manychildren" + i);
+        expectedParentNodeTypes.add("aChildPrimaryType" + i);
+    }
+    root.commit();
+    ChangeSet changeSet = getSingleChangeSet();
+    assertMatches("parentPaths", changeSet.getParentPaths(), expectedParentPaths.toArray(new String[0]));
+    assertMatches("parentNodeNames", changeSet.getParentNodeNames(), expectedParentNodeNames.toArray(new String[0]));
+    assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), expectedParentNodeTypes.toArray(new String[0]));
+    assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), expectedParentNodeTypes.toArray(new String[0]));
+    assertMatches("propertyNames", changeSet.getPropertyNames(), JcrConstants.JCR_PRIMARYTYPE, "aProperty");
+}

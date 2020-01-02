@@ -1,0 +1,52 @@
+@Test
+public void conflict() throws Throwable {
+    NodeBuilder root = store.getRoot().builder();
+    root.child("foo").child("bar").child("baz");
+    merge(store, root, null);
+    NodeBuilder r1 = store.getRoot().builder();
+    r1.child("addNode");
+    final NodeBuilder r2 = store.getRoot().builder();
+    r2.child("removeNode");
+    final Thread t = new Thread(new Runnable() {
+
+        @Override
+        public void run() {
+            try {
+                merge(store, r2, new EditorCallback() {
+
+                    @Override
+                    public void edit(NodeBuilder builder) {
+                        builder.getChildNode("foo").getChildNode("bar").remove();
+                        nodeRemoved.countDown();
+                        awaitUninterruptibly(nodeAdded);
+                    }
+                });
+            } catch (CommitFailedException e) {
+                exceptions.add(e);
+            }
+        }
+    });
+    t.start();
+    // wait for r2 to enter merge phase
+    awaitUninterruptibly(nodeRemoved);
+    try {
+        // must fail because /foo/bar was removed
+        merge(store, r1, new EditorCallback() {
+
+            @Override
+            public void edit(NodeBuilder builder) {
+                builder.getChildNode("foo").getChildNode("bar").child("qux");
+                nodeAdded.countDown();
+                // wait until r2 commits
+                joinUninterruptibly(t);
+            }
+        });
+        for (Throwable ex : exceptions) {
+            fail(ex.toString());
+        }
+        fail("Must fail with CommitFailedException. Cannot add child node" + " to a removed parent");
+    } catch (CommitFailedException e) {
+        // expected
+        LOG.info("expected: {}", e.toString());
+    }
+}

@@ -1,0 +1,19 @@
+@Test
+public void testUpdatePermissionEntriesDoesNotRemoveCollisions() {
+    NodeState ace = mockACE(PRINCIPAL_NAME);
+    NodeState nodeState = mockNodeState(ace);
+    NodeBuilder child = mock(NodeBuilder.class);
+    when(child.setProperty(anyString(), any())).thenReturn(child);
+    when(child.setProperty(anyString(), any(), any(Type.class))).thenReturn(child);
+    NodeBuilder parent = mock(NodeBuilder.class);
+    when(parent.getChildNodeNames()).thenReturn(ImmutableSet.of("collision", "entry"));
+    when(parent.getChildNode(anyString())).thenReturn(child);
+    when(parent.child(anyString())).thenReturn(child);
+    NodeBuilder principalRoot = when(mock(NodeBuilder.class).child(anyString())).thenReturn(parent).getMock();
+    NodeBuilder permissionsRoot = mock(NodeBuilder.class);
+    when(permissionsRoot.child(PRINCIPAL_NAME)).thenReturn(principalRoot);
+    PermissionStoreEditor editor = createPermissionStoreEditor(nodeState, permissionsRoot);
+    editor.updatePermissionEntries();
+    // only the existing 'entry' child gets removed. the collision is not touched
+    verify(child, times(1)).remove();
+}

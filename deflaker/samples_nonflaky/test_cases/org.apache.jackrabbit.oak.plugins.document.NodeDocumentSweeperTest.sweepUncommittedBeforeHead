@@ -1,0 +1,26 @@
+@Test
+public void sweepUncommittedBeforeHead() throws Exception {
+    Revision uncommitted = ns.newRevision();
+    NodeBuilder b = ns.getRoot().builder();
+    b.child("test");
+    merge(ns, b);
+    ns.runBackgroundUpdateOperations();
+    UpdateOp op = new UpdateOp(getIdFromPath("/test"), false);
+    op.setMapEntry("foo", uncommitted, "value");
+    setCommitRoot(op, uncommitted, 0);
+    setModified(op, uncommitted);
+    assertNotNull(store.findAndUpdate(NODES, op));
+    List<UpdateOp> ops = Lists.newArrayList();
+    Revision nextSweepStart = sweep(ops);
+    assertEquals(ns.getHeadRevision().getRevision(ns.getClusterId()), nextSweepStart);
+    assertEquals(1, ops.size());
+    op = ops.get(0);
+    Map<Key, Operation> changes = op.getChanges();
+    assertEquals(2, changes.size());
+    Operation o = changes.get(new Key(COMMIT_ROOT, uncommitted));
+    assertNotNull(o);
+    assertEquals(REMOVE_MAP_ENTRY, o.type);
+    o = changes.get(new Key("foo", uncommitted));
+    assertNotNull(o);
+    assertEquals(REMOVE_MAP_ENTRY, o.type);
+}

@@ -1,0 +1,20 @@
+@Test
+public void malformedUUID() throws CommitFailedException {
+    EditorHook hook = new EditorHook(new TypeEditorProvider());
+    NodeState root = INITIAL_CONTENT;
+    NodeBuilder builder = root.builder();
+    NodeState before = builder.getNodeState();
+    builder.child("testcontent").setProperty(JCR_PRIMARYTYPE, "nt:unstructured", Type.NAME);
+    builder.child("testcontent").setProperty("jcr:uuid", "not-a-uuid");
+    NodeState after = builder.getNodeState();
+    root = hook.processCommit(before, after, CommitInfo.EMPTY);
+    builder = root.builder();
+    before = builder.getNodeState();
+    builder.child("testcontent").setProperty(JCR_MIXINTYPES, ImmutableList.of(MIX_REFERENCEABLE), Type.NAMES);
+    try {
+        hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
+        fail("should not be able to change mixin due to illegal uuid format");
+    } catch (CommitFailedException e) {
+        assertTrue(e.isConstraintViolation());
+    }
+}

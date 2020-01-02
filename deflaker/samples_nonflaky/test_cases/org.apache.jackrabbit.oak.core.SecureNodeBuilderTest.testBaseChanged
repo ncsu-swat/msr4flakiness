@@ -1,0 +1,27 @@
+/**
+ * Illustrating usage of {@link SecureNodeBuilder#baseChanged()} as it is
+ * currently present with {@link MutableRoot#commit()}, {@link MutableRoot#rebase()}
+ * and {@link MutableRoot#refresh()}: baseChanged is call <strong>before</strong>
+ * the permission provider is refreshed, which depending on the implementation
+ * may lead to a stale {@code TreePermission} being obtained with the non-lazy
+ * refresh as described in OAK-5355.
+ *
+ * @see <a href"https://issues.apache.org/jira/browse/OAK-5355">OAK-5355</a>
+ */
+@Test
+public void testBaseChanged() {
+    secureNodeBuilder.baseChanged();
+    // change the behavior of the permission provider to assure that subsequent
+    // calls are always reading the most up to date information
+    try {
+        permissionProvider.denyAll = true;
+        assertFalse(secureNodeBuilder.exists());
+        assertFalse(secureNodeBuilder.hasChildNode(NAME_ACCESSIBLE));
+        assertFalse(secureNodeBuilder.hasProperty("prop"));
+        assertFalse(secureNodeBuilder.isNew());
+        assertFalse(secureNodeBuilder.getBaseState().exists());
+        assertFalse(secureNodeBuilder.getNodeState().exists());
+    } finally {
+        permissionProvider.denyAll = false;
+    }
+}

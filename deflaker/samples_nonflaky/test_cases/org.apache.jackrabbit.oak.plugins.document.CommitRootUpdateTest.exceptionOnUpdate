@@ -1,0 +1,40 @@
+@Test
+public void exceptionOnUpdate() throws Exception {
+    final AtomicBoolean throwAfterUpdate = new AtomicBoolean(false);
+    MemoryDocumentStore store = new MemoryDocumentStore() {
+
+        @Override
+        public <T extends Document> T findAndUpdate(Collection<T> collection, UpdateOp update) {
+            T doc = super.findAndUpdate(collection, update);
+            if (isFinalCommitRootUpdate(update) && throwAfterUpdate.compareAndSet(true, false)) {
+                throw new RuntimeException("communication failure");
+            }
+            return doc;
+        }
+    };
+    DocumentNodeStore ns = builderProvider.newBuilder().setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+    NodeBuilder b = ns.getRoot().builder();
+    b.child("foo");
+    b.child("bar");
+    merge(ns, b);
+    throwAfterUpdate.set(true);
+    boolean success = false;
+    Commit c = ns.newCommit(changes -> {
+        changes.addNode(Path.fromString("/foo/node"));
+        changes.addNode(Path.fromString("/bar/node"));
+    }, ns.getHeadRevision(), null);
+    try {
+        c.apply();
+        success = true;
+    } finally {
+        if (success) {
+            ns.done(c, false, CommitInfo.EMPTY);
+        } else {
+            ns.canceled(c);
+        }
+    }
+    NodeState root = ns.getRoot();
+    assertTrue(root.getChildNode("foo").getChildNode("node").exists());
+    assertTrue(root.getChildNode("bar").getChildNode("node").exists());
+    assertFalse(throwAfterUpdate.get());
+}

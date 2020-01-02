@@ -1,0 +1,22 @@
+@Test
+public void testIsMemberFew() throws Exception {
+    Group g = createGroup();
+    Group g2 = createGroup();
+    g.addMember(g2);
+    User m1 = createUser();
+    Group m2 = createGroup();
+    g2.addMember(m1);
+    g2.addMember(m2);
+    Tree groupTree = getTree(g);
+    // test members with transient modifications
+    assertFalse(mp.isDeclaredMember(groupTree, getTree(m1)));
+    assertFalse(mp.isDeclaredMember(groupTree, getTree(m2)));
+    assertTrue(mp.isMember(groupTree, getTree(m1)));
+    assertTrue(mp.isMember(groupTree, getTree(m2)));
+    // ... and after commit
+    root.commit();
+    assertFalse(mp.isDeclaredMember(groupTree, getTree(m1)));
+    assertFalse(mp.isDeclaredMember(groupTree, getTree(m2)));
+    assertTrue(mp.isMember(groupTree, getTree(m1)));
+    assertTrue(mp.isMember(groupTree, getTree(m2)));
+}

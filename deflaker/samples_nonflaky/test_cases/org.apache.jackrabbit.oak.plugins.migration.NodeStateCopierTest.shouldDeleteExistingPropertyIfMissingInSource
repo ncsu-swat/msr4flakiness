@@ -1,0 +1,12 @@
+@Test
+public void shouldDeleteExistingPropertyIfMissingInSource() throws CommitFailedException, IOException {
+    final NodeStore source = createNodeStoreWithContent("/a");
+    final NodeStore target = createNodeStoreWithContent();
+    final NodeBuilder builder = target.getRoot().builder();
+    create(builder, "/a", primaryType);
+    commit(target, builder);
+    final NodeState before = target.getRoot();
+    builder().copy(source, target);
+    final NodeState after = target.getRoot();
+    expectDifference().strict().propertyDeleted("/a/jcr:primaryType").childNodeChanged("/a").verify(before, after);
+}

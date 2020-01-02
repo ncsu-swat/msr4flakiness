@@ -1,0 +1,27 @@
+/**
+ * Put and retrieve different files concurrently.
+ * @throws Exception
+ */
+@Test
+public void testGetAddDifferent() throws Exception {
+    // add load
+    List<ListenableFuture<Integer>> futures = put(folder);
+    // Create an async retrieve task
+    final SettableFuture<File> retFuture = SettableFuture.create();
+    Thread t = new Thread(new Runnable() {
+
+        @Override
+        public void run() {
+            retFuture.set(stagingCache.getIfPresent(ID_PREFIX + 1));
+        }
+    });
+    // start
+    taskLatch.countDown();
+    callbackLatch.countDown();
+    t.start();
+    // assert no file retrieve
+    assertNull(retFuture.get());
+    assertEquals(1, stagingCache.getStats().getLoadCount());
+    assertFuture(futures, 0);
+    assertCacheStats(stagingCache, 0, 0, 1, 1);
+}

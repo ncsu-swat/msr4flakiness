@@ -1,0 +1,43 @@
+@Test
+public void gc() throws IOException {
+    SegmentIdFactory maker = newSegmentIdMaker();
+    final SegmentIdTable tbl = new SegmentIdTable();
+    List<SegmentId> refs = new ArrayList<SegmentId>();
+    int originalCount = 1024;
+    for (int i = 0; i < originalCount; i++) {
+        // modulo 128 to ensure we have conflicts
+        refs.add(tbl.newSegmentId(i, i % 128, maker));
+    }
+    assertEquals(originalCount, tbl.getEntryCount());
+    assertEquals(1, tbl.getMapRebuildCount());
+    for (int i = 0; i < refs.size() / 2; i++) {
+        // we need to remove the first entries,
+        // because if we remove the last entries, then
+        // getSegmentId would not detect that entries were freed up
+        refs.remove(0);
+    }
+    for (int gcCalls = 0; ; gcCalls++) {
+        // needed here, so some entries can be garbage collected
+        System.gc();
+        for (SegmentId id : refs) {
+            long msb = id.getMostSignificantBits();
+            long lsb = id.getLeastSignificantBits();
+            SegmentId id2 = tbl.newSegmentId(msb, lsb, maker);
+            assertTrue(id2 == id);
+        }
+        // because we found each entry, we expect the refresh count is the same
+        assertEquals(1, tbl.getMapRebuildCount());
+        // even thought this does not increase the entry count a lot,
+        // it is supposed to detect that entries were removed,
+        // and force a refresh, which would get rid of the unreferenced ids
+        for (int i = 0; i < 10; i++) {
+            tbl.newSegmentId(i, i, maker);
+        }
+        if (tbl.getEntryCount() < originalCount) {
+            break;
+        } else if (gcCalls > 10) {
+            fail("No entries were garbage collected after 10 times System.gc()");
+        }
+    }
+    assertEquals(2, tbl.getMapRebuildCount());
+}

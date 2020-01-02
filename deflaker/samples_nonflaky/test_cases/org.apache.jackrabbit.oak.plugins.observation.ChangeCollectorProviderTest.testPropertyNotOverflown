@@ -1,0 +1,18 @@
+@Test
+public void testPropertyNotOverflown() throws Exception {
+    Root root = session.getLatestRoot();
+    Tree rootTree = root.getTree("/test");
+    Tree child1 = rootTree.getChild("child1");
+    Set<String> expectedPropertyNames = Sets.newHashSet();
+    for (int i = 0; i < collectorProvider.getMaxItems(); i++) {
+        child1.setProperty("aProperty" + i, "foo");
+        expectedPropertyNames.add("aProperty" + i);
+    }
+    root.commit();
+    ChangeSet changeSet = getSingleChangeSet();
+    assertMatches("parentPaths", changeSet.getParentPaths(), "/test/child1");
+    assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "child1");
+    assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:childType");
+    assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType", "test:childType");
+    assertMatches("propertyNames", changeSet.getPropertyNames(), expectedPropertyNames.toArray(new String[0]));
+}

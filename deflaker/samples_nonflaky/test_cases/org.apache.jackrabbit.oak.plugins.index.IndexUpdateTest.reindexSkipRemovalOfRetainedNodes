@@ -1,0 +1,21 @@
+/**
+ * Tests that with explicit reindex i.e. reindex=true those hidden nodes
+ * which have IndexConstants.REINDEX_RETAIN set to true are not removed
+ */
+@Test
+public void reindexSkipRemovalOfRetainedNodes() throws Exception {
+    builder.child("testRoot").setProperty("foo", "abc");
+    NodeState before = builder.getNodeState();
+    NodeBuilder nb = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "rootIndex", true, false, ImmutableSet.of("foo"), null);
+    nb.child(":hidden-node-1").setProperty("foo", "bar");
+    nb.child(":hidden-node-2").setProperty(IndexConstants.REINDEX_RETAIN, true);
+    nb.child("visible-node");
+    NodeState after = builder.getNodeState();
+    NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+    // first check that the index content nodes exist
+    NodeState ns = checkPathExists(indexed, INDEX_DEFINITIONS_NAME, "rootIndex");
+    checkPathExists(ns, "visible-node");
+    checkPathExists(ns, ":hidden-node-2");
+    assertFalse(ns.getChildNode(":hidden-node-1").exists());
+    assertEquals(1, ns.getLong(REINDEX_COUNT));
+}

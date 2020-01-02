@@ -1,0 +1,63 @@
+@Test
+public void laneUnlockedInCaseOfFailure() throws Exception {
+    NodeBuilder builder = store.getRoot().builder();
+    createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "fooIndex", true, false, ImmutableSet.of("foo"), null).setProperty(ASYNC_PROPERTY_NAME, "async");
+    builder.child("a").setProperty("foo", "abc");
+    builder.child("b").setProperty("foo", "abc");
+    store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    new AsyncIndexUpdate("async", store, provider).run();
+    String checkpoint = createIndexDirs("/oak:index/fooIndex");
+    builder = store.getRoot().builder();
+    builder.child("c").setProperty("foo", "abc");
+    builder.child("d").setProperty("foo", "abc");
+    store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    new AsyncIndexUpdate("async", store, provider).run();
+    IndexImporterProvider importerProvider = new IndexImporterProvider() {
+
+        @Override
+        public void importIndex(NodeState root, NodeBuilder defn, File indexDir) {
+        }
+
+        @Override
+        public String getType() {
+            return "property";
+        }
+    };
+    final String exceptionMessage = "TEST MESSAGE";
+    ClusterNodeStoreLock lock = new ClusterNodeStoreLock(store);
+    provider = new PropertyIndexEditorProvider() {
+
+        @Override
+        public Editor getIndexEditor(@NotNull String type, @NotNull NodeBuilder definition, @NotNull NodeState root, @NotNull IndexUpdateCallback callback) {
+            throw new RuntimeException(exceptionMessage);
+        }
+    };
+    IndexImporter importer = new IndexImporter(store, temporaryFolder.getRoot(), provider, lock);
+    importer.addImporterProvider(importerProvider);
+    try {
+        importer.importIndex();
+        fail();
+    } catch (RuntimeException ignore) {
+    }
+    assertFalse(lock.isLocked("async"));
+    AsyncIndexerLock lock2 = new AsyncIndexerLock() {
+
+        @Override
+        public LockToken lock(String asyncIndexerLane) throws CommitFailedException {
+            return mock(LockToken.class);
+        }
+
+        @Override
+        public void unlock(LockToken token) throws CommitFailedException {
+            throw new IllegalStateException("Exception in unlock");
+        }
+    };
+    IndexImporter importer2 = new IndexImporter(store, temporaryFolder.getRoot(), provider, lock2);
+    importer2.addImporterProvider(importerProvider);
+    try {
+        importer2.importIndex();
+        fail();
+    } catch (RuntimeException ignore) {
+        assertEquals(exceptionMessage, ignore.getMessage());
+    }
+}

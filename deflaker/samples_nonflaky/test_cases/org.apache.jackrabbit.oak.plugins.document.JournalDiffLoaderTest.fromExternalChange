@@ -1,0 +1,21 @@
+@Test
+public void fromExternalChange() throws Exception {
+    DocumentStore store = new MemoryDocumentStore();
+    DocumentNodeStore ns1 = builderProvider.newBuilder().setClusterId(1).clock(clock).setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+    DocumentNodeStore ns2 = builderProvider.newBuilder().setClusterId(2).clock(clock).setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+    DocumentNodeState s1 = ns1.getRoot();
+    NodeBuilder builder = ns1.getRoot().builder();
+    builder.child("foo");
+    merge(ns1, builder);
+    builder = ns2.getRoot().builder();
+    builder.child("bar");
+    merge(ns2, builder);
+    ns2.runBackgroundOperations();
+    // create journal entry for ns1 and pick up changes from ns2
+    ns1.runBackgroundOperations();
+    builder = ns1.getRoot().builder();
+    builder.child("baz");
+    merge(ns1, builder);
+    DocumentNodeState s2 = ns1.getRoot();
+    assertEquals(newHashSet("foo", "bar", "baz"), changeChildNodes(ns1, s1, s2));
+}

@@ -1,0 +1,31 @@
+@Test
+public void testExplainStatementXPath() throws Exception {
+    final String xpath = "/jcr:root/UnionQueryTest//(element(*, nt:base) | element(*, nt:folder)) order by jcr:path";
+    final String explainUnion = "explain " + xpath;
+    Result explainResult = executeQuery(explainUnion, QueryEngineImpl.XPATH, QueryEngine.NO_BINDINGS);
+    int explainCount = 0;
+    ResultRow explainRow = null;
+    for (ResultRow row : explainResult.getRows()) {
+        if (explainCount == 0) {
+            explainRow = row;
+        }
+        explainCount = explainCount + 1;
+    }
+    assertEquals("should exist 1 result", 1, explainCount);
+    assertNotNull("explain row should not be null", explainRow);
+    assertTrue("result should have 'plan' column", Arrays.asList(explainResult.getColumnNames()).contains("plan"));
+    assertTrue("result should have 'statement' column", Arrays.asList(explainResult.getColumnNames()).contains("statement"));
+    final String explainedStatement = explainRow.getValue("statement").getValue(Type.STRING);
+    assertTrue("'statement' should begin with 'select': " + explainedStatement, explainedStatement.startsWith("select"));
+    assertTrue("'statement' should contain ' union ': " + explainedStatement, explainedStatement.contains(" union "));
+    final int limit = 3;
+    final int offset = 2;
+    String[] expected = { "/UnionQueryTest/a/b/c", "/UnionQueryTest/a/b/c/d", "/UnionQueryTest/a/b/c/d/e" };
+    Result result = qe.executeQuery(explainedStatement, QueryEngineImpl.SQL2, limit, offset, QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
+    List<ResultRow> rows = Lists.newArrayList(result.getRows());
+    assertEquals(expected.length, rows.size());
+    int i = 0;
+    for (ResultRow rr : result.getRows()) {
+        assertEquals(rr.getPath(), expected[i++]);
+    }
+}

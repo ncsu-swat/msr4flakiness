@@ -1,0 +1,37 @@
+@Test
+public void testUnpreciseInclude() throws Exception {
+    ChangeSetBuilder builder = newBuilder(5, 5);
+    builder.addNodeType("nt:file");
+    builder.addParentNodeType("nt:file");
+    builder.addParentPath("/a/b/c/e");
+    builder.addParentNodeName("d");
+    builder.addPropertyName("e");
+    builder.addPropertyName("f");
+    Set<String> largeExcludeSet = new HashSet<String>();
+    for (int a = 0; a < 3; a++) {
+        for (int b = 0; b < 3; b++) {
+            for (int c = 0; c < 10; c++) {
+                String s = "/a";
+                if (a > 0) {
+                    s += a;
+                }
+                s += "/b";
+                if (b > 0) {
+                    s += b;
+                }
+                s += "/c";
+                if (c > 0) {
+                    s += c;
+                }
+                s += "/d";
+                largeExcludeSet.add(s);
+            }
+        }
+    }
+    ChangeSetFilterImpl prefilter = new ChangeSetFilterImpl(s("/"), true, null, largeExcludeSet, s("foo", "bars"), s("nt:file"), s(), 999);
+    assertTrue(prefilter.excludes(builder.build()));
+    prefilter = new ChangeSetFilterImpl(s("/"), true, null, largeExcludeSet, s("foo", "bars"), s("nt:file"), s(), 15);
+    assertFalse(prefilter.excludes(builder.build()));
+    prefilter = new ChangeSetFilterImpl(s("/"), true, null, largeExcludeSet, s("foo", "bars"), s("nt:file"), s(), 1);
+    assertFalse(prefilter.excludes(builder.build()));
+}

@@ -1,0 +1,15 @@
+@Test
+public void switchLanes() throws Exception {
+    NodeBuilder builder = store.getRoot().builder();
+    builder.child("idx-a").setProperty("type", "property");
+    builder.child("idx-b").setProperty("type", "property");
+    builder.child("idx-b").setProperty("async", "async");
+    store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    createIndexDirs("/idx-a", "/idx-b");
+    IndexImporter importer = new IndexImporter(store, temporaryFolder.getRoot(), provider, NOOP_LOCK);
+    importer.switchLanes();
+    NodeState idxa = NodeStateUtils.getNode(store.getRoot(), "/idx-a");
+    assertEquals(AsyncLaneSwitcher.getTempLaneName(IndexImporter.ASYNC_LANE_SYNC), idxa.getString(ASYNC_PROPERTY_NAME));
+    NodeState idxb = NodeStateUtils.getNode(store.getRoot(), "/idx-b");
+    assertEquals(AsyncLaneSwitcher.getTempLaneName("async"), idxb.getString(ASYNC_PROPERTY_NAME));
+}

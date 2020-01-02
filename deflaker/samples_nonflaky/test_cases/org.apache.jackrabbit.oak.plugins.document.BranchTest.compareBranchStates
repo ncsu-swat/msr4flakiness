@@ -1,0 +1,30 @@
+@Test
+public void compareBranchStates() {
+    DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0).build();
+    ns.runBackgroundOperations();
+    DocumentStore store = ns.getDocumentStore();
+    NodeBuilder builder = ns.getRoot().builder();
+    builder.setProperty("p", "a");
+    persistToBranch(builder);
+    NodeState s1 = builder.getNodeState();
+    builder.setProperty("p", "b");
+    persistToBranch(builder);
+    NodeState s2 = builder.getNodeState();
+    Set<String> changes = new HashSet<>();
+    NodeStateDiff diff = new DefaultNodeStateDiff() {
+
+        @Override
+        public boolean propertyChanged(PropertyState before, PropertyState after) {
+            changes.add(before.getName());
+            return super.propertyChanged(before, after);
+        }
+    };
+    s2.compareAgainstBaseState(s1, diff);
+    assertThat(changes, contains("p"));
+    NodeDocument root = getRootDocument(store);
+    RevisionVector br = asDocumentState(s1).getRootRevision();
+    assertTrue(br.isBranch());
+    DocumentNodeState state = root.getNodeAtRevision(ns, br, null);
+    assertNotNull(state);
+    assertEquals("a", state.getString("p"));
+}

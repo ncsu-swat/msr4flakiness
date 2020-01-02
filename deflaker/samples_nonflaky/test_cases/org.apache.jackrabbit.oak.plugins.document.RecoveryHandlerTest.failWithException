@@ -1,0 +1,23 @@
+@Test
+public void failWithException() throws Exception {
+    DocumentNodeStore ns = builderProvider.newBuilder().clock(clock).setDocumentStore(store).build();
+    int clusterId = ns.getClusterId();
+    NodeBuilder builder = ns.getRoot().builder();
+    builder.child("foo");
+    merge(ns, builder);
+    // crash the node store
+    store.fail().after(0).eternally();
+    try {
+        ns.dispose();
+        fail("dispose must fail with exception");
+    } catch (DocumentStoreException e) {
+    // expected
+    }
+    // let lease time out
+    clock.waitUntil(clock.getTime() + ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS + 1);
+    // must not be able to recover with a failing document store
+    assertFalse(handler.recover(clusterId));
+    store.fail().never();
+    // must succeed after store is accessible again
+    assertTrue(handler.recover(clusterId));
+}

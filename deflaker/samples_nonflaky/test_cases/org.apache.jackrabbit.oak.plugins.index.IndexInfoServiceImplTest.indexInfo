@@ -1,0 +1,23 @@
+@Test
+public void indexInfo() throws Exception {
+    // 1. Test Empty
+    assertNull(service.getInfo("/nonExistingPath"));
+    // 2. Test when no backing InfoProvider
+    NodeBuilder builder = store.getRoot().builder();
+    builder.child("oak:index").child("fooIndex").setProperty("type", "foo");
+    store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    IndexInfo info = service.getInfo("/oak:index/fooIndex");
+    assertNotNull(info);
+    assertEquals("/oak:index/fooIndex", info.getIndexPath());
+    assertEquals("foo", info.getType());
+    // 3. Test when backing InfoProvider
+    IndexInfo testInfo = mock(IndexInfo.class);
+    when(testInfo.getIndexPath()).thenReturn("/some/other/path");
+    IndexInfoProvider infoProvider = mock(IndexInfoProvider.class);
+    when(infoProvider.getType()).thenReturn("foo");
+    when(infoProvider.getInfo(anyString())).thenReturn(testInfo);
+    service.bindInfoProviders(infoProvider);
+    IndexInfo info2 = service.getInfo("/oak:index/fooIndex");
+    assertNotNull(info2);
+    assertEquals("/some/other/path", info2.getIndexPath());
+}

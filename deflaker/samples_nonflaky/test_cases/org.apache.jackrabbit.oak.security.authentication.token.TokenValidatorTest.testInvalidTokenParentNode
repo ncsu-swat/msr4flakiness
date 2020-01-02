@@ -1,0 +1,16 @@
+@Test
+public void testInvalidTokenParentNode() throws Exception {
+    Tree userTree = root.getTree(getUserManager(root).getAuthorizable(userId).getPath());
+    Tree node = TreeUtil.addChild(userTree, "testNode", JcrConstants.NT_UNSTRUCTURED);
+    try {
+        // Invalid node type of '.tokens' node
+        TreeUtil.addChild(node, TOKENS_NODE_NAME, JcrConstants.NT_UNSTRUCTURED);
+        root.commit(CommitMarker.asCommitAttributes());
+        fail("Creating a new token '" + node.getPath() + "' must fail.");
+    } catch (CommitFailedException e) {
+        assertEquals(68, e.getCode());
+    } finally {
+        node.remove();
+        root.commit(CommitMarker.asCommitAttributes());
+    }
+}

@@ -1,0 +1,33 @@
+@Test
+public void testNotUsedBeforeValid() throws Exception {
+    root.getTree("/oak:index/counter").setProperty("resolution", 100);
+    root.commit();
+    // no index data before indexing
+    assertFalse(nodeExists("oak:index/counter/:index"));
+    // so, cost for traversal is high
+    assertTrue(getCost("/jcr:root//*") >= 1.0E8);
+    runAsyncIndex();
+    // sometimes, the :index node doesn't exist because there are very few
+    // nodes (randomly, because the seed value of the node counter is random
+    // by design) - so we create nodes until the index exists
+    // (we could use a fixed seed to ensure this is not the case,
+    // but creating nodes has the same effect)
+    for (int i = 0; !nodeExists("oak:index/counter/:index"); i++) {
+        assertTrue("index not ready after 100 iterations", i < 100);
+        Tree t = root.getTree("/").addChild("test" + i);
+        for (int j = 0; j < 100; j++) {
+            t.addChild("n" + j);
+        }
+        root.commit();
+        runAsyncIndex();
+    }
+    // because we do have node counter data,
+    // cost for traversal is low
+    assertTrue(getCost("/jcr:root//*") < 1.0E8);
+    // remove the counter index
+    root.getTree("/oak:index/counter").remove();
+    root.commit();
+    assertFalse(nodeExists("oak:index/counter"));
+    // so, cost for traversal is high again
+    assertTrue(getCost("/jcr:root//*") >= 1.0E8);
+}

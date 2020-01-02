@@ -1,0 +1,16 @@
+@Test
+public void testGetPath() {
+    NameMapper nameMapper = new GlobalNameMapper(Collections.singletonMap("jr", "http://jackrabbit.apache.org"));
+    NamePathMapper npMapper = new NamePathMapperImpl(nameMapper);
+    // map of jcr-path to standard jcr-path
+    Map<String, String> paths = new HashMap<>();
+    paths.put(null, null);
+    paths.put(TEST_PATH, TEST_PATH);
+    paths.put("/", "/");
+    paths.put("/jr:testPath", "/jr:testPath");
+    paths.put("/{http://jackrabbit.apache.org}testPath", "/jr:testPath");
+    for (String path : paths.keySet()) {
+        AbstractAccessControlList acl = createACL(path, Collections.emptyList(), npMapper);
+        assertEquals(paths.get(path), acl.getPath());
+    }
+}

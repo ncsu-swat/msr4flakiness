@@ -1,0 +1,18 @@
+@Test
+public void basicReferenceHandling() throws Exception {
+    NodeState root = INITIAL_CONTENT;
+    NodeBuilder builder = root.builder();
+    NodeState before = builder.getNodeState();
+    builder.child("a").setProperty(createProperty("foo", "u1", Type.REFERENCE));
+    builder.child("b").setProperty(createProperty("foo", "u1", Type.REFERENCE));
+    builder.child("c").setProperty(createProperty("foo", "u2", Type.WEAKREFERENCE));
+    NodeState after = builder.getNodeState();
+    EditorHook hook = new EditorHook(new IndexUpdateProvider(new ReferenceEditorProvider()));
+    NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+    FilterImpl f = createFilter(indexed, NT_BASE);
+    f.restrictProperty("*", Operator.EQUAL, newReference("u1"), PropertyType.REFERENCE);
+    assertFilter(f, new ReferenceIndex(), indexed, of("/a", "/b"));
+    FilterImpl f2 = createFilter(indexed, NT_BASE);
+    f2.restrictProperty("*", Operator.EQUAL, newReference("u2"), PropertyType.WEAKREFERENCE);
+    assertFilter(f2, new ReferenceIndex(), indexed, of("/c"));
+}

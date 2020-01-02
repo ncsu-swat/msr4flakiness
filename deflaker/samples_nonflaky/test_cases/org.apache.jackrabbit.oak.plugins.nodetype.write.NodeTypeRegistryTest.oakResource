@@ -1,0 +1,21 @@
+@Test
+public void oakResource() throws Exception {
+    registerNodeType(root, "oak4567.cnd");
+    Tree typeRoot = root.getTree(NODE_TYPES_PATH);
+    Tree test1 = TreeUtil.addChild(root.getTree("/"), "test1", NT_FILE, typeRoot, "admin");
+    Tree content1 = TreeUtil.addChild(test1, JCR_CONTENT, NT_OAK_RESOURCE, typeRoot, "admin");
+    content1.setProperty(JCR_DATA, "hello".getBytes());
+    Tree test2 = TreeUtil.addChild(root.getTree("/"), "test2", NT_FILE, typeRoot, "admin");
+    Tree content2 = TreeUtil.addChild(test2, JCR_CONTENT, NT_RESOURCE, typeRoot, "admin");
+    content2.setProperty(JCR_DATA, "hello".getBytes());
+    root.commit();
+    test1 = root.getTree("/").addChild("test1");
+    assertTrue(test1.getChild(JCR_CONTENT).hasProperty(JCR_LASTMODIFIEDBY));
+    assertTrue(test1.getChild(JCR_CONTENT).hasProperty(JCR_LASTMODIFIED));
+    // For oak:Resource the uuid property should not get generated
+    assertFalse(test1.getChild(JCR_CONTENT).hasProperty(JCR_UUID));
+    test2 = root.getTree("/").addChild("test2");
+    assertTrue(test2.getChild(JCR_CONTENT).hasProperty(JCR_LASTMODIFIEDBY));
+    assertTrue(test2.getChild(JCR_CONTENT).hasProperty(JCR_LASTMODIFIED));
+    assertTrue(test2.getChild(JCR_CONTENT).hasProperty(JCR_UUID));
+}

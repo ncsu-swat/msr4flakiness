@@ -1,0 +1,18 @@
+@Test
+public void lastRevRecoveryWithBundledNodes() throws Exception {
+    NodeBuilder builder = ns.getRoot().builder();
+    NodeBuilder file = builder.child("file");
+    file.setProperty(JCR_PRIMARYTYPE, NT_FILE);
+    file.child(JCR_CONTENT).child("metadata");
+    merge(ns, builder);
+    ns.runBackgroundOperations();
+    log.starting();
+    try {
+        LastRevRecoveryAgent agent = ns.getLastRevRecoveryAgent();
+        assertEquals(0, agent.recover(Utils.getAllDocuments(store), ns.getClusterId(), true));
+        // must not log any warn messages
+        assertThat(log.getLogs(), is(empty()));
+    } finally {
+        log.finished();
+    }
+}

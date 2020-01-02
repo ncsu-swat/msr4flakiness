@@ -1,0 +1,64 @@
+@Test
+public void commitRootSameAsModifiedPathWithConflicts() throws Exception {
+    MemoryDocumentStore store = new MemoryDocumentStore(true);
+    final DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0).setDocumentStore(store).getNodeStore();
+    NodeBuilder builder = ns.getRoot().builder();
+    builder.child("a").child("b").setProperty("p", 0L);
+    merge(ns, builder);
+    final List<Throwable> exceptions = synchronizedList(Lists.newArrayList());
+    Runnable task = new Runnable() {
+
+        CommitHook hook = new CompositeHook(new ConflictHook(new AnnotatingConflictHandler()), new EditorHook(new ConflictValidatorProvider()));
+
+        @Override
+        public void run() {
+            try {
+                for (int i = 0; i < 100; i++) {
+                    NodeBuilder builder = ns.getRoot().builder();
+                    NodeBuilder b = builder.child("a").child("b");
+                    PropertyState p = b.getProperty("p");
+                    assertNotNull(p);
+                    long value = p.getValue(Type.LONG) + 1;
+                    b.setProperty(p.getName(), value);
+                    try {
+                        ns.merge(builder, hook, CommitInfo.EMPTY);
+                    } catch (CommitFailedException e) {
+                        if (e.asRepositoryException() instanceof InvalidItemStateException) {
+                        // this is fine and may happen from time to
+                        // time because the test updates the same
+                        // property concurrently
+                        } else {
+                            // anything else is unexpected
+                            exceptions.add(e);
+                        }
+                    }
+                }
+            } catch (AssertionError e) {
+                exceptions.add(e);
+            }
+        }
+    };
+    List<Thread> threads = Lists.newArrayList();
+    for (int i = 0; i < 4; i++) {
+        threads.add(new Thread(task));
+    }
+    for (Thread t : threads) {
+        t.start();
+    }
+    for (Thread t : threads) {
+        t.join();
+    }
+    // check updates are consecutive
+    NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/a/b"));
+    assertNotNull(doc);
+    long previousValue = -1;
+    List<String> values = Lists.newArrayList(doc.getLocalMap("p").values());
+    for (String v : Lists.reverse(values)) {
+        long currentValue = Long.parseLong(v);
+        assertEquals(previousValue + 1, currentValue);
+        previousValue = currentValue;
+    }
+    for (Throwable e : exceptions) {
+        fail(e.toString());
+    }
+}

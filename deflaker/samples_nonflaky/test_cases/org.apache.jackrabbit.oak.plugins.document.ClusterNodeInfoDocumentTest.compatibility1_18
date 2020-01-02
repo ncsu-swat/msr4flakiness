@@ -1,0 +1,11 @@
+@Test
+public void compatibility1_18() {
+    ClusterNodeInfoDocument doc = createInactive(false);
+    // remove invisible field introduced after 1.18
+    UpdateOp op = new UpdateOp(String.valueOf(doc.getClusterId()), false);
+    op.remove(ClusterNodeInfo.INVISIBLE);
+    assertNotNull(store.findAndUpdate(Collection.CLUSTER_NODES, op));
+    List<ClusterNodeInfoDocument> docs = ClusterNodeInfoDocument.all(store);
+    assertThat(docs, hasSize(1));
+    assertFalse(docs.get(0).isInvisible());
+}

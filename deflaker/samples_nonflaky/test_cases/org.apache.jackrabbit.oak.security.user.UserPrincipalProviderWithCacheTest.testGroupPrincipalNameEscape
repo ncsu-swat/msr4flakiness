@@ -1,0 +1,23 @@
+@Test
+public void testGroupPrincipalNameEscape() throws Exception {
+    String gId = null;
+    try {
+        Principal groupPrincipal = new PrincipalImpl(groupId + ",,%,%%");
+        Group gr = getUserManager(root).createGroup(groupPrincipal);
+        gId = gr.getID();
+        gr.addMember(getTestUser());
+        root.commit();
+        systemRoot.refresh();
+        PrincipalProvider pp = createPrincipalProvider(systemRoot);
+        Set<? extends Principal> principals = pp.getPrincipals(userId);
+        assertTrue(principals.contains(groupPrincipal));
+        principals = pp.getPrincipals(userId);
+        assertTrue(principals.contains(groupPrincipal));
+    } finally {
+        root.refresh();
+        if (gId != null) {
+            getUserManager(root).getAuthorizable(gId).remove();
+            root.commit();
+        }
+    }
+}

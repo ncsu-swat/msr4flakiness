@@ -1,0 +1,24 @@
+// OAK-3488
+@Test
+public void recoveryWithTimeout() throws Exception {
+    String clusterId = String.valueOf(c1Id);
+    ClusterNodeInfoDocument doc = sharedStore.find(CLUSTER_NODES, clusterId);
+    NodeBuilder builder = ds1.getRoot().builder();
+    builder.child("x").child("y").child("z");
+    merge(ds1, builder);
+    ds1.dispose();
+    // reset clusterNodes entry to simulate a crash
+    sharedStore.remove(CLUSTER_NODES, clusterId);
+    sharedStore.create(CLUSTER_NODES, newArrayList(updateOpFromDocument(doc)));
+    // 'wait' until lease expires
+    clock.waitUntil(doc.getLeaseEndTime() + 1);
+    // simulate ongoing recovery by cluster node 2
+    MissingLastRevSeeker seeker = new MissingLastRevSeeker(sharedStore, clock);
+    seeker.acquireRecoveryLock(c1Id, c2Id);
+    // run recovery from ds1
+    LastRevRecoveryAgent a1 = new LastRevRecoveryAgent(sharedStore, ds1);
+    // use current time -> do not wait for recovery of other agent
+    assertEquals(-1, a1.recover(c1Id, clock.getTime()));
+    seeker.releaseRecoveryLock(c1Id, true);
+    assertEquals(0, a1.recover(c1Id, clock.getTime() + 1000));
+}

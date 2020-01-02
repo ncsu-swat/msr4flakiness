@@ -1,0 +1,17 @@
+@Test
+public void stableIdShouldPersistAcrossGenerations() throws Exception {
+    try (FileStore store = newFileStore()) {
+        SegmentWriter writer;
+        writer = defaultSegmentWriterBuilder("1").withGeneration(newGCGeneration(1, 0, false)).build(store);
+        SegmentNodeState one = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(EmptyNodeState.EMPTY_NODE));
+        writer.flush();
+        writer = defaultSegmentWriterBuilder("2").withGeneration(newGCGeneration(2, 0, false)).build(store);
+        SegmentNodeState two = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(one));
+        writer.flush();
+        writer = defaultSegmentWriterBuilder("3").withGeneration(newGCGeneration(3, 0, false)).build(store);
+        SegmentNodeState three = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(two));
+        writer.flush();
+        assertArrayEquals(asByteArray(three.getStableIdBytes()), asByteArray(two.getStableIdBytes()));
+        assertArrayEquals(asByteArray(two.getStableIdBytes()), asByteArray(one.getStableIdBytes()));
+    }
+}

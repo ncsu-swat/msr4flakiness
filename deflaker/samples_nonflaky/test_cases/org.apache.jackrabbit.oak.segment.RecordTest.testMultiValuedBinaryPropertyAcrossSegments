@@ -1,0 +1,24 @@
+@Test
+public void testMultiValuedBinaryPropertyAcrossSegments() throws IOException {
+    // biggest possible inlined value record
+    byte[] data = new byte[Segment.MEDIUM_LIMIT - 1];
+    random.nextBytes(data);
+    // create enough copies of the value to fill a full segment
+    List<Blob> blobs = newArrayList();
+    while (blobs.size() * data.length < Segment.MAX_SEGMENT_SIZE) {
+        blobs.add(new SegmentBlob(store.getBlobStore(), writer.writeStream(new ByteArrayInputStream(data))));
+    }
+    // write a simple node that'll now be stored in a separate segment
+    NodeBuilder builder = EMPTY_NODE.builder();
+    builder.setProperty("test", blobs, BINARIES);
+    NodeState state = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
+    // all the blobs should still be accessible, even if they're
+    // referenced from another segment
+    for (Blob blob : state.getProperty("test").getValue(BINARIES)) {
+        try {
+            blob.getNewStream().close();
+        } catch (IllegalStateException e) {
+            fail("OAK-1374");
+        }
+    }
+}

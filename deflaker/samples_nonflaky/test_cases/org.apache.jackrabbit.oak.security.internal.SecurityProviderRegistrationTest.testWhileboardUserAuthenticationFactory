@@ -1,0 +1,12 @@
+@Test
+public void testWhileboardUserAuthenticationFactory() {
+    registration.activate(context.bundleContext(), configWithRequiredServiceIds("uafId"));
+    UserAuthenticationFactory mockUaf = mock(UserAuthenticationFactory.class);
+    ServiceRegistration rpSr = context.bundleContext().registerService(UserAuthenticationFactory.class.getName(), mockUaf, new Hashtable(ImmutableMap.of(SERVICE_PID, "uafId")));
+    registration.bindUserAuthenticationFactory(rpSr.getReference(), mockUaf);
+    SecurityProvider service = context.getService(SecurityProvider.class);
+    UserAuthenticationFactory uaf = service.getConfiguration(UserConfiguration.class).getParameters().getConfigValue(UserConstants.PARAM_USER_AUTHENTICATION_FACTORY, null, UserAuthenticationFactory.class);
+    assertTrue(uaf instanceof WhiteboardUserAuthenticationFactory);
+    uaf.getAuthentication(getUserConfiguration(), root, "id");
+    verify(mockUaf, times(1)).getAuthentication(getUserConfiguration(), root, "id");
+}

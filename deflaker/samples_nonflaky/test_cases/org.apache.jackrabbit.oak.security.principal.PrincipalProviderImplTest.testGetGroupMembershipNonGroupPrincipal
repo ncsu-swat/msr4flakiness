@@ -1,0 +1,9 @@
+@Test
+public void testGetGroupMembershipNonGroupPrincipal() throws Exception {
+    // Group.getPrincipal doesn't return a GroupPrincipal
+    Group gr = when(mock(Group.class).getPrincipal()).thenReturn(new PrincipalImpl("group")).getMock();
+    Authorizable mockAuthorizable = when(mock(User.class).memberOf()).thenReturn(Iterators.singletonIterator(gr)).getMock();
+    UserManager umMock = when(mock(UserManager.class).getAuthorizable(any(Principal.class))).thenReturn(mockAuthorizable).getMock();
+    Set<Principal> membership = createPrincipalProvider(umMock).getMembershipPrincipals(new PrincipalImpl("userPrincipal"));
+    assertEquals(ImmutableSet.of(EveryonePrincipal.getInstance()), membership);
+}

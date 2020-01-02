@@ -1,0 +1,35 @@
+/**
+ * "Oddity" when adding per id + besteffort: everyone group will not be
+ * dealt with separately and will end up being listed in a rep:members property.
+ */
+@Test
+public void testEveryoneAsMember() throws Exception {
+    UserManagerImpl userManager = (UserManagerImpl) getUserManager(root);
+    Group everyone = userManager.createGroup(EveryonePrincipal.getInstance());
+    try {
+        Set<String> failed = testGroup.addMembers(everyone.getID());
+        assertTrue(failed.isEmpty());
+        root.commit();
+        assertFalse(testGroup.isDeclaredMember(everyone));
+        assertFalse(testGroup.isMember(everyone));
+        for (Iterator<Group> it = everyone.memberOf(); it.hasNext(); ) {
+            assertNotEquals(testGroup.getID(), it.next().getID());
+        }
+        for (Iterator<Group> it = everyone.declaredMemberOf(); it.hasNext(); ) {
+            assertNotEquals(testGroup.getID(), it.next().getID());
+        }
+        // oddity of the current impl that add members without testing for
+        boolean found = false;
+        MembershipProvider mp = userManager.getMembershipProvider();
+        for (Iterator<String> it = mp.getMembership(root.getTree(everyone.getPath()), true); it.hasNext(); ) {
+            String p = it.next();
+            if (testGroup.getPath().equals(p)) {
+                found = true;
+            }
+        }
+        assertTrue(found);
+    } finally {
+        everyone.remove();
+        root.commit();
+    }
+}

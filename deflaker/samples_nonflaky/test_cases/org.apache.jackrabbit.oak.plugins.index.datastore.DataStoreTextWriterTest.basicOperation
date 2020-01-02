@@ -1,0 +1,14 @@
+@Test
+public void basicOperation() throws Exception {
+    File fdsDir = temporaryFolder.newFolder();
+    FileDataStore fds = DataStoreUtils.createFDS(fdsDir, 0);
+    ByteArrayInputStream is = new ByteArrayInputStream("hello".getBytes());
+    DataRecord dr = fds.addRecord(is);
+    File writerDir = temporaryFolder.newFolder();
+    TextWriter writer = new DataStoreTextWriter(writerDir, false);
+    writer.write(dr.getIdentifier().toString(), "hello");
+    FileDataStore fds2 = DataStoreUtils.createFDS(writerDir, 0);
+    DataRecord dr2 = fds2.getRecordIfStored(dr.getIdentifier());
+    is.reset();
+    assertTrue(IOUtils.contentEquals(is, dr2.getStream()));
+}

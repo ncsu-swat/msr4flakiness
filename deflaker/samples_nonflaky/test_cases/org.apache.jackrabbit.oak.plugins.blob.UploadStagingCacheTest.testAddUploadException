@@ -1,0 +1,41 @@
+/**
+ * Stage file unsuccessful upload.
+ * @throws Exception
+ */
+@Test
+public void testAddUploadException() throws Exception {
+    final AtomicInteger count = new AtomicInteger(0);
+    TestStagingUploader secondTimeUploader = new TestStagingUploader(folder.newFolder()) {
+
+        @Override
+        public void write(String id, File f) throws DataStoreException {
+            if (count.get() == 0) {
+                throw new DataStoreException("Error in writing blob");
+            }
+            super.write(id, f);
+        }
+    };
+    // initialize staging cache using the mocked uploader
+    init(2, secondTimeUploader, null);
+    // Add load
+    List<ListenableFuture<Integer>> futures = put(folder);
+    // start
+    taskLatch.countDown();
+    callbackLatch.countDown();
+    waitFinish(futures);
+    // assert file retrieved from staging cache
+    File ret = stagingCache.getIfPresent(ID_PREFIX + 0);
+    assertTrue(Files.equal(copyToFile(randomStream(0, 4 * 1024), folder.newFile()), ret));
+    assertEquals(1, stagingCache.getStats().getLoadCount());
+    assertEquals(1, stagingCache.getStats().getLoadSuccessCount());
+    assertCacheStats(stagingCache, 1, 4 * 1024, 1, 1);
+    // Retry upload and wait for finish
+    count.incrementAndGet();
+    ScheduledFuture<?> scheduledFuture = removeExecutor.schedule(stagingCache.new RetryJob(), 0, TimeUnit.MILLISECONDS);
+    scheduledFuture.get();
+    afterExecuteLatch.await();
+    // Now uploaded
+    ret = stagingCache.getIfPresent(ID_PREFIX + 0);
+    assertNull(ret);
+    assertTrue(Files.equal(copyToFile(randomStream(0, 4 * 1024), folder.newFile()), secondTimeUploader.read(ID_PREFIX + 0)));
+}

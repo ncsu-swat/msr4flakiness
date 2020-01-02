@@ -1,0 +1,25 @@
+@Test
+public void binarySearch() throws Exception {
+    SecondaryStoreCache cache = createCache(new PathFilter(of("/a"), empty));
+    List<AbstractDocumentNodeState> roots = Lists.newArrayList();
+    List<RevisionVector> revs = Lists.newArrayList();
+    for (int i = 0; i < 50; i++) {
+        NodeBuilder nb = primary.getRoot().builder();
+        create(nb, "/a/b" + i);
+        AbstractDocumentNodeState r = merge(nb);
+        roots.add(r);
+        revs.add(r.getRootRevision());
+    }
+    AbstractDocumentNodeState[] rootsArr = Iterables.toArray(roots, AbstractDocumentNodeState.class);
+    Collections.shuffle(revs);
+    for (RevisionVector rev : revs) {
+        AbstractDocumentNodeState result = SecondaryStoreCache.findMatchingRoot(rootsArr, rev);
+        assertNotNull(result);
+        assertEquals(rev, result.getRootRevision());
+    }
+    NodeBuilder nb = primary.getRoot().builder();
+    create(nb, "/a/m");
+    AbstractDocumentNodeState r = merge(nb);
+    AbstractDocumentNodeState result = SecondaryStoreCache.findMatchingRoot(rootsArr, r.getRootRevision());
+    assertNull(result);
+}

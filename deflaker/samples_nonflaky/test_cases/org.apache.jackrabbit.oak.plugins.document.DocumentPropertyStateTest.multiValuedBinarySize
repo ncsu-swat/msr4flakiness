@@ -1,0 +1,18 @@
+// OAK-5462
+@Test
+public void multiValuedBinarySize() throws Exception {
+    NodeBuilder builder = ns.getRoot().builder();
+    List<Blob> blobs = newArrayList();
+    for (int i = 0; i < 3; i++) {
+        blobs.add(builder.createBlob(new RandomStream(BLOB_SIZE, i)));
+    }
+    builder.child("test").setProperty("p", blobs, Type.BINARIES);
+    TestUtils.merge(ns, builder);
+    PropertyState p = ns.getRoot().getChildNode("test").getProperty("p");
+    assertEquals(Type.BINARIES, p.getType());
+    assertEquals(3, p.count());
+    reads.clear();
+    assertEquals(BLOB_SIZE, p.size(0));
+    // must not read the blob via stream
+    assertEquals(0, reads.size());
+}

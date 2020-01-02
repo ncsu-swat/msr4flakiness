@@ -1,0 +1,18 @@
+@Test
+public void binaryReferencesIndexShouldContainCompleteGCGeneration() throws Exception {
+    try (TarWriter writer = new TarWriter(archiveManager, "data00000a.tar")) {
+        writer.writeEntry(0x00, 0x00, new byte[] { 0x01, 0x02, 0x3 }, 0, 3, generation(0));
+        writer.addBinaryReference(newGCGeneration(1, 2, false), new UUID(1, 2), "r1");
+        writer.addBinaryReference(newGCGeneration(3, 4, true), new UUID(3, 4), "r2");
+    }
+    try (TarReader reader = TarReader.open("data00000a.tar", archiveManager)) {
+        Set<GCGeneration> expected = new HashSet<>();
+        expected.add(newGCGeneration(1, 2, false));
+        expected.add(newGCGeneration(3, 4, true));
+        Set<GCGeneration> actual = new HashSet<>();
+        reader.getBinaryReferences().forEach((generation, full, compacted, segment, reference) -> {
+            actual.add(newGCGeneration(generation, full, compacted));
+        });
+        assertEquals(expected, actual);
+    }
+}

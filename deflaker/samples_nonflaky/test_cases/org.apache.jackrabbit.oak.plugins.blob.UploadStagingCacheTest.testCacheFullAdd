@@ -1,0 +1,31 @@
+/**
+ * Stage file when cache full.
+ * @throws Exception
+ */
+@Test
+public void testCacheFullAdd() throws Exception {
+    // initialize cache to have restricted size
+    stagingCache = UploadStagingCache.build(root, null, 1, /*threads*/
+    4 * 1024, /* bytes */
+    uploader, null, /*cache*/
+    statsProvider, executor, null, 3000, 6000);
+    closer.register(stagingCache);
+    // add load
+    List<ListenableFuture<Integer>> futures = put(folder);
+    // Add another load
+    File f2 = copyToFile(randomStream(1, 4 * 1024), folder.newFile());
+    Optional<SettableFuture<Integer>> future2 = stagingCache.put(ID_PREFIX + 1, f2);
+    assertFalse(future2.isPresent());
+    // start
+    taskLatch.countDown();
+    callbackLatch.countDown();
+    assertFuture(futures, 0);
+    // Try 2nd upload again
+    Optional<SettableFuture<Integer>> future = stagingCache.put(ID_PREFIX + 1, f2);
+    futures = Lists.newArrayList();
+    if (future.isPresent()) {
+        futures.add(future.get());
+    }
+    assertFuture(futures, 1);
+    assertCacheStats(stagingCache, 0, 0, 2, 3);
+}

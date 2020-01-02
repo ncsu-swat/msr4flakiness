@@ -1,0 +1,10 @@
+@Test
+public void testEffectivePoliciesByPrincipal() throws Exception {
+    JackrabbitAccessControlPolicy policy = mock(JackrabbitAccessControlPolicy.class);
+    JackrabbitAccessControlManager mgr = mock(JackrabbitAccessControlManager.class, withSettings().extraInterfaces(PolicyOwner.class));
+    when(mgr.getEffectivePolicies(any(Set.class))).thenReturn(new JackrabbitAccessControlPolicy[] { policy });
+    Set<Principal> principalSet = ImmutableSet.of(EveryonePrincipal.getInstance());
+    CompositeAccessControlManager composite = createComposite(mgr);
+    assertArrayEquals(new JackrabbitAccessControlPolicy[] { policy }, composite.getEffectivePolicies(principalSet));
+    verify(mgr, times(1)).getEffectivePolicies(principalSet);
+}

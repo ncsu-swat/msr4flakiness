@@ -1,0 +1,16 @@
+@Test
+public void resetRemovesCommitRootOnParent() {
+    DocumentStore store = mk.getDocumentStore();
+    addNodes(null, "/foo");
+    String b0 = mk.branch(null);
+    String b1 = addNodes(b0, "/foo/bar");
+    NodeDocument foo = store.find(NODES, getIdFromPath("/foo"));
+    assertNotNull(foo);
+    assertTrue(foo.getLocalCommitRoot().containsKey(Revision.fromString(b1).asTrunkRevision()));
+    addNodes(null, "/foo/bar");
+    mk.reset(b1, b0);
+    // reset must also remove _commitRoot entry on parent document
+    foo = store.find(NODES, getIdFromPath("/foo"));
+    assertNotNull(foo);
+    assertFalse(foo.getLocalCommitRoot().containsKey(Revision.fromString(b1).asTrunkRevision()));
+}

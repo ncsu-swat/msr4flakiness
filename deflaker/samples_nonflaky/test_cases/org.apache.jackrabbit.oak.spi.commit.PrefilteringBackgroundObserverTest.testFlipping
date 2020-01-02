@@ -1,0 +1,67 @@
+@Test
+public void testFlipping() throws Exception {
+    final int queueLength = 2000;
+    init(queueLength);
+    // initialize observer with an initial contentChanged
+    // (see ChangeDispatcher#addObserver)
+    {
+        compositeObserver.contentChanged(p(-1), CommitInfo.EMPTY_EXTERNAL);
+    }
+    // Part 1 : first run with filtersEvaluatedMapWithEmptyObservers - empty or null shouldn't matter, it's excluded in both cases
+    for (int k = 0; k < 1000; k++) {
+        CommitInfo info;
+        if (k % 2 == 1) {
+            info = includingCommitInfo;
+        } else {
+            info = excludingCommitInfo;
+        }
+        final NodeState p = p(k);
+        compositeObserver.contentChanged(p, info);
+        if (k % 10 == 0) {
+            executeRunnables(runnableQ, 10);
+        }
+    }
+    executeRunnables(runnableQ, 10);
+    // changed from 501 with OAK-5121
+    assertEquals(500, received.size());
+    // changed from 500 with OAK-5121
+    assertEquals(499, resetCallCnt);
+    // Part 2 : run with filtersEvaluatedMapWithNullObservers - empty or null shouldn't matter, it's excluded in both cases
+    received.clear();
+    resetCallCnt = 0;
+    for (int k = 0; k < 1000; k++) {
+        CommitInfo info;
+        if (k % 2 == 1) {
+            info = includingCommitInfo;
+        } else {
+            info = excludingCommitInfo;
+        }
+        final NodeState p = p(k);
+        compositeObserver.contentChanged(p, info);
+        if (k % 10 == 0) {
+            executeRunnables(runnableQ, 10);
+        }
+    }
+    executeRunnables(runnableQ, 10);
+    assertEquals(500, received.size());
+    assertEquals(500, resetCallCnt);
+    // Part 3 : unlike the method name suggests, this variant tests with the filter disabled, so should receive all events normally
+    received.clear();
+    resetCallCnt = 0;
+    for (int k = 0; k < 1000; k++) {
+        CommitInfo info;
+        if (k % 2 == 1) {
+            info = includingCommitInfo;
+        } else {
+            info = includingCommitInfo;
+        }
+        final NodeState p = p(k);
+        compositeObserver.contentChanged(p, info);
+        if (k % 10 == 0) {
+            executeRunnables(runnableQ, 10);
+        }
+    }
+    executeRunnables(runnableQ, 10);
+    assertEquals(1000, received.size());
+    assertEquals(0, resetCallCnt);
+}

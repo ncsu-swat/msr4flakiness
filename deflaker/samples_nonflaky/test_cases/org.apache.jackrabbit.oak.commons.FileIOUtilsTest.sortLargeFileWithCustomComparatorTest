@@ -1,0 +1,41 @@
+@Test
+public void sortLargeFileWithCustomComparatorTest() throws IOException {
+    // must be large enough to trigger split/merge functionality of the sort
+    final int numEntries = 100000;
+    long[] entries = new long[numEntries];
+    Random r = new Random(0);
+    for (int i = 0; i < numEntries; i++) {
+        entries[i] = r.nextLong();
+    }
+    Iterator<Long> boxedEntries = Longs.asList(entries).iterator();
+    Iterator<String> hexEntries = Iterators.transform(boxedEntries, new Function<Long, String>() {
+
+        @Nullable
+        @Override
+        public String apply(@Nullable Long input) {
+            return Long.toHexString(input);
+        }
+    });
+    File f = assertWrite(hexEntries, false, numEntries);
+    Comparator<String> prefixComparator = new Comparator<String>() {
+
+        @Override
+        public int compare(String s1, String s2) {
+            return s1.substring(0, 3).compareTo(s2.substring(0, 3));
+        }
+    };
+    sort(f, prefixComparator);
+    BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(f), UTF_8));
+    String previous = reader.readLine().substring(0, 3);
+    while (true) {
+        String current = reader.readLine();
+        if (current == null) {
+            break;
+        }
+        current = current.substring(0, 3);
+        assertFalse("Distinct sort didn't filter out duplicates properly.", previous.equals(current));
+        assertTrue("Sort didn't create increasing order", previous.compareTo(current) < 0);
+        previous = current;
+    }
+    closeQuietly(reader);
+}

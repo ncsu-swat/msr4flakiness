@@ -1,0 +1,16 @@
+@Test
+public void testLoadByPathWithCollisionMissingAccessControlledProperty() throws Exception {
+    try {
+        Tree everyoneTree = getPermissionRoot(EveryonePrincipal.NAME);
+        Tree aa = TreeUtil.addChild(everyoneTree, "/Aa".hashCode() + "", NT_REP_PERMISSION_STORE);
+        aa.setProperty(REP_ACCESS_CONTROLLED_PATH, "/Aa");
+        Tree collision = TreeUtil.addChild(aa, "c_" + "/BB".hashCode(), NT_REP_PERMISSION_STORE);
+        Tree entry = TreeUtil.addChild(collision, "1", NT_REP_PERMISSIONS);
+        entry.setProperty(PrivilegeBits.BUILT_IN.get(REP_READ_NODES).asPropertyState(REP_PRIVILEGE_BITS));
+        entry.setProperty(REP_IS_ALLOW, false);
+        Collection<PermissionEntry> entries = permissionStore.load(EveryonePrincipal.NAME, "/BB");
+        assertNull(entries);
+    } finally {
+        root.refresh();
+    }
+}

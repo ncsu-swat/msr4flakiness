@@ -1,0 +1,20 @@
+@Test
+public void testHiddenChildNodeChanged() {
+    PermissionHook ph = createPermissionHook(adminSession.getWorkspaceName());
+    NodeState nodeState = getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH));
+    NodeState after = spy(nodeState);
+    NodeState before = spy(nodeState);
+    NodeState child = mock(NodeState.class);
+    Iterable hidden = Collections.singleton(new MemoryChildNodeEntry(":hidden", child));
+    Iterable cnes = Iterables.concat(hidden, nodeState.getChildNodeEntries());
+    when(before.getChildNodeEntries()).thenReturn(cnes);
+    when(before.getChildNode(":hidden")).thenReturn(child);
+    NodeState child2 = when(mock(NodeState.class).exists()).thenReturn(true).getMock();
+    hidden = Collections.singleton(new MemoryChildNodeEntry(":hidden", child2));
+    cnes = Iterables.concat(hidden, nodeState.getChildNodeEntries());
+    when(after.getChildNodeEntries()).thenReturn(cnes);
+    when(after.getChildNode(":hidden")).thenReturn(child2);
+    ph.processCommit(before, after, new CommitInfo("sid", null));
+    verify(child, never()).getProperty(anyString());
+    verify(child2, never()).getProperty(anyString());
+}

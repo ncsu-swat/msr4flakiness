@@ -1,0 +1,27 @@
+@Test
+public void splitDefaultNoBranch() throws Exception {
+    DocumentStore store = mk.getDocumentStore();
+    DocumentNodeStore ns = mk.getNodeStore();
+    NodeBuilder builder = ns.getRoot().builder();
+    builder.child("foo").child("bar");
+    merge(ns, builder);
+    for (int i = 0; i < 5; i++) {
+        builder = ns.getRoot().builder();
+        builder.child("foo").setProperty("p", "value-" + i);
+        merge(ns, builder);
+    }
+    ns.runBackgroundOperations();
+    String id = Utils.getIdFromPath("/foo");
+    NodeDocument doc = store.find(NODES, id);
+    assertNotNull(doc);
+    for (UpdateOp op : SplitOperations.forDocument(doc, ns, ns.getHeadRevision(), NO_BINARY, 5)) {
+        store.createOrUpdate(NODES, op);
+    }
+    doc = store.find(NODES, id);
+    // must have a previous document now
+    assertThat(doc.getPreviousRanges().keySet(), is(not(empty())));
+    Iterator<NodeDocument> it = doc.getAllPreviousDocs();
+    while (it.hasNext()) {
+        assertEquals(SplitDocType.DEFAULT_NO_BRANCH, it.next().getSplitDocType());
+    }
+}

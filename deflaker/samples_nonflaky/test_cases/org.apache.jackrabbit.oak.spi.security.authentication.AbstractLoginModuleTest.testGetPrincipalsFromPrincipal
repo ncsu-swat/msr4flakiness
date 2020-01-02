@@ -1,0 +1,12 @@
+@Test
+public void testGetPrincipalsFromPrincipal() {
+    PrincipalProvider principalProvider = new TestPrincipalProvider();
+    AbstractLoginModule loginModule = initLoginModule(new TestCallbackHandler(principalProvider));
+    Principal principal = principalProvider.findPrincipals(PrincipalManager.SEARCH_TYPE_NOT_GROUP).next();
+    Set<Principal> expected = new HashSet<>();
+    expected.add(principal);
+    expected.addAll(principalProvider.getMembershipPrincipals(principal));
+    Set<? extends Principal> principals = loginModule.getPrincipals(principal);
+    assertFalse(principals.isEmpty());
+    assertEquals(expected, principals);
+}

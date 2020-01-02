@@ -1,0 +1,48 @@
+@Test
+public void importData_IncrementalUpdate() throws Exception {
+    NodeBuilder builder = store.getRoot().builder();
+    createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "fooIndex", true, false, ImmutableSet.of("foo"), null).setProperty(ASYNC_PROPERTY_NAME, "async");
+    builder.child("a").setProperty("foo", "abc");
+    builder.child("b").setProperty("foo", "abc");
+    store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    new AsyncIndexUpdate("async", store, provider).run();
+    String checkpoint = createIndexDirs("/oak:index/fooIndex");
+    builder = store.getRoot().builder();
+    builder.child("c").setProperty("foo", "abc");
+    builder.child("d").setProperty("foo", "abc");
+    store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    new AsyncIndexUpdate("async", store, provider).run();
+    FilterImpl f = createFilter(store.getRoot(), NT_BASE);
+    PropertyIndexLookup lookup = new PropertyIndexLookup(store.getRoot());
+    assertEquals(of("a", "b", "c", "d"), find(lookup, "foo", "abc", f));
+    IndexImporterProvider importerProvider = new IndexImporterProvider() {
+
+        @Override
+        public void importIndex(NodeState root, NodeBuilder defn, File indexDir) {
+            assertEquals("fooIndex", indexDir.getName());
+            assertEquals(2, defn.getProperty(REINDEX_COUNT).getValue(Type.LONG).longValue());
+            defn.getChildNode(IndexConstants.INDEX_CONTENT_NODE_NAME).remove();
+            NodeState cpState = store.retrieve(checkpoint);
+            NodeState indexData = NodeStateUtils.getNode(cpState, "/oak:index/fooIndex/:index");
+            defn.setChildNode(IndexConstants.INDEX_CONTENT_NODE_NAME, indexData);
+        }
+
+        @Override
+        public String getType() {
+            return "property";
+        }
+    };
+    builder = store.getRoot().builder();
+    builder.child("e").setProperty("foo", "abc");
+    store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    IndexImporter importer = new IndexImporter(store, temporaryFolder.getRoot(), provider, NOOP_LOCK);
+    importer.addImporterProvider(importerProvider);
+    importer.addImporterProvider(importerProvider);
+    importer.importIndex();
+    NodeState idx = store.getRoot().getChildNode("oak:index").getChildNode("fooIndex");
+    assertEquals("async", idx.getString("async"));
+    lookup = new PropertyIndexLookup(store.getRoot());
+    // It would not pickup /e as thats not yet indexed as part of last checkpoint
+    assertEquals(of("a", "b", "c", "d"), find(lookup, "foo", "abc", f));
+    assertNull(store.retrieve(checkpoint));
+}

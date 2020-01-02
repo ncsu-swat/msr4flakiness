@@ -1,0 +1,23 @@
+@Test
+public void testGetPrincipalsForSystemUser() throws Exception {
+    User systemUser = null;
+    try {
+        systemUser = getUserManager(root).createSystemUser("systemUser" + UUID.randomUUID(), null);
+        testGroup.addMember(systemUser);
+        root.commit();
+        Set<? extends Principal> principals = principalProvider.getPrincipals(systemUser.getID());
+        for (Principal p : principals) {
+            String name = p.getName();
+            if (name.equals(systemUser.getPrincipal().getName())) {
+                assertTrue(p instanceof SystemUserPrincipalImpl);
+            } else if (!EveryonePrincipal.NAME.equals(name)) {
+                assertTrue(p instanceof AbstractGroupPrincipal);
+            }
+        }
+    } finally {
+        if (systemUser != null) {
+            systemUser.remove();
+            root.commit();
+        }
+    }
+}

@@ -1,0 +1,14 @@
+@Test
+public void binaryFlagSet() throws Exception {
+    NodeBuilder builder = store.getRoot().builder();
+    NodeBuilder appNB = newNode("app:Asset");
+    createChild(appNB, "jcr:content", // includes all
+    "jcr:content/renditions", "jcr:content/renditions/original", "jcr:content/renditions/original/jcr:content");
+    builder.child("test").setChildNode("book.jpg", appNB.getNodeState());
+    merge(builder);
+    assertFalse(getNodeDocument("/test/book.jpg").hasBinary());
+    builder = store.getRoot().builder();
+    childBuilder(builder, "test/book.jpg/jcr:content/renditions/original/jcr:content").setProperty("foo", "bar".getBytes());
+    merge(builder);
+    assertTrue(getNodeDocument("/test/book.jpg").hasBinary());
+}

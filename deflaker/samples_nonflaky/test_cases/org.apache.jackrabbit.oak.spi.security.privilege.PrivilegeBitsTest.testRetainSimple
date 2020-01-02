@@ -1,0 +1,28 @@
+@Test
+public void testRetainSimple() {
+    PrivilegeBits pb = PrivilegeBits.getInstance(READ_NODES_PRIVILEGE_BITS);
+    assertEquals(pb, pb.retain(pb));
+    assertEquals(pb, pb.retain(READ_NODES_PRIVILEGE_BITS));
+    pb = PrivilegeBits.getInstance(READ_NODES_PRIVILEGE_BITS);
+    pb.retain(PrivilegeBits.getInstance());
+    assertTrue(pb.isEmpty());
+    pb = PrivilegeBits.getInstance(READ_NODES_PRIVILEGE_BITS);
+    pb.retain(PrivilegeBits.EMPTY);
+    assertTrue(pb.isEmpty());
+    PrivilegeBits write = BUILT_IN.get(PrivilegeBits.REP_WRITE);
+    pb = PrivilegeBits.getInstance().add(write);
+    assertEquals(pb, pb.retain(pb));
+    assertEquals(pb, pb.retain(write));
+    pb.retain(READ_NODES_PRIVILEGE_BITS);
+    assertTrue(pb.isEmpty());
+    pb.add(READ_NODES_PRIVILEGE_BITS).add(write);
+    pb.retain(write);
+    assertEquivalent(write, pb);
+    assertFalse(pb.includes(READ_NODES_PRIVILEGE_BITS));
+    PrivilegeBits lock = BUILT_IN.get(PrivilegeBits.JCR_LOCK_MANAGEMENT);
+    PrivilegeBits lw = PrivilegeBits.getInstance(write, lock);
+    pb.add(READ_NODES_PRIVILEGE_BITS).add(write).add(lock);
+    pb.retain(lw);
+    assertEquivalent(lw, pb);
+    assertFalse(pb.includes(READ_NODES_PRIVILEGE_BITS));
+}

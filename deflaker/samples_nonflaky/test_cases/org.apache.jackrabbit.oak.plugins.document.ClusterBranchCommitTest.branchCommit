@@ -1,0 +1,21 @@
+@Test
+public void branchCommit() throws Exception {
+    NodeBuilder builder = ns1.getRoot().builder();
+    builder.child("test");
+    merge(ns1, builder);
+    ns1.runBackgroundOperations();
+    ns2.runBackgroundOperations();
+    int bc = numBranchCommits(ns2);
+    builder = ns2.getRoot().builder();
+    int i = 0;
+    while (bc == numBranchCommits(ns2)) {
+        builder.child("node-" + i++);
+    }
+    NodeDocument root = Utils.getRootDocument(ns2.getDocumentStore());
+    for (String tag : root.getLocalRevisions().values()) {
+        if (!Utils.isCommitted(tag)) {
+            assertEquals(2, Revision.fromString(tag).getClusterId());
+            assertTrue(tag.startsWith("br"));
+        }
+    }
+}

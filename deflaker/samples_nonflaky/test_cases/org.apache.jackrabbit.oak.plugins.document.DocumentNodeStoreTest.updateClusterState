@@ -1,0 +1,22 @@
+@Test
+public void updateClusterState() {
+    DocumentStore docStore = new MemoryDocumentStore();
+    DocumentNodeStore ns1 = builderProvider.newBuilder().setAsyncDelay(0).setClusterId(1).setDocumentStore(docStore).getNodeStore();
+    int cId1 = ns1.getClusterId();
+    DocumentNodeStore ns2 = builderProvider.newBuilder().setAsyncDelay(0).setClusterId(2).setDocumentStore(docStore).getNodeStore();
+    int cId2 = ns2.getClusterId();
+    ns1.updateClusterState();
+    ns2.updateClusterState();
+    assertEquals(0, ns1.getMBean().getInactiveClusterNodes().length);
+    assertEquals(0, ns2.getMBean().getInactiveClusterNodes().length);
+    assertEquals(2, ns1.getMBean().getActiveClusterNodes().length);
+    assertEquals(2, ns2.getMBean().getActiveClusterNodes().length);
+    ns1.dispose();
+    ns2.updateClusterState();
+    String[] inactive = ns2.getMBean().getInactiveClusterNodes();
+    String[] active = ns2.getMBean().getActiveClusterNodes();
+    assertEquals(1, inactive.length);
+    assertTrue(inactive[0].startsWith(cId1 + "="));
+    assertEquals(1, active.length);
+    assertTrue(active[0].startsWith(cId2 + "="));
+}

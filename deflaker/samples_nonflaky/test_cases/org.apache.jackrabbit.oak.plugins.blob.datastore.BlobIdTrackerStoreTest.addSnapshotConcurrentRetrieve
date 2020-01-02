@@ -1,0 +1,20 @@
+@Test
+public void addSnapshotConcurrentRetrieve() throws IOException, InterruptedException {
+    final BlobIdStore store = tracker.store;
+    final CountDownLatch start = new CountDownLatch(1);
+    final CountDownLatch done = new CountDownLatch(2);
+    Set<String> initAdd = add(store, range(0, 100000));
+    final Set<String> retrieves = newHashSet();
+    Thread retrieveThread = retrieveThread(store, retrieves, start, done);
+    Thread snapshotThread = snapshotThread(store, start, done);
+    snapshotThread.start();
+    retrieveThread.start();
+    start.countDown();
+    done.await();
+    if (retrieves.isEmpty()) {
+        // take a snapshot to ensure that all adds accounted if snapshot finished last
+        store.snapshot();
+        retrieves.addAll(retrieve(store));
+    }
+    assertEquals("Incorrect elements after concurrent snapshot/retrieve", initAdd, retrieves);
+}

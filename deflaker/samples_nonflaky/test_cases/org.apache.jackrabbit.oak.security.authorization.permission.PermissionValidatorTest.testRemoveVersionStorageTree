@@ -1,0 +1,23 @@
+@Test(expected = CommitFailedException.class)
+public void testRemoveVersionStorageTree() throws Exception {
+    Tree t = root.getTree(PathUtils.ROOT_PATH);
+    NodeState ns = getTreeProvider().asNodeState(t);
+    ProviderCtx ctx = mock(ProviderCtx.class);
+    when(ctx.getSecurityProvider()).thenReturn(getSecurityProvider());
+    when(ctx.getTreeProvider()).thenReturn(getTreeProvider());
+    PermissionValidatorProvider pvp = new PermissionValidatorProvider("wspName", ImmutableSet.of(), new MoveTracker(), ctx);
+    PermissionValidator validator = new PermissionValidator(ns, ns, mock(PermissionProvider.class), pvp);
+    for (String name : PathUtils.elements(VERSION_STORE_PATH)) {
+        t = t.getChild(name);
+        ns = ns.getChildNode(name);
+        validator = new PermissionValidator(t, t, TreePermission.EMPTY, validator);
+    }
+    try {
+        TreeUtil.addChild(t, "any", REP_VERSIONSTORAGE);
+        validator.childNodeDeleted("any", mock(NodeState.class));
+    } catch (CommitFailedException e) {
+        assertTrue(e.isAccessViolation());
+        assertEquals(22, e.getCode());
+        throw e;
+    }
+}

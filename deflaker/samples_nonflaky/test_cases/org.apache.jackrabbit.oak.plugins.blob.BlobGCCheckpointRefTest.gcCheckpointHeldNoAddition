@@ -1,0 +1,10 @@
+@Test
+public void gcCheckpointHeldNoAddition() throws Exception {
+    log.info("Staring gcCheckpointHeldNoAddition()");
+    long afterSetupTime = clock.getTime();
+    log.info("afterSetupTime {}", afterSetupTime);
+    checkpointMBean.createCheckpoint(100);
+    long maxGcAge = checkpointMBean.getOldestCheckpointCreationTimestamp() - afterSetupTime;
+    Set<String> existingAfterGC = executeGarbageCollection(cluster, cluster.getCollector(maxGcAge), false);
+    assertTrue(Sets.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC).isEmpty());
+}

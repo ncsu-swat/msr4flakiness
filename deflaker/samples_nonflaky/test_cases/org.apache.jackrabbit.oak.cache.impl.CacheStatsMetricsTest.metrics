@@ -1,0 +1,29 @@
+@Test
+public void metrics() {
+    MetricRegistry registry = new MetricRegistry();
+    CacheStatsMetrics metrics = new CacheStatsMetrics();
+    metrics.setMetricRegistry(registry);
+    CacheStatsMBean bean = new TestStats("stats");
+    metrics.addCacheStatsMBean(bean);
+    Map<String, Counter> counters = registry.getCounters();
+    Counter counter = counters.get(metricName(bean.getName(), REQUEST));
+    assertNotNull(counter);
+    assertEquals(REQUEST_COUNT, counter.getCount());
+    counter = counters.get(metricName(bean.getName(), HIT));
+    assertNotNull(counter);
+    assertEquals(HIT_COUNT, counter.getCount());
+    counter = counters.get(metricName(bean.getName(), MISS));
+    assertNotNull(counter);
+    assertEquals(MISS_COUNT, counter.getCount());
+    counter = counters.get(metricName(bean.getName(), EVICTION));
+    assertNotNull(counter);
+    assertEquals(EVICTION_COUNT, counter.getCount());
+    counter = counters.get(metricName(bean.getName(), ELEMENT));
+    assertNotNull(counter);
+    assertEquals(ELEMENT_COUNT, counter.getCount());
+    counter = counters.get(metricName(bean.getName(), CacheStatsMetrics.LOAD_TIME));
+    assertNotNull(counter);
+    assertEquals(LOAD_TIME, counter.getCount());
+    metrics.removeCacheStatsMBean(bean);
+    assertEquals(0, registry.getCounters().size());
+}

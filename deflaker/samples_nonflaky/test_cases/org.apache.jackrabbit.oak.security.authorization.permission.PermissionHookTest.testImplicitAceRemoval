@@ -1,0 +1,28 @@
+@Test
+public void testImplicitAceRemoval() throws Exception {
+    AccessControlManager acMgr = getAccessControlManager(root);
+    JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, testPath);
+    acl.addAccessControlEntry(testPrincipal, privilegesFromNames(JCR_READ, REP_WRITE));
+    acMgr.setPolicy(testPath, acl);
+    acl = AccessControlUtils.getAccessControlList(acMgr, childPath);
+    acl.addAccessControlEntry(EveryonePrincipal.getInstance(), privilegesFromNames(JCR_READ));
+    acMgr.setPolicy(childPath, acl);
+    root.commit();
+    assertTrue(root.getTree(childPath + "/rep:policy").exists());
+    Tree principalRoot = getPrincipalRoot(EveryonePrincipal.getInstance());
+    assertEquals(4, cntEntries(principalRoot));
+    ContentSession testSession = createTestSession();
+    Root testRoot = testSession.getLatestRoot();
+    assertTrue(testRoot.getTree(childPath).exists());
+    assertFalse(testRoot.getTree(childPath + "/rep:policy").exists());
+    testRoot.getTree(childPath).remove();
+    testRoot.commit();
+    testSession.close();
+    root.refresh();
+    assertFalse(root.getTree(testPath).hasChild("childNode"));
+    assertFalse(root.getTree(childPath + "/rep:policy").exists());
+    // aces must be removed in the permission store even if the editing
+    // session wasn't able to access them.
+    principalRoot = getPrincipalRoot(EveryonePrincipal.getInstance());
+    assertEquals(2, cntEntries(principalRoot));
+}

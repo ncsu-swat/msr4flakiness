@@ -1,0 +1,18 @@
+@Test
+public void testPropertyDefinesLocation() {
+    Map<String, Collection<String>> m = ImmutableMap.of(NT_REP_GROUP, GROUP_PROPERTY_NAMES, NT_REP_USER, USER_PROPERTY_NAMES, NT_REP_PASSWORD, PWD_PROPERTY_NAMES, NT_REP_MEMBER_REFERENCES, ImmutableList.of(REP_MEMBERS));
+    for (String ntName : m.keySet()) {
+        Tree t = mockTree("anyName", ntName);
+        TreeLocation location = Mockito.mock(TreeLocation.class);
+        when(location.getTree()).thenReturn(t);
+        when(location.exists()).thenReturn(true);
+        for (String propName : m.get(ntName)) {
+            PropertyState property = PropertyStates.createProperty(propName, "value");
+            when(location.getProperty()).thenReturn(property);
+            assertTrue(ctx.definesLocation(location));
+        }
+        PropertyState property = PropertyStates.createProperty("anyName", "value");
+        when(location.getProperty()).thenReturn(property);
+        assertFalse(ctx.definesLocation(location));
+    }
+}

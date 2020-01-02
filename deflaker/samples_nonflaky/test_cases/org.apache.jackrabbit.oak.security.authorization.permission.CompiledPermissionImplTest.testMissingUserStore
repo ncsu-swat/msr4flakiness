@@ -1,0 +1,21 @@
+@Test
+public void testMissingUserStore() throws Exception {
+    Root readOnlyRoot = getRootProvider().createReadOnlyRoot(testSession.getLatestRoot());
+    String wspName = testSession.getWorkspaceName();
+    // create cp for group principal only (no user principal)
+    PermissionStore store = spy(new PermissionStoreImpl(readOnlyRoot, wspName, getConfig(AuthorizationConfiguration.class).getRestrictionProvider()));
+    CompiledPermissionImpl cp = create(ConfigurationParameters.EMPTY, ImmutableSet.of(EveryonePrincipal.getInstance()), store);
+    verify(store, times(1)).getNumEntries(anyString(), anyLong());
+    cp.refresh(readOnlyRoot, wspName);
+    verify(store, times(2)).getNumEntries(anyString(), anyLong());
+    assertTrue(cp.isGranted(ACCESS_CONTROLLED_PATH, SET_PROPERTY));
+    assertTrue(cp.hasPrivileges(createReadonlyTree(ACCESS_CONTROLLED_PATH), JCR_WRITE));
+    assertEquals(ImmutableSet.of(JCR_READ, JCR_WRITE), cp.getPrivileges(createReadonlyTree(ACCESS_CONTROLLED_PATH)));
+    TreePermission tp = createTreePermission(cp, ACCESS_CONTROLLED_PATH);
+    assertTrue(tp.isGranted(SET_PROPERTY));
+    assertTrue(tp.canRead());
+    assertTrue(tp.canRead(mock(PropertyState.class)));
+    assertFalse(tp.canReadAll());
+    verify(store, times(2)).load(anyString());
+    verify(store, never()).load(anyString(), anyString());
+}

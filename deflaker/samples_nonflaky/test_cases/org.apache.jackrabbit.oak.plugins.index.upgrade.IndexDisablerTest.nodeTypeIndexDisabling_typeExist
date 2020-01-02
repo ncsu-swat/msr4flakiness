@@ -1,0 +1,14 @@
+@Test
+public void nodeTypeIndexDisabling_typeExist() throws Exception {
+    createIndexDefinition(rootBuilder.child(INDEX_DEFINITIONS_NAME), "fooIndex", true, false, ImmutableSet.of("foo"), asList("oak:TestNode", "oak:BarType"));
+    builder.setProperty(IndexConstants.DISABLE_INDEXES_ON_NEXT_CYCLE, true);
+    builder.setProperty(IndexConstants.SUPERSEDED_INDEX_PATHS, asList("/oak:index/fooIndex/@oak:BarType"), Type.STRINGS);
+    refreshBuilder();
+    List<String> disabledIndexes = disabler.disableOldIndexes("/oak:index/foo", builder);
+    assertThat(disabledIndexes, containsInAnyOrder("/oak:index/fooIndex/@oak:BarType"));
+    assertFalse(builder.getBoolean(IndexConstants.DISABLE_INDEXES_ON_NEXT_CYCLE));
+    PropertyState declaringNodeType = rootBuilder.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("fooIndex").getProperty(DECLARING_NODE_TYPES);
+    assertEquals(Type.NAMES, declaringNodeType.getType());
+    Set<String> names = Sets.newHashSet(declaringNodeType.getValue(Type.NAMES));
+    assertThat(names, containsInAnyOrder("oak:TestNode"));
+}

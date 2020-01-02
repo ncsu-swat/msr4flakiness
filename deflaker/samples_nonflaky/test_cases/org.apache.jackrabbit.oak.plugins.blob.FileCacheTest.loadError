@@ -1,0 +1,16 @@
+@Test
+public void loadError() throws Exception {
+    LOG.info("Started loadError");
+    loader = new TestErrorCacheLoader<String, InputStream>(folder.newFolder(), 8192);
+    cache = FileCache.build(12 * 1024, /* KB */
+    root, loader, null);
+    closer.register(cache);
+    createFile(0, loader, cache, folder, 12 * 1024);
+    try {
+        cache.get(ID_PREFIX + 0);
+    } catch (IOException e) {
+    }
+    expectedEx.expect(IOException.class);
+    cache.get(ID_PREFIX + 0);
+    LOG.info("Finished loadError");
+}

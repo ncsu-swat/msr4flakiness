@@ -1,0 +1,25 @@
+/**
+ * Tests the custom restriction provider that checks on the existence of a property.
+ */
+@Test(expected = CommitFailedException.class)
+public void testProtectByRestriction() throws Exception {
+    // allow rep:write      /testroot
+    // deny  jcr:removeNode /testroot/a  hasProperty=protect-me
+    addEntry(TEST_ROOT_PATH, true, "", PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE);
+    addEntry(TEST_A_PATH, false, PROP_NAME_PROTECT_ME, PrivilegeConstants.JCR_REMOVE_NODE);
+    try (ContentSession testSession = createTestSession()) {
+        Root testRoot = testSession.getLatestRoot();
+        PermissionProvider pp = getPermissionProvider(testSession);
+        assertIsGranted(pp, testRoot, true, TEST_A_PATH, Permissions.REMOVE_NODE);
+        assertIsGranted(pp, testRoot, true, TEST_B_PATH, Permissions.REMOVE_NODE);
+        assertIsGranted(pp, testRoot, false, TEST_C_PATH, Permissions.REMOVE_NODE);
+        assertIsGranted(pp, testRoot, true, TEST_D_PATH, Permissions.REMOVE_NODE);
+        assertIsGranted(pp, testRoot, true, TEST_E_PATH, Permissions.REMOVE_NODE);
+        // should be able to remove /a/b/c/d
+        testRoot.getTree(TEST_D_PATH).remove();
+        testRoot.commit();
+        testRoot.getTree(TEST_C_PATH).remove();
+        testRoot.commit();
+    // fail("should not be able to delete " + TEST_C_PATH);
+    }
+}

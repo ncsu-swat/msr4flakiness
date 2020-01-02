@@ -1,0 +1,21 @@
+@Test
+public void testIsGrantedAction() throws Exception {
+    Set<String> denied = ImmutableSet.of(Session.ACTION_ADD_NODE, JackrabbitSession.ACTION_ADD_PROPERTY);
+    for (String p : defActionsGranted.keySet()) {
+        String[] actions = defActionsGranted.get(p);
+        if (testProvider.isSupported(p)) {
+            Set<String> expected = Sets.newHashSet(actions);
+            expected.removeAll(denied);
+            boolean canSetProperty = TreeLocation.create(readOnlyRoot, p).getProperty() != null;
+            if (!canSetProperty) {
+                expected.remove(Session.ACTION_SET_PROPERTY);
+            }
+            assertTrue(p, cppTestUser.isGranted(p, getActionString(expected.toArray(new String[expected.size()]))));
+            assertEquals(p, canSetProperty, cppTestUser.isGranted(p, Session.ACTION_SET_PROPERTY));
+            assertFalse(p, cppTestUser.isGranted(p, Session.ACTION_ADD_NODE));
+            assertFalse(p, cppTestUser.isGranted(p, JackrabbitSession.ACTION_ADD_PROPERTY));
+        } else {
+            assertTrue(p, cppTestUser.isGranted(p, getActionString(actions)));
+        }
+    }
+}

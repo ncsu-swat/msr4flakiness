@@ -1,0 +1,22 @@
+@Test
+public void testTreePermissionIsGrantedAdmin() {
+    TreePermission parentPermission = TreePermission.EMPTY;
+    for (String path : TP_PATHS) {
+        TreePermission tp = cppAdminUser.getTreePermission(readOnlyRoot.getTree(path), parentPermission);
+        if (testProvider.isSupported(path)) {
+            assertTrue(path, tp.isGranted(Permissions.diff(Permissions.ALL, Permissions.ADD_NODE | Permissions.ADD_PROPERTY)));
+            assertFalse(path, tp.isGranted(Permissions.ADD_PROPERTY | Permissions.ADD_NODE));
+            assertFalse(path, tp.isGranted(Permissions.ALL));
+        } else {
+            assertTrue(path, tp.isGranted(Permissions.ALL));
+        }
+        parentPermission = tp;
+    }
+    parentPermission = TreePermission.EMPTY;
+    for (String nodePath : PATH_OUTSIDE_SCOPE) {
+        Tree tree = readOnlyRoot.getTree(nodePath);
+        TreePermission tp = cppAdminUser.getTreePermission(tree, parentPermission);
+        assertTrue(nodePath, tp.isGranted(Permissions.ALL));
+        parentPermission = tp;
+    }
+}

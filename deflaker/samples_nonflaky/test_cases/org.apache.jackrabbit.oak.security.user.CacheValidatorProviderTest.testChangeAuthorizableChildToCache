@@ -1,0 +1,15 @@
+@Test(expected = CommitFailedException.class)
+public void testChangeAuthorizableChildToCache() throws Exception {
+    Tree authorizableTree = getAuthorizableTree(getTestUser());
+    TreeUtil.addChild(authorizableTree, "child", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+    root.commit();
+    try {
+        Tree child = getAuthorizableTree(getTestUser()).getChild("child");
+        child.setProperty(JCR_PRIMARYTYPE, CacheConstants.NT_REP_CACHE, Type.NAME);
+        root.commit();
+    } catch (CommitFailedException e) {
+        assertTrue(e.isConstraintViolation());
+        assertEquals(34, e.getCode());
+        throw e;
+    }
+}

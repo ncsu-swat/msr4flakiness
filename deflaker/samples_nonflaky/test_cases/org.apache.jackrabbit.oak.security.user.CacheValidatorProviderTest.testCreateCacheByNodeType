@@ -1,0 +1,15 @@
+@Test
+public void testCreateCacheByNodeType() throws RepositoryException {
+    for (Authorizable a : authorizables) {
+        try {
+            Tree node = getAuthorizableTree(a);
+            Tree cache = TreeUtil.addChild(node, "childNode", CacheConstants.NT_REP_CACHE);
+            cache.setProperty(CacheConstants.REP_EXPIRATION, 1L, Type.LONG);
+            root.commit();
+            fail("Creating node with nt rep:Cache below a user or group must fail.");
+        } catch (CommitFailedException e) {
+            assertTrue(e.isConstraintViolation());
+            assertEquals(34, e.getCode());
+        }
+    }
+}

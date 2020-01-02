@@ -1,0 +1,14 @@
+@Test
+public void diffWithSecondary() throws Exception {
+    configureSecondary();
+    NodeBuilder builder = createContentStructure();
+    NodeState r1 = merge(store, builder);
+    NodeState rs1 = DelegatingDocumentNodeState.wrap(secondary.getRoot(), store);
+    builder = store.getRoot().builder();
+    childBuilder(builder, "/test/book.jpg/jcr:content").setProperty("foo", "bar");
+    NodeState r2 = merge(store, builder);
+    JsopWriter w = new JsopBuilder();
+    String path = "/test/book.jpg";
+    assertFalse(differ.diff(adns(rs1, path), adns(r2, path), w));
+    assertEquals("^\"jcr:content\":{}", w.toString());
+}

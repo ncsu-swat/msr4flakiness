@@ -1,0 +1,14 @@
+@Test
+public void testChangeGreatAndGrandChild() throws CommitFailedException {
+    Root root = session.getLatestRoot();
+    Tree rootTree = root.getTree("/test");
+    rootTree.getChild("child1").getChild("grandChild1").setProperty("grandChild1Prop", 2);
+    rootTree.getChild("child1").getChild("grandChild1").getChild("greatGrandChild1").setProperty("greatGrandChild1Prop", 2);
+    root.commit();
+    ChangeSet changeSet = getSingleChangeSet();
+    assertMatches("parentPaths", changeSet.getParentPaths(), "/test/child1/grandChild1", "/test/child1/grandChild1/greatGrandChild1");
+    assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "grandChild1", "greatGrandChild1");
+    assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:grandChildType", "test:greatGrandChildType");
+    assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType", "test:childType", "test:grandChildType", "test:greatGrandChildType");
+    assertMatches("propertyNames", changeSet.getPropertyNames(), "grandChild1Prop", "greatGrandChild1Prop");
+}

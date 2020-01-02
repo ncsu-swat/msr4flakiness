@@ -1,0 +1,52 @@
+@Test
+public void commitHookChangesOnBranchWithInterference() throws Exception {
+    Clock c = new Clock.Virtual();
+    c.waitUntil(System.currentTimeMillis());
+    Revision.setClock(c);
+    ClusterNodeInfo.setClock(c);
+    // enough nodes that diffManyChildren() is called
+    final int NUM_NODES = DocumentMK.MANY_CHILDREN_THRESHOLD * 2;
+    LOG.info("create new dns");
+    Builder nsBuilder = builderProvider.newBuilder();
+    nsBuilder.setAsyncDelay(0).clock(c);
+    final DocumentNodeStore ns = nsBuilder.getNodeStore();
+    // 0) initialization
+    {
+        LOG.info("initialization");
+        NodeBuilder initBuilder = ns.getRoot().builder();
+        for (int i = 0; i < NUM_NODES; i++) {
+            initBuilder.child("child" + i);
+        }
+        ns.merge(initBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    }
+    // 1) do more than UPDATE_LIMIT changes
+    LOG.info("starting doing many changes to force a branch commit");
+    NodeBuilder rootBuilder = ns.getRoot().builder();
+    int totalUpdates = 5 * DocumentMK.UPDATE_LIMIT;
+    int updateShare = totalUpdates / NUM_NODES;
+    for (int i = 0; i < NUM_NODES; i++) {
+        NodeBuilder childBuilder = rootBuilder.child("child" + i);
+        childBuilder.child("grandChild" + i);
+        childBuilder.setProperty("p1", "originalValue");
+        for (int j = 0; j < updateShare; j++) {
+            childBuilder.setProperty("someProperty" + j, "sameValue");
+        }
+    }
+    // 2) wait 6 sec
+    LOG.info("after purge was triggered above, 'waiting' 6sec");
+    c.waitUntil(c.getTime() + 6000);
+    // 3) now in another 'session', do another merge - to change the head
+    LOG.info("in another session, do some unrelated changes to change the head");
+    NodeBuilder parallelBuilder = ns.getRoot().builder();
+    parallelBuilder.child("unrelated").setProperty("anyProp", "anywhere");
+    ns.merge(parallelBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    // 4) now merge the first session - this should now fail
+    LOG.info("now merge the original builder - this should cause not all children to be visited");
+    ns.merge(rootBuilder, CompositeHook.compose(Arrays.<CommitHook>asList(new TestHook("p"), new TestHook("q"))), CommitInfo.EMPTY);
+    DocumentNodeState root = ns.getRoot();
+    for (int i = 0; i < NUM_NODES; i++) {
+        NodeState child = root.getChildNode("child" + i);
+        assertTrue(child.exists());
+        assertEquals("test", child.getProperty("p1").getValue(Type.STRING));
+    }
+}

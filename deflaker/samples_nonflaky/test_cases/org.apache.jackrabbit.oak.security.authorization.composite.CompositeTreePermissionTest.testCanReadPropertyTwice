@@ -1,0 +1,17 @@
+@Test
+public void testCanReadPropertyTwice() {
+    PropertyState ps = PropertyStates.createProperty("propName", "value");
+    TreePermission mockTp = when(mock(TreePermission.class).canReadProperties()).thenReturn(false).getMock();
+    when(mockTp.canRead(ps)).thenReturn(true);
+    AggregatedPermissionProvider mockPP = mock(AggregatedPermissionProvider.class);
+    when(mockPP.getTreePermission(any(Tree.class), any(TreeType.class), any(TreePermission.class))).thenReturn(mockTp);
+    when(mockPP.supportedPermissions(mockTp, null, Permissions.READ_PROPERTY)).thenReturn(Permissions.ALL);
+    when(mockPP.supportedPermissions(mockTp, ps, Permissions.READ_PROPERTY)).thenReturn(Permissions.ALL);
+    TreePermission rootTp = createRootTreePermission(mockPP, fullScopeProvider);
+    rootTp.canRead(ps);
+    rootTp.canRead(ps);
+    verify(mockTp, never()).canRead();
+    verify(mockTp, times(1)).canReadProperties();
+    verify(mockTp, times(2)).canRead(ps);
+    verify(mockTp, never()).canReadAll();
+}

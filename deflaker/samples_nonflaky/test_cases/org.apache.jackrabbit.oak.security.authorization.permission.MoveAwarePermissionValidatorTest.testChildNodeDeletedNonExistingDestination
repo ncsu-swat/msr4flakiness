@@ -1,0 +1,10 @@
+@Test
+public void testChildNodeDeletedNonExistingDestination() throws Exception {
+    MoveTracker moveTracker = new MoveTracker();
+    moveTracker.addMove("/src", "/nonExistingDest");
+    MoveAwarePermissionValidator maValidator = spy(createRootValidator(adminSession.getAuthInfo().getPrincipals(), moveTracker));
+    Validator validator = maValidator.childNodeDeleted("src", mock(NodeState.class));
+    assertNull(validator);
+    verify(maValidator, times(1)).checkPermissions(t.getChild("src"), true, Permissions.REMOVE_NODE);
+    verify(pp, never()).isGranted(t.getChild("nonExistingDest"), null, Permissions.ADD_NODE | Permissions.NODE_TYPE_MANAGEMENT);
+}

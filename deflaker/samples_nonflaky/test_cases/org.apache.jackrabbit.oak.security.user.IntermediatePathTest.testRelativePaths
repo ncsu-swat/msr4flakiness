@@ -1,0 +1,19 @@
+@Test
+public void testRelativePaths() throws Exception {
+    TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), "testNode", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+    List<String> invalidPaths = ImmutableList.of("..", "../..", "../../..", "../../../testNode", "a/b/../../../c");
+    for (String relPath : invalidPaths) {
+        try {
+            Authorizable authorizable = createAuthorizable(false, relPath);
+            // NOTE: requires commit to detect the violation
+            root.commit();
+            fail("Invalid path " + relPath + " outside of configured scope.");
+        } catch (CommitFailedException e) {
+            // success
+            assertTrue(e.isConstraintViolation());
+            assertEquals(28, e.getCode());
+        } finally {
+            root.refresh();
+        }
+    }
+}

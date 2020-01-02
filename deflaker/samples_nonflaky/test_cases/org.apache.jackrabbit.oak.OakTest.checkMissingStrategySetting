@@ -1,0 +1,18 @@
+@Test(expected = CommitFailedException.class)
+public void checkMissingStrategySetting() throws Exception {
+    Whiteboard wb = new DefaultWhiteboard();
+    WhiteboardIndexEditorProvider wbProvider = new WhiteboardIndexEditorProvider();
+    wbProvider.start(wb);
+    Registration r1 = wb.register(IndexEditorProvider.class, new PropertyIndexEditorProvider(), null);
+    Registration r2 = wb.register(IndexEditorProvider.class, new ReferenceEditorProvider(), null);
+    Oak oak = new Oak().with(new OpenSecurityProvider()).with(new InitialContent()).with(wb).with(wbProvider).withFailOnMissingIndexProvider();
+    ContentRepository repo = oak.createContentRepository();
+    ContentSession cs = repo.login(null, null);
+    Root root = cs.getLatestRoot();
+    Tree t = root.getTree("/");
+    t.setProperty("foo", "u1", Type.REFERENCE);
+    r1.unregister();
+    root.commit();
+    cs.close();
+    ((Closeable) repo).close();
+}

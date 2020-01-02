@@ -1,0 +1,24 @@
+@Test
+public void parseInfo() {
+    long expires = System.currentTimeMillis();
+    // initial 1.0 format: only expiry time
+    Checkpoints.Info info = Checkpoints.Info.fromString(String.valueOf(expires));
+    assertEquals(expires, info.getExpiryTime());
+    // 1.2 format: json with expiry and info map
+    String infoString = "{\"expires\":\"" + expires + "\",\"foo\":\"bar\"}";
+    info = Checkpoints.Info.fromString(infoString);
+    assertEquals(expires, info.getExpiryTime());
+    assertEquals(Collections.singleton("foo"), info.get().keySet());
+    assertEquals("bar", info.get().get("foo"));
+    // 1.4 format: json with expiry, revision vector and info map
+    Revision r1 = new Revision(1, 0, 1);
+    Revision r2 = new Revision(1, 0, 2);
+    RevisionVector rv = new RevisionVector(r1, r2);
+    infoString = "{\"expires\":\"" + expires + "\",\"rv\":\"" + rv.toString() + "\",\"foo\":\"bar\"}";
+    info = Checkpoints.Info.fromString(infoString);
+    assertEquals(expires, info.getExpiryTime());
+    assertEquals(Collections.singleton("foo"), info.get().keySet());
+    assertEquals("bar", info.get().get("foo"));
+    assertEquals(rv, info.getCheckpoint());
+    assertEquals(infoString, info.toString());
+}

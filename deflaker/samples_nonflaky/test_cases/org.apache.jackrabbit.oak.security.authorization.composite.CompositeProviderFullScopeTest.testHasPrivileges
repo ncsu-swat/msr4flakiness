@@ -1,0 +1,21 @@
+@Test
+public void testHasPrivileges() throws Exception {
+    PrivilegeBitsProvider pbp = new PrivilegeBitsProvider(readOnlyRoot);
+    PrivilegeBits readNodes = pbp.getBits(REP_READ_NODES);
+    for (String path : defPrivileges.keySet()) {
+        Set<String> defaultPrivs = defPrivileges.get(path);
+        PrivilegeBits defaultBits = pbp.getBits(defaultPrivs);
+        Tree tree = readOnlyRoot.getTree(path);
+        if (defaultPrivs.isEmpty()) {
+            assertFalse(path, cppTestUser.hasPrivileges(tree, REP_READ_NODES));
+        } else if (defaultBits.includes(readNodes)) {
+            assertTrue(path, cppTestUser.hasPrivileges(tree, REP_READ_NODES));
+            if (!readNodes.equals(defaultBits)) {
+                assertFalse(path, cppTestUser.hasPrivileges(tree, defaultPrivs.toArray(new String[defaultPrivs.size()])));
+            }
+        } else {
+            assertFalse(path, cppTestUser.hasPrivileges(tree, REP_READ_NODES));
+            assertFalse(path, cppTestUser.hasPrivileges(tree, defaultPrivs.toArray(new String[defaultPrivs.size()])));
+        }
+    }
+}

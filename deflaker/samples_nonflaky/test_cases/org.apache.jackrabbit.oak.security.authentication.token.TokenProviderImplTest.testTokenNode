@@ -1,0 +1,39 @@
+@Test
+public void testTokenNode() {
+    Map<String, String> reserved = new HashMap<String, String>();
+    reserved.put(TOKEN_ATTRIBUTE, "value");
+    reserved.put(TOKEN_ATTRIBUTE_KEY, "value");
+    reserved.put(TOKEN_ATTRIBUTE_EXPIRY, "value");
+    Map<String, String> privateAttributes = new HashMap<String, String>();
+    privateAttributes.put(".token_exp", "value");
+    privateAttributes.put(".tokenTest", "value");
+    privateAttributes.put(".token_something", "value");
+    Map<String, String> publicAttributes = new HashMap<String, String>();
+    publicAttributes.put("any", "value");
+    publicAttributes.put("another", "value");
+    Map<String, String> attributes = new HashMap<String, String>();
+    attributes.putAll(reserved);
+    attributes.putAll(publicAttributes);
+    attributes.putAll(privateAttributes);
+    TokenInfo info = tokenProvider.createToken(userId, attributes);
+    assertNotNull(info);
+    Tree tokenTree = getTokenTree(info);
+    PropertyState prop = tokenTree.getProperty(TOKEN_ATTRIBUTE_KEY);
+    assertNotNull(prop);
+    assertEquals(Type.STRING, prop.getType());
+    prop = tokenTree.getProperty(TOKEN_ATTRIBUTE_EXPIRY);
+    assertNotNull(prop);
+    assertEquals(Type.DATE, prop.getType());
+    for (String key : reserved.keySet()) {
+        PropertyState p = tokenTree.getProperty(key);
+        if (p != null) {
+            assertNotEquals(reserved.get(key), p.getValue(Type.STRING));
+        }
+    }
+    for (String key : privateAttributes.keySet()) {
+        assertEquals(privateAttributes.get(key), tokenTree.getProperty(key).getValue(Type.STRING));
+    }
+    for (String key : publicAttributes.keySet()) {
+        assertEquals(publicAttributes.get(key), tokenTree.getProperty(key).getValue(Type.STRING));
+    }
+}

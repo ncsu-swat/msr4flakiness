@@ -1,0 +1,52 @@
+@Test
+public void journalTest() throws Exception {
+    DocumentMK mk1 = createMK(1, 0);
+    DocumentNodeStore ns1 = mk1.getNodeStore();
+    CountingDocumentStore countingDocStore1 = builder.actualStore;
+    CountingDiffCache countingDiffCache1 = builder.actualDiffCache;
+    DocumentMK mk2 = createMK(2, 0);
+    DocumentNodeStore ns2 = mk2.getNodeStore();
+    CountingDocumentStore countingDocStore2 = builder.actualStore;
+    CountingDiffCache countingDiffCache2 = builder.actualDiffCache;
+    final DiffingObserver observer = new DiffingObserver(false);
+    ns1.addObserver(observer);
+    ns1.runBackgroundOperations();
+    ns2.runBackgroundOperations();
+    // to make sure we have an 'oldRoot'
+    observer.processAll();
+    observer.clear();
+    countingDocStore1.resetCounters();
+    countingDocStore2.resetCounters();
+    // countingDocStore1.printStacks = true;
+    countingDiffCache1.resetLoadCounter();
+    countingDiffCache2.resetLoadCounter();
+    mk2.commit("/", "+\"regular1\": {}", null, null);
+    mk2.commit("/", "+\"regular2\": {}", null, null);
+    mk2.commit("/", "+\"regular3\": {}", null, null);
+    mk2.commit("/regular2", "+\"regular4\": {}", null, null);
+    // flush to journal
+    ns2.runBackgroundOperations();
+    // nothing notified yet
+    assertEquals(0, observer.getTotal());
+    assertEquals(0, countingDocStore1.getNumFindCalls(Collection.NODES));
+    assertEquals(0, countingDocStore1.getNumQueryCalls(Collection.NODES));
+    assertEquals(0, countingDocStore1.getNumRemoveCalls(Collection.NODES));
+    assertEquals(0, countingDocStore1.getNumCreateOrUpdateCalls(Collection.NODES));
+    assertEquals(0, countingDiffCache1.getLoadCount());
+    // let node 1 read those changes
+    // System.err.println("run background ops");
+    ns1.runBackgroundOperations();
+    mk2.commit("/", "+\"regular5\": {}", null, null);
+    ns2.runBackgroundOperations();
+    ns1.runBackgroundOperations();
+    // and let the observer process everything
+    observer.processAll();
+    countingDocStore1.printStacks = false;
+    // now expect 1 entry in rootStates
+    assertEquals(2, observer.getTotal());
+    assertEquals(0, countingDiffCache1.getLoadCount());
+    assertEquals(0, countingDocStore1.getNumRemoveCalls(Collection.NODES));
+    assertEquals(0, countingDocStore1.getNumCreateOrUpdateCalls(Collection.NODES));
+    assertEquals(0, countingDocStore1.getNumQueryCalls(Collection.NODES));
+// assertEquals(0, countingDocStore1.getNumFindCalls(Collection.NODES));
+}

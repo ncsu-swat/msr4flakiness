@@ -1,0 +1,54 @@
+@Test
+public void suspendUntilVisible() throws Exception {
+    suspendUntilVisible(false);
+}
+private void suspendUntilVisible(boolean withBranch) throws Exception {
+    NodeBuilder b1 = ns1.getRoot().builder();
+    b1.child("counter").setProperty("value", 0);
+    merge(ns1, b1);
+    ns1.runBackgroundOperations();
+    ns2.runBackgroundOperations();
+    b1 = ns1.getRoot().builder();
+    b1.child("foo");
+    ns1.merge(b1, new TestHook(), EMPTY);
+    final List<Exception> exceptions = Lists.newArrayList();
+    final NodeBuilder b2 = ns2.getRoot().builder();
+    b2.child("bar");
+    if (withBranch) {
+        persistToBranch(b2);
+    }
+    b2.child("baz");
+    Thread t = new Thread(new Runnable() {
+
+        @Override
+        public void run() {
+            try {
+                LOG.info("initiating merge");
+                ns2.merge(b2, new TestHook(), EMPTY);
+                LOG.info("merge succeeded");
+            } catch (CommitFailedException e) {
+                exceptions.add(e);
+            }
+        }
+    });
+    t.start();
+    // wait until t is suspended
+    for (int i = 0; i < 100; i++) {
+        if (ns2.commitQueue.numSuspendedThreads() > 0) {
+            break;
+        }
+        Thread.sleep(10);
+    }
+    assertEquals(1, ns2.commitQueue.numSuspendedThreads());
+    LOG.info("commit suspended");
+    ns1.runBackgroundOperations();
+    LOG.info("ran background ops on ns1");
+    ns2.runBackgroundOperations();
+    LOG.info("ran background ops on ns2");
+    assertEquals(0, ns2.commitQueue.numSuspendedThreads());
+    t.join(3000);
+    assertFalse("Commit did not succeed within 3 seconds", t.isAlive());
+    for (Exception e : exceptions) {
+        throw e;
+    }
+}

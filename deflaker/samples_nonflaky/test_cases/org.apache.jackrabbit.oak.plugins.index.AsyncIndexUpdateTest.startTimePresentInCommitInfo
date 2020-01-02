@@ -1,0 +1,16 @@
+@Test
+public void startTimePresentInCommitInfo() throws Exception {
+    MemoryNodeStore store = new MemoryNodeStore();
+    NodeBuilder builder = store.getRoot().builder();
+    createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "fooIndex", true, false, ImmutableSet.of("foo"), null).setProperty(ASYNC_PROPERTY_NAME, "async");
+    builder.child("testRoot1").setProperty("foo", "abc");
+    // merge it back in
+    store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    IndexingContextCapturingProvider provider = new IndexingContextCapturingProvider();
+    AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
+    async.run();
+    assertNotNull(provider.lastIndexingContext);
+    CommitInfo info = provider.lastIndexingContext.getCommitInfo();
+    String indexStartTime = (String) info.getInfo().get(IndexConstants.CHECKPOINT_CREATION_TIME);
+    assertNotNull(indexStartTime);
+}

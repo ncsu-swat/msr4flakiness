@@ -1,0 +1,21 @@
+@Test
+public void testUpdateOak16GCLog() throws Exception {
+    createOak16GCLog();
+    GCJournal gcJournal = new GCJournal(getPersistence().getGCJournalFile());
+    gcJournal.persist(75, 300, newGCGeneration(3, 0, false), 125, "bar");
+    ArrayList<GCJournalEntry> entries = newArrayList(gcJournal.readAll());
+    assertEquals(2, entries.size());
+    GCJournalEntry entry = entries.get(0);
+    assertEquals(45919825920L, entry.getRepoSize());
+    assertEquals(41394306048L, entry.getReclaimedSize());
+    assertEquals(1493819563098L, entry.getTs());
+    assertEquals(newGCGeneration(1, 1, false), entry.getGcGeneration());
+    assertEquals(42, entry.getNodes());
+    assertEquals(RecordId.NULL.toString10(), entry.getRoot());
+    entry = entries.get(1);
+    assertEquals(300, entry.getRepoSize());
+    assertEquals(75, entry.getReclaimedSize());
+    assertEquals(newGCGeneration(3, 0, false), entry.getGcGeneration());
+    assertEquals(125, entry.getNodes());
+    assertEquals("bar", entry.getRoot());
+}

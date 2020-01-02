@@ -1,0 +1,30 @@
+@Test
+public void encodeMultiThreaded() throws InterruptedException {
+    int tc = 20;
+    Thread[] threads = new Thread[tc];
+    for (int i = 0; i < tc; i++) {
+        threads[i] = new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+                // encode and decode 100 random UUID strings
+                for (int j = 0; j < 100; j++) {
+                    String test = UUID.randomUUID().toString();
+                    String roundtripped = null;
+                    try {
+                        byte[] bytes = UTF8Encoder.encodeAsByteArray(test);
+                        roundtripped = new String(bytes, StandardCharsets.UTF_8);
+                    } catch (IOException exignored) {
+                    }
+                    assertEquals(test, roundtripped);
+                }
+            }
+        });
+    }
+    for (int i = 0; i < tc; i++) {
+        threads[i].start();
+    }
+    for (int i = 0; i < tc; i++) {
+        threads[i].join();
+    }
+}

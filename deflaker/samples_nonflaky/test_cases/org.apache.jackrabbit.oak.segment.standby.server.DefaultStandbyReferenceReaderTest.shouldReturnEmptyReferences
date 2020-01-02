@@ -1,0 +1,11 @@
+@Test
+public void shouldReturnEmptyReferences() throws Exception {
+    try (FileStore store = newFileStore()) {
+        SegmentWriter writer = defaultSegmentWriterBuilder("test").build(store);
+        RecordId id = writer.writeNode(EmptyNodeState.EMPTY_NODE);
+        writer.flush();
+        DefaultStandbyReferencesReader reader = new DefaultStandbyReferencesReader(store);
+        Iterable<String> references = reader.readReferences(id.getSegmentId().asUUID().toString());
+        assertFalse(references.iterator().hasNext());
+    }
+}

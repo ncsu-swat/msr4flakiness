@@ -1,0 +1,25 @@
+@Test
+public void splitCommitRoot() throws Exception {
+    DocumentStore store = mk.getDocumentStore();
+    DocumentNodeStore ns = mk.getNodeStore();
+    mk.commit("/", "+\"foo\":{}+\"bar\":{}", null, null);
+    NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/foo"));
+    assertNotNull(doc);
+    Set<Revision> commitRoots = Sets.newHashSet();
+    commitRoots.addAll(doc.getLocalCommitRoot().keySet());
+    // create nodes
+    while (commitRoots.size() <= NodeDocument.NUM_REVS_THRESHOLD) {
+        commitRoots.add(Revision.fromString(mk.commit("/", "^\"foo/prop\":" + commitRoots.size() + "^\"bar/prop\":" + commitRoots.size(), null, null)));
+    }
+    mk.runBackgroundOperations();
+    doc = store.find(NODES, Utils.getIdFromPath("/foo"));
+    assertNotNull(doc);
+    Map<Revision, String> commits = doc.getLocalCommitRoot();
+    // two remaining in the local commit root map
+    // the first _commitRoot entry for the _deleted when the node was created
+    // the second _commitRoot entry for the most recent prop change
+    assertEquals(2, commits.size());
+    for (Revision rev : commitRoots) {
+        assertTrue(isCommitted(ns.getCommitValue(rev, doc)));
+    }
+}

@@ -1,0 +1,20 @@
+@Test(expected = CommitFailedException.class)
+public void testValidatingRestrictionsCausesInternalError() throws Exception {
+    RestrictionProvider rp = spy(getConfig(AuthorizationConfiguration.class).getRestrictionProvider());
+    doAnswer(invocationOnMock -> {
+        throw new RepositoryException();
+    }).when(rp).validateRestrictions(anyString(), any(Tree.class));
+    Tree rootTree = root.getTree(PathUtils.ROOT_PATH);
+    Tree policy = createPolicy(rootTree, false);
+    Tree entry = policy.getChild(aceName);
+    entry.setProperty(REP_GLOB, "any");
+    TreeProvider tp = getTreeProvider();
+    AccessControlValidatorProvider provider = createValidatorProvider(rp, getConfig(PrivilegeConfiguration.class));
+    NodeState ns = tp.asNodeState(rootTree);
+    Validator v = provider.getRootValidator(ns, ns, new CommitInfo("sid", null));
+    try {
+        v.childNodeAdded(policy.getName(), tp.asNodeState(policy)).childNodeAdded(entry.getName(), tp.asNodeState(entry));
+    } catch (CommitFailedException e) {
+        throw assertCommitFailedException(e, CommitFailedException.OAK, 13);
+    }
+}

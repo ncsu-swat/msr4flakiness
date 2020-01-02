@@ -1,0 +1,17 @@
+@Test
+public void testCyclicMembership() throws Exception {
+    memberGroup.addMember(testGroup);
+    root.commit();
+    try {
+        Set<String> failed = testGroup.addMembers(memberGroup.getID());
+        assertTrue(failed.isEmpty());
+        root.commit();
+        fail("cyclic group membership must be detected latest upon commit");
+    } catch (CommitFailedException e) {
+        // success
+        assertTrue(e.isConstraintViolation());
+        assertEquals(31, e.getCode());
+    } catch (ConstraintViolationException e) {
+    // success
+    }
+}

@@ -1,0 +1,15 @@
+@Test(expected = AccessControlException.class)
+public void testSetPrincipalPolicyWithIncompleteEntry() throws Exception {
+    setupPolicy(testPath);
+    root.commit();
+    ACL acl = (ACL) acMgr.getPolicies(testPrincipal)[0];
+    Privilege[] privs = privilegesFromNames(PrivilegeConstants.JCR_LIFECYCLE_MANAGEMENT);
+    acl.getEntries().add(new ACE(testPrincipal, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_LIFECYCLE_MANAGEMENT), false, Collections.emptySet(), getNamePathMapper()) {
+
+        @Override
+        public Privilege[] getPrivileges() {
+            return privs;
+        }
+    });
+    acMgr.setPolicy(acl.getPath(), acl);
+}

@@ -1,0 +1,16 @@
+@Test
+public void testVersionStoreTree() throws Exception {
+    Tree versionStoreTree = createVersions(SUBTREE_PATH).getParent();
+    // subtree path is made readable through PARAM_READ_PATHS
+    CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.of(PARAM_READ_PATHS, ImmutableSet.of(TEST_PATH)));
+    // but: permissions for version store tree is evaluated based on regular permissions
+    // and not tied to a versionable tree
+    assertFalse(cp.isGranted(versionStoreTree, null, Permissions.READ));
+    // isGranted(String, long) serves as fallback when no versionable node available
+    // -> just regular permission eval based on path, no tree-type taken into account
+    assertFalse(cp.isGranted(versionStoreTree.getPath(), Permissions.READ));
+    assertTrue(cp.getPrivileges(versionStoreTree).isEmpty());
+    assertFalse(cp.hasPrivileges(versionStoreTree, JCR_READ));
+    TreePermission tp = createTreePermission(cp, versionStoreTree.getPath());
+    assertFalse(tp instanceof VersionTreePermission);
+}

@@ -1,0 +1,19 @@
+@Test
+public void nonSplittableBigDocument() throws Exception {
+    DocumentStore store = mk.getDocumentStore();
+    DocumentNodeStore ns = mk.getNodeStore();
+    NodeBuilder builder = ns.getRoot().builder();
+    builder.child("foo");
+    merge(ns, builder);
+    String id = Utils.getIdFromPath("/foo");
+    int num = 0;
+    while (store.find(NODES, id).getMemory() < DOC_SIZE_THRESHOLD) {
+        builder = ns.getRoot().builder();
+        for (int i = 0; i < 50; i++) {
+            builder.child("foo").setProperty("p" + num++, "some value as payload for the document");
+        }
+        merge(ns, builder);
+    }
+    Iterable<UpdateOp> splitOps = store.find(NODES, id).split(ns, ns.getHeadRevision(), NO_BINARY);
+    assertEquals(0, Iterables.size(splitOps));
+}

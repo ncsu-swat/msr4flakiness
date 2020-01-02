@@ -1,0 +1,20 @@
+/**
+ * Tests the custom restriction provider that checks on the existence of a property.
+ */
+@Test
+public void testProtectPropertiesByRestriction() throws Exception {
+    // create permissions
+    // allow rep:write          /testroot
+    // deny  jcr:modifyProperties /testroot/a  glob = */c
+    addEntry(TEST_ROOT_PATH, true, "", PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE);
+    addEntry(TEST_A_PATH, false, "*/c", PrivilegeConstants.JCR_MODIFY_PROPERTIES);
+    try (ContentSession testSession = createTestSession()) {
+        Root testRoot = testSession.getLatestRoot();
+        PermissionProvider pp = getPermissionProvider(testSession);
+        assertIsGranted(pp, testRoot, true, TEST_A_PATH, Permissions.MODIFY_PROPERTY);
+        assertIsGranted(pp, testRoot, true, TEST_B_PATH, Permissions.MODIFY_PROPERTY);
+        assertIsGranted(pp, testRoot, false, TEST_C_PATH, Permissions.MODIFY_PROPERTY);
+        assertIsGranted(pp, testRoot, true, TEST_D_PATH, Permissions.MODIFY_PROPERTY);
+        assertIsGranted(pp, testRoot, true, TEST_E_PATH, Permissions.MODIFY_PROPERTY);
+    }
+}

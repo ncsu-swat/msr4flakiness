@@ -1,0 +1,16 @@
+// OAK-7401
+@Test
+public void manyChangesInCommitHooksMultipleBranchCommits() throws Exception {
+    DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0).setUpdateLimit(10).build();
+    // get initial branch commits
+    NodeDocument root = Utils.getRootDocument(ns.getDocumentStore());
+    int initialNumBranchCommits = numBranchCommits(root);
+    NodeBuilder builder = ns.getRoot().builder();
+    builder.child("test");
+    TestHook hook = new TestHook(41);
+    ns.merge(builder, hook, CommitInfo.EMPTY);
+    // must have created branch commits
+    root = Utils.getRootDocument(ns.getDocumentStore());
+    assertTrue(numBranchCommits(root) > initialNumBranchCommits);
+    hook.assertChanges(ns.getRoot());
+}

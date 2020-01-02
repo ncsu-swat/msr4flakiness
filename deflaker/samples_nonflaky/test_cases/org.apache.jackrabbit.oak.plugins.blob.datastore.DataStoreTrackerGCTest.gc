@@ -1,0 +1,17 @@
+@Test
+public void gc() throws Exception {
+    Cluster cluster = new Cluster("cluster1");
+    BlobStore s = cluster.blobStore;
+    BlobIdTracker tracker = (BlobIdTracker) ((BlobTrackingStore) s).getTracker();
+    DataStoreState state = init(cluster.nodeStore, 0);
+    ScheduledFuture<?> scheduledFuture = newSingleThreadScheduledExecutor().schedule(tracker.new SnapshotJob(), 0, MILLISECONDS);
+    scheduledFuture.get();
+    // All blobs added should be tracked now
+    assertEquals(state.blobsAdded, retrieveTracked(tracker));
+    cluster.gc.collectGarbage(false);
+    Set<String> existingAfterGC = iterate(s);
+    // Check the state of the blob store after gc
+    assertEquals(state.blobsPresent, existingAfterGC);
+    // Tracked blobs should reflect deletions after gc
+    assertEquals(state.blobsPresent, retrieveTracked(tracker));
+}

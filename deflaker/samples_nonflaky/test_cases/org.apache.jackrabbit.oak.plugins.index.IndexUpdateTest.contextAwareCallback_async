@@ -1,0 +1,11 @@
+@Test
+public void contextAwareCallback_async() throws Exception {
+    NodeState before = builder.getNodeState();
+    NodeBuilder idx = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "rootIndex", true, false, ImmutableSet.of("foo"), null);
+    idx.setProperty("async", asList("sync", "async"), Type.STRINGS);
+    NodeState after = builder.getNodeState();
+    CallbackCapturingProvider provider = new CallbackCapturingProvider();
+    EditorHook hook = new EditorHook(new IndexUpdateProvider(provider, "async", false));
+    hook.processCommit(before, after, CommitInfo.EMPTY);
+    assertTrue(((ContextAwareCallback) provider.callback).getIndexingContext().isAsync());
+}

@@ -1,0 +1,26 @@
+// OAK-2868
+@Test
+public void branchCommitMustNotBlockTrunkCommit() throws Exception {
+    final DocumentNodeStore ds = builderProvider.newBuilder().getNodeStore();
+    // simulate start of a branch commit
+    Commit c = ds.newCommit(nop -> {
+    }, ds.getHeadRevision().asBranchRevision(ds.getClusterId()), null);
+    Thread t = new Thread(new Runnable() {
+
+        @Override
+        public void run() {
+            try {
+                NodeBuilder builder = ds.getRoot().builder();
+                builder.child("foo");
+                ds.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            } catch (CommitFailedException e) {
+                exceptions.add(e);
+            }
+        }
+    });
+    t.start();
+    t.join(3000);
+    assertFalse("Commit did not succeed within 3 seconds", t.isAlive());
+    ds.canceled(c);
+    assertNoExceptions();
+}

@@ -1,0 +1,17 @@
+@Test
+public void testBlockRecord() throws IOException {
+    RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
+    BlockRecord block = new BlockRecord(blockId, bytes.length);
+    // Check reading with all valid positions and lengths
+    for (int n = 1; n < bytes.length; n++) {
+        for (int i = 0; i + n <= bytes.length; i++) {
+            Arrays.fill(bytes, i, i + n, (byte) '.');
+            assertEquals(n, block.read(i, bytes, i, n));
+            assertEquals(HELLO_WORLD, new String(bytes, Charsets.UTF_8));
+        }
+    }
+    // Check reading with a too long length
+    byte[] large = new byte[bytes.length * 2];
+    assertEquals(bytes.length, block.read(0, large, 0, large.length));
+    assertEquals(HELLO_WORLD, new String(large, 0, bytes.length, Charsets.UTF_8));
+}

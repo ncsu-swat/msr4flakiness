@@ -1,0 +1,27 @@
+@Test
+public void containsMapEntry() {
+    Revision r = Revision.newRevision(1);
+    UpdateOp op = new UpdateOp("id", true);
+    try {
+        op.containsMapEntry("p", r, true);
+        fail("expected " + IllegalStateException.class.getName());
+    } catch (IllegalStateException e) {
+    // expected
+    }
+    op = new UpdateOp("id", false);
+    op.containsMapEntry("p", r, true);
+    assertEquals(1, op.getConditions().size());
+    UpdateOp.Key key = op.getConditions().keySet().iterator().next();
+    assertEquals(r, key.getRevision());
+    assertEquals("p", key.getName());
+    UpdateOp.Condition c = op.getConditions().get(key);
+    assertEquals(UpdateOp.Condition.EXISTS, c);
+    op = new UpdateOp("id", false);
+    op.containsMapEntry("p", r, false);
+    assertEquals(1, op.getConditions().size());
+    key = op.getConditions().keySet().iterator().next();
+    assertEquals(r, key.getRevision());
+    assertEquals("p", key.getName());
+    c = op.getConditions().get(key);
+    assertEquals(UpdateOp.Condition.MISSING, c);
+}

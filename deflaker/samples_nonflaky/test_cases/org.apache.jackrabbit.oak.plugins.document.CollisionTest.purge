@@ -1,0 +1,27 @@
+// OAK-2342
+@Test
+public void purge() throws Exception {
+    DocumentMK mk1 = newBuilder().setClusterId(1).open();
+    DocumentNodeStore ns1 = mk1.getNodeStore();
+    DocumentStore store = ns1.getDocumentStore();
+    DocumentMK mk2 = newBuilder().setClusterId(2).setDocumentStore(store).open();
+    DocumentNodeStore ns2 = mk2.getNodeStore();
+    createCollision(mk1);
+    createCollision(mk2);
+    String id = getIdFromPath("/");
+    assertEquals(2, getDocument(store, id).getLocalMap(COLLISIONS).size());
+    // restart node store
+    ns1.dispose();
+    mk1 = newBuilder().setClusterId(1).setDocumentStore(store).open();
+    ns1 = mk1.getNodeStore();
+    // must purge collision for clusterId 1
+    assertEquals(1, getDocument(store, id).getLocalMap(COLLISIONS).size());
+    ns1.dispose();
+    // restart other node store
+    ns2.dispose();
+    mk2 = newBuilder().setClusterId(2).setDocumentStore(store).open();
+    ns2 = mk2.getNodeStore();
+    // must purge collision for clusterId 2
+    assertEquals(0, getDocument(store, id).getLocalMap(COLLISIONS).size());
+    ns2.dispose();
+}

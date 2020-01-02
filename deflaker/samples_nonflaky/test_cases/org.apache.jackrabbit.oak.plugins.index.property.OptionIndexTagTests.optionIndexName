@@ -1,0 +1,14 @@
+@Test
+public void optionIndexName() throws Exception {
+    // disable the counter index, so that traversal is never used
+    Tree index = root.getTree("/oak:index/counter");
+    index.remove();
+    root.commit();
+    String statement, result;
+    statement = "explain select * from [mix:versionable] where [jcr:uuid] = 1 option(index name uuid)";
+    result = executeQuery(statement, Query.JCR_SQL2, false, false).toString();
+    assertTrue(result, result.indexOf("/* property uuid") >= 0);
+    statement = "explain select * from [mix:versionable] where [jcr:uuid] = 1 option(index name nodetype)";
+    result = executeQuery(statement, Query.JCR_SQL2, false, false).toString();
+    assertTrue(result, result.indexOf("/* nodeType ") >= 0);
+}

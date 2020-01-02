@@ -1,0 +1,26 @@
+@Test
+public void testUpdatePermissionEntriesWhenCollisionChildMatches() {
+    NodeState ace = mockACE(PRINCIPAL_NAME);
+    NodeState nodeState = mockNodeState(ace);
+    NodeBuilder collision = mock(NodeBuilder.class);
+    when(collision.child(anyString())).thenReturn(collision);
+    when(collision.setProperty(anyString(), any())).thenReturn(collision);
+    when(collision.setProperty(anyString(), any(), any(Type.class))).thenReturn(collision);
+    NodeBuilder parent = mock(NodeBuilder.class);
+    when(parent.hasProperty(REP_ACCESS_CONTROLLED_PATH)).thenReturn(true);
+    when(parent.getProperty(REP_ACCESS_CONTROLLED_PATH)).thenReturn(PropertyStates.createProperty(REP_ACCESS_CONTROLLED_PATH, "/noMatch"));
+    when(parent.getChildNodeNames()).thenReturn(ImmutableSet.of("collision"));
+    when(parent.getChildNode(anyString())).thenReturn(collision);
+    when(parent.child(anyString())).thenReturn(collision);
+    NodeBuilder principalRoot = when(mock(NodeBuilder.class).child(anyString())).thenReturn(parent).getMock();
+    NodeBuilder permissionsRoot = mock(NodeBuilder.class);
+    when(permissionsRoot.child(PRINCIPAL_NAME)).thenReturn(principalRoot);
+    PermissionStoreEditor editor = createPermissionStoreEditor(nodeState, permissionsRoot);
+    when(collision.getProperty(REP_ACCESS_CONTROLLED_PATH)).thenReturn(PropertyStates.createProperty(REP_ACCESS_CONTROLLED_PATH, editor.getPath()));
+    editor.updatePermissionEntries();
+    // the collision node gets updated not the parent
+    verify(parent, never()).setProperty(REP_ACCESS_CONTROLLED_PATH, editor.getPath());
+    verify(parent, never()).child(anyString());
+    verify(collision, times(1)).setProperty(REP_ACCESS_CONTROLLED_PATH, editor.getPath());
+    verify(collision, times(1)).child(anyString());
+}

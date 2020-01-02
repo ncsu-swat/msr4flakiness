@@ -1,0 +1,13 @@
+@Test
+public void testComplementaryEntry2() throws Exception {
+    Privilege[] repwrite = privilegesFromNames(REP_WRITE);
+    acl.addAccessControlEntry(testPrincipal, repwrite);
+    // add deny entry for mod_props
+    Privilege[] modProperties = privilegesFromNames(JCR_MODIFY_PROPERTIES);
+    assertTrue(acl.addEntry(testPrincipal, modProperties, false));
+    // expected: 2 entries with the allow entry being adjusted
+    assertEquals(2, acl.size());
+    Privilege[] expected = privilegesFromNames(JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE, JCR_NODE_TYPE_MANAGEMENT);
+    assertACE(acl.getEntries().get(0), true, expected);
+    assertACE(acl.getEntries().get(1), false, modProperties);
+}

@@ -1,0 +1,15 @@
+@Test
+public void testOnError() {
+    LoginModuleStats stats = newLoginModuleStats();
+    CallbackHandler cbh = callbacks -> {
+        for (Callback cb : callbacks) {
+            if (cb instanceof RepositoryCallback) {
+                ((RepositoryCallback) cb).setLoginModuleMonitor(stats);
+            }
+        }
+    };
+    AbstractLoginModule lm = initLoginModule(cbh);
+    assertTrue(lm.getLoginModuleMonitor() instanceof LoginModuleStats);
+    lm.onError();
+    assertEquals(1, stats.getLoginErrors());
+}

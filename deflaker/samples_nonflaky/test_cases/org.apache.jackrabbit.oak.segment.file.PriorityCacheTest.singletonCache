@@ -1,0 +1,17 @@
+@Test
+public void singletonCache() {
+    PriorityCache<String, Integer> cache = new PriorityCache<String, Integer>(1, 0);
+    assertTrue(cache.put("one", 1, 0, (byte) 0));
+    // Cache is full -> cannot put another key of the same cost
+    assertFalse(cache.put("two", 2, 0, (byte) 0));
+    // Retrieving "one" leads to a cache hit increasing this key's cost to 1
+    assertEquals(valueOf(1), cache.get("one", 0));
+    assertNull(cache.get("one", 1));
+    assertNull(cache.get("two", 0));
+    // Inserting "two" only succeeds for cost 2, which is bigger than "one"'s cost of 1
+    assertFalse(cache.put("two", 2, 0, (byte) 1));
+    assertTrue(cache.put("two", 2, 0, (byte) 2));
+    assertEquals(valueOf(2), cache.get("two", 0));
+    assertNull(cache.get("two", 1));
+    assertNull(cache.get("one", 0));
+}

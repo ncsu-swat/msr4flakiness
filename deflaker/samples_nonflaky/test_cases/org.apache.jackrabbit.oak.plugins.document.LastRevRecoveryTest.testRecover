@@ -1,0 +1,38 @@
+@Test
+public void testRecover() throws Exception {
+    // 1. Create base structure /x/y
+    NodeBuilder b1 = ds1.getRoot().builder();
+    b1.child("x").child("y");
+    ds1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    ds1.runBackgroundOperations();
+    // lastRev are persisted directly for new nodes. In case of
+    // updates they are persisted via background jobs
+    // 1.2 Get last rev populated for root node for ds2
+    ds2.runBackgroundOperations();
+    NodeBuilder b2 = ds2.getRoot().builder();
+    b2.child("x").setProperty("f1", "b1");
+    ds2.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    ds2.runBackgroundOperations();
+    // 2. Add a new node /x/y/z
+    b2 = ds2.getRoot().builder();
+    b2.child("x").child("y").child("z").setProperty("foo", "bar");
+    ds2.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    // Refresh DS1
+    ds1.runBackgroundOperations();
+    NodeDocument z1 = getDocument(ds1, "/x/y/z");
+    NodeDocument y1 = getDocument(ds1, "/x/y");
+    NodeDocument x1 = getDocument(ds1, "/x");
+    Revision zlastRev2 = z1.getLastRev().get(c2Id);
+    // /x/y/z is a new node and does not have a _lastRev
+    assertNull(zlastRev2);
+    Revision head2 = ds2.getHeadRevision().getRevision(c2Id);
+    // lastRev should not be updated for C #2
+    assertNull(y1.getLastRev().get(c2Id));
+    LastRevRecoveryAgent recovery = new LastRevRecoveryAgent(sharedStore, ds1);
+    // Do not pass y1 but still y1 should be updated
+    recovery.recover(Lists.newArrayList(x1, z1), c2Id);
+    // Post recovery the lastRev should be updated for /x/y and /x
+    assertEquals(head2, getDocument(ds1, "/x/y").getLastRev().get(c2Id));
+    assertEquals(head2, getDocument(ds1, "/x").getLastRev().get(c2Id));
+    assertEquals(head2, getDocument(ds1, "/").getLastRev().get(c2Id));
+}

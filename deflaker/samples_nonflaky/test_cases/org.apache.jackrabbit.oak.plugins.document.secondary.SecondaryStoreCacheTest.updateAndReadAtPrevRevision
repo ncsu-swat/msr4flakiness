@@ -1,0 +1,18 @@
+@Test
+public void updateAndReadAtPrevRevision() throws Exception {
+    SecondaryStoreCache cache = createCache(new PathFilter(of("/a"), empty));
+    NodeBuilder nb = primary.getRoot().builder();
+    create(nb, "/a/b", "/a/c");
+    AbstractDocumentNodeState r0 = merge(nb);
+    AbstractDocumentNodeState a_c_0 = documentState(primary.getRoot(), "/a/c");
+    // Update some other part of tree i.e. which does not change lastRev for /a/c
+    nb = primary.getRoot().builder();
+    create(nb, "/a/c/d");
+    AbstractDocumentNodeState r1 = merge(nb);
+    AbstractDocumentNodeState a_c_1 = documentState(primary.getRoot(), "/a/c");
+    AbstractDocumentNodeState result = cache.getDocumentNodeState(Path.fromString("/a/c"), r1.getRootRevision(), a_c_1.getLastRevision());
+    assertTrue(EqualsDiff.equals(a_c_1, result));
+    // Read from older revision
+    result = cache.getDocumentNodeState(Path.fromString("/a/c"), r0.getRootRevision(), a_c_0.getLastRevision());
+    assertTrue(EqualsDiff.equals(a_c_0, result));
+}

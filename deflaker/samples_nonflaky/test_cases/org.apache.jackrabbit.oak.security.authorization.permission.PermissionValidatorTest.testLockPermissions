@@ -1,0 +1,15 @@
+@Test(expected = CommitFailedException.class)
+public void testLockPermissions() throws Exception {
+    // grant the test session the ability to read/write that node but don't allow jcr:lockManagement
+    grant(TEST_ROOT_PATH, PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE);
+    try (ContentSession testSession = createTestSession()) {
+        Root testRoot = testSession.getLatestRoot();
+        Tree testChild = testRoot.getTree(TEST_CHILD_PATH);
+        testChild.setProperty(PropertyStates.createProperty(JcrConstants.JCR_LOCKOWNER, "lockOwner"));
+        testRoot.commit();
+    } catch (CommitFailedException e) {
+        assertTrue(e.isAccessViolation());
+        assertEquals(0, e.getCode());
+        throw e;
+    }
+}

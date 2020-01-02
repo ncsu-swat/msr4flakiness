@@ -1,0 +1,28 @@
+@Test
+public void testGroupPrincipals() throws Exception {
+    // a) force the cache to be created
+    PrincipalProvider pp = createPrincipalProvider(systemRoot);
+    Iterable<? extends Principal> principals = Iterables.filter(pp.getPrincipals(userId), new GroupPredicate());
+    for (Principal p : principals) {
+        String className = p.getClass().getName();
+        assertEquals("org.apache.jackrabbit.oak.security.user.UserPrincipalProvider$GroupPrincipalImpl", className);
+    }
+    Principal testPrincipal = getTestUser().getPrincipal();
+    // b) retrieve principals again (this time from the cache)
+    // -> verify that they are a different implementation
+    Iterable<? extends Principal> principalsAgain = Iterables.filter(pp.getPrincipals(userId), new GroupPredicate());
+    for (Principal p : principalsAgain) {
+        String className = p.getClass().getName();
+        assertEquals("org.apache.jackrabbit.oak.security.user.UserPrincipalProvider$CachedGroupPrincipal", className);
+        assertTrue(p instanceof TreeBasedPrincipal);
+        assertEquals(testGroup.getPath(), ((TreeBasedPrincipal) p).getPath());
+        assertEquals(testGroup.getPath(), ((TreeBasedPrincipal) p).getOakPath());
+        GroupPrincipal principalGroup = (GroupPrincipal) p;
+        assertTrue(principalGroup.isMember(testPrincipal));
+        Enumeration<? extends Principal> members = principalGroup.members();
+        assertTrue(members.hasMoreElements());
+        assertEquals(testPrincipal, members.nextElement());
+        assertEquals(testGroup2.getPrincipal(), members.nextElement());
+        assertFalse(members.hasMoreElements());
+    }
+}

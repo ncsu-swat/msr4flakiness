@@ -1,0 +1,39 @@
+@Test
+public void testModifyMembersOnly() throws Exception {
+    AccessControlManager acMgr = getAccessControlManager(root);
+    String path = PathUtils.getAncestorPath(UserConstants.DEFAULT_USER_PATH, 1);
+    try {
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, path);
+        acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_READ), true);
+        acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.REP_USER_MANAGEMENT), true, Collections.<String, Value>emptyMap(), ImmutableMap.<String, Value[]>of(AccessControlConstants.REP_ITEM_NAMES, new Value[] { vf.createValue(UserConstants.REP_MEMBERS, PropertyType.NAME) }));
+        acMgr.setPolicy(acl.getPath(), acl);
+        root.commit();
+        Root testRoot = testSession.getLatestRoot();
+        UserManager uMgr = getUserManager(testRoot);
+        // adding a group member must succeed
+        Group gr = uMgr.getAuthorizable(testGroup.getID(), Group.class);
+        User u = uMgr.getAuthorizable(getTestUser().getID(), User.class);
+        gr.addMember(u);
+        testRoot.commit();
+        // changing the pw property of the test user must fail
+        try {
+            u.changePassword("blub");
+            testRoot.commit();
+            fail();
+        } catch (CommitFailedException e) {
+            // success
+            assertTrue(e.isAccessViolation());
+        } finally {
+            testRoot.refresh();
+        }
+    } catch (CommitFailedException e) {
+        // success
+        assertTrue(e.isAccessViolation());
+    } finally {
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, path);
+        if (acl != null) {
+            acMgr.removePolicy(acl.getPath(), acl);
+            root.commit();
+        }
+    }
+}

@@ -1,0 +1,20 @@
+@Test
+public void testSyncCachePut() throws Exception {
+    initializeNodeStore(false);
+    NodeBuilder builder = ns.getRoot().builder();
+    builder.child("a").child("b");
+    ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    // Do a read again
+    ns.getRoot().getChildNode("a").getChildNode("b");
+    assertContains(nodeCache, "/a/b");
+    assertContains(nodeCache, "/a");
+    assertPathNameRevs(nodeChildren, "/a", true);
+    ns.setNodeStateCache(new PathExcludingCache("/c"));
+    builder = ns.getRoot().builder();
+    builder.child("c").child("d");
+    ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    ns.getRoot().getChildNode("c").getChildNode("d");
+    assertNotContains(nodeCache, "/c/d");
+    assertNotContains(nodeCache, "/c");
+    assertPathNameRevs(nodeChildren, "/c", false);
+}

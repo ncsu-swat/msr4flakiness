@@ -1,0 +1,29 @@
+/**
+ * Add in staging and delete.
+ * @throws Exception
+ */
+@Test
+public void addStagingAndDelete() throws Exception {
+    LOG.info("Starting addStagingAndDelete");
+    File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
+    String id = getIdForInputStream(f);
+    FileInputStream fin = new FileInputStream(f);
+    closer.register(fin);
+    DataRecord rec = dataStore.addRecord(fin);
+    assertEquals(id, rec.getIdentifier().toString());
+    assertFile(rec.getStream(), f, folder);
+    rec = dataStore.getRecordIfStored(new DataIdentifier(id));
+    assertNotNull(rec);
+    assertFile(rec.getStream(), f, folder);
+    dataStore.deleteRecord(new DataIdentifier(id));
+    rec = dataStore.getRecordIfStored(new DataIdentifier(id));
+    assertNull(rec);
+    Thread.sleep(1000);
+    // start & finish
+    taskLatch.countDown();
+    callbackLatch.countDown();
+    waitFinish();
+    rec = dataStore.getRecordIfStored(new DataIdentifier(id));
+    assertNull(rec);
+    LOG.info("Finished addStagingAndDelete");
+}

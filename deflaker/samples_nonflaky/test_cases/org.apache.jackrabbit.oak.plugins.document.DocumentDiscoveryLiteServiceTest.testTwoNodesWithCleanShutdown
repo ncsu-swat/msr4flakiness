@@ -1,0 +1,16 @@
+@Test
+public void testTwoNodesWithCleanShutdown() throws Exception {
+    final SimplifiedInstance s1 = createInstance();
+    final SimplifiedInstance s2 = createInstance();
+    final ViewExpectation expectation1 = new ViewExpectation(s1);
+    final ViewExpectation expectation2 = new ViewExpectation(s2);
+    expectation1.setActiveIds(s1.ns.getClusterId(), s2.ns.getClusterId());
+    expectation2.setActiveIds(s1.ns.getClusterId(), s2.ns.getClusterId());
+    waitFor(expectation1, 2000, "first should see both as active");
+    waitFor(expectation2, 2000, "second should see both as active");
+    s2.shutdown();
+    final ViewExpectation expectation1AfterShutdown = new ViewExpectation(s1);
+    expectation1AfterShutdown.setActiveIds(s1.ns.getClusterId());
+    expectation1AfterShutdown.setInactiveIds(s2.ns.getClusterId());
+    waitFor(expectation1AfterShutdown, 2000, "first should only see itself after shutdown");
+}

@@ -1,0 +1,19 @@
+@Test
+public void testAuthorizationRanking() throws Exception {
+    Field f = registration.getClass().getDeclaredField("authorizationConfiguration");
+    f.setAccessible(true);
+    AuthorizationConfiguration testAc = mockConfiguration(AuthorizationConfiguration.class);
+    registration.bindAuthorizationConfiguration(testAc, ConfigurationParameters.EMPTY);
+    AuthorizationConfigurationImpl ac = new AuthorizationConfigurationImpl();
+    ac.setParameters(ConfigurationParameters.of(CompositeConfiguration.PARAM_RANKING, 500));
+    registration.bindAuthorizationConfiguration(ac, PROPS);
+    AuthorizationConfiguration testAc2 = mockConfiguration(AuthorizationConfiguration.class);
+    Map<String, Object> props = ImmutableMap.<String, Object>of(Constants.SERVICE_RANKING, new Integer(100));
+    registration.bindAuthorizationConfiguration(testAc2, props);
+    CompositeAuthorizationConfiguration cac = (CompositeAuthorizationConfiguration) f.get(registration);
+    List<AuthorizationConfiguration> list = cac.getConfigurations();
+    assertEquals(3, list.size());
+    assertSame(ac, list.get(0));
+    assertSame(testAc2, list.get(1));
+    assertSame(testAc, list.get(2));
+}

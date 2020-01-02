@@ -1,0 +1,16 @@
+@Test
+public void indexDirs() throws Exception {
+    IndexerInfo info = new IndexerInfo(temporaryFolder.getRoot(), "foo");
+    info.save();
+    List<String> indexPaths = Arrays.asList("/foo", "/bar");
+    for (String indexPath : indexPaths) {
+        File indexDir = new File(temporaryFolder.getRoot(), indexPath.substring(1));
+        File indexMeta = new File(indexDir, IndexerInfo.INDEX_METADATA_FILE_NAME);
+        Properties p = new Properties();
+        p.setProperty(IndexerInfo.PROP_INDEX_PATH, indexPath);
+        indexDir.mkdir();
+        PropUtils.writeTo(p, indexMeta, "index info");
+    }
+    Map<String, File> indexes = info.getIndexes();
+    assertThat(indexes.keySet(), containsInAnyOrder("/foo", "/bar"));
+}

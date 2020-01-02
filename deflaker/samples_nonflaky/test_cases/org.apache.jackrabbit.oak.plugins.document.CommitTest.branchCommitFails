@@ -1,0 +1,21 @@
+// OAK-4894
+@Test
+public void branchCommitFails() throws Exception {
+    // prepare node store
+    DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
+    // this branch commit must fail with a DocumentStoreException
+    Commit c = ns.newCommit(changes -> {
+        changes.removeNode(Path.fromString("/foo"), EMPTY_NODE);
+    }, ns.getHeadRevision().asBranchRevision(ns.getClusterId()), null);
+    try {
+        try {
+            c.apply();
+            fail("commit must fail");
+        } catch (ConflictException e) {
+            // expected
+            assertTrue("Unexpected exception message: " + e.getMessage(), e.getMessage().contains("does not exist"));
+        }
+    } finally {
+        ns.canceled(c);
+    }
+}

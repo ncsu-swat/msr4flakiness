@@ -1,0 +1,15 @@
+@Test
+public void testSetPolicyCreatesIndexedAceNodeNames() throws Exception {
+    ACL acl = TestUtility.getApplicablePolicy(acMgr, testPath);
+    assertTrue(acl.addAccessControlEntry(testPrincipal, testPrivileges));
+    assertTrue(acl.addEntry(testPrincipal, testPrivileges, true, TestUtility.getGlobRestriction("/*/a", valueFactory)));
+    assertTrue(acl.addEntry(EveryonePrincipal.getInstance(), testPrivileges, false));
+    assertTrue(acl.addEntry(EveryonePrincipal.getInstance(), testPrivileges, false, TestUtility.getGlobRestriction("/*/a", valueFactory)));
+    acMgr.setPolicy(testPath, acl);
+    root.commit();
+    acl = (ACL) acMgr.getPolicies(testPath)[0];
+    assertEquals(4, acl.getAccessControlEntries().length);
+    Iterable<Tree> aceTrees = root.getTree(testPath).getChild(AccessControlConstants.REP_POLICY).getChildren();
+    String[] aceNodeNames = Iterables.toArray(Iterables.transform(aceTrees, Tree::getName), String.class);
+    assertArrayEquals(new String[] { "allow", "allow1", "deny2", "deny3" }, aceNodeNames);
+}

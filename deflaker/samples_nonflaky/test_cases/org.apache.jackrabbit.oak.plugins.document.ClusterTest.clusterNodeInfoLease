@@ -1,0 +1,15 @@
+@Test
+public void clusterNodeInfoLease() throws InterruptedException {
+    Clock c = new Clock.Virtual();
+    c.waitUntil(System.currentTimeMillis());
+    ClusterNodeInfo.setClock(c);
+    MemoryDocumentStore store = new MemoryDocumentStore();
+    ClusterNodeInfo c1, c2;
+    c1 = ClusterNodeInfo.getInstance(store, NOOP, "m1", null, 0);
+    assertEquals(1, c1.getId());
+    // expire lease
+    c.waitUntil(c1.getLeaseEndTime() + ClusterNodeInfo.DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS);
+    // using a NOOP RecoveryHandler must prevent use of expired clusterId 1 (OAK-7316)
+    c2 = ClusterNodeInfo.getInstance(store, NOOP, "m1", null, 0);
+    assertEquals(2, c2.getId());
+}

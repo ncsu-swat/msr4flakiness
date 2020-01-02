@@ -1,0 +1,26 @@
+@Test
+public void getNewestRevisionCheckArgument() throws Exception {
+    MemoryDocumentStore store = new MemoryDocumentStore();
+    DocumentNodeStore ns = createTestStore(store, 0, 0);
+    NodeBuilder builder = ns.getRoot().builder();
+    builder.child("test");
+    merge(ns, builder);
+    Set<Revision> collisions = newHashSet();
+    NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test"));
+    RevisionVector branchBase = ns.getHeadRevision().asBranchRevision(ns.getClusterId());
+    try {
+        doc.getNewestRevision(ns, branchBase, ns.newRevision(), null, collisions);
+        fail("Must fail with IllegalArgumentException");
+    } catch (IllegalArgumentException e) {
+    // expected
+    }
+    try {
+        RevisionVector head = ns.getHeadRevision();
+        Branch b = ns.getBranches().create(head, ns.newRevision(), null);
+        doc.getNewestRevision(ns, head, ns.newRevision(), b, collisions);
+        fail("Must fail with IllegalArgumentException");
+    } catch (IllegalArgumentException e) {
+    // expected
+    }
+    ns.dispose();
+}

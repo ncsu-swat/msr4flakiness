@@ -1,0 +1,38 @@
+@Test
+public void noPreviousDocAccessAfterSweep() throws Exception {
+    final Set<String> findCalls = newHashSet();
+    DocumentStore ds = new MemoryDocumentStore() {
+
+        @Override
+        public <T extends Document> T find(Collection<T> collection, String key) {
+            findCalls.add(key);
+            return super.find(collection, key);
+        }
+    };
+    DocumentNodeStore ns = createTestStore(ds, 0, 0, 0);
+    // create test nodes with the root document as commit root
+    NodeBuilder builder = ns.getRoot().builder();
+    builder.child("foo");
+    builder.child("bar");
+    merge(ns, builder);
+    // now add many changes to the root document, which will
+    // move the commit information to a previous document
+    createTestData(singletonList(ns), new Random(), 200);
+    ns.runBackgroundUpdateOperations();
+    NodeDocument doc = ds.find(NODES, getIdFromPath("/foo"));
+    assertNotNull(doc);
+    findCalls.clear();
+    doc.getNodeAtRevision(ns, ns.getHeadRevision(), null);
+    // with an old sweep revision, there will be find calls
+    // to look up the commit root document
+    assertTrue(findCalls.size() > 0);
+    // run sweeper
+    ns.runBackgroundSweepOperation();
+    // now number of find calls must be zero
+    doc = ds.find(NODES, getIdFromPath("/foo"));
+    assertNotNull(doc);
+    findCalls.clear();
+    doc.getNodeAtRevision(ns, ns.getHeadRevision(), null);
+    assertEquals(0, findCalls.size());
+    ns.dispose();
+}

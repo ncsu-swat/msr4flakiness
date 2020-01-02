@@ -1,0 +1,14 @@
+@Test(expected = CommitFailedException.class)
+public void testAddVersionStorageTreeUnexpectedNode() throws Exception {
+    PermissionValidator validator = createValidator(ImmutableSet.of(), VERSION_STORE_PATH);
+    try {
+        Tree t = root.getTree(VERSION_STORE_PATH);
+        Tree storageT = TreeUtil.addChild(t, "any", REP_VERSIONSTORAGE);
+        TreeUtil.addChild(storageT, "unexpected", NT_UNSTRUCTURED);
+        validator.childNodeAdded("any", mock(NodeState.class));
+    } catch (CommitFailedException e) {
+        assertTrue(e.isOfType("Misc"));
+        assertEquals(0, e.getCode());
+        throw e;
+    }
+}

@@ -1,0 +1,28 @@
+@Test
+public void clusterNodeInfo() {
+    MemoryDocumentStore store = new MemoryDocumentStore();
+    ClusterNodeInfo c1, c2;
+    c1 = ClusterNodeInfo.getInstance(store, NOOP, "m1", null, 0);
+    assertEquals(1, c1.getId());
+    c1.dispose();
+    // get the same id
+    c1 = ClusterNodeInfo.getInstance(store, NOOP, "m1", null, 0);
+    assertEquals(1, c1.getId());
+    c1.dispose();
+    // a different machine
+    // must get inactive id (OAK-7316)
+    c1 = ClusterNodeInfo.getInstance(store, NOOP, "m2", null, 0);
+    assertEquals(1, c1.getId());
+    // yet another machine
+    c2 = ClusterNodeInfo.getInstance(store, NOOP, "m3", "/a", 0);
+    assertEquals(2, c2.getId());
+    c1.dispose();
+    c2.dispose();
+    // must acquire same id as before with matching machineId/instanceId
+    c1 = ClusterNodeInfo.getInstance(store, NOOP, "m3", "/a", 0);
+    assertEquals(2, c1.getId());
+    c1.dispose();
+    c1 = ClusterNodeInfo.getInstance(store, NOOP, "m3", "/b", 0);
+    assertEquals(1, c1.getId());
+    c1.dispose();
+}

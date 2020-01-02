@@ -1,0 +1,41 @@
+@Test
+public void multipleContributingStores() {
+    MountInfoProvider mip = Mounts.newBuilder().readOnlyMount("libs", "/libs", "/libs1", "/libs2", "/libs3", "/libs4").build();
+    NodeStore globalStore = new MemoryNodeStore();
+    NodeStore libsStore = new MemoryNodeStore();
+    List<MountedNodeStore> mounts = Lists.newArrayList();
+    mounts.add(new MountedNodeStore(mip.getMountByName("libs"), libsStore));
+    CompositeNodeStore compositeNodeStore = new CompositeNodeStore(mip, globalStore, mounts);
+    CompositeNodeStoreBuilder b = new CompositeNodeStoreBuilder(compositeNodeStore.ctx);
+    TestingNodeState globalTestingNS = b.configureMount("/", 5);
+    TestingNodeState libsTestingNS = b.configureMount("/libs", "libs", "libs1", "libs2");
+    CompositeNodeState mns = b.getNodeState();
+    assertEquals(8, mns.getChildNodeCount(9));
+    assertEquals(5, globalTestingNS.fetchedChildren);
+    assertEquals(3, libsTestingNS.fetchedChildren);
+    globalTestingNS.fetchedChildren = 0;
+    libsTestingNS.fetchedChildren = 0;
+    assertEquals(MAX_VALUE, mns.getChildNodeCount(8));
+    assertEquals(5, globalTestingNS.fetchedChildren);
+    assertEquals(3, libsTestingNS.fetchedChildren);
+    globalTestingNS.fetchedChildren = 0;
+    libsTestingNS.fetchedChildren = 0;
+    assertEquals(MAX_VALUE, mns.getChildNodeCount(7));
+    assertEquals(5, globalTestingNS.fetchedChildren);
+    assertEquals(2, libsTestingNS.fetchedChildren);
+    globalTestingNS.fetchedChildren = 0;
+    libsTestingNS.fetchedChildren = 0;
+    assertEquals(8, mns.builder().getChildNodeCount(9));
+    assertEquals(5, globalTestingNS.fetchedChildren);
+    assertEquals(3, libsTestingNS.fetchedChildren);
+    globalTestingNS.fetchedChildren = 0;
+    libsTestingNS.fetchedChildren = 0;
+    assertEquals(MAX_VALUE, mns.builder().getChildNodeCount(8));
+    assertEquals(5, globalTestingNS.fetchedChildren);
+    assertEquals(3, libsTestingNS.fetchedChildren);
+    globalTestingNS.fetchedChildren = 0;
+    libsTestingNS.fetchedChildren = 0;
+    assertEquals(MAX_VALUE, mns.builder().getChildNodeCount(7));
+    assertEquals(5, globalTestingNS.fetchedChildren);
+    assertEquals(2, libsTestingNS.fetchedChildren);
+}

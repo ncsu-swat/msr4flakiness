@@ -1,0 +1,17 @@
+@Test
+public void testRegisterKeysTracker() {
+    NodeDocumentCache cache = createCache();
+    CacheChangesTracker tracker = cache.registerTracker(ImmutableSet.of("1:/xyz", "1:/abc", "1:/aaa"));
+    assertFalse(tracker.mightBeenAffected("1:/xyz"));
+    assertFalse(tracker.mightBeenAffected("1:/abc"));
+    assertFalse(tracker.mightBeenAffected("1:/aaa"));
+    cache.put(createDoc("1:/xyz"));
+    assertTrue(tracker.mightBeenAffected("1:/xyz"));
+    cache.invalidate("1:/abc");
+    assertTrue(tracker.mightBeenAffected("1:/abc"));
+    cache.invalidate("1:/other");
+    assertFalse(tracker.mightBeenAffected("1:/other"));
+    tracker.close();
+    cache.invalidate("1:/aaa");
+    assertFalse(tracker.mightBeenAffected("1:/aaa"));
+}

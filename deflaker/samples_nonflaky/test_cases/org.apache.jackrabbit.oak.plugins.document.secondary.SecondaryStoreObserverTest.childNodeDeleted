@@ -1,0 +1,13 @@
+@Test
+public void childNodeDeleted() throws Exception {
+    PathFilter pathFilter = new PathFilter(of("/a"), empty);
+    SecondaryStoreObserver observer = createBuilder(pathFilter).buildObserver();
+    primary.addObserver(observer);
+    NodeBuilder nb = primary.getRoot().builder();
+    create(nb, "/a/b", "/a/c", "/x/y/z");
+    primary.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    nb = primary.getRoot().builder();
+    nb.child("a").child("c").remove();
+    primary.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    assertFalse(NodeStateUtils.getNode(secondaryRoot(), "/a/c").exists());
+}

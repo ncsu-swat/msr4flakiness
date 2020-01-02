@@ -1,0 +1,26 @@
+@Test
+public void testFlush() throws ExecutionException, InterruptedException, IOException {
+    GCGeneration gen = pool.getGCGeneration();
+    ConcurrentMap<String, SegmentBufferWriter> map1 = newConcurrentMap();
+    Future<RecordId> res1 = execute(gen, createOp("a", map1), 0);
+    Future<RecordId> res2 = execute(gen, createOp("b", map1), 1);
+    Future<RecordId> res3 = execute(gen, createOp("c", map1), 2);
+    // Give the tasks some time to complete
+    sleepUninterruptibly(10, MILLISECONDS);
+    assertEquals(rootId, res1.get());
+    assertEquals(rootId, res2.get());
+    assertEquals(rootId, res3.get());
+    assertEquals(3, map1.size());
+    pool.flush(store);
+    ConcurrentMap<String, SegmentBufferWriter> map2 = newConcurrentMap();
+    Future<RecordId> res4 = execute(gen, createOp("a", map2), 0);
+    Future<RecordId> res5 = execute(gen, createOp("b", map2), 1);
+    Future<RecordId> res6 = execute(gen, createOp("c", map2), 2);
+    // Give the tasks some time to complete
+    sleepUninterruptibly(10, MILLISECONDS);
+    assertEquals(rootId, res4.get());
+    assertEquals(rootId, res5.get());
+    assertEquals(rootId, res6.get());
+    assertEquals(3, map2.size());
+    assertTrue(intersection(newHashSet(map1.values()), newHashSet(map2.values())).isEmpty());
+}

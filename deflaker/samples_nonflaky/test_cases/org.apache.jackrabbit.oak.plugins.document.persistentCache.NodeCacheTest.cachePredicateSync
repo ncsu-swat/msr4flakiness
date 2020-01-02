@@ -1,0 +1,16 @@
+@Test
+public void cachePredicateSync() throws Exception {
+    Path a = Path.fromString("/a");
+    initializeNodeStore(false, b -> b.setNodeCachePathPredicate(path -> path != null && (a.equals(path) || a.isAncestorOf(path))));
+    NodeBuilder builder = ns.getRoot().builder();
+    builder.child("a").child("c1");
+    builder.child("b").child("c2");
+    ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    // Do a read again
+    ns.getRoot().getChildNode("a").getChildNode("c1");
+    ns.getRoot().getChildNode("b").getChildNode("c2");
+    assertNotContains(nodeCache, "/b");
+    assertNotContains(nodeCache, "/b/c2");
+    assertContains(nodeCache, "/a");
+    assertContains(nodeCache, "/a/c1");
+}

@@ -1,0 +1,13 @@
+@Test
+public void testHiddenChildNodeDeleted() {
+    PermissionHook ph = createPermissionHook(adminSession.getWorkspaceName());
+    NodeState after = getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH));
+    NodeState before = spy(after);
+    NodeState child = mock(NodeState.class);
+    Iterable deletedCnes = Collections.singleton(new MemoryChildNodeEntry(":hidden", child));
+    Iterable cnes = Iterables.concat(deletedCnes, after.getChildNodeEntries());
+    when(before.getChildNodeEntries()).thenReturn(cnes);
+    when(before.getChildNode(":hidden")).thenReturn(child);
+    ph.processCommit(before, after, new CommitInfo("sid", null));
+    verify(child, never()).getProperty(anyString());
+}

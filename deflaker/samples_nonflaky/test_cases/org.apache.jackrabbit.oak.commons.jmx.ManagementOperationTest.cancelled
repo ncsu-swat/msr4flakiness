@@ -1,0 +1,17 @@
+@Test
+public void cancelled() {
+    ManagementOperation<Void> op = newManagementOperation("test", new Callable<Void>() {
+
+        @Override
+        public Void call() throws Exception {
+            return null;
+        }
+    });
+    op.cancel(false);
+    executor.execute(op);
+    assertTrue(op.isDone());
+    Status status = op.getStatus();
+    assertEquals(op.getId(), status.getId());
+    assertEquals(FAILED, status.getCode());
+    assertEquals("test cancelled", status.getMessage());
+}

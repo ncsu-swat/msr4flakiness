@@ -1,0 +1,10 @@
+@Test
+public void testUnique() throws CommitFailedException {
+    IndexStoreStrategy store = new ContentMirrorStoreStrategy();
+    NodeState root = EMPTY_NODE;
+    NodeBuilder indexMeta = root.builder();
+    Supplier<NodeBuilder> index = memoize(() -> indexMeta.child(INDEX_CONTENT_NODE_NAME));
+    store.update(index, "a", null, null, EMPTY, KEY);
+    store.update(index, "b", null, null, EMPTY, KEY);
+    Assert.assertTrue("ContentMirrorStoreStrategy should guarantee uniqueness on insert", store.count(root, indexMeta.getNodeState(), Collections.singleton("key"), 2) > 1);
+}

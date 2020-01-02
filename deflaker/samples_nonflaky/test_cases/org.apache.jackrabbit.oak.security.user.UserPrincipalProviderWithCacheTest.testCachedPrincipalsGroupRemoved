@@ -1,0 +1,32 @@
+@Test
+public void testCachedPrincipalsGroupRemoved() throws Exception {
+    // a) force the cache to be created
+    PrincipalProvider pp = createPrincipalProvider(systemRoot);
+    Iterable<? extends Principal> principals = Iterables.filter(pp.getPrincipals(userId), new GroupPredicate());
+    for (Principal p : principals) {
+        String className = p.getClass().getName();
+        assertEquals("org.apache.jackrabbit.oak.security.user.UserPrincipalProvider$GroupPrincipalImpl", className);
+    }
+    testGroup.remove();
+    root.commit();
+    systemRoot.refresh();
+    // b) retrieve principals again (this time from the cache)
+    // principal for 'testGroup' is no longer backed by an user mgt group
+    // verify that this doesn't lead to runtime exceptions
+    Iterable<? extends Principal> principalsAgain = Iterables.filter(pp.getPrincipals(userId), new GroupPredicate());
+    for (Principal p : principalsAgain) {
+        String className = p.getClass().getName();
+        assertEquals("org.apache.jackrabbit.oak.security.user.UserPrincipalProvider$CachedGroupPrincipal", className);
+        assertTrue(p instanceof TreeBasedPrincipal);
+        try {
+            ((TreeBasedPrincipal) p).getPath();
+            fail("RepositoryException expected");
+        } catch (RepositoryException e) {
+        // success
+        }
+        GroupPrincipal principalGroup = (GroupPrincipal) p;
+        assertFalse(principalGroup.isMember(getTestUser().getPrincipal()));
+        Enumeration<? extends Principal> members = principalGroup.members();
+        assertFalse(members.hasMoreElements());
+    }
+}

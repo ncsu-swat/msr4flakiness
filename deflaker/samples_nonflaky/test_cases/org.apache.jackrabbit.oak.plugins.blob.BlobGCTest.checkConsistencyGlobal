@@ -1,0 +1,16 @@
+@Test
+public void checkConsistencyGlobal() throws Exception {
+    log.info("Staring checkConsistencyGlobal()");
+    // Setup a different cluster/repository sharing the blob store
+    MemoryBlobStoreNodeStore secondClusterNodeStore = new MemoryBlobStoreNodeStore(cluster.blobStore, true);
+    Cluster secondCluster = new Cluster(folder.newFolder(), cluster.blobStore, secondClusterNodeStore, 100);
+    closer.register(secondCluster);
+    secondCluster.blobStoreState.blobsPresent.add(Iterables.firstOf(cluster.blobStoreState.blobsPresent));
+    // Execute mark on the default cluster
+    executeGarbageCollection(cluster, cluster.getCollector(0), true);
+    MarkSweepGarbageCollector globalCollector = secondCluster.getCollector(0, true);
+    long missing = globalCollector.checkConsistency();
+    assertEquals(0, missing);
+    assertStats(secondCluster.statsProvider, 1, 0, 0, 0, CONSISTENCY_NAME);
+    assertStatsBean(globalCollector.getConsistencyOperationStats(), 1, 0, 0);
+}

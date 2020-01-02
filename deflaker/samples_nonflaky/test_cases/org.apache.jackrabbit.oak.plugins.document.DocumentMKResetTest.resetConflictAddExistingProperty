@@ -1,0 +1,18 @@
+@Test
+public void resetConflictAddExistingProperty() {
+    addNodes(null, "/foo");
+    String b0 = mk.branch(null);
+    mk.commit("", "^\"/foo/p1\":1", null, null);
+    String b1 = mk.commit("", "^\"/foo/p2\":1", b0, null);
+    String b2 = mk.commit("", "^\"/foo/p1\":1", b1, null);
+    try {
+        mk.merge(b2, null);
+        fail("merge with conflict must fail");
+    } catch (DocumentStoreException e) {
+    // expected
+    }
+    String b3 = mk.reset(b2, b1);
+    String rev = mk.merge(b3, null);
+    assertPropExists(rev, "/foo", "p1");
+    assertPropExists(rev, "/foo", "p2");
+}

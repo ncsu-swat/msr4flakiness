@@ -1,0 +1,13 @@
+@Test
+public void commitRootSameAsModifiedPath() throws Exception {
+    WriteCountingStore ws = new WriteCountingStore(true);
+    DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0).setDocumentStore(ws).getNodeStore();
+    NodeBuilder builder = ns.getRoot().builder();
+    builder.child("a").child("b");
+    merge(ns, builder);
+    ws.reset();
+    builder = ns.getRoot().builder();
+    builder.child("a").child("b").setProperty("foo", "bar");
+    merge(ns, builder);
+    assertEquals(1, ws.count);
+}

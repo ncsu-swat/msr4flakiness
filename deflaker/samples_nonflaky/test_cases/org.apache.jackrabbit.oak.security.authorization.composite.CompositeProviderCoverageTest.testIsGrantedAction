@@ -1,0 +1,23 @@
+@Test
+public void testIsGrantedAction() throws Exception {
+    for (String nodePath : NODE_PATHS) {
+        String propPath = PathUtils.concat(nodePath, JcrConstants.JCR_PRIMARYTYPE);
+        assertTrue(cpp.isGranted(nodePath, Session.ACTION_READ));
+        assertFalse(cpp.isGranted(propPath, Session.ACTION_READ));
+        assertFalse(cpp.isGranted(nodePath, Session.ACTION_REMOVE));
+        assertFalse(cpp.isGranted(propPath, JackrabbitSession.ACTION_MODIFY_PROPERTY));
+        assertFalse(cpp.isGranted(nodePath, getActionString(JackrabbitSession.ACTION_MODIFY_ACCESS_CONTROL, JackrabbitSession.ACTION_READ_ACCESS_CONTROL)));
+        assertTrue(cppO.isGranted(nodePath, Session.ACTION_READ));
+        assertFalse(cppO.isGranted(propPath, Session.ACTION_READ));
+        assertFalse(cppO.isGranted(nodePath, Session.ACTION_REMOVE));
+        assertFalse(cppO.isGranted(propPath, JackrabbitSession.ACTION_MODIFY_PROPERTY));
+        assertFalse(cppO.isGranted(nodePath, getActionString(JackrabbitSession.ACTION_MODIFY_ACCESS_CONTROL, JackrabbitSession.ACTION_READ_ACCESS_CONTROL)));
+        String nonExisting = PathUtils.concat(nodePath, "nonExisting");
+        assertFalse(cpp.isGranted(nonExisting, Session.ACTION_READ));
+        assertFalse(cpp.isGranted(nonExisting, JackrabbitSession.ACTION_ADD_PROPERTY));
+        assertFalse(cpp.isGranted(nonExisting, Session.ACTION_ADD_NODE));
+        assertFalse(cppO.isGranted(nonExisting, Session.ACTION_READ));
+        assertFalse(cppO.isGranted(nonExisting, JackrabbitSession.ACTION_ADD_PROPERTY));
+        assertFalse(cppO.isGranted(nonExisting, Session.ACTION_ADD_NODE));
+    }
+}

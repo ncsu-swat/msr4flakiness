@@ -1,0 +1,11 @@
+@Test
+public void testActivateWithRequiredOakSecurityName() {
+    registration.activate(context.bundleContext(), configWithRequiredServiceIds("serviceId"));
+    assertNull(context.getService(SecurityProvider.class));
+    ServiceReference sr = when(mock(ServiceReference.class).getProperty(OAK_SECURITY_NAME)).thenReturn("serviceId").getMock();
+    RestrictionProvider rp = mock(RestrictionProvider.class);
+    registration.bindRestrictionProvider(sr, rp);
+    assertNotNull(context.getService(SecurityProvider.class));
+    registration.unbindRestrictionProvider(sr, rp);
+    assertNull(context.getService(SecurityProvider.class));
+}

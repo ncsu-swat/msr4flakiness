@@ -1,0 +1,17 @@
+@Test
+public void shouldDecodeValidGetSegmentResponses() throws Exception {
+    UUID uuid = new UUID(1, 2);
+    byte[] data = new byte[] { 3, 4, 5 };
+    ByteBuf buf = Unpooled.buffer();
+    buf.writeInt(data.length + 25);
+    buf.writeByte(Messages.HEADER_SEGMENT);
+    buf.writeLong(uuid.getMostSignificantBits());
+    buf.writeLong(uuid.getLeastSignificantBits());
+    buf.writeLong(hash(data));
+    buf.writeBytes(data);
+    EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder(folder.newFolder()));
+    channel.writeInbound(buf);
+    GetSegmentResponse response = (GetSegmentResponse) channel.readInbound();
+    assertEquals(uuid, UUID.fromString(response.getSegmentId()));
+    assertArrayEquals(data, response.getSegmentData());
+}

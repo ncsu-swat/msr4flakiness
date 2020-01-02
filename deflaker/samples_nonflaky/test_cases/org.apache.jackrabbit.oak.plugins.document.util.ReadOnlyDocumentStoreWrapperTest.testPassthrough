@@ -1,0 +1,93 @@
+@Test
+public void testPassthrough() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    final List<String> disallowedMethods = Lists.newArrayList("create", "update", "remove", "createOrUpdate", "findAndUpdate");
+    InvocationHandler handler = new InvocationHandler() {
+
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            String methodName = method.getName();
+            if (disallowedMethods.contains(methodName)) {
+                Assert.fail(String.format("Invalid passthrough of method (%s) with params %s", method, Arrays.toString(args)));
+            }
+            if ("determineServerTimeDifferenceMillis".equals(methodName)) {
+                return new Long(0);
+            } else {
+                return null;
+            }
+        }
+    };
+    DocumentStore proxyStore = (DocumentStore) Proxy.newProxyInstance(DocumentStore.class.getClassLoader(), new Class[] { DocumentStore.class }, handler);
+    DocumentStore readOnlyStore = ReadOnlyDocumentStoreWrapperFactory.getInstance(proxyStore);
+    Collection<? extends Document>[] collections = new Collection[] { Collection.CLUSTER_NODES, Collection.JOURNAL, Collection.NODES, Collection.SETTINGS };
+    for (Collection collection : collections) {
+        readOnlyStore.find(collection, null);
+        readOnlyStore.find(collection, null, 0);
+        readOnlyStore.query(collection, null, null, 0);
+        readOnlyStore.query(collection, null, null, null, 0, 0);
+        boolean uoeThrown = false;
+        try {
+            readOnlyStore.remove(collection, "");
+        } catch (UnsupportedOperationException uoe) {
+            // catch uoe thrown by read only wrapper
+            uoeThrown = true;
+        }
+        assertTrue("remove must throw UnsupportedOperationException", uoeThrown);
+        uoeThrown = false;
+        try {
+            readOnlyStore.remove(collection, Lists.<String>newArrayList());
+        } catch (UnsupportedOperationException uoe) {
+            // catch uoe thrown by read only wrapper
+            uoeThrown = true;
+        }
+        assertTrue("remove must throw UnsupportedOperationException", uoeThrown);
+        uoeThrown = false;
+        try {
+            readOnlyStore.remove(collection, Maps.<String, Long>newHashMap());
+        } catch (UnsupportedOperationException uoe) {
+            // catch uoe thrown by read only wrapper
+            uoeThrown = true;
+        }
+        assertTrue("remove must throw UnsupportedOperationException", uoeThrown);
+        uoeThrown = false;
+        try {
+            readOnlyStore.create(collection, null);
+        } catch (UnsupportedOperationException uoe) {
+            // catch uoe thrown by read only wrapper
+            uoeThrown = true;
+        }
+        assertTrue("create must throw UnsupportedOperationException", uoeThrown);
+        uoeThrown = false;
+        try {
+            readOnlyStore.createOrUpdate(collection, (UpdateOp) null);
+        } catch (UnsupportedOperationException uoe) {
+            // catch uoe thrown by read only wrapper
+            uoeThrown = true;
+        }
+        assertTrue("createOrUpdate must throw UnsupportedOperationException", uoeThrown);
+        uoeThrown = false;
+        try {
+            readOnlyStore.createOrUpdate(collection, Lists.<UpdateOp>newArrayList());
+        } catch (UnsupportedOperationException uoe) {
+            // catch uoe thrown by read only wrapper
+            uoeThrown = true;
+        }
+        assertTrue("createOrUpdate must throw UnsupportedOperationException", uoeThrown);
+        uoeThrown = false;
+        try {
+            readOnlyStore.findAndUpdate(collection, null);
+        } catch (UnsupportedOperationException uoe) {
+            // catch uoe thrown by read only wrapper
+            uoeThrown = true;
+        }
+        assertTrue("findAndUpdate must throw UnsupportedOperationException", uoeThrown);
+        readOnlyStore.invalidateCache(collection, null);
+        readOnlyStore.getIfCached(collection, null);
+    }
+    readOnlyStore.invalidateCache();
+    readOnlyStore.invalidateCache(null);
+    readOnlyStore.dispose();
+    readOnlyStore.setReadWriteMode(null);
+    readOnlyStore.getCacheStats();
+    readOnlyStore.getMetadata();
+    readOnlyStore.determineServerTimeDifferenceMillis();
+}

@@ -1,0 +1,13 @@
+@Test(expected = CommitFailedException.class)
+public void testAddEntyWithEmptyPrivileges() throws Exception {
+    Tree rootTree = root.getTree(PathUtils.ROOT_PATH);
+    Tree policy = createPolicy(rootTree, false);
+    Tree entry = policy.getChild(aceName);
+    entry.setProperty(REP_PRIVILEGES, ImmutableList.of(), Type.NAMES);
+    Validator v = createRootValidator(rootTree);
+    try {
+        v.childNodeAdded(policy.getName(), getTreeProvider().asNodeState(policy)).childNodeAdded(entry.getName(), getTreeProvider().asNodeState(entry));
+    } catch (CommitFailedException e) {
+        throw assertCommitFailedException(e, CommitFailedException.ACCESS_CONTROL, 9);
+    }
+}

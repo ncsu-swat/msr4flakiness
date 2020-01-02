@@ -1,0 +1,19 @@
+@Test
+public void getChildNodeEntriesReportsNode() {
+    final NodeBuilder builder = EmptyNodeState.EMPTY_NODE.builder();
+    for (int i = 1; i < 20; i++) {
+        builder.child("a" + i);
+    }
+    final AssertingPeriodicReporter reporter = new AssertingPeriodicReporter(10, 10);
+    final NodeState nodeState = ReportingNodeState.wrap(builder.getNodeState(), reporter);
+    reporter.reset();
+    int counter = 0;
+    String name = "<none>";
+    for (final ChildNodeEntry child : nodeState.getChildNodeEntries()) {
+        if (++counter == 10) {
+            name = child.getName();
+            break;
+        }
+    }
+    assertThat(reporter, hasReportedNode(10, "/" + name));
+}

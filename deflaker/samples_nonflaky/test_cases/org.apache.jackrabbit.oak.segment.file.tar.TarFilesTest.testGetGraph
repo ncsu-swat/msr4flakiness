@@ -1,0 +1,20 @@
+@Test
+public void testGetGraph() throws Exception {
+    UUID a = randomUUID();
+    UUID b = randomUUID();
+    UUID c = randomUUID();
+    UUID d = randomUUID();
+    writeSegment(a);
+    writeSegmentWithReferences(b, a);
+    writeSegmentWithReferences(c, a);
+    writeSegmentWithReferences(d, b, c);
+    tarFiles.newWriter();
+    String file = tarFiles.getIndices().keySet().iterator().next();
+    Map<UUID, Set<UUID>> graph = tarFiles.getGraph(file);
+    Map<UUID, Set<UUID>> expected = new HashMap<>();
+    expected.put(a, emptySet());
+    expected.put(b, singleton(a));
+    expected.put(c, singleton(a));
+    expected.put(d, newHashSet(b, c));
+    assertEquals(expected, graph);
+}

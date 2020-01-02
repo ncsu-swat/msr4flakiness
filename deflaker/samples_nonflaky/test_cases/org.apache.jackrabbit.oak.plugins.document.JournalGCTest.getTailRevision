@@ -1,0 +1,25 @@
+@Test
+public void getTailRevision() throws Exception {
+    Clock c = new Clock.Virtual();
+    c.waitUntil(System.currentTimeMillis());
+    DocumentNodeStore ns = builderProvider.newBuilder().setJournalGCMaxAge(TimeUnit.HOURS.toMillis(1)).clock(c).setAsyncDelay(0).getNodeStore();
+    JournalGarbageCollector jgc = ns.getJournalGarbageCollector();
+    assertEquals(new Revision(0, 0, ns.getClusterId()), jgc.getTailRevision());
+    NodeBuilder builder = ns.getRoot().builder();
+    builder.child("foo");
+    ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    ns.runBackgroundOperations();
+    assertEquals(0, jgc.gc());
+    // current time, but without the increment done by getTime()
+    long now = c.getTime() - 1;
+    Revision tail = new Revision(now - TimeUnit.HOURS.toMillis(1), 0, ns.getClusterId());
+    c.waitUntil(c.getTime() + TimeUnit.MINUTES.toMillis(1));
+    assertEquals(tail, jgc.getTailRevision());
+    c.waitUntil(c.getTime() + TimeUnit.HOURS.toMillis(1));
+    // must collect the journal entry created by the background update
+    assertEquals(1, jgc.gc());
+    // current time, but without the increment done by getTime()
+    now = c.getTime() - 1;
+    tail = new Revision(now - TimeUnit.HOURS.toMillis(1), 0, ns.getClusterId());
+    assertEquals(tail, jgc.getTailRevision());
+}

@@ -1,0 +1,12 @@
+@Test
+public void testDSBSGetMetaRecErrorStats() throws IOException, RepositoryException {
+    DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withErrorOnGetRecord());
+    long getMetadataRecordErrorCount = stats.getGetMetadataRecordErrorCount();
+    long getMetadataRecordErrorCountLastMinute = getLastMinuteStats(stats.getGetMetadataRecordErrorCountHistory());
+    try {
+        dsbs.getMetadataRecord("fake-name");
+    } catch (Exception e) {
+    }
+    assertEquals(getMetadataRecordErrorCount + 1, stats.getGetMetadataRecordErrorCount());
+    assertEquals(getMetadataRecordErrorCountLastMinute + 1, waitForMetric(input -> getLastMinuteStats(input.getGetMetadataRecordErrorCountHistory()), stats, 1L, 0L).longValue());
+}

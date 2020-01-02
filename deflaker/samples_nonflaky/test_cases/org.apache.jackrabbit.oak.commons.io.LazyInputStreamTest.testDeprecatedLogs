@@ -1,0 +1,15 @@
+@Test
+public void testDeprecatedLogs() throws IOException {
+    for (Level level : new Level[] { Level.DEBUG, Level.INFO, Level.WARN, Level.ERROR }) {
+        LogCustomizer lc = LogCustomizer.forLogger(GuavaDeprecation.class).enable(level).create();
+        lc.starting();
+        String defaultLevel = GuavaDeprecation.setLogLevel(level.toString().toLowerCase(Locale.ENGLISH));
+        try {
+            testDeprecated();
+            assertEquals(7, lc.getLogs().size());
+        } finally {
+            lc.finished();
+            GuavaDeprecation.setLogLevel(defaultLevel);
+        }
+    }
+}

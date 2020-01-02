@@ -1,0 +1,13 @@
+@Test
+public void evictionCount() {
+    Random rnd = new Random();
+    Weigher<String, Integer> weigher = CacheWeights.noopWeigher();
+    PriorityCache<String, Integer> cache = new PriorityCache<>(128, 2, weigher);
+    int count = 0;
+    for (int b = Byte.MIN_VALUE; b <= Byte.MAX_VALUE; b++) {
+        if (cache.put("k-" + b + "-" + rnd.nextInt(1000), b, 0, (byte) b)) {
+            count++;
+        }
+    }
+    assertEquals(count, cache.size() + cache.getStats().evictionCount());
+}

@@ -1,0 +1,49 @@
+/**
+ * Creates NB_THREADS microkernels, each committing two nodes (one parent,
+ * one child) in its own thread. The nodes being committed by separate
+ * threads do not overlap / conflict.
+ *
+ * @throws Exception
+ */
+@Test
+public void testConcurrentAdd() throws Exception {
+    // create workers
+    List<Callable<String>> cs = new LinkedList<Callable<String>>();
+    for (int i = 0; i < NB_THREADS; i++) {
+        // each callable has its own microkernel
+        // (try to assign a cluster id different from all other already existing nodes stores)
+        final DocumentMK mk = createMicroKernel(super.mk.getNodeStore().getClusterId() + 1 + i);
+        mks.add(mk);
+        // diff for adding one node and one child node
+        final List<String> stmts = new LinkedList<String>();
+        stmts.add("+\"node" + i + "\":{}");
+        stmts.add("+\"node" + i + "/child\":{}");
+        // create callable
+        Callable<String> c = new Callable<String>() {
+
+            @Override
+            public String call() throws Exception {
+                // commit all statements, one at a time
+                String r = null;
+                for (String stmt : stmts) {
+                    r = mk.commit("/", stmt, null, "msg");
+                }
+                return r;
+            }
+        };
+        cs.add(c);
+    }
+    // run workers concurrently
+    ExecutorService executor = Executors.newFixedThreadPool(NB_THREADS);
+    List<Future<String>> fs = new LinkedList<Future<String>>();
+    for (Callable<String> c : cs) {
+        fs.add(executor.submit(c));
+    }
+    executor.shutdown();
+    executor.awaitTermination(10, TimeUnit.SECONDS);
+    // get all results in order to verify if any of the threads has thrown
+    // an exception
+    for (Future<String> f : fs) {
+        f.get();
+    }
+}

@@ -1,0 +1,11 @@
+@Test
+public void fromSingleJournalEntry() throws Exception {
+    DocumentNodeStore ns = builderProvider.newBuilder().clock(clock).setAsyncDelay(0).getNodeStore();
+    DocumentNodeState s1 = ns.getRoot();
+    NodeBuilder builder = ns.getRoot().builder();
+    builder.child("foo");
+    merge(ns, builder);
+    DocumentNodeState s2 = ns.getRoot();
+    ns.runBackgroundOperations();
+    assertEquals(newHashSet("foo"), changeChildNodes(ns, s1, s2));
+}

@@ -1,0 +1,16 @@
+@Test
+public void childNodeDecorated() throws Exception {
+    setMetaProps(builder);
+    setMetaProps(builder.child("a"));
+    setMetaProps(builder.child("b"));
+    AbstractDocumentNodeState state = DelegatingDocumentNodeState.wrap(builder.getNodeState(), NodeStateDiffer.DEFAULT_DIFFER);
+    assertTrue(state.getChildNode("a") instanceof AbstractDocumentNodeState);
+    assertTrue(state.getChildNode("b") instanceof AbstractDocumentNodeState);
+    assertFalse(state.hasChildNode("c"));
+    assertFalse(state.getChildNode("c").exists());
+    assertFalse(state.hasNoChildren());
+    for (ChildNodeEntry cne : state.getChildNodeEntries()) {
+        assertTrue(cne.getNodeState() instanceof AbstractDocumentNodeState);
+    }
+    assertEquals(2, state.getChildNodeCount(100));
+}

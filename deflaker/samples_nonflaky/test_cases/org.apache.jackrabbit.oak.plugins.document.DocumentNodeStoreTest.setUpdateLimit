@@ -1,0 +1,13 @@
+@Test
+public void setUpdateLimit() throws Exception {
+    final int updateLimit = 17;
+    DocumentNodeStore ns = builderProvider.newBuilder().setUpdateLimit(updateLimit).setAsyncDelay(0).getNodeStore();
+    DocumentStore store = ns.getDocumentStore();
+    NodeBuilder builder = ns.getRoot().builder();
+    for (int i = 0; i <= updateLimit * 2; i++) {
+        builder.child("foo").setProperty("p-" + i, "value");
+    }
+    // must have created a branch commit
+    NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/foo"));
+    assertNotNull(doc);
+}

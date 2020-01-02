@@ -1,0 +1,19 @@
+/**
+ * Test to verify @FileDataStore is returned if cacheSize is not configured.
+ */
+@Test
+public void configFileDataStore() throws Exception {
+    String nasPath = folder.getRoot().getAbsolutePath() + "/NASPath";
+    String cachePath = folder.getRoot().getAbsolutePath() + "/cachePath";
+    Map<String, Object> config = new HashMap<String, Object>();
+    config.put("repository.home", folder.getRoot().getAbsolutePath());
+    config.put(FileDataStoreService.PATH, nasPath);
+    config.put(FileDataStoreService.CACHE_PATH, cachePath);
+    FileDataStoreService fdsSvc = new FileDataStoreService();
+    DataStore ds = fdsSvc.createDataStore(context.componentContext(), config);
+    PropertiesUtil.populate(ds, config, false);
+    ds.init(folder.getRoot().getAbsolutePath());
+    assertTrue("not instance of FileDataStore", ds instanceof FileDataStore);
+    FileDataStore fds = (FileDataStore) ds;
+    assertEquals("path not equal", nasPath, fds.getPath());
+}

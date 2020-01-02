@@ -1,0 +1,12 @@
+@Test
+public void testDSBSDownloadGetUriDBAStats() throws IOException, RepositoryException {
+    DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withGetDownloadURIDelay());
+    DataRecord rec = dsbs.addRecord(getTestInputStream());
+    long getBlobDownloadURICount = stats.getGetBlobDownloadURICount();
+    long getBlobDownloadURICountLastMinute = getLastMinuteStats(stats.getGetBlobDownloadURICountHistory());
+    long getBlobDownloadURITimeLastMinute = getLastMinuteStats(stats.getGetBlobDownloadURITimeHistory());
+    dsbs.getDownloadURI(new BlobStoreBlob(dsbs, rec.getIdentifier().toString()), BlobDownloadOptions.DEFAULT);
+    assertEquals(getBlobDownloadURICount + 1, stats.getGetBlobDownloadURICount());
+    assertEquals(getBlobDownloadURICountLastMinute + 1, waitForMetric(input -> getLastMinuteStats(input.getGetBlobDownloadURICountHistory()), stats, 1L, 0L).longValue());
+    assertTrue(getBlobDownloadURITimeLastMinute < waitForNonzeroMetric(input -> getLastMinuteStats(input.getGetBlobDownloadURITimeHistory()), stats));
+}

@@ -1,0 +1,15 @@
+@Test
+public void testGetPrincipalsForAdminUser() throws Exception {
+    Authorizable adminUser = getUserManager(root).getAuthorizable(adminSession.getAuthInfo().getUserID());
+    if (adminUser != null && adminUser.getPrincipal() instanceof AdminPrincipal) {
+        Set<? extends Principal> principals = principalProvider.getPrincipals(adminUser.getID());
+        for (Principal p : principals) {
+            String name = p.getName();
+            if (name.equals(adminUser.getPrincipal().getName())) {
+                assertTrue(p instanceof AdminPrincipalImpl);
+            } else if (!EveryonePrincipal.NAME.equals(name)) {
+                assertTrue(p instanceof AbstractGroupPrincipal);
+            }
+        }
+    }
+}

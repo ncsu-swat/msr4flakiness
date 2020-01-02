@@ -1,0 +1,17 @@
+@Test
+public void testUncleanStop() throws URISyntaxException, IOException, InvalidFileStoreVersionException, CommitFailedException, StorageException {
+    AzurePersistence p = new AzurePersistence(container.getDirectoryReference("oak"));
+    FileStore fs = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(p).build();
+    SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(fs).build();
+    NodeBuilder builder = segmentNodeStore.getRoot().builder();
+    builder.setProperty("foo", "bar");
+    segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    fs.close();
+    container.getBlockBlobReference("oak/data00000a.tar/closed").delete();
+    container.getBlockBlobReference("oak/data00000a.tar/data00000a.tar.brf").delete();
+    container.getBlockBlobReference("oak/data00000a.tar/data00000a.tar.gph").delete();
+    fs = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(p).build();
+    segmentNodeStore = SegmentNodeStoreBuilders.builder(fs).build();
+    assertEquals("bar", segmentNodeStore.getRoot().getString("foo"));
+    fs.close();
+}

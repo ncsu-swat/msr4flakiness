@@ -1,0 +1,11 @@
+@Test
+public void testExceedUpdateLimit() throws Exception {
+    Compactor compactor = createCompactor(fileStore, null);
+    addNodes(nodeStore, Compactor.UPDATE_LIMIT * 2 + 1);
+    SegmentNodeState uncompacted = (SegmentNodeState) nodeStore.getRoot();
+    SegmentNodeState compacted = compactor.compact(uncompacted, Canceller.newCanceller());
+    assertNotNull(compacted);
+    assertFalse(uncompacted == compacted);
+    assertEquals(uncompacted, compacted);
+    assertEquals(uncompacted.getSegment().getGcGeneration().nextFull(), compacted.getSegment().getGcGeneration());
+}

@@ -1,0 +1,17 @@
+@Test
+public void builderDepthMoreThanChangeSet() throws Exception {
+    ChangeSetBuilder cb1 = new ChangeSetBuilder(10, 8);
+    cb1.addParentPath("/p");
+    cb1.addParentPath("/p/q");
+    cb1.addParentPath("/p/q/r");
+    cb1.addParentPath("/a/b/c/d");
+    cb1.addParentPath("/a/b/x/y/z");
+    ChangeSetBuilder cb2 = new ChangeSetBuilder(10, 2);
+    cb2.addParentPath("/x");
+    cb2.addParentPath("/x/y");
+    cb1.add(cb2.build());
+    ChangeSet cs = cb1.build();
+    assertThat(cs.getParentPaths(), containsInAnyOrder("/x", "/x/y", "/p", "/p/q", // Chopped paths
+    "/a/b"));
+    assertEquals(cb2.getMaxPrefilterPathDepth(), cs.getMaxPrefilterPathDepth());
+}

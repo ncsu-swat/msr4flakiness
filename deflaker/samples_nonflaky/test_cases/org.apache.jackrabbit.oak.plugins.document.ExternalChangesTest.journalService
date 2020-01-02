@@ -1,0 +1,32 @@
+@Test
+public void journalService() throws Exception {
+    wb.register(JournalPropertyService.class, new TestJournalService(), null);
+    // Do a dummy write so that journal property handler gets refreshed
+    // and picks our newly registered service
+    NodeBuilder b0 = ns1.getRoot().builder();
+    b0.child("0");
+    ns1.merge(b0, newCollectingHook(), newCommitInfo());
+    ns1.runBackgroundUpdateOperations();
+    NodeBuilder b1 = ns1.getRoot().builder();
+    b1.child("a");
+    CommitContext cc = new SimpleCommitContext();
+    cc.set(TestProperty.NAME, new TestProperty("foo"));
+    ns1.merge(b1, newCollectingHook(), newCommitInfo(cc));
+    NodeBuilder b2 = ns1.getRoot().builder();
+    b2.child("b");
+    cc = new SimpleCommitContext();
+    cc.set(TestProperty.NAME, new TestProperty("bar"));
+    ns1.merge(b2, newCollectingHook(), newCommitInfo(cc));
+    // null entry
+    NodeBuilder b3 = ns1.getRoot().builder();
+    b3.child("c");
+    ns1.merge(b3, newCollectingHook(), newCommitInfo());
+    ns1.runBackgroundUpdateOperations();
+    c2.reset();
+    ns2.runBackgroundReadOperations();
+    CommitInfo ci = c2.getExternalChange();
+    cc = (CommitContext) ci.getInfo().get(CommitContext.NAME);
+    CumulativeTestProperty ct = (CumulativeTestProperty) cc.get(TestProperty.NAME);
+    assertNotNull(ct);
+    assertThat(ct.values, containsInAnyOrder("foo", "bar", "NULL"));
+}

@@ -1,0 +1,56 @@
+// OAK-2620
+@Test
+public void nonBlockingReset() throws Exception {
+    final List<String> failure = Lists.newArrayList();
+    final AtomicReference<ReentrantReadWriteLock> mergeLock = new AtomicReference<ReentrantReadWriteLock>();
+    MemoryDocumentStore store = new MemoryDocumentStore() {
+
+        @Override
+        public <T extends Document> T findAndUpdate(Collection<T> collection, UpdateOp update) {
+            for (Map.Entry<Key, Operation> entry : update.getChanges().entrySet()) {
+                if (entry.getKey().getName().equals(NodeDocument.COLLISIONS)) {
+                    ReentrantReadWriteLock rwLock = mergeLock.get();
+                    if (rwLock.getReadHoldCount() > 0 || rwLock.getWriteHoldCount() > 0) {
+                        failure.add("Branch reset still holds merge lock");
+                        break;
+                    }
+                }
+            }
+            return super.findAndUpdate(collection, update);
+        }
+    };
+    DocumentNodeStore ds = builderProvider.newBuilder().setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+    // do not retry merges
+    ds.setMaxBackOffMillis(0);
+    DocumentNodeState root = ds.getRoot();
+    final DocumentNodeStoreBranch b = ds.createBranch(root);
+    // branch state is now Unmodified
+    assertTrue(b.getMergeLock() instanceof ReentrantReadWriteLock);
+    mergeLock.set((ReentrantReadWriteLock) b.getMergeLock());
+    NodeBuilder builder = root.builder();
+    builder.child("foo");
+    b.setRoot(builder.getNodeState());
+    // branch state is now InMemory
+    builder.child("bar");
+    b.setRoot(builder.getNodeState());
+    // branch state is now Persisted
+    try {
+        b.merge(new CommitHook() {
+
+            @NotNull
+            @Override
+            public NodeState processCommit(NodeState before, NodeState after, CommitInfo info) throws CommitFailedException {
+                NodeBuilder foo = after.builder().child("foo");
+                for (int i = 0; i <= DocumentMK.UPDATE_LIMIT; i++) {
+                    foo.setProperty("prop", i);
+                }
+                throw new CommitFailedException("Fail", 0, "");
+            }
+        }, CommitInfo.EMPTY);
+    } catch (CommitFailedException e) {
+    // expected
+    }
+    for (String s : failure) {
+        fail(s);
+    }
+}

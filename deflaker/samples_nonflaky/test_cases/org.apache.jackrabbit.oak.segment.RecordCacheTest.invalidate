@@ -1,0 +1,22 @@
+@Test
+public void invalidate() {
+    RecordCache<String> cache = newRecordCache(10);
+    Map<String, RecordId> keys = newLinkedHashMap();
+    for (int k = 0; k < 10; k++) {
+        String key = "key-" + k;
+        RecordId value = newRecordId(idProvider, rnd);
+        keys.put(key, value);
+        cache.put(key, value);
+    }
+    for (Entry<String, RecordId> entry : keys.entrySet()) {
+        assertEquals(entry.getKey() + " should be in the cache", entry.getValue(), cache.get(entry.getKey()));
+    }
+    RecordId value = newRecordId(idProvider, rnd);
+    // This should invalidate "key-0", which is the least recently accessed key
+    cache.put("key", value);
+    keys.put("key", value);
+    keys.remove("key-0");
+    for (Entry<String, RecordId> entry : keys.entrySet()) {
+        assertEquals(entry.getKey() + " should be in the cache", entry.getValue(), cache.get(entry.getKey()));
+    }
+}

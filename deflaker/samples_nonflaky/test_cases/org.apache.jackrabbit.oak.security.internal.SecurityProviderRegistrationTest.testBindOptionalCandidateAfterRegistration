@@ -1,0 +1,11 @@
+@Test
+public void testBindOptionalCandidateAfterRegistration() {
+    registration.activate(context.bundleContext(), configWithRequiredServiceIds("serviceId"));
+    registration.bindTokenConfiguration(mockConfiguration(TokenConfiguration.class), ImmutableMap.of(SERVICE_PID, "serviceId"));
+    SecurityProvider service = context.getService(SecurityProvider.class);
+    assertNotNull(service);
+    // binding another (optional configuration) must not result in re-registration of the service
+    registration.bindPrincipalConfiguration(mockConfiguration(PrincipalConfiguration.class), ImmutableMap.of(SERVICE_PID, "optionalService"));
+    SecurityProvider service2 = context.getService(SecurityProvider.class);
+    assertSame(service, service2);
+}

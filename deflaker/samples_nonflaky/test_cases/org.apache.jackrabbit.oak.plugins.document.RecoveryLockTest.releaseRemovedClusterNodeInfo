@@ -1,0 +1,12 @@
+@Test
+public void releaseRemovedClusterNodeInfo() throws Exception {
+    clock.waitUntil(info1.getLeaseEndTime() + DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS);
+    assertTrue(lock1.acquireRecoveryLock(2));
+    store.remove(CLUSTER_NODES, String.valueOf(info1.getId()));
+    try {
+        lock1.releaseRecoveryLock(false);
+        fail("Must fail with DocumentStoreException");
+    } catch (DocumentStoreException e) {
+        assertThat(e.getMessage(), containsString("does not exist"));
+    }
+}

@@ -1,0 +1,12 @@
+@Test
+public void testChangingTokenKey() throws Exception {
+    TokenInfo info = createTokenInfo(tokenProvider, userId);
+    Tree tokenTree = getTokenTree(info);
+    try {
+        tokenTree.setProperty(TOKEN_ATTRIBUTE_KEY, PasswordUtil.buildPasswordHash("anotherValue"));
+        root.commit(CommitMarker.asCommitAttributes());
+        fail("The token key must never be modified.");
+    } catch (CommitFailedException e) {
+        assertEquals(61, e.getCode());
+    }
+}

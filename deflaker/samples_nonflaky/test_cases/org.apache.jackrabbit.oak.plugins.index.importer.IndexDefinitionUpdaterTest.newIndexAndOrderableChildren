@@ -1,0 +1,16 @@
+@Test
+public void newIndexAndOrderableChildren() throws Exception {
+    String json = "{\"/oak:index/barIndex\": {\n" + "    \"compatVersion\": 2,\n" + "    \"type\": \"lucene\",\n" + "    \"barIndexProp\": \"barbar\",\n" + "    \"async\": \"async\",\n" + "    \"jcr:primaryType\": \"oak:QueryIndexDefinition\"\n" + "  }}";
+    NodeBuilder builder = store.getRoot().builder();
+    Tree root = TreeFactory.createTree(builder);
+    Tree oakIndex = root.addChild("oak:index");
+    oakIndex.setOrderableChildren(true);
+    Tree fooIndex = oakIndex.addChild("fooIndex");
+    store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    IndexDefinitionUpdater updater = new IndexDefinitionUpdater(json);
+    builder = store.getRoot().builder();
+    NodeBuilder idxBuilder = updater.apply(builder, "/oak:index/barIndex");
+    PropertyState childOrder = builder.getChildNode("oak:index").getProperty(":childOrder");
+    List<String> names = ImmutableList.copyOf(childOrder.getValue(Type.NAMES));
+    assertEquals(asList("fooIndex", "barIndex"), names);
+}

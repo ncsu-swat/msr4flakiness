@@ -1,0 +1,20 @@
+@Test
+public void testGetMixinTypeNamesPresentNotAccessible() throws Exception {
+    Tree testTree = TreeUtil.addChild(root.getTree("/"), "test", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+    TreeUtil.addMixin(testTree, "mix:title", root.getTree(NodeTypeConstants.NODE_TYPES_PATH), "uid");
+    root.commit();
+    String path = testTree.getPath();
+    Iterable<String> expected = TreeUtil.getMixinTypeNames(root.getTree(path));
+    assertTrue(Iterables.contains(expected, "mix:title"));
+    try (ContentSession cs = login(new GuestCredentials())) {
+        Root guestRoot = cs.getLatestRoot();
+        assertTrue(Iterables.isEmpty(TreeUtil.getMixinTypeNames(guestRoot.getTree(path))));
+        assertTrue(Iterables.elementsEqual(expected, TreeUtil.getMixinTypeNames(guestRoot.getTree(path), new LazyValue<Tree>() {
+
+            @Override
+            protected Tree createValue() {
+                return testTree;
+            }
+        })));
+    }
+}

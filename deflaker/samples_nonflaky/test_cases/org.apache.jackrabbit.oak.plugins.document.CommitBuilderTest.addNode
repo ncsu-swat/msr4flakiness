@@ -1,0 +1,23 @@
+@Test
+public void addNode() {
+    RevisionVector baseRev = ns.getHeadRevision();
+    Path foo = Path.fromString("/foo");
+    CommitBuilder builder = new CommitBuilder(ns, baseRev);
+    builder.addNode(foo);
+    Commit c = builder.build(ns.newRevision());
+    assertNotNull(c);
+    assertFalse(c.isEmpty());
+}
+private DocumentNodeState addNode(String name) {
+    NodeBuilder nb = ns.getRoot().builder();
+    assertTrue(nb.child(name).isNew());
+    try {
+        merge(ns, nb);
+    } catch (CommitFailedException e) {
+        fail(e.getMessage());
+    }
+    NodeState child = ns.getRoot().getChildNode(name);
+    assertTrue(child.exists());
+    assertTrue(child instanceof DocumentNodeState);
+    return (DocumentNodeState) child;
+}

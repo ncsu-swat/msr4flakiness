@@ -1,0 +1,11 @@
+@Test
+public void shouldCopyFromMultipleSources() throws CommitFailedException, IOException {
+    final NodeStore source1 = createNodeStoreWithContent("/content/foo/en", "/content/foo/de");
+    final NodeStore source2 = createNodeStoreWithContent("/content/bar/en", "/content/bar/de", "/content/baz/en");
+    final NodeStore target = createNodeStoreWithContent();
+    final NodeState before = target.getRoot();
+    builder().include("/content/foo").copy(source1, target);
+    builder().include("/content/bar").exclude("/content/bar/de").copy(source2, target);
+    final NodeState after = target.getRoot();
+    expectDifference().strict().childNodeAdded("/content", "/content/foo", "/content/foo/en", "/content/foo/de", "/content/bar", "/content/bar/en").verify(before, after);
+}

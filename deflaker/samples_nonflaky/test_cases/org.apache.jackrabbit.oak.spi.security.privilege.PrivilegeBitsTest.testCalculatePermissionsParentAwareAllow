@@ -1,0 +1,20 @@
+@Test
+public void testCalculatePermissionsParentAwareAllow() {
+    PrivilegeBitsProvider provider = new PrivilegeBitsProvider(mock(Root.class));
+    // parent aware permissions
+    // a) jcr:addChildNodes
+    PrivilegeBits addChild = provider.getBits(JCR_ADD_CHILD_NODES);
+    assertNotEquals(Permissions.ADD_NODE, PrivilegeBits.calculatePermissions(addChild, PrivilegeBits.EMPTY, true));
+    assertEquals(Permissions.ADD_NODE, PrivilegeBits.calculatePermissions(PrivilegeBits.EMPTY, addChild, true));
+    // b) jcr:removeChildNodes and jcr:removeNode
+    PrivilegeBits removeChild = provider.getBits(JCR_REMOVE_CHILD_NODES);
+    assertNotEquals(Permissions.REMOVE_NODE, PrivilegeBits.calculatePermissions(removeChild, PrivilegeBits.EMPTY, true));
+    assertNotEquals(Permissions.REMOVE_NODE, PrivilegeBits.calculatePermissions(PrivilegeBits.EMPTY, removeChild, true));
+    PrivilegeBits removeNode = provider.getBits(JCR_REMOVE_NODE);
+    assertNotEquals(Permissions.REMOVE_NODE, PrivilegeBits.calculatePermissions(removeNode, PrivilegeBits.EMPTY, true));
+    assertNotEquals(Permissions.REMOVE_NODE, PrivilegeBits.calculatePermissions(PrivilegeBits.EMPTY, removeNode, true));
+    PrivilegeBits remove = provider.getBits(JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE);
+    assertNotEquals(Permissions.REMOVE_NODE, PrivilegeBits.calculatePermissions(remove, PrivilegeBits.EMPTY, true));
+    assertNotEquals(Permissions.REMOVE_NODE, PrivilegeBits.calculatePermissions(PrivilegeBits.EMPTY, remove, true));
+    assertEquals(Permissions.REMOVE_NODE, PrivilegeBits.calculatePermissions(remove, remove, true));
+}

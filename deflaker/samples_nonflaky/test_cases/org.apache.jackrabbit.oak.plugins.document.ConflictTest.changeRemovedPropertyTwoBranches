@@ -1,0 +1,16 @@
+@Test
+public void changeRemovedPropertyTwoBranches() {
+    String rev = mk.commit("/", "+\"foo\":{\"prop\":\"value\"}", null, null);
+    String branchRev1 = mk.branch(rev);
+    branchRev1 = mk.commit("/foo", "^\"prop\":\"bar\"", branchRev1, null);
+    String branchRev2 = mk.branch(rev);
+    // will mark collision on branchRev1
+    branchRev2 = mk.commit("/foo", "^\"prop\":null", branchRev2, null);
+    mk.merge(branchRev2, null);
+    try {
+        mk.merge(branchRev1, null);
+        fail("Must fail with conflict for changeRemovedProperty");
+    } catch (DocumentStoreException e) {
+    // expected
+    }
+}

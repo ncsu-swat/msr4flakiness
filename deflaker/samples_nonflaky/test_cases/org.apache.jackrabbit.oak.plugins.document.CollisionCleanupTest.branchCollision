@@ -1,0 +1,27 @@
+@Test
+public void branchCollision() throws Exception {
+    NodeBuilder builder = ns1.getRoot().builder();
+    builder.child("conflict");
+    // trigger a branch commit
+    for (int i = 0; i < 200; i++) {
+        builder.child("n-" + i).setProperty("p", "v");
+    }
+    // this one wins and will create a collision marker
+    NodeBuilder b2 = ns1.getRoot().builder();
+    b2.child("conflict");
+    merge(ns1, b2);
+    NodeDocument doc = Utils.getRootDocument(ns1.getDocumentStore());
+    assertThat(doc.getLocalMap(COLLISIONS).keySet(), hasSize(1));
+    // must not clean up marker
+    ns1.addSplitCandidate(Utils.getIdFromPath("/"));
+    ns1.runBackgroundOperations();
+    doc = Utils.getRootDocument(ns1.getDocumentStore());
+    assertThat(doc.getLocalMap(COLLISIONS).keySet(), hasSize(1));
+    // must not be able to merge
+    try {
+        merge(ns1, builder);
+        fail("CommitFailedException expected");
+    } catch (CommitFailedException e) {
+    // expected
+    }
+}

@@ -1,0 +1,68 @@
+@Test
+public void getNewestRevision() throws Exception {
+    MemoryDocumentStore store = new MemoryDocumentStore();
+    DocumentNodeStore ns1 = createTestStore(store, 1, 0);
+    DocumentNodeStore ns2 = createTestStore(store, 2, 0);
+    NodeBuilder b1 = ns1.getRoot().builder();
+    b1.child("test");
+    merge(ns1, b1);
+    RevisionVector headCreated = ns1.getHeadRevision();
+    Revision created = headCreated.getRevision(ns1.getClusterId());
+    NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test"));
+    Set<Revision> collisions = newHashSet();
+    Revision newest = doc.getNewestRevision(ns1, ns1.getHeadRevision(), ns1.newRevision(), null, collisions);
+    assertEquals(created, newest);
+    assertEquals(0, collisions.size());
+    // from ns2 POV newest must be null, because the node is not yet visible
+    newest = doc.getNewestRevision(ns2, ns2.getHeadRevision(), ns2.newRevision(), null, collisions);
+    assertNull(newest);
+    assertEquals(1, collisions.size());
+    assertEquals(created, collisions.iterator().next());
+    ns1.runBackgroundOperations();
+    ns2.runBackgroundOperations();
+    collisions.clear();
+    // now ns2 sees /test
+    doc = store.find(NODES, Utils.getIdFromPath("/test"));
+    newest = doc.getNewestRevision(ns2, ns2.getHeadRevision(), ns2.newRevision(), null, collisions);
+    assertEquals(created, newest);
+    assertEquals(0, collisions.size());
+    Revision uncommitted = ns1.newRevision();
+    UpdateOp op = new UpdateOp(Utils.getIdFromPath("/test"), false);
+    NodeDocument.setCommitRoot(op, uncommitted, 0);
+    op.setMapEntry("p", uncommitted, "v");
+    assertNotNull(store.findAndUpdate(NODES, op));
+    collisions.clear();
+    // ns1 must report uncommitted in collisions
+    doc = store.find(NODES, Utils.getIdFromPath("/test"));
+    newest = doc.getNewestRevision(ns1, ns1.getHeadRevision(), ns1.newRevision(), null, collisions);
+    assertEquals(created, newest);
+    assertEquals(1, collisions.size());
+    assertEquals(uncommitted, collisions.iterator().next());
+    collisions.clear();
+    // ns2 must report uncommitted in collisions
+    newest = doc.getNewestRevision(ns2, ns2.getHeadRevision(), ns2.newRevision(), null, collisions);
+    assertEquals(created, newest);
+    assertEquals(1, collisions.size());
+    assertEquals(uncommitted, collisions.iterator().next());
+    b1 = ns1.getRoot().builder();
+    b1.child("test").setProperty("q", "v");
+    merge(ns1, b1);
+    Revision committed = ns1.getHeadRevision().getRevision(ns1.getClusterId());
+    collisions.clear();
+    // ns1 must now report committed revision as newest
+    // uncommitted is not considered a collision anymore
+    // because it is older than the base revision
+    doc = store.find(NODES, Utils.getIdFromPath("/test"));
+    newest = doc.getNewestRevision(ns1, headCreated, ns1.newRevision(), null, collisions);
+    assertEquals(committed, newest);
+    assertEquals(0, collisions.size());
+    // ns2 must report committed revision as collision because
+    // it is not yet visible. newest is when the node was created
+    newest = doc.getNewestRevision(ns2, ns2.getHeadRevision(), ns2.newRevision(), null, collisions);
+    assertEquals(created, newest);
+    assertEquals(2, collisions.size());
+    assertTrue(collisions.contains(uncommitted));
+    assertTrue(collisions.contains(committed));
+    ns1.dispose();
+    ns2.dispose();
+}

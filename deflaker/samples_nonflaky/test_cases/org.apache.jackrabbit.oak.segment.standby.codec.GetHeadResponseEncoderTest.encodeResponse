@@ -1,0 +1,13 @@
+@Test
+public void encodeResponse() throws Exception {
+    String recordId = "recordId";
+    byte[] recordIdBytes = recordId.getBytes(Charsets.UTF_8);
+    EmbeddedChannel channel = new EmbeddedChannel(new GetHeadResponseEncoder());
+    channel.writeOutbound(new GetHeadResponse("clientId", "recordId"));
+    ByteBuf buffer = (ByteBuf) channel.readOutbound();
+    ByteBuf expected = Unpooled.buffer();
+    expected.writeInt(recordIdBytes.length + 1);
+    expected.writeByte(Messages.HEADER_RECORD);
+    expected.writeBytes(recordIdBytes);
+    assertEquals(expected, buffer);
+}

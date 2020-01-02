@@ -1,0 +1,21 @@
+@Test
+public void testModifyCache() throws Exception {
+    List<PropertyState> props = new ArrayList();
+    props.add(PropertyStates.createProperty(CacheConstants.REP_EXPIRATION, 25));
+    props.add(PropertyStates.createProperty(CacheConstants.REP_GROUP_PRINCIPAL_NAMES, EveryonePrincipal.NAME));
+    props.add(PropertyStates.createProperty(JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME));
+    props.add(PropertyStates.createProperty("residualProp", "anyvalue"));
+    Tree cache = getCache(getTestUser());
+    for (PropertyState prop : props) {
+        try {
+            cache.setProperty(prop);
+            root.commit(CacheValidatorProvider.asCommitAttributes());
+            fail("Modifying rep:cache node below a user or group must fail.");
+        } catch (CommitFailedException e) {
+            assertTrue(e.isConstraintViolation());
+            assertEquals(34, e.getCode());
+        } finally {
+            root.refresh();
+        }
+    }
+}

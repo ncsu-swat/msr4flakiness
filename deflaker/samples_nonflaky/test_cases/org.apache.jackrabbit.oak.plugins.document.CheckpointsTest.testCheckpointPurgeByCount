@@ -1,0 +1,17 @@
+@Test
+public void testCheckpointPurgeByCount() throws Exception {
+    long expiryTime = TimeUnit.HOURS.toMillis(1);
+    String head = store.getHeadRevision().toString();
+    for (int i = 0; i < Checkpoints.CLEANUP_INTERVAL; i++) {
+        store.checkpoint(expiryTime);
+        store.setRoot(new RevisionVector(Revision.newRevision(store.getClusterId())));
+    }
+    assertEquals(head, store.getCheckpoints().getOldestRevisionToKeep().toString());
+    assertEquals(Checkpoints.CLEANUP_INTERVAL, store.getCheckpoints().size());
+    // Trigger expiry by forwarding the clock to future
+    clock.waitUntil(clock.getTime() + expiryTime);
+    // Now creating the next checkpoint should trigger
+    // cleanup
+    store.checkpoint(expiryTime);
+    assertEquals(1, store.getCheckpoints().size());
+}

@@ -1,0 +1,9 @@
+@Test
+public void testGetMembershipPrincipalsFailsOnUser() throws Exception {
+    Principal p = testUser.getPrincipal();
+    User userMock = when(mock(User.class).memberOf()).thenThrow(new RepositoryException()).getMock();
+    UserManager um = when(mock(UserManager.class).getAuthorizable(p)).thenReturn(userMock).getMock();
+    assertEquals(Sets.newHashSet(EveryonePrincipal.getInstance()), createPrincipalProvider(um).getMembershipPrincipals(p));
+    verify(um, times(1)).getAuthorizable(p);
+    verify(userMock, times(1)).memberOf();
+}

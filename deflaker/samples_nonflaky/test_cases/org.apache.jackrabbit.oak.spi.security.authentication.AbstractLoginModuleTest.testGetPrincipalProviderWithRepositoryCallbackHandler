@@ -1,0 +1,12 @@
+@Test
+public void testGetPrincipalProviderWithRepositoryCallbackHandler() throws Exception {
+    Root r = mock(Root.class);
+    ContentSession cs = when(mock(ContentSession.class).getLatestRoot()).thenReturn(r).getMock();
+    ContentRepository cp = when(mock(ContentRepository.class).login(null, null)).thenReturn(cs).getMock();
+    PrincipalProvider pp = mock(PrincipalProvider.class);
+    PrincipalConfiguration pc = when(mock(PrincipalConfiguration.class).getPrincipalProvider(r, NamePathMapper.DEFAULT)).thenReturn(pp).getMock();
+    SecurityProvider sp = when(mock(SecurityProvider.class).getConfiguration(PrincipalConfiguration.class)).thenReturn(pc).getMock();
+    CallbackHandler cbh = new TestCallbackHandler(cp, sp);
+    AbstractLoginModule loginModule = initLoginModule(cbh);
+    assertEquals(pp, loginModule.getPrincipalProvider());
+}

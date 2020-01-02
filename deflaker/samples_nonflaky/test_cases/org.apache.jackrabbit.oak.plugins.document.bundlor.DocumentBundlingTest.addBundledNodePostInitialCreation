@@ -1,0 +1,18 @@
+@Test
+public void addBundledNodePostInitialCreation() throws Exception {
+    NodeBuilder builder = store.getRoot().builder();
+    NodeBuilder appNB = newNode("app:Asset");
+    createChild(appNB, "jcr:content", // not bundled
+    "jcr:content/comments", "jcr:content/metadata", // not bundled
+    "jcr:content/metadata/xmp", // includes all
+    "jcr:content/renditions", "jcr:content/renditions/original", "jcr:content/renditions/original/jcr:content");
+    builder.child("test").setChildNode("book.jpg", appNB.getNodeState());
+    merge(builder);
+    builder = store.getRoot().builder();
+    NodeBuilder renditions = childBuilder(builder, "/test/book.jpg/jcr:content/renditions");
+    renditions.child("small").child("jcr:content");
+    NodeState appNode_v2 = childBuilder(builder, "/test/book.jpg").getNodeState();
+    merge(builder);
+    assertThat(childNames(getLatestNode("/test/book.jpg"), "jcr:content/renditions"), hasItems("original", "small"));
+    assertTrue(AssertingDiff.assertEquals(getLatestNode("/test/book.jpg"), appNode_v2));
+}

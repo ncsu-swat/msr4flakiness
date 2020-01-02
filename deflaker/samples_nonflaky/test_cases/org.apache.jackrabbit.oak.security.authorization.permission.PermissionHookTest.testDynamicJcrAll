@@ -1,0 +1,47 @@
+/**
+ * @see <a href="https://issues.apache.org/jira/browse/OAK-2015">OAK-2015</a>
+ */
+@Test
+public void testDynamicJcrAll() throws Exception {
+    AccessControlManager acMgr = getAccessControlManager(root);
+    // grant 'everyone' jcr:all at the child path.
+    JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, childPath);
+    acl.addAccessControlEntry(EveryonePrincipal.getInstance(), privilegesFromNames(JCR_ALL));
+    acMgr.setPolicy(childPath, acl);
+    root.commit();
+    // verify that the permission store contains an entry for everyone at childPath
+    // and the privilegeBits for jcr:all are reflect with a placeholder value.
+    Tree allEntry = getEntry(EveryonePrincipal.getInstance(), childPath, 0);
+    assertTrue(allEntry.exists());
+    PropertyState ps = allEntry.getProperty(PermissionConstants.REP_PRIVILEGE_BITS);
+    assertEquals(1, ps.count());
+    assertTrue(JcrAllUtil.denotesDynamicJcrAll(ps));
+    // verify that the permission provider still exposes the correct privilege
+    // (jcr:all) for the given childPath irrespective of the dynamic nature of
+    // the privilege bits in the persisted permission entry.
+    Set<Principal> principalSet = ImmutableSet.<Principal>of(EveryonePrincipal.getInstance());
+    PermissionProvider permissionProvider = getConfig(AuthorizationConfiguration.class).getPermissionProvider(root, root.getContentSession().getWorkspaceName(), principalSet);
+    Tree childTree = root.getTree(childPath);
+    assertTrue(permissionProvider.hasPrivileges(childTree, PrivilegeConstants.JCR_ALL));
+    assertTrue(permissionProvider.getPrivileges(childTree).contains(PrivilegeConstants.JCR_ALL));
+    // also verify the permission evaluation
+    long diff = Permissions.diff(Permissions.ALL, Permissions.REMOVE_NODE | Permissions.ADD_NODE);
+    assertFalse(permissionProvider.isGranted(childTree, null, Permissions.REMOVE_NODE));
+    assertFalse(permissionProvider.isGranted(childTree, null, Permissions.ADD_NODE));
+    assertTrue(permissionProvider.isGranted(childTree, null, diff));
+    // remove the ACE again
+    acl = AccessControlUtils.getAccessControlList(acMgr, childPath);
+    for (AccessControlEntry ace : acl.getAccessControlEntries()) {
+        if (EveryonePrincipal.NAME.equals(ace.getPrincipal().getName())) {
+            acl.removeAccessControlEntry(ace);
+        }
+    }
+    acMgr.setPolicy(childPath, acl);
+    root.commit();
+    // verify that the corresponding permission entry has been removed.
+    Tree everyoneRoot = getPrincipalRoot(EveryonePrincipal.getInstance());
+    Tree parent = everyoneRoot.getChild(PermissionUtil.getEntryName(childPath));
+    if (parent.exists()) {
+        assertFalse(parent.getChild("0").exists());
+    }
+}

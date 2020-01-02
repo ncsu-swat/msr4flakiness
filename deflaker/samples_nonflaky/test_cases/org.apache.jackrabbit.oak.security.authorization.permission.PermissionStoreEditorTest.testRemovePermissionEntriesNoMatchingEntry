@@ -1,0 +1,21 @@
+@Test
+public void testRemovePermissionEntriesNoMatchingEntry() {
+    NodeState ace = mockACE(PRINCIPAL_NAME);
+    NodeState nodeState = mockNodeState(ace);
+    PropertyState nonMatchingPathProp = PropertyStates.createProperty(REP_ACCESS_CONTROLLED_PATH, "/noMatch");
+    NodeBuilder parent = when(mock(NodeBuilder.class).exists()).thenReturn(true).getMock();
+    when(parent.getProperty(REP_ACCESS_CONTROLLED_PATH)).thenReturn(nonMatchingPathProp);
+    when(parent.getChildNodeNames()).thenReturn(ImmutableSet.of("collision"));
+    when(parent.getChildNode(anyString())).thenReturn(parent);
+    NodeBuilder principalRoot = when(mock(NodeBuilder.class).getChildNode(anyString())).thenReturn(parent).getMock();
+    NodeBuilder permissionsRoot = mock(NodeBuilder.class);
+    when(permissionsRoot.hasChildNode(PRINCIPAL_NAME)).thenReturn(true);
+    when(permissionsRoot.getChildNode(PRINCIPAL_NAME)).thenReturn(principalRoot);
+    PermissionStoreEditor editor = createPermissionStoreEditor(nodeState, permissionsRoot);
+    editor.removePermissionEntries();
+    verify(parent, times(1)).exists();
+    verify(parent, times(1)).getChildNodeNames();
+    verify(parent, times(1)).getChildNode("collision");
+    verify(parent, times(2)).getProperty(REP_ACCESS_CONTROLLED_PATH);
+    verify(parent, never()).remove();
+}

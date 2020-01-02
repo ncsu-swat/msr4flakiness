@@ -1,0 +1,11 @@
+@Test
+public void testBindAuthenticationConfigWithLoginModuleStatsCollector() throws Exception {
+    registration.activate(context.bundleContext(), configWithRequiredServiceIds("authorizationId"));
+    AuthenticationConfiguration ac = mock(AuthenticationConfiguration.class, withSettings().extraInterfaces(LoginModuleStatsCollector.class));
+    when(ac.getParameters()).thenReturn(ConfigurationParameters.EMPTY);
+    when(ac.getContext()).thenReturn(mock(Context.class));
+    registration.bindAuthenticationConfiguration(ac);
+    // trigger maybeRegister
+    registration.bindAuthorizationConfiguration(mockConfiguration(AuthorizationConfiguration.class), ConfigurationParameters.of(OAK_SECURITY_NAME, "authorizationId"));
+    verify(((LoginModuleStatsCollector) ac), times(1)).setLoginModuleMonitor(any(LoginModuleMonitor.class));
+}

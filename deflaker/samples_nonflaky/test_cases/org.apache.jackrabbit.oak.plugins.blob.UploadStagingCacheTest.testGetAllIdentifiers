@@ -1,0 +1,20 @@
+/**
+ * GetAllIdentifiers after staging before upload.
+ * @throws Exception
+ */
+@Test
+public void testGetAllIdentifiers() throws Exception {
+    // add load
+    List<ListenableFuture<Integer>> futures = put(folder);
+    // Check getAllIdentifiers
+    Iterator<String> idsIter = stagingCache.getAllIdentifiers();
+    assertEquals(ID_PREFIX + 0, Iterators.getOnlyElement(idsIter));
+    // start
+    taskLatch.countDown();
+    callbackLatch.countDown();
+    assertFuture(futures, 0);
+    assertCacheStats(stagingCache, 0, 0, 1, 1);
+    // Should not return anything
+    idsIter = stagingCache.getAllIdentifiers();
+    assertEquals(0, Iterators.size(idsIter));
+}

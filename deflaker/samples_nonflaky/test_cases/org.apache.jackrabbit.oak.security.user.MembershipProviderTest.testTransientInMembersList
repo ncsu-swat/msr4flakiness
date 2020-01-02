@@ -1,0 +1,18 @@
+@Test
+public void testTransientInMembersList() throws Exception {
+    Group g = createGroup();
+    createMembers(g, NUM_USERS / 2);
+    root.commit();
+    // add another transient member that will end up in the members-ref-list
+    User u = createUser();
+    g.addMember(u);
+    Tree groupTree = getTree(g);
+    Tree memberTree = getTree(u);
+    assertTrue(mp.isDeclaredMember(groupTree, memberTree));
+    assertTrue(mp.isMember(groupTree, memberTree));
+    assertFalse(Iterators.contains(mp.getMembership(memberTree, false), groupTree.getPath()));
+    assertFalse(Iterators.contains(mp.getMembership(memberTree, true), groupTree.getPath()));
+    root.commit();
+    assertTrue(Iterators.contains(mp.getMembership(memberTree, false), groupTree.getPath()));
+    assertTrue(Iterators.contains(mp.getMembership(memberTree, true), groupTree.getPath()));
+}

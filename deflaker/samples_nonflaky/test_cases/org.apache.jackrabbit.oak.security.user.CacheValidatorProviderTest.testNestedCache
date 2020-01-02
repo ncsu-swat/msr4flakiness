@@ -1,0 +1,13 @@
+@Test
+public void testNestedCache() throws Exception {
+    Tree cache = getCache(getTestUser());
+    try {
+        Tree c = TreeUtil.getOrAddChild(cache, CacheConstants.REP_CACHE, CacheConstants.NT_REP_CACHE);
+        c.setProperty(CacheConstants.REP_EXPIRATION, 223L, Type.LONG);
+        root.commit(CacheValidatorProvider.asCommitAttributes());
+        fail("Creating nested cache must fail.");
+    } catch (CommitFailedException e) {
+        assertTrue(e.isConstraintViolation());
+        assertEquals(34, e.getCode());
+    }
+}

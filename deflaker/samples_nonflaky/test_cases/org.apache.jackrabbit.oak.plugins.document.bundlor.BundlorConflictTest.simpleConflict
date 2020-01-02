@@ -1,0 +1,16 @@
+@Test
+public void simpleConflict() throws Exception {
+    NodeBuilder root = store1.getRoot().builder();
+    getRendBuilder(createAsset(root, "foo")).getChildNode("rend-orig").setProperty("meta", "orig");
+    merge(store1, root);
+    syncStores();
+    NodeBuilder root1 = store1.getRoot().builder();
+    // create a new rendition
+    getRendBuilder(root1.getChildNode("foo")).child("rend1");
+    NodeBuilder root2 = store2.getRoot().builder();
+    // remove rendition parent
+    getRendBuilder(root2.getChildNode("foo")).remove();
+    merge(store1, root1);
+    thrown.expect(CommitFailedException.class);
+    merge(store2, root2);
+}

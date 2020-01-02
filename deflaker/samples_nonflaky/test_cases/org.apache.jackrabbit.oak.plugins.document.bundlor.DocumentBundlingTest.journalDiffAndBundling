@@ -1,0 +1,28 @@
+@Test
+public void journalDiffAndBundling() throws Exception {
+    NodeBuilder builder = store.getRoot().builder();
+    NodeBuilder fileNode = newNode("nt:file");
+    fileNode.child("jcr:content").setProperty("jcr:data", "foo");
+    builder.child("test").setChildNode("book.jpg", fileNode.getNodeState());
+    NodeState r1 = merge(builder);
+    builder = store.getRoot().builder();
+    childBuilder(builder, "/test/book.jpg/jcr:content").setProperty("fooContent", "bar");
+    childBuilder(builder, "/test/book.jpg").setProperty("fooBook", "bar");
+    NodeState r2 = merge(builder);
+    final List<String> addedPropertyNames = Lists.newArrayList();
+    r2.compareAgainstBaseState(r1, new DefaultNodeStateDiff() {
+
+        @Override
+        public boolean propertyAdded(PropertyState after) {
+            addedPropertyNames.add(after.getName());
+            return super.propertyAdded(after);
+        }
+
+        @Override
+        public boolean childNodeChanged(String name, NodeState before, NodeState after) {
+            return after.compareAgainstBaseState(before, this);
+        }
+    });
+    assertTrue("No change reported for /test/book.jpg", addedPropertyNames.contains("fooBook"));
+    assertTrue("No change reported for /test/book.jpg/jcr:content", addedPropertyNames.contains("fooContent"));
+}

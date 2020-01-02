@@ -1,0 +1,11 @@
+@Test
+public void callbackInvoked() throws Exception {
+    AtomicBoolean callbackInvoked = new AtomicBoolean();
+    store = new UniqueEntryStoreStrategy(INDEX_CONTENT_NODE_NAME, (nb) -> callbackInvoked.set(true));
+    indexName = "foo";
+    NodeState root = EMPTY_NODE;
+    indexMeta = root.builder();
+    Supplier<NodeBuilder> index = memoize(() -> indexMeta.child(INDEX_CONTENT_NODE_NAME));
+    store.update(index, "/some/node1", null, null, EMPTY, newHashSet("key1"));
+    assertTrue(callbackInvoked.get());
+}

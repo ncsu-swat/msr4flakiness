@@ -1,0 +1,19 @@
+@Test
+public void testVersionableTreeRemoved() throws Exception {
+    Tree version = createVersions(ACCESS_CONTROLLED_PATH).getChild("1.2");
+    assertEquals(NT_VERSION, TreeUtil.getPrimaryTypeName(version));
+    Tree accessControlled = root.getTree(ACCESS_CONTROLLED_PATH);
+    PropertyState property = accessControlled.getProperty(JCR_PRIMARYTYPE);
+    accessControlled.remove();
+    root.commit();
+    CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.EMPTY);
+    assertFalse(cp.isGranted(version, null, Permissions.READ));
+    assertFalse(cp.isGranted(version, property, Permissions.READ));
+    // isGranted(String, long) serves as fallback when no versionable node available
+    // -> just regular permission eval based on path, no tree-type taken into account
+    assertFalse(cp.isGranted(version.getPath(), Permissions.READ));
+    assertTrue(cp.getPrivileges(version).isEmpty());
+    assertFalse(cp.hasPrivileges(version, JCR_READ));
+    TreePermission tp = createTreePermission(cp, version.getPath());
+    assertTrue(tp instanceof VersionTreePermission);
+}

@@ -1,0 +1,20 @@
+@Test
+public void diffFewChildren() throws Exception {
+    NodeBuilder builder = createContentStructure();
+    NodeState r1 = merge(store, builder);
+    builder = store.getRoot().builder();
+    childBuilder(builder, "/test/book.jpg/jcr:content").setProperty("foo", "bar");
+    childBuilder(builder, "/test/book.jpg/jcr:content/renditions/newChild2").setProperty("foo", "bar");
+    childBuilder(builder, "/test/book.jpg/newChild1");
+    NodeState r2 = merge(store, builder);
+    String path = "/test/book.jpg";
+    CollectingDiff diff = new CollectingDiff();
+    adns(r2, path).compareAgainstBaseState(adns(r1, path), diff);
+    assertThat(diff.changes.get("added"), hasItem("newChild1"));
+    assertThat(diff.changes.get("changed"), hasItem("jcr:content"));
+    diff = new CollectingDiff();
+    path = "/test/book.jpg/jcr:content/renditions";
+    adns(r2, path).compareAgainstBaseState(adns(r1, path), diff);
+    System.out.println(diff);
+    assertThat(diff.changes.get("added"), hasItem("newChild2"));
+}

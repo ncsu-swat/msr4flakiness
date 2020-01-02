@@ -1,0 +1,39 @@
+@Test
+public void readWriteMode() throws InterruptedException {
+    MemoryDocumentStore mem = new MemoryDocumentStore();
+    Clock clock = new Clock.Virtual();
+    clock.waitUntil(System.currentTimeMillis());
+    ClusterNodeInfo.setClock(clock);
+    DocumentNodeStore ns1 = new DocumentMK.Builder().setDocumentStore(mem).setAsyncDelay(0).setLeaseCheckMode(LeaseCheckMode.DISABLED).setClusterId(1).getNodeStore();
+    DocumentNodeStore ns2 = new DocumentMK.Builder().setDocumentStore(mem).setAsyncDelay(0).setLeaseCheckMode(LeaseCheckMode.DISABLED).setClusterId(2).getNodeStore();
+    // Bring the current time forward to after the leaseTime which would have been
+    // updated in the DocumentNodeStore initialization.
+    clock.waitUntil(clock.getTime() + ns1.getClusterInfo().getLeaseTime());
+    ns1.getClusterInfo().setLeaseTime(0);
+    ns1.getClusterInfo().setLeaseUpdateInterval(0);
+    ns2.getClusterInfo().setLeaseTime(0);
+    ns2.getClusterInfo().setLeaseUpdateInterval(0);
+    List<ClusterNodeInfoDocument> list = mem.query(Collection.CLUSTER_NODES, "0", "a", Integer.MAX_VALUE);
+    assertEquals(2, list.size());
+    assertNull(mem.getReadPreference());
+    assertNull(mem.getWriteConcern());
+    mem.setReadWriteMode("read:primary, write:majority");
+    assertEquals(ReadPreference.primary(), mem.getReadPreference());
+    assertEquals(WriteConcern.MAJORITY, mem.getWriteConcern());
+    UpdateOp op;
+    // unknown modes: ignore
+    op = new UpdateOp(list.get(0).getId(), false);
+    op.set("readWriteMode", "read:xyz, write:abc");
+    mem.findAndUpdate(Collection.CLUSTER_NODES, op);
+    ns1.renewClusterIdLease();
+    assertEquals(ReadPreference.primary(), mem.getReadPreference());
+    assertEquals(WriteConcern.MAJORITY, mem.getWriteConcern());
+    op = new UpdateOp(list.get(0).getId(), false);
+    op.set("readWriteMode", "read:nearest, write:fsynced");
+    mem.findAndUpdate(Collection.CLUSTER_NODES, op);
+    ns1.renewClusterIdLease();
+    assertEquals(ReadPreference.nearest(), mem.getReadPreference());
+    assertEquals(WriteConcern.FSYNCED, mem.getWriteConcern());
+    ns1.dispose();
+    ns2.dispose();
+}

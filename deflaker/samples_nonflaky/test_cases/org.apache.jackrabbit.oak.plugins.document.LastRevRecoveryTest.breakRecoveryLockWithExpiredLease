@@ -1,0 +1,40 @@
+// OAK-3488
+@Test
+public void breakRecoveryLockWithExpiredLease() throws Exception {
+    String clusterId = String.valueOf(c1Id);
+    ClusterNodeInfoDocument info1 = sharedStore.find(CLUSTER_NODES, clusterId);
+    assertNotNull(info1);
+    NodeBuilder builder = ds1.getRoot().builder();
+    builder.child("x").child("y").child("z");
+    merge(ds1, builder);
+    ds1.dispose();
+    // reset clusterNodes entry to simulate a crash of ds1
+    sharedStore.remove(CLUSTER_NODES, clusterId);
+    sharedStore.create(CLUSTER_NODES, newArrayList(updateOpFromDocument(info1)));
+    // 'wait' until lease expires
+    clock.waitUntil(info1.getLeaseEndTime() + 1);
+    // make sure ds2 lease is still fine
+    ds2.getClusterInfo().renewLease();
+    // start of recovery by ds2
+    MissingLastRevSeeker seeker = new MissingLastRevSeeker(sharedStore, clock);
+    assertTrue(seeker.acquireRecoveryLock(c1Id, c2Id));
+    // simulate crash of ds2
+    ClusterNodeInfoDocument info2 = sharedStore.find(CLUSTER_NODES, String.valueOf(c2Id));
+    assertNotNull(info2);
+    ds2.dispose();
+    // reset clusterNodes entry
+    sharedStore.remove(CLUSTER_NODES, String.valueOf(c2Id));
+    sharedStore.create(CLUSTER_NODES, newArrayList(updateOpFromDocument(info2)));
+    // 'wait' until ds2's lease expires
+    clock.waitUntil(info2.getLeaseEndTime() + 1);
+    info1 = sharedStore.find(CLUSTER_NODES, clusterId);
+    assertNotNull(info1);
+    assertTrue(info1.isRecoveryNeeded(clock.getTime()));
+    assertTrue(info1.isBeingRecovered());
+    // restart ds1
+    ds1 = builderProvider.newBuilder().clock(clock).setLeaseCheckMode(LeaseCheckMode.DISABLED).setAsyncDelay(0).setDocumentStore(sharedStore).setClusterId(1).getNodeStore();
+    info1 = sharedStore.find(CLUSTER_NODES, clusterId);
+    assertNotNull(info1);
+    assertFalse(info1.isRecoveryNeeded(clock.getTime()));
+    assertFalse(info1.isBeingRecovered());
+}

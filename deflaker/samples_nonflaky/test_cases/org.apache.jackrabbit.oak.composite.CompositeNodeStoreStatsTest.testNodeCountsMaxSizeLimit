@@ -1,0 +1,28 @@
+@Test
+public void testNodeCountsMaxSizeLimit() {
+    CompositeNodeStoreStats stats = new CompositeNodeStoreStats(StatisticsProvider.NOOP, "NODE", true, 6, 20);
+    for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < i + 5; j++) {
+            stats.onCreateNodeObject("/xyz" + i);
+        }
+    }
+    assertEquals(9, stats.getMaxNodePathCount());
+    assertEquals(5, stats.getNodePathCountsMap().size());
+    stats.onCreateNodeObject("/xyz" + 6);
+    assertEquals(8, stats.getMaxNodePathCount());
+    assertEquals(5, stats.getNodePathCountsMap().size());
+    for (int i = 0; i < 5; i++) {
+        assertEquals("Invalid count for /xyz" + i, (long) i + 4, (long) stats.getNodePathCountsMap().get("/xyz" + i));
+    }
+    for (int i = 0; i < 3; i++) {
+        stats.onCreateNodeObject("/xyz" + 6);
+    }
+    assertEquals(5, stats.getMaxNodePathCount());
+    assertEquals(5, stats.getNodePathCountsMap().size());
+    // this should remove the smallest value
+    stats.onCreateNodeObject("/xyz" + 6);
+    assertEquals(4, stats.getNodePathCountsMap().size());
+    // this should add the new value
+    stats.onCreateNodeObject("/xyz" + 6);
+    assertEquals(5, stats.getNodePathCountsMap().size());
+}

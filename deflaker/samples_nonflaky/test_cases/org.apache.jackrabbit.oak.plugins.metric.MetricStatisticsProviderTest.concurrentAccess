@@ -1,0 +1,31 @@
+@Test
+public void concurrentAccess() throws Exception {
+    // Queue is used to collect instances with minimal overhead in concurrent scenario
+    final Queue<MeterStats> statsQueue = new ConcurrentLinkedDeque<MeterStats>();
+    List<Thread> threads = Lists.newArrayList();
+    int numWorker = 5;
+    final CountDownLatch latch = new CountDownLatch(1);
+    for (int i = 0; i < numWorker; i++) {
+        threads.add(new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+                Uninterruptibles.awaitUninterruptibly(latch);
+                statsQueue.add(statsProvider.getMeter("foo", StatsOptions.DEFAULT));
+            }
+        }));
+    }
+    for (Thread t : threads) {
+        t.start();
+    }
+    latch.countDown();
+    for (Thread t : threads) {
+        t.join();
+    }
+    // Assert that we get same reference for every call
+    Set<MeterStats> statsSet = Sets.newIdentityHashSet();
+    for (MeterStats m : statsQueue) {
+        statsSet.add(m);
+    }
+    assertEquals(1, statsSet.size());
+}

@@ -1,0 +1,14 @@
+@Test
+public void testImpactOfOak8054RemovingMembers() throws Exception {
+    User user = uMgr.createUser("userid", null);
+    UserProvider up = new UserProvider(root, ConfigurationParameters.EMPTY);
+    Tree groupTree = root.getTree(group.getPath());
+    groupTree.setProperty(REP_MEMBERS, ImmutableList.of(up.getContentID(getTestUser().getID()), up.getContentID(user.getID())), Type.STRINGS);
+    root.commit();
+    group.removeMembers(user.getID());
+    root.commit();
+    groupTree = root.getTree(group.getPath());
+    PropertyState membersProp = groupTree.getProperty(REP_MEMBERS);
+    assertEquals(Type.WEAKREFERENCES, membersProp.getType());
+    assertEquals(1, membersProp.count());
+}

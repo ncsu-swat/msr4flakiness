@@ -1,0 +1,17 @@
+@Test
+public void warning() throws ParseException {
+    QueryValidator v = new QueryValidator();
+    v.setPattern("x", "x.*", "all", false);
+    assertEquals("[\n" + "{\n" + "\"key\":\"x\"\n" + ",\"pattern\":\"x.*\"\n" + ",\"comment\":\"all\"\n" + ",\"failQuery\":false\n" + ",\"executedLast\":\"\"\n" + ",\"executedCount\":0\n" + "}]", v.getJson());
+    LogCustomizer customLogs = LogCustomizer.forLogger(QueryValidator.class.getName()).enable(Level.WARN).create();
+    try {
+        customLogs.starting();
+        v.checkStatement("x1");
+        v.checkStatement("x2");
+        v.checkStatement("y");
+        List<String> logs = customLogs.getLogs();
+        assertEquals("[Query is questionable, but executed: statement=x1 pattern=x.*]", logs.toString());
+    } finally {
+        customLogs.finished();
+    }
+}

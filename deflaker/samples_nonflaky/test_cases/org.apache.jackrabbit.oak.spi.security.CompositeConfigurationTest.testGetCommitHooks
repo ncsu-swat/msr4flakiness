@@ -1,0 +1,16 @@
+@Test
+public void testGetCommitHooks() {
+    assertTrue(compositeConfiguration.getCommitHooks(null).isEmpty());
+    addConfiguration(new SecurityConfiguration.Default());
+    assertTrue(compositeConfiguration.getCommitHooks(null).isEmpty());
+    SecurityConfiguration withCommitHook = new SecurityConfiguration.Default() {
+
+        @NotNull
+        @Override
+        public List<? extends CommitHook> getCommitHooks(@NotNull String workspaceName) {
+            return ImmutableList.of(Mockito.mock(CommitHook.class));
+        }
+    };
+    addConfiguration(withCommitHook);
+    assertEquals(1, compositeConfiguration.getCommitHooks(null).size());
+}

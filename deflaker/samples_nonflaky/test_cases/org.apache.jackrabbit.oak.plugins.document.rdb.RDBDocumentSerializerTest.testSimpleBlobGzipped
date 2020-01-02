@@ -1,0 +1,12 @@
+@Test
+public void testSimpleBlobGzipped() throws IOException {
+    ByteArrayOutputStream bos = new ByteArrayOutputStream();
+    GZIPOutputStream gos = new GZIPOutputStream(bos);
+    gos.write("{}".getBytes("UTF-8"));
+    gos.close();
+    RDBRow row = new RDBRow("_foo", 0L, false, 1l, 2l, 3l, 0L, 0L, 0L, "\"blob\"", bos.toByteArray());
+    NodeDocument doc = this.ser.fromRow(Collection.NODES, row);
+    assertEquals("_foo", doc.getId());
+    assertEquals(false, doc.hasBinary());
+    assertEquals(2L, doc.getModCount().longValue());
+}

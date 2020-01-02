@@ -1,0 +1,16 @@
+@Test
+public void testDSBSDeleteRecordStats() throws Exception {
+    DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withDeleteDelay(1010));
+    DataRecord record = dsbs.addRecord(getTestInputStream());
+    List<String> chunkIds = Lists.newArrayList(record.getIdentifier().toString());
+    long modifiedBefore = tomorrow();
+    long deleteCount = stats.getDeleteCount();
+    long deleteCountLastMinute = getLastMinuteStats(stats.getDeleteCountHistory());
+    long deleteTimeLastMinute = getLastMinuteStats(stats.getDeleteTimeHistory());
+    assertTrue(idInDsbs(record.getIdentifier(), dsbs));
+    assertTrue(dsbs.deleteChunks(chunkIds, modifiedBefore));
+    assertFalse(idInDsbs(record.getIdentifier(), dsbs));
+    assertEquals(deleteCount + 1, stats.getDeleteCount());
+    assertEquals(deleteCountLastMinute + 1, waitForMetric(input -> getLastMinuteStats(input.getDeleteCountHistory()), stats, 1L, 0L).longValue());
+    assertTrue(deleteTimeLastMinute < waitForNonzeroMetric(input -> getLastMinuteStats(input.getDeleteTimeHistory()), stats));
+}

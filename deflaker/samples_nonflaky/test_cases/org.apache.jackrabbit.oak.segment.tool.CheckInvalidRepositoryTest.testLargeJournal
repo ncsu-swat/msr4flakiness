@@ -1,0 +1,20 @@
+@Test
+public void testLargeJournal() throws IOException {
+    StringWriter strOut = new StringWriter();
+    StringWriter strErr = new StringWriter();
+    PrintWriter outWriter = new PrintWriter(strOut, true);
+    PrintWriter errWriter = new PrintWriter(strErr, true);
+    File segmentStoreFolder = new File(temporaryFolder.getRoot().getAbsolutePath());
+    File journalFile = new File(segmentStoreFolder, "journal.log");
+    File largeJournalFile = temporaryFolder.newFile("journal.log.large");
+    JournalReader journalReader = new JournalReader(new LocalJournalFile(journalFile));
+    JournalEntry journalEntry = journalReader.next();
+    String journalLine = journalEntry.getRevision() + " root " + journalEntry.getTimestamp() + "\n";
+    for (int k = 0; k < 10000; k++) {
+        FileUtils.writeStringToFile(largeJournalFile, journalLine, true);
+    }
+    Check.builder().withPath(segmentStoreFolder).withJournal(largeJournalFile).withDebugInterval(Long.MAX_VALUE).withCheckBinaries(true).withCheckHead(true).withFilterPaths(ImmutableSet.of("/")).withCheckpoints(checkpoints).withOutWriter(outWriter).withErrWriter(errWriter).build().run();
+    outWriter.close();
+    errWriter.close();
+    assertExpectedOutput(strOut.toString(), Lists.newArrayList("No good revision found"));
+}

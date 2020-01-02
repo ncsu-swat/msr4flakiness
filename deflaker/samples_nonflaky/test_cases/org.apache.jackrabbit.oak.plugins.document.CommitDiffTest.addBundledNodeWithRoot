@@ -1,0 +1,21 @@
+@Test
+public void addBundledNodeWithRoot() {
+    CommitBuilder builder = new CommitBuilder(ns, null);
+    CommitDiff diff = newCommitDiff(builder);
+    diff.childNodeAdded("file", newNtFile());
+    assertEquals(1, diff.getNumChanges());
+    Commit c = builder.build(Revision.newRevision(1));
+    Revision r = c.getRevision();
+    UpdateOp op = c.getUpdateOperationForNode(Path.fromString("/file"));
+    Map<Key, Operation> changes = op.getChanges();
+    assertThat(changes.keySet(), hasSize(8));
+    assertThat(changes, hasKey(new Key("_deleted", r)));
+    assertThat(changes, hasKey(new Key(MODIFIED_IN_SECS, null)));
+    assertThat(changes, hasKey(new Key(JCR_PRIMARYTYPE, r)));
+    assertThat(changes, hasKey(new Key(META_PROP_PATTERN, r)));
+    assertThat(changes, hasEntry(new Key(META_PROP_BUNDLED_CHILD, r), new Operation(SET_MAP_ENTRY, "true")));
+    // changes for jcr:content child node
+    assertThat(changes, hasKey(new Key(JCR_CONTENT + "/" + JCR_PRIMARYTYPE, r)));
+    assertThat(changes, hasKey(new Key(JCR_CONTENT + "/" + JCR_DATA, r)));
+    assertThat(changes, hasKey(new Key(JCR_CONTENT + "/" + META_PROP_BUNDLING_PATH, r)));
+}

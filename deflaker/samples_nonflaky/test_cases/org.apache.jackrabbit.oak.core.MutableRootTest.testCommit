@@ -1,0 +1,18 @@
+/**
+ * @see <a href"https://issues.apache.org/jira/browse/OAK-5355">OAK-5355</a>
+ */
+@Test
+public void testCommit() throws Exception {
+    MutableTree t = root.getTree(PathUtils.ROOT_PATH);
+    NodeBuilder nb = t.getNodeBuilder();
+    assertTrue(nb instanceof SecureNodeBuilder);
+    assertEquals(canReadRootTree(t), nb.exists());
+    // commit resets the permissionprovider, which in our test scenario alters
+    // the 'denyAll' flag.
+    root.commit();
+    assertEquals(canReadRootTree(t), nb.exists());
+    MutableTree t2 = root.getTree(PathUtils.ROOT_PATH);
+    NodeBuilder nb2 = t.getNodeBuilder();
+    assertEquals(canReadRootTree(t2), nb.exists());
+    assertEquals(nb2.exists(), nb.exists());
+}

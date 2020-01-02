@@ -1,0 +1,66 @@
+@Test
+public void testRecoveryMode() throws IOException, InterruptedException {
+    Set<UUID> added = Collections.synchronizedSet(new HashSet<>());
+    Semaphore semaphore = new Semaphore(0);
+    AtomicBoolean doBreak = new AtomicBoolean(true);
+    List<Long> writeAttempts = Collections.synchronizedList(new ArrayList<>());
+    queue = new SegmentWriteQueue((tarEntry, data, offset, size) -> {
+        writeAttempts.add(System.currentTimeMillis());
+        try {
+            semaphore.acquire();
+        } catch (InterruptedException e) {
+        }
+        if (doBreak.get()) {
+            throw new IOException();
+        }
+        added.add(new UUID(tarEntry.getMsb(), tarEntry.getLsb()));
+    });
+    for (int i = 0; i < 10; i++) {
+        queue.addToQueue(tarEntry(i), EMPTY_DATA, 0, 0);
+    }
+    semaphore.release(Integer.MAX_VALUE);
+    Thread.sleep(100);
+    assertTrue(queue.isBroken());
+    // the 10th segment is handled by the recovery thread
+    assertEquals(9, queue.getSize());
+    writeAttempts.clear();
+    while (writeAttempts.size() < 5) {
+        Thread.sleep(100);
+    }
+    long lastAttempt = writeAttempts.get(0);
+    for (int i = 1; i < 5; i++) {
+        long delay = writeAttempts.get(i) - lastAttempt;
+        assertTrue("The delay between attempts to persist segment should be larger than 1s. Actual: " + delay, delay >= 1000);
+        lastAttempt = writeAttempts.get(i);
+    }
+    AtomicBoolean addFinished = new AtomicBoolean(false);
+    new Thread(() -> {
+        try {
+            queue.addToQueue(tarEntry(10), EMPTY_DATA, 0, 0);
+            addFinished.set(true);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }).start();
+    Thread.sleep(100);
+    assertFalse("Adding segments should be blocked until the recovery mode is finished", addFinished.get());
+    doBreak.set(false);
+    while (queue.isBroken()) {
+        Thread.sleep(10);
+    }
+    assertFalse("Queue shouldn't be broken anymore", queue.isBroken());
+    while (added.size() < 11) {
+        Thread.sleep(10);
+    }
+    assertEquals("All segments should be consumed", 11, added.size());
+    for (int i = 0; i < 11; i++) {
+        assertTrue("All segments should be consumed", added.contains(uuid(i)));
+    }
+    int i = writeAttempts.size() - 10;
+    lastAttempt = writeAttempts.get(i);
+    for (; i < writeAttempts.size(); i++) {
+        long delay = writeAttempts.get(i) - lastAttempt;
+        assertTrue("Segments should be persisted immediately", delay < 1000);
+        lastAttempt = writeAttempts.get(i);
+    }
+}

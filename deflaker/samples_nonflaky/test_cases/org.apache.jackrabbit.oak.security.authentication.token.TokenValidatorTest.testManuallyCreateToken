@@ -1,0 +1,17 @@
+@Test
+public void testManuallyCreateToken() throws Exception {
+    TokenInfo info = createTokenInfo(tokenProvider, userId);
+    assertNotNull(tokenProvider.getTokenInfo(info.getToken()));
+    Tree userTree = root.getTree(getUserManager(root).getAuthorizable(userId).getPath());
+    try {
+        // create a valid token node using the test root
+        replaceTokenTree(info, userTree.getChild(TOKENS_NODE_NAME), TOKEN_NT_NAME);
+        root.commit();
+        fail("Manually creating a token node must fail.");
+    } catch (CommitFailedException e) {
+        assertEquals(63, e.getCode());
+    } finally {
+        root.refresh();
+        root.commit();
+    }
+}

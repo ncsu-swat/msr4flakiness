@@ -1,0 +1,27 @@
+@Test
+public void retryOnTransientDocumentStoreException() {
+    FailingDocumentStore store = new FailingDocumentStore(new MemoryDocumentStore());
+    DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0).setDocumentStore(store).getNodeStore();
+    NodeBuilder builder = ns.getRoot().builder();
+    builder.child("foo");
+    store.fail().after(0).once();
+    try {
+        merge(ns, builder);
+        fail("CommitFailedException expected");
+    } catch (CommitFailedException e) {
+    // expected
+    } finally {
+        store.fail().never();
+    }
+    builder = ns.getRoot().builder();
+    builder.child("bar");
+    store.fail().after(0).withType(TRANSIENT).once();
+    try {
+        merge(ns, builder);
+    } catch (CommitFailedException e) {
+        fail(e.toString());
+    } finally {
+        store.fail().never();
+    }
+    assertTrue(ns.getRoot().hasChildNode("bar"));
+}

@@ -1,0 +1,14 @@
+@Test
+public void testAddOnTrackError() throws Exception {
+    int maxInlineSize = 300;
+    byte[] data = new byte[maxInlineSize];
+    new Random().nextBytes(data);
+    DataStore mockedDS = mock(DataStore.class);
+    when(mockedDS.getMinRecordLength()).thenReturn(maxInlineSize);
+    DataStoreBlobStore ds = new DataStoreBlobStore(mockedDS);
+    BlobIdTracker mockedTracker = mock(BlobIdTracker.class);
+    doThrow(new IOException("Mocking tracking error")).when(mockedTracker).add(any(String.class));
+    ds.addTracker(mockedTracker);
+    String id = ds.writeBlob(new ByteArrayInputStream(data));
+    assertTrue(IOUtils.contentEquals(new ByteArrayInputStream(data), ds.getInputStream(id)));
+}

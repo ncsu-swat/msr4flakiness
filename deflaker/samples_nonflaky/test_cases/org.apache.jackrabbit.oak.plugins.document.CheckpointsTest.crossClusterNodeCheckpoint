@@ -1,0 +1,45 @@
+@Test
+public void crossClusterNodeCheckpoint() throws Exception {
+    // use an async delay to ensure DocumentNodeStore.suspendUntil() works
+    // but set it to a high value and control background ops manually in
+    // this test
+    final int asyncDelay = (int) TimeUnit.MINUTES.toMillis(1);
+    DocumentStore store = new MemoryDocumentStore();
+    final DocumentNodeStore ns1 = builderProvider.newBuilder().setClusterId(1).setDocumentStore(store).setAsyncDelay(asyncDelay).getNodeStore();
+    final DocumentNodeStore ns2 = builderProvider.newBuilder().setClusterId(2).setDocumentStore(store).setAsyncDelay(asyncDelay).getNodeStore();
+    // create node on ns1
+    NodeBuilder builder = ns1.getRoot().builder();
+    builder.child("foo");
+    ns1.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    // make visible on ns2
+    ns1.runBackgroundOperations();
+    ns2.runBackgroundOperations();
+    // create checkpoint on ns1
+    String cp1 = ns1.checkpoint(Long.MAX_VALUE);
+    // retrieve checkpoint on ns2
+    NodeState root = ns2.retrieve(cp1);
+    assertNotNull(root);
+    assertTrue(root.hasChildNode("foo"));
+    ns2.release(cp1);
+    // create node on ns1
+    builder = ns1.getRoot().builder();
+    builder.child("bar");
+    ns1.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    // create checkpoint when 'bar' is not yet visible to ns2
+    final String cp2 = ns1.checkpoint(Long.MAX_VALUE);
+    // retrieve checkpoint on ns2
+    final NodeState[] state = new NodeState[1];
+    Thread t = new Thread(new Runnable() {
+
+        @Override
+        public void run() {
+            state[0] = ns2.retrieve(cp2);
+        }
+    });
+    t.start();
+    ns1.runBackgroundOperations();
+    ns2.runBackgroundOperations();
+    t.join();
+    assertNotNull(state[0]);
+    assertTrue(state[0].hasChildNode("bar"));
+}

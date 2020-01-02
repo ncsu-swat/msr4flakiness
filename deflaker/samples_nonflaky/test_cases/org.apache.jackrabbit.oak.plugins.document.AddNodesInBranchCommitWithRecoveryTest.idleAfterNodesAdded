@@ -1,0 +1,19 @@
+// OAK-8538
+@Test
+public void idleAfterNodesAdded() throws Exception {
+    performTest(new Callback() {
+
+        @Override
+        public void call(DocumentNodeStore ns) throws Exception {
+            // delay the commit
+            clock.waitUntil(clock.getTime() + TimeUnit.MINUTES.toMillis(1));
+            // run background operations, this will trigger a refresh of the head
+            // revision. the behaviour was introduced with OAK-3712 and refined
+            // with OAK-8466.
+            ns.runBackgroundOperations();
+            clock.waitUntil(clock.getTime() + TimeUnit.MINUTES.toMillis(1));
+            ns.runBackgroundOperations();
+            logWithClockTime("Ran background operations");
+        }
+    });
+}

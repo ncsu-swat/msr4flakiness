@@ -1,0 +1,41 @@
+/**
+ * Concurrently stage and get a file and then upload.
+ * Use the file retrieve to read contents.
+ * @throws Exception
+ */
+@Test
+public void concurrentAddGet() throws Exception {
+    LOG.info("Starting concurrentAddGet");
+    // Add to the upload area
+    // stop upload execution
+    // Same as above but concurrently
+    // Get
+    // Continue upload execution
+    ListeningExecutorService executorService = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(2));
+    closer.register(new ExecutorCloser(executorService, 5, TimeUnit.MILLISECONDS));
+    // stage for upload
+    File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
+    boolean accepted = cache.stage(ID_PREFIX + 0, f);
+    assertTrue(accepted);
+    // Would hit the staging cache
+    CountDownLatch thread1Start = new CountDownLatch(1);
+    SettableFuture<File> future1 = retrieveThread(executorService, ID_PREFIX + 0, cache, thread1Start);
+    // Get a handle to the file and open stream
+    File fileOnUpload = cache.getIfPresent(ID_PREFIX + 0);
+    assertNotNull(fileOnUpload);
+    final InputStream fStream = Files.asByteSource(fileOnUpload).openStream();
+    thread1Start.countDown();
+    // start the original upload
+    taskLatch.countDown();
+    callbackLatch.countDown();
+    future1.get();
+    waitFinish();
+    LOG.info("Async tasks finished");
+    File gold = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
+    File fromUploadStream = copyToFile(fStream, folder.newFile());
+    assertTrue(Files.equal(gold, fromUploadStream));
+    assertEquals(2, cache.getStagingCacheStats().getLoadCount());
+    assertEquals(0, cache.getCacheStats().getLoadCount());
+    assertEquals(0, cache.getCacheStats().getLoadSuccessCount());
+    LOG.info("Finished concurrentAddGet");
+}

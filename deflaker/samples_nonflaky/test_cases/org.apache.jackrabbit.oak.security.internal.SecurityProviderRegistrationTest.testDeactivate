@@ -1,0 +1,12 @@
+@Test
+public void testDeactivate() throws Exception {
+    registration.activate(context.bundleContext(), configWithRequiredServiceIds("nodeName"));
+    AuthorizableNodeName mock = mock(AuthorizableNodeName.class);
+    ServiceReference sr = when(mock(ServiceReference.class).getProperty(SERVICE_PID)).thenReturn("nodeName").getMock();
+    registration.bindAuthorizableNodeName(sr, mock);
+    SecurityProvider service = context.getService(SecurityProvider.class);
+    assertNotNull(service);
+    registration.deactivate();
+    // provider must have been unregistered
+    assertNull(context.getService(SecurityProvider.class));
+}

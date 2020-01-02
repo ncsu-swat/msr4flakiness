@@ -1,0 +1,26 @@
+@Test
+public void suspendUntilTimeout() throws Exception {
+    final AtomicReference<RevisionVector> headRevision = new AtomicReference<RevisionVector>();
+    RevisionContext context = new DummyRevisionContext() {
+
+        @NotNull
+        @Override
+        public RevisionVector getHeadRevision() {
+            return headRevision.get();
+        }
+    };
+    headRevision.set(new RevisionVector(context.newRevision()));
+    final CommitQueue queue = new CommitQueue(context);
+    queue.setSuspendTimeoutMillis(0);
+    final Revision r = context.newRevision();
+    Thread t = new Thread(new Runnable() {
+
+        @Override
+        public void run() {
+            queue.suspendUntilAll(of(r));
+        }
+    });
+    t.start();
+    t.join(1000);
+    assertFalse(t.isAlive());
+}

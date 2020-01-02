@@ -1,0 +1,22 @@
+@Test
+public void error() throws ParseException {
+    QueryValidator v = new QueryValidator();
+    v.setPattern("x", "x.*", "all", true);
+    try {
+        v.checkStatement("x1");
+        fail();
+    } catch (ParseException e) {
+    // expected
+    }
+    v.checkStatement("y");
+    assertTrue(v.getJson().startsWith("[\n" + "{\n" + "\"key\":\"x\"\n" + ",\"pattern\":\"x.*\"\n" + ",\"comment\":\"all\"\n" + ",\"failQuery\":true\n"));
+    assertTrue(v.getJson().indexOf("\"executedCount\":1") >= 0);
+    v.checkStatement("y");
+    try {
+        v.checkStatement("x2");
+        fail();
+    } catch (ParseException e) {
+    // expected
+    }
+    assertTrue(v.getJson().indexOf("\"executedCount\":2") >= 0);
+}

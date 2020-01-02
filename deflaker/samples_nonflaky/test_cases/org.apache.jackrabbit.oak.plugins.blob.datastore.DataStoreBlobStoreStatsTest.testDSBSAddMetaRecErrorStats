@@ -1,0 +1,20 @@
+@Test
+public void testDSBSAddMetaRecErrorStats() throws IOException, RepositoryException {
+    DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withErrorOnAddRecord());
+    File f = folder.newFile();
+    try (OutputStream out = new FileOutputStream(f)) {
+        IOUtils.copy(getTestInputStream(), out);
+    }
+    long addMetadataRecordErrorCount = stats.getAddMetadataRecordErrorCount();
+    long addMetadataRecordErrorCountLastMinute = getLastMinuteStats(stats.getAddMetadataRecordErrorCountHistory());
+    try {
+        dsbs.addMetadataRecord(getTestInputStream(), "meta-1");
+    } catch (DataStoreException e) {
+    }
+    try {
+        dsbs.addMetadataRecord(f, "meta-1");
+    } catch (DataStoreException e) {
+    }
+    assertEquals(addMetadataRecordErrorCount + 2, stats.getAddMetadataRecordErrorCount());
+    assertEquals(addMetadataRecordErrorCountLastMinute + 2, waitForMetric(input -> getLastMinuteStats(input.getAddMetadataRecordErrorCountHistory()), stats, 2L, 0L).longValue());
+}

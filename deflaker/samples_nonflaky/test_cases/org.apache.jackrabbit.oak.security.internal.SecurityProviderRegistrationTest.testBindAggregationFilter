@@ -1,0 +1,33 @@
+@Test
+public void testBindAggregationFilter() throws Exception {
+    registration.activate(context.bundleContext(), configWithRequiredServiceIds("filterId", "a1", "a2"));
+    AggregationFilter filter = mock(AggregationFilter.class, withSettings().defaultAnswer(invocationOnMock -> Boolean.TRUE));
+    ServiceRegistration sr = context.bundleContext().registerService(AggregationFilter.class.getName(), filter, new Hashtable(ImmutableMap.of(SERVICE_PID, "filterId")));
+    registration.bindAggregationFilter(sr.getReference(), filter);
+    AggregatedPermissionProvider pp = mock(AggregatedPermissionProvider.class);
+    JackrabbitAccessControlManager acMgr = mock(JackrabbitAccessControlManager.class);
+    AccessControlPolicy policy = mock(AccessControlPolicy.class);
+    when(acMgr.getEffectivePolicies(anyString())).thenReturn(new AccessControlPolicy[] { policy });
+    when(acMgr.getEffectivePolicies(any(Set.class))).thenReturn(new AccessControlPolicy[] { policy });
+    AuthorizationConfiguration ac1 = mock(AuthorizationConfiguration.class);
+    AuthorizationConfiguration ac2 = mock(AuthorizationConfiguration.class);
+    for (AuthorizationConfiguration ac : new AuthorizationConfiguration[] { ac1, ac2 }) {
+        when(ac.getPermissionProvider(any(Root.class), anyString(), any(Set.class))).thenReturn(pp);
+        when(ac.getAccessControlManager(any(Root.class), any(NamePathMapper.class))).thenReturn(acMgr);
+        when(ac.getParameters()).thenReturn(ConfigurationParameters.EMPTY);
+        when(ac.getContext()).thenReturn(Context.DEFAULT);
+    }
+    registration.bindAuthorizationConfiguration(ac1, new Hashtable(ImmutableMap.of(SERVICE_PID, "a1")));
+    registration.bindAuthorizationConfiguration(ac2, new Hashtable(ImmutableMap.of(SERVICE_PID, "a2")));
+    SecurityProvider service = context.getService(SecurityProvider.class);
+    AuthorizationConfiguration ac = service.getConfiguration(AuthorizationConfiguration.class);
+    assertTrue(ac instanceof CompositeAuthorizationConfiguration);
+    PermissionProvider permissionProvider = ac.getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.of());
+    assertSame(pp, permissionProvider);
+    verify(filter, times(1)).stop(pp, ImmutableSet.of());
+    JackrabbitAccessControlManager am = (JackrabbitAccessControlManager) ac.getAccessControlManager(root, getNamePathMapper());
+    assertEquals(1, am.getEffectivePolicies(PathUtils.ROOT_PATH).length);
+    verify(filter, times(1)).stop(acMgr, PathUtils.ROOT_PATH);
+    assertEquals(1, am.getEffectivePolicies(ImmutableSet.of(EveryonePrincipal.getInstance())).length);
+    verify(filter, times(1)).stop(acMgr, ImmutableSet.of(EveryonePrincipal.getInstance()));
+}

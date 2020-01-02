@@ -1,0 +1,32 @@
+@Test
+public void testCustomConfigPropertyLookup() throws Exception {
+    NodeState root = INITIAL_CONTENT;
+    // Add index definition
+    NodeBuilder builder = root.builder();
+    createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "fooIndex", true, false, ImmutableSet.of("foo", "extrafoo"), null);
+    NodeState before = builder.getNodeState();
+    // Add some content and process it through the property index hook
+    builder.child("a").setProperty("foo", "abc").setProperty("extrafoo", "pqr");
+    builder.child("b").setProperty("foo", Arrays.asList("abc", "def"), Type.STRINGS);
+    // plus lots of dummy content to highlight the benefit of indexing
+    for (int i = 0; i < MANY; i++) {
+        builder.child("n" + i).setProperty("foo", "xyz");
+    }
+    NodeState after = builder.getNodeState();
+    // Add an index
+    NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+    FilterImpl f = createFilter(indexed, NT_BASE);
+    // Query the index
+    PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+    assertEquals(ImmutableSet.of("a", "b"), find(lookup, "foo", "abc", f));
+    assertEquals(ImmutableSet.of("b"), find(lookup, "foo", "def", f));
+    assertEquals(ImmutableSet.of(), find(lookup, "foo", "ghi", f));
+    assertEquals(MANY, find(lookup, "foo", "xyz", f).size());
+    assertEquals(ImmutableSet.of("a"), find(lookup, "extrafoo", "pqr", f));
+    try {
+        assertEquals(ImmutableSet.of(), find(lookup, "pqr", "foo", f));
+        fail();
+    } catch (IllegalArgumentException e) {
+    // expected: no index for "pqr"
+    }
+}

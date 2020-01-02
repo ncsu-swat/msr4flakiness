@@ -1,0 +1,14 @@
+@Test
+public void testUseCachingBlobStore() {
+    ServiceRegistration delegateReg = context.bundleContext().registerService(AbstractSharedCachingDataStore.class.getName(), mock(AbstractSharedCachingDataStore.class), null);
+    assertNotNull(context.getService(AbstractSharedCachingDataStore.class));
+    registerBlobStore();
+    registerSegmentNodeStoreService(true);
+    assertServiceActivated();
+    ConsolidatedDataStoreCacheStats dataStoreStats = context.registerInjectActivateService(new ConsolidatedDataStoreCacheStats());
+    assertNotNull(context.getService(ConsolidatedDataStoreCacheStatsMBean.class));
+    deactivate(dataStoreStats, context.bundleContext());
+    unregisterSegmentNodeStoreService();
+    unregisterBlobStore();
+    delegateReg.unregister();
+}

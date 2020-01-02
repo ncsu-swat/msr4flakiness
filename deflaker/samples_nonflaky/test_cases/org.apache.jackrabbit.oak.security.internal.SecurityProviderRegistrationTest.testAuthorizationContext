@@ -1,0 +1,34 @@
+@Test
+public void testAuthorizationContext() throws Exception {
+    Tree t = root.getTree("/");
+    Field f = registration.getClass().getDeclaredField("authorizationConfiguration");
+    f.setAccessible(true);
+    AuthorizationConfiguration ac = new AuthorizationConfigurationImpl();
+    registration.bindAuthorizationConfiguration(ac, PROPS);
+    CompositeAuthorizationConfiguration cac = (CompositeAuthorizationConfiguration) f.get(registration);
+    Context ctx = cac.getContext();
+    assertContext(ctx, 1, t, false);
+    AuthorizationConfiguration ac1 = mockConfiguration(AuthorizationConfiguration.class);
+    registration.bindAuthorizationConfiguration(ac1, PROPS);
+    cac = (CompositeAuthorizationConfiguration) f.get(registration);
+    ctx = cac.getContext();
+    assertContext(ctx, 2, t, true);
+    AuthorizationConfiguration ac2 = mockConfiguration(AuthorizationConfiguration.class);
+    registration.bindAuthorizationConfiguration(ac2, PROPS);
+    cac = (CompositeAuthorizationConfiguration) f.get(registration);
+    ctx = cac.getContext();
+    assertContext(ctx, 3, t, true);
+    // unbind again:
+    registration.unbindAuthorizationConfiguration(ac1, PROPS);
+    cac = (CompositeAuthorizationConfiguration) f.get(registration);
+    ctx = cac.getContext();
+    assertContext(ctx, 2, t, true);
+    registration.unbindAuthorizationConfiguration(ac, PROPS);
+    cac = (CompositeAuthorizationConfiguration) f.get(registration);
+    ctx = cac.getContext();
+    assertContext(ctx, 1, t, true);
+    registration.unbindAuthorizationConfiguration(ac2, PROPS);
+    cac = (CompositeAuthorizationConfiguration) f.get(registration);
+    ctx = cac.getContext();
+    assertContext(ctx, 0, t, false);
+}

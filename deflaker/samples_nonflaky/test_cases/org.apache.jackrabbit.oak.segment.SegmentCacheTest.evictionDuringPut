@@ -1,0 +1,14 @@
+@Test
+public void evictionDuringPut() throws ExecutionException {
+    cache.putSegment(segment3);
+    // Check eviction cleared memoisation
+    expect(SegmentNotFoundException.class, id3::getSegment);
+    // Check that segment3 was evicted inside put because of its size and needs
+    // reloading through the node store
+    AtomicBoolean cached = new AtomicBoolean(true);
+    assertEquals(segment3, cache.getSegment(id3, () -> {
+        cached.set(false);
+        return segment3;
+    }));
+    assertFalse(cached.get());
+}

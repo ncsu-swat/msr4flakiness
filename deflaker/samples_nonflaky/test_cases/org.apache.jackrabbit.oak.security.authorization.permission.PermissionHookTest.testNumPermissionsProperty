@@ -1,0 +1,36 @@
+@Test
+public void testNumPermissionsProperty() throws Exception {
+    Tree everyoneRoot = getPrincipalRoot(EveryonePrincipal.getInstance());
+    Tree testRoot = getPrincipalRoot(testPrincipal);
+    // initial state after setup
+    assertNumPermissionsProperty(1, everyoneRoot);
+    assertNumPermissionsProperty(1, testRoot);
+    // add another acl with an entry for everyone
+    addACE(childPath, EveryonePrincipal.getInstance(), JCR_READ);
+    root.commit();
+    assertNumPermissionsProperty(2, everyoneRoot);
+    assertNumPermissionsProperty(1, testRoot);
+    // adding another ACE at an existing ACL must not change num-permissions
+    AccessControlManager acMgr = getAccessControlManager(root);
+    JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, childPath);
+    acl = AccessControlUtils.getAccessControlList(acMgr, childPath);
+    acl.addEntry(EveryonePrincipal.getInstance(), privilegesFromNames(JCR_READ), false, ImmutableMap.of(REP_GLOB, getValueFactory(root).createValue("/*/jcr:content")));
+    acMgr.setPolicy(childPath, acl);
+    root.commit();
+    assertNumPermissionsProperty(2, everyoneRoot);
+    assertNumPermissionsProperty(1, testRoot);
+    // remove policy at 'testPath'
+    acMgr.removePolicy(testPath, AccessControlUtils.getAccessControlList(acMgr, testPath));
+    root.commit();
+    assertNumPermissionsProperty(1, everyoneRoot);
+    assertNumPermissionsProperty(0, testRoot);
+    // remove all ACEs on the childPath policy -> same effect as policy removal on permission store
+    acl = AccessControlUtils.getAccessControlList(acMgr, childPath);
+    for (AccessControlEntry entry : acl.getAccessControlEntries()) {
+        acl.removeAccessControlEntry(entry);
+    }
+    acMgr.setPolicy(childPath, acl);
+    root.commit();
+    assertNumPermissionsProperty(0, everyoneRoot);
+    assertNumPermissionsProperty(0, testRoot);
+}

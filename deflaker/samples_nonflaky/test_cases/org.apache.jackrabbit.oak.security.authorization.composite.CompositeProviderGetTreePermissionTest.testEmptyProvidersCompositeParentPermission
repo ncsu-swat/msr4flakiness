@@ -1,0 +1,15 @@
+@Test
+public void testEmptyProvidersCompositeParentPermission() {
+    TreePermission tp = mock(TreePermission.class);
+    AggregatedPermissionProvider aggr = when(mock(AggregatedPermissionProvider.class).getTreePermission(any(Tree.class), any(TreeType.class), any(TreePermission.class))).thenReturn(tp).getMock();
+    // parent-TreePermission is CompositeTreePermission
+    Tree rootTree = getRootProvider().createReadOnlyRoot(root).getTree(PathUtils.ROOT_PATH);
+    AggregatedPermissionProvider[] providers = new AggregatedPermissionProvider[] { aggr, new FullScopeProvider(root) };
+    CompositeTreePermission parentTp = (CompositeTreePermission) CompositeTreePermission.create(rootTree, getTreeProvider(), new TreeTypeProvider(Context.DEFAULT), providers, OR);
+    // getTreePermission from compositePP -> aggregated-providers as taken from parent-permission
+    AggregatedPermissionProvider composite = createProvider(AND);
+    Tree systemTree = rootTree.getChild(JcrConstants.JCR_SYSTEM);
+    assertTrue(composite.getTreePermission(systemTree, TreeType.HIDDEN, parentTp) instanceof CompositeTreePermission);
+    verify(aggr, times(1)).getTreePermission(rootTree, TreeType.DEFAULT, TreePermission.EMPTY);
+    verify(aggr, times(1)).getTreePermission(systemTree, TreeType.HIDDEN, tp);
+}

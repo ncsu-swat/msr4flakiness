@@ -1,0 +1,18 @@
+@Test
+public void testNonExistingMember() throws Exception {
+    Set<String> failed = addNonExistingMember();
+    assertTrue(failed.isEmpty());
+    Iterable<String> memberIds = getMemberIds(testGroup);
+    Iterables.elementsEqual(ImmutableList.copyOf(NON_EXISTING_IDS), memberIds);
+    Iterator<Authorizable> members = testGroup.getDeclaredMembers();
+    assertFalse(members.hasNext());
+    toRemove = new ArrayList<Authorizable>(NON_EXISTING_IDS.length);
+    for (String id : NON_EXISTING_IDS) {
+        toRemove.add(getUserManager(root).createGroup(id));
+    }
+    members = testGroup.getDeclaredMembers();
+    assertTrue(members.hasNext());
+    for (Authorizable a : toRemove) {
+        assertTrue(testGroup.isDeclaredMember(a));
+    }
+}

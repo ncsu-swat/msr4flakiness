@@ -1,0 +1,42 @@
+// OAK-6495
+@Test
+public void diffWithBrokenJournal() throws Exception {
+    Clock clock = new Clock.Virtual();
+    clock.waitUntil(System.currentTimeMillis());
+    Revision.setClock(clock);
+    MemoryDocumentStore docStore = new MemoryDocumentStore();
+    DocumentNodeStore ns = builderProvider.newBuilder().setDocumentStore(docStore).setUpdateLimit(100).setJournalGCMaxAge(TimeUnit.HOURS.toMillis(6)).setBundlingDisabled(true).setAsyncDelay(0).clock(clock).getNodeStore();
+    NodeBuilder builder = ns.getRoot().builder();
+    builder.child("test");
+    merge(ns, builder);
+    NodeState before = ns.getRoot().getChildNode("test");
+    builder = ns.getRoot().builder();
+    NodeBuilder test = builder.child("test");
+    String firstChildId = Utils.getIdFromPath("/test/child-0");
+    for (int i = 0; ; i++) {
+        NodeBuilder child = test.child("child-" + i);
+        for (int j = 0; j < 10; j++) {
+            child.setProperty("p-" + j, "value");
+        }
+        if (docStore.find(NODES, firstChildId) != null) {
+            // branch was created
+            break;
+        }
+    }
+    merge(ns, builder);
+    ns.runBackgroundOperations();
+    Revision head = ns.getHeadRevision().getRevision(ns.getClusterId());
+    assertNotNull(head);
+    JournalEntry entry = ns.getDocumentStore().find(JOURNAL, JournalEntry.asId(head));
+    assertNotNull(entry);
+    // must reference at least one branch commit
+    assertThat(Iterables.size(entry.getBranchCommits()), greaterThan(0));
+    // now remove them
+    for (JournalEntry bc : entry.getBranchCommits()) {
+        docStore.remove(JOURNAL, bc.getId());
+    }
+    // compare must still succeed even when branch commits
+    // are missing in the journal
+    NodeState after = ns.getRoot().getChildNode("test");
+    after.compareAgainstBaseState(before, new DefaultNodeStateDiff());
+}

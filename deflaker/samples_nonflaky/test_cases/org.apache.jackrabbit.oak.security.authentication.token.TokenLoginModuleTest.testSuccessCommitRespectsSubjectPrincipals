@@ -1,0 +1,16 @@
+@Test
+public void testSuccessCommitRespectsSubjectPrincipals() throws Exception {
+    Principal principal = new PrincipalImpl("subjetPrincipal");
+    Subject subject = new Subject();
+    subject.getPrincipals().add(principal);
+    Map<String, Object> shared = Maps.newHashMap();
+    shared.put(AbstractLoginModule.SHARED_KEY_CREDENTIALS, new TokenCredentials("token"));
+    TokenLoginModule lm = new TokenLoginModule();
+    lm.initialize(subject, new TestCallbackHandler(mockTokenProvider("userId")), shared, new HashMap<>());
+    assertTrue(lm.login());
+    assertTrue(lm.commit());
+    Set<AuthInfo> authInfoSet = subject.getPublicCredentials(AuthInfo.class);
+    assertFalse(authInfoSet.isEmpty());
+    AuthInfo info = authInfoSet.iterator().next();
+    assertTrue(info.getPrincipals().contains(principal));
+}

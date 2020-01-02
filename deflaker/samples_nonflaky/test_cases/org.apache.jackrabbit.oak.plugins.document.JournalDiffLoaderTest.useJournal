@@ -1,0 +1,78 @@
+// OAK-5228
+@Test
+public void useJournal() throws Exception {
+    final AtomicInteger journalQueryCounter = new AtomicInteger();
+    DocumentStore ds = new MemoryDocumentStore() {
+
+        @NotNull
+        @Override
+        public <T extends Document> List<T> query(Collection<T> collection, String fromKey, String toKey, int limit) {
+            if (collection == Collection.JOURNAL) {
+                journalQueryCounter.incrementAndGet();
+            }
+            return super.query(collection, fromKey, toKey, limit);
+        }
+    };
+    DocumentNodeStore ns1 = builderProvider.newBuilder().setClusterId(1).clock(clock).setLeaseCheckMode(LeaseCheckMode.DISABLED).setDocumentStore(ds).setAsyncDelay(0).getNodeStore();
+    DocumentNodeStore ns2 = builderProvider.newBuilder().setClusterId(2).clock(clock).setLeaseCheckMode(LeaseCheckMode.DISABLED).setDocumentStore(ds).setAsyncDelay(0).getNodeStore();
+    NodeBuilder b1 = ns1.getRoot().builder();
+    NodeBuilder foo = b1.child("foo");
+    for (int i = 0; i < DocumentMK.MANY_CHILDREN_THRESHOLD + 1; i++) {
+        foo.child("n" + i);
+    }
+    merge(ns1, b1);
+    ns1.runBackgroundOperations();
+    ns2.runBackgroundOperations();
+    clock.waitUntil(clock.getTime() + TimeUnit.MINUTES.toMillis(10));
+    NodeBuilder b2 = ns2.getRoot().builder();
+    b2.child("foo").child("bar");
+    merge(ns2, b2);
+    ns2.runBackgroundOperations();
+    ns1.runBackgroundOperations();
+    // collect journal entry created for /foo/nX
+    new JournalGarbageCollector(ns1, TimeUnit.MINUTES.toMillis(5)).gc();
+    // the next modification updates the root revision
+    // for clusterId 1 past the removed journal entry
+    b1 = ns1.getRoot().builder();
+    b1.child("qux");
+    merge(ns1, b1);
+    ns1.runBackgroundOperations();
+    ns2.runBackgroundOperations();
+    // remember before state
+    DocumentNodeState fooBefore = (DocumentNodeState) ns1.getRoot().getChildNode("foo");
+    b2 = ns2.getRoot().builder();
+    b2.child("foo").child("baz");
+    merge(ns2, b2);
+    ns2.runBackgroundOperations();
+    ns1.runBackgroundOperations();
+    b1 = ns1.getRoot().builder();
+    b1.child("foo").child("bar").remove();
+    merge(ns1, b1);
+    ns1.runBackgroundOperations();
+    ns2.runBackgroundOperations();
+    DocumentNodeState fooAfter = (DocumentNodeState) ns1.getRoot().getChildNode("foo");
+    journalQueryCounter.set(0);
+    final Set<String> changes = Sets.newHashSet();
+    fooAfter.compareAgainstBaseState(fooBefore, new DefaultNodeStateDiff() {
+
+        @Override
+        public boolean childNodeChanged(String name, NodeState before, NodeState after) {
+            changes.add(name);
+            return true;
+        }
+
+        @Override
+        public boolean childNodeAdded(String name, NodeState after) {
+            changes.add(name);
+            return true;
+        }
+
+        @Override
+        public boolean childNodeDeleted(String name, NodeState before) {
+            changes.add(name);
+            return true;
+        }
+    });
+    assertThat(changes, containsInAnyOrder("bar", "baz"));
+    assertTrue("must use JournalDiffLoader", journalQueryCounter.get() > 0);
+}

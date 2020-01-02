@@ -1,0 +1,33 @@
+@Test
+public void allIndexInfo() throws Exception {
+    pathService.paths = Lists.newArrayList("/oak:index/a", "/oak:index/b", "/oak:index/c", "/oak:index/d");
+    NodeBuilder builder = store.getRoot().builder();
+    // Index with no type
+    builder.child("oak:index").child("a");
+    // No backing info provider
+    builder.child("oak:index").child("b").setProperty("type", "type-b");
+    // Info provider throws exception
+    builder.child("oak:index").child("c").setProperty("type", "type-c");
+    // Info provider returns result
+    builder.child("oak:index").child("d").setProperty("type", "type-d");
+    store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    IndexInfoProvider type_c = mock(IndexInfoProvider.class);
+    when(type_c.getInfo(anyString())).thenThrow(new RuntimeException());
+    when(type_c.getType()).thenReturn("type-c");
+    IndexInfo infod = mock(IndexInfo.class);
+    when(infod.getType()).thenReturn("type-d");
+    when(infod.getAsyncLaneName()).thenReturn("async-d");
+    IndexInfoProvider type_d = mock(IndexInfoProvider.class);
+    when(type_d.getInfo(anyString())).thenReturn(infod);
+    when(type_d.getType()).thenReturn("type-d");
+    service.bindInfoProviders(type_c);
+    service.bindInfoProviders(type_d);
+    List<IndexInfo> infos = Lists.newArrayList(service.getAllIndexInfo());
+    // Result would only have 2 entries. One throwing exception would be ignored
+    assertEquals(2, infos.size());
+    for (IndexInfo info : infos) {
+        if (info.getType().equals("type-d")) {
+            assertEquals("async-d", info.getAsyncLaneName());
+        }
+    }
+}

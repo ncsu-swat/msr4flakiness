@@ -1,0 +1,49 @@
+// OAK-2929
+@Test
+public void conflictDetectionWithClockDifference() throws Exception {
+    MemoryDocumentStore store = new MemoryDocumentStore();
+    long now = System.currentTimeMillis();
+    Clock c1 = new Clock.Virtual();
+    c1.waitUntil(now);
+    Revision.setClock(c1);
+    DocumentNodeStore ns1 = builderProvider.newBuilder().clock(c1).setDocumentStore(store).setAsyncDelay(0).setClusterId(1).getNodeStore();
+    NodeBuilder b1 = ns1.getRoot().builder();
+    b1.child("node");
+    merge(ns1, b1);
+    // make /node visible
+    ns1.runBackgroundOperations();
+    Revision.resetClockToDefault();
+    Clock c2 = new Clock.Virtual();
+    // c2 is five seconds ahead
+    c2.waitUntil(now + 5000);
+    Revision.setClock(c2);
+    DocumentNodeStore ns2 = builderProvider.newBuilder().clock(c2).setDocumentStore(store).setAsyncDelay(0).setClusterId(2).getNodeStore();
+    // ns2 sees /node
+    assertTrue(ns2.getRoot().hasChildNode("node"));
+    // add a child /node/foo
+    NodeBuilder b2 = ns2.getRoot().builder();
+    b2.child("node").child("foo");
+    merge(ns2, b2);
+    // make /node/foo visible
+    ns2.runBackgroundOperations();
+    Revision.resetClockToDefault();
+    Revision.setClock(c1);
+    ns1.runBackgroundOperations();
+    b1 = ns1.getRoot().builder();
+    // ns1 sees /node/foo as well
+    assertTrue(b1.getChildNode("node").hasChildNode("foo"));
+    // remove both /node and /node/foo
+    b1.child("node").remove();
+    merge(ns1, b1);
+    Revision.resetClockToDefault();
+    Revision.setClock(c2);
+    b2 = ns2.getRoot().builder();
+    b2.child("node").child("bar");
+    try {
+        merge(ns2, b2);
+        // must not be able to add another child node
+        fail("must fail with CommitFailedException");
+    } catch (CommitFailedException e) {
+    // expected
+    }
+}

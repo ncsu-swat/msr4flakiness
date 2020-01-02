@@ -1,0 +1,14 @@
+@Test
+public void hiddenNodeAdded() throws CommitFailedException {
+    AccessControlValidatorProvider provider = createValidatorProvider();
+    MemoryNodeStore store = new MemoryNodeStore();
+    NodeState root = store.getRoot();
+    NodeBuilder builder = root.builder();
+    NodeBuilder test = builder.child("test");
+    NodeBuilder hidden = test.child(":hidden");
+    Validator validator = provider.getRootValidator(root, builder.getNodeState(), CommitInfo.EMPTY);
+    Validator childValidator = validator.childNodeAdded("test", test.getNodeState());
+    assertNotNull(childValidator);
+    Validator hiddenValidator = childValidator.childNodeAdded(":hidden", hidden.getNodeState());
+    assertNull(hiddenValidator);
+}

@@ -1,0 +1,18 @@
+@Test
+public void testCleanupThresholdNotReached() {
+    ConfigurationParameters options = ConfigurationParameters.of(PARAM_TOKEN_CLEANUP_THRESHOLD, 100);
+    TokenProvider tp = createTokenProvider(root, options, getUserConfiguration(), SimpleCredentialsSupport.getInstance());
+    SimpleCredentials sc = new SimpleCredentials(userId, new char[0]);
+    sc.setAttribute(TokenProvider.PARAM_TOKEN_EXPIRATION, 1);
+    TokenInfo info = tp.createToken(sc);
+    waitUntilExpired(info);
+    // create new infos until the cleanup is triggered or until max cnt has been reached.
+    // -> since PARAM_TOKEN_CLEANUP_THRESHOLD is set to 100, the expired token is still not removed
+    TokenInfo ti;
+    int cnt = 0;
+    do {
+        ti = tp.createToken(sc);
+        cnt++;
+    } while (ti.getToken().charAt(0) >= '2' && cnt < 50);
+    assertTrue(getTokenTree(info).exists());
+}

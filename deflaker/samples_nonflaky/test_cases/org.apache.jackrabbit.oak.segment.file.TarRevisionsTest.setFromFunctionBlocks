@@ -1,0 +1,32 @@
+@Test
+public void setFromFunctionBlocks() throws ExecutionException, InterruptedException, TimeoutException {
+    ListeningExecutorService executor = listeningDecorator(newFixedThreadPool(2));
+    try {
+        final CountDownLatch latch = new CountDownLatch(1);
+        ListenableFuture<Boolean> t1 = executor.submit(new Callable<Boolean>() {
+
+            @Override
+            public Boolean call() throws Exception {
+                latch.await();
+                return null != revisions.setHead(Functions.<RecordId>identity());
+            }
+        });
+        try {
+            t1.get(500, MILLISECONDS);
+            fail("SetHead from function should block");
+        } catch (TimeoutException expected) {
+        }
+        ListenableFuture<Boolean> t2 = executor.submit(new Callable<Boolean>() {
+
+            @Override
+            public Boolean call() throws Exception {
+                latch.countDown();
+                return null != revisions.setHead(Functions.<RecordId>identity());
+            }
+        });
+        assertTrue(t2.get(500, MILLISECONDS));
+        assertTrue(t1.get(500, MILLISECONDS));
+    } finally {
+        executor.shutdown();
+    }
+}

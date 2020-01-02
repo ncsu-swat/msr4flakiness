@@ -1,0 +1,11 @@
+@Test
+public void testFindWithUnexpectedNullAuthorizable() throws Exception {
+    List<Authorizable> l = new ArrayList<>();
+    l.add(null);
+    UserManager umMock = mock(UserManager.class);
+    when(umMock.findAuthorizables(any(Query.class))).thenReturn(l.iterator());
+    Iterator<? extends Principal> result = createPrincipalProvider(umMock).findPrincipals(PrincipalManager.SEARCH_TYPE_NOT_GROUP);
+    assertFalse(result.hasNext());
+    result = createPrincipalProvider(umMock).findPrincipals(PrincipalManager.SEARCH_TYPE_GROUP);
+    assertTrue(Iterators.elementsEqual(Iterators.singletonIterator(EveryonePrincipal.getInstance()), result));
+}

@@ -1,0 +1,11 @@
+@Test
+public void testDeactivateWithoutPreconditions() throws Exception {
+    registration.activate(context.bundleContext(), configWithRequiredServiceIds());
+    UserAuthenticationFactory mock = mock(UserAuthenticationFactory.class);
+    ServiceReference serviceReference = when(mock(ServiceReference.class).getProperty(OAK_SECURITY_NAME)).thenReturn("my.custom.uaf").getMock();
+    registration.bindUserAuthenticationFactory(serviceReference, mock);
+    assertNotNull(context.getService(SecurityProvider.class));
+    registration.deactivate();
+    // securityprovider must have been unregistered
+    assertNull(context.getService(SecurityProvider.class));
+}

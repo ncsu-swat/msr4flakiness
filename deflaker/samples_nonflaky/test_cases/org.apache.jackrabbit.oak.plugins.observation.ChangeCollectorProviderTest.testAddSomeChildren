@@ -1,0 +1,17 @@
+@Test
+public void testAddSomeChildren() throws CommitFailedException {
+    Root root = session.getLatestRoot();
+    Tree rootTree = root.getTree("/test");
+    for (int i = 0; i < 10; i++) {
+        Tree child = rootTree.addChild("x" + i);
+        child.setProperty(JcrConstants.JCR_PRIMARYTYPE, "test:type" + i, Type.NAME);
+        child.setProperty("foo" + i, "bar");
+    }
+    root.commit();
+    ChangeSet changeSet = getSingleChangeSet();
+    assertMatches("parentPaths", changeSet.getParentPaths(), "/test", "/test/x0", "/test/x1", "/test/x2", "/test/x3", "/test/x4", "/test/x5", "/test/x6", "/test/x7", "/test/x8", "/test/x9");
+    assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "test", "x0", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9");
+    assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:parentType", "test:type0", "test:type1", "test:type2", "test:type3", "test:type4", "test:type5", "test:type6", "test:type7", "test:type8", "test:type9");
+    assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType", "test:type0", "test:type1", "test:type2", "test:type3", "test:type4", "test:type5", "test:type6", "test:type7", "test:type8", "test:type9");
+    assertMatches("propertyNames", changeSet.getPropertyNames(), JcrConstants.JCR_PRIMARYTYPE, "foo0", "foo1", "foo2", "foo3", "foo4", "foo5", "foo6", "foo7", "foo8", "foo9");
+}

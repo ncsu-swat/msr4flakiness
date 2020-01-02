@@ -1,0 +1,21 @@
+@Test
+public void testBinaryPropertyFromExternalSegmentStore() throws IOException, CommitFailedException {
+    byte[] data = new byte[Segment.MEDIUM_LIMIT + 1];
+    random.nextBytes(data);
+    SegmentNodeStore extStore = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
+    NodeBuilder extRootBuilder = extStore.getRoot().builder();
+    Blob extBlob = extRootBuilder.createBlob(new ByteArrayInputStream(data));
+    extRootBuilder.setProperty("binary", extBlob, BINARY);
+    extStore.merge(extRootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    PropertyState extPropertyState = extStore.getRoot().getProperty("binary");
+    NodeBuilder builder = EMPTY_NODE.builder();
+    builder.setProperty(extPropertyState);
+    NodeState state = new SegmentNodeState(store.getReader(), writer, store.getBlobStore(), writer.writeNode(builder.getNodeState()));
+    try {
+        InputStream is = state.getProperty("binary").getValue(BINARY).getNewStream();
+        is.read();
+        is.close();
+    } catch (SegmentNotFoundException e) {
+        fail("OAK-4307 SegmentWriter saves references to external blobs");
+    }
+}

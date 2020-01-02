@@ -1,0 +1,39 @@
+// OAK-2433
+@Test
+public void mergeSorted1() throws Exception {
+    MemoryDocumentStore store = new MemoryDocumentStore();
+    // prev2
+    Revision r1 = new Revision(1, 0, 1);
+    // prev2
+    Revision r2 = new Revision(2, 0, 1);
+    // root
+    Revision r3 = new Revision(3, 0, 1);
+    // prev2
+    Revision r4 = new Revision(4, 0, 1);
+    // prev1
+    Revision r5 = new Revision(5, 0, 1);
+    // root
+    Revision r6 = new Revision(6, 0, 1);
+    // prev1
+    Revision r7 = new Revision(7, 0, 1);
+    Range range1 = new Range(r7, r5, 0);
+    Range range2 = new Range(r4, r1, 0);
+    String prevId1 = Utils.getPreviousIdFor(ROOT, range1.high, 0);
+    UpdateOp prevOp1 = new UpdateOp(prevId1, true);
+    NodeDocument.setRevision(prevOp1, r5, "c");
+    NodeDocument.setRevision(prevOp1, r7, "c");
+    String prevId2 = Utils.getPreviousIdFor(ROOT, range2.high, 0);
+    UpdateOp prevOp2 = new UpdateOp(prevId2, true);
+    NodeDocument.setRevision(prevOp2, r1, "c");
+    NodeDocument.setRevision(prevOp2, r2, "c");
+    NodeDocument.setRevision(prevOp2, r4, "c");
+    String rootId = Utils.getIdFromPath("/");
+    UpdateOp op = new UpdateOp(rootId, true);
+    NodeDocument.setRevision(op, r3, "c");
+    NodeDocument.setRevision(op, r6, "c");
+    NodeDocument.setPrevious(op, range1);
+    NodeDocument.setPrevious(op, range2);
+    store.create(NODES, Lists.newArrayList(op, prevOp1, prevOp2));
+    NodeDocument doc = store.find(NODES, rootId);
+    Iterators.size(doc.getValueMap(NodeDocument.REVISIONS).entrySet().iterator());
+}

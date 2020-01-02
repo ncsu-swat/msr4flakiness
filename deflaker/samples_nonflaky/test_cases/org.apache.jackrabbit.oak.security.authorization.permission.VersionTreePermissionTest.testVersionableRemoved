@@ -1,0 +1,24 @@
+@Test
+public void testVersionableRemoved() throws Exception {
+    Tree versionHistory = checkNotNull(vMgr.getVersionHistory(testTree));
+    testTree.remove();
+    root.commit();
+    pp.refresh();
+    TreePermission tp = getVersionPermission(root, pp, versionHistory.getPath());
+    assertVersionPermission(tp, "/", false);
+    Tree vTree = versionHistory.getChild("1.0");
+    tp = pp.getTreePermission(vTree, tp);
+    assertVersionPermission(tp, "/", false);
+    Tree frozen = vTree.getChild(JCR_FROZENNODE);
+    assertTrue(frozen.exists());
+    tp = pp.getTreePermission(frozen, tp);
+    assertVersionPermission(tp, "/", false);
+    Tree t = frozen;
+    String expectedPath = "/";
+    for (String name : new String[] { "a", "b", "c" }) {
+        t = t.getChild(name);
+        expectedPath = PathUtils.concat(expectedPath, name);
+        tp = pp.getTreePermission(t, tp);
+        assertVersionPermission(tp, expectedPath, false);
+    }
+}

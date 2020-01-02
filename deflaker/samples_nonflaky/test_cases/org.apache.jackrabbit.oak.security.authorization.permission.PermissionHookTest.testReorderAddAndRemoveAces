@@ -1,0 +1,22 @@
+@Test
+public void testReorderAddAndRemoveAces() throws Exception {
+    Tree entry = getEntry(testPrincipal, testPath, 0);
+    assertIndex(0, entry);
+    Tree aclTree = root.getTree(testPath + "/rep:policy");
+    // reorder testPrincipal entry to the end
+    aclTree.getChildren().iterator().next().orderBefore(null);
+    Iterator<Tree> aceIt = aclTree.getChildren().iterator();
+    // remove the everyone entry
+    aceIt.next().remove();
+    // remember the name of the testPrincipal entry.
+    String name = aceIt.next().getName();
+    // add a new entry
+    NodeUtil ace = new NodeUtil(aclTree).addChild("denyEveryoneLockMgt", NT_REP_DENY_ACE);
+    ace.setString(REP_PRINCIPAL_NAME, EveryonePrincipal.NAME);
+    ace.setNames(AccessControlConstants.REP_PRIVILEGES, JCR_LOCK_MANAGEMENT);
+    // reorder the new entry before the remaining existing entry
+    ace.getTree().orderBefore(name);
+    root.commit();
+    entry = getEntry(testPrincipal, testPath, 1);
+    assertIndex(1, entry);
+}

@@ -1,0 +1,16 @@
+@Test
+public void testAddNonEmptyGrandChild() throws CommitFailedException {
+    Root root = session.getLatestRoot();
+    Tree rootTree = root.getTree("/test");
+    Tree child = rootTree.addChild("child");
+    child.setProperty("childProperty", 1);
+    Tree grandChild = child.addChild("grandChild");
+    grandChild.setProperty("grandChildProperty", 2);
+    root.commit();
+    ChangeSet changeSet = getSingleChangeSet();
+    assertMatches("parentPaths", changeSet.getParentPaths(), "/test", "/test/child", "/test/child/grandChild");
+    assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "test", "child", "grandChild");
+    assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:parentType");
+    assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType");
+    assertMatches("propertyNames", changeSet.getPropertyNames(), "childProperty", "grandChildProperty");
+}

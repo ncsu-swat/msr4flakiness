@@ -1,0 +1,18 @@
+@Test
+public void sweepUnmergedBranchCommit() throws Exception {
+    NodeBuilder b = ns.getRoot().builder();
+    b.child("test");
+    merge(ns, b);
+    String branchRev = mk.branch(null);
+    mk.commit("/test", "^\"foo\":\"value\"", branchRev, null);
+    // force a new head revision newer than branch commit
+    b = ns.getRoot().builder();
+    b.child("bar");
+    merge(ns, b);
+    ns.runBackgroundUpdateOperations();
+    List<UpdateOp> ops = Lists.newArrayList();
+    Revision nextSweepStart = sweep(ops);
+    // must not touch branch
+    assertEquals(ns.getHeadRevision().getRevision(ns.getClusterId()), nextSweepStart);
+    assertEquals(0, ops.size());
+}

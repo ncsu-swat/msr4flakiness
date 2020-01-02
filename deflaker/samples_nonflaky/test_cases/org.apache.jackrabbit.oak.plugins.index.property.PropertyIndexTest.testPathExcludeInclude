@@ -1,0 +1,26 @@
+@Test
+public void testPathExcludeInclude() throws Exception {
+    LogCustomizer customLogs = LogCustomizer.forLogger(IndexUpdate.class.getName()).enable(Level.ERROR).create();
+    NodeState root = INITIAL_CONTENT;
+    // Add index definition
+    NodeBuilder builder = root.builder();
+    NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo", true, false, ImmutableSet.of("foo"), null);
+    index.setProperty(createProperty(PROP_INCLUDED_PATHS, of("/test/a/b"), Type.STRINGS));
+    index.setProperty(createProperty(PROP_EXCLUDED_PATHS, of("/test/a"), Type.STRINGS));
+    NodeState before = builder.getNodeState();
+    // Add some content and process it through the property index hook
+    builder.child("test").child("a").setProperty("foo", "abc");
+    builder.child("test").child("a").child("b").setProperty("foo", "abc");
+    NodeState after = builder.getNodeState();
+    try {
+        customLogs.starting();
+        String expectedLogMessage = "Unable to get Index Editor for index at /oak:index/foo . " + "Please correct the index definition and reindex after correction. " + "Additional Info : No valid include provided. Includes [/test/a/b], Excludes [/test/a]";
+        HOOK.processCommit(before, after, CommitInfo.EMPTY);
+        Assert.assertThat(customLogs.getLogs(), IsCollectionContaining.hasItems(expectedLogMessage));
+    } catch (IllegalStateException unexpected) {
+        // IllegalStateException not expected here now <OAK-8328>
+        assertTrue(false);
+    } finally {
+        customLogs.finished();
+    }
+}

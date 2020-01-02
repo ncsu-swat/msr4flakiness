@@ -1,0 +1,38 @@
+@Test
+public void testCalculatePermissionsFromSimpleBuiltIn() {
+    PrivilegeBitsProvider provider = new PrivilegeBitsProvider(mock(Root.class));
+    Map<PrivilegeBits, Long> simple = new HashMap<>();
+    simple.put(PrivilegeBits.EMPTY, Permissions.NO_PERMISSION);
+    simple.put(PrivilegeBits.BUILT_IN.get(JCR_READ), Permissions.READ);
+    simple.put(PrivilegeBits.BUILT_IN.get(JCR_LOCK_MANAGEMENT), Permissions.LOCK_MANAGEMENT);
+    simple.put(PrivilegeBits.BUILT_IN.get(JCR_VERSION_MANAGEMENT), Permissions.VERSION_MANAGEMENT);
+    simple.put(PrivilegeBits.BUILT_IN.get(JCR_READ_ACCESS_CONTROL), Permissions.READ_ACCESS_CONTROL);
+    simple.put(provider.getBits(JCR_MODIFY_ACCESS_CONTROL), Permissions.MODIFY_ACCESS_CONTROL);
+    simple.put(provider.getBits(REP_READ_NODES), Permissions.READ_NODE);
+    simple.put(provider.getBits(REP_READ_PROPERTIES), Permissions.READ_PROPERTY);
+    simple.put(provider.getBits(REP_USER_MANAGEMENT), Permissions.USER_MANAGEMENT);
+    simple.put(provider.getBits(JCR_MODIFY_PROPERTIES), Permissions.SET_PROPERTY);
+    simple.put(provider.getBits(REP_ADD_PROPERTIES), Permissions.ADD_PROPERTY);
+    simple.put(provider.getBits(REP_ALTER_PROPERTIES), Permissions.MODIFY_PROPERTY);
+    simple.put(provider.getBits(REP_REMOVE_PROPERTIES), Permissions.REMOVE_PROPERTY);
+    simple.put(provider.getBits(REP_INDEX_DEFINITION_MANAGEMENT), Permissions.INDEX_DEFINITION_MANAGEMENT);
+    simple.put(provider.getBits(JCR_NODE_TYPE_DEFINITION_MANAGEMENT), Permissions.NODE_TYPE_DEFINITION_MANAGEMENT);
+    simple.put(provider.getBits(JCR_NAMESPACE_MANAGEMENT), Permissions.NAMESPACE_MANAGEMENT);
+    simple.put(provider.getBits(REP_PRIVILEGE_MANAGEMENT), Permissions.PRIVILEGE_MANAGEMENT);
+    simple.put(provider.getBits(JCR_RETENTION_MANAGEMENT), Permissions.RETENTION_MANAGEMENT);
+    simple.put(provider.getBits(JCR_LIFECYCLE_MANAGEMENT), Permissions.LIFECYCLE_MANAGEMENT);
+    simple.put(provider.getBits(JCR_NODE_TYPE_MANAGEMENT), Permissions.NODE_TYPE_MANAGEMENT);
+    simple.put(provider.getBits(JCR_WORKSPACE_MANAGEMENT), Permissions.WORKSPACE_MANAGEMENT);
+    Map.Entry<PrivilegeBits, Long> previous = null;
+    for (Map.Entry<PrivilegeBits, Long> entry : simple.entrySet()) {
+        long expected = entry.getValue();
+        PrivilegeBits pb = entry.getKey();
+        assertEquals(expected, PrivilegeBits.calculatePermissions(pb, PrivilegeBits.EMPTY, true));
+        assertEquals(expected, PrivilegeBits.calculatePermissions(pb, pb, false));
+        if (previous != null) {
+            assertEquals(expected, PrivilegeBits.calculatePermissions(pb, previous.getKey(), false));
+            assertEquals(expected | previous.getValue(), PrivilegeBits.calculatePermissions(PrivilegeBits.getInstance(pb, previous.getKey()), PrivilegeBits.EMPTY, true));
+        }
+        previous = entry;
+    }
+}

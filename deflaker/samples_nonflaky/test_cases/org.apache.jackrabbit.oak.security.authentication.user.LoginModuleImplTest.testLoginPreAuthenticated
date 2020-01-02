@@ -1,0 +1,34 @@
+@Test
+public void testLoginPreAuthenticated() throws Exception {
+    User testUser = getTestUser();
+    Set<? extends Principal> principals = getConfig(PrincipalConfiguration.class).getPrincipalProvider(root, NamePathMapper.DEFAULT).getPrincipals(testUser.getID());
+    Authentication authentication = mock(Authentication.class);
+    when(authentication.authenticate(any(Credentials.class))).thenReturn(true).getMock();
+    // but getUserPrincipal returns null
+    when(authentication.getUserId()).thenReturn(testUser.getID());
+    Principal foreignPrincipal = new PrincipalImpl("foreign");
+    UserAuthenticationFactory uaf = when(mock(UserAuthenticationFactory.class).getAuthentication(any(UserConfiguration.class), any(Root.class), anyString())).thenReturn(authentication).getMock();
+    Map<String, Object> sharedState = Maps.newHashMap();
+    sharedState.put(SHARED_KEY_PRE_AUTH_LOGIN, new PreAuthenticatedLogin("uid"));
+    Subject subject = new Subject(false, ImmutableSet.of(foreignPrincipal), ImmutableSet.of(), ImmutableSet.of());
+    LoginModuleImpl lm = new LoginModuleImpl();
+    lm.initialize(subject, new TestCallbackHandler(uaf), sharedState, Maps.newHashMap());
+    assertTrue(lm.login());
+    assertTrue(lm.commit());
+    // verify subject has been updated with test-user principals
+    Set<Principal> expected = new ImmutableSet.Builder().add(foreignPrincipal).addAll(principals).build();
+    assertEquals(expected, subject.getPrincipals());
+    // no other public credentials than the AuthInfo
+    assertEquals(1, subject.getPublicCredentials().size());
+    // verify AuthInfo
+    Set<AuthInfo> authInfos = subject.getPublicCredentials(AuthInfo.class);
+    assertFalse(authInfos.isEmpty());
+    AuthInfo ai = authInfos.iterator().next();
+    assertEquals(testUser.getID(), ai.getUserID());
+    assertEquals(expected, ai.getPrincipals());
+    // verify logout only removes credentials/principals associated with this very login module
+    assertTrue(lm.logout());
+    assertTrue(subject.getPublicCredentials().isEmpty());
+    assertTrue(subject.getPrincipals().contains(foreignPrincipal));
+    assertFalse(subject.getPrincipals().containsAll(principals));
+}

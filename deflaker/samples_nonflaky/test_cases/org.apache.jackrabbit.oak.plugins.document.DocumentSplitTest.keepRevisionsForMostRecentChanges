@@ -1,0 +1,29 @@
+// OAK-1794
+@Test
+public void keepRevisionsForMostRecentChanges() throws Exception {
+    DocumentStore store = mk.getDocumentStore();
+    NodeStore ns = mk.getNodeStore();
+    NodeBuilder builder = ns.getRoot().builder();
+    builder.setProperty("foo", -1);
+    builder.setProperty("bar", -1);
+    ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    for (int i = 0; i < NUM_REVS_THRESHOLD; i++) {
+        builder = ns.getRoot().builder();
+        builder.setProperty("foo", i);
+        ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    }
+    mk.runBackgroundOperations();
+    NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/"));
+    assertNotNull(doc);
+    // the local _revisions map must still contain the entry for
+    // the initial 'bar' property
+    Map<Revision, String> valueMap = doc.getValueMap("bar");
+    assertFalse(valueMap.isEmpty());
+    Revision r = valueMap.keySet().iterator().next();
+    assertTrue(doc.getLocalRevisions().containsKey(r));
+    // but also the previous document must contain the revision
+    List<NodeDocument> prevDocs = Lists.newArrayList(doc.getAllPreviousDocs());
+    assertEquals(1, prevDocs.size());
+    NodeDocument prev = prevDocs.get(0);
+    assertTrue(prev.getLocalRevisions().containsKey(r));
+}

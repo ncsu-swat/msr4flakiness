@@ -1,0 +1,18 @@
+@Test
+public void testGetEffectivePoliciesWithoutPrivilege() throws Exception {
+    // grant 'testUser' READ + READ_AC privileges at 'path'
+    Privilege[] privileges = privilegesFromNames(PrivilegeConstants.JCR_READ);
+    setupPolicy(testPath, privileges);
+    root.commit();
+    testRoot.refresh();
+    List<String> paths = ImmutableList.of(testPath, NodeTypeConstants.NODE_TYPES_PATH);
+    for (String path : paths) {
+        assertFalse(testAcMgr.hasPrivileges(path, privilegesFromNames(PrivilegeConstants.JCR_READ_ACCESS_CONTROL)));
+        try {
+            testAcMgr.getEffectivePolicies(path);
+            fail("READ_ACCESS_CONTROL is not granted at " + path);
+        } catch (AccessDeniedException e) {
+        // success
+        }
+    }
+}

@@ -1,0 +1,11 @@
+@Test
+public void testDSBSListIdsStats() throws IOException, RepositoryException {
+    DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withListDelay());
+    long listIdsCount = stats.getListIdsCount();
+    long listIdsCountLastMinute = getLastMinuteStats(stats.getListIdsCountHistory());
+    long listIdsTimeLastMinute = getLastMinuteStats(stats.getListIdsTimeHistory());
+    dsbs.getAllIdentifiers();
+    assertEquals(listIdsCount + 1, stats.getListIdsCount());
+    assertEquals(listIdsCountLastMinute + 1, waitForMetric(input -> getLastMinuteStats(input.getListIdsCountHistory()), stats, 1L, 0L).longValue());
+    assertTrue(listIdsTimeLastMinute < waitForNonzeroMetric(input -> getLastMinuteStats(input.getListIdsTimeHistory()), stats));
+}

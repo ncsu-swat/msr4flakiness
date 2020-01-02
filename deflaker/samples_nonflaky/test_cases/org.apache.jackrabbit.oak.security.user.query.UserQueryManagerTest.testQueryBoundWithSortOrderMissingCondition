@@ -1,0 +1,19 @@
+@Test
+public void testQueryBoundWithSortOrderMissingCondition() throws Exception {
+    Group g = createGroup("g1", null);
+    g.setProperty(propertyName, valueFactory.createValue(50));
+    Group g2 = createGroup("g2", null);
+    g2.setProperty(propertyName, valueFactory.createValue(60));
+    user.setProperty(propertyName, valueFactory.createValue(101));
+    root.commit();
+    Query q = new Query() {
+
+        @Override
+        public <T> void build(@NotNull QueryBuilder<T> builder) {
+            builder.setLimit(valueFactory.createValue(100), Long.MAX_VALUE);
+            builder.setSortOrder(propertyName, QueryBuilder.Direction.ASCENDING);
+        }
+    };
+    Iterator<Authorizable> result = queryMgr.findAuthorizables(q);
+    assertResultContainsAuthorizables(result, user);
+}

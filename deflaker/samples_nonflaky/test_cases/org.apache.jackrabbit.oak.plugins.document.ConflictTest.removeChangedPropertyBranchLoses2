@@ -1,0 +1,14 @@
+@Test
+public void removeChangedPropertyBranchLoses2() {
+    String rev = mk.commit("/", "+\"foo\":{\"prop\":\"value\"}", null, null);
+    String branchRev = mk.branch(rev);
+    mk.commit("/foo", "^\"prop\":null", rev, null);
+    // branch commit happens after trunk commit
+    branchRev = mk.commit("/foo", "^\"prop\":\"bar\"", branchRev, null);
+    try {
+        mk.merge(branchRev, null);
+        fail("Must fail with conflict for removeChangedProperty");
+    } catch (DocumentStoreException e) {
+    // expected
+    }
+}

@@ -1,0 +1,21 @@
+@Test
+public void testAbortingEvaluationFilter() {
+    Set<Principal> principalSet = ImmutableSet.of(EveryonePrincipal.getInstance());
+    AggregatedPermissionProvider pp = mock(AggregatedPermissionProvider.class);
+    AggregationFilter filter = when(mock(AggregationFilter.class).stop(pp, principalSet)).thenReturn(true).getMock();
+    AuthorizationConfiguration ac1 = mock(AuthorizationConfiguration.class);
+    AuthorizationConfiguration ac2 = mock(AuthorizationConfiguration.class);
+    for (AuthorizationConfiguration ac : new AuthorizationConfiguration[] { ac1, ac2 }) {
+        when(ac.getPermissionProvider(any(Root.class), anyString(), any(Set.class))).thenReturn(pp);
+        when(ac.getParameters()).thenReturn(ConfigurationParameters.EMPTY);
+        when(ac.getContext()).thenReturn(Context.DEFAULT);
+    }
+    CompositeAuthorizationConfiguration cc = getCompositeConfiguration(ac1, ac2);
+    cc.withAggregationFilter(filter);
+    PermissionProvider permissionProvider = cc.getPermissionProvider(root, adminSession.getWorkspaceName(), principalSet);
+    permissionProvider.refresh();
+    Set<Principal> nonMatchingSet = adminSession.getAuthInfo().getPrincipals();
+    permissionProvider = cc.getPermissionProvider(root, adminSession.getWorkspaceName(), nonMatchingSet);
+    permissionProvider.refresh();
+    verify(pp, times(3)).refresh();
+}

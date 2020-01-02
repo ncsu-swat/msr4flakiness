@@ -1,0 +1,17 @@
+@Test
+public void testCorruptPathInCp1NoValidRevision() throws Exception {
+    corruptPathFromCheckpoint();
+    StringWriter strOut = new StringWriter();
+    StringWriter strErr = new StringWriter();
+    PrintWriter outWriter = new PrintWriter(strOut, true);
+    PrintWriter errWriter = new PrintWriter(strErr, true);
+    Set<String> filterPaths = new LinkedHashSet<>();
+    filterPaths.add("/b");
+    Set<String> cps = new HashSet<>();
+    cps.add(checkpoints.iterator().next());
+    Check.builder().withPath(new File(temporaryFolder.getRoot().getAbsolutePath())).withDebugInterval(Long.MAX_VALUE).withCheckBinaries(true).withCheckpoints(cps).withFilterPaths(filterPaths).withOutWriter(outWriter).withErrWriter(errWriter).build().run();
+    outWriter.close();
+    errWriter.close();
+    assertExpectedOutput(strOut.toString(), Lists.newArrayList("Searched through 2 revisions and 1 checkpoints", "No good revision found"));
+    assertExpectedOutput(strErr.toString(), Lists.newArrayList("Error while traversing /b: java.lang.IllegalArgumentException: Segment reference out of bounds"));
+}

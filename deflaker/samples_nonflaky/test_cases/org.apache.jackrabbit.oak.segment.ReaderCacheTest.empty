@@ -1,0 +1,23 @@
+@Test
+public void empty() {
+    final AtomicInteger counter = new AtomicInteger();
+    Function<Integer, String> loader = new Function<Integer, String>() {
+
+        @Override
+        @NotNull
+        public String apply(@Nullable Integer input) {
+            counter.incrementAndGet();
+            return valueOf(input);
+        }
+    };
+    StringCache c = new StringCache(0);
+    for (int repeat = 0; repeat < 10; repeat++) {
+        for (int i = 0; i < 1000; i++) {
+            assertEquals(valueOf(i), c.get(i, i, i, loader));
+        }
+    }
+    // the LIRS cache should be almost empty (low hit rate there)
+    assertTrue(valueOf(counter), counter.get() > 1000);
+    // but the fast cache should improve the total hit rate
+    assertTrue(valueOf(counter), counter.get() < 5000);
+}

@@ -1,0 +1,17 @@
+@Test
+public void hasChildren_BundledRoot_NoChild() throws Exception {
+    createTestNode("/test/book.jpg", createChild(newNode("app:Asset")).getNodeState());
+    ds.reset();
+    assertEquals(0, Iterables.size(getLatestNode("test/book.jpg").getChildNodeNames()));
+    assertEquals(0, getLatestNode("test/book.jpg").getChildNodeCount(100));
+    assertEquals(0, ds.queryPaths.size());
+    NodeBuilder builder = store.getRoot().builder();
+    childBuilder(builder, "/test/book.jpg/jcr:content");
+    merge(builder);
+    ds.reset();
+    assertEquals(1, Iterables.size(getLatestNode("test/book.jpg").getChildNodeNames()));
+    assertEquals(1, getLatestNode("test/book.jpg").getChildNodeCount(100));
+    assertEquals(0, ds.queryPaths.size());
+    assertTrue(hasNodeProperty("/test/book.jpg", META_PROP_BUNDLED_CHILD));
+    assertFalse(hasNodeProperty("/test/book.jpg", "_children"));
+}

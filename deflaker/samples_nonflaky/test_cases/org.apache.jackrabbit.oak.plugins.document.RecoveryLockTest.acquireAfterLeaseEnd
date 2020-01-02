@@ -1,0 +1,10 @@
+@Test
+public void acquireAfterLeaseEnd() throws Exception {
+    clock.waitUntil(info1.getLeaseEndTime() + DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS);
+    assertTrue(lock1.acquireRecoveryLock(2));
+    ClusterNodeInfoDocument c = infoDocument(1);
+    assertTrue(c.isActive());
+    assertTrue(c.isBeingRecovered());
+    assertEquals(Long.valueOf(2), c.getRecoveryBy());
+    assertNotNull(c.get(ClusterNodeInfo.LEASE_END_KEY));
+}

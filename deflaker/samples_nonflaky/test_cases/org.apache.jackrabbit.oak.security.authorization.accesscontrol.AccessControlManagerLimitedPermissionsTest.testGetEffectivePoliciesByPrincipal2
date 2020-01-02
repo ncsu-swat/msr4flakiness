@@ -1,0 +1,16 @@
+/**
+ * @since OAK 1.0 Policy at testPath not accessible -> getEffectivePolicies
+ * only returns the readable policy but doesn't fail.
+ */
+@Test
+public void testGetEffectivePoliciesByPrincipal2() throws Exception {
+    // policy at testPath: ac content was visible but the policy can't be
+    // retrieved from AcMgr as the accesscontrolled node is not visible.
+    setupPolicy(testPath, privilegesFromNames(PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
+    // policy at childPath: will be found by the getEffectivePolicies
+    setupPolicy(childPath, privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
+    root.commit();
+    testRoot.refresh();
+    AccessControlPolicy[] effective = testAcMgr.getEffectivePolicies(Collections.singleton(testPrincipal));
+    assertPolicies(effective, 1);
+}

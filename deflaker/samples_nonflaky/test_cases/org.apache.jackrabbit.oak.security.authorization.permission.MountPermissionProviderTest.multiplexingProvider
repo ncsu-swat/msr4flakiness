@@ -1,0 +1,33 @@
+@Test
+public void multiplexingProvider() throws Exception {
+    // check init
+    Tree permStore = root.getTree(PERMISSIONS_STORE_PATH);
+    String wsName = adminSession.getWorkspaceName();
+    assertTrue(permStore.hasChild(wsName));
+    for (Mount m : mountInfoProvider.getNonDefaultMounts()) {
+        assertTrue(permStore.hasChild(MountPermissionProvider.getPermissionRootName(m, wsName)));
+    }
+    Tree rootNode = root.getTree("/");
+    Tree test = TreeUtil.addChild(rootNode, testNode, JcrConstants.NT_UNSTRUCTURED);
+    Tree content = TreeUtil.addChild(test, "content", JcrConstants.NT_UNSTRUCTURED);
+    root.commit();
+    Principal p = getTestUser().getPrincipal();
+    setPrivileges(p, test.getPath(), true, JCR_READ);
+    setPrivileges(p, content.getPath(), false, JCR_READ);
+    permStore = root.getTree(PERMISSIONS_STORE_PATH);
+    // no entries in the default store
+    assertFalse(permStore.getChild(wsName).hasChild(p.getName()));
+    for (Mount m : mountInfoProvider.getNonDefaultMounts()) {
+        Tree mps = permStore.getChild(MountPermissionProvider.getPermissionRootName(m, wsName));
+        assertTrue(mps.hasChild(p.getName()));
+    }
+    ContentSession testSession = createTestSession();
+    try {
+        Root r = testSession.getLatestRoot();
+        assertFalse(r.getTree("/").exists());
+        assertTrue(r.getTree(test.getPath()).exists());
+        assertFalse(r.getTree(content.getPath()).exists());
+    } finally {
+        testSession.close();
+    }
+}

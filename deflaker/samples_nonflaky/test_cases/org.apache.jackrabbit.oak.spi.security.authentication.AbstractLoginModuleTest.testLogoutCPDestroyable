@@ -1,0 +1,10 @@
+@Test
+public void testLogoutCPDestroyable() throws Exception {
+    Credentials creds = mock(TestCredentials.class, withSettings().extraInterfaces(Destroyable.class));
+    Credentials foreign1 = new GuestCredentials();
+    Credentials foreign2 = new TokenCredentials("token");
+    Subject subject = new Subject(true, ImmutableSet.<Principal>of(new PrincipalImpl("pName")), ImmutableSet.of(creds, foreign1, foreign2), ImmutableSet.of());
+    AbstractLoginModule loginModule = initLoginModule(subject);
+    assertTrue(loginModule.logout(ImmutableSet.of(creds), Collections.emptySet()));
+    verify(((Destroyable) creds), times(1)).destroy();
+}

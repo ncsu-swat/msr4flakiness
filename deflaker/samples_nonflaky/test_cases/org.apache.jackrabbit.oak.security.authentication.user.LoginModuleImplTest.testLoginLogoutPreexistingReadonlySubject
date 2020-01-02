@@ -1,0 +1,18 @@
+@Test
+public void testLoginLogoutPreexistingReadonlySubject() throws Exception {
+    createTestUser();
+    Subject subject = new Subject(true, Collections.singleton(() -> "JMXPrincipal: foo"), Collections.EMPTY_SET, Collections.EMPTY_SET);
+    Subject.doAs(subject, (PrivilegedExceptionAction<Void>) () -> {
+        LogCustomizer logCustomizer = LogCustomizer.forLogger("org.apache.jackrabbit.oak.core.ContentSessionImpl").enable(Level.ERROR).create();
+        ContentSession cs = login(new SimpleCredentials(USER_ID, USER_PW.toCharArray()));
+        try {
+            logCustomizer.starting();
+            cs.close();
+        } finally {
+            // verify that ContentSessionImpl.close() did not log anything
+            assertEquals(0, logCustomizer.getLogs().size());
+            logCustomizer.finished();
+        }
+        return null;
+    });
+}

@@ -1,0 +1,16 @@
+@Test
+public void testImpersonationWithAttributes() throws Exception {
+    createTestUser();
+    AuthInfo authInfo;
+    try (ContentSession cs = login(new SimpleCredentials(USER_ID, USER_PW.toCharArray()))) {
+        authInfo = cs.getAuthInfo();
+    }
+    SimpleCredentials sc = new SimpleCredentials(USER_ID, new char[0]);
+    sc.setAttribute("attr", "value");
+    ImpersonationCredentials ic = new ImpersonationCredentials(sc, authInfo);
+    try (ContentSession cs = login(ic)) {
+        authInfo = cs.getAuthInfo();
+        assertTrue(Arrays.asList(authInfo.getAttributeNames()).contains("attr"));
+        assertEquals("value", authInfo.getAttribute("attr"));
+    }
+}

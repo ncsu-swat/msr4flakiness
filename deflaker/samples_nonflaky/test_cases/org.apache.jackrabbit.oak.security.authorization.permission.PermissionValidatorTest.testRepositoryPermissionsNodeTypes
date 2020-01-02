@@ -1,0 +1,11 @@
+@Test(expected = CommitFailedException.class)
+public void testRepositoryPermissionsNodeTypes() throws Exception {
+    try (ContentSession testSession = createTestSession()) {
+        PermissionValidator validator = createValidator(testSession.getAuthInfo().getPrincipals(), NodeTypeConstants.NODE_TYPES_PATH);
+        validator.childNodeDeleted("any", mock(NodeState.class));
+    } catch (CommitFailedException e) {
+        assertTrue(e.isAccessViolation());
+        assertEquals(0, e.getCode());
+        throw e;
+    }
+}

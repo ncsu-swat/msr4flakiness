@@ -1,0 +1,27 @@
+@Test
+public void testGetPermissionsOnAccessControlledNode() {
+    TreeLocation tl = createNonExistingTreeLocation(PathUtils.ROOT_PATH + AccessControlConstants.REP_POLICY);
+    Map<String, Long> map = new HashMap<>();
+    // read -> mapped to read-access-control
+    map.put(Session.ACTION_READ, Permissions.READ_ACCESS_CONTROL);
+    // all regular write -> mapped to modify-access-control (compatible and in
+    // accordance to the previous behavior, where specifying an explicit
+    // modify_access_control action was not possible.
+    map.put(Session.ACTION_ADD_NODE, Permissions.MODIFY_ACCESS_CONTROL);
+    map.put(Session.ACTION_REMOVE, Permissions.MODIFY_ACCESS_CONTROL);
+    map.put(Session.ACTION_SET_PROPERTY, Permissions.MODIFY_ACCESS_CONTROL);
+    map.put(JackrabbitSession.ACTION_ADD_PROPERTY, Permissions.MODIFY_ACCESS_CONTROL);
+    map.put(JackrabbitSession.ACTION_MODIFY_PROPERTY, Permissions.MODIFY_ACCESS_CONTROL);
+    map.put(JackrabbitSession.ACTION_REMOVE_PROPERTY, Permissions.MODIFY_ACCESS_CONTROL);
+    map.put(JackrabbitSession.ACTION_REMOVE_NODE, Permissions.MODIFY_ACCESS_CONTROL);
+    // all other actions are mapped to the corresponding permission without
+    // testing for item being ac-content
+    map.put(JackrabbitSession.ACTION_READ_ACCESS_CONTROL, Permissions.READ_ACCESS_CONTROL);
+    map.put(JackrabbitSession.ACTION_MODIFY_ACCESS_CONTROL, Permissions.MODIFY_ACCESS_CONTROL);
+    map.put(JackrabbitSession.ACTION_LOCKING, Permissions.LOCK_MANAGEMENT);
+    map.put(JackrabbitSession.ACTION_VERSIONING, Permissions.VERSION_MANAGEMENT);
+    map.put(JackrabbitSession.ACTION_USER_MANAGEMENT, Permissions.USER_MANAGEMENT);
+    for (Map.Entry<String, Long> entry : map.entrySet()) {
+        assertEquals(entry.getKey(), entry.getValue().longValue(), Permissions.getPermissions(entry.getKey(), tl, true));
+    }
+}

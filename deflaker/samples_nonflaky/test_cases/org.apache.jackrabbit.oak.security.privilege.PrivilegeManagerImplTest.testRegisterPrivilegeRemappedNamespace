@@ -1,0 +1,25 @@
+@Test
+public void testRegisterPrivilegeRemappedNamespace() throws Exception {
+    ReadWriteNamespaceRegistry nsRegistry = new ReadWriteNamespaceRegistry(root) {
+
+        @Override
+        protected Root getWriteRoot() {
+            return root;
+        }
+    };
+    nsRegistry.registerNamespace("ns", "http://jackrabbit.apache.org/oak/ns");
+    Map<String, String> localMapping = ImmutableMap.of("prefix", NamespaceRegistry.NAMESPACE_JCR, "prefix2", "http://jackrabbit.apache.org/oak/ns");
+    NamePathMapper mapper = new NamePathMapperImpl(new LocalNameMapper(root, localMapping));
+    PrivilegeManager pmgr = create(root, mapper);
+    Privilege p = pmgr.registerPrivilege("prefix2:customPrivilege", true, new String[] { "prefix:read", "prefix:write" });
+    assertEquals("prefix2:customPrivilege", p.getName());
+    assertEquals(2, p.getDeclaredAggregatePrivileges().length);
+    Tree privilegesTree = root.getTree(PrivilegeConstants.PRIVILEGES_PATH);
+    assertFalse(privilegesTree.hasChild("prefix2:customPrivilege"));
+    Tree privTree = privilegesTree.getChild("ns:customPrivilege");
+    assertTrue(privTree.exists());
+    assertTrue(TreeUtil.getBoolean(privTree, PrivilegeConstants.REP_IS_ABSTRACT));
+    Iterable<String> aggr = TreeUtil.getStrings(privTree, PrivilegeConstants.REP_AGGREGATES);
+    assertNotNull(aggr);
+    assertEquals(ImmutableSet.of("jcr:read", "jcr:write"), ImmutableSet.copyOf(aggr));
+}

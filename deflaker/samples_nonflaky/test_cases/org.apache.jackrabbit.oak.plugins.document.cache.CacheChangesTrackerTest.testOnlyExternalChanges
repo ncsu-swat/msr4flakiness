@@ -1,0 +1,10 @@
+@Test
+public void testOnlyExternalChanges() {
+    NodeDocumentCache cache = createCache();
+    Path parent = Path.fromString("/parent");
+    CacheChangesTracker tracker = cache.registerTracker(getKeyLowerLimit(parent), getKeyUpperLimit(parent));
+    cache.putNonConflictingDocs(tracker, ImmutableSet.of(createDoc("2:/parent/local")));
+    assertFalse(tracker.mightBeenAffected("2:/parent/local"));
+    cache.put(createDoc("2:/parent/external"));
+    assertTrue(tracker.mightBeenAffected("2:/parent/external"));
+}

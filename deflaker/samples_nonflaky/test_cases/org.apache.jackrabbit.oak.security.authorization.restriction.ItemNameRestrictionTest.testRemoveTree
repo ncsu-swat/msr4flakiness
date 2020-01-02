@@ -1,0 +1,17 @@
+@Test
+public void testRemoveTree() {
+    Root testRoot = testSession.getLatestRoot();
+    List<String> paths = ImmutableList.of("/a/d/b/e/c", "/a/d/b", "/a");
+    for (String p : paths) {
+        try {
+            testRoot.getTree(p).remove();
+            testRoot.commit();
+            fail();
+        } catch (CommitFailedException e) {
+            // success
+            assertTrue(e.isAccessViolation());
+        } finally {
+            testRoot.refresh();
+        }
+    }
+}

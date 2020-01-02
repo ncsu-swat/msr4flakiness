@@ -1,0 +1,26 @@
+@Test
+public void changeSetForBranchCommit() throws Exception {
+    final int NUM_NODES = DocumentMK.UPDATE_LIMIT / 2;
+    final int NUM_PROPS = 10;
+    Set<String> propNames = Sets.newHashSet();
+    NodeBuilder b1 = ns1.getRoot().builder();
+    for (int i = 0; i < NUM_NODES; i++) {
+        NodeBuilder c = b1.child("n" + i);
+        for (int j = 0; j < NUM_PROPS; j++) {
+            c.setProperty("q" + j, "value");
+            c.setProperty("p" + j, "value");
+            propNames.add("q" + j);
+            propNames.add("p" + j);
+        }
+    }
+    ns1.merge(b1, newCollectingHook(), newCommitInfo());
+    ns1.runBackgroundUpdateOperations();
+    c2.reset();
+    ns2.runBackgroundReadOperations();
+    CommitInfo ci = c2.getExternalChange();
+    CommitContext cc = (CommitContext) ci.getInfo().get(CommitContext.NAME);
+    assertNotNull(cc);
+    ChangeSet cs = (ChangeSet) cc.get(ChangeSet.COMMIT_CONTEXT_OBSERVATION_CHANGESET);
+    assertNotNull(cs);
+    assertTrue(cs.getPropertyNames().containsAll(propNames));
+}

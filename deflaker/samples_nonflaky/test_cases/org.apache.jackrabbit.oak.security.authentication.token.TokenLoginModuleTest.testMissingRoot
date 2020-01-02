@@ -1,0 +1,21 @@
+@Test
+public void testMissingRoot() throws Exception {
+    CallbackHandler cbh = callbacks -> {
+        for (Callback callback : callbacks) {
+            if (callback instanceof RepositoryCallback) {
+                ((RepositoryCallback) callback).setSecurityProvider(getSecurityProvider());
+                ((RepositoryCallback) callback).setContentRepository(null);
+            }
+        }
+    };
+    SimpleCredentials sc = new SimpleCredentials(getTestUser().getID(), getTestUser().getID().toCharArray());
+    sc.setAttribute(".token", "");
+    Map sharedState = Maps.newHashMap(ImmutableMap.of(AbstractLoginModule.SHARED_KEY_CREDENTIALS, sc));
+    TokenProvider tp = spy(new TokenProviderImpl(root, ConfigurationParameters.EMPTY, getUserConfiguration()));
+    TokenLoginModule lm = new TokenLoginModule();
+    lm.initialize(new Subject(), new TestCallbackHandler(tp, cbh), sharedState, ImmutableMap.of());
+    assertFalse(lm.login());
+    assertFalse(lm.commit());
+    verify(tp, times(1)).createToken(sc);
+    assertFalse(lm.logout());
+}

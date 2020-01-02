@@ -1,0 +1,21 @@
+@Test
+public void testUpdateNumEntriesTurnsNegativ() {
+    NodeState ace = mockACE(PRINCIPAL_NAME);
+    NodeState nodeState = mockNodeState(ace);
+    NodeBuilder parent = when(mock(NodeBuilder.class).exists()).thenReturn(true).getMock();
+    when(parent.remove()).thenReturn(true);
+    NodeBuilder principalRoot = when(mock(NodeBuilder.class).getChildNode(anyString())).thenReturn(parent).getMock();
+    when(principalRoot.isNew()).thenReturn(true);
+    when(principalRoot.getProperty(REP_NUM_PERMISSIONS)).thenReturn(PropertyStates.createProperty(REP_NUM_PERMISSIONS, Long.valueOf(0), Type.LONG));
+    NodeBuilder permissionsRoot = mock(NodeBuilder.class);
+    when(permissionsRoot.hasChildNode(PRINCIPAL_NAME)).thenReturn(true);
+    when(permissionsRoot.getChildNode(PRINCIPAL_NAME)).thenReturn(principalRoot);
+    PermissionStoreEditor editor = createPermissionStoreEditor(nodeState, permissionsRoot);
+    PropertyState pathProp = PropertyStates.createProperty(REP_ACCESS_CONTROLLED_PATH, editor.getPath());
+    when(parent.getProperty(REP_ACCESS_CONTROLLED_PATH)).thenReturn(pathProp);
+    editor.removePermissionEntries();
+    verify(parent, times(1)).remove();
+    verify(principalRoot, times(1)).getProperty(REP_NUM_PERMISSIONS);
+    verify(principalRoot, times(1)).removeProperty(REP_NUM_PERMISSIONS);
+    verify(principalRoot, never()).setProperty(anyString(), anyLong(), any(Type.class));
+}

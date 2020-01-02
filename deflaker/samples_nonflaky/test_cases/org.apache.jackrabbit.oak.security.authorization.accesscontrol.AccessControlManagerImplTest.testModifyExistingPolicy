@@ -1,0 +1,34 @@
+@Test
+public void testModifyExistingPolicy() throws Exception {
+    ACL acl = TestUtility.getApplicablePolicy(acMgr, testPath);
+    assertTrue(acl.addAccessControlEntry(testPrincipal, testPrivileges));
+    AccessControlEntry allowTest = acl.getAccessControlEntries()[0];
+    acMgr.setPolicy(testPath, acl);
+    root.commit();
+    acl = (ACL) acMgr.getPolicies(testPath)[0];
+    assertTrue(acl.addEntry(EveryonePrincipal.getInstance(), testPrivileges, false, TestUtility.getGlobRestriction("*/something", valueFactory)));
+    AccessControlEntry[] aces = acl.getAccessControlEntries();
+    assertEquals(2, aces.length);
+    AccessControlEntry denyEveryone = aces[1];
+    assertEquals(EveryonePrincipal.getInstance(), denyEveryone.getPrincipal());
+    acl.orderBefore(denyEveryone, allowTest);
+    acMgr.setPolicy(testPath, acl);
+    root.commit();
+    acl = (ACL) acMgr.getPolicies(testPath)[0];
+    aces = acl.getAccessControlEntries();
+    assertEquals(2, aces.length);
+    assertEquals(denyEveryone, aces[0]);
+    assertEquals(allowTest, aces[1]);
+    Privilege[] readAc = new Privilege[] { acMgr.privilegeFromName(PrivilegeConstants.JCR_READ_ACCESS_CONTROL) };
+    assertTrue(acl.addEntry(testPrincipal, readAc, false, Collections.emptyMap()));
+    assertEquals(3, acl.size());
+    AccessControlEntry denyTest = acl.getAccessControlEntries()[2];
+    acl.orderBefore(denyTest, allowTest);
+    acMgr.setPolicy(testPath, acl);
+    acl = (ACL) acMgr.getPolicies(testPath)[0];
+    aces = acl.getAccessControlEntries();
+    assertEquals(3, aces.length);
+    assertEquals(denyEveryone, aces[0]);
+    assertEquals(denyTest, aces[1]);
+    assertEquals(allowTest, aces[2]);
+}

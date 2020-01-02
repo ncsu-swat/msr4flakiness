@@ -1,0 +1,17 @@
+@Test
+public void testCreateWithTreeType() throws Exception {
+    TreePermission mockTp = mock(TreePermission.class);
+    AggregatedPermissionProvider mockPP = mock(AggregatedPermissionProvider.class);
+    when(mockPP.getTreePermission(any(Tree.class), any(TreeType.class), any(TreePermission.class))).thenReturn(mockTp);
+    TreePermission parent = createRootTreePermission(mockPP, fullScopeProvider);
+    assertCompositeTreePermission(true, parent);
+    Tree t = rootTree.getChild("test");
+    TreePermission tp = CompositeTreePermission.create(t, getTreeProvider(), (CompositeTreePermission) parent, TreeType.INTERNAL);
+    assertCompositeTreePermission(true, tp);
+    Field typeF = CompositeTreePermission.class.getDeclaredField("type");
+    typeF.setAccessible(true);
+    assertSame(TreeType.INTERNAL, typeF.get(tp));
+    verify(mockPP, times(1)).getTreePermission(rootTree, TreeType.DEFAULT, TreePermission.EMPTY);
+    verify(mockPP, times(1)).getTreePermission(t, TreeType.INTERNAL, mockTp);
+    verify(mockPP, never()).getTreePermission(t, TreeType.DEFAULT, parent);
+}

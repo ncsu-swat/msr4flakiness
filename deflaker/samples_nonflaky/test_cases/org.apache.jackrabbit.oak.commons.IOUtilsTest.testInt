@@ -1,0 +1,26 @@
+public void testInt() throws IOException {
+    testInt(Integer.MIN_VALUE);
+    testInt(Integer.MAX_VALUE);
+    testInt(0x0);
+    for (int i : Lists.newArrayList(0x01, 0x08)) {
+        for (int x = i; x != 0; x = (x << 4)) {
+            testInt(x);
+        }
+    }
+    int loopMax = (Integer.MAX_VALUE >> 4) + 1;
+    for (int i : Lists.newArrayList(0x07, 0x0F)) {
+        for (int x = i; x <= loopMax; x = ((x << 4) | 0x0F)) {
+            testInt(x);
+        }
+    }
+}
+private static void testInt(int x) throws IOException {
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    IOUtils.writeInt(out, x);
+    byte[] data = out.toByteArray();
+    assertTrue(data.length == Integer.BYTES);
+    ByteArrayInputStream in = new ByteArrayInputStream(data);
+    int x2 = IOUtils.readInt(in);
+    assertEquals(x, x2);
+    assertEquals(-1, in.read());
+}

@@ -1,0 +1,15 @@
+/**
+ * An ACE restriction matching only a property (like e.g. jcr:primaryType) would not be included in the effective
+ * policies, becauce AccessControlManager.getEffectivePolicies(String) requires the path to point to an existing
+ * JCR node.
+ */
+@Test
+public void testGetEffectivePoliciesMatchingPropertyRestriction() throws Exception {
+    TestUtility.setupPolicy(acMgr, testPath, testPrincipal, privilegesFromNames(JCR_READ), false, null, getMvRestriction(REP_ITEM_NAMES, PropertyType.NAME, JcrConstants.JCR_PRIMARYTYPE));
+    Tree child = TreeUtil.addChild(root.getTree(testPath), "child", JcrConstants.NT_UNSTRUCTURED);
+    Tree grandChild = TreeUtil.addChild(child, "child", JcrConstants.NT_UNSTRUCTURED);
+    root.commit();
+    assertPolicies(acMgr.getEffectivePolicies(testPath), 1);
+    assertPolicies(acMgr.getEffectivePolicies(child.getPath()), 1);
+    assertPolicies(acMgr.getEffectivePolicies(grandChild.getPath()), 1);
+}

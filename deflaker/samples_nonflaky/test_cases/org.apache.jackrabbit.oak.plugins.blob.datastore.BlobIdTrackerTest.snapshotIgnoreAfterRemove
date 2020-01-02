@@ -1,0 +1,10 @@
+@Test
+public void snapshotIgnoreAfterRemove() throws Exception {
+    LOG.info("In snapshotIgnoreAfterRemove");
+    BlobIdTracker.SnapshotJob job = tracker.new SnapshotJob();
+    snapshotRemove(job, false);
+    // Since already retrieved the datastore should be empty unless the snapshot has actually run
+    ScheduledFuture<?> scheduledFuture = scheduler.schedule(job, 0, TimeUnit.MILLISECONDS);
+    scheduledFuture.get();
+    assertTrue("Snapshot not skipped", read(dataStore.getAllMetadataRecords(BLOBREFERENCES.getType())).isEmpty());
+}

@@ -1,0 +1,12 @@
+@Test
+public void testDSBSListIdsErrorStats() throws IOException, RepositoryException {
+    DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withErrorOnList());
+    long listIdsErrorCount = stats.getListIdsErrorCount();
+    long listIdsErrorCountLastMinute = getLastMinuteStats(stats.getListIdsErrorCountHistory());
+    try {
+        dsbs.getAllIdentifiers();
+    } catch (Exception e) {
+    }
+    assertEquals(listIdsErrorCount + 1, stats.getListIdsErrorCount());
+    assertEquals(listIdsErrorCountLastMinute + 1, waitForMetric(input -> getLastMinuteStats(input.getListIdsErrorCountHistory()), stats, 1L, 0L).longValue());
+}

@@ -1,0 +1,13 @@
+@Test
+public void shouldDecodeValidGetReferencesResponses() throws Exception {
+    byte[] data = "a:b,c".getBytes(Charsets.UTF_8);
+    ByteBuf buf = Unpooled.buffer();
+    buf.writeInt(data.length + 1);
+    buf.writeByte(Messages.HEADER_REFERENCES);
+    buf.writeBytes(data);
+    EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder(folder.newFolder()));
+    channel.writeInbound(buf);
+    GetReferencesResponse response = (GetReferencesResponse) channel.readInbound();
+    assertEquals("a", response.getSegmentId());
+    assertTrue(elementsEqual(asList("b", "c"), response.getReferences()));
+}

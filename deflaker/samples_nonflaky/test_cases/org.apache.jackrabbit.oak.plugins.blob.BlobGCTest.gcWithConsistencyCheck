@@ -1,0 +1,10 @@
+@Test
+public void gcWithConsistencyCheck() throws Exception {
+    log.info("Starting gcWithConsistencyCheck()");
+    ((MemoryBlobStoreNodeStore) cluster.nodeStore).getReferencedBlobs().add("SPURIOUS");
+    MarkSweepGarbageCollector collector = cluster.getCollector(0, true);
+    Set<String> existingAfterGC = executeGarbageCollection(cluster, collector, false);
+    assertFalse(Sets.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC).isEmpty());
+    assertStats(cluster.statsProvider, 1, 0, cluster.blobStoreState.blobsAdded.size() - cluster.blobStoreState.blobsPresent.size() + 1, cluster.blobStoreState.blobsAdded.size() - cluster.blobStoreState.blobsPresent.size() + 1, NAME);
+    assertStatsBean(collector.getConsistencyOperationStats(), 1, 1, 1);
+}

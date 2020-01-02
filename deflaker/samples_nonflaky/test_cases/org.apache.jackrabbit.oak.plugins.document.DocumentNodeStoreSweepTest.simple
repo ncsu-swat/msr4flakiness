@@ -1,0 +1,14 @@
+@Test
+public void simple() throws Exception {
+    NodeBuilder builder = ns.getRoot().builder();
+    builder.child("foo");
+    merge(ns, builder);
+    RevisionVector head = ns.getHeadRevision();
+    ns.dispose();
+    NodeDocument rootDoc = getRootDocument(store);
+    assertNotNull(rootDoc);
+    // after dispose, the sweep revision must be at least the head revision
+    Revision localHead = head.getRevision(ns.getClusterId());
+    assertNotNull(localHead);
+    assertFalse(rootDoc.getSweepRevisions().isRevisionNewer(localHead));
+}

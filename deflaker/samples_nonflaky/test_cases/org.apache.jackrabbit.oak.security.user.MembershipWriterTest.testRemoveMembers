@@ -1,0 +1,54 @@
+@Test
+public void testRemoveMembers() throws Exception {
+    Set<String> members = new HashSet<String>();
+    String[] users = new String[NUM_USERS];
+    Group grp = createGroup();
+    for (int i = 0; i < NUM_USERS; i++) {
+        User usr = createUser();
+        grp.addMember(usr);
+        members.add(usr.getID());
+        users[i] = usr.getID();
+    }
+    root.commit();
+    // remove the first TH users, this should remove all references from rep:members in the group node and remove
+    // the rep:members property
+    for (int i = 0; i < SIZE_TH; i++) {
+        Authorizable auth = userMgr.getAuthorizable(users[i]);
+        members.remove(users[i]);
+        grp.removeMember(auth);
+    }
+    root.commit();
+    assertMembers(grp, members);
+    // also check storage structure
+    Tree tree = getTree(grp);
+    assertNull("rep:members property not exist", tree.getProperty(REP_MEMBERS));
+    // now add TH/2 again.
+    for (int i = 0; i < SIZE_TH / 2; i++) {
+        Authorizable auth = userMgr.getAuthorizable(users[i]);
+        members.add(users[i]);
+        grp.addMember(auth);
+    }
+    root.commit();
+    assertEquals("rep:members property must have correct number of references", SIZE_TH / 2, tree.getProperty(REP_MEMBERS).count());
+    assertMembers(grp, members);
+    // now remove the users 20-30, this should remove the 2nd overflow node
+    for (int i = 2 * SIZE_TH; i < (3 * SIZE_TH); i++) {
+        Authorizable auth = userMgr.getAuthorizable(users[i]);
+        members.remove(users[i]);
+        grp.removeMember(auth);
+    }
+    root.commit();
+    assertMembers(grp, members);
+    Tree membersList = tree.getChild(REP_MEMBERS_LIST);
+    assertFalse("the first overflow node must not exist", membersList.getChild("1").exists());
+    // now add 10 users and check if the "1" node exists again
+    for (int i = 2 * SIZE_TH; i < (3 * SIZE_TH); i++) {
+        Authorizable auth = userMgr.getAuthorizable(users[i]);
+        members.add(users[i]);
+        grp.addMember(auth);
+    }
+    root.commit();
+    assertMembers(grp, members);
+    membersList = tree.getChild(REP_MEMBERS_LIST);
+    assertTrue("the first overflow node must not exist", membersList.getChild("1").exists());
+}

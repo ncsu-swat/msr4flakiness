@@ -1,0 +1,85 @@
+@Override
+public void dispose() {
+    documentStoreDisposeWasReached.set(true);
+}
+// OAK-2642
+@Test
+public void dispose() throws CommitFailedException, InterruptedException {
+    final BlockingQueue<String> updates = new ArrayBlockingQueue<String>(1);
+    // when disposing of the DocumentNodeStore instances the updates queue
+    // becomes full due to the pending operations being flushed.
+    // This flag ensures that after the main test is completed all
+    // updates are processed without being blocked
+    final AtomicBoolean throttleUpdates = new AtomicBoolean(true);
+    MemoryDocumentStore docStore = new MemoryDocumentStore() {
+
+        @Override
+        public <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update) {
+            if (throttleUpdates.get() && TestUtils.isLastRevUpdate(update)) {
+                try {
+                    updates.put(update.getId());
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            return super.createOrUpdate(collection, update);
+        }
+    };
+    final DocumentNodeStore store = builderProvider.newBuilder().setClusterId(1).setAsyncDelay(0).setDocumentStore(docStore).getNodeStore();
+    updates.clear();
+    NodeBuilder builder = store.getRoot().builder();
+    builder.child("test").child("node");
+    merge(store, builder);
+    builder = store.getRoot().builder();
+    builder.child("test").child("node").child("child-1");
+    merge(store, builder);
+    Thread t = new Thread(new Runnable() {
+
+        @Override
+        public void run() {
+            store.dispose();
+        }
+    });
+    t.start();
+    String p = updates.take();
+    assertEquals("2:/test/node", p);
+    // background ops in dispose is still in progress
+    assertTrue(t.isAlive());
+    // wait until next update comes in
+    for (; ; ) {
+        if (updates.peek() != null) {
+            break;
+        }
+    }
+    // add child-2 while dispose is in progress
+    try {
+        builder = store.getRoot().builder();
+        builder.child("test").child("node").child("child-2");
+        merge(store, builder);
+        fail("Merge must fail with CommitFailedException");
+    } catch (CommitFailedException e) {
+    // expected
+    }
+    // drain updates until dispose finished
+    while (t.isAlive()) {
+        updates.poll(10, TimeUnit.MILLISECONDS);
+    }
+    updates.clear();
+    throttleUpdates.set(false);
+    // start new store with clusterId 2
+    DocumentNodeStore store2 = builderProvider.newBuilder().setClusterId(2).setAsyncDelay(0).setDocumentStore(docStore).getNodeStore();
+    // perform recovery if needed
+    LastRevRecoveryAgent agent = new LastRevRecoveryAgent(docStore, store2);
+    if (agent.isRecoveryNeeded()) {
+        agent.recover(1);
+    }
+    builder = store2.getRoot().builder();
+    NodeBuilder test = builder.getChildNode("test");
+    assertTrue(test.exists());
+    NodeBuilder node = test.getChildNode("node");
+    assertTrue(node.exists());
+    if (!node.hasChildNode("child-2")) {
+        node.child("child-2");
+        merge(store2, builder);
+    }
+}

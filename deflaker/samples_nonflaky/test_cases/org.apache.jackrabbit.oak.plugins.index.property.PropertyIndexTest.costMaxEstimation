@@ -1,0 +1,38 @@
+@Test
+public void costMaxEstimation() throws Exception {
+    NodeState root = EmptyNodeState.EMPTY_NODE;
+    // Add index definition
+    NodeBuilder builder = root.builder();
+    createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo", true, false, ImmutableSet.of("foo"), null);
+    NodeState before = builder.getNodeState();
+    // 100 nodes in the index:
+    // with a single level /content cost is 121
+    // adding a second level /content/data cost is133
+    // 101 nodes in the index:
+    // with a single level /content cost is 121
+    // adding a second level /content/data cost is 133
+    // 100 nodes, 12 levels deep, cost is 345
+    // 101 nodes, 12 levels deep, cost is 345
+    // threshold for estimation (PropertyIndexLookup.MAX_COST) is at 100
+    int nodes = 101;
+    int levels = 12;
+    NodeBuilder data = builder;
+    for (int i = 0; i < levels; i++) {
+        data = data.child("l" + i);
+    }
+    for (int i = 0; i < nodes; i++) {
+        NodeBuilder c = data.child("c_" + i);
+        c.setProperty("foo", "azerty");
+    }
+    // add more nodes (to make traversal more expensive)
+    for (int i = 0; i < 10000; i++) {
+        data.child("cx_" + i);
+    }
+    NodeState after = builder.getNodeState();
+    NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+    FilterImpl f = createFilter(indexed, NT_BASE);
+    PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+    double cost = lookup.getCost(f, "foo", PropertyValues.newString("azerty"));
+    double traversal = new TraversingIndex().getCost(f, indexed);
+    assertTrue("Estimated cost for " + nodes + " nodes should not be higher than traversal (" + cost + " < " + traversal + ")", cost < traversal);
+}

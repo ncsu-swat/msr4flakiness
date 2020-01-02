@@ -1,0 +1,13 @@
+@Test
+public void testFindWithOffsetLimit() {
+    Iterator principals = new TestPrincipalProvider("p1", "p2", "p3", "p4").getTestPrincipals().iterator();
+    PrincipalProvider pp = mock(PrincipalProvider.class);
+    // NOTE: CompositePrincipalProvider passes 0 offset to the aggregated provider!
+    when(pp.findPrincipals("p", false, PrincipalManager.SEARCH_TYPE_ALL, 0, 3)).thenReturn(principals);
+    PrincipalProvider cpp = CompositePrincipalProvider.of(ImmutableList.of(pp, EmptyPrincipalProvider.INSTANCE));
+    Iterator<? extends Principal> it = cpp.findPrincipals("p", false, PrincipalManager.SEARCH_TYPE_ALL, 2, 1);
+    assertTrue(it.hasNext());
+    Principal p = it.next();
+    assertEquals("p3", p.getName());
+    assertFalse(it.hasNext());
+}

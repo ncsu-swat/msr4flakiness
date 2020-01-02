@@ -1,0 +1,25 @@
+@Test
+public void unknownRevision() throws Exception {
+    Revision oldRevision = ns.newRevision();
+    addNode("/foo");
+    Revision newRevision = ns.newRevision();
+    NodeDocument foo = getDocument("/foo");
+    NodeDocument root = getDocument("/");
+    assertNotNull(foo);
+    assertNotNull(root);
+    assertNull(resolver.resolve(oldRevision, foo));
+    assertNull(resolver.resolve(oldRevision, root));
+    assertNull(resolver.resolve(newRevision, foo));
+    assertNull(resolver.resolve(newRevision, root));
+    // trigger sweeper
+    ns.runBackgroundOperations();
+    // must still not report as committed
+    foo = getDocument("/foo");
+    root = getDocument("/");
+    assertNotNull(foo);
+    assertNotNull(root);
+    assertNull(resolver.resolve(oldRevision, foo));
+    assertNull(resolver.resolve(oldRevision, root));
+    assertNull(resolver.resolve(newRevision, foo));
+    assertNull(resolver.resolve(newRevision, root));
+}

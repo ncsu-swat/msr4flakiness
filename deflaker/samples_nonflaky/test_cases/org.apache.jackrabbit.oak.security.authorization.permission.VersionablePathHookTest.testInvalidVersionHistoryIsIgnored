@@ -1,0 +1,44 @@
+@Test
+public void testInvalidVersionHistoryIsIgnored() throws Exception {
+    NodeState after = new AbstractNodeState() {
+
+        @Override
+        public boolean exists() {
+            return true;
+        }
+
+        @Override
+        @NotNull
+        public Iterable<? extends PropertyState> getProperties() {
+            return ImmutableList.of(PropertyStates.createProperty(JCR_VERSIONHISTORY, "someValue"));
+        }
+
+        @Override
+        public boolean hasChildNode(@NotNull String name) {
+            return true;
+        }
+
+        @Override
+        @NotNull
+        public NodeState getChildNode(@NotNull String name) throws IllegalArgumentException {
+            return this;
+        }
+
+        @Override
+        @NotNull
+        public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
+            return Collections.EMPTY_LIST;
+        }
+
+        @Override
+        @NotNull
+        public NodeBuilder builder() {
+            return new MemoryNodeBuilder(this);
+        }
+    };
+    NodeState spyAfter = spy(after);
+    NodeState before = getTreeProvider().asNodeState(t);
+    vpHook.processCommit(before, spyAfter, new CommitInfo("sid", null));
+    // never enters ReadOnlyVersionManager.getOrCreateVersionHistory that first looks up uuid
+    verify(spyAfter, never()).getProperty(JCR_UUID);
+}

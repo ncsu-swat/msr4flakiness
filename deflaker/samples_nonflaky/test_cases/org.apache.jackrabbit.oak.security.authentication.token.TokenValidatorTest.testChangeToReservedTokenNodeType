@@ -1,0 +1,23 @@
+@Test
+public void testChangeToReservedTokenNodeType() throws Exception {
+    String parentPath = getTestUser().getPath() + "/" + TokenConstants.TOKENS_NODE_NAME;
+    String path = parentPath + "/node";
+    try {
+        Tree t = root.getTree(getTestUser().getPath()).addChild(TokenConstants.TOKENS_NODE_NAME);
+        t.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
+        t.addChild("node").setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
+        root.commit();
+        Tree node = root.getTree(path);
+        node.setProperty(JcrConstants.JCR_PRIMARYTYPE, TokenConstants.TOKEN_NT_NAME, Type.NAME);
+        node.setProperty(JcrConstants.JCR_UUID, UUID.randomUUID().toString());
+        node.setProperty(TokenConstants.TOKEN_ATTRIBUTE_KEY, PasswordUtil.buildPasswordHash("key"));
+        node.setProperty(TokenConstants.TOKEN_ATTRIBUTE_EXPIRY, getDateValue(), Type.DATE);
+        root.commit(CommitMarker.asCommitAttributes());
+    } catch (CommitFailedException e) {
+        assertEquals(62, e.getCode());
+    } finally {
+        root.refresh();
+        root.getTree(parentPath).remove();
+        root.commit();
+    }
+}

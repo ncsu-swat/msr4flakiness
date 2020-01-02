@@ -1,0 +1,16 @@
+/**
+ * @since Oak 1.8 : for performance reasons cyclic membership is only check
+ * within GroupImpl and those import-behaviours that actually resolve the id to a user/group
+ */
+@Test
+public void testCyclicWithoutAccess() throws Exception {
+    memberGroup.addMember(testGroup);
+    root.commit();
+    Set<String> failed = addExistingMemberWithoutAccess();
+    assertTrue(failed.isEmpty());
+    // cyclic membership must be spotted upon membership resolution
+    root.refresh();
+    UserManager uMgr = getUserManager(root);
+    assertEquals(1, Iterators.size(uMgr.getAuthorizable(memberGroup.getID(), Group.class).getMembers()));
+    assertEquals(1, Iterators.size(uMgr.getAuthorizable(testGroup.getID(), Group.class).getMembers()));
+}

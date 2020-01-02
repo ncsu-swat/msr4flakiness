@@ -1,0 +1,14 @@
+@Test
+public void statsForSpecificIndexWithPathLimit() throws Exception {
+    prepareStore();
+    NodeBuilder builder = store.getRoot().builder();
+    createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo", true, false, ImmutableSet.of("foo"), null);
+    for (int i = 0; i < 10; i++) {
+        setProperty(builder, "/a/b/c/d" + i, "foo", "x");
+    }
+    store.merge(builder, HOOK, CommitInfo.EMPTY);
+    CompositeData cd = mbean.getStatsForSpecificIndex("/oak:index/foo", 5, 7, 3);
+    assertEquals(1L, cd.get("valueCount"));
+    assertArray(cd, "values", asList("x"));
+    assertArray(cd, "paths", asList("/a/b/c"));
+}

@@ -1,0 +1,17 @@
+@Test
+public void testGetLoaderAffectsTracker() throws ExecutionException {
+    NodeDocumentCache cache = createCache();
+    Path parent = Path.fromString("/parent");
+    CacheChangesTracker tracker = cache.registerTracker(getKeyLowerLimit(parent), getKeyUpperLimit(parent));
+    assertFalse(tracker.mightBeenAffected("2:/parent/xyz"));
+    cache.getIfPresent("2:/parent/xyz");
+    assertFalse(tracker.mightBeenAffected("2:/parent/xyz"));
+    cache.get("2:/parent/xyz", new Callable<NodeDocument>() {
+
+        @Override
+        public NodeDocument call() throws Exception {
+            return createDoc("2:/parent/xyz");
+        }
+    });
+    assertTrue(tracker.mightBeenAffected("2:/parent/xyz"));
+}

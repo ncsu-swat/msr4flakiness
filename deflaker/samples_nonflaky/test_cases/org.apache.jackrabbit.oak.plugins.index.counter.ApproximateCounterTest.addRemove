@@ -1,0 +1,24 @@
+@Test
+public void addRemove() {
+    ApproximateCounter.setSeed(0);
+    Random r = new Random(1);
+    long result = 0;
+    long exactResult = 0;
+    long count = 100000;
+    long sumChange = 0;
+    int nonZero = 0;
+    for (long i = 0; i < count; i++) {
+        int o = r.nextInt(20) - 10;
+        exactResult += o;
+        sumChange += Math.abs(o);
+        long offset = ApproximateCounter.calculateOffset(o, 1000);
+        if (offset != 0) {
+            nonZero++;
+            result += offset;
+        }
+    }
+    // most of the time, 0 needs to be returned
+    assertTrue(nonZero < count / 50);
+    // the expected result is within a certain range
+    assertTrue(Math.abs(result - exactResult) < sumChange / 10);
+}

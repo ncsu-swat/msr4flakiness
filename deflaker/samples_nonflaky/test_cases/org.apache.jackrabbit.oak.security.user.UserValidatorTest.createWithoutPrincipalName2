@@ -1,0 +1,13 @@
+@Test(expected = CommitFailedException.class)
+public void createWithoutPrincipalName2() throws Exception {
+    Tree userTree = root.getTree(userPath);
+    userTree.removeProperty(REP_PRINCIPAL_NAME);
+    NodeState userState = getTreeProvider().asNodeState(userTree);
+    try {
+        Tree tree = root.getTree(userPath).getParent();
+        createUserValidator(tree, tree).childNodeAdded(userTree.getName(), userState);
+    } catch (CommitFailedException e) {
+        assertEquals(26, e.getCode());
+        throw e;
+    }
+}

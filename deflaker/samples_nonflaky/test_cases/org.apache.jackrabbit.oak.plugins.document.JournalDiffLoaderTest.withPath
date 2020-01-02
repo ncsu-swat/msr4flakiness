@@ -1,0 +1,30 @@
+@Test
+public void withPath() throws Exception {
+    DocumentNodeStore ns = builderProvider.newBuilder().clock(clock).setAsyncDelay(0).getNodeStore();
+    NodeBuilder builder = ns.getRoot().builder();
+    builder.child("foo");
+    merge(ns, builder);
+    ns.runBackgroundOperations();
+    DocumentNodeState before = (DocumentNodeState) ns.getRoot().getChildNode("foo");
+    builder = ns.getRoot().builder();
+    builder.child("bar");
+    merge(ns, builder);
+    ns.runBackgroundOperations();
+    builder = ns.getRoot().builder();
+    builder.child("foo").child("a").child("b").child("c");
+    merge(ns, builder);
+    ns.runBackgroundOperations();
+    builder = ns.getRoot().builder();
+    builder.child("bar").child("a").child("b").child("c");
+    merge(ns, builder);
+    ns.runBackgroundOperations();
+    DocumentNodeState after = (DocumentNodeState) ns.getRoot().getChildNode("foo");
+    CacheStats cs = getMemoryDiffStats(ns);
+    assertNotNull(cs);
+    cs.resetStats();
+    Set<String> changes = changeChildNodes(ns, before, after);
+    assertEquals(1, changes.size());
+    assertTrue(changes.contains("a"));
+    // must only push /foo, /foo/a, /foo/a/b and /foo/a/b/c into cache
+    assertEquals(4, cs.getElementCount());
+}

@@ -1,0 +1,21 @@
+@Test
+public void getChangesMixedClusterIds() throws Exception {
+    final int numChanges = 200;
+    Random random = new Random();
+    MemoryDocumentStore store = new MemoryDocumentStore();
+    DocumentNodeStore ns1 = createTestStore(store, 1, 0);
+    DocumentNodeStore ns2 = createTestStore(store, 2, 0);
+    List<DocumentNodeStore> nodeStores = Lists.newArrayList(ns1, ns2);
+    List<RevisionVector> headRevisions = Lists.reverse(createTestData(nodeStores, random, numChanges));
+    NodeDocument doc = getRootDocument(store);
+    for (int i = 0; i < 10; i++) {
+        int idx = random.nextInt(numChanges);
+        RevisionVector r = headRevisions.get(idx);
+        Iterable<Revision> revs1 = doc.getChanges("p", r);
+        Iterable<Revision> revs2 = doc.getChanges("p", r);
+        assertEquals(Iterables.size(revs1), Iterables.size(revs2));
+        assertEquals(idx, Iterables.size(revs1));
+    }
+    ns1.dispose();
+    ns2.dispose();
+}

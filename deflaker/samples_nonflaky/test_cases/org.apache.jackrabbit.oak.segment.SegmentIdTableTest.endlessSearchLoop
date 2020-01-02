@@ -1,0 +1,30 @@
+/**
+ * OAK-2752
+ */
+@Test
+public void endlessSearchLoop() throws IOException {
+    final SegmentIdFactory maker = newSegmentIdMaker();
+    final SegmentIdTable tbl = new SegmentIdTable();
+    List<SegmentId> refs = new ArrayList<SegmentId>();
+    for (int i = 0; i < 1024; i++) {
+        refs.add(tbl.newSegmentId(i, i % 64, maker));
+    }
+    Callable<SegmentId> c = new Callable<SegmentId>() {
+
+        @Override
+        public SegmentId call() throws Exception {
+            // (2,1) doesn't exist
+            return tbl.newSegmentId(2, 1, maker);
+        }
+    };
+    Future<SegmentId> f = Executors.newSingleThreadExecutor().submit(c);
+    SegmentId s = null;
+    try {
+        s = f.get(5, TimeUnit.SECONDS);
+    } catch (Exception e) {
+        fail(e.getMessage());
+    }
+    assertNotNull(s);
+    assertEquals(2, s.getMostSignificantBits());
+    assertEquals(1, s.getLeastSignificantBits());
+}

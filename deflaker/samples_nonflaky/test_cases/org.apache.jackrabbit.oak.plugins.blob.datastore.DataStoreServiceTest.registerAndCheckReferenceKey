@@ -1,0 +1,19 @@
+/**
+ * Tests the regitration of CachingFileDataStore and checks existence of
+ * reference.key file on first access of getOrCreateReference.
+ * @throws Exception
+ */
+@Test
+public void registerAndCheckReferenceKey() throws Exception {
+    context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
+    String nasPath = folder.getRoot().getAbsolutePath() + "/NASPath";
+    String cachePath = folder.getRoot().getAbsolutePath() + "/cachePath";
+    DataStore ds = getAssertCachingFileDataStore(nasPath, cachePath);
+    final CachingFileDataStore dataStore = (CachingFileDataStore) ds;
+    byte[] key = dataStore.getBackend().getOrCreateReferenceKey();
+    // Check bytes retrieved from reference.key file
+    File refFile = new File(nasPath, "reference.key");
+    byte[] keyRet = FileUtils.readFileToByteArray(refFile);
+    assertArrayEquals(key, keyRet);
+    assertArrayEquals(key, dataStore.getBackend().getOrCreateReferenceKey());
+}

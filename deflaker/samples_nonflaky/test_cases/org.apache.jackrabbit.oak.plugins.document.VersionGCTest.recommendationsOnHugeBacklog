@@ -1,0 +1,21 @@
+@Test
+public void recommendationsOnHugeBacklog() throws Exception {
+    VersionGCOptions options = gc.getOptions();
+    final long oneYearAgo = ns.getClock().getTime() - TimeUnit.DAYS.toMillis(365);
+    final long twelveTimesTheLimit = options.collectLimit * 12;
+    final long secondsPerDay = TimeUnit.DAYS.toMillis(1);
+    VersionGCSupport localgcsupport = fakeVersionGCSupport(ns.getDocumentStore(), oneYearAgo, twelveTimesTheLimit);
+    VersionGCRecommendations rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), ns.getClock(), localgcsupport, options, new TestGCMonitor());
+    // should select a duration of roughly one month
+    long duration = rec.scope.getDurationMs();
+    assertTrue(duration <= TimeUnit.DAYS.toMillis(33));
+    assertTrue(duration >= TimeUnit.DAYS.toMillis(28));
+    VersionGCStats stats = new VersionGCStats();
+    stats.limitExceeded = true;
+    rec.evaluate(stats);
+    assertTrue(stats.needRepeat);
+    rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), ns.getClock(), localgcsupport, options, new TestGCMonitor());
+    // new duration should be half
+    long nduration = rec.scope.getDurationMs();
+    assertTrue(nduration == duration / 2);
+}

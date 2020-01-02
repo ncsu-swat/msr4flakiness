@@ -1,0 +1,11 @@
+@Test
+public void testIncludeOnQueueFull() throws Exception {
+    doTestFullQueue(7, // start: empty queue
+    new TestPattern(EXCLUDED, 1000, false, 0, 0, 0, 0), // here: still empty, just the previousRoot is set to remember above NOOPs
+    new TestPattern(INCLUDED, 5, false, 0, 0, 0, 6), // here: 1 init and 5 changes are in the queue, the queue fits 7, so queue is almost full
+    new TestPattern(EXCLUDED, 500, false, 0, 0, 6, 6), // still 6 in the queue, of 7
+    // due to OAK-5740 the last entry is now an include
+    new TestPattern(INCLUDED, 5, false, 0, 0, 6, 7), // so with OAK-5740 we now will get 6 includes, not 5
+    new TestPattern(EXCLUDED, 0, /* only flush*/
+    true, 6, 0, 7, 0));
+}

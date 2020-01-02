@@ -1,0 +1,20 @@
+@Test
+public void hasPrivilegesTest() throws Exception {
+    Set<String> supp1 = ImmutableSet.of(JCR_READ, JCR_NAMESPACE_MANAGEMENT);
+    Set<String> supp2 = ImmutableSet.of(JCR_READ, JCR_WRITE);
+    Set<String> all = Sets.union(supp1, supp2);
+    // tests all possible 256 shuffles
+    for (CompositionType type : CompositionType.values()) {
+        for (Set<String> granted1 : Sets.powerSet(supp1)) {
+            for (Set<String> granted2 : Sets.powerSet(supp2)) {
+                for (Set<String> ps : Sets.powerSet(all)) {
+                    CompositePermissionProvider cpp = buildCpp(supp1, granted1, supp2, granted2, type, null);
+                    boolean expected = expected(ps, supp1, granted1, supp2, granted2, type, true);
+                    boolean result = cpp.hasPrivileges(null, ps.toArray(new String[] {}));
+                    String err = "Checking " + ps + " in {supported: " + supp1 + ", granted: " + granted1 + "} " + type + " {supported: " + supp2 + ", granted: " + granted2 + "}";
+                    assertEquals(err, expected, result);
+                }
+            }
+        }
+    }
+}

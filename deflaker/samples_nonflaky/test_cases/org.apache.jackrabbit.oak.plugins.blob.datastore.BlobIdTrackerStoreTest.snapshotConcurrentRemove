@@ -1,0 +1,18 @@
+@Test
+public void snapshotConcurrentRemove() throws IOException, InterruptedException {
+    final BlobIdStore store = tracker.store;
+    final CountDownLatch start = new CountDownLatch(1);
+    final CountDownLatch done = new CountDownLatch(2);
+    final Set<String> initAdd = add(store, range(0, 100000));
+    store.snapshot();
+    Thread removeThread = removeThread(store, folder.newFile(), initAdd, start, done);
+    Thread snapshotThread = snapshotThread(store, start, done);
+    removeThread.start();
+    snapshotThread.start();
+    // add some more to check that snapshot is successfull
+    initAdd.addAll(add(store, range(10001, 10003)));
+    start.countDown();
+    done.await();
+    Set<String> retrieves = retrieve(store);
+    assertEquals("Incorrect elements after concurrent snapshot/remove", initAdd, retrieves);
+}

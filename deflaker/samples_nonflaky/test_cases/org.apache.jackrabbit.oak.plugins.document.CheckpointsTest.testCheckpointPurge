@@ -1,0 +1,10 @@
+@Test
+public void testCheckpointPurge() throws Exception {
+    long expiryTime = 1000;
+    String r1 = store.getHeadRevision().toString();
+    store.checkpoint(expiryTime);
+    assertEquals(r1, store.getCheckpoints().getOldestRevisionToKeep().toString());
+    // Trigger expiry by forwarding the clock to future
+    clock.waitUntil(clock.getTime() + expiryTime + 1);
+    assertNull(store.getCheckpoints().getOldestRevisionToKeep());
+}

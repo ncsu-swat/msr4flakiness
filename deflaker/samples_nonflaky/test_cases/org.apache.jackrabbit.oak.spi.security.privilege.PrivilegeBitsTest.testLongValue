@@ -1,0 +1,30 @@
+@Test
+public void testLongValue() {
+    // empty
+    assertEquals(NO_PRIVILEGE, getLongValue(PrivilegeBits.EMPTY));
+    // long based privilege bits
+    for (long l : LONGS) {
+        PrivilegeBits bits = PrivilegeBits.getInstance(createPropertyState(l));
+        assertEquals(l, getLongValue(bits));
+    }
+    // long based privilege bits
+    PrivilegeBits pb = READ_NODES_PRIVILEGE_BITS;
+    long l = getLongValue(pb);
+    while (l < Long.MAX_VALUE / 2) {
+        l = l << 1;
+        pb = pb.nextBits();
+        assertEquals(l, getLongValue(pb));
+    }
+    // other privilege bits: long value not available.
+    for (int i = 0; i < 10; i++) {
+        pb = pb.nextBits();
+        assertEquals(0, getLongValue(pb));
+    }
+    // modifiable privilege bits
+    pb = READ_NODES_PRIVILEGE_BITS;
+    for (int i = 0; i < 100; i++) {
+        PrivilegeBits modifiable = PrivilegeBits.getInstance(pb);
+        assertEquals(getLongValue(pb), getLongValue(modifiable));
+        pb = pb.nextBits();
+    }
+}

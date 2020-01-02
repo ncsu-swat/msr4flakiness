@@ -1,0 +1,25 @@
+@Test
+public void crossClusterReadOldCheckpoint() throws Exception {
+    DocumentStore store = new MemoryDocumentStore();
+    DocumentNodeStore ns1 = builderProvider.newBuilder().setClusterId(1).setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+    NodeBuilder b1 = ns1.getRoot().builder();
+    b1.child("foo");
+    ns1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    ns1.runBackgroundOperations();
+    // manually create a check point in 1.2 format
+    Revision headRev = Revision.fromString(ns1.getHeadRevision().toString());
+    long expires = Long.MAX_VALUE;
+    String data = "{\"expires\":\"" + expires + "\"}";
+    UpdateOp update = new UpdateOp("checkpoint", false);
+    update.setMapEntry("data", headRev, data);
+    store.createOrUpdate(Collection.SETTINGS, update);
+    // now start second node store
+    DocumentNodeStore ns2 = builderProvider.newBuilder().setClusterId(2).setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+    NodeBuilder b2 = ns2.getRoot().builder();
+    b2.child("baz");
+    ns2.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    NodeState root = ns2.retrieve(headRev.toString());
+    assertNotNull(root);
+    assertTrue(root.hasChildNode("foo"));
+    assertFalse(root.hasChildNode("baz"));
+}

@@ -1,0 +1,12 @@
+@Test
+public void gc() throws Exception {
+    createGarbage();
+    clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(1));
+    VersionGarbageCollector gc = ns.getVersionGarbageCollector();
+    gc.gc(30, TimeUnit.MINUTES);
+    List<String> messages = getDeleteMessages();
+    assertThat(messages.size(), greaterThan(0));
+    for (String msg : messages) {
+        assertThat(getNumDeleted(msg), lessThan(BATCH_SIZE + 1));
+    }
+}

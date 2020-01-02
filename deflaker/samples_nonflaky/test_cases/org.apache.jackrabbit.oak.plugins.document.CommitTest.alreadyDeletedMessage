@@ -1,0 +1,26 @@
+// OAK-8585
+@Test
+public void alreadyDeletedMessage() throws Exception {
+    DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
+    NodeBuilder builder = ns.getRoot().builder();
+    builder.child("foo");
+    merge(ns, builder);
+    builder = ns.getRoot().builder();
+    builder.child("foo").remove();
+    merge(ns, builder);
+    Commit c = ns.newCommit(changes -> {
+        changes.removeNode(Path.fromString("/foo"), EMPTY_NODE);
+    }, ns.getHeadRevision().asBranchRevision(ns.getClusterId()), null);
+    try {
+        try {
+            c.apply();
+            fail("commit must fail");
+        } catch (ConflictException e) {
+            // expected
+            assertThat(e.getMessage(), containsString("base revision"));
+            assertThat(e.getMessage(), containsString("branch"));
+        }
+    } finally {
+        ns.canceled(c);
+    }
+}

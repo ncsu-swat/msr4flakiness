@@ -1,0 +1,20 @@
+@Test
+public void changeNodeTypeWExtraNodes() throws CommitFailedException {
+    EditorHook hook = new EditorHook(new TypeEditorProvider());
+    NodeState root = INITIAL_CONTENT;
+    NodeBuilder builder = root.builder();
+    NodeState before = builder.getNodeState();
+    builder.child("testcontent").setProperty(JCR_PRIMARYTYPE, "nt:unstructured", Type.NAME);
+    builder.child("testcontent").child("unstructured_child").setProperty(JCR_PRIMARYTYPE, "nt:unstructured", Type.NAME);
+    NodeState after = builder.getNodeState();
+    root = hook.processCommit(before, after, CommitInfo.EMPTY);
+    builder = root.builder();
+    before = builder.getNodeState();
+    builder.child("testcontent").setProperty(JCR_PRIMARYTYPE, "nt:folder", Type.NAME);
+    try {
+        hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
+        fail("should not be able to change node type due to extra nodes");
+    } catch (CommitFailedException e) {
+        assertTrue(e.isConstraintViolation());
+    }
+}

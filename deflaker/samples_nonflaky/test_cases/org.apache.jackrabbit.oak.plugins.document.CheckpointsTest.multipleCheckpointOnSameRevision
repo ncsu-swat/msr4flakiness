@@ -1,0 +1,22 @@
+@Test
+public void multipleCheckpointOnSameRevision() throws Exception {
+    long e1 = TimeUnit.HOURS.toMillis(1);
+    long e2 = TimeUnit.HOURS.toMillis(3);
+    // Create CP with higher expiry first and then one with
+    // lower expiry
+    String r2 = store.getHeadRevision().toString();
+    String c2 = store.checkpoint(e2);
+    // Do some commit to change headRevision
+    NodeBuilder b2 = store.getRoot().builder();
+    b2.child("x");
+    store.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    String c1 = store.checkpoint(e1);
+    clock.waitUntil(clock.getTime() + e1 + 1);
+    // The older checkpoint was for greater duration so checkpoint
+    // must not be GC
+    assertEquals(r2, store.getCheckpoints().getOldestRevisionToKeep().toString());
+    // after getOldestRevisionToKeep() only one must be remaining
+    assertEquals(1, store.getCheckpoints().size());
+    assertNull(store.retrieve(c1));
+    assertNotNull(store.retrieve(c2));
+}

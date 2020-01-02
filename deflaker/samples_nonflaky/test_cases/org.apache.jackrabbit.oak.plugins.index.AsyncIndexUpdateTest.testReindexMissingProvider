@@ -1,0 +1,34 @@
+/**
+ * OAK-2203 Test reindex behavior on an async index when the index provider is missing
+ * for a given type
+ */
+@Test
+public void testReindexMissingProvider() throws Exception {
+    MemoryNodeStore store = new MemoryNodeStore();
+    IndexEditorProvider provider = new PropertyIndexEditorProvider();
+    NodeBuilder builder = store.getRoot().builder();
+    String missingAsync = "missing-async";
+    createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "rootIndex", true, false, ImmutableSet.of("foo"), null).setProperty(ASYNC_PROPERTY_NAME, missingAsync);
+    builder.child("testRoot").setProperty("foo", "abc");
+    // merge it back in
+    store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    AsyncIndexUpdate async = new AsyncIndexUpdate(missingAsync, store, provider);
+    // first run, creates a checkpoint and a ref to it as the last indexed state
+    async.run();
+    assertFalse(async.isFailing());
+    assertTrue("Expecting one checkpoint", store.listCheckpoints().size() == 1);
+    String firstCp = store.listCheckpoints().iterator().next();
+    assertEquals(firstCp, store.getRoot().getChildNode(ASYNC).getString(missingAsync));
+    // second run, simulate an index going away
+    provider = CompositeIndexEditorProvider.compose(new ArrayList<IndexEditorProvider>());
+    async = new AsyncIndexUpdate(missingAsync, store, provider);
+    async.run();
+    assertTrue(async.isFailing());
+    // don't set reindex=true but skip the update
+    PropertyState reindex = store.getRoot().getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("rootIndex").getProperty(REINDEX_PROPERTY_NAME);
+    assertTrue(reindex == null || !reindex.getValue(Type.BOOLEAN));
+    assertTrue("Expecting one checkpoint", store.listCheckpoints().size() == 1);
+    String secondCp = store.listCheckpoints().iterator().next();
+    assertTrue("Store should not create a new checkpoint", secondCp.equals(firstCp));
+    assertEquals(firstCp, store.getRoot().getChildNode(ASYNC).getString(missingAsync));
+}

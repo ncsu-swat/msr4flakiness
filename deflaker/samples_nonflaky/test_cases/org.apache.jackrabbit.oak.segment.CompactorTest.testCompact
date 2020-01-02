@@ -1,0 +1,18 @@
+@Test
+public void testCompact() throws Exception {
+    Compactor compactor = createCompactor(fileStore, null);
+    addTestContent(nodeStore);
+    SegmentNodeState uncompacted = (SegmentNodeState) nodeStore.getRoot();
+    SegmentNodeState compacted = compactor.compact(uncompacted, Canceller.newCanceller());
+    assertNotNull(compacted);
+    assertFalse(uncompacted == compacted);
+    assertEquals(uncompacted, compacted);
+    assertEquals(uncompacted.getSegment().getGcGeneration().nextFull(), compacted.getSegment().getGcGeneration());
+    modifyTestContent(nodeStore);
+    NodeState modified = nodeStore.getRoot();
+    compacted = compactor.compact(uncompacted, modified, compacted, Canceller.newCanceller());
+    assertNotNull(compacted);
+    assertFalse(modified == compacted);
+    assertEquals(modified, compacted);
+    assertEquals(uncompacted.getSegment().getGcGeneration().nextFull(), compacted.getSegment().getGcGeneration());
+}

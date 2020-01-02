@@ -1,0 +1,15 @@
+@Test
+public void gcCheckDeletedSize() throws Exception {
+    log.info("Starting gcCheckDeletedSize()");
+    // Capture logs for the second round of gc
+    LogCustomizer customLogs = LogCustomizer.forLogger(MarkSweepGarbageCollector.class.getName()).enable(Level.INFO).filter(Level.INFO).contains("Estimated size recovered for").create();
+    customLogs.starting();
+    Set<String> existingAfterGC = executeGarbageCollection(cluster, cluster.getCollector(0), false);
+    assertEquals(1, customLogs.getLogs().size());
+    long deletedSize = (cluster.blobStoreState.blobsAdded.size() - cluster.blobStoreState.blobsPresent.size()) * 100;
+    assertTrue(customLogs.getLogs().get(0).contains(String.valueOf(deletedSize)));
+    assertStats(cluster.statsProvider, 1, 0, cluster.blobStoreState.blobsAdded.size() - cluster.blobStoreState.blobsPresent.size(), cluster.blobStoreState.blobsAdded.size() - cluster.blobStoreState.blobsPresent.size(), NAME);
+    assertEquals(deletedSize, getStatCount(cluster.statsProvider, NAME, TOTAL_SIZE_DELETED));
+    customLogs.finished();
+    assertTrue(Sets.symmetricDifference(cluster.blobStoreState.blobsPresent, existingAfterGC).isEmpty());
+}

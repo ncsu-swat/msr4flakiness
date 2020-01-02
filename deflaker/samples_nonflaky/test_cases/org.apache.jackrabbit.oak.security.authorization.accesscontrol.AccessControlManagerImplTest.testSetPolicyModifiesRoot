@@ -1,0 +1,17 @@
+@Test
+public void testSetPolicyModifiesRoot() throws Exception {
+    ACL acl = TestUtility.getApplicablePolicy(acMgr, testPath);
+    assertTrue(acl.addAccessControlEntry(testPrincipal, testPrivileges));
+    assertFalse(root.hasPendingChanges());
+    acMgr.setPolicy(testPath, acl);
+    assertTrue(root.hasPendingChanges());
+    root.commit();
+    acl = (ACL) acMgr.getPolicies(testPath)[0];
+    assertEquals(1, acl.getAccessControlEntries().length);
+    acl.addEntry(EveryonePrincipal.getInstance(), testPrivileges, false, TestUtility.getGlobRestriction("*/something", valueFactory));
+    acMgr.setPolicy(testPath, acl);
+    assertTrue(root.hasPendingChanges());
+    root.commit();
+    acl = (ACL) acMgr.getPolicies(testPath)[0];
+    assertEquals(2, acl.getAccessControlEntries().length);
+}

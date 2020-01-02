@@ -1,0 +1,10 @@
+@Test
+public void shortReferencesShouldHaveBlobIdType() throws Exception {
+    try (FileStore ss = newFileStore(new ShortIdMappingBlobStore())) {
+        SegmentWriter sw = defaultSegmentWriterBuilder("test").build(ss);
+        byte[] content = new byte[Segment.MEDIUM_LIMIT + 1];
+        SegmentBlob sb = new SegmentBlob(ss.getBlobStore(), sw.writeBlob(new ArrayBasedBlob(content)));
+        assertRecordTypeEquals(sb, RecordType.BLOB_ID);
+        assertFalse(sb.isInlined());
+    }
+}

@@ -1,0 +1,20 @@
+@Test
+public void testNoEffectiveDuplicateEntries() throws Exception {
+    Set<Principal> principalSet = ImmutableSet.of(testPrincipal, EveryonePrincipal.getInstance());
+    // create first policy with multiple ACEs for the test principal set.
+    ACL policy = TestUtility.getApplicablePolicy(acMgr, testPath);
+    policy.addEntry(testPrincipal, testPrivileges, true, TestUtility.getGlobRestriction("*", valueFactory));
+    policy.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_VERSION_MANAGEMENT), false);
+    policy.addEntry(EveryonePrincipal.getInstance(), privilegesFromNames(PrivilegeConstants.JCR_LIFECYCLE_MANAGEMENT), false);
+    assertEquals(3, policy.getAccessControlEntries().length);
+    acMgr.setPolicy(testPath, policy);
+    root.commit();
+    AccessControlPolicy[] policies = acMgr.getEffectivePolicies(principalSet);
+    assertPolicies(policies, 1);
+    // add another policy
+    Tree child = TreeUtil.addChild(root.getTree(testPath), "child", JcrConstants.NT_UNSTRUCTURED);
+    String childPath = child.getPath();
+    setupPolicy(childPath);
+    root.commit();
+    assertPolicies(acMgr.getEffectivePolicies(principalSet), 2);
+}

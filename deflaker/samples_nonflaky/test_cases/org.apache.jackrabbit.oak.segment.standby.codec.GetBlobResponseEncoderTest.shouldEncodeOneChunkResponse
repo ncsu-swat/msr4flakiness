@@ -1,0 +1,11 @@
+@Test
+public void shouldEncodeOneChunkResponse() throws Exception {
+    byte[] blobData = new byte[] { 1, 2, 3 };
+    String blobId = "blobId";
+    byte mask = createMask(1, 1);
+    EmbeddedChannel channel = new EmbeddedChannel(new ChunkedWriteHandler(), new GetBlobResponseEncoder(3));
+    channel.writeOutbound(new GetBlobResponse("clientId", blobId, new ByteArrayInputStream(blobData), blobData.length));
+    ByteBuf buffer = (ByteBuf) channel.readOutbound();
+    ByteBuf expected = createBlobChunkBuffer(Messages.HEADER_BLOB, 3L, blobId, blobData, mask);
+    assertEquals(expected, buffer);
+}

@@ -1,0 +1,20 @@
+@Test
+public void closeAsyncIndexers() throws Exception {
+    final AtomicReference<AsyncIndexUpdate> async = new AtomicReference<AsyncIndexUpdate>();
+    Whiteboard wb = new DefaultWhiteboard() {
+
+        @Override
+        public <T> Registration register(Class<T> type, T service, Map<?, ?> properties) {
+            if (service instanceof AsyncIndexUpdate) {
+                async.set((AsyncIndexUpdate) service);
+            }
+            return super.register(type, service, properties);
+        }
+    };
+    Oak oak = new Oak().with(new OpenSecurityProvider()).with(wb).withAsyncIndexing("foo-async", 5);
+    ContentRepository repo = oak.createContentRepository();
+    ((Closeable) repo).close();
+    assertNotNull(async.get());
+    assertTrue(async.get().isClosed());
+    assertNull(WhiteboardUtils.getService(wb, AsyncIndexUpdate.class));
+}

@@ -1,0 +1,25 @@
+@Test
+public void largeEntries() {
+    final AtomicInteger counter = new AtomicInteger();
+    final String large = new String(new char[1024]);
+    Function<Integer, String> loader = new Function<Integer, String>() {
+
+        @Override
+        @Nullable
+        public String apply(@Nullable Integer input) {
+            counter.incrementAndGet();
+            return large + input;
+        }
+    };
+    StringCache c = new StringCache(1024);
+    for (int repeat = 0; repeat < 10; repeat++) {
+        for (int i = 0; i < 1000; i++) {
+            assertEquals(large + i, c.get(i, i, i, loader));
+            assertEquals(large + 0, c.get(0, 0, 0, loader));
+        }
+    }
+    // the LIRS cache should be almost empty (low hit rate there)
+    // and large strings are not kept in the fast cache, so hit rate should be bad
+    assertTrue(valueOf(counter), counter.get() > 9000);
+    assertTrue(valueOf(counter), counter.get() < 10000);
+}

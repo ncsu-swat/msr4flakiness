@@ -1,0 +1,29 @@
+@Test
+public void onlyPropertiesOnMainNodesAreCompared() throws CommitFailedException {
+    MountInfoProvider mip = Mounts.newBuilder().readOnlyMount("libs", "/libs").build();
+    NodeStore globalStore = new MemoryNodeStore();
+    NodeStore libsStore = new MemoryNodeStore();
+    List<MountedNodeStore> mounts = Lists.newArrayList();
+    mounts.add(new MountedNodeStore(mip.getMountByName("libs"), libsStore));
+    CompositeNodeStore compositeNodeStore = new CompositeNodeStore(mip, globalStore, mounts);
+    NodeState empty = compositeNodeStore.getRoot();
+    NodeBuilder builder = globalStore.getRoot().builder();
+    builder.setProperty("global-prop-1", "val");
+    builder.setProperty("global-prop-2", "val");
+    globalStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    NodeBuilder libsBuilder = libsStore.getRoot().builder();
+    libsBuilder.setProperty("libs-prop-1", "val");
+    libsBuilder.setProperty("libs-prop-2", "val");
+    libsStore.merge(libsBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    NodeState modified = compositeNodeStore.getRoot();
+    final Set<String> addedProperties = newHashSet();
+    modified.compareAgainstBaseState(empty, new DefaultNodeStateDiff() {
+
+        @Override
+        public boolean propertyAdded(PropertyState after) {
+            addedProperties.add(after.getName());
+            return true;
+        }
+    });
+    assertEquals(ImmutableSet.of("global-prop-1", "global-prop-2"), addedProperties);
+}

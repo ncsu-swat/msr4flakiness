@@ -1,0 +1,17 @@
+@Test(expected = CommitFailedException.class)
+public void testDuplicateAce() throws Exception {
+    AccessControlManager acMgr = getAccessControlManager(root);
+    JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, testPath);
+    acl.addAccessControlEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES));
+    acMgr.setPolicy(testPath, acl);
+    // add duplicate ac-entry on OAK-API
+    Tree policy = root.getTree(testPath + "/rep:policy");
+    Tree ace = TreeUtil.addChild(policy, "duplicateAce", NT_REP_GRANT_ACE);
+    ace.setProperty(REP_PRINCIPAL_NAME, testPrincipal.getName());
+    ace.setProperty(AccessControlConstants.REP_PRIVILEGES, ImmutableList.of(PrivilegeConstants.JCR_ADD_CHILD_NODES), Type.NAMES);
+    try {
+        root.commit();
+    } catch (CommitFailedException e) {
+        throw assertCommitFailedException(e, CommitFailedException.ACCESS_CONTROL, 13);
+    }
+}

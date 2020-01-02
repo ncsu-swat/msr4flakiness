@@ -1,0 +1,25 @@
+@Test
+public void testAddToGroup() throws Exception {
+    User user = createUser(null);
+    Group g = null;
+    try {
+        g = userMgr.createGroup("testGroup");
+        g.addMember(user);
+        root.commit();
+        assertTrue(g.isMember(user));
+        assertTrue(g.isDeclaredMember(user));
+        boolean isMemberOfG = false;
+        Iterator<Group> groups = user.declaredMemberOf();
+        while (groups.hasNext() && !isMemberOfG) {
+            if (g.getID().equals(groups.next().getID())) {
+                isMemberOfG = true;
+            }
+        }
+        assertTrue(isMemberOfG);
+    } finally {
+        if (g != null) {
+            g.remove();
+            root.commit();
+        }
+    }
+}

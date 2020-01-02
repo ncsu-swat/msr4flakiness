@@ -1,0 +1,11 @@
+@Test
+public void testActivateWithMixedServicePiAnddOakServiceName() {
+    registration.activate(context.bundleContext(), configWithRequiredServiceIds("rpId", "authorizationId"));
+    RestrictionProvider mockRp = mock(RestrictionProvider.class);
+    ServiceRegistration sr = context.bundleContext().registerService(RestrictionProvider.class.getName(), mockRp, new Hashtable(ImmutableMap.of(SERVICE_PID, "rpId")));
+    registration.bindRestrictionProvider(sr.getReference(), mockRp);
+    registration.bindAuthorizationConfiguration(new AuthorizationConfigurationImpl(), ImmutableMap.of(RegistrationConstants.OAK_SECURITY_NAME, "authorizationId"));
+    SecurityProvider service = context.getService(SecurityProvider.class);
+    RestrictionProvider rp = service.getConfiguration(AuthorizationConfiguration.class).getRestrictionProvider();
+    assertTrue(rp instanceof WhiteboardRestrictionProvider);
+}

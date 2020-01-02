@@ -1,0 +1,39 @@
+@Test
+public void fromExternalChange() throws Exception {
+    final List<DocumentNodeState> rootStates1 = Lists.newArrayList();
+    DocumentNodeStore ns1 = createMK(1, 0).getNodeStore();
+    ns1.addObserver(new Observer() {
+
+        @Override
+        public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
+            rootStates1.add((DocumentNodeState) root);
+        }
+    });
+    final List<DocumentNodeState> rootStates2 = Lists.newArrayList();
+    DocumentNodeStore ns2 = createMK(2, 0).getNodeStore();
+    ns2.addObserver(new Observer() {
+
+        @Override
+        public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
+            rootStates2.add((DocumentNodeState) root);
+        }
+    });
+    ns1.runBackgroundOperations();
+    ns2.runBackgroundOperations();
+    rootStates1.clear();
+    rootStates2.clear();
+    NodeBuilder builder = ns1.getRoot().builder();
+    builder.child("foo");
+    merge(ns1, builder);
+    assertEquals(1, rootStates1.size());
+    assertEquals(0, rootStates2.size());
+    assertFalse(rootStates1.get(0).isFromExternalChange());
+    ns1.runBackgroundOperations();
+    ns2.runBackgroundOperations();
+    assertEquals(1, rootStates1.size());
+    assertEquals(1, rootStates2.size());
+    assertTrue(rootStates2.get(0).isFromExternalChange());
+    NodeState foo = rootStates2.get(0).getChildNode("foo");
+    assertTrue(foo instanceof DocumentNodeState);
+    assertTrue(((DocumentNodeState) foo).isFromExternalChange());
+}

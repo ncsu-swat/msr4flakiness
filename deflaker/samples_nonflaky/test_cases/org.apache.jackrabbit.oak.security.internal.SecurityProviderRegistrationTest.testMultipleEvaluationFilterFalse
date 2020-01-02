@@ -1,0 +1,36 @@
+@Test
+public void testMultipleEvaluationFilterFalse() throws Exception {
+    registration.activate(context.bundleContext(), configWithRequiredServiceIds("f1", "f2", "ac1", "ac2"));
+    AggregationFilter filter1 = mock(AggregationFilter.class, withSettings().defaultAnswer(invocationOnMock -> Boolean.FALSE));
+    ServiceRegistration sr1 = context.bundleContext().registerService(AggregationFilter.class.getName(), filter1, new Hashtable(ImmutableMap.of(SERVICE_PID, "f1", SERVICE_RANKING, 100)));
+    registration.bindAggregationFilter(sr1.getReference(), filter1);
+    AggregationFilter filter2 = mock(AggregationFilter.class, withSettings().defaultAnswer(invocationOnMock -> Boolean.FALSE));
+    ServiceRegistration sr2 = context.bundleContext().registerService(AggregationFilter.class.getName(), filter2, new Hashtable(ImmutableMap.of(SERVICE_PID, "f2", SERVICE_RANKING, 200)));
+    registration.bindAggregationFilter(sr2.getReference(), filter2);
+    AggregatedPermissionProvider pp = mock(AggregatedPermissionProvider.class);
+    JackrabbitAccessControlManager acMgr = mock(JackrabbitAccessControlManager.class);
+    AccessControlPolicy policy = mock(AccessControlPolicy.class);
+    when(acMgr.getEffectivePolicies(anyString())).thenReturn(new AccessControlPolicy[] { policy });
+    when(acMgr.getEffectivePolicies(any(Set.class))).thenReturn(new AccessControlPolicy[] { policy });
+    AuthorizationConfiguration ac1 = mock(AuthorizationConfiguration.class);
+    AuthorizationConfiguration ac2 = mock(AuthorizationConfiguration.class);
+    for (AuthorizationConfiguration ac : new AuthorizationConfiguration[] { ac1, ac2 }) {
+        when(ac.getPermissionProvider(any(Root.class), anyString(), any(Set.class))).thenReturn(pp);
+        when(ac.getAccessControlManager(any(Root.class), any(NamePathMapper.class))).thenReturn(acMgr);
+        when(ac.getParameters()).thenReturn(ConfigurationParameters.EMPTY);
+        when(ac.getContext()).thenReturn(Context.DEFAULT);
+    }
+    registration.bindAuthorizationConfiguration(ac1, new Hashtable(ImmutableMap.of(SERVICE_PID, "ac1")));
+    registration.bindAuthorizationConfiguration(ac2, new Hashtable(ImmutableMap.of(SERVICE_PID, "ac2")));
+    AuthorizationConfiguration config = context.getService(SecurityProvider.class).getConfiguration(AuthorizationConfiguration.class);
+    PermissionProvider permissionProvider = config.getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.of());
+    verify(filter1, times(2)).stop(pp, ImmutableSet.of());
+    verify(filter2, times(2)).stop(pp, ImmutableSet.of());
+    JackrabbitAccessControlManager am = (JackrabbitAccessControlManager) config.getAccessControlManager(root, getNamePathMapper());
+    assertEquals(2, am.getEffectivePolicies(PathUtils.ROOT_PATH).length);
+    verify(filter1, times(2)).stop(acMgr, PathUtils.ROOT_PATH);
+    verify(filter2, times(2)).stop(acMgr, PathUtils.ROOT_PATH);
+    assertEquals(2, am.getEffectivePolicies(ImmutableSet.of(EveryonePrincipal.getInstance())).length);
+    verify(filter1, times(2)).stop(acMgr, ImmutableSet.of(EveryonePrincipal.getInstance()));
+    verify(filter2, times(2)).stop(acMgr, ImmutableSet.of(EveryonePrincipal.getInstance()));
+}

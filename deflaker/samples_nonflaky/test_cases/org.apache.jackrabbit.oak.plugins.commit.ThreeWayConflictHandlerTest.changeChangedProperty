@@ -1,0 +1,38 @@
+@Override
+public Resolution changeChangedProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs, PropertyState base) {
+    called.set(true);
+    assertEquals("ours", ours.getValue(STRING));
+    assertEquals("theirs", theirs.getValue(STRING));
+    assertEquals("base", base.getValue(STRING));
+    return Resolution.IGNORED;
+}
+@Test
+public void changeChangedProperty() throws Exception {
+    AtomicBoolean called = new AtomicBoolean(false);
+    ThreeWayConflictHandler handler = new ErrorThreeWayConflictHandler() {
+
+        @Override
+        public Resolution changeChangedProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs, PropertyState base) {
+            called.set(true);
+            assertEquals("ours", ours.getValue(STRING));
+            assertEquals("theirs", theirs.getValue(STRING));
+            assertEquals("base", base.getValue(STRING));
+            return Resolution.IGNORED;
+        }
+    };
+    ContentRepository repo = newRepo(handler);
+    Root root = login(repo);
+    setup(root);
+    Root ourRoot = login(repo);
+    Root theirRoot = login(repo);
+    theirRoot.getTree("/c").setProperty("p", "theirs");
+    ourRoot.getTree("/c").setProperty("p", "ours");
+    theirRoot.commit();
+    ourRoot.commit();
+    assertTrue(called.get());
+}
+@Override
+public Resolution changeChangedProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs, PropertyState base) {
+    Assert.fail("method should not be called");
+    return Resolution.IGNORED;
+}

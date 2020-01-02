@@ -1,0 +1,42 @@
+@Test
+public void pmin() {
+    RevisionVector rv1 = new RevisionVector();
+    RevisionVector rv2 = new RevisionVector();
+    assertEquals(newHashSet(), newHashSet(rv1.pmin(rv2)));
+    Revision rev11 = new Revision(1, 0, 1);
+    Revision rev21 = new Revision(2, 0, 1);
+    Revision rev12 = new Revision(1, 0, 2);
+    Revision rev22 = new Revision(2, 0, 2);
+    rv1 = rv1.update(rev11);
+    // rv1: [r1-0-1], rv2: []
+    assertEquals(newHashSet(), newHashSet(rv1.pmin(rv2)));
+    assertEquals(newHashSet(), newHashSet(rv2.pmin(rv1)));
+    rv2 = rv2.update(rev12);
+    // rv1: [r1-0-1], rv2: [r1-0-2]
+    assertEquals(newHashSet(), newHashSet(rv1.pmin(rv2)));
+    assertEquals(newHashSet(), newHashSet(rv2.pmin(rv1)));
+    rv1 = rv1.update(rev12);
+    // rv1: [r1-0-1, r1-0-2], rv2: [r1-0-2]
+    assertEquals(newHashSet(rev12), newHashSet(rv1.pmin(rv2)));
+    assertEquals(newHashSet(rev12), newHashSet(rv2.pmin(rv1)));
+    rv2 = rv2.update(rev22);
+    // rv1: [r1-0-1, r1-0-2], rv2: [r2-0-2]
+    assertEquals(newHashSet(rev12), newHashSet(rv1.pmin(rv2)));
+    assertEquals(newHashSet(rev12), newHashSet(rv2.pmin(rv1)));
+    rv2 = rv2.update(rev11);
+    // rv1: [r1-0-1, r1-0-2], rv2: [r1-0-1, r2-0-2]
+    assertEquals(newHashSet(rev11, rev12), newHashSet(rv1.pmin(rv2)));
+    assertEquals(newHashSet(rev11, rev12), newHashSet(rv2.pmin(rv1)));
+    rv1 = rv1.update(rev21);
+    // rv1: [r2-0-1, r1-0-2], rv2: [r1-0-1, r2-0-2]
+    assertEquals(newHashSet(rev11, rev12), newHashSet(rv1.pmin(rv2)));
+    assertEquals(newHashSet(rev11, rev12), newHashSet(rv2.pmin(rv1)));
+    rv1 = rv1.update(rev22);
+    // rv1: [r2-0-1, r2-0-2], rv2: [r1-0-1, r2-0-2]
+    assertEquals(newHashSet(rev11, rev22), newHashSet(rv1.pmin(rv2)));
+    assertEquals(newHashSet(rev11, rev22), newHashSet(rv2.pmin(rv1)));
+    rv2 = rv2.update(rev21);
+    // rv1: [r2-0-1, r2-0-2], rv2: [r2-0-1, r2-0-2]
+    assertEquals(newHashSet(rev21, rev22), newHashSet(rv1.pmin(rv2)));
+    assertEquals(newHashSet(rev21, rev22), newHashSet(rv2.pmin(rv1)));
+}

@@ -1,0 +1,43 @@
+// OAK-3388
+@Test
+public void clusterWithClockDifferences() throws Exception {
+    MemoryDocumentStore store = new MemoryDocumentStore();
+    long now = System.currentTimeMillis();
+    Clock c1 = new Clock.Virtual();
+    c1.waitUntil(now);
+    Revision.setClock(c1);
+    DocumentNodeStore ns1 = builderProvider.newBuilder().clock(c1).setDocumentStore(store).setAsyncDelay(0).setClusterId(1).getNodeStore();
+    NodeBuilder b1 = ns1.getRoot().builder();
+    b1.child("node");
+    merge(ns1, b1);
+    // make /node visible
+    ns1.runBackgroundOperations();
+    Revision.resetClockToDefault();
+    Clock c2 = new Clock.Virtual();
+    // c2 is five seconds ahead
+    c2.waitUntil(now + 5000);
+    Revision.setClock(c2);
+    DocumentNodeStore ns2 = builderProvider.newBuilder().clock(c2).setDocumentStore(store).setAsyncDelay(0).setClusterId(2).getNodeStore();
+    // ns2 sees /node
+    assertTrue(ns2.getRoot().hasChildNode("node"));
+    // remove /node on ns2
+    NodeBuilder b2 = ns2.getRoot().builder();
+    b2.child("node").remove();
+    merge(ns2, b2);
+    ns2.runBackgroundOperations();
+    // add /node again on ns1
+    Revision.resetClockToDefault();
+    Revision.setClock(c1);
+    ns1.runBackgroundOperations();
+    b1 = ns1.getRoot().builder();
+    assertFalse(b1.hasChildNode("node"));
+    b1.child("node");
+    merge(ns1, b1);
+    ns1.runBackgroundOperations();
+    // check if /node is visible on ns2
+    Revision.resetClockToDefault();
+    Revision.setClock(c2);
+    ns2.runBackgroundOperations();
+    b2 = ns2.getRoot().builder();
+    assertTrue(b2.hasChildNode("node"));
+}

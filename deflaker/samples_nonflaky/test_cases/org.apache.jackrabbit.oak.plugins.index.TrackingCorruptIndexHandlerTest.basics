@@ -1,0 +1,13 @@
+@Test
+public void basics() throws Exception {
+    handler.setClock(clock);
+    handler.indexUpdateFailed("async", "/oak:index/foo", new Exception());
+    // Index would not be considered corrupt until timeout
+    assertFalse(handler.getCorruptIndexData("async").containsKey("/oak:index/foo"));
+    clock.waitUntil(clock.getTime() + handler.getCorruptIntervalMillis() + 1);
+    assertTrue(handler.getCorruptIndexData("async").containsKey("/oak:index/foo"));
+    // Should only be visible for "async"
+    assertFalse(handler.getCorruptIndexData("async-fulltext").containsKey("/oak:index/foo"));
+    handler.markWorkingIndexes(Collections.singleton("/oak:index/foo"));
+    assertFalse(handler.getCorruptIndexData("async").containsKey("/oak:index/foo"));
+}

@@ -1,0 +1,23 @@
+@Test
+public void malformedStalePrev() throws Exception {
+    DocumentNodeStore ns = getDocumentMK().getNodeStore();
+    DocumentStore ds = ns.getDocumentStore();
+    for (int i = 0; i < 5; i++) {
+        NodeBuilder nb = ns.getRoot().builder();
+        nb.setProperty("p", "v" + i);
+        ns.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    }
+    // add a dangling _stalePrev
+    UpdateOp op = new UpdateOp(ROOT_ID, false);
+    NodeDocument.setStalePrevious(op, ns.newRevision(), 0);
+    assertNotNull(ds.findAndUpdate(NODES, op));
+    NodeDocument doc = ds.find(NODES, ROOT_ID);
+    assertNotNull(doc);
+    for (UpdateOp updateOp : SplitOperations.forDocument(doc, ns, ns.getHeadRevision(), NO_BINARY, 3)) {
+        ds.createOrUpdate(NODES, updateOp);
+    }
+    doc = ds.find(NODES, ROOT_ID);
+    assertNotNull(doc);
+    // now _stalePrev entry must be gone
+    assertEquals(0, doc.getStalePrev().size());
+}

@@ -1,0 +1,18 @@
+@Test
+public void bufferSerialization() throws Exception {
+    NodeBuilder builder = store.getRoot().builder();
+    NodeBuilder appNB = newNode("app:Asset");
+    createChild(appNB, "jcr:content", // not bundled
+    "jcr:content/comments", "jcr:content/metadata", // not bundled
+    "jcr:content/metadata/xmp", // includes all
+    "jcr:content/renditions", "jcr:content/renditions/original", "jcr:content/renditions/original/jcr:content");
+    builder.child("test").setChildNode("book.jpg", appNB.getNodeState());
+    merge(builder);
+    DocumentNodeState appNode = (DocumentNodeState) getNode(store.getRoot(), "test/book.jpg");
+    WriteBuffer wb = new WriteBuffer(1024);
+    CacheType.NODE.writeValue(wb, appNode);
+    ByteBuffer rb = wb.getBuffer();
+    rb.rewind();
+    NodeState appNode2 = CacheType.NODE.readValue(store, ds, rb);
+    AssertingDiff.assertEquals(appNode, appNode2);
+}

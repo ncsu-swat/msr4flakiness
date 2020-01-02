@@ -1,0 +1,67 @@
+@Test
+public void testNotEquals() throws RepositoryException {
+    ACE ace = createEntry(new String[] { PrivilegeConstants.JCR_ALL }, true);
+    List<JackrabbitAccessControlEntry> otherAces = new ArrayList<JackrabbitAccessControlEntry>();
+    try {
+        // ACE template with different principal
+        Principal princ = new Principal() {
+
+            public String getName() {
+                return "a name";
+            }
+        };
+        Privilege[] privs = new Privilege[] { acMgr.privilegeFromName(PrivilegeConstants.JCR_ALL) };
+        otherAces.add(createEntry(princ, privs, true));
+    } catch (RepositoryException e) {
+    }
+    // ACE template with different privileges
+    try {
+        otherAces.add(createEntry(new String[] { PrivilegeConstants.JCR_READ }, true));
+    } catch (RepositoryException e) {
+    }
+    // ACE template with different 'allow' flag
+    try {
+        otherAces.add(createEntry(new String[] { PrivilegeConstants.JCR_ALL }, false));
+    } catch (RepositoryException e) {
+    }
+    // ACE template with different privileges and 'allows
+    try {
+        otherAces.add(createEntry(new String[] { PrivilegeConstants.REP_WRITE }, false));
+    } catch (RepositoryException e) {
+    }
+    // other ace impl
+    final Privilege[] privs = new Privilege[] { acMgr.privilegeFromName(PrivilegeConstants.JCR_ALL) };
+    JackrabbitAccessControlEntry pe = new JackrabbitAccessControlEntry() {
+
+        public boolean isAllow() {
+            return true;
+        }
+
+        @NotNull
+        public String[] getRestrictionNames() {
+            return new String[0];
+        }
+
+        @Nullable
+        public Value getRestriction(@NotNull String restrictionName) {
+            return null;
+        }
+
+        @Nullable
+        public Value[] getRestrictions(@NotNull String restrictionName) {
+            return null;
+        }
+
+        public Principal getPrincipal() {
+            return testPrincipal;
+        }
+
+        public Privilege[] getPrivileges() {
+            return privs;
+        }
+    };
+    otherAces.add(pe);
+    for (JackrabbitAccessControlEntry otherAce : otherAces) {
+        assertFalse(ace.equals(otherAce));
+    }
+}

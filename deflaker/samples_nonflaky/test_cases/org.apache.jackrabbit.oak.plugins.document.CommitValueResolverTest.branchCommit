@@ -1,0 +1,35 @@
+@Test
+public void branchCommit() throws Exception {
+    String path = "/foo";
+    NodeBuilder builder = addNodeBranched(path);
+    Revision r = getDocument("/").getLocalRevisions().firstKey();
+    String value = getDocument("/").getLocalRevisions().entrySet().iterator().next().getValue();
+    NodeDocument foo = getDocument(path);
+    NodeDocument root = getDocument("/");
+    assertNotNull(foo);
+    assertNotNull(root);
+    assertEquals(value, resolver.resolve(r, foo));
+    assertEquals(value, resolver.resolve(r, root));
+    // add another commit and run the sweeper
+    addNode("/bar");
+    ns.runBackgroundUpdateOperations();
+    // must still report the same value
+    foo = getDocument(path);
+    root = getDocument("/");
+    assertNotNull(foo);
+    assertNotNull(root);
+    assertEquals(value, resolver.resolve(r, foo));
+    assertEquals(value, resolver.resolve(r, root));
+    // now merge the branch
+    TestUtils.merge(ns, builder);
+    // now must report the committed revision
+    foo = getDocument(path);
+    root = getDocument("/");
+    assertNotNull(foo);
+    assertNotNull(root);
+    value = foo.resolveCommitValue(r);
+    assertTrue(Utils.isCommitted(value));
+    assertEquals(value, root.resolveCommitValue(r));
+    assertEquals(value, resolver.resolve(r, foo));
+    assertEquals(value, resolver.resolve(r, root));
+}

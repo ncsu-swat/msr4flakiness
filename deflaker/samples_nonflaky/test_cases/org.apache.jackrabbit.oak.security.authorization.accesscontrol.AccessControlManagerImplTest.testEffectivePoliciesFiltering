@@ -1,0 +1,24 @@
+@Test
+public void testEffectivePoliciesFiltering() throws Exception {
+    // create first policy with multiple ACEs for the test principal set.
+    ACL policy = TestUtility.getApplicablePolicy(acMgr, testPath);
+    policy.addEntry(testPrincipal, testPrivileges, true, TestUtility.getGlobRestriction("*", valueFactory));
+    policy.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_VERSION_MANAGEMENT), false);
+    policy.addEntry(EveryonePrincipal.getInstance(), privilegesFromNames(PrivilegeConstants.JCR_LIFECYCLE_MANAGEMENT), false);
+    assertEquals(3, policy.getAccessControlEntries().length);
+    acMgr.setPolicy(testPath, policy);
+    root.commit();
+    // different ways to create the principal-set to make sure the filtering
+    // doesn't rely on principal equality but rather on the name.
+    List<Principal> principals = ImmutableList.of(testPrincipal, new PrincipalImpl(testPrincipal.getName()), () -> testPrincipal.getName());
+    for (Principal princ : principals) {
+        AccessControlPolicy[] policies = acMgr.getEffectivePolicies(ImmutableSet.of(princ));
+        assertPolicies(policies, 1);
+        assertTrue(policies[0] instanceof AccessControlList);
+        AccessControlList acl = (AccessControlList) policies[0];
+        assertEquals(2, acl.getAccessControlEntries().length);
+        for (AccessControlEntry ace : acl.getAccessControlEntries()) {
+            assertEquals(princ.getName(), ace.getPrincipal().getName());
+        }
+    }
+}

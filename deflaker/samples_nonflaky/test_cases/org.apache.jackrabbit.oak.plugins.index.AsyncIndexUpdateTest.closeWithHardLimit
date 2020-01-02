@@ -1,0 +1,56 @@
+@Test
+public void closeWithHardLimit() throws Exception {
+    NodeStore store = new MemoryNodeStore();
+    IndexEditorProvider provider = new PropertyIndexEditorProvider();
+    NodeBuilder builder = store.getRoot().builder();
+    createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "rootIndex", true, false, ImmutableSet.of("foo"), null).setProperty(ASYNC_PROPERTY_NAME, "async");
+    builder.child("testRoot").setProperty("foo", "abc");
+    store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    final Semaphore asyncLock = new Semaphore(1);
+    final AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider) {
+
+        @Override
+        protected AsyncUpdateCallback newAsyncUpdateCallback(NodeStore store, String name, long leaseTimeOut, String beforeCheckpoint, AsyncIndexStats indexStats, AtomicBoolean stopFlag) {
+            try {
+                asyncLock.acquire();
+            } catch (InterruptedException ignore) {
+            }
+            return super.newAsyncUpdateCallback(store, name, leaseTimeOut, beforeCheckpoint, indexStats, stopFlag);
+        }
+    };
+    // Set a 1 sec close timeout
+    async.setCloseTimeOut(1);
+    Thread t = new Thread(new Runnable() {
+
+        @Override
+        public void run() {
+            async.run();
+        }
+    });
+    Thread closer = new Thread(new Runnable() {
+
+        @Override
+        public void run() {
+            async.close();
+        }
+    });
+    // Lock to ensure that AsyncIndexUpdate waits
+    asyncLock.acquire();
+    t.start();
+    // Wait till async gets to wait state i.e. inside run
+    while (!asyncLock.hasQueuedThreads()) ;
+    LogCustomizer lc = createLogCustomizer(Level.DEBUG);
+    closer.start();
+    // Wait till stopFlag is set
+    while (!async.isClosed()) ;
+    assertLogPhrase(lc.getLogs(), "[SOFT LIMIT HIT]");
+    // Let indexing run complete now
+    asyncLock.release();
+    // Wait for both threads
+    t.join();
+    // Async run would have exited with log message logged
+    assertLogPhrase(lc.getLogs(), "The index update interrupted");
+    // Wait for close call to complete
+    closer.join();
+    lc.finished();
+}

@@ -1,0 +1,16 @@
+@Test
+public void testVersionableChildRemoved2() throws Exception {
+    root.getTree("/test/a/b").remove();
+    root.commit();
+    pp.refresh();
+    Tree versionHistory = checkNotNull(vMgr.getVersionHistory(testTree));
+    String frozenAPath = PathUtils.concat(versionHistory.getPath(), "1.0", JCR_FROZENNODE, "a");
+    TreePermission tp = getVersionPermission(root, pp, frozenAPath);
+    assertVersionPermission(tp, "/test/a", true);
+    Tree frozenB = root.getTree(frozenAPath).getChild("b");
+    tp = pp.getTreePermission(frozenB, tp);
+    assertVersionPermission(tp, "/test/a/b", true);
+    Tree frozenC = frozenB.getChild("c");
+    tp = pp.getTreePermission(frozenC, tp);
+    assertVersionPermission(tp, "/test/a/b/c", true);
+}

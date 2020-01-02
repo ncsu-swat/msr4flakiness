@@ -1,0 +1,30 @@
+@Test
+public void testUnregisterComposition() {
+    ImmutableList<IOMonitorAssertion> ioMonitors = ImmutableList.of(new IOMonitorAssertion(), new IOMonitorAssertion());
+    CompositeIOMonitor ioMonitor = new CompositeIOMonitor();
+    ioMonitor.registerIOMonitor(ioMonitors.get(0));
+    Registration registration = ioMonitor.registerIOMonitor(ioMonitors.get(1));
+    ioMonitor.beforeSegmentRead(FILE, 0, 0, 0);
+    ioMonitor.afterSegmentRead(FILE, 0, 0, 1, 0);
+    ioMonitor.beforeSegmentWrite(FILE, 0, 0, 2);
+    ioMonitor.afterSegmentWrite(FILE, 0, 0, 3, 0);
+    ioMonitors.forEach(ioMonitorAssertion -> {
+        ioMonitorAssertion.assertBeforeReadLength(0);
+        ioMonitorAssertion.assertAfterReadLength(1);
+        ioMonitorAssertion.assertBeforeWriteLength(2);
+        ioMonitorAssertion.assertAfterWriteLength(3);
+    });
+    registration.unregister();
+    ioMonitor.beforeSegmentRead(FILE, 0, 0, 4);
+    ioMonitor.afterSegmentRead(FILE, 0, 0, 5, 0);
+    ioMonitor.beforeSegmentWrite(FILE, 0, 0, 6);
+    ioMonitor.afterSegmentWrite(FILE, 0, 0, 7, 0);
+    ioMonitors.get(0).assertBeforeReadLength(4);
+    ioMonitors.get(0).assertAfterReadLength(5);
+    ioMonitors.get(0).assertBeforeWriteLength(6);
+    ioMonitors.get(0).assertAfterWriteLength(7);
+    ioMonitors.get(1).assertBeforeReadLength(0);
+    ioMonitors.get(1).assertAfterReadLength(1);
+    ioMonitors.get(1).assertBeforeWriteLength(2);
+    ioMonitors.get(1).assertAfterWriteLength(3);
+}

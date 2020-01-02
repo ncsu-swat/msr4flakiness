@@ -1,0 +1,40 @@
+@Test
+public void testIndexCountersUsageWithPathRestriction() {
+    final String subPathName = "sub-path";
+    final int filteredNodeFactor = 2;
+    final long repoTreeApproxNodeCount = 50000;
+    final long repoSubPathApproxNodeCount = repoTreeApproxNodeCount / filteredNodeFactor;
+    final FilterImpl filter = FilterImpl.newTestInstance();
+    filter.restrictPath("/" + subPathName, Filter.PathRestriction.ALL_CHILDREN);
+    final long approxNodeCount = 100;
+    final long approxKeyCount = 50;
+    final long entryCount = 60 * DEFAULT_RESOLUTION;
+    final long keyCount = 150;
+    final int maxTraversal = 200;
+    final String keyValue = KEY.iterator().next();
+    final String approxPropName = COUNT_PROPERTY_PREFIX + "gen_uuid";
+    IndexStoreStrategy store = new ContentMirrorStoreStrategy();
+    NodeBuilder rootBuilder = EMPTY_NODE.builder();
+    // setup tree for NodeCounter to work
+    rootBuilder.setProperty(COUNT_PROPERTY_NAME, repoTreeApproxNodeCount, Type.LONG);
+    NodeBuilder subPath = rootBuilder.child(subPathName);
+    subPath.setProperty(COUNT_PROPERTY_NAME, repoSubPathApproxNodeCount, Type.LONG);
+    NodeState root = rootBuilder.getNodeState();
+    NodeBuilder indexMeta = rootBuilder.child("propIndex");
+    NodeBuilder index = indexMeta.child(INDEX_CONTENT_NODE_NAME);
+    NodeBuilder key = index.child(keyValue);
+    // is-not-null query without entryCount
+    index.setProperty(approxPropName, approxNodeCount, Type.LONG);
+    assertInRange("Approximate count not used for is-not-null query", approxNodeCount, store.count(filter, root, indexMeta.getNodeState(), null, maxTraversal));
+    // prop=value query without entryCount
+    key.setProperty(approxPropName, approxKeyCount, Type.LONG);
+    assertInRange("Approximate count not used for key=value query", approxKeyCount, store.count(filter, root, indexMeta.getNodeState(), KEY, maxTraversal));
+    // is-not-null query with entryCount
+    indexMeta.setProperty(ENTRY_COUNT_PROPERTY_NAME, entryCount, Type.LONG);
+    assertInRange("Entry count not used even when present for is-not-null query", entryCount, filteredNodeFactor * store.count(filter, root, indexMeta.getNodeState(), null, maxTraversal));
+    // prop=value query with entryCount but without keyCount
+    Assert.assertTrue("Rough key count not considered for key=value query", entryCount > filteredNodeFactor * store.count(filter, root, indexMeta.getNodeState(), KEY, maxTraversal));
+    // prop=value query with entryCount and keyCount
+    indexMeta.setProperty(KEY_COUNT_PROPERTY_NAME, keyCount, Type.LONG);
+    Assert.assertTrue("Key count not considered for key=value query", entryCount > filteredNodeFactor * store.count(filter, root, indexMeta.getNodeState(), KEY, maxTraversal));
+}

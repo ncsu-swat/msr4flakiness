@@ -1,0 +1,13 @@
+@Test
+public void testInitializerSegment() throws CommitFailedException, IOException {
+    NodeStore store = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
+    NodeBuilder builder = store.getRoot().builder();
+    new InitialContent().initialize(builder);
+    SecurityProvider provider = SecurityProviderBuilder.newBuilder().with(ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, ConfigurationParameters.of(ImmutableMap.of("anonymousId", "anonymous", "adminId", "admin", "usersPath", "/home/users", "groupsPath", "/home/groups", "defaultDepth", "1"))))).build();
+    WorkspaceInitializer workspaceInitializer = provider.getConfiguration(UserConfiguration.class).getWorkspaceInitializer();
+    if (workspaceInitializer instanceof QueryIndexProviderAware) {
+        ((QueryIndexProviderAware) workspaceInitializer).setQueryIndexProvider(new CompositeQueryIndexProvider(new PropertyIndexProvider(), new NodeTypeIndexProvider()));
+    }
+    workspaceInitializer.initialize(builder, "default");
+    builder.getNodeState();
+}

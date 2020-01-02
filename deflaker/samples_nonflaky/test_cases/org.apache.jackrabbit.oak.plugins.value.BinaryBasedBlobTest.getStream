@@ -1,0 +1,26 @@
+@Test
+public void getStream() throws RepositoryException, IOException {
+    byte[] bytes = "just a test".getBytes();
+    Binary binary = new TestBinary(bytes);
+    Blob blob = new BinaryBasedBlob(binary);
+    assertEquals(bytes.length, blob.length());
+    InputStream expected = binary.getStream();
+    InputStream actual = blob.getNewStream();
+    try {
+        for (int e = expected.read(); e != -1; e = expected.read()) {
+            assertEquals(e, actual.read());
+        }
+        assertEquals(-1, actual.read());
+    } finally {
+        expected.close();
+        actual.close();
+    }
+}
+@Override
+public InputStream getStream() throws RepositoryException {
+    return new ByteArrayInputStream(data);
+}
+@Override
+public InputStream getStream() throws RepositoryException {
+    throw new RepositoryException("no stream");
+}

@@ -1,0 +1,17 @@
+@Test
+public void getPropertiesReportsProperty() {
+    final NodeBuilder builder = EmptyNodeState.EMPTY_NODE.builder();
+    for (int i = 0; i < 20; i++) {
+        builder.setProperty("a" + i, "foo");
+    }
+    final AssertingPeriodicReporter reporter = new AssertingPeriodicReporter(10, 10);
+    final NodeState nodeState = ReportingNodeState.wrap(builder.getNodeState(), reporter);
+    reporter.reset();
+    int counter = 0;
+    for (final PropertyState property : nodeState.getProperties()) {
+        if (++counter == 10) {
+            break;
+        }
+    }
+    assertThat(reporter, hasReportedProperty(10, any(String.class)));
+}

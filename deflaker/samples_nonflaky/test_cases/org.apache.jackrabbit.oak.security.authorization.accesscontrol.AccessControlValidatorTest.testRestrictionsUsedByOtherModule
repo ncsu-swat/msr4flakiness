@@ -1,0 +1,22 @@
+/**
+ * Test case illustrating OAK-8081
+ */
+@Test
+public void testRestrictionsUsedByOtherModule() throws Exception {
+    AuthorizationConfiguration sc = mock(AuthorizationConfiguration.class);
+    // new acNode is covered by Context.definesTree
+    when(sc.getContext()).thenReturn(new Context.Default() {
+
+        @Override
+        public boolean definesTree(@NotNull Tree tree) {
+            return "differentAccessControl".equals(tree.getName());
+        }
+    });
+    when(sc.getParameters()).thenReturn(ConfigurationParameters.EMPTY);
+    SecurityProviderHelper.updateConfig(getSecurityProvider(), sc, AuthorizationConfiguration.class);
+    Tree acNode = TreeUtil.addChild(root.getTree(PathUtils.ROOT_PATH), "differentAccessControl", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+    RestrictionProvider rp = new RestrictionProviderImpl();
+    Restriction r = rp.createRestriction(PathUtils.ROOT_PATH, REP_ITEM_NAMES, new Value[] { getValueFactory(root).createValue("someName", PropertyType.NAME) });
+    rp.writeRestrictions(PathUtils.ROOT_PATH, acNode, ImmutableSet.of(r));
+    root.commit();
+}

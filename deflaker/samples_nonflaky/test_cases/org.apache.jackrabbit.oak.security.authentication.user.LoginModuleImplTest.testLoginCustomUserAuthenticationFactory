@@ -1,0 +1,35 @@
+@Test
+public void testLoginCustomUserAuthenticationFactory() throws Exception {
+    UserAuthenticationFactory factory = (configuration, root, userId) -> new Authentication() {
+
+        @Override
+        public boolean authenticate(@Nullable Credentials credentials) {
+            return true;
+        }
+
+        @Nullable
+        @Override
+        public String getUserId() {
+            return null;
+        }
+
+        @Nullable
+        @Override
+        public Principal getUserPrincipal() {
+            return null;
+        }
+    };
+    CallbackHandler cbh = new TestCallbackHandler(factory);
+    SimpleCredentials creds = new SimpleCredentials("loginId", new char[0]);
+    Subject subject = new Subject(false, Sets.newHashSet(), ImmutableSet.of(creds), Sets.newHashSet());
+    LoginModuleImpl loginModule = new LoginModuleImpl();
+    loginModule.initialize(subject, cbh, Maps.newHashMap(), Maps.newHashMap());
+    assertTrue(loginModule.login());
+    assertTrue(loginModule.commit());
+    // authinfo falls back to loginId because Authentication.getUserId returned null
+    AuthInfo authInfo = subject.getPublicCredentials(AuthInfo.class).iterator().next();
+    assertEquals("loginId", authInfo.getUserID());
+    assertTrue(loginModule.logout());
+    assertTrue(subject.getPrincipals().isEmpty());
+    assertTrue(subject.getPublicCredentials().isEmpty());
+}

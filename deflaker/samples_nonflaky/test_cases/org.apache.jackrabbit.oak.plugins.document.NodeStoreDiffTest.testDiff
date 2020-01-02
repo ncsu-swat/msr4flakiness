@@ -1,0 +1,46 @@
+/**
+ * This testcase demonstrates that diff logic in merge part traverses node path
+ * which are not affected by the commit
+ * @throws Exception
+ */
+@Test
+public void testDiff() throws Exception {
+    createNodes("/oak:index/prop-a", "/oak:index/prop-b", "/etc/workflow");
+    // 1. Make some other changes so as to bump root rev=3
+    createNodes("/fake/a");
+    createNodes("/fake/b");
+    // 2 - Start change
+    NodeBuilder b2 = ns.getRoot().builder();
+    createNodes(b2, "/etc/workflow/instance1");
+    tds.reset();
+    // 3. Merge which does a rebase
+    ns.merge(b2, new CommitHook() {
+
+        @NotNull
+        public NodeState processCommit(NodeState before, NodeState after, CommitInfo info) throws CommitFailedException {
+            NodeBuilder rb = after.builder();
+            createNodes(rb, "/oak:index/prop-a/a1");
+            // 2.1 Commit some change under prop-
+            // This cause diff in lastRev of base node state in ModifiedNodeState for
+            // oak:index due to which when the base state is compared in ModifiedNodeState
+            // then it fetches the new DocumentNodeState whose lastRev is greater than this.base.lastRev
+            // but less then lastRev of the of readRevision. Where readRevision is the rev of root node when
+            // rebase was performed
+            // remember paths accessed so far
+            List<String> paths = Lists.newArrayList(tds.paths);
+            // This is not to be done in actual cases as CommitHooks are invoked in critical sections
+            // and creating nodes from within CommitHooks would cause deadlock. This is done here to ensure
+            // that changes are done when rebase has been performed and merge is about to happen
+            createNodes("/oak:index/prop-b/b1");
+            // reset accessed paths
+            tds.reset();
+            tds.paths.addAll(paths);
+            // For now we the cache is disabled (size 0) so this is not required
+            // ns.nodeCache.invalidateAll();
+            return rb.getNodeState();
+        }
+    }, CommitInfo.EMPTY);
+    // Assert that diff logic does not traverse to /oak:index/prop-b/b1 as
+    // its not part of commit
+    assertFalse(tds.paths.contains("/oak:index/prop-b/b1"));
+}

@@ -1,0 +1,19 @@
+@Test
+public void testQuerySortRespectCase() throws Exception {
+    Group g = createGroup("g1", null);
+    g.setProperty(propertyName, valueFactory.createValue("aaa"));
+    Group g2 = createGroup("g2", null);
+    g2.setProperty(propertyName, valueFactory.createValue("BBB"));
+    user.setProperty(propertyName, valueFactory.createValue("c"));
+    root.commit();
+    Query q = new Query() {
+
+        @Override
+        public <T> void build(@NotNull QueryBuilder<T> builder) {
+            builder.setCondition(builder.exists(propertyName));
+            builder.setSortOrder(propertyName, QueryBuilder.Direction.DESCENDING, false);
+        }
+    };
+    Iterator<Authorizable> result = queryMgr.findAuthorizables(q);
+    assertEquals(ImmutableList.of(user, g, g2), ImmutableList.copyOf(result));
+}

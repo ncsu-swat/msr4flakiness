@@ -1,0 +1,37 @@
+@Test
+public void branchBaseBeforeClusterJoin() throws Exception {
+    MemoryDocumentStore store = new MemoryDocumentStore();
+    DocumentNodeStore ns1 = builderProvider.newBuilder().setClusterId(1).setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+    NodeBuilder b1 = ns1.getRoot().builder();
+    b1.child("parent");
+    merge(ns1, b1);
+    ns1.runBackgroundOperations();
+    DocumentNodeStore ns2 = builderProvider.newBuilder().setClusterId(2).setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+    NodeBuilder b2 = ns2.getRoot().builder();
+    b2.child("parent").child("baz");
+    merge(ns2, b2);
+    ns2.runBackgroundOperations();
+    DocumentNodeState root = ns1.getRoot();
+    DocumentNodeStoreBranch b = ns1.createBranch(root);
+    // branch state is now Unmodified
+    NodeBuilder builder = root.builder();
+    builder.child("parent").child("foo");
+    b.setRoot(builder.getNodeState());
+    // branch state is now InMemory
+    builder.child("parent").child("bar");
+    b.setRoot(builder.getNodeState());
+    // branch state is now Persisted
+    b.rebase();
+    NodeState parent = b.getHead().getChildNode("parent");
+    assertTrue(parent.exists());
+    assertTrue(parent.hasChildNode("foo"));
+    assertTrue(parent.hasChildNode("bar"));
+    assertFalse(parent.hasChildNode("baz"));
+    ns1.runBackgroundOperations();
+    b.merge(EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    parent = ns1.getRoot().getChildNode("parent");
+    assertTrue(parent.exists());
+    assertTrue(parent.hasChildNode("foo"));
+    assertTrue(parent.hasChildNode("bar"));
+    assertTrue(parent.hasChildNode("baz"));
+}

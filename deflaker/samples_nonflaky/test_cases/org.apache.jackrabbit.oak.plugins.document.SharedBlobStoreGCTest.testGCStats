@@ -1,0 +1,26 @@
+@Test
+public void testGCStats() throws Exception {
+    log.debug("Running testGCStats()");
+    // Only run the mark phase on both the clusters to get the stats
+    cluster1.gc.collectGarbage(true);
+    cluster2.gc.collectGarbage(true);
+    Set<String> actualRepoIds = Sets.newHashSet();
+    actualRepoIds.add(cluster1.repoId);
+    actualRepoIds.add(cluster2.repoId);
+    Set<Integer> actualNumBlobs = Sets.newHashSet();
+    actualNumBlobs.add(cluster1.initBlobs.size());
+    actualNumBlobs.add(cluster2.initBlobs.size());
+    List<GarbageCollectionRepoStats> statsList = cluster1.gc.getStats();
+    Set<Integer> observedNumBlobs = Sets.newHashSet();
+    Set<String> observedRepoIds = Sets.newHashSet();
+    for (GarbageCollectionRepoStats stat : statsList) {
+        observedNumBlobs.add(stat.getNumLines());
+        observedRepoIds.add(stat.getRepositoryId());
+        assertTrue(stat.getStartTime() <= stat.getEndTime());
+        if (stat.getRepositoryId().equals(cluster1.repoId)) {
+            assertTrue(stat.isLocal());
+        }
+    }
+    assertTrue(Sets.difference(actualNumBlobs, observedNumBlobs).isEmpty());
+    assertTrue(Sets.difference(actualRepoIds, observedRepoIds).isEmpty());
+}

@@ -1,0 +1,16 @@
+@Test
+public void callbackEveryTenProperties() {
+    final NodeBuilder builder = EmptyNodeState.EMPTY_NODE.builder();
+    for (int i = 1; i < 40; i++) {
+        builder.child("counter").setProperty(Integer.toString(i), i);
+    }
+    final AssertingPeriodicReporter reporter = new AssertingPeriodicReporter(-1, 10);
+    final NodeState counter = ReportingNodeState.wrap(builder.getNodeState(), reporter).getChildNode("counter");
+    reporter.reset();
+    for (int i = 1; i < 40; i++) {
+        counter.getProperty(Integer.toString(i));
+    }
+    assertThat(reporter, hasReportedProperty(10, "/counter/10"));
+    assertThat(reporter, hasReportedProperty(20, "/counter/20"));
+    assertThat(reporter, hasReportedProperty(30, "/counter/30"));
+}

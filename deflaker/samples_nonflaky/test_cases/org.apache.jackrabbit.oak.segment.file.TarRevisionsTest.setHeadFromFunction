@@ -1,0 +1,19 @@
+@Test
+public void setHeadFromFunction() throws IOException, InterruptedException {
+    RecordId headId = revisions.getHead();
+    SegmentNodeState root = reader.readNode(headId);
+    final SegmentNodeState newRoot = addChild(root, "a");
+    assertNotNull(revisions.setHead(new Function<RecordId, RecordId>() {
+
+        @Nullable
+        @Override
+        public RecordId apply(RecordId headId) {
+            return newRoot.getRecordId();
+        }
+    }));
+    store.flush();
+    try (JournalReader reader = createJournalReader()) {
+        assertTrue(reader.hasNext());
+        assertEquals(newRoot.getRecordId().toString10(), reader.next().getRevision());
+    }
+}

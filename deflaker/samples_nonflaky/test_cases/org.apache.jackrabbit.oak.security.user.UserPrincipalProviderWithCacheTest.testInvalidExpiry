@@ -1,0 +1,12 @@
+@Test
+public void testInvalidExpiry() throws Exception {
+    long[] noCache = new long[] { 0, -1, Long.MIN_VALUE };
+    for (long exp : noCache) {
+        changeUserConfiguration(ConfigurationParameters.of(UserPrincipalProvider.PARAM_CACHE_EXPIRATION, exp));
+        PrincipalProvider pp = createPrincipalProvider(systemRoot);
+        pp.getPrincipals(userId);
+        root.refresh();
+        Tree userTree = root.getTree(getTestUser().getPath());
+        assertFalse(userTree.hasChild(CacheConstants.REP_CACHE));
+    }
+}

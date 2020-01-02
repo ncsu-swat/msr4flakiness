@@ -1,0 +1,47 @@
+// OAK-3646
+@Test
+public void concurrentChildOperations() throws Exception {
+    Clock clock = new Clock.Virtual();
+    clock.waitUntil(System.currentTimeMillis());
+    Revision.setClock(clock);
+    MemoryDocumentStore store = new MemoryDocumentStore();
+    DocumentNodeStore ns1 = builderProvider.newBuilder().setAsyncDelay(0).clock(clock).setLeaseCheckMode(LeaseCheckMode.LENIENT).setDocumentStore(store).setClusterId(1).getNodeStore();
+    DocumentNodeStore ns2 = builderProvider.newBuilder().setAsyncDelay(0).clock(clock).setLeaseCheckMode(LeaseCheckMode.LENIENT).setDocumentStore(store).setClusterId(2).getNodeStore();
+    // create some children under /foo/bar
+    NodeBuilder b1 = ns1.getRoot().builder();
+    NodeBuilder node = b1.child("foo").child("bar");
+    node.child("child-0");
+    node.child("child-1");
+    node.child("child-2");
+    merge(ns1, b1);
+    // make changes visible on both cluster nodes
+    ns1.runBackgroundOperations();
+    ns2.runBackgroundOperations();
+    // remove child-0 on cluster node 1
+    b1 = ns1.getRoot().builder();
+    b1.child("foo").child("bar").getChildNode("child-0").remove();
+    merge(ns1, b1);
+    // push _lastRev updates to DocumentStore
+    ns1.runBackgroundOperations();
+    // remove child-1 on cluster node 2
+    NodeBuilder b2 = ns2.getRoot().builder();
+    b2.child("foo").child("bar").getChildNode("child-1").remove();
+    merge(ns2, b2);
+    // on cluster node 2, remove of child-0 is not yet visible
+    DocumentNodeState bar = asDocumentNodeState(ns2.getRoot().getChildNode("foo").getChildNode("bar"));
+    List<ChildNodeEntry> children = Lists.newArrayList(bar.getChildNodeEntries());
+    assertEquals(2, Iterables.size(children));
+    RevisionVector invalidate = bar.getLastRevision();
+    assertNotNull(invalidate);
+    // this will make changes from cluster node 1 visible
+    ns2.runBackgroundOperations();
+    // wait two hours
+    clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(2));
+    // collect everything older than one hour
+    // this will remove child-0 and child-1 doc
+    ns1.getVersionGarbageCollector().gc(1, TimeUnit.HOURS);
+    // forget cache entry for deleted node
+    ns2.invalidateNodeCache("/foo/bar/child-0", invalidate);
+    children = Lists.newArrayList(ns2.getRoot().getChildNode("foo").getChildNode("bar").getChildNodeEntries());
+    assertEquals(1, Iterables.size(children));
+}

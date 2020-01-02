@@ -1,0 +1,20 @@
+/**
+ * OAK-2203 Test reindex behavior on a sync index when the index provider is missing
+ * for a given type
+ */
+@Test
+public void testReindexSyncMissingProvider() throws Exception {
+    EditorHook hook = new EditorHook(new IndexUpdateProvider(emptyProvider()));
+    NodeState before = builder.getNodeState();
+    createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "rootIndex", true, false, ImmutableSet.of("foo"), null);
+    builder.child(INDEX_DEFINITIONS_NAME).child("azerty");
+    builder.child("testRoot").setProperty("foo", "abc");
+    NodeState after = builder.getNodeState();
+    NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+    NodeState rootIndex = checkPathExists(indexed, INDEX_DEFINITIONS_NAME, "rootIndex");
+    PropertyState ps = rootIndex.getProperty(REINDEX_PROPERTY_NAME);
+    assertNotNull(ps);
+    assertTrue(ps.getValue(Type.BOOLEAN));
+    NodeState azerty = checkPathExists(indexed, INDEX_DEFINITIONS_NAME, "azerty");
+    assertNull("Node should be ignored by reindexer", azerty.getProperty(REINDEX_PROPERTY_NAME));
+}

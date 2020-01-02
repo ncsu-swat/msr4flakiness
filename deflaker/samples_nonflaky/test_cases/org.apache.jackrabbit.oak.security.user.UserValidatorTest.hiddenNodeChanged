@@ -1,0 +1,16 @@
+@Test
+public void hiddenNodeChanged() throws CommitFailedException {
+    UserValidatorProvider provider = createValidatorProvider();
+    MemoryNodeStore store = new MemoryNodeStore();
+    NodeBuilder builder = store.getRoot().builder();
+    builder.child("test").child(":hidden");
+    NodeState root = builder.getNodeState();
+    NodeBuilder test = root.builder().child("test");
+    NodeBuilder hidden = test.child(":hidden");
+    hidden.child("added");
+    Validator validator = provider.getRootValidator(root, builder.getNodeState(), CommitInfo.EMPTY);
+    Validator childValidator = validator.childNodeChanged("test", root.getChildNode("test"), test.getNodeState());
+    assertNotNull(childValidator);
+    Validator hiddenValidator = childValidator.childNodeChanged(":hidden", root.getChildNode("test").getChildNode(":hidden"), hidden.getNodeState());
+    assertNull(hiddenValidator);
+}

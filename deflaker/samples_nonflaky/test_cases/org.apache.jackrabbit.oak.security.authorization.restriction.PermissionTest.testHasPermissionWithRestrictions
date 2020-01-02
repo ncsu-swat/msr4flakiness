@@ -1,0 +1,33 @@
+/**
+ * Tests if the restrictions are properly inherited.
+ * the restriction enable/disable the ACE where it is defined.
+ * since the 'allow' on /a/b is after the 'deny' on a/b/c, the allow wins.
+ *
+ * The test currently fails on evaluation of /a/b/c/d. Probably because the evaluation
+ * of /a/b/c yields a deny, which terminates the iteration.
+ */
+@Test(expected = CommitFailedException.class)
+public void testHasPermissionWithRestrictions() throws Exception {
+    // create permissions
+    // allow rep:write      /testroot
+    // deny  jcr:removeNode /testroot/a  glob=*/c
+    // allow jcr:removeNode /testroot/a  glob=*/b
+    addEntry(TEST_ROOT_PATH, true, "", PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE);
+    addEntry(TEST_A_PATH, false, "*/c", PrivilegeConstants.JCR_REMOVE_NODE);
+    addEntry(TEST_A_PATH, true, "*/b", PrivilegeConstants.JCR_REMOVE_NODE);
+    try (ContentSession testSession = createTestSession()) {
+        Root testRoot = testSession.getLatestRoot();
+        PermissionProvider pp = getPermissionProvider(testSession);
+        assertIsGranted(pp, testRoot, true, TEST_A_PATH, Permissions.REMOVE_NODE);
+        assertIsGranted(pp, testRoot, true, TEST_B_PATH, Permissions.REMOVE_NODE);
+        assertIsGranted(pp, testRoot, false, TEST_C_PATH, Permissions.REMOVE_NODE);
+        assertIsGranted(pp, testRoot, true, TEST_D_PATH, Permissions.REMOVE_NODE);
+        assertIsGranted(pp, testRoot, true, TEST_E_PATH, Permissions.REMOVE_NODE);
+        // should be able to remove /a/b/c/d
+        testRoot.getTree(TEST_D_PATH).remove();
+        testRoot.commit();
+        // should not be able to remove /a/b/c
+        testRoot.getTree(TEST_C_PATH).remove();
+        testRoot.commit();
+    }
+}

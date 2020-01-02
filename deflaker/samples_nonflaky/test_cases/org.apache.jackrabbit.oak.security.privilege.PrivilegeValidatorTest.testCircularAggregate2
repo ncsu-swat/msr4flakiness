@@ -1,0 +1,12 @@
+@Test(expected = CommitFailedException.class)
+public void testCircularAggregate2() throws Exception {
+    try {
+        register("test");
+        register("test2", "test", PrivilegeConstants.JCR_READ);
+        NodeState newDef = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE).setProperty(JCR_PRIMARYTYPE, NT_REP_PRIVILEGE).setProperty(REP_BITS, 8).setProperty(REP_AGGREGATES, ImmutableList.of("test2", JCR_READ), Type.NAMES).getNodeState();
+        PrivilegeValidator validator = createPrivilegeValidator();
+        validator.childNodeAdded("test", newDef);
+    } catch (CommitFailedException e) {
+        throw assertCommitFailed(e, 52);
+    }
+}

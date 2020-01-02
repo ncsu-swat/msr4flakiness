@@ -1,0 +1,18 @@
+@Test
+public void testTwoProvider() {
+    TreePermission tp = mock(TreePermission.class);
+    when(tp.getChildPermission(anyString(), any(NodeState.class))).thenReturn(tp);
+    AggregatedPermissionProvider aggr = when(mock(AggregatedPermissionProvider.class).getTreePermission(any(Tree.class), any(TreeType.class), any(TreePermission.class))).thenReturn(tp).getMock();
+    AggregatedPermissionProvider composite = createProvider(OR, aggr, new FullScopeProvider(root));
+    Tree rootTree = getRootProvider().createReadOnlyRoot(root).getTree(PathUtils.ROOT_PATH);
+    TreePermission rootTreePermission = composite.getTreePermission(rootTree, TreeType.VERSION, TreePermission.EMPTY);
+    assertTrue(rootTreePermission instanceof CompositeTreePermission);
+    // type param is ignored for the root tree
+    verify(aggr, times(1)).getTreePermission(rootTree, TreeType.DEFAULT, TreePermission.EMPTY);
+    verify(aggr, never()).getTreePermission(rootTree, TreeType.VERSION, TreePermission.EMPTY);
+    Tree systemTree = rootTree.getChild(JcrConstants.JCR_SYSTEM);
+    assertTrue(composite.getTreePermission(systemTree, TreeType.ACCESS_CONTROL, rootTreePermission) instanceof CompositeTreePermission);
+    verify(aggr, times(1)).getTreePermission(systemTree, TreeType.ACCESS_CONTROL, tp);
+    verify(aggr, never()).getTreePermission(systemTree, TreeType.DEFAULT, rootTreePermission);
+    verify(tp, never()).getChildPermission(systemTree.getName(), getTreeProvider().asNodeState(systemTree));
+}

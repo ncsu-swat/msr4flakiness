@@ -1,0 +1,19 @@
+@Test
+public void nonExistingEntry() throws Exception {
+    File fdsDir = temporaryFolder.newFolder();
+    FileDataStore fds = DataStoreUtils.createFDS(fdsDir, 0);
+    ByteArrayInputStream is = new ByteArrayInputStream("hello".getBytes());
+    DataRecord dr = fds.addRecord(is);
+    File writerDir = temporaryFolder.newFolder();
+    DataStoreTextWriter w = new DataStoreTextWriter(writerDir, false);
+    String id = dr.getIdentifier().toString();
+    assertFalse(w.isProcessed(id));
+    assertNull(w.getText("/a", new IdBlob("foo", id)));
+    w.write(id, "foo");
+    assertTrue(w.isProcessed(id));
+    ExtractedText et = w.getText("/a", new IdBlob("foo", id));
+    assertEquals("foo", et.getExtractedText());
+    assertEquals(ExtractionResult.SUCCESS, et.getExtractionResult());
+    w.markEmpty("a");
+    assertTrue(w.isProcessed("a"));
+}

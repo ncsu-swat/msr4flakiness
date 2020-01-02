@@ -1,0 +1,20 @@
+@Test
+public void batchSize() {
+    AtomicInteger maxBatchSize = new AtomicInteger(0);
+    DocumentStore store = new DocumentStoreWrapper(new MemoryDocumentStore()) {
+
+        @Override
+        public <T extends Document> List<T> createOrUpdate(Collection<T> collection, List<UpdateOp> updateOps) {
+            maxBatchSize.set(Math.max(maxBatchSize.get(), updateOps.size()));
+            return super.createOrUpdate(collection, updateOps);
+        }
+    };
+    int batchSize = 100;
+    List<UpdateOp> updates = new ArrayList<>();
+    for (int i = 0; i < batchSize * 2; i++) {
+        updates.add(new UpdateOp("id-" + i, false));
+    }
+    new Rollback(Revision.newRevision(1), updates, "id", batchSize).perform(store);
+    assertThat(maxBatchSize.get(), greaterThan(0));
+    assertThat(maxBatchSize.get(), lessThanOrEqualTo(batchSize));
+}

@@ -1,0 +1,30 @@
+// OAK-7593
+@Test
+public void getVisibleChangesWithOverlappingRanges() throws Exception {
+    MemoryDocumentStore store = new MemoryDocumentStore();
+    DocumentNodeStore ns = createTestStore(store, 1, 0);
+    addNode(ns, "/test");
+    setProperty(ns, "/test/p", 1);
+    setProperty(ns, "/test/p", 2);
+    setProperty(ns, "/test/p", 3);
+    RevisionVector readRev = ns.getHeadRevision();
+    setProperty(ns, "/test/q", 1);
+    setProperty(ns, "/test/q", 2);
+    String id = Utils.getIdFromPath("/test");
+    NodeDocument doc = store.find(NODES, id);
+    assertNotNull(doc);
+    List<UpdateOp> splitOps = SplitOperations.forDocument(doc, ns, ns.getHeadRevision(), NO_BINARY, 1);
+    assertEquals(2, splitOps.size());
+    store.createOrUpdate(NODES, splitOps);
+    setProperty(ns, "/test/p", 4);
+    doc = store.find(NODES, id);
+    assertNotNull(doc);
+    splitOps = SplitOperations.forDocument(doc, ns, ns.getHeadRevision(), NO_BINARY, 1);
+    assertEquals(2, splitOps.size());
+    store.createOrUpdate(NODES, splitOps);
+    doc = store.find(NODES, id);
+    assertNotNull(doc);
+    for (Map.Entry<Revision, String> change : doc.getVisibleChanges("p", readRev)) {
+        assertFalse(readRev.isRevisionNewer(change.getKey()));
+    }
+}

@@ -1,0 +1,18 @@
+@Test
+public void testDefaultReadPath() {
+    // cp with DefaultReadPolicy
+    CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.EMPTY);
+    for (String readPath : PermissionConstants.DEFAULT_READ_PATHS) {
+        assertTrue(cp.isGranted(readPath, Permissions.READ_NODE));
+        Tree t = createReadonlyTree(readPath);
+        assertTrue(cp.isGranted(t, null, Permissions.READ_NODE));
+        assertTrue(cp.isGranted(t, t.getProperty(JCR_PRIMARYTYPE), Permissions.READ_PROPERTY));
+        assertTrue(cp.hasPrivileges(t, PrivilegeConstants.REP_READ_NODES));
+        assertTrue(cp.hasPrivileges(t, JCR_READ));
+        assertEquals(ImmutableSet.of(JCR_READ), cp.getPrivileges(t));
+        TreePermission tp = createTreePermission(cp, readPath);
+        assertTrue(tp.canRead());
+        assertTrue(tp.canRead(mock(PropertyState.class)));
+        assertFalse(tp.canReadAll());
+    }
+}

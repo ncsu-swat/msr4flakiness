@@ -1,0 +1,11 @@
+@Test(expected = CommitFailedException.class)
+public void testRepositoryPermissionsNamespaces() throws Exception {
+    try (ContentSession testSession = createTestSession()) {
+        PermissionValidator validator = createValidator(testSession.getAuthInfo().getPrincipals(), NamespaceConstants.NAMESPACES_PATH);
+        validator.childNodeAdded("any", mock(NodeState.class));
+    } catch (CommitFailedException e) {
+        assertTrue(e.isAccessViolation());
+        assertEquals(0, e.getCode());
+        throw e;
+    }
+}

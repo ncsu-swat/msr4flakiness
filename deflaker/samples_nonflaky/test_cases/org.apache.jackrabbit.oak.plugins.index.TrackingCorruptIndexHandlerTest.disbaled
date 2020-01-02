@@ -1,0 +1,10 @@
+@Test
+public void disbaled() throws Exception {
+    handler.setClock(clock);
+    handler.indexUpdateFailed("async", "/oak:index/foo", new Exception());
+    clock.waitUntil(clock.getTime() + handler.getCorruptIntervalMillis() + 1);
+    assertTrue(handler.getCorruptIndexData("async").containsKey("/oak:index/foo"));
+    handler.setCorruptInterval(0, TimeUnit.SECONDS);
+    // With timeout set to zero no corrupt index should be reported
+    assertFalse(handler.getCorruptIndexData("async").containsKey("/oak:index/foo"));
+}

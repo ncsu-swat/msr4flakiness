@@ -1,0 +1,11 @@
+@Test(expected = CommitFailedException.class)
+public void testRepositoryPermissionsPrivileges() throws Exception {
+    try (ContentSession testSession = createTestSession()) {
+        PermissionValidator validator = createValidator(testSession.getAuthInfo().getPrincipals(), PrivilegeConstants.PRIVILEGES_PATH);
+        validator.propertyAdded(PropertyStates.createProperty("any", "value"));
+    } catch (CommitFailedException e) {
+        assertTrue(e.isAccessViolation());
+        assertEquals(0, e.getCode());
+        throw e;
+    }
+}

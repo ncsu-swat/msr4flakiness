@@ -1,0 +1,27 @@
+@Test
+public void test_explain_sql2() throws Exception {
+    test("explain_result.txt");
+    final String sql2 = "select [jcr:path] from [nt:base] as a where isdescendantnode(a, '/test')";
+    Result result = executeQuery(sql2, "JCR-SQL2", Collections.emptyMap());
+    int count = 0;
+    for (ResultRow row : result.getRows()) {
+        count = count + 1;
+    }
+    assertEquals("should exist 2 nodes", 2, count);
+    Result explainResult = executeQuery("explain " + sql2, "JCR-SQL2", Collections.emptyMap());
+    int explainCount = 0;
+    ResultRow explainRow = null;
+    for (ResultRow row : explainResult.getRows()) {
+        if (explainCount == 0) {
+            explainRow = row;
+        }
+        explainCount = explainCount + 1;
+    }
+    assertEquals("should exist 1 result", 1, explainCount);
+    assertNotNull("explain row should not be null", explainRow);
+    assertTrue("result should have 'plan' column", Arrays.asList(explainResult.getColumnNames()).contains("plan"));
+    assertTrue("result should have 'statement' column", Arrays.asList(explainResult.getColumnNames()).contains("statement"));
+    final String explainedStatement = explainRow.getValue("statement").getValue(Type.STRING);
+    assertTrue("'statement' should begin with 'select'", explainedStatement.startsWith("select"));
+    assertEquals("explained statement should be same as original, without 'explain'", sql2, explainedStatement);
+}

@@ -1,0 +1,12 @@
+@Test
+public void testRemoveEmptyHistoryAfterRemovingVersionable() throws RepositoryException, CommitFailedException {
+    NodeUtil node = new NodeUtil(root.getTree("/"));
+    NodeUtil testVersionable = node.addChild("testVersionable", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+    TreeUtil.addMixin(testVersionable.getTree(), JcrConstants.MIX_VERSIONABLE, root.getTree(NodeTypeConstants.NODE_TYPES_PATH), null);
+    root.commit();
+    String historyPath = versionManager.getVersionHistory(testVersionable.getTree()).getPath();
+    assertTrue(root.getTree(historyPath).exists());
+    testVersionable.getTree().remove();
+    root.commit();
+    assertFalse(root.getTree(historyPath).exists());
+}

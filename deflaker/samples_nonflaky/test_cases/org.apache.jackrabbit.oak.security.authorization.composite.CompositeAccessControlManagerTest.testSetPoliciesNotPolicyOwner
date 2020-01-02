@@ -1,0 +1,11 @@
+@Test(expected = AccessControlException.class)
+public void testSetPoliciesNotPolicyOwner() throws Exception {
+    AccessControlPolicy policy = mock(AccessControlPolicy.class);
+    AccessControlManager mgr = when(mock(AccessControlManager.class).getPolicies(anyString())).thenReturn(new AccessControlPolicy[] { policy }).getMock();
+    try {
+        CompositeAccessControlManager composite = createComposite(mgr);
+        composite.setPolicy(ROOT_PATH, policy);
+    } finally {
+        verify(mgr, never()).setPolicy(ROOT_PATH, policy);
+    }
+}

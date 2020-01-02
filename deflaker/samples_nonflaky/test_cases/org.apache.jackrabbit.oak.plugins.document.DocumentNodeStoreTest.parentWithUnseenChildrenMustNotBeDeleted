@@ -1,0 +1,93 @@
+// OAK-2929
+@Test
+public void parentWithUnseenChildrenMustNotBeDeleted() throws Exception {
+    final MemoryDocumentStore docStore = new MemoryDocumentStore();
+    final DocumentNodeStore store1 = builderProvider.newBuilder().setDocumentStore(docStore).setAsyncDelay(0).setClusterId(1).getNodeStore();
+    store1.setEnableConcurrentAddRemove(true);
+    final DocumentNodeStore store2 = builderProvider.newBuilder().setDocumentStore(docStore).setAsyncDelay(0).setClusterId(2).getNodeStore();
+    store2.setEnableConcurrentAddRemove(true);
+    NodeBuilder builder = store1.getRoot().builder();
+    builder.child(":hidden");
+    merge(store1, builder);
+    store1.runBackgroundOperations();
+    store2.runBackgroundOperations();
+    builder = store1.getRoot().builder();
+    builder.child(":hidden").child("parent").child("node1");
+    merge(store1, builder);
+    builder = store2.getRoot().builder();
+    builder.child(":hidden").child("parent").child("node2");
+    merge(store2, builder);
+    // Test 1 - parent shouldn't be removable if order of operation is:
+    // # N1 and N2 know about /:hidden
+    // # N1->create(/:hidden/parent/node1)
+    // # N2->create(/:hidden/parent/node2)
+    // # N1->remove(/:hidden/parent)
+    builder = store1.getRoot().builder();
+    builder.child(":hidden").child("parent").remove();
+    try {
+        merge(store1, builder);
+        fail("parent node of unseen children must not get deleted");
+    } catch (CommitFailedException cfe) {
+    // this merge should fail -- but our real check is done by asserting that parent remains intact
+    }
+    String parentPath = "/:hidden/parent";
+    NodeDocument parentDoc = docStore.find(Collection.NODES, Utils.getIdFromPath(parentPath));
+    assertFalse("parent node of unseen children must not get deleted", isDocDeleted(parentDoc, store1));
+    // Test 2 - parent shouldn't be removable if order of operation is:
+    // # N1 and N2 know about /:hidden
+    // # N1->create(/:hidden/parent/node1)
+    // # N2->create(/:hidden/parent/node2)
+    // # N2->remove(/:hidden/parent)
+    builder = store2.getRoot().builder();
+    builder.child(":hidden").child("parent").remove();
+    try {
+        merge(store2, builder);
+        fail("parent node of unseen children must not get deleted");
+    } catch (CommitFailedException cfe) {
+    // this merge should fail -- but our real check is done by asserting that parent remains intact
+    }
+    parentDoc = docStore.find(Collection.NODES, Utils.getIdFromPath(parentPath));
+    assertFalse("parent node of unseen children must not get deleted", isDocDeleted(parentDoc, store1));
+    store1.runBackgroundOperations();
+    store2.runBackgroundOperations();
+    builder = store1.getRoot().builder();
+    builder.child(":hidden").child("parent").remove();
+    builder.child(":hidden").child("parent1");
+    store1.runBackgroundOperations();
+    store2.runBackgroundOperations();
+    builder = store1.getRoot().builder();
+    builder.child(":hidden").child("parent1").child("node1");
+    merge(store1, builder);
+    builder = store2.getRoot().builder();
+    builder.child(":hidden").child("parent1").child("node2");
+    merge(store2, builder);
+    // Test 3 - parent shouldn't be removable if order of operation is:
+    // # N1 and N2 know about /:hidden/parent1
+    // # N1->create(/:hidden/parent1/node1)
+    // # N2->create(/:hidden/parent1/node2)
+    // # N1->remove(/:hidden/parent1)
+    builder = store1.getRoot().builder();
+    builder.child(":hidden").child("parent1").remove();
+    try {
+        merge(store1, builder);
+    } catch (CommitFailedException cfe) {
+    // this merge should fail -- but our real check is done by asserting that parent remains intact
+    }
+    parentPath = "/:hidden/parent1";
+    parentDoc = docStore.find(Collection.NODES, Utils.getIdFromPath(parentPath));
+    assertFalse("parent node of unseen children must not get deleted", isDocDeleted(parentDoc, store1));
+    // Test 4 - parent shouldn't be removable if order of operation is:
+    // # N1 and N2 know about /:hidden/parent1
+    // # N1->create(/:hidden/parent1/node1)
+    // # N2->create(/:hidden/parent1/node2)
+    // # N2->remove(/:hidden/parent1)
+    builder = store2.getRoot().builder();
+    builder.child(":hidden").child("parent1").remove();
+    try {
+        merge(store2, builder);
+    } catch (CommitFailedException cfe) {
+    // this merge should fail -- but our real check is done by asserting that parent remains intact
+    }
+    parentDoc = docStore.find(Collection.NODES, Utils.getIdFromPath(parentPath));
+    assertFalse("parent node of unseen children must not get deleted", isDocDeleted(parentDoc, store1));
+}

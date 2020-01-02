@@ -1,0 +1,13 @@
+@Test
+public void segmentCount() throws Exception {
+    try (FileStore fileStore = fileStoreBuilder(getFileStoreFolder()).build()) {
+        assertEquals(1, fileStore.getSegmentCount());
+        SegmentNodeState head = fileStore.getHead();
+        SegmentNodeBuilder builder = head.builder();
+        builder.setProperty("a", 1);
+        SegmentNodeState newHead = builder.getNodeState();
+        fileStore.getRevisions().setHead(head.getRecordId(), newHead.getRecordId());
+        fileStore.flush();
+        assertEquals(2, fileStore.getSegmentCount());
+    }
+}

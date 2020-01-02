@@ -1,0 +1,21 @@
+@Test
+public void getNodeAtRevisionAfterGC() throws Exception {
+    getNodeAtRevisionAfterGC(false);
+}
+private void getNodeAtRevisionAfterGC(boolean withBranch) throws Exception {
+    DocumentStore store = new MemoryDocumentStore();
+    Revision r = populateStoreAndGC(store);
+    // start fresh
+    DocumentNodeStore ns = createTestStore(store, 1, 0, 0);
+    String id = Utils.getIdFromPath(Path.fromString("/bar/test"));
+    NodeDocument doc = store.find(NODES, id);
+    assertNotNull(doc);
+    RevisionVector changeRev = new RevisionVector(r);
+    if (withBranch) {
+        changeRev = changeRev.asBranchRevision(1);
+    }
+    DocumentNodeState state = doc.getNodeAtRevision(ns, changeRev, null);
+    assertNotNull(state);
+    assertEquals(changeRev.asTrunkRevision(), state.getLastRevision());
+    assertNotNull(state.getProperty("p"));
+}

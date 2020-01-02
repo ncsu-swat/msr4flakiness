@@ -1,0 +1,17 @@
+@Test
+public void testRegisteredImplementation() {
+    actionProvider.start(whiteboard);
+    AuthorizableActionProvider registered = new AuthorizableActionProvider() {
+
+        @NotNull
+        @Override
+        public List<? extends AuthorizableAction> getAuthorizableActions(@NotNull SecurityProvider securityProvider) {
+            return ImmutableList.of(new TestAction());
+        }
+    };
+    whiteboard.register(AuthorizableActionProvider.class, registered, ImmutableMap.of());
+    List<? extends AuthorizableAction> actions = actionProvider.getAuthorizableActions(Mockito.mock(SecurityProvider.class));
+    assertNotNull(actions);
+    assertEquals(1, actions.size());
+    assertTrue(actions.get(0) instanceof TestAction);
+}

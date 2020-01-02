@@ -1,0 +1,20 @@
+@Test
+public void removeBundledNode() throws Exception {
+    addTestFile();
+    NodeBuilder after = ns.getRoot().builder();
+    after.child("file").child(JCR_CONTENT).remove();
+    CommitBuilder builder = new CommitBuilder(ns, null);
+    CommitDiff diff = newCommitDiff(builder);
+    after.getNodeState().compareAgainstBaseState(ns.getRoot(), diff);
+    assertEquals(1, diff.getNumChanges());
+    Commit c = builder.build(Revision.newRevision(1));
+    Revision r = c.getRevision();
+    UpdateOp op = c.getUpdateOperationForNode(Path.fromString("/file"));
+    Map<Key, Operation> changes = op.getChanges();
+    assertThat(changes.keySet(), hasSize(4));
+    assertThat(changes, hasKey(new Key(MODIFIED_IN_SECS, null)));
+    // changes for jcr:content child node
+    assertThat(changes, hasKey(new Key(JCR_CONTENT + "/" + JCR_PRIMARYTYPE, r)));
+    assertThat(changes, hasKey(new Key(JCR_CONTENT + "/" + JCR_DATA, r)));
+    assertThat(changes, hasKey(new Key(JCR_CONTENT + "/" + META_PROP_BUNDLING_PATH, r)));
+}

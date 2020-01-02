@@ -1,0 +1,13 @@
+@Test
+public void testValidatorServiceRegistered() {
+    // test service registration, there should be a service for the PrivateStoreValidatorProvider
+    MountInfoProvider mountInfoProvider = createMountInfoProvider("/content/readonly");
+    context.registerService(MountInfoProvider.class, mountInfoProvider);
+    registerValidatorProvider(privateStoreValidatorProvider, true);
+    EditorProvider validator = context.getService(EditorProvider.class);
+    assertNotNull("No PrivateStoreValidatorProvider available!", validator);
+    assertTrue(validator instanceof PrivateStoreValidatorProvider);
+    assertTrue(((PrivateStoreValidatorProvider) validator).isFailOnDetection());
+    MockOsgi.deactivate(privateStoreValidatorProvider, context.bundleContext());
+    assertNull(context.getService(EditorProvider.class));
+}

@@ -1,0 +1,15 @@
+@Test
+public void backgroundRead() throws Exception {
+    DocumentStore docStore = new MemoryDocumentStore();
+    DocumentNodeStore store = builderProvider.newBuilder().setAsyncDelay(0).setDocumentStore(docStore).setClusterId(2).getNodeStore();
+    DocumentNodeStore readOnlyStore = builderProvider.newBuilder().setAsyncDelay(0).setDocumentStore(docStore).setClusterId(1).setReadOnlyMode().getNodeStore();
+    NodeBuilder builder = store.getRoot().builder();
+    builder.child("node");
+    store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    store.runBackgroundOperations();
+    // at this point node must not be visible
+    assertFalse(readOnlyStore.getRoot().hasChildNode("node"));
+    readOnlyStore.runBackgroundOperations();
+    // at this point node should get visible
+    assertTrue(readOnlyStore.getRoot().hasChildNode("node"));
+}

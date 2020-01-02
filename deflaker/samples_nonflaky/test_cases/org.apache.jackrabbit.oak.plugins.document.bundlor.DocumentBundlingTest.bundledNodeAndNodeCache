@@ -1,0 +1,16 @@
+@Test
+public void bundledNodeAndNodeCache() throws Exception {
+    store.dispose();
+    store = builderProvider.newBuilder().setDocumentStore(ds).memoryCacheSize(ONE_MB * 10).getNodeStore();
+    NodeBuilder builder = store.getRoot().builder();
+    NodeBuilder fileNode = newNode("nt:file");
+    fileNode.child("jcr:content").setProperty("jcr:data", "foo");
+    builder.child("test").setChildNode("book.jpg", fileNode.getNodeState());
+    // Make some modifications under the bundled node
+    // This would cause an entry for bundled node in Commit modified set
+    childBuilder(builder, "/test/book.jpg/jcr:content/vlt:definition").setProperty("foo", "bar");
+    TestNodeObserver o = new TestNodeObserver("test");
+    store.addObserver(o);
+    merge(builder);
+    assertEquals(4, o.added.size());
+}

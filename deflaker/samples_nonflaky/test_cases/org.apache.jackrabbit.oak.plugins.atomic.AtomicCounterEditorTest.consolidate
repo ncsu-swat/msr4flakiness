@@ -1,0 +1,14 @@
+@Test
+public void consolidate() throws CommitFailedException {
+    NodeBuilder builder;
+    Editor editor;
+    builder = EMPTY_NODE.builder();
+    builder = setMixin(builder);
+    editor = new AtomicCounterEditor(builder, null, null, null, null);
+    editor.propertyAdded(INCREMENT_BY_1);
+    assertTotalCountersValue(builder.getProperties(), 1);
+    editor.propertyAdded(INCREMENT_BY_1);
+    assertTotalCountersValue(builder.getProperties(), 2);
+    AtomicCounterEditor.consolidateCount(builder);
+    assertCounterNodeState(builder, ImmutableSet.of(PREFIX_PROP_COUNTER, PREFIX_PROP_REVISION), 2);
+}

@@ -1,0 +1,14 @@
+@Test
+public void deeperRelativeInexistence() throws Exception {
+    Tree rootTree = root.getTree("/").addChild("a");
+    rootTree.addChild("x");
+    rootTree.addChild("x1").addChild("w");
+    rootTree.addChild("x2").addChild("w").addChild("y");
+    root.commit();
+    String query = "SELECT * FROM [nt:base] WHERE ISDESCENDANTNODE('/a') AND [w/y/z] IS NULL";
+    List<String> expected = ImmutableList.of("/a/x", "/a/x1", "/a/x1/w", "/a/x2", "/a/x2/w", "/a/x2/w/y");
+    List<String> expectedOld = ImmutableList.of("/a/x2");
+    assertQuery(query, expected);
+    System.setProperty("oak.useOldInexistenceCheck", "true");
+    assertQuery(query, expectedOld);
+}

@@ -1,0 +1,39 @@
+@Test
+public void nonBlocking() throws Exception {
+    TestStore store = new TestStore();
+    DocumentNodeStore ns = builderProvider.newBuilder().clock(clock).setDocumentStore(store).setAsyncDelay(0).build();
+    // do not retry commits
+    ns.setMaxBackOffMillis(0);
+    // create initial node structure
+    NodeBuilder builder = ns.getRoot().builder();
+    builder.child("foo");
+    builder.child("bar");
+    builder.child("baz");
+    merge(ns, builder);
+    store.failCommitOnce.set(true);
+    // add a child to each of the nodes.
+    // the commit root will be on the root document
+    Future<CommitFailedException> f = executorService.submit(() -> {
+        NodeBuilder nb = ns.getRoot().builder();
+        nb.child("foo").child("n");
+        nb.child("bar").child("n");
+        nb.child("baz").child("n");
+        try {
+            merge(ns, nb);
+            fail("must throw CommitFailedException");
+            return null;
+        } catch (CommitFailedException e) {
+            // expected
+            return e;
+        }
+    });
+    store.commitFailed.await();
+    builder = ns.getRoot().builder();
+    builder.child("test");
+    merge(ns, builder);
+    long t1 = clock.getTime();
+    assertNotNull(f.get());
+    long t2 = clock.getTime();
+    assertFalse(store.failCommitOnce.get());
+    assertThat(t2 - t1, greaterThanOrEqualTo(1000L));
+}

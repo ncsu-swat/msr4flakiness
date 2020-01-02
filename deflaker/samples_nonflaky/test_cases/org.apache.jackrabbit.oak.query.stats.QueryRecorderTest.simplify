@@ -1,0 +1,17 @@
+@Test
+public void simplify() {
+    // SQL-2
+    // dummy
+    assertEquals("SELECT sling:alias FROM nt:base WHERE sling:alias IS NOT NULL", QueryRecorder.simplify("SELECT sling:alias FROM nt:base WHERE sling:alias IS NOT NULL"));
+    // replace strings and paths
+    assertEquals("SELECT * FROM [acme] AS s WHERE ISDESCENDANTNODE('x') " + "AND s.[sling:resourceType] = 'x'", QueryRecorder.simplify("SELECT * FROM [acme] AS s WHERE ISDESCENDANTNODE([/conf]) " + "AND s.[sling:resourceType] = 'dam/123'"));
+    // XPath
+    // keep two path segment
+    assertEquals("  /jcr:root//element(*,sling:Job)[@status='x'] order by @startTime descending", QueryRecorder.simplify("  /jcr:root//element(*,sling:Job)[@status='RUNNING'] order by @startTime descending"));
+    assertEquals("/jcr:root/content/element(*,sling:Job)[@status='x']", QueryRecorder.simplify("/jcr:root/content/element(*,sling:Job)[@status='RUNNING']"));
+    assertEquals("/jcr:root/content/abc/element(*,sling:Job)[@status='x']", QueryRecorder.simplify("/jcr:root/content/abc/element(*,sling:Job)[@status='RUNNING']"));
+    assertEquals("/jcr:root/content/abc/.../element(*, acme)[@status='x']", QueryRecorder.simplify("/jcr:root/content/abc/def/element(*, acme)[@status='RUNNING']"));
+    assertEquals("/jcr:root/content/abc/.../*[@status='x']", QueryRecorder.simplify("/jcr:root/content/abc/def/*[@status='RUNNING']"));
+    assertEquals("/jcr:root/content/*/jcr:content[@deviceIdentificationMode]", QueryRecorder.simplify("/jcr:root/content/*/jcr:content[@deviceIdentificationMode]"));
+    assertEquals("/jcr:root/(content|var)/b/.../*/jcr:content", QueryRecorder.simplify("/jcr:root/(content|var)/b/c/*/jcr:content"));
+}

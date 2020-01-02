@@ -1,0 +1,16 @@
+@Test
+public void zeroCache() throws Exception {
+    LOG.info("Started zeroCache");
+    cache = FileCache.build(0, /* KB */
+    root, loader, null);
+    closer.register(cache);
+    File f = createFile(0, loader, cache, folder);
+    cache.put(ID_PREFIX + 0, f);
+    assertNull(cache.getIfPresent(ID_PREFIX + 0));
+    assertNull(cache.get(ID_PREFIX + 0));
+    assertEquals(0, cache.getStats().getMaxTotalWeight());
+    cache.invalidate(ID_PREFIX + 0);
+    assertFalse(cache.containsKey(ID_PREFIX + 0));
+    cache.close();
+    LOG.info("Finished zeroCache");
+}

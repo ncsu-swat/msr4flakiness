@@ -1,0 +1,14 @@
+@Test
+public void testHidden() {
+    CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.of(PARAM_READ_PATHS, ImmutableSet.of()));
+    String hiddenPath = "/oak:index/acPrincipalName/:index";
+    Tree hiddenTree = createReadonlyTree(hiddenPath);
+    assertTrue(hiddenTree.exists());
+    assertTrue(cp.isGranted(hiddenTree, null, Permissions.ALL));
+    // isGranted(String, long) serves as fallback for non-existing items
+    // -> just regular permission eval without tree-type handling
+    assertFalse(cp.isGranted(hiddenPath, Permissions.ALL));
+    assertTrue(cp.getPrivileges(hiddenTree).isEmpty());
+    TreePermission tp = createTreePermission(cp, hiddenPath);
+    assertSame(ALL, tp);
+}

@@ -1,0 +1,17 @@
+@Test
+public void testBindPrincipalConfiguration() {
+    PrincipalConfiguration defaultConfig = securityProvider.getConfiguration(PrincipalConfiguration.class);
+    assertTrue(defaultConfig instanceof CompositePrincipalConfiguration);
+    CompositePrincipalConfiguration cpc = (CompositePrincipalConfiguration) defaultConfig;
+    PrincipalConfiguration pc = Mockito.mock(PrincipalConfiguration.class);
+    when(pc.getParameters()).thenReturn(ConfigurationParameters.EMPTY);
+    securityProvider.bindPrincipalConfiguration(pc);
+    assertNotSame(pc, securityProvider.getConfiguration(PrincipalConfiguration.class));
+    assertSame(defaultConfig, securityProvider.getConfiguration(PrincipalConfiguration.class));
+    for (SecurityConfiguration sc : securityProvider.getConfigurations()) {
+        if (sc instanceof PrincipalConfiguration) {
+            assertSame(defaultConfig, sc);
+        }
+    }
+    assertTrue(cpc.getConfigurations().contains(pc));
+}

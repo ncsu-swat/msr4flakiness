@@ -1,0 +1,16 @@
+@Test
+public void bulkAddConcurrentCompact() throws IOException, InterruptedException {
+    final BlobIdStore store = tracker.store;
+    final CountDownLatch start = new CountDownLatch(1);
+    final CountDownLatch done = new CountDownLatch(2);
+    Thread addThread = addThread(store, true, start, done);
+    Thread snapshotThread = snapshotThread(store, start, done);
+    snapshotThread.start();
+    addThread.start();
+    start.countDown();
+    done.await();
+    // Do a snapshot to ensure that all the adds if snapshot finished first are collected
+    store.snapshot();
+    Set<String> retrieved = retrieve(store);
+    assertEquals("Incorrect elements after concurrent snapshot", newHashSet(range(0, 100000)), retrieved);
+}

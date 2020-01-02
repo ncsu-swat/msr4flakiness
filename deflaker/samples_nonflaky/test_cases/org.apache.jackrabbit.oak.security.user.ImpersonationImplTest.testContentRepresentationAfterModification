@@ -1,0 +1,17 @@
+@Test
+public void testContentRepresentationAfterModification() throws Exception {
+    Principal principal2 = getTestUser().getPrincipal();
+    impersonation.grantImpersonation(principal2);
+    Tree tree = root.getTree(user.getPath());
+    PropertyState property = tree.getProperty(UserConstants.REP_IMPERSONATORS);
+    assertNotNull(property);
+    Set<String> expected = ImmutableSet.of(impersonator.getPrincipal().getName(), principal2.getName());
+    assertEquals(expected, ImmutableSet.copyOf(property.getValue(Type.STRINGS)));
+    impersonation.revokeImpersonation(impersonator.getPrincipal());
+    property = tree.getProperty(UserConstants.REP_IMPERSONATORS);
+    assertNotNull(property);
+    expected = ImmutableSet.of(principal2.getName());
+    assertEquals(expected, ImmutableSet.copyOf(property.getValue(Type.STRINGS)));
+    impersonation.revokeImpersonation(principal2);
+    assertNull(tree.getProperty(UserConstants.REP_IMPERSONATORS));
+}

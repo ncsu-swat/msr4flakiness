@@ -1,0 +1,15 @@
+@Test
+public void assertReferenceKey() throws Exception {
+    byte[] data = new byte[dataLength];
+    randomGen.nextBytes(data);
+    DataRecord rec = ds.addRecord(new ByteArrayInputStream(data));
+    Assert.assertEquals(data.length, rec.getLength());
+    assertRecord(data, rec);
+    DataRecord refRec = ds.getRecordFromReference(rec.getReference());
+    assertRecord(data, refRec);
+    // Check bytes retrieved from reference.key file
+    File refFile = new File(fsBackendPath, "reference.key");
+    assertTrue(refFile.exists());
+    byte[] keyRet = FileUtils.readFileToByteArray(refFile);
+    assertTrue(keyRet.length != 0);
+}

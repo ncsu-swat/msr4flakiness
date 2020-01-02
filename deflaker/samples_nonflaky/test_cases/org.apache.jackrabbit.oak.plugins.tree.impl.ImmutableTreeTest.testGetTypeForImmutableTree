@@ -1,0 +1,13 @@
+@Test
+public void testGetTypeForImmutableTree() {
+    TreeTypeProvider typeProvider = new TreeTypeProvider(getConfig(AuthorizationConfiguration.class).getContext());
+    for (String path : new String[] { "/", "/testPath" }) {
+        Tree t = getRootProvider().createReadOnlyRoot(root).getTree(path);
+        assertEquals(TreeType.DEFAULT, typeProvider.getType(t));
+        // also for repeated calls
+        assertEquals(TreeType.DEFAULT, typeProvider.getType(t));
+        // the type of an immutable tree is set after the first call irrespective of the passed parent type.
+        assertEquals(TreeType.DEFAULT, typeProvider.getType(t, TreeType.DEFAULT));
+        assertEquals(TreeType.DEFAULT, typeProvider.getType(t, TreeType.HIDDEN));
+    }
+}

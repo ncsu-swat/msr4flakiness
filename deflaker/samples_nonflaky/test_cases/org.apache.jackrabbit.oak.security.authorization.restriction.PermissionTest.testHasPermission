@@ -1,0 +1,19 @@
+@Test(expected = CommitFailedException.class)
+public void testHasPermission() throws Exception {
+    // create permissions
+    // allow rep:write      /testroot
+    // allow jcr:removeNode /testroot/a/b
+    // deny  jcr:removeNode /testroot/a/b/c
+    addEntry(TEST_ROOT_PATH, true, "", PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE);
+    addEntry(TEST_B_PATH, true, "", PrivilegeConstants.JCR_REMOVE_NODE);
+    addEntry(TEST_C_PATH, false, "", PrivilegeConstants.JCR_REMOVE_NODE);
+    try (ContentSession testSession = createTestSession()) {
+        Root testRoot = testSession.getLatestRoot();
+        PermissionProvider pp = getPermissionProvider(testSession);
+        assertIsGranted(pp, testRoot, true, TEST_A_PATH, Permissions.REMOVE_NODE);
+        assertIsGranted(pp, testRoot, true, TEST_B_PATH, Permissions.REMOVE_NODE);
+        assertIsGranted(pp, testRoot, false, TEST_C_PATH, Permissions.REMOVE_NODE);
+        testRoot.getTree(TEST_C_PATH).remove();
+        testRoot.commit();
+    }
+}

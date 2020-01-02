@@ -1,0 +1,20 @@
+@Test
+public void withIndexMultipleNodes() throws RepositoryException, CommitFailedException {
+    final int threshold = 5;
+    final int nodes = 16;
+    final int traces = 1 + (nodes - 1) / threshold;
+    OrderedPropertyIndexEditorProvider.setThreshold(threshold);
+    final List<String> expected = Collections.nCopies(traces, DEPRECATION_MESSAGE);
+    NodeBuilder root = EMPTY_NODE.builder();
+    createIndexDef(root);
+    custom.starting();
+    for (int i = 0; i < nodes; i++) {
+        NodeState before = root.getNodeState();
+        root.child("n" + i).setProperty(indexedProperty, "dead" + i);
+        NodeState after = root.getNodeState();
+        root = hook.processCommit(before, after, CommitInfo.EMPTY).builder();
+    }
+    assertThat(custom.getLogs(), is(expected));
+    custom.finished();
+    assertFalse(root.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(indexName).getChildNode(INDEX_CONTENT_NODE_NAME).exists());
+}

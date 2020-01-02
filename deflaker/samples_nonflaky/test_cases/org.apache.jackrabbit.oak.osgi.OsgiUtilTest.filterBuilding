@@ -1,0 +1,18 @@
+@Test
+public void filterBuilding() throws InvalidSyntaxException {
+    StringBuilder b = new StringBuilder();
+    assertEquals("foo\\\\bar\\(foo\\)bar\\*foo", appendEscapedLdapValue(b, "foo\\bar(foo)bar*foo").toString());
+    b.setLength(0);
+    assertEquals("(foo=bar)", appendLdapFilterAttribute(b, "foo", "bar").toString());
+    b.setLength(0);
+    assertEquals("(foo=\\(bar\\))", appendLdapFilterAttribute(b, "foo", "(bar)").toString());
+    b.setLength(0);
+    assertEquals("(!(foo=*))", appendLdapFilterAttribute(b, "foo", null).toString());
+    b.setLength(0);
+    Map<String, String> m = newLinkedHashMap();
+    m.put("foo", "bar");
+    m.put("empty", null);
+    m.put("escaped", "*xyz)");
+    assertEquals(FrameworkUtil.createFilter("(&(objectClass=java.lang.String)(foo=bar)(!(empty=*))(escaped=\\*xyz\\)))"), getFilter(String.class, m));
+    b.setLength(0);
+}

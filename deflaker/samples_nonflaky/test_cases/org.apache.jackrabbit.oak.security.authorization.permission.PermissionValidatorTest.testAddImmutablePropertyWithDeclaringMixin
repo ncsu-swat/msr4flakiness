@@ -1,0 +1,14 @@
+@Test
+public void testAddImmutablePropertyWithDeclaringMixin() throws Exception {
+    // grant the test session the ability to read/write at test node but don't
+    // allow to modify access control content
+    grant(TEST_ROOT_PATH, PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_NODE_TYPE_MANAGEMENT);
+    try (ContentSession testSession = createTestSession()) {
+        Root testRoot = testSession.getLatestRoot();
+        Tree testTree = testRoot.getTree(TEST_ROOT_PATH);
+        TreeUtil.addMixin(testTree, MIX_CREATED, root.getTree(NodeTypeConstants.NODE_TYPES_PATH), "uid");
+        assertTrue(testTree.hasProperty(JCR_CREATEDBY));
+        assertTrue(testTree.hasProperty(JCR_CREATED));
+        testRoot.commit();
+    }
+}

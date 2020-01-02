@@ -1,0 +1,20 @@
+@Test
+public void documentNodeStateBundledMethods() throws Exception {
+    NodeBuilder builder = store.getRoot().builder();
+    NodeBuilder appNB = newNode("app:Asset");
+    createChild(appNB, "jcr:content", // not bundled
+    "jcr:content/comments", "jcr:content/metadata", // not bundled
+    "jcr:content/metadata/xmp", // includes all
+    "jcr:content/renditions", "jcr:content/renditions/original", "jcr:content/renditions/original/jcr:content");
+    builder.child("test").setChildNode("book.jpg", appNB.getNodeState());
+    merge(builder);
+    DocumentNodeState appNode = (DocumentNodeState) getNode(store.getRoot(), "test/book.jpg");
+    assertTrue(appNode.hasOnlyBundledChildren());
+    assertEquals(ImmutableSet.of("jcr:content"), appNode.getBundledChildNodeNames());
+    assertEquals(ImmutableSet.of("metadata", "renditions"), asDocumentState(appNode.getChildNode("jcr:content")).getBundledChildNodeNames());
+    builder = store.getRoot().builder();
+    childBuilder(builder, "/test/book.jpg/foo");
+    merge(builder);
+    DocumentNodeState appNode2 = (DocumentNodeState) getNode(store.getRoot(), "test/book.jpg");
+    assertFalse(appNode2.hasOnlyBundledChildren());
+}

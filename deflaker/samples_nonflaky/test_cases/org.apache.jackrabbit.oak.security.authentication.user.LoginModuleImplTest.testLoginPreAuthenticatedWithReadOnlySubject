@@ -1,0 +1,16 @@
+@Test
+public void testLoginPreAuthenticatedWithReadOnlySubject() throws Exception {
+    Authentication authentication = when(mock(Authentication.class).authenticate(any(Credentials.class))).thenReturn(true).getMock();
+    UserAuthenticationFactory uaf = when(mock(UserAuthenticationFactory.class).getAuthentication(any(UserConfiguration.class), any(Root.class), anyString())).thenReturn(authentication).getMock();
+    Map<String, Object> sharedState = Maps.newHashMap();
+    sharedState.put(SHARED_KEY_PRE_AUTH_LOGIN, new PreAuthenticatedLogin("uid"));
+    Subject subject = new Subject();
+    subject.setReadOnly();
+    LoginModuleImpl lm = new LoginModuleImpl();
+    lm.initialize(subject, new TestCallbackHandler(uaf), sharedState, Maps.newHashMap());
+    assertTrue(lm.login());
+    assertTrue(lm.commit());
+    assertTrue(subject.getPrincipals().isEmpty());
+    assertTrue(subject.getPublicCredentials().isEmpty());
+    assertTrue(lm.logout());
+}

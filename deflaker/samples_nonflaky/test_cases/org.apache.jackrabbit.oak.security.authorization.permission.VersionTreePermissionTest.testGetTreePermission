@@ -1,0 +1,22 @@
+@Test
+public void testGetTreePermission() throws Exception {
+    Tree versionHistory = checkNotNull(vMgr.getVersionHistory(testTree));
+    String expectedPath = "/test";
+    TreePermission tp = getVersionPermission(root, pp, versionHistory.getPath());
+    assertVersionPermission(tp, expectedPath, true);
+    Tree vTree = versionHistory.getChild("1.0");
+    assertTrue(vTree.exists());
+    tp = pp.getTreePermission(vTree, tp);
+    assertVersionPermission(tp, expectedPath, true);
+    Tree frozen = vTree.getChild(JCR_FROZENNODE);
+    assertTrue(frozen.exists());
+    tp = pp.getTreePermission(frozen, tp);
+    assertVersionPermission(tp, expectedPath, true);
+    Tree t = frozen;
+    for (String name : new String[] { "a", "b", "c" }) {
+        t = t.getChild(name);
+        expectedPath = PathUtils.concat(expectedPath, name);
+        tp = pp.getTreePermission(t, tp);
+        assertVersionPermission(tp, expectedPath, true);
+    }
+}
