@@ -1,0 +1,17 @@
+/**
+ * Test : verify the PreconditionException is thrown when pending = false
+ *
+ * @throws Exception
+ */
+public void testActionStartPreCondition3() throws Exception {
+    Instrumentation inst = Services.get().get(InstrumentationService.class).get();
+    WorkflowJobBean job = this.addRecordToWfJobTable(WorkflowJob.Status.RUNNING, WorkflowInstance.Status.RUNNING);
+    WorkflowActionBean action = super.addRecordToWfActionTable(job.getId(), "1", WorkflowAction.Status.PREP);
+    assertFalse(action.isPending());
+    assertNull(inst.getCounters().get(XCommand.INSTRUMENTATION_GROUP));
+    ActionStartXCommand startCmd = new ActionStartXCommand(action.getId(), "map-reduce");
+    startCmd.call();
+    // precondition failed because of pending = false
+    Long counterVal = inst.getCounters().get(XCommand.INSTRUMENTATION_GROUP).get(startCmd.getName() + ".preconditionfailed").getValue();
+    assertEquals(new Long(1), new Long(counterVal));
+}

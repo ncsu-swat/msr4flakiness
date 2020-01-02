@@ -1,0 +1,23 @@
+@Test
+public void testMappingStreaming() {
+    final String mapper = "mapper";
+    final String reducer = "reducer";
+    final String recordReader = "recordReader";
+    final List<String> recordReaderMappings = Arrays.asList("mapping1", "mapping2");
+    final List<String> envs = Arrays.asList("env1", "env2");
+    final StreamingBuilder builder = new StreamingBuilder();
+    builder.withMapper(mapper).withReducer(reducer).withRecordReader(recordReader);
+    for (final String recordReaderMapping : recordReaderMappings) {
+        builder.withRecordReaderMapping(recordReaderMapping);
+    }
+    for (final String env : envs) {
+        builder.withEnv(env);
+    }
+    final Streaming streaming = builder.build();
+    final STREAMING streamingJAXB = DozerBeanMapperSingleton.instance().map(streaming, STREAMING.class);
+    assertEquals(mapper, streamingJAXB.getMapper());
+    assertEquals(reducer, streamingJAXB.getReducer());
+    assertEquals(recordReader, streamingJAXB.getRecordReader());
+    assertEquals(recordReaderMappings, streamingJAXB.getRecordReaderMapping());
+    assertEquals(envs, streamingJAXB.getEnv());
+}

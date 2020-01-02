@@ -1,0 +1,20 @@
+@Test
+public void justHashCollisions() throws IOException {
+    SegmentIdFactory maker = newSegmentIdMaker();
+    final SegmentIdTable tbl = new SegmentIdTable();
+    List<SegmentId> refs = new ArrayList<SegmentId>();
+    int originalCount = 1024;
+    for (int i = 0; i < originalCount; i++) {
+        // modulo 128 to ensure we have conflicts
+        refs.add(tbl.newSegmentId(i, i % 128, maker));
+    }
+    assertEquals(originalCount, tbl.getEntryCount());
+    assertEquals(1, tbl.getMapRebuildCount());
+    List<SegmentId> refs2 = new ArrayList<SegmentId>();
+    tbl.collectReferencedIds(refs2);
+    assertEquals(refs.size(), refs2.size());
+    assertEquals(originalCount, tbl.getEntryCount());
+    // we don't expect that there was a refresh,
+    // because there were just hash collisions
+    assertEquals(1, tbl.getMapRebuildCount());
+}

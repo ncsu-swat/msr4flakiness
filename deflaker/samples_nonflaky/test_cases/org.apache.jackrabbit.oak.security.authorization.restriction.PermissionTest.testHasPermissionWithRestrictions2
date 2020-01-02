@@ -1,0 +1,29 @@
+/**
+ * Tests if the restrictions are properly inherited.
+ * the restriction enable/disable the ACE where it is defined.
+ * since the 'deny' on /a/b is after the 'allow' on a/b/c, the deny wins.
+ */
+@Test(expected = CommitFailedException.class)
+public void testHasPermissionWithRestrictions2() throws Exception {
+    // create permissions
+    // allow rep:write      /testroot
+    // allow jcr:removeNode /testroot/a  glob=*/b
+    // deny  jcr:removeNode /testroot/a  glob=*/c
+    addEntry(TEST_ROOT_PATH, true, "", PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE);
+    addEntry(TEST_A_PATH, true, "*/b", PrivilegeConstants.JCR_REMOVE_NODE);
+    addEntry(TEST_A_PATH, false, "*/c", PrivilegeConstants.JCR_REMOVE_NODE);
+    try (ContentSession testSession = createTestSession()) {
+        Root testRoot = testSession.getLatestRoot();
+        PermissionProvider pp = getPermissionProvider(testSession);
+        assertIsGranted(pp, testRoot, true, TEST_A_PATH, Permissions.REMOVE_NODE);
+        assertIsGranted(pp, testRoot, true, TEST_B_PATH, Permissions.REMOVE_NODE);
+        assertIsGranted(pp, testRoot, false, TEST_C_PATH, Permissions.REMOVE_NODE);
+        assertIsGranted(pp, testRoot, true, TEST_D_PATH, Permissions.REMOVE_NODE);
+        testRoot.getTree(TEST_D_PATH).remove();
+        testRoot.commit();
+        // should not be able to remove /a/b/c
+        testRoot.getTree(TEST_C_PATH).remove();
+        testRoot.commit();
+        fail("should not be able to delete " + TEST_C_PATH);
+    }
+}

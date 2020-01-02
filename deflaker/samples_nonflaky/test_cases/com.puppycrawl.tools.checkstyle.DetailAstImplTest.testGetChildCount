@@ -1,0 +1,23 @@
+@Test
+public void testGetChildCount() throws Exception {
+    final DetailAstImpl root = new DetailAstImpl();
+    final DetailAstImpl firstLevelA = new DetailAstImpl();
+    final DetailAstImpl firstLevelB = new DetailAstImpl();
+    final DetailAstImpl secondLevelA = new DetailAstImpl();
+    root.setFirstChild(firstLevelA);
+    final Method setParentMethod = getSetParentMethod();
+    setParentMethod.invoke(firstLevelA, root);
+    firstLevelA.setFirstChild(secondLevelA);
+    firstLevelA.setNextSibling(firstLevelB);
+    setParentMethod.invoke(firstLevelB, root);
+    setParentMethod.invoke(secondLevelA, root);
+    assertEquals(0, secondLevelA.getChildCount(), "Invalid child count");
+    assertEquals(0, firstLevelB.getChildCount(), "Invalid child count");
+    assertEquals(1, firstLevelA.getChildCount(), "Invalid child count");
+    assertEquals(2, root.getChildCount(), "Invalid child count");
+    assertEquals(2, root.getChildCount(), "Invalid child count");
+    assertNull(root.getPreviousSibling(), "Previous sibling should be null");
+    assertNull(firstLevelA.getPreviousSibling(), "Previous sibling should be null");
+    assertNull(secondLevelA.getPreviousSibling(), "Previous sibling should be null");
+    assertEquals(firstLevelA, firstLevelB.getPreviousSibling(), "Invalid previous sibling");
+}

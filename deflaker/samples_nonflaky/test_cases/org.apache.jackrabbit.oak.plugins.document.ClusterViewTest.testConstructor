@@ -1,0 +1,59 @@
+@Test
+public void testConstructor() throws Exception {
+    final Integer viewId = 3;
+    final String clusterViewId = UUID.randomUUID().toString();
+    final Integer instanceId = 2;
+    final Set<Integer> emptyInstanceIds = new HashSet<Integer>();
+    final Set<Integer> instanceIds = new HashSet<Integer>();
+    instanceIds.add(1);
+    final Set<Integer> deactivating = new HashSet<Integer>();
+    final Set<Integer> inactive = new HashSet<Integer>();
+    try {
+        new ClusterView(-1, true, clusterViewId, instanceId, instanceIds, deactivating, inactive);
+        fail("should complain");
+    } catch (IllegalStateException e) {
+    // ok
+    }
+    try {
+        new ClusterView(viewId, true, null, instanceId, instanceIds, deactivating, inactive);
+        fail("should complain");
+    } catch (IllegalStateException e) {
+    // ok
+    }
+    try {
+        new ClusterView(viewId, true, clusterViewId, -1, instanceIds, deactivating, inactive);
+        fail("should complain");
+    } catch (IllegalStateException e) {
+    // ok
+    }
+    try {
+        new ClusterView(viewId, true, clusterViewId, instanceId, emptyInstanceIds, deactivating, inactive);
+        fail("should complain");
+    } catch (IllegalStateException e) {
+    // ok
+    }
+    try {
+        new ClusterView(viewId, true, clusterViewId, instanceId, null, deactivating, inactive);
+        fail("should complain");
+    } catch (IllegalStateException e) {
+    // ok
+    }
+    try {
+        new ClusterView(viewId, true, clusterViewId, instanceId, instanceIds, null, inactive);
+        fail("should complain");
+    } catch (Exception e) {
+    // ok
+    }
+    try {
+        new ClusterView(viewId, true, clusterViewId, instanceId, instanceIds, deactivating, null);
+        fail("should complain");
+    } catch (Exception e) {
+    // ok
+    }
+    final Set<Integer> nonEmptyDeactivating = new HashSet<Integer>();
+    nonEmptyDeactivating.add(3);
+    new ClusterView(viewId, false, clusterViewId, instanceId, instanceIds, nonEmptyDeactivating, inactive);
+    new ClusterView(viewId, true, clusterViewId, instanceId, instanceIds, nonEmptyDeactivating, inactive);
+    // should not complain about:
+    new ClusterView(viewId, true, clusterViewId, instanceId, instanceIds, deactivating, inactive);
+}

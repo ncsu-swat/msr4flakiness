@@ -1,0 +1,36 @@
+@Test
+public void testDuplicatedModule() throws Exception {
+    // we need to test a module with two instances, one with id and the other not
+    final DefaultConfiguration moduleConfig1 = createModuleConfig(NewlineAtEndOfFileCheck.class);
+    final DefaultConfiguration moduleConfig2 = createModuleConfig(NewlineAtEndOfFileCheck.class);
+    moduleConfig2.addAttribute("id", "ModuleId");
+    final DefaultConfiguration root = new DefaultConfiguration("root");
+    root.addChild(moduleConfig1);
+    root.addChild(moduleConfig2);
+    final Checker checker = new Checker();
+    checker.setModuleClassLoader(Thread.currentThread().getContextClassLoader());
+    checker.configure(root);
+    // BriefUtLogger does not print the module name or id postfix,
+    // so we need to set logger manually
+    final ByteArrayOutputStream out = Whitebox.getInternalState(this, "stream");
+    final DefaultLogger logger = new DefaultLogger(out, OutputStreamOptions.CLOSE, out, OutputStreamOptions.NONE, new AuditEventDefaultFormatter());
+    checker.addListener(logger);
+    final String path = File.createTempFile("file", ".java", temporaryFolder).getPath();
+    final String violationMessage = getCheckMessage(NewlineAtEndOfFileCheck.class, MSG_KEY_NO_NEWLINE_EOF);
+    final String[] expected = { "1: " + violationMessage + " [NewlineAtEndOfFile]", "1: " + violationMessage + " [ModuleId]" };
+    // super.verify does not work here, for we change the logger
+    out.flush();
+    final int errs = checker.process(Collections.singletonList(new File(path)));
+    try (ByteArrayInputStream inputStream = new ByteArrayInputStream(out.toByteArray());
+        LineNumberReader lnr = new LineNumberReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+        // we need to ignore the unrelated lines
+        final List<String> actual = lnr.lines().filter(line -> !getCheckMessage(AUDIT_STARTED_MESSAGE).equals(line)).filter(line -> !getCheckMessage(AUDIT_FINISHED_MESSAGE).equals(line)).limit(expected.length).sorted().collect(Collectors.toList());
+        Arrays.sort(expected);
+        for (int i = 0; i < expected.length; i++) {
+            final String expectedResult = "[ERROR] " + path + ":" + expected[i];
+            assertEquals(expectedResult, actual.get(i), "error message " + i);
+        }
+        assertEquals(expected.length, errs, "unexpected output: " + lnr.readLine());
+    }
+    checker.destroy();
+}

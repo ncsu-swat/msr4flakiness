@@ -1,0 +1,24 @@
+@Test
+public void exceptionHandlingInCommit() throws Exception {
+    DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
+    final TestException testException = new TestException();
+    final AtomicBoolean failCommit = new AtomicBoolean();
+    ns.addObserver(new Observer() {
+
+        @Override
+        public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
+            if (failCommit.get()) {
+                throw testException;
+            }
+        }
+    });
+    NodeBuilder b1 = ns.getRoot().builder();
+    b1.child("parent");
+    failCommit.set(true);
+    try {
+        merge(ns, b1);
+        fail();
+    } catch (Exception e) {
+        assertSame(testException, Throwables.getRootCause(e));
+    }
+}

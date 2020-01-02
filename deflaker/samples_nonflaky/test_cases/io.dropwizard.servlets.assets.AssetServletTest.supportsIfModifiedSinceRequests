@@ -1,0 +1,17 @@
+@Test
+public void supportsIfModifiedSinceRequests() throws Exception {
+    response = HttpTester.parseResponse(SERVLET_TESTER.getResponses(request.generate()));
+    final long lastModifiedTime = response.getDateField(HttpHeader.LAST_MODIFIED.asString());
+    request.putDateField(HttpHeader.IF_MODIFIED_SINCE, lastModifiedTime);
+    response = HttpTester.parseResponse(SERVLET_TESTER.getResponses(request.generate()));
+    final int statusWithMatchingLastModifiedTime = response.getStatus();
+    request.putDateField(HttpHeader.IF_MODIFIED_SINCE, lastModifiedTime - 100);
+    response = HttpTester.parseResponse(SERVLET_TESTER.getResponses(request.generate()));
+    final int statusWithStaleLastModifiedTime = response.getStatus();
+    request.putDateField(HttpHeader.IF_MODIFIED_SINCE, lastModifiedTime + 100);
+    response = HttpTester.parseResponse(SERVLET_TESTER.getResponses(request.generate()));
+    final int statusWithRecentLastModifiedTime = response.getStatus();
+    assertThat(statusWithMatchingLastModifiedTime).isEqualTo(304);
+    assertThat(statusWithStaleLastModifiedTime).isEqualTo(200);
+    assertThat(statusWithRecentLastModifiedTime).isEqualTo(304);
+}

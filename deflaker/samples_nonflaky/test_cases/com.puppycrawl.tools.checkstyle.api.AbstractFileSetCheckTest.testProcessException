@@ -1,0 +1,27 @@
+@Test
+public void testProcessException() throws Exception {
+    final ExceptionFileSetCheck check = new ExceptionFileSetCheck();
+    check.configure(new DefaultConfiguration("filesetcheck"));
+    check.setFileExtensions("tmp");
+    final File firstFile = new File("inputAbstractFileSetCheck.tmp");
+    try {
+        check.process(firstFile, new FileText(firstFile, Collections.emptyList()));
+        fail("Exception is expected");
+    } catch (IllegalArgumentException ex) {
+        // exception is expected
+        assertEquals("Test", ex.getMessage(), "Invalid exception message");
+    }
+    final SortedSet<LocalizedMessage> internalMessages = check.getMessages();
+    assertEquals(1, internalMessages.size(), "Internal message should only have 1");
+    // again to prove only 1 violation exists
+    final File secondFile = new File("inputAbstractFileSetCheck.tmp");
+    try {
+        check.process(secondFile, new FileText(secondFile, Collections.emptyList()));
+        fail("Exception is expected");
+    } catch (IllegalArgumentException ex) {
+        // exception is expected
+        assertEquals("Test", ex.getMessage(), "Invalid exception message");
+    }
+    final SortedSet<LocalizedMessage> internalMessages2 = check.getMessages();
+    assertEquals(1, internalMessages2.size(), "Internal message should only have 1 again");
+}

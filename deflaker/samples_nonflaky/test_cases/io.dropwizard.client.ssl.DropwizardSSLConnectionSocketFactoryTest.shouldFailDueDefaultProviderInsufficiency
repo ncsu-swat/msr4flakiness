@@ -1,0 +1,12 @@
+@Test
+@EnabledOnJre({ JRE.JAVA_8, JRE.JAVA_11 })
+void shouldFailDueDefaultProviderInsufficiency() {
+    tlsConfiguration.setKeyStorePath(new File(ResourceHelpers.resourceFilePath("stores/client/acme-weak.keystore.p12")));
+    tlsConfiguration.setKeyStorePassword("acme2");
+    tlsConfiguration.setKeyStoreType("PKCS12");
+    tlsConfiguration.setCertAlias("acme-weak");
+    tlsConfiguration.setTrustStorePath(new File(ResourceHelpers.resourceFilePath("stores/server/acme-weak.truststore.p12")));
+    tlsConfiguration.setTrustStorePassword("acme2");
+    tlsConfiguration.setTrustStoreType("PKCS12");
+    assertThatExceptionOfType(SSLInitializationException.class).isThrownBy(() -> new JerseyClientBuilder(TLS_APP_RULE.getEnvironment()).using(jerseyClientConfiguration).build("reject_provider_non_supported"));
+}

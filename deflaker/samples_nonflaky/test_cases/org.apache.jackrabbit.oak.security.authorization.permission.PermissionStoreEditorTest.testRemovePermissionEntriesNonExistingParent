@@ -1,0 +1,17 @@
+@Test
+public void testRemovePermissionEntriesNonExistingParent() {
+    NodeState ace = mockACE(PRINCIPAL_NAME);
+    NodeState nodeState = mockNodeState(ace);
+    NodeBuilder parent = when(mock(NodeBuilder.class).exists()).thenReturn(false).getMock();
+    NodeBuilder principalRoot = when(mock(NodeBuilder.class).getChildNode(anyString())).thenReturn(parent).getMock();
+    NodeBuilder permissionsRoot = mock(NodeBuilder.class);
+    when(permissionsRoot.hasChildNode(PRINCIPAL_NAME)).thenReturn(true);
+    when(permissionsRoot.getChildNode(PRINCIPAL_NAME)).thenReturn(principalRoot);
+    PermissionStoreEditor editor = createPermissionStoreEditor(nodeState, permissionsRoot);
+    editor.removePermissionEntries();
+    verify(permissionsRoot, times(1)).hasChildNode(PRINCIPAL_NAME);
+    verify(permissionsRoot, times(1)).getChildNode(PRINCIPAL_NAME);
+    verify(principalRoot, times(1)).getChildNode(anyString());
+    verify(parent, times(1)).exists();
+    verify(parent, never()).getProperty(anyString());
+}

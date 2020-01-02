@@ -1,0 +1,32 @@
+@Test
+public void noQueryForFirstLevelPrevDocs() throws Exception {
+    // create some garbage
+    NodeBuilder builder = ns.getRoot().builder();
+    for (int i = 0; i < 10; i++) {
+        InputStream s = new RandomStream(10 * 1024, 42);
+        PropertyState p = new BinaryPropertyState("p", ns.createBlob(s));
+        builder.child("test").child("node-" + i).setProperty(p);
+    }
+    merge(builder);
+    // overwrite with other binaries to force document splits
+    builder = ns.getRoot().builder();
+    for (int i = 0; i < 10; i++) {
+        InputStream s = new RandomStream(10 * 1024, 17);
+        PropertyState p = new BinaryPropertyState("p", ns.createBlob(s));
+        builder.child("test").child("node-" + i).setProperty(p);
+    }
+    merge(builder);
+    ns.runBackgroundOperations();
+    builder = ns.getRoot().builder();
+    builder.child("test").remove();
+    merge(builder);
+    ns.runBackgroundOperations();
+    clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(1));
+    VersionGarbageCollector gc = new VersionGarbageCollector(ns, new VersionGCSupport(store));
+    prevDocIds.clear();
+    VersionGCStats stats = gc.gc(30, TimeUnit.MINUTES);
+    assertEquals(11, stats.deletedDocGCCount);
+    assertEquals(10, stats.splitDocGCCount);
+    assertEquals(0, prevDocIds.size());
+    assertEquals(1, Iterables.size(Utils.getAllDocuments(store)));
+}

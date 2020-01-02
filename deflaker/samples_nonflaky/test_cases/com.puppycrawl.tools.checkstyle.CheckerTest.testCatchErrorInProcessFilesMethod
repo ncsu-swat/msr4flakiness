@@ -1,0 +1,35 @@
+/**
+ * Test doesn't need to be serialized.
+ * @noinspection SerializableInnerClassWithNonSerializableOuterClass
+ */
+@Test
+public void testCatchErrorInProcessFilesMethod() throws Exception {
+    // Assume that I/O error is happened when we try to invoke 'lastModified()' method.
+    final String errorMessage = "Java Virtual Machine is broken" + " or has run out of resources necessary for it to continue operating.";
+    final Error expectedError = new IOError(new InternalError(errorMessage));
+    final File mock = new File("testFile") {
+
+        private static final long serialVersionUID = 1L;
+
+        /**
+         * Test is checking catch clause when exception is thrown.
+         * @noinspection ProhibitedExceptionThrown
+         */
+        @Override
+        public long lastModified() {
+            throw expectedError;
+        }
+    };
+    final Checker checker = new Checker();
+    final List<File> filesToProcess = new ArrayList<>();
+    filesToProcess.add(mock);
+    try {
+        checker.process(filesToProcess);
+        fail("IOError is expected!");
+    }// -@cs[IllegalCatchExtended] Testing for catch Error is part of 100% coverage.
+     catch (Error error) {
+        assertWithMessage("Error cause differs from IOError").that(error.getCause()).isInstanceOf(IOError.class);
+        assertWithMessage("Error cause is not InternalError").that(error.getCause().getCause()).isInstanceOf(InternalError.class);
+        assertEquals(errorMessage, error.getCause().getCause().getMessage(), "Error message is not expected");
+    }
+}

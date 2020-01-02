@@ -1,0 +1,22 @@
+@Test
+public void testNoExcludedCommits() throws Exception {
+    MyFilter filter = new MyFilter();
+    Recorder recorder = new Recorder();
+    ExecutorService executor = newSingleThreadExecutor();
+    FilteringObserver fo = new FilteringObserver(executor, 10002, filter, recorder);
+    closeables.add(fo);
+    List<Pair> expected = new LinkedList<Pair>();
+    NodeStateGenerator generator = new NodeStateGenerator();
+    NodeState first = generator.next();
+    fo.contentChanged(first, CommitInfo.EMPTY);
+    NodeState previous = first;
+    for (int i = 0; i < 10000; i++) {
+        filter.excludeNext(false);
+        NodeState next = generator.next();
+        expected.add(new Pair(previous, next));
+        previous = next;
+        fo.contentChanged(next, CommitInfo.EMPTY);
+    }
+    assertTrue("testNoExcludedCommits", fo.getBackgroundObserver().waitUntilStopped(5, TimeUnit.SECONDS));
+    assertMatches("testNoExcludedCommits", expected, recorder.includedChanges);
+}

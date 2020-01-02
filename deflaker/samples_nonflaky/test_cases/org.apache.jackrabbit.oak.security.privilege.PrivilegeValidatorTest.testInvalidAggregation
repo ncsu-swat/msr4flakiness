@@ -1,0 +1,18 @@
+@Test(expected = CommitFailedException.class)
+public void testInvalidAggregation() throws Exception {
+    Root before = adminSession.getLatestRoot();
+    Tree defsBefore = before.getTree(PRIVILEGES_PATH);
+    defsBefore.getChild(REP_READ_NODES).remove();
+    Tree privDefs = root.getTree(PRIVILEGES_PATH);
+    Tree newPriv = TreeUtil.addChild(privDefs, "newPriv", NT_REP_PRIVILEGE);
+    PrivilegeBits.getInstance(PrivilegeBits.BUILT_IN.get(JCR_READ), PrivilegeBits.BUILT_IN.get(JCR_ADD_CHILD_NODES)).writeTo(newPriv);
+    newPriv.setProperty(REP_AGGREGATES, ImmutableList.of(JCR_READ, JCR_ADD_CHILD_NODES), Type.NAMES);
+    TreeProvider tp = mock(TreeProvider.class);
+    when(tp.createReadOnlyTree(any(Tree.class), anyString(), any(NodeState.class))).thenReturn(newPriv);
+    try {
+        PrivilegeValidator validator = new PrivilegeValidator(before, root, tp);
+        validator.childNodeAdded("newPriv", getTreeProvider().asNodeState(newPriv));
+    } catch (CommitFailedException e) {
+        throw assertCommitFailed(e, 47);
+    }
+}

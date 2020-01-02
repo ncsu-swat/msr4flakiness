@@ -1,0 +1,37 @@
+@Test
+public void externalBranchChange() throws Exception {
+    DocumentMK mk1 = createMK(1, 0);
+    DocumentNodeStore ns1 = mk1.getNodeStore();
+    DocumentMK mk2 = createMK(2, 0);
+    DocumentNodeStore ns2 = mk2.getNodeStore();
+    ns1.runBackgroundOperations();
+    ns2.runBackgroundOperations();
+    mk1.commit("/", "+\"regular1\": {}", null, null);
+    // flush to journal
+    ns1.runBackgroundOperations();
+    mk1.commit("/regular1", "+\"regular1child\": {}", null, null);
+    // flush to journal
+    ns1.runBackgroundOperations();
+    mk1.commit("/", "+\"regular2\": {}", null, null);
+    // flush to journal
+    ns1.runBackgroundOperations();
+    mk1.commit("/", "+\"regular3\": {}", null, null);
+    // flush to journal
+    ns1.runBackgroundOperations();
+    mk1.commit("/", "+\"regular4\": {}", null, null);
+    // flush to journal
+    ns1.runBackgroundOperations();
+    mk1.commit("/", "+\"regular5\": {}", null, null);
+    // flush to journal
+    ns1.runBackgroundOperations();
+    String b1 = mk1.branch(null);
+    b1 = mk1.commit("/", "+\"branchVisible\": {}", b1, null);
+    mk1.merge(b1, null);
+    // to flush the branch commit either dispose of mk1
+    // or run the background operations explicitly
+    // (as that will propagate the lastRev to the root)
+    ns1.runBackgroundOperations();
+    ns2.runBackgroundOperations();
+    String nodes = mk2.getNodes("/", null, 0, 0, 100, null);
+    assertEquals("{\"branchVisible\":{},\"regular1\":{},\"regular2\":{},\"regular3\":{},\"regular4\":{},\"regular5\":{},\":childNodeCount\":6}", nodes);
+}

@@ -1,0 +1,53 @@
+@Test
+public void testLogAccessJsonToConsole() throws Exception {
+    ConsoleAppenderFactory<IAccessEvent> consoleAppenderFactory = getAppenderFactory("yaml/json-access-log-default.yml");
+    // Use sys.err, because there are some other log configuration messages in std.out
+    consoleAppenderFactory.setTarget(ConsoleAppenderFactory.ConsoleStream.STDERR);
+    final LogbackAccessRequestLogFactory requestLogHandler = new LogbackAccessRequestLogFactory();
+    requestLogHandler.setAppenders(Collections.singletonList(consoleAppenderFactory));
+    PrintStream old = System.err;
+    ByteArrayOutputStream redirectedStream = new ByteArrayOutputStream();
+    try {
+        System.setErr(new PrintStream(redirectedStream));
+        RequestLog requestLog = requestLogHandler.build("json-access-log-test");
+        Request request = mock(Request.class);
+        when(request.getRemoteAddr()).thenReturn("10.0.0.1");
+        when(request.getTimeStamp()).thenReturn(TimeUnit.SECONDS.toMillis(1353042047));
+        when(request.getMethod()).thenReturn("GET");
+        when(request.getRequestURI()).thenReturn("/test/users");
+        when(request.getProtocol()).thenReturn("HTTP/1.1");
+        when(request.getParameterNames()).thenReturn(Collections.enumeration(Arrays.asList("age", "city")));
+        when(request.getParameterValues("age")).thenReturn(new String[] { "22" });
+        when(request.getParameterValues("city")).thenReturn(new String[] { "LA" });
+        when(request.getAttributeNames()).thenReturn(Collections.enumeration(Collections.emptyList()));
+        when(request.getHeaderNames()).thenReturn(Collections.enumeration(Arrays.asList("Connection", "User-Agent")));
+        when(request.getHeader("Connection")).thenReturn("keep-alive");
+        when(request.getHeader("User-Agent")).thenReturn("Mozilla/5.0");
+        Response response = mock(Response.class);
+        when(response.getStatus()).thenReturn(200);
+        when(response.getContentCount()).thenReturn(8290L);
+        HttpFields httpFields = new HttpFields();
+        httpFields.add("Date", "Mon, 16 Nov 2012 05:00:48 GMT");
+        httpFields.add("Server", "Apache/2.4.12");
+        when(response.getHttpFields()).thenReturn(httpFields);
+        when(response.getHeaderNames()).thenReturn(Arrays.asList("Date", "Server"));
+        when(response.getHeader("Date")).thenReturn("Mon, 16 Nov 2012 05:00:48 GMT");
+        when(response.getHeader("Server")).thenReturn("Apache/2.4.12");
+        requestLog.log(request, response);
+        // Need to wait, because the logger is async
+        Thread.sleep(100);
+        JsonNode jsonNode = objectMapper.readTree(redirectedStream.toString());
+        assertThat(jsonNode).isNotNull();
+        assertThat(jsonNode.get("timestamp").isNumber()).isTrue();
+        assertThat(jsonNode.get("requestTime").isNumber()).isTrue();
+        assertThat(jsonNode.get("remoteAddress").asText()).isEqualTo("10.0.0.1");
+        assertThat(jsonNode.get("status").asInt()).isEqualTo(200);
+        assertThat(jsonNode.get("method").asText()).isEqualTo("GET");
+        assertThat(jsonNode.get("uri").asText()).isEqualTo("/test/users");
+        assertThat(jsonNode.get("protocol").asText()).isEqualTo("HTTP/1.1");
+        assertThat(jsonNode.get("userAgent").asText()).isEqualTo("Mozilla/5.0");
+        assertThat(jsonNode.get("contentLength").asInt()).isEqualTo(8290);
+    } finally {
+        System.setErr(old);
+    }
+}

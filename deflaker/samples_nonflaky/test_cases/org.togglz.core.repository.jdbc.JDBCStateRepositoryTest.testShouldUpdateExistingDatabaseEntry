@@ -1,0 +1,26 @@
+@Test
+public void testShouldUpdateExistingDatabaseEntry() throws SQLException {
+    /*
+         * GIVEN a database row containing a simple feature state
+         */
+    update(dataSource, "INSERT INTO TOGGLZ VALUES ('F1', 1, 'myStrategy', 'param23=foobar')");
+    /*
+         * AND the database entries are like expected
+         */
+    assertEquals(1l, query(dataSource, "SELECT COUNT(*) FROM TOGGLZ WHERE FEATURE_NAME = 'F1'"));
+    assertEquals(1, query(dataSource, "SELECT FEATURE_ENABLED FROM TOGGLZ WHERE FEATURE_NAME = 'F1'"));
+    assertEquals("myStrategy", query(dataSource, "SELECT STRATEGY_ID FROM TOGGLZ WHERE FEATURE_NAME = 'F1'"));
+    assertEquals("param23=foobar", query(dataSource, "SELECT STRATEGY_PARAMS FROM TOGGLZ WHERE FEATURE_NAME = 'F1'"));
+    /*
+         * WHEN the repository writes new state
+         */
+    FeatureState state = new FeatureState(TestFeature.F1).disable().setStrategyId("someId").setParameter("param", "foo");
+    repository.setFeatureState(state);
+    /*
+         * THEN the properties should be set like expected
+         */
+    assertEquals(1l, query(dataSource, "SELECT COUNT(*) FROM TOGGLZ WHERE FEATURE_NAME = 'F1'"));
+    assertEquals(0, query(dataSource, "SELECT FEATURE_ENABLED FROM TOGGLZ WHERE FEATURE_NAME = 'F1'"));
+    assertEquals("someId", query(dataSource, "SELECT STRATEGY_ID FROM TOGGLZ WHERE FEATURE_NAME = 'F1'"));
+    assertEquals("param=foo", query(dataSource, "SELECT STRATEGY_PARAMS FROM TOGGLZ WHERE FEATURE_NAME = 'F1'"));
+}

@@ -1,0 +1,22 @@
+@Test
+public void missingChangeSetResultsInOverflow() throws Exception {
+    NodeBuilder b1 = ns1.getRoot().builder();
+    b1.child("a");
+    b1.setProperty("foo1", "bar");
+    ns1.merge(b1, newCollectingHook(), newCommitInfo());
+    NodeBuilder b2 = ns1.getRoot().builder();
+    b2.child("b");
+    b2.setProperty("foo2", "bar");
+    // Commit without ChangeSet
+    ns1.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    ns1.runBackgroundUpdateOperations();
+    c2.reset();
+    ns2.runBackgroundReadOperations();
+    CommitInfo ci = c2.getExternalChange();
+    CommitContext cc = (CommitContext) ci.getInfo().get(CommitContext.NAME);
+    assertNotNull(cc);
+    ChangeSet cs = (ChangeSet) cc.get(ChangeSet.COMMIT_CONTEXT_OBSERVATION_CHANGESET);
+    assertNotNull(cs);
+    // ChangeSet should result in overflow
+    assertTrue(cs.anyOverflow());
+}

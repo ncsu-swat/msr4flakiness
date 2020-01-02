@@ -1,0 +1,23 @@
+@Test
+public void renewLease() throws InterruptedException {
+    MemoryDocumentStore mem = new MemoryDocumentStore();
+    Clock clock = new Clock.Virtual();
+    clock.waitUntil(System.currentTimeMillis());
+    ClusterNodeInfo.setClock(clock);
+    DocumentNodeStore ns = new DocumentMK.Builder().setDocumentStore(mem).setAsyncDelay(0).setLeaseCheckMode(LeaseCheckMode.DISABLED).getNodeStore();
+    ClusterNodeInfo info = ns.getClusterInfo();
+    assertNotNull(info);
+    // current lease end
+    long leaseEnd = getLeaseEndTime(ns);
+    // wait a bit, 1sec less than leaseUpdateTime (10sec-1sec by default)
+    clock.waitUntil(clock.getTime() + ClusterNodeInfo.DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS - 1000);
+    // must not renew lease right now
+    ns.renewClusterIdLease();
+    assertEquals(leaseEnd, getLeaseEndTime(ns));
+    // wait some more time
+    clock.waitUntil(clock.getTime() + 2000);
+    // now the lease must be renewed
+    ns.renewClusterIdLease();
+    assertTrue(getLeaseEndTime(ns) > leaseEnd);
+    ns.dispose();
+}

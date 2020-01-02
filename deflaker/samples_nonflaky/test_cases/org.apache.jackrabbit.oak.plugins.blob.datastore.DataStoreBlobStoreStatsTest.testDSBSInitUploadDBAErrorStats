@@ -1,0 +1,12 @@
+@Test
+public void testDSBSInitUploadDBAErrorStats() throws IOException, RepositoryException {
+    DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withErrorOnInitBlobUpload());
+    long initBlobUploadErrorCount = stats.getInitBlobUploadErrorCount();
+    long initBlobUploadErrorCountLastMinute = getLastMinuteStats(stats.getInitBlobUploadErrorCountHistory());
+    try {
+        dsbs.initiateBlobUpload(BLOB_LEN, 20);
+    } catch (Exception e) {
+    }
+    assertEquals(initBlobUploadErrorCount + 1, stats.getInitBlobUploadErrorCount());
+    assertEquals(initBlobUploadErrorCountLastMinute + 1, waitForMetric(input -> getLastMinuteStats(input.getInitBlobUploadErrorCountHistory()), stats, 1L, 0L).longValue());
+}

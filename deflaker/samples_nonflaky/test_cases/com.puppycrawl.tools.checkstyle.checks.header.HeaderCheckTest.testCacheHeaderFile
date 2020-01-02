@@ -1,0 +1,12 @@
+@Test
+public void testCacheHeaderFile() throws Exception {
+    final DefaultConfiguration checkConfig = createModuleConfig(HeaderCheck.class);
+    checkConfig.addAttribute("headerFile", getPath("InputHeaderjava.header"));
+    final DefaultConfiguration checkerConfig = createRootConfig(checkConfig);
+    final File cacheFile = File.createTempFile("junit", null, temporaryFolder);
+    checkerConfig.addAttribute("cacheFile", cacheFile.getPath());
+    final String[] expected = { "1: " + getCheckMessage(MSG_MISSING) };
+    verify(checkerConfig, getPath("InputHeader.java"), expected);
+    // One more time to use cache.
+    verify(checkerConfig, getPath("InputHeader.java"), expected);
+}

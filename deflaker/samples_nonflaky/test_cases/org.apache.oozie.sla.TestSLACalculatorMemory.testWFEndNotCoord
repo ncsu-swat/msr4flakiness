@@ -1,0 +1,41 @@
+public void testWFEndNotCoord() throws Exception {
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-mm-dd");
+    SLACalculatorMemory slaCalcMemory = new SLACalculatorMemory();
+    slaCalcMemory.init(Services.get().get(ConfigurationService.class).getConf());
+    SLARegistrationBean slaRegBean = _createSLARegistration("job-C@1", AppType.COORDINATOR_ACTION);
+    String coordActionId = slaRegBean.getId();
+    slaRegBean.setExpectedEnd(sdf.parse("2013-03-07"));
+    slaRegBean.setExpectedStart(sdf.parse("2012-03-07"));
+    slaCalcMemory.addRegistration(coordActionId, slaRegBean);
+    SLACalcStatus calc1 = slaCalcMemory.get(coordActionId);
+    calc1.setEventProcessed(1);
+    calc1.setSLAStatus(SLAEvent.SLAStatus.IN_PROCESS);
+    calc1.setJobStatus(WorkflowAction.Status.RUNNING.name());
+    calc1.setLastModifiedTime(new Date());
+    SLASummaryBean slaSummaryBean = new SLASummaryBean(calc1);
+    SLASummaryQueryExecutor.getInstance().executeUpdate(SLASummaryQuery.UPDATE_SLA_SUMMARY_ALL, slaSummaryBean);
+    // Simulate a lost failed event
+    CoordinatorActionBean coordAction = new CoordinatorActionBean();
+    coordAction.setId(coordActionId);
+    coordAction.setStatus(CoordinatorAction.Status.RUNNING);
+    coordAction.setLastModifiedTime(sdf.parse("2013-02-07"));
+    coordAction.setExternalId("wf_job-W");
+    CoordActionInsertJPAExecutor caInsertCmd = new CoordActionInsertJPAExecutor(coordAction);
+    jpaService.execute(caInsertCmd);
+    WorkflowJobBean wjb = new WorkflowJobBean();
+    wjb.setId("wf_job-W");
+    wjb.setStartTime(sdf.parse("2012-02-07"));
+    wjb.setLastModifiedTime(new Date());
+    wjb.setStatus(WorkflowJob.Status.SUCCEEDED);
+    WorkflowJobQueryExecutor.getInstance().insert(wjb);
+    calc1 = slaCalcMemory.get(coordActionId);
+    slaCalcMemory.updateJobSla(coordActionId);
+    slaSummaryBean = SLASummaryQueryExecutor.getInstance().get(SLASummaryQuery.GET_SLA_SUMMARY, coordActionId);
+    // cord action is running and wf job is completed
+    assertEquals(slaSummaryBean.getJobStatus(), WorkflowInstance.Status.RUNNING.name());
+    coordAction.setStatus(CoordinatorAction.Status.SUCCEEDED);
+    CoordActionQueryExecutor.getInstance().executeUpdate(CoordActionQuery.UPDATE_COORD_ACTION_STATUS_PENDING_TIME, coordAction);
+    slaCalcMemory.addJobStatus(coordActionId, WorkflowJob.Status.SUCCEEDED.toString(), EventStatus.SUCCESS, sdf.parse("2012-02-07"), sdf.parse("2012-03-07"));
+    slaSummaryBean = SLASummaryQueryExecutor.getInstance().get(SLASummaryQuery.GET_SLA_SUMMARY, coordActionId);
+    assertEquals(slaSummaryBean.getJobStatus(), WorkflowInstance.Status.SUCCEEDED.toString());
+}

@@ -1,0 +1,18 @@
+/**
+ * This test is created to satisfy pitest, it is hard to emulate Reference by Id.
+ */
+@Test
+public void testSetClasspathRef1() {
+    final CheckstyleAntTask antTask = new CheckstyleAntTask();
+    final Project project = new Project();
+    antTask.setClasspath(new Path(project, "firstPath"));
+    antTask.setClasspathRef(new Reference(project, "idXX"));
+    try {
+        assertNotNull(Whitebox.getInternalState(antTask, "classpath"), "Classpath should not be null");
+        final Path classpath = Whitebox.getInternalState(antTask, "classpath");
+        classpath.list();
+        fail("Exception is expected");
+    } catch (BuildException ex) {
+        assertEquals("Reference idXX not found.", ex.getMessage(), "unexpected exception message");
+    }
+}

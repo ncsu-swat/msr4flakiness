@@ -1,0 +1,42 @@
+@Test
+public void backgroundWrite() throws Exception {
+    final int NUM_UPDATES = DocumentMK.UPDATE_LIMIT * 3 / 2;
+    NodeBuilder builder = ns.getRoot().builder();
+    for (int i = 0; i < NUM_UPDATES; i++) {
+        builder.child("node-" + i).child("test");
+    }
+    merge(ns, builder);
+    ns.runBackgroundOperations();
+    logCustomizer.starting();
+    final AtomicBoolean running = new AtomicBoolean(true);
+    Thread bgThread = new Thread(new Runnable() {
+
+        @Override
+        public void run() {
+            while (running.get()) {
+                ns.runBackgroundOperations();
+                try {
+                    Thread.sleep(1);
+                } catch (InterruptedException e) {
+                // ignore
+                }
+            }
+        }
+    });
+    bgThread.start();
+    for (int j = 0; j < 20; j++) {
+        builder = ns.getRoot().builder();
+        for (int i = 0; i < NUM_UPDATES; i++) {
+            builder.child("node-" + i).child("test").setProperty("p", j);
+        }
+        merge(ns, builder);
+    }
+    running.set(false);
+    bgThread.join();
+    Iterable<Integer> updates = getUpdates();
+    // background thread must always update _lastRev from an entire
+    // branch commit and never partially
+    // at least one
+    assertTrue(updates.iterator().hasNext());
+    assertThat(updates, everyItem(is(NUM_UPDATES + 1)));
+}

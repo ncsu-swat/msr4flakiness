@@ -1,0 +1,21 @@
+public void testAndWithMin() throws Exception {
+    Configuration conf = getConf();
+    // @formatter:off
+    String inputLogic = "<and name=\"test\">" + "<data-in dataset=\"A\" min=\"2\"/>" + "<data-in dataset=\"B\" min=\"3\"/>" + "<data-in dataset=\"C\" min=\"0\"/>" + "</and>";
+    // @formatter:on
+    conf.set("initial_instance_a", "2014-10-07T00:00Z");
+    conf.set("initial_instance_b", "2014-10-07T00:00Z");
+    String jobId = _testCoordSubmit("coord-inputlogic-range.xml", conf, inputLogic, getInputEventForRange());
+    String input1 = createTestCaseSubDir("input-data/a/2014/10/08/00/_SUCCESS".split("/"));
+    String input2 = createTestCaseSubDir("input-data/a/2014/10/07/23/_SUCCESS".split("/"));
+    String input3 = createTestCaseSubDir("input-data/b/2014/10/07/21/_SUCCESS".split("/"));
+    String input4 = createTestCaseSubDir("input-data/b/2014/10/07/20/_SUCCESS".split("/"));
+    String input5 = createTestCaseSubDir("input-data/b/2014/10/07/19/_SUCCESS".split("/"));
+    startCoordAction(jobId);
+    CoordinatorActionBean actionBean = CoordActionQueryExecutor.getInstance().get(CoordActionQuery.GET_COORD_ACTION, jobId + "@1");
+    assertFalse(CoordinatorAction.Status.WAITING.equals(actionBean.getStatus()));
+    XConfiguration runConf = new XConfiguration(new StringReader(actionBean.getRunConf()));
+    String dataSets = runConf.get("inputLogicData");
+    assertEquals(dataSets.split(",").length, 5);
+    checkDataSets(dataSets, input1, input2, input3, input4, input5, input5);
+}

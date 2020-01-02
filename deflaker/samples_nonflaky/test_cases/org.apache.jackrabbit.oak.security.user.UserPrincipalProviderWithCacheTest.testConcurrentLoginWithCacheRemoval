@@ -1,0 +1,30 @@
+@Test
+public void testConcurrentLoginWithCacheRemoval() throws Exception {
+    changeUserConfiguration(ConfigurationParameters.of(UserPrincipalProvider.PARAM_CACHE_EXPIRATION, 1));
+    final List<Exception> exceptions = new ArrayList<Exception>();
+    List<Thread> threads = new ArrayList<Thread>();
+    for (int i = 0; i < 100; i++) {
+        threads.add(new Thread(new Runnable() {
+
+            public void run() {
+                try {
+                    login(new SimpleCredentials(userId, userId.toCharArray())).close();
+                } catch (Exception e) {
+                    exceptions.add(e);
+                }
+            }
+        }));
+    }
+    for (Thread t : threads) {
+        t.start();
+    }
+    for (Thread t : threads) {
+        t.join();
+    }
+    for (Exception e : exceptions) {
+        e.printStackTrace();
+    }
+    if (!exceptions.isEmpty()) {
+        fail();
+    }
+}

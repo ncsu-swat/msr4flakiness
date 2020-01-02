@@ -1,0 +1,16 @@
+@Test
+public void doneFindUncached() throws Exception {
+    stats.doneFindUncached(100, Collection.NODES, "0:/", true, false);
+    assertEquals(1, getMeter(DocumentStoreStats.NODES_FIND_PRIMARY).getCount());
+    assertEquals(100, getTimer(DocumentStoreStats.NODES_FIND_TIMER).getSnapshot().getMax());
+    assertEquals(0, getMeter(DocumentStoreStats.NODES_FIND_SLAVE).getCount());
+    stats.doneFindUncached(100, Collection.NODES, "0:/", true, true);
+    assertEquals(1, getMeter(DocumentStoreStats.NODES_FIND_PRIMARY).getCount());
+    assertEquals(1, getMeter(DocumentStoreStats.NODES_FIND_SLAVE).getCount());
+    stats.doneFindUncached(100, Collection.NODES, "2:p/foo", true, false);
+    assertEquals(2, getMeter(DocumentStoreStats.NODES_FIND_PRIMARY).getCount());
+    assertEquals(1, getMeter(DocumentStoreStats.NODES_FIND_SPLIT).getCount());
+    stats.doneFindUncached(100, Collection.SETTINGS, "0:/", true, false);
+    // Nothing change for other collection
+    assertEquals(2, getMeter(DocumentStoreStats.NODES_FIND_PRIMARY).getCount());
+}

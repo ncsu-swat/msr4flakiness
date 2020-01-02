@@ -1,0 +1,17 @@
+@Test
+public void testGetEffectivePoliciesMatchingRestriction() throws Exception {
+    ACL policy = TestUtility.setupPolicy(acMgr, testPath, testPrincipal, privilegesFromNames(JCR_READ), true, null, getMvRestriction(REP_ITEM_NAMES, PropertyType.NAME, "child"));
+    policy.addEntry(EveryonePrincipal.getInstance(), testPrivileges, false, null, getMvRestriction(REP_ITEM_NAMES, PropertyType.NAME, "notMatching"));
+    acMgr.setPolicy(policy.getPath(), policy);
+    Tree child = TreeUtil.addChild(root.getTree(testPath), "child", JcrConstants.NT_UNSTRUCTURED);
+    Tree grandChild = TreeUtil.addChild(child, "child", JcrConstants.NT_UNSTRUCTURED);
+    root.commit();
+    assertPolicies(acMgr.getEffectivePolicies(testPath), 1);
+    AccessControlPolicy[] policies = acMgr.getEffectivePolicies(child.getPath());
+    assertPolicies(policies, 1);
+    // only the matching ACE must be included in the effective policy
+    AccessControlPolicy effective = policies[0];
+    assertTrue(effective instanceof ImmutableACL);
+    assertEquals(2, ((ImmutableACL) effective).getAccessControlEntries().length);
+    assertPolicies(acMgr.getEffectivePolicies(grandChild.getPath()), 1);
+}

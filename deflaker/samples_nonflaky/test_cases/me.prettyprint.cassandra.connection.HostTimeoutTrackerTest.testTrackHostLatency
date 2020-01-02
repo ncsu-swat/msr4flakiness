@@ -1,0 +1,17 @@
+@Test
+public void testTrackHostLatency() {
+    CassandraHost cassandraHost = new CassandraHost("localhost:9170");
+    assertFalse(hostTimeoutTracker.checkTimeout(cassandraHost));
+    assertFalse(hostTimeoutTracker.checkTimeout(cassandraHost));
+    assertFalse(hostTimeoutTracker.checkTimeout(cassandraHost));
+    try {
+        Thread.currentThread().sleep(501);
+    } catch (InterruptedException e) {
+    }
+    assertTrue(hostTimeoutTracker.checkTimeout(cassandraHost));
+// ...
+// in HConnectionManager:
+// - if ( hostLatencyTracker.checkTimeout(cassandraHost) )
+// markHostAsDown(cassandraHost);
+// excludeHosts.add(cassandraHost);
+}

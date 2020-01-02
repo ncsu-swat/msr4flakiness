@@ -1,0 +1,25 @@
+@Test
+public void committedTrunkCommitValueMovedToPreviousDoc() throws Exception {
+    Revision r = addNode("/foo");
+    // add changes until the revision moves to a previous document
+    assertTrue(getDocument("/").getLocalRevisions().containsKey(r));
+    while (getDocument("/").getLocalRevisions().containsKey(r)) {
+        someChange("/");
+        ns.runBackgroundUpdateOperations();
+    }
+    NodeDocument foo = getDocument("/foo");
+    NodeDocument root = getDocument("/");
+    assertNotNull(foo);
+    assertNotNull(root);
+    assertEquals("c", resolver.resolve(r, foo));
+    assertEquals("c", resolver.resolve(r, root));
+    // trigger sweeper
+    ns.runBackgroundOperations();
+    // must still report as committed
+    foo = getDocument("/foo");
+    root = getDocument("/");
+    assertNotNull(foo);
+    assertNotNull(root);
+    assertEquals("c", resolver.resolve(r, foo));
+    assertEquals("c", resolver.resolve(r, root));
+}

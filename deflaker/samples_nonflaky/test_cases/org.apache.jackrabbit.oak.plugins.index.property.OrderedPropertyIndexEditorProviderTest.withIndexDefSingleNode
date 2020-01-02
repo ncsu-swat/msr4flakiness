@@ -1,0 +1,15 @@
+@Test
+public void withIndexDefSingleNode() throws RepositoryException, CommitFailedException {
+    NodeBuilder root = EMPTY_NODE.builder();
+    createIndexDef(root);
+    NodeState before = root.getNodeState();
+    root.child("n1").setProperty(indexedProperty, "dead");
+    NodeState after = root.getNodeState();
+    custom.starting();
+    root = hook.processCommit(before, after, CommitInfo.EMPTY).builder();
+    assertEquals(1, custom.getLogs().size());
+    assertThat(custom.getLogs(), hasItem(DEPRECATION_MESSAGE));
+    custom.finished();
+    NodeBuilder b = root.getChildNode(IndexConstants.INDEX_DEFINITIONS_NODE_TYPE).getChildNode(indexName).getChildNode(IndexConstants.INDEX_CONTENT_NODE_NAME);
+    assertFalse("nothing should have been touched under the actual index", b.exists());
+}

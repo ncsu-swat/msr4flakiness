@@ -1,0 +1,41 @@
+public void testAddActionShareLib() throws Exception {
+    final Path systemLibPath = getNewSystemLibPath();
+    final Path actionLibPath = new Path(getAppPath(), "lib");
+    final Path javaShareLibPath = new Path(systemLibPath, "java");
+    final Path jar1Path = new Path(javaShareLibPath, "jar1.jar");
+    final Path jar2Path = new Path(javaShareLibPath, "jar2.jar");
+    final Path hcatShareLibPath = new Path(systemLibPath, "hcat");
+    final Path jar3Path = new Path(hcatShareLibPath, "jar3.jar");
+    final Path jar4Path = new Path(hcatShareLibPath, "jar4.jar");
+    final Path otherShareLibPath = new Path(systemLibPath, "other");
+    final Path jar5Path = new Path(otherShareLibPath, "jar5.jar");
+    makeDirs(javaShareLibPath, hcatShareLibPath, otherShareLibPath);
+    createFiles(Arrays.asList(jar1Path, jar2Path, jar3Path, jar4Path, jar5Path));
+    final Context context = createContextUsingSharelib(actionLibPath);
+    createWorkflowJobUsingSharelib(context);
+    setSharelibForActionInConfiguration("java,hcat");
+    try {
+        createActionExecutorAndSetupServices(context);
+        fail("Expected ActionExecutorException to be thrown, but got nothing.");
+    } catch (ActionExecutorException aee) {
+        assertEquals("Unexpected error code. Message: " + aee.getMessage(), "EJ001", aee.getErrorCode());
+        assertEquals("Unexpected error message", "Could not locate Oozie sharelib", aee.getMessage());
+    }
+    final Path launcherPath = new Path(systemLibPath, "oozie");
+    final Path jar6Path = new Path(launcherPath, "jar6.jar");
+    makeDirs(launcherPath);
+    getFileSystem().create(jar6Path).close();
+    Configuration jobConf = createActionExecutorAndSetupServices(context);
+    String cacheFilesStr = getDistributedCacheFilesStr(jobConf);
+    assertContainsJars(cacheFilesStr, Arrays.asList(jar1Path, jar2Path, jar3Path, jar4Path, jar6Path));
+    assertNotContainsJars(cacheFilesStr, Collections.singletonList(jar5Path));
+    final XConfiguration wfConf = new XConfiguration();
+    wfConf.set(ACTION_SHARELIB_FOR + "java", "other,hcat");
+    createWorkflowJobUsingSharelib(context, wfConf);
+    setSharelibForActionInConfiguration("java");
+    jobConf = createActionExecutorAndSetupServices(context);
+    // The oozie server setting should have been overridden by workflow setting
+    cacheFilesStr = getDistributedCacheFilesStr(jobConf);
+    assertContainsJars(cacheFilesStr, Arrays.asList(jar3Path, jar4Path, jar5Path, jar6Path));
+    assertNotContainsJars(cacheFilesStr, Arrays.asList(jar1Path, jar2Path));
+}

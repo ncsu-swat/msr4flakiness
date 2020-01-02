@@ -1,0 +1,39 @@
+@Test
+public void estimateLag() {
+    ReplicaSetStatus status = new ReplicaSetStatus();
+    assertEquals(ReplicaSetStatus.UNKNOWN_LAG, status.getLagEstimate());
+    status.serverHeartbeatSucceeded(newEvent(0, 0, 1000));
+    assertEquals(ReplicaSetStatus.UNKNOWN_LAG, status.getLagEstimate());
+    status.serverHeartbeatSucceeded(newEvent(1, 0, 800));
+    assertEquals(ReplicaSetStatus.UNKNOWN_LAG, status.getLagEstimate());
+    status.serverHeartbeatSucceeded(newEvent(2, 50, 1000));
+    // lastWrite difference: 200
+    // localTime difference: 50
+    // lag estimate: max(0, 200 - 50) = 150
+    // avg lag estimate: avg(150, 0, 0) = 50
+    assertEquals(50, status.getLagEstimate());
+    status.serverHeartbeatSucceeded(newEvent(0, 5000, 4800));
+    // lastWrite difference: 4000
+    // localTime difference: 5000
+    // lag estimate: max(0, 4000 - 5000) = 0
+    // avg lag estimate: avg(0, 150, 0) = 50
+    assertEquals(50, status.getLagEstimate());
+    status.serverHeartbeatSucceeded(newEvent(1, 5050, 2000));
+    // lastWrite difference: 3800
+    // localTime difference: 5000
+    // lag estimate: max(0, 3800 - 5000) = 0
+    // avg lag estimate: avg(0, 0, 150) = 50
+    assertEquals(50, status.getLagEstimate());
+    status.serverHeartbeatSucceeded(newEvent(2, 5150, 5000));
+    // lastWrite difference: 3000
+    // localTime difference: 150
+    // lag estimate: max(0, 3000 - 150) = 2850
+    // avg lag estimate: avg(2850, 0, 0) = 950
+    assertEquals(950, status.getLagEstimate());
+    status.serverHeartbeatSucceeded(newEvent(0, 10010, 9000));
+    // lastWrite difference: 7000
+    // localTime difference: 4960
+    // lag estimate: max(0, 7000 - 4960) = 2040
+    // avg lag estimate: avg(2040, 2850, 0) = 1630
+    assertEquals(1630, status.getLagEstimate());
+}

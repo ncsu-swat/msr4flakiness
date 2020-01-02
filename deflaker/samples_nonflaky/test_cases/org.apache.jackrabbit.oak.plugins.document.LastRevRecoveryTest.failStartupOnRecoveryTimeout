@@ -1,0 +1,30 @@
+// OAK-3488
+@Test
+public void failStartupOnRecoveryTimeout() throws Exception {
+    String clusterId = String.valueOf(c1Id);
+    ClusterNodeInfoDocument doc = sharedStore.find(CLUSTER_NODES, clusterId);
+    assertNotNull(doc);
+    NodeBuilder builder = ds1.getRoot().builder();
+    builder.child("x").child("y").child("z");
+    merge(ds1, builder);
+    ds1.dispose();
+    // reset clusterNodes entry to simulate a crash
+    sharedStore.remove(CLUSTER_NODES, clusterId);
+    sharedStore.create(CLUSTER_NODES, newArrayList(updateOpFromDocument(doc)));
+    // 'wait' until lease expires
+    clock.waitUntil(doc.getLeaseEndTime() + 1);
+    // make sure ds2 lease is still fine
+    assertTrue(ds2.getClusterInfo().renewLease());
+    // simulate ongoing recovery by cluster node 2
+    MissingLastRevSeeker seeker = new MissingLastRevSeeker(sharedStore, clock);
+    assertTrue(seeker.acquireRecoveryLock(c1Id, c2Id));
+    // attempt to restart ds1 while lock is acquired
+    try {
+        ds1 = new DocumentMK.Builder().clock(clock).setDocumentStore(sharedStore).setClusterId(c1Id).getNodeStore();
+        fail("DocumentStoreException expected");
+    } catch (DocumentStoreException e) {
+        // expected
+        assertThat(e.getMessage(), containsString("needs recovery"));
+    }
+    seeker.releaseRecoveryLock(c1Id, true);
+}

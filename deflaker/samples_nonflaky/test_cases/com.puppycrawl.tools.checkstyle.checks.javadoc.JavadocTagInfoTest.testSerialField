@@ -1,0 +1,22 @@
+@Test
+public void testSerialField() {
+    final DetailAstImpl ast = new DetailAstImpl();
+    final DetailAstImpl astChild = new DetailAstImpl();
+    astChild.setType(TokenTypes.TYPE);
+    ast.setFirstChild(astChild);
+    final DetailAstImpl astChild2 = new DetailAstImpl();
+    astChild2.setType(TokenTypes.ARRAY_DECLARATOR);
+    astChild2.setText("ObjectStreamField");
+    astChild.setFirstChild(astChild2);
+    final int[] validTypes = { TokenTypes.VARIABLE_DEF };
+    for (int type : validTypes) {
+        ast.setType(type);
+        assertTrue(JavadocTagInfo.SERIAL_FIELD.isValidOn(ast), "Invalid ast type for current tag: " + ast.getType());
+    }
+    astChild2.setText("1111");
+    assertFalse(JavadocTagInfo.SERIAL_FIELD.isValidOn(ast), "Should return false when ast type is invalid for current tag");
+    astChild2.setType(TokenTypes.LITERAL_VOID);
+    assertFalse(JavadocTagInfo.SERIAL_FIELD.isValidOn(ast), "Should return false when ast type is invalid for current tag");
+    ast.setType(TokenTypes.LAMBDA);
+    assertFalse(JavadocTagInfo.SERIAL_FIELD.isValidOn(ast), "Should return false when ast type is invalid for current tag");
+}

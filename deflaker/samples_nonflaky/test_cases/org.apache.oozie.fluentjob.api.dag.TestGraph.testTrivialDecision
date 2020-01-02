@@ -1,0 +1,25 @@
+@Test
+public void testTrivialDecision() {
+    final String conditionGotoB = "condition_goto_B";
+    final Node a = MapReduceActionBuilder.create().withName("A").build();
+    MapReduceActionBuilder.create().withName("B").withParentWithCondition(a, conditionGotoB).build();
+    MapReduceActionBuilder.create().withName("C").withParentDefaultConditional(a).build();
+    final Workflow workflow = new WorkflowBuilder().withName("Workflow_to_map").withDagContainingNode(a).build();
+    final Graph graph = new Graph(workflow);
+    final Start start = new Start("start");
+    final End end = new End("end");
+    final Decision decision = new Decision("decision1");
+    final DecisionJoin decisionJoin = new DecisionJoin("decisionJoin1", decision);
+    final NodeBase A = new ExplicitNode("A", null);
+    final NodeBase B = new ExplicitNode("B", null);
+    final NodeBase C = new ExplicitNode("C", null);
+    end.addParent(decisionJoin);
+    decisionJoin.addParent(B);
+    decisionJoin.addParent(C);
+    B.addParentWithCondition(decision, Condition.actualCondition(conditionGotoB));
+    C.addParentDefaultConditional(decision);
+    decision.addParent(A);
+    A.addParent(start);
+    final List<NodeBase> nodes = Arrays.asList(start, end, decision, decisionJoin, A, B, C);
+    checkEqualStructureByNames(nodes, graph);
+}

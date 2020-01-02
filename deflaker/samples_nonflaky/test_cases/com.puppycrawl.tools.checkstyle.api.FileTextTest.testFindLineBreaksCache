@@ -1,0 +1,15 @@
+/**
+ * Reflection is the only way to test that a field is cached since we can't
+ * access the field directly or receive notice when the field is
+ * initialized.
+ * @throws Exception if there is an error.
+ */
+@Test
+public void testFindLineBreaksCache() throws Exception {
+    final FileText fileText = new FileText(new File("fileName"), Collections.emptyList());
+    final int[] lineBreaks = { 5 };
+    Whitebox.setInternalState(fileText, "lineBreaks", lineBreaks);
+    // produces NPE if used
+    Whitebox.setInternalState(fileText, "fullText", (Object) null);
+    assertArrayEquals(lineBreaks, Whitebox.invokeMethod(fileText, "findLineBreaks"), "Invalid line breaks");
+}

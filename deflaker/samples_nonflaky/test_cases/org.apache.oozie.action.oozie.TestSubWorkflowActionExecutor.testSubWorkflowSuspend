@@ -1,0 +1,18 @@
+public void testSubWorkflowSuspend() throws Exception {
+    try {
+        String workflowUri = createSubWorkflowWithLazyAction(true);
+        LocalOozie.start();
+        final OozieClient wfClient = LocalOozie.getClient();
+        final String jobId = submitWorkflow(workflowUri, wfClient);
+        waitForWorkflowToStart(wfClient, jobId);
+        WorkflowJob wf = wfClient.getJobInfo(jobId);
+        // Suspending subworkflow
+        new SuspendXCommand(wf.getActions().get(1).getExternalId()).call();
+        // Check suspend for base workflow
+        assertEquals(WorkflowJob.Status.SUSPENDED, wfClient.getJobInfo(jobId).getStatus());
+        // Check suspend for sub workflow
+        assertEquals(WorkflowJob.Status.SUSPENDED, wfClient.getJobInfo(wf.getActions().get(1).getExternalId()).getStatus());
+    } finally {
+        LocalOozie.stop();
+    }
+}

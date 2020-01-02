@@ -1,0 +1,29 @@
+@Test
+public void testDSBSReadBlobStats() throws IOException, RepositoryException {
+    DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withReadDelay(500));
+    String blobId1 = dsbs.writeBlob(getTestInputStream());
+    String blobId2 = dsbs.writeBlob(getTestInputStream());
+    long downloadCount = stats.getDownloadCount();
+    long downloadCountLastMinute = getLastMinuteStats(stats.getDownloadCountHistory());
+    long downloadTotalSize = stats.getDownloadTotalSize();
+    long getRecordCount = stats.getGetRecordCount();
+    long getRecordIfStoredCount = stats.getGetRecordIfStoredCount();
+    long getRecordFromReferenceCount = stats.getGetRecordFromReferenceCount();
+    long getRecordForIdCount = stats.getGetRecordForIdCount();
+    byte[] buffer = new byte[BLOB_LEN];
+    dsbs.readBlob(blobId1, 0, buffer, 0, BLOB_LEN);
+    try (InputStream inputStream = dsbs.getInputStream(blobId2)) {
+        while (inputStream.available() > 0) {
+            inputStream.read();
+        }
+    }
+    assertEquals(downloadCount + 2, stats.getDownloadCount());
+    assertEquals(downloadTotalSize + (BLOB_LEN * 2), stats.getDownloadTotalSize());
+    assertEquals(downloadCountLastMinute + 2, waitForMetric(input -> getLastMinuteStats(stats.getDownloadCountHistory()), stats, 2L, 0L).longValue());
+    // Ensure that the metrics don't overlap.  Calling readBlob() shouldn't increment
+    // the getRecord() counts.
+    assertEquals(getRecordCount, stats.getGetRecordCount());
+    assertEquals(getRecordIfStoredCount, stats.getGetRecordIfStoredCount());
+    assertEquals(getRecordFromReferenceCount, stats.getGetRecordFromReferenceCount());
+    assertEquals(getRecordForIdCount, stats.getGetRecordForIdCount());
+}

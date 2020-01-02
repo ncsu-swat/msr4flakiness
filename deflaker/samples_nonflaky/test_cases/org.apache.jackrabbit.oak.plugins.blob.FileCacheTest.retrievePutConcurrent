@@ -1,0 +1,26 @@
+/**
+ * Retrieve and put different files concurrently.
+ * @throws Exception
+ */
+@Test
+public void retrievePutConcurrent() throws Exception {
+    LOG.info("Started retrievePutConcurrent");
+    // Create load
+    final File f = createFile(0, loader, cache, folder);
+    File f2 = copyToFile(randomStream(1, 4 * 1024), folder.newFile());
+    ListeningExecutorService executorService = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(2));
+    closer.register(new ExecutorCloser(executorService, 5, TimeUnit.MILLISECONDS));
+    CountDownLatch thread1Start = new CountDownLatch(1);
+    SettableFuture<File> future1 = retrieveThread(executorService, ID_PREFIX + 0, cache, thread1Start);
+    CountDownLatch thread2Start = new CountDownLatch(1);
+    SettableFuture<Boolean> future2 = putThread(executorService, 1, f2, cache, thread2Start);
+    thread1Start.countDown();
+    thread2Start.countDown();
+    future1.get();
+    future2.get();
+    LOG.info("Async tasks finished");
+    assertCacheIfPresent(0, cache, f);
+    assertCacheIfPresent(1, cache, copyToFile(randomStream(1, 4 * 1024), folder.newFile()));
+    assertCacheStats(cache, 2, 8 * 1024, 1, 1);
+    LOG.info("Finished retrievePutConcurrent");
+}

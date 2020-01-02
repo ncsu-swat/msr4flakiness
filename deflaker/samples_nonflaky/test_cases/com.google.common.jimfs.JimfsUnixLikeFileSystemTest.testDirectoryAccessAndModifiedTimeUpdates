@@ -1,0 +1,29 @@
+@Test
+public void testDirectoryAccessAndModifiedTimeUpdates() throws IOException {
+    Files.createDirectories(path("/foo/bar"));
+    FileTimeTester tester = new FileTimeTester(path("/foo/bar"));
+    tester.assertAccessTimeDidNotChange();
+    tester.assertModifiedTimeDidNotChange();
+    // TODO(cgdecker): Use a Clock for file times so I can test this reliably without sleeping
+    Uninterruptibles.sleepUninterruptibly(1, MILLISECONDS);
+    Files.createFile(path("/foo/bar/baz.txt"));
+    tester.assertAccessTimeDidNotChange();
+    tester.assertModifiedTimeChanged();
+    Uninterruptibles.sleepUninterruptibly(1, MILLISECONDS);
+    // access time is updated by reading the full contents of the directory
+    // not just by doing a lookup in it
+    try (DirectoryStream<Path> stream = Files.newDirectoryStream(path("/foo/bar"))) {
+        // iterate the stream, forcing the directory to actually be read
+        Iterators.advance(stream.iterator(), Integer.MAX_VALUE);
+    }
+    tester.assertAccessTimeChanged();
+    tester.assertModifiedTimeDidNotChange();
+    Uninterruptibles.sleepUninterruptibly(1, MILLISECONDS);
+    Files.move(path("/foo/bar/baz.txt"), path("/foo/bar/baz2.txt"));
+    tester.assertAccessTimeDidNotChange();
+    tester.assertModifiedTimeChanged();
+    Uninterruptibles.sleepUninterruptibly(1, MILLISECONDS);
+    Files.delete(path("/foo/bar/baz2.txt"));
+    tester.assertAccessTimeDidNotChange();
+    tester.assertModifiedTimeChanged();
+}

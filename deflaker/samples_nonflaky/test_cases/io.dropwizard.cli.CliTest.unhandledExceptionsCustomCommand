@@ -1,0 +1,7 @@
+@Test
+void unhandledExceptionsCustomCommand() throws Exception {
+    doThrow(new BadAppException()).when(command).run(any(), any(Namespace.class), any(Configuration.class));
+    assertThat(cli.run("custom")).hasValueSatisfying(t -> assertThat(t).isInstanceOf(RuntimeException.class).hasMessage("I did not expect this!"));
+    assertThat(stdOut.toString()).isEqualTo(String.format("I did not expect this!%n"));
+    assertThat(stdErr.toString()).isEmpty();
+}

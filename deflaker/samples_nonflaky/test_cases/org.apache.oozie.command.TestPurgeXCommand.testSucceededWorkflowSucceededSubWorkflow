@@ -1,0 +1,16 @@
+/**
+ * Test : The subworkflow should get purged, and the workflow parent should get purged --> both will get purged
+ *
+ * @throws Exception if cannot insert records to the database
+ */
+public void testSucceededWorkflowSucceededSubWorkflow() throws Exception {
+    WorkflowJobBean wfJob = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED);
+    WorkflowActionBean wfAction = addRecordToWfActionTable(wfJob.getId(), "1", WorkflowAction.Status.OK);
+    WorkflowJobBean subwfJob = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED, wfJob.getId());
+    WorkflowActionBean subwfAction = addRecordToWfActionTable(subwfJob.getId(), "1", WorkflowAction.Status.OK);
+    purgeWithDefaultParameters();
+    assertWorkflowJobPurged(wfJob);
+    assertWorkflowActionPurged(wfAction);
+    assertWorkflowJobPurged(subwfJob);
+    assertWorkflowActionPurged(subwfAction);
+}

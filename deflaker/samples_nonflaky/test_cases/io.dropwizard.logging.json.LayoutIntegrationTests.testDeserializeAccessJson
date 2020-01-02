@@ -1,0 +1,15 @@
+@Test
+public void testDeserializeAccessJson() throws Exception {
+    ConsoleAppenderFactory<IAccessEvent> appenderFactory = getAppenderFactory("yaml/json-access-log.yml");
+    DiscoverableLayoutFactory<?> layout = requireNonNull(appenderFactory.getLayout());
+    assertThat(layout).isInstanceOf(AccessJsonLayoutBaseFactory.class);
+    AccessJsonLayoutBaseFactory factory = (AccessJsonLayoutBaseFactory) layout;
+    assertThat(factory.getTimestampFormat()).isEqualTo("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    assertThat(factory.isPrettyPrint()).isFalse();
+    assertThat(factory.isAppendLineSeparator()).isTrue();
+    assertThat(factory.getIncludes()).contains(AccessAttribute.TIMESTAMP, AccessAttribute.REMOTE_USER, AccessAttribute.STATUS_CODE, AccessAttribute.METHOD, AccessAttribute.REQUEST_URL, AccessAttribute.REMOTE_HOST, AccessAttribute.REQUEST_PARAMETERS, AccessAttribute.REQUEST_CONTENT, AccessAttribute.TIMESTAMP, AccessAttribute.USER_AGENT, AccessAttribute.PATH_QUERY);
+    assertThat(factory.getResponseHeaders()).containsOnly("X-Request-Id");
+    assertThat(factory.getRequestHeaders()).containsOnly("User-Agent", "X-Request-Id");
+    assertThat(factory.getCustomFieldNames()).containsOnly(entry("statusCode", "status_code"), entry("userAgent", "user_agent"));
+    assertThat(factory.getAdditionalFields()).containsOnly(entry("service-name", "shipping-service"), entry("service-version", "1.2.3"));
+}

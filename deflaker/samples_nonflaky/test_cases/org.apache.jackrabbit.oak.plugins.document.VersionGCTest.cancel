@@ -1,0 +1,19 @@
+@Test
+public void cancel() throws Exception {
+    // block gc call
+    store.semaphore.acquireUninterruptibly();
+    Future<VersionGCStats> stats = gc();
+    boolean gcBlocked = false;
+    for (int i = 0; i < 10; i++) {
+        if (store.semaphore.hasQueuedThreads()) {
+            gcBlocked = true;
+            break;
+        }
+        Thread.sleep(100);
+    }
+    assertTrue(gcBlocked);
+    // now cancel the GC
+    gc.cancel();
+    store.semaphore.release();
+    assertTrue(stats.get().canceled);
+}

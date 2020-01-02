@@ -1,0 +1,20 @@
+@Test
+public void testDeserializeJson() throws Exception {
+    ConsoleAppenderFactory<ILoggingEvent> appenderFactory = getAppenderFactory("yaml/json-log.yml");
+    DiscoverableLayoutFactory<?> layout = requireNonNull(appenderFactory.getLayout());
+    assertThat(layout).isInstanceOf(EventJsonLayoutBaseFactory.class);
+    EventJsonLayoutBaseFactory factory = (EventJsonLayoutBaseFactory) layout;
+    assertThat(factory).isNotNull();
+    assertThat(factory.getTimestampFormat()).isEqualTo("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+    assertThat(factory.isPrettyPrint()).isFalse();
+    assertThat(factory.isAppendLineSeparator()).isTrue();
+    assertThat(factory.getIncludes()).contains(EventAttribute.LEVEL, EventAttribute.MDC, EventAttribute.MESSAGE, EventAttribute.LOGGER_NAME, EventAttribute.EXCEPTION, EventAttribute.TIMESTAMP, EventAttribute.CALLER_DATA);
+    assertThat(factory.isFlattenMdc()).isTrue();
+    assertThat(factory.getCustomFieldNames()).containsOnly(entry("timestamp", "@timestamp"));
+    assertThat(factory.getAdditionalFields()).containsOnly(entry("service-name", "user-service"), entry("service-build", 218));
+    assertThat(factory.getIncludesMdcKeys()).containsOnly("userId");
+    ExceptionFormat exceptionFormat = requireNonNull(factory.getExceptionFormat());
+    assertThat(exceptionFormat.getDepth()).isEqualTo("10");
+    assertThat(exceptionFormat.isRootFirst()).isFalse();
+    assertThat(exceptionFormat.getEvaluators()).contains("io.dropwizard");
+}

@@ -1,0 +1,11 @@
+@Test
+public void testBindRestrictionProviderWithAuthorizationConfig() {
+    registration.activate(context.bundleContext(), configWithRequiredServiceIds("rpId", "authorizationId"));
+    ServiceReference sr = when(mock(ServiceReference.class).getProperty(SERVICE_PID)).thenReturn("rpId").getMock();
+    RestrictionProvider mockRp = mock(RestrictionProvider.class);
+    registration.bindRestrictionProvider(sr, mockRp);
+    registration.bindAuthorizationConfiguration(new AuthorizationConfigurationImpl(), ImmutableMap.of(SERVICE_PID, "authorizationId"));
+    SecurityProvider service = context.getService(SecurityProvider.class);
+    RestrictionProvider rp = service.getConfiguration(AuthorizationConfiguration.class).getRestrictionProvider();
+    assertTrue(rp instanceof WhiteboardRestrictionProvider);
+}

@@ -1,0 +1,19 @@
+public void testCoordChangeConcurrency() throws Exception {
+    Date startTime = DateUtils.parseDateOozieTZ("2013-08-01T00:00Z");
+    Date endTime = DateUtils.parseDateOozieTZ("2013-08-01T04:59Z");
+    final CoordinatorJobBean job = addRecordToCoordJobTableForPauseTimeTest(CoordinatorJob.Status.RUNNING, startTime, endTime, endTime, true, false, 4);
+    CoordinatorActionBean ca1 = addRecordToCoordActionTable(job.getId(), 1, CoordinatorAction.Status.RUNNING, "coord-action-get.xml", 0);
+    CoordinatorActionBean ca2 = addRecordToCoordActionTable(job.getId(), 2, CoordinatorAction.Status.RUNNING, "coord-action-get.xml", 0);
+    CoordinatorActionBean ca3 = addRecordToCoordActionTable(job.getId(), 3, CoordinatorAction.Status.READY, "coord-action-get.xml", 0);
+    CoordinatorActionBean ca4 = addRecordToCoordActionTable(job.getId(), 4, CoordinatorAction.Status.READY, "coord-action-get.xml", 0);
+    new CoordChangeXCommand(job.getId(), "concurrency=4").call();
+    Thread.sleep(100);
+    ca1 = CoordActionQueryExecutor.getInstance().get(CoordActionQueryExecutor.CoordActionQuery.GET_COORD_ACTION, job.getId() + "@1");
+    ca2 = CoordActionQueryExecutor.getInstance().get(CoordActionQueryExecutor.CoordActionQuery.GET_COORD_ACTION, job.getId() + "@2");
+    ca3 = CoordActionQueryExecutor.getInstance().get(CoordActionQueryExecutor.CoordActionQuery.GET_COORD_ACTION, job.getId() + "@3");
+    ca4 = CoordActionQueryExecutor.getInstance().get(CoordActionQueryExecutor.CoordActionQuery.GET_COORD_ACTION, job.getId() + "@4");
+    assertEquals(CoordinatorAction.Status.RUNNING.toString(), ca1.getStatusStr());
+    assertEquals(CoordinatorAction.Status.RUNNING.toString(), ca2.getStatusStr());
+    assertEquals(CoordinatorAction.Status.READY.toString(), ca3.getStatusStr());
+    assertEquals(CoordinatorAction.Status.READY.toString(), ca4.getStatusStr());
+}

@@ -1,0 +1,36 @@
+@Override
+public Resolution changeDeletedProperty(NodeBuilder parent, PropertyState ours, PropertyState base) {
+    called.set(true);
+    assertEquals("ours", ours.getValue(STRING));
+    assertEquals("base", base.getValue(STRING));
+    return Resolution.IGNORED;
+}
+@Test
+public void changeDeletedProperty() throws Exception {
+    AtomicBoolean called = new AtomicBoolean(false);
+    ThreeWayConflictHandler handler = new ErrorThreeWayConflictHandler() {
+
+        @Override
+        public Resolution changeDeletedProperty(NodeBuilder parent, PropertyState ours, PropertyState base) {
+            called.set(true);
+            assertEquals("ours", ours.getValue(STRING));
+            assertEquals("base", base.getValue(STRING));
+            return Resolution.IGNORED;
+        }
+    };
+    ContentRepository repo = newRepo(handler);
+    Root root = login(repo);
+    setup(root);
+    Root ourRoot = login(repo);
+    Root theirRoot = login(repo);
+    theirRoot.getTree("/c").removeProperty("p");
+    ourRoot.getTree("/c").setProperty("p", "ours");
+    theirRoot.commit();
+    ourRoot.commit();
+    assertTrue(called.get());
+}
+@Override
+public Resolution changeDeletedProperty(NodeBuilder parent, PropertyState ours, PropertyState base) {
+    Assert.fail("method should not be called");
+    return Resolution.IGNORED;
+}

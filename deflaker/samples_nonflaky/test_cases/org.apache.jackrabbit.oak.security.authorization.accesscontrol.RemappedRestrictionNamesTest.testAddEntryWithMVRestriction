@@ -1,0 +1,11 @@
+@Test
+public void testAddEntryWithMVRestriction() throws Exception {
+    String jcrItemNames = getNamePathMapper().getJcrName(REP_ITEM_NAMES);
+    Value[] valArray = new Value[] { getValueFactory(root).createValue("myItemName", PropertyType.NAME) };
+    Map<String, Value[]> rest = ImmutableMap.of(jcrItemNames, valArray);
+    assertTrue(acl.addEntry(testPrincipal, privs, false, null, rest));
+    List<ACE> entries = acl.getEntries();
+    assertEquals(1, entries.size());
+    assertArrayEquals(new String[] { jcrItemNames }, entries.get(0).getRestrictionNames());
+    assertArrayEquals(valArray, entries.get(0).getRestrictions(jcrItemNames));
+}

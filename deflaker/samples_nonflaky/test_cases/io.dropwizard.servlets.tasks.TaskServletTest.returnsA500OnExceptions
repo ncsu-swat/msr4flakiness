@@ -1,0 +1,15 @@
+@Test
+@SuppressWarnings("unchecked")
+void returnsA500OnExceptions() throws Exception {
+    final ServletInputStream bodyStream = new TestServletInputStream(new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8)));
+    when(request.getMethod()).thenReturn("POST");
+    when(request.getPathInfo()).thenReturn("/gc");
+    when(request.getParameterNames()).thenReturn(Collections.enumeration(Collections.emptyList()));
+    when(request.getInputStream()).thenReturn(bodyStream);
+    final PrintWriter output = mock(PrintWriter.class);
+    when(response.getWriter()).thenReturn(output);
+    final RuntimeException ex = new RuntimeException("whoops");
+    doThrow(ex).when(gc).execute(any(Map.class), any(PrintWriter.class));
+    servlet.service(request, response);
+    verify(response).setStatus(500);
+}

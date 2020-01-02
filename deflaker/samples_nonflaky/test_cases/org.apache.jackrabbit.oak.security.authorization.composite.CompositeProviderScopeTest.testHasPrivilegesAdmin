@@ -1,0 +1,15 @@
+@Test
+public void testHasPrivilegesAdmin() throws Exception {
+    Set<String> expectedAllowed = pbp.getPrivilegeNames(pbp.getBits(JCR_ALL).modifiable().diff(pbp.getBits(JCR_ADD_CHILD_NODES, REP_ADD_PROPERTIES)));
+    for (String path : NODE_PATHS) {
+        Tree tree = readOnlyRoot.getTree(path);
+        if (testProvider.isSupported(path)) {
+            assertTrue(cppAdminUser.hasPrivileges(tree, expectedAllowed.toArray(new String[expectedAllowed.size()])));
+            assertFalse(cppAdminUser.hasPrivileges(tree, JCR_ADD_CHILD_NODES));
+            assertFalse(cppAdminUser.hasPrivileges(tree, REP_ADD_PROPERTIES));
+            assertFalse(cppAdminUser.hasPrivileges(tree, JCR_WRITE));
+        } else {
+            assertTrue(cppAdminUser.hasPrivileges(tree, JCR_ALL));
+        }
+    }
+}

@@ -1,0 +1,19 @@
+@Test
+public void segmentShouldExposeReferencedSegments() throws Exception {
+    try (FileStore store = newFileStore()) {
+        // Write two records, one referencing the other.
+        SegmentWriter writer = defaultSegmentWriterBuilder("test").build(store);
+        RecordId a = writer.writeNode(EmptyNodeState.EMPTY_NODE);
+        writer.flush();
+        NodeBuilder builder = EmptyNodeState.EMPTY_NODE.builder();
+        builder.setChildNode("referred", store.getReader().readNode(a));
+        RecordId b = writer.writeNode(builder.getNodeState());
+        writer.flush();
+        // The two records should be living in two different segments.
+        assertNotEquals(a.getSegmentId(), b.getSegmentId());
+        // This intra-segment reference should generate a reference from the
+        // segment containing the list to the segment containing the string.
+        assertEquals(1, b.getSegment().getReferencedSegmentIdCount());
+        assertEquals(a.getSegmentId().asUUID(), b.getSegment().getReferencedSegmentId(0));
+    }
+}

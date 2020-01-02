@@ -1,0 +1,20 @@
+@Test
+public void testMissingUserAuthenticationFactory() throws Exception {
+    CallbackHandler cbh = callbacks -> {
+        for (Callback callback : callbacks) {
+            if (callback instanceof RepositoryCallback) {
+                UserConfiguration uc = when(mock(UserConfiguration.class).getParameters()).thenReturn(ConfigurationParameters.EMPTY).getMock();
+                SecurityProvider sp = when(mock(SecurityProvider.class).getConfiguration(UserConfiguration.class)).thenReturn(uc).getMock();
+                ((RepositoryCallback) callback).setSecurityProvider(sp);
+                ((RepositoryCallback) callback).setContentRepository(getContentRepository());
+            } else {
+                throw new UnsupportedCallbackException(callback);
+            }
+        }
+    };
+    LoginModuleImpl loginModule = new LoginModuleImpl();
+    loginModule.initialize(new Subject(), cbh, Maps.newHashMap(), Maps.newHashMap());
+    assertFalse(loginModule.login());
+    assertFalse(loginModule.commit());
+    assertFalse(loginModule.logout());
+}

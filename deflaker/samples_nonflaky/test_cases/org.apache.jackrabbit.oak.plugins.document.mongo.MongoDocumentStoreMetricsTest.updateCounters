@@ -1,0 +1,27 @@
+@Test
+public void updateCounters() {
+    MongoConnection connection = connectionFactory.getConnection();
+    assumeNotNull(connection);
+    MongoDocumentStore store = new MongoDocumentStore(connection.getMongoClient(), connection.getDatabase(), newMongoDocumentNodeStoreBuilder());
+    try {
+        MongoDocumentStoreMetrics metrics = new MongoDocumentStoreMetrics(store, statsProvider);
+        assertEquals(0, getCount("MongoDB.fsUsedSize"));
+        assertEquals(0, getCount("MongoDB.fsTotalSize"));
+        metrics.run();
+        assertThat(getCount("MongoDB.fsUsedSize"), greaterThan(0L));
+        assertThat(getCount("MongoDB.fsTotalSize"), greaterThan(0L));
+        // document for root node
+        assertEquals(1, getCount("MongoDB.nodes.count"));
+        // one cluster node
+        assertEquals(1, getCount("MongoDB.clusterNodes.count"));
+        List<UpdateOp> updates = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            updates.add(new UpdateOp("id-" + i, true));
+        }
+        assertTrue(store.create(Collection.NODES, updates));
+        metrics.run();
+        assertEquals(11, getCount("MongoDB.nodes.count"));
+    } finally {
+        store.dispose();
+    }
+}

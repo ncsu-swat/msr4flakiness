@@ -1,0 +1,12 @@
+public void testActionStartToCheckRetry() throws Exception {
+    WorkflowJobBean job = this.addRecordToWfJobTable(WorkflowJob.Status.RUNNING, WorkflowInstance.Status.RUNNING);
+    job.setUser(getTestUser2());
+    WorkflowJobQueryExecutor.getInstance().executeUpdate(WorkflowJobQuery.UPDATE_WORKFLOW, job);
+    WorkflowActionBean action = this.addRecordToWfActionTableWithFS(job.getId(), "1", WorkflowAction.Status.PREP);
+    assertEquals(0, action.getUserRetryCount());
+    assertEquals(1, action.getUserRetryMax());
+    new ActionStartXCommand(action.getId(), "fs").call();
+    action = WorkflowActionQueryExecutor.getInstance().get(WorkflowActionQuery.GET_ACTION, action.getId());
+    assertNotNull(action.getExternalId());
+    assertEquals(1, action.getUserRetryCount());
+}

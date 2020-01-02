@@ -1,0 +1,13 @@
+@Test
+public void testLogoutCPNullParams() throws LoginException {
+    Credentials creds = new TestCredentials();
+    Principal unknownPrincipal = TestPrincipalProvider.UNKNOWN;
+    TestPrincipalProvider pp = new TestPrincipalProvider("principal");
+    Subject subject = new Subject(false, ImmutableSet.of(unknownPrincipal), ImmutableSet.of(creds), ImmutableSet.of());
+    TestLoginModule loginModule = new TestLoginModule(SimpleCredentials.class);
+    loginModule.initialize(subject, new TestCallbackHandler(pp), Collections.emptyMap(), null);
+    assertFalse(loginModule.logout(null, null));
+    // subject must not be altered by logout
+    assertTrue(subject.getPublicCredentials().contains(creds));
+    assertTrue(subject.getPrincipals().contains(unknownPrincipal));
+}

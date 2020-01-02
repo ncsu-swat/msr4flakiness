@@ -1,0 +1,13 @@
+@Test
+public void testRedundantRestrictionProvider() {
+    // 2 authorization configuration sharing the same RestrictionProvider
+    AuthorizationConfiguration ac = createAuthorizationConfigurationImpl();
+    AuthorizationConfiguration ac2 = mock(AuthorizationConfiguration.class);
+    when(ac2.getRestrictionProvider()).thenReturn(ac.getRestrictionProvider());
+    when(ac2.getParameters()).thenReturn(ConfigurationParameters.EMPTY);
+    CompositeAuthorizationConfiguration cc = getCompositeConfiguration(ac, ac2);
+    // composite should detect the duplication
+    RestrictionProvider rp = cc.getRestrictionProvider();
+    assertFalse(rp instanceof CompositeRestrictionProvider);
+    assertSame(ac.getRestrictionProvider(), rp);
+}

@@ -1,0 +1,20 @@
+@Test
+public void createNextGenerationTest() throws IOException {
+    int counter = 2222;
+    TarWriter t0 = new TarWriter(archiveManager, counter, NoopStats.INSTANCE);
+    // not dirty, will not create a new writer
+    TarWriter t1 = t0.createNextGeneration();
+    assertEquals(t0, t1);
+    assertTrue(t1.getFileName().contains("" + counter));
+    // dirty, will create a new writer
+    UUID id = UUID.randomUUID();
+    long msb = id.getMostSignificantBits();
+    // OAK-1672
+    long lsb = id.getLeastSignificantBits() & (-1 >>> 4);
+    byte[] data = "Hello, World!".getBytes(UTF_8);
+    t1.writeEntry(msb, lsb, data, 0, data.length, newGCGeneration(0, 0, false));
+    TarWriter t2 = t1.createNextGeneration();
+    assertNotEquals(t1, t2);
+    assertTrue(t1.isClosed());
+    assertTrue(t2.getFileName().contains("" + (counter + 1)));
+}

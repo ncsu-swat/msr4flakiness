@@ -1,0 +1,35 @@
+@Test
+public void testFindPrincipalsRandom() {
+    long seed = System.currentTimeMillis();
+    int bound = 10;
+    int inputSize = 3;
+    Random r = new Random(seed);
+    List<String> expected = new ArrayList<>();
+    Collection<Collection<String>> input = new ArrayList<>();
+    for (int i = 0; i < inputSize; i++) {
+        Set<String> l = new TreeSet<>();
+        int size = r.nextInt(bound);
+        while (size > 0) {
+            int v = r.nextInt(bound);
+            String n = "p" + v;
+            if (l.add(n)) {
+                expected.add(n);
+                size--;
+            }
+        }
+        input.add(l);
+    }
+    input.add(Collections.emptyList());
+    String pb = "p" + bound;
+    expected.add(pb);
+    input.add(Collections.singleton(pb));
+    List<PrincipalProvider> in = new ArrayList<>();
+    for (Collection<String> i : input) {
+        TestPrincipalProvider t = new TestPrincipalProvider(i.toArray(new String[0]));
+        in.add(t);
+    }
+    PrincipalProvider cpp = CompositePrincipalProvider.of(in);
+    List<String> out = getNames(cpp.findPrincipals("p", true, PrincipalManager.SEARCH_TYPE_ALL, 0, -1));
+    Collections.sort(expected);
+    assertEquals(expected, out);
+}

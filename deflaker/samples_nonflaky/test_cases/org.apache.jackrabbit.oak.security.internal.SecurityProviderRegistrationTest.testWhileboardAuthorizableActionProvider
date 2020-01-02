@@ -1,0 +1,12 @@
+@Test
+public void testWhileboardAuthorizableActionProvider() {
+    registration.activate(context.bundleContext(), configWithRequiredServiceIds("apId"));
+    AuthorizableActionProvider mockAp = mock(AuthorizableActionProvider.class);
+    ServiceRegistration rpSr = context.bundleContext().registerService(AuthorizableActionProvider.class.getName(), mockAp, new Hashtable(ImmutableMap.of(SERVICE_PID, "apId")));
+    registration.bindAuthorizableActionProvider(rpSr.getReference(), mockAp);
+    SecurityProvider service = context.getService(SecurityProvider.class);
+    AuthorizableActionProvider ap = service.getConfiguration(UserConfiguration.class).getParameters().getConfigValue(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, null, AuthorizableActionProvider.class);
+    assertTrue(ap instanceof WhiteboardAuthorizableActionProvider);
+    ap.getAuthorizableActions(service);
+    verify(mockAp, times(1)).getAuthorizableActions(service);
+}

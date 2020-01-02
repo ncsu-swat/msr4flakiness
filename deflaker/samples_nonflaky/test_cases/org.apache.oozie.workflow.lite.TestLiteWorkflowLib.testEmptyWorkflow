@@ -1,0 +1,14 @@
+public void testEmptyWorkflow() throws WorkflowException {
+    LiteWorkflowApp def = new LiteWorkflowApp("wf", "<worklfow-app/>", new StartNodeDef(TestControlNodeHandler.class, "end")).addNode(new EndNodeDef("end", TestControlNodeHandler.class));
+    final LiteWorkflowInstance job = new LiteWorkflowInstance(def, new XConfiguration(), "1");
+    assertEquals(WorkflowInstance.Status.PREP, job.getStatus());
+    job.start();
+    waitFor(5 * 1000, new Predicate() {
+
+        @Override
+        public boolean evaluate() throws Exception {
+            return job.getStatus() == WorkflowInstance.Status.SUCCEEDED;
+        }
+    });
+    assertEquals(WorkflowInstance.Status.SUCCEEDED, job.getStatus());
+}

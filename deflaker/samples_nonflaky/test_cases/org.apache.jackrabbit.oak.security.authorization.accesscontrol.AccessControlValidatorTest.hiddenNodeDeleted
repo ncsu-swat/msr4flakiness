@@ -1,0 +1,16 @@
+@Test
+public void hiddenNodeDeleted() throws CommitFailedException {
+    AccessControlValidatorProvider provider = createValidatorProvider();
+    MemoryNodeStore store = new MemoryNodeStore();
+    NodeBuilder builder = store.getRoot().builder();
+    builder.child("test").child(":hidden");
+    NodeState root = builder.getNodeState();
+    builder = root.builder();
+    NodeBuilder test = builder.child("test");
+    test.child(":hidden").remove();
+    Validator validator = provider.getRootValidator(root, builder.getNodeState(), CommitInfo.EMPTY);
+    Validator childValidator = validator.childNodeChanged("test", root.getChildNode("test"), test.getNodeState());
+    assertNotNull(childValidator);
+    Validator hiddenValidator = childValidator.childNodeDeleted(":hidden", root.getChildNode("test").getChildNode(":hidden"));
+    assertNull(hiddenValidator);
+}

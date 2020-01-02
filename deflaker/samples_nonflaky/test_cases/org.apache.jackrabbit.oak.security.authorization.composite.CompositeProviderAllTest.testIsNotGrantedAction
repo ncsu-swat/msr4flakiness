@@ -1,0 +1,18 @@
+@Override
+@Test
+public void testIsNotGrantedAction() throws Exception {
+    PermissionProvider pp = createPermissionProvider();
+    PermissionProvider ppo = createPermissionProviderOR();
+    String[] actions = new String[] { JackrabbitSession.ACTION_LOCKING, JackrabbitSession.ACTION_MODIFY_ACCESS_CONTROL };
+    for (String nodePath : NODE_PATHS) {
+        String actionStr = getActionString(actions);
+        assertFalse(nodePath, pp.isGranted(nodePath, actionStr));
+        assertTrue(nodePath, ppo.isGranted(nodePath, actionStr));
+        String propPath = PathUtils.concat(nodePath, JcrConstants.JCR_PRIMARYTYPE);
+        assertFalse(propPath, pp.isGranted(propPath, actionStr));
+        assertTrue(propPath, ppo.isGranted(propPath, actionStr));
+        String nonExPath = PathUtils.concat(nodePath, "nonExisting");
+        assertFalse(nonExPath, pp.isGranted(nonExPath, actionStr));
+        assertTrue(nonExPath, ppo.isGranted(nonExPath, actionStr));
+    }
+}

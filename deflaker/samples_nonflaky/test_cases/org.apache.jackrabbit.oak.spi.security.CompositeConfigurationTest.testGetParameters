@@ -1,0 +1,31 @@
+@Test
+public void testGetParameters() {
+    assertSame(ConfigurationParameters.EMPTY, compositeConfiguration.getParameters());
+    addConfiguration(new SecurityConfiguration.Default());
+    assertSame(ConfigurationParameters.EMPTY, compositeConfiguration.getParameters());
+    ConfigurationParameters params = ConfigurationParameters.of("a", "valueA", "b", "valueB");
+    SecurityConfiguration withParams = new SecurityConfiguration.Default() {
+
+        @NotNull
+        @Override
+        public ConfigurationParameters getParameters() {
+            return params;
+        }
+    };
+    addConfiguration(withParams);
+    assertEquals(ImmutableSet.copyOf(params.keySet()), ImmutableSet.copyOf(compositeConfiguration.getParameters().keySet()));
+    ConfigurationParameters params2 = ConfigurationParameters.of("a", "valueA2", "c", "valueC");
+    SecurityConfiguration withParams2 = new SecurityConfiguration.Default() {
+
+        @NotNull
+        @Override
+        public ConfigurationParameters getParameters() {
+            return params2;
+        }
+    };
+    addConfiguration(withParams2);
+    ConfigurationParameters compositeParams = compositeConfiguration.getParameters();
+    assertEquals(3, compositeParams.size());
+    assertEquals(ImmutableSet.copyOf(ConfigurationParameters.of(params, params2).keySet()), ImmutableSet.copyOf(compositeParams.keySet()));
+    assertEquals("valueA2", compositeParams.getConfigValue("a", "def"));
+}

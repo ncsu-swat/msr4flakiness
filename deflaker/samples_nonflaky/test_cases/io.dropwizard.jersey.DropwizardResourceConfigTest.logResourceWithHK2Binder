@@ -1,0 +1,14 @@
+@Test
+void logResourceWithHK2Binder() {
+    rc.register(ResourceWithInjectedDependency.class);
+    rc.register(new org.glassfish.hk2.utilities.binding.AbstractBinder() {
+
+        @Override
+        protected void configure() {
+            bindAsContract(Dependency.class);
+        }
+    });
+    runJersey();
+    final String expectedLog = String.format("The following paths were found for the configured resources:%n" + "%n" + "    GET     /another (io.dropwizard.jersey.DropwizardResourceConfigTest.ResourceWithInjectedDependency)");
+    assertThat(rc.getEndpointsInfo()).contains(expectedLog);
+}

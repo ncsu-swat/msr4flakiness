@@ -1,0 +1,12 @@
+@Test
+public void usesProxyWithNtlmAuth() throws Exception {
+    HttpClientConfiguration config = new HttpClientConfiguration();
+    AuthConfiguration auth = new AuthConfiguration("secret", "stuff", "NTLM", "realm", "host", "domain", "NT");
+    ProxyConfiguration proxy = new ProxyConfiguration("192.168.52.11", 8080, "http", auth);
+    config.setProxyConfiguration(proxy);
+    CloseableHttpClient httpClient = checkProxy(config, new HttpHost("dropwizard.io", 80), new HttpHost("192.168.52.11", 8080, "http"));
+    CredentialsProvider credentialsProvider = (CredentialsProvider) FieldUtils.getField(httpClient.getClass(), "credentialsProvider", true).get(httpClient);
+    AuthScope authScope = new AuthScope("192.168.52.11", 8080, "realm", "NTLM");
+    Credentials credentials = new NTCredentials("secret", "stuff", "host", "domain");
+    assertThat(credentialsProvider.getCredentials(authScope)).isEqualTo(credentials);
+}

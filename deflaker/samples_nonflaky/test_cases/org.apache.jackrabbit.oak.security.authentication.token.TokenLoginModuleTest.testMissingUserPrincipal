@@ -1,0 +1,24 @@
+@Test
+public void testMissingUserPrincipal() throws Exception {
+    TokenProvider tp = mockTokenProvider(getTestUser().getID());
+    TokenCredentials tc = new TokenCredentials("token");
+    TokenLoginModule lm = new TokenLoginModule();
+    Map sharedState = Maps.newHashMap(ImmutableMap.of(AbstractLoginModule.SHARED_KEY_CREDENTIALS, tc));
+    Subject subject = new Subject();
+    CallbackHandler cbh = callbacks -> {
+        for (Callback callback : callbacks) {
+            if (callback instanceof PrincipalProviderCallback) {
+                ((PrincipalProviderCallback) callback).setPrincipalProvider(getConfig(PrincipalConfiguration.class).getPrincipalProvider(root, getNamePathMapper()));
+            }
+        }
+    };
+    lm.initialize(subject, new TestCallbackHandler(tp, cbh), sharedState, ImmutableMap.<String, Object>of());
+    assertTrue(lm.login());
+    assertTrue(lm.commit());
+    assertEquals(ImmutableSet.of(getTestUser().getPrincipal(), EveryonePrincipal.getInstance()), subject.getPrincipals());
+    assertFalse(subject.getPublicCredentials(AuthInfo.class).isEmpty());
+    assertFalse(subject.getPublicCredentials(TokenCredentials.class).isEmpty());
+    assertTrue(lm.logout());
+    assertTrue(subject.getPublicCredentials().isEmpty());
+    assertTrue(subject.getPrincipals().isEmpty());
+}

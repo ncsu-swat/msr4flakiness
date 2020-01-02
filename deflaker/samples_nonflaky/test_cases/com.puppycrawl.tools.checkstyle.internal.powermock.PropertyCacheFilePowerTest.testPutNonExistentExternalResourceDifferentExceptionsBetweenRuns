@@ -1,0 +1,39 @@
+/**
+ * It is OK to have long test method name here as it describes the test purpose.
+ */
+@Test
+public void testPutNonExistentExternalResourceDifferentExceptionsBetweenRuns() throws Exception {
+    final File cacheFile = temporaryFolder.newFile();
+    // We invoke 'putExternalResources' twice to invalidate cache
+    // and have two different exceptions with different content.
+    final int numberOfRuns = 2;
+    final String[] configHashes = new String[numberOfRuns];
+    final String[] externalResourceHashes = new String[numberOfRuns];
+    for (int i = 0; i < numberOfRuns; i++) {
+        final Configuration config = new DefaultConfiguration("myConfig");
+        final PropertyCacheFile cache = new PropertyCacheFile(config, cacheFile.getPath());
+        // We mock getUriByFilename method of CommonUtil to guarantee that it will
+        // throw CheckstyleException with the specific content.
+        mockStatic(CommonUtil.class);
+        final CheckstyleException mockException = new CheckstyleException("Exception #" + i);
+        when(CommonUtil.getUriByFilename(any(String.class))).thenThrow(mockException);
+        cache.load();
+        configHashes[i] = cache.get(PropertyCacheFile.CONFIG_HASH_KEY);
+        assertNotNull("Config hash key should not be null", configHashes[i]);
+        final Set<String> nonExistentExternalResources = new HashSet<>();
+        final String externalResourceFileName = "non_existent_file.xml";
+        nonExistentExternalResources.add(externalResourceFileName);
+        cache.putExternalResources(nonExistentExternalResources);
+        externalResourceHashes[i] = cache.get(PropertyCacheFile.EXTERNAL_RESOURCE_KEY_PREFIX + externalResourceFileName);
+        assertNotNull("External resource hashes should not be null", externalResourceHashes[i]);
+        cache.persist();
+        final Properties cacheDetails = new Properties();
+        try (BufferedReader reader = Files.newBufferedReader(cacheFile.toPath())) {
+            cacheDetails.load(reader);
+        }
+        final int expectedNumberOfObjectsInCacheFile = 2;
+        assertEquals("Unexpected number of objects in cache", expectedNumberOfObjectsInCacheFile, cacheDetails.size());
+    }
+    assertEquals("Invalid config hash", configHashes[0], configHashes[1]);
+    assertNotEquals("Invalid external resource hashes", externalResourceHashes[0], externalResourceHashes[1]);
+}

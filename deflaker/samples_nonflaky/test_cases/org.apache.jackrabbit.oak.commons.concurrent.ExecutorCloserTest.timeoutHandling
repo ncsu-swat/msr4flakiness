@@ -1,0 +1,15 @@
+@Test
+public void timeoutHandling() throws Exception {
+    ExecutorService executorService = Executors.newSingleThreadExecutor();
+    final CountDownLatch latch = new CountDownLatch(1);
+    executorService.submit(new Callable<Void>() {
+
+        @Override
+        public Void call() throws Exception {
+            latch.await();
+            return null;
+        }
+    });
+    new ExecutorCloser(executorService, 100, TimeUnit.MILLISECONDS).close();
+    assertTrue(executorService.isShutdown());
+}

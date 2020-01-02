@@ -1,0 +1,32 @@
+/**
+ * Test doesn't need to be serialized.
+ * @noinspection SerializableInnerClassWithNonSerializableOuterClass
+ */
+@Test
+public void testExceptionWithNoFileName() {
+    final String errorMessage = "Security Exception";
+    final RuntimeException expectedError = new SecurityException(errorMessage);
+    final File mock = new File("testFile") {
+
+        private static final long serialVersionUID = 1L;
+
+        /**
+         * Test is checking catch clause when exception is thrown.
+         * @noinspection ProhibitedExceptionThrown
+         */
+        @Override
+        public String getAbsolutePath() {
+            throw expectedError;
+        }
+    };
+    final Checker checker = new Checker();
+    final List<File> filesToProcess = new ArrayList<>();
+    filesToProcess.add(mock);
+    try {
+        checker.process(filesToProcess);
+        fail("SecurityException is expected!");
+    } catch (CheckstyleException ex) {
+        assertWithMessage("Error cause differs from SecurityException").that(ex.getCause()).isInstanceOf(SecurityException.class);
+        assertEquals(errorMessage, ex.getCause().getMessage(), "Error message is not expected");
+    }
+}

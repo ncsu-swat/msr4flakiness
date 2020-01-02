@@ -1,0 +1,36 @@
+@Test
+public void testPermissionPropagation() throws Exception {
+    // create a "/testNode"
+    Tree node = root1.getTree("/").addChild("testNode");
+    node.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
+    // create 2 users
+    User user1 = userManager1.createUser("testUser1", "testUser1");
+    User user2 = userManager1.createUser("testUser2", "testUser2");
+    JackrabbitAccessControlList acl1 = AccessControlUtils.getAccessControlList(aclMgr1, "/testNode");
+    // deny jcr:all for everyone on /testNode
+    acl1.addEntry(EveryonePrincipal.getInstance(), AccessControlUtils.privilegesFromNames(aclMgr1, "jcr:all"), false);
+    // allow jcr:read for testUser1 on /testNode
+    acl1.addEntry(user1.getPrincipal(), AccessControlUtils.privilegesFromNames(aclMgr1, "jcr:read"), true);
+    aclMgr1.setPolicy("/testNode", acl1);
+    root1.commit();
+    syncClusterNodes();
+    root2.refresh();
+    // login with testUser1 and testUser2 (on cluster node 2)
+    ContentSession session1 = contentRepository2.login(new SimpleCredentials("testUser1", "testUser1".toCharArray()), null);
+    ContentSession session2 = contentRepository2.login(new SimpleCredentials("testUser2", "testUser2".toCharArray()), null);
+    // testUser1 can read /testNode
+    assertTrue(session1.getLatestRoot().getTree("/testNode").exists());
+    // testUser2 cannot read /testNode
+    assertFalse(session2.getLatestRoot().getTree("/testNode").exists());
+    // now, allow jcr:read also for 'everyone' (on cluster node 1)
+    acl1 = AccessControlUtils.getAccessControlList(aclMgr1, "/testNode");
+    acl1.addEntry(EveryonePrincipal.getInstance(), AccessControlUtils.privilegesFromNames(aclMgr1, "jcr:read"), true);
+    aclMgr1.setPolicy("/testNode", acl1);
+    root1.commit();
+    syncClusterNodes();
+    root2.refresh();
+    // testUser1 can read /testNode
+    assertTrue(session1.getLatestRoot().getTree("/testNode").exists());
+    // testUser2 can also read /testNode
+    assertTrue(session2.getLatestRoot().getTree("/testNode").exists());
+}

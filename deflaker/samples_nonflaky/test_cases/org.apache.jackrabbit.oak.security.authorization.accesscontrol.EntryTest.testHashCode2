@@ -1,0 +1,55 @@
+@Test
+public void testHashCode2() throws Exception {
+    JackrabbitAccessControlEntry ace = createEntry(new String[] { PrivilegeConstants.JCR_ALL }, true);
+    final Privilege[] privs = AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.JCR_ALL);
+    // and the opposite:
+    List<JackrabbitAccessControlEntry> otherAces = new ArrayList<JackrabbitAccessControlEntry>();
+    // ACE template with different principal
+    Principal princ = new Principal() {
+
+        public String getName() {
+            return "a name";
+        }
+    };
+    otherAces.add(createEntry(princ, privs, true));
+    // ACE template with different privileges
+    otherAces.add(createEntry(new String[] { PrivilegeConstants.JCR_READ }, true));
+    // ACE template with different 'allow' flag
+    otherAces.add(createEntry(new String[] { PrivilegeConstants.JCR_ALL }, false));
+    // ACE template with different privileges and 'allows
+    otherAces.add(createEntry(new String[] { PrivilegeConstants.REP_WRITE }, false));
+    // other ace impl
+    JackrabbitAccessControlEntry pe = new JackrabbitAccessControlEntry() {
+
+        public boolean isAllow() {
+            return true;
+        }
+
+        @NotNull
+        public String[] getRestrictionNames() {
+            return new String[0];
+        }
+
+        @Nullable
+        public Value getRestriction(@NotNull String restrictionName) {
+            return null;
+        }
+
+        @Nullable
+        public Value[] getRestrictions(@NotNull String restrictionName) {
+            return null;
+        }
+
+        public Principal getPrincipal() {
+            return testPrincipal;
+        }
+
+        public Privilege[] getPrivileges() {
+            return privs;
+        }
+    };
+    otherAces.add(pe);
+    for (JackrabbitAccessControlEntry otherAce : otherAces) {
+        assertFalse(ace.hashCode() == otherAce.hashCode());
+    }
+}

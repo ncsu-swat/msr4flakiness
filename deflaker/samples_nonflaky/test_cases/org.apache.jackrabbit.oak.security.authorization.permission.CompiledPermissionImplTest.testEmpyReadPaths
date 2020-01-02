@@ -1,0 +1,19 @@
+@Test
+public void testEmpyReadPaths() {
+    CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.of(PARAM_READ_PATHS, ImmutableSet.of()));
+    // cp with EmptyReadPolicy
+    for (String readPath : PermissionConstants.DEFAULT_READ_PATHS) {
+        assertFalse(cp.isGranted(readPath, Permissions.READ_NODE));
+        assertFalse(cp.isGranted(readPath, Permissions.READ));
+        Tree t = createReadonlyTree(readPath);
+        assertFalse(cp.isGranted(t, null, Permissions.READ_NODE));
+        assertFalse(cp.isGranted(t, t.getProperty(JCR_PRIMARYTYPE), Permissions.READ_PROPERTY));
+        assertFalse(cp.hasPrivileges(t, PrivilegeConstants.REP_READ_NODES));
+        assertFalse(cp.hasPrivileges(t, JCR_READ));
+        assertEquals(0, cp.getPrivileges(t).size());
+        TreePermission tp = createTreePermission(cp, readPath);
+        assertFalse(tp.canRead());
+        assertFalse(tp.canRead(mock(PropertyState.class)));
+        assertFalse(tp.canReadAll());
+    }
+}

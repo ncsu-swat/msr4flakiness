@@ -1,0 +1,10 @@
+@Test
+public void binaryProps() throws Exception {
+    NodeBuilder builder = store.getRoot().builder();
+    builder.child("a").setProperty("foo", new ArrayBasedBlob("hello".getBytes()));
+    store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    when(pathService.getIndexPaths()).thenReturn(Lists.newArrayList("/a"));
+    String json = getJSON();
+    IndexDefinitionUpdater updater = new IndexDefinitionUpdater(json);
+    assertTrue(updater.getIndexPaths().contains("/a"));
+}

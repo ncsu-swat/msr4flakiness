@@ -1,0 +1,20 @@
+/**
+ * Test if a shell script could run successfully with {@link ShellMain#CONF_OOZIE_SHELL_SETUP_HADOOP_CONF_DIR} enabled.
+ * Run with {@link ShellMain#CONF_OOZIE_SHELL_SETUP_HADOOP_CONF_DIR_WRITE_LOG4J_PROPERTIES} disabled.
+ *
+ * @throws Exception
+ */
+public void testShellScriptHadoopConfDirWithNoL4J() throws Exception {
+    FileSystem fs = getFileSystem();
+    // Create the script file with canned shell command
+    Path script = new Path(getAppPath(), SHELL_SCRIPTNAME);
+    Writer w = new OutputStreamWriter(fs.create(script), StandardCharsets.UTF_8);
+    w.write(SHELL_SCRIPT_LOG4J_EXISTENCE_CHECKER);
+    w.close();
+    // Create sample Shell action xml
+    String actionXml = "<shell>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>" + "<name-node>" + getNameNodeUri() + "</name-node>" + "<configuration>" + "<property><name>oozie.action.shell.setup.hadoop.conf.dir</name><value>true</value></property>" + "<property><name>oozie.action.shell.setup.hadoop.conf.dir.write.log4j.properties" + "</name><value>false</value></property>" + "</configuration>" + "<exec>" + SHELL_EXEC + "</exec>" + "<argument>" + SHELL_PARAM + "</argument>" + "<argument>" + SHELL_SCRIPTNAME + "</argument>" + "<file>" + script.toString() + "#" + script.getName() + "</file>" + "<capture-output/>" + "</shell>";
+    // Submit and verify the job's status
+    WorkflowAction action = _testSubmit(actionXml, true, "");
+    String log4jExists = PropertiesUtils.stringToProperties(action.getData()).getProperty("L4J_EXISTS");
+    Assert.assertNull("Expected no log4j.properties file to exist", log4jExists);
+}

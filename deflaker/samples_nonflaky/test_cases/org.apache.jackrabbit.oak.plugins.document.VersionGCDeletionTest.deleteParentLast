@@ -1,0 +1,32 @@
+@Test
+public void deleteParentLast() throws Exception {
+    TestDocumentStore ts = new TestDocumentStore();
+    store = new DocumentMK.Builder().clock(clock).setLeaseCheckMode(LeaseCheckMode.LENIENT).setDocumentStore(ts).setAsyncDelay(0).getNodeStore();
+    NodeBuilder b1 = store.getRoot().builder();
+    b1.child("x").child("y");
+    store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    // hours
+    long maxAge = 1;
+    long delta = TimeUnit.MINUTES.toMillis(10);
+    // Remove x/y
+    NodeBuilder b2 = store.getRoot().builder();
+    b2.child("x").remove();
+    store.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    store.runBackgroundOperations();
+    // 3. Check that deleted doc does get collected post maxAge
+    clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge * 2) + delta);
+    VersionGarbageCollector gc = store.getVersionGarbageCollector();
+    // 4. Ensure that while GC is being run /x gets removed but failure occurs
+    // for /x/y. At least attempt that! Once issue is fixed the list would be
+    // sorted again by VersionGC and then /x would always come after /x/y
+    try {
+        ts.throwException = true;
+        gc.gc(maxAge * 2, HOURS);
+        fail("Exception should be thrown");
+    } catch (AssertionError ignore) {
+    }
+    ts.throwException = false;
+    gc.gc(maxAge * 2, HOURS);
+    assertNull(ts.find(Collection.NODES, "2:/x/y"));
+    assertNull(ts.find(Collection.NODES, "1:/x"));
+}

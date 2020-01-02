@@ -1,0 +1,23 @@
+/**
+ * Add, get, delete with synchronous option.
+ * @throws Exception
+ */
+@Test
+public void syncAddGetDelete() throws Exception {
+    LOG.info("Starting syncAddGetDelete");
+    File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
+    String id = getIdForInputStream(f);
+    FileInputStream fin = new FileInputStream(f);
+    closer.register(fin);
+    DataRecord rec = dataStore.addRecord(fin, new BlobOptions().setUpload(SYNCHRONOUS));
+    assertEquals(id, rec.getIdentifier().toString());
+    assertFile(rec.getStream(), f, folder);
+    rec = dataStore.getRecordIfStored(new DataIdentifier(id));
+    assertEquals(id, rec.getIdentifier().toString());
+    assertFile(rec.getStream(), f, folder);
+    assertEquals(1, Iterators.size(dataStore.getAllIdentifiers()));
+    dataStore.deleteRecord(new DataIdentifier(id));
+    rec = dataStore.getRecordIfStored(new DataIdentifier(id));
+    assertNull(rec);
+    LOG.info("Finished syncAddGetDelete");
+}

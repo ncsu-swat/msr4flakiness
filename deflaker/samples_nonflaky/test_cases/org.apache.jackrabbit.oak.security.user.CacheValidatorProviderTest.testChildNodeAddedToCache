@@ -1,0 +1,13 @@
+@Test(expected = CommitFailedException.class)
+public void testChildNodeAddedToCache() throws Exception {
+    try {
+        Tree cache = getCache(getTestUser());
+        Tree child = TreeUtil.addChild(cache, "child", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        Validator validator = createCacheValidator(cache);
+        validator.childNodeAdded("child", getTreeProvider().asNodeState(child));
+    } catch (CommitFailedException e) {
+        assertTrue(e.isConstraintViolation());
+        assertEquals(34, e.getCode());
+        throw e;
+    }
+}

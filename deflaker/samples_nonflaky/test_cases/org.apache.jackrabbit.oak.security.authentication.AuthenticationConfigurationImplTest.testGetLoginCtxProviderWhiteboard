@@ -1,0 +1,12 @@
+@Test
+public void testGetLoginCtxProviderWhiteboard() throws Exception {
+    Whiteboard wb = new DefaultWhiteboard();
+    SecurityProvider sp = mock(SecurityProvider.class, Mockito.withSettings().extraInterfaces(WhiteboardAware.class));
+    when(((WhiteboardAware) sp).getWhiteboard()).thenReturn(wb);
+    authConfiguration.setSecurityProvider(sp);
+    LoginContextProvider lcp = authConfiguration.getLoginContextProvider(repo);
+    assertTrue(lcp instanceof LoginContextProviderImpl);
+    Field f = LoginContextProviderImpl.class.getDeclaredField("whiteboard");
+    f.setAccessible(true);
+    assertSame(wb, f.get(lcp));
+}

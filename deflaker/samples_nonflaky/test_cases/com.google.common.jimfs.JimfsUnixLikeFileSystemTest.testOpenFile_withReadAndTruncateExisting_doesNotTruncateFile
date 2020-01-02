@@ -1,0 +1,11 @@
+@Test
+public void testOpenFile_withReadAndTruncateExisting_doesNotTruncateFile() throws IOException {
+    byte[] bytes = bytes(1, 2, 3, 4);
+    Files.write(path("/test"), bytes);
+    try (FileChannel channel = FileChannel.open(path("/test"), READ, TRUNCATE_EXISTING)) {
+        // TRUNCATE_EXISTING ignored when opening for read
+        byte[] readBytes = new byte[4];
+        channel.read(ByteBuffer.wrap(readBytes));
+        assertThat(Bytes.asList(readBytes)).isEqualTo(Bytes.asList(bytes));
+    }
+}

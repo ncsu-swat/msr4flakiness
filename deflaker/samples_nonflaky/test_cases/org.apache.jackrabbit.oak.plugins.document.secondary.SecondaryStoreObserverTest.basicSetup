@@ -1,0 +1,12 @@
+@Test
+public void basicSetup() throws Exception {
+    PathFilter pathFilter = new PathFilter(of("/a"), empty);
+    SecondaryStoreObserver observer = createBuilder(pathFilter).buildObserver();
+    primary.addObserver(observer);
+    NodeBuilder nb = primary.getRoot().builder();
+    create(nb, "/a/b", "/a/c", "/x/y/z");
+    primary.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    dump(secondaryRoot(), "/a");
+    dump(primary.getRoot(), "/a");
+    assertEquals(secondaryRoot().getChildNode("a"), primary.getRoot().getChildNode("a"));
+}

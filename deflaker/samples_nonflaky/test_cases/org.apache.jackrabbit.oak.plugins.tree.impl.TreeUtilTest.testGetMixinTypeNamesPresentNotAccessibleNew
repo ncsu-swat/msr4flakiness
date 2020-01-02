@@ -1,0 +1,16 @@
+@Test
+public void testGetMixinTypeNamesPresentNotAccessibleNew() throws Exception {
+    Tree testTree = TreeUtil.addChild(root.getTree("/"), "test", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+    TreeUtil.addMixin(testTree, "mix:title", root.getTree(NodeTypeConstants.NODE_TYPES_PATH), "uid");
+    root.commit();
+    Tree t = Mockito.mock(Tree.class);
+    when(t.hasProperty(JcrConstants.JCR_MIXINTYPES)).thenReturn(false);
+    when(t.getStatus()).thenReturn(Tree.Status.NEW);
+    assertTrue(Iterables.isEmpty(TreeUtil.getMixinTypeNames(t, new LazyValue<Tree>() {
+
+        @Override
+        protected Tree createValue() {
+            return testTree;
+        }
+    })));
+}

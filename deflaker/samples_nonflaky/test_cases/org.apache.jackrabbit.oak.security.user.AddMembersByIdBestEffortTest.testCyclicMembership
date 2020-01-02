@@ -1,0 +1,16 @@
+/**
+ * @since Oak 1.8 : for performance reasons cyclic membership is only check
+ * within GroupImpl and those import-behaviours that actually resolve the id to a user/group
+ */
+@Override
+@Test
+public void testCyclicMembership() throws Exception {
+    memberGroup.addMember(testGroup);
+    root.commit();
+    Set<String> failed = testGroup.addMembers(memberGroup.getID());
+    assertTrue(failed.isEmpty());
+    root.commit();
+    // cyclic membership must be spotted upon membership resolution
+    assertEquals(1, Iterators.size(memberGroup.getMembers()));
+    assertEquals(1, Iterators.size(testGroup.getMembers()));
+}

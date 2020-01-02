@@ -1,0 +1,22 @@
+@Test
+public void testGetAnnotationTargetWrongArg() throws ReflectiveOperationException {
+    final SuppressWarningsHolder holder = new SuppressWarningsHolder();
+    final Method getAnnotationTarget = holder.getClass().getDeclaredMethod("getAnnotationTarget", DetailAST.class);
+    getAnnotationTarget.setAccessible(true);
+    final DetailAstImpl methodDef = new DetailAstImpl();
+    methodDef.setType(TokenTypes.METHOD_DEF);
+    methodDef.setText("Method Def");
+    final DetailAstImpl parent = new DetailAstImpl();
+    parent.setType(TokenTypes.ASSIGN);
+    parent.setText("Parent ast");
+    parent.addChild(methodDef);
+    parent.setLineNo(0);
+    parent.setColumnNo(0);
+    try {
+        getAnnotationTarget.invoke(holder, methodDef);
+        fail("Exception expected");
+    } catch (InvocationTargetException ex) {
+        assertTrue(ex.getCause() instanceof IllegalArgumentException, "Error type is unexpected");
+        assertEquals("Unexpected container AST: Parent ast[0x0]", ex.getCause().getMessage(), "Error message is unexpected");
+    }
+}

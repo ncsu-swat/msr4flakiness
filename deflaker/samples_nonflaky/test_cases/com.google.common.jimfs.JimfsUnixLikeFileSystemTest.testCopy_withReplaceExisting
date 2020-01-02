@@ -1,0 +1,14 @@
+@Test
+public void testCopy_withReplaceExisting() throws IOException {
+    Files.createFile(path("/bar"));
+    Files.createDirectory(path("/test"));
+    assertThatPath("/bar").isRegularFile();
+    // overwrite regular file w/ directory
+    Files.copy(path("/test"), path("/bar"), REPLACE_EXISTING);
+    assertThatPath("/bar").isDirectory();
+    byte[] bytes = { 0, 1, 2, 3 };
+    Files.write(path("/baz"), bytes);
+    // overwrite directory w/ regular file
+    Files.copy(path("/baz"), path("/bar"), REPLACE_EXISTING);
+    assertThatPath("/bar").containsSameBytesAs("/baz");
+}

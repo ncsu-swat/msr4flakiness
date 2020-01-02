@@ -1,0 +1,15 @@
+@Test
+public void testAddEmptyRemoveChildren() throws CommitFailedException {
+    Root root = session.getLatestRoot();
+    Tree rootTree = root.getTree("/test");
+    Tree child = rootTree.addChild("child");
+    child.addChild("grandChild");
+    assertTrue(rootTree.getChild("child2").remove());
+    root.commit();
+    ChangeSet changeSet = getSingleChangeSet();
+    assertMatches("parentPaths", changeSet.getParentPaths(), "/test", "/test/child", "/test/child2", "/test/child2/grandChild2");
+    assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "test", "child", "child2", "grandChild2");
+    assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:parentType", "test:childType", "test:grandChildType");
+    assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType", "test:childType", "test:grandChildType");
+    assertMatches("propertyNames", changeSet.getPropertyNames(), JcrConstants.JCR_PRIMARYTYPE, "child2Prop", "grandChild2Prop");
+}

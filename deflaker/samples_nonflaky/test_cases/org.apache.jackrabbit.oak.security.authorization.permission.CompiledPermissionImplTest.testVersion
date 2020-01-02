@@ -1,0 +1,15 @@
+@Test
+public void testVersion() throws Exception {
+    Tree version = createVersions(SUBTREE_PATH).getChild("1.2");
+    assertEquals(NT_VERSION, TreeUtil.getPrimaryTypeName(version));
+    // subtree path is made readable through PARAM_READ_PATHS
+    CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.of(PARAM_READ_PATHS, ImmutableSet.of(TEST_PATH)));
+    assertTrue(cp.isGranted(version, null, Permissions.READ));
+    // isGranted(String, long) serves as fallback when no versionable node available
+    // -> just regular permission eval based on path, no tree-type taken into account
+    assertFalse(cp.isGranted(version.getPath(), Permissions.READ));
+    assertEquals(ImmutableSet.of(JCR_READ), cp.getPrivileges(version));
+    assertTrue(cp.hasPrivileges(version, JCR_READ));
+    TreePermission tp = createTreePermission(cp, version.getPath());
+    assertTrue(tp instanceof VersionTreePermission);
+}

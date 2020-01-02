@@ -1,0 +1,14 @@
+@Test
+public void mountWithConfig_Name() throws Exception {
+    MockOsgi.activate(service, context.bundleContext(), ImmutableMap.<String, Object>of("mountedPaths", new String[] { "/a", "/b" }, "mountName", "foo", "readOnlyMount", true));
+    MountInfoProvider provider = context.getService(MountInfoProvider.class);
+    assertEquals(1, provider.getNonDefaultMounts().size());
+    Mount m = provider.getMountByName(MountInfoProviderService.PROP_MOUNT_NAME_DEFAULT);
+    assertNull(m);
+    Mount defMount = provider.getDefaultMount();
+    assertNotNull(defMount);
+    m = provider.getMountByName("foo");
+    assertEquals(m, provider.getMountByPath("/a"));
+    assertEquals(defMount, provider.getMountByPath("/x"));
+    assertTrue(m.isReadOnly());
+}

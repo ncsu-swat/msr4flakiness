@@ -1,0 +1,13 @@
+@Test
+public void testOnlySystemReadsFromCache() throws Exception {
+    String userId = getTestUser().getID();
+    PrincipalProvider systemPP = createPrincipalProvider(systemRoot);
+    Set<? extends Principal> principals = systemPP.getPrincipals(userId);
+    assertPrincipals(principals, EveryonePrincipal.getInstance(), testGroup.getPrincipal(), getTestUser().getPrincipal());
+    root.refresh();
+    assertPrincipals(principalProvider.getPrincipals(userId), EveryonePrincipal.getInstance(), testGroup.getPrincipal(), getTestUser().getPrincipal());
+    testGroup.removeMember(getTestUser());
+    root.commit();
+    assertPrincipals(principalProvider.getPrincipals(userId), EveryonePrincipal.getInstance(), getTestUser().getPrincipal());
+    assertPrincipals(systemPP.getPrincipals(userId), EveryonePrincipal.getInstance(), testGroup.getPrincipal(), getTestUser().getPrincipal());
+}

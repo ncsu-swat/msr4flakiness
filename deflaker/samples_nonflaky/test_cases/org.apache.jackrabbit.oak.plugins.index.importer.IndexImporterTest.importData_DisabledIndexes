@@ -1,0 +1,34 @@
+@Test
+public void importData_DisabledIndexes() throws Exception {
+    NodeBuilder builder = store.getRoot().builder();
+    NodeBuilder idxa = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "fooIndex", true, false, ImmutableSet.of("foo"), null);
+    idxa.setProperty(ASYNC_PROPERTY_NAME, "async");
+    idxa.setProperty(IndexConstants.SUPERSEDED_INDEX_PATHS, asList("/oak:index/barIndex"), Type.STRINGS);
+    builder.child("a").setProperty("foo", "abc");
+    builder.child("b").setProperty("foo", "abc");
+    store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    new AsyncIndexUpdate("async", store, provider).run();
+    String checkpoint = createIndexDirs("/oak:index/fooIndex");
+    builder = store.getRoot().builder();
+    createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "barIndex", true, false, ImmutableSet.of("foo"), null);
+    builder.child("c").setProperty("foo", "abc");
+    builder.child("d").setProperty("foo", "abc");
+    store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    new AsyncIndexUpdate("async", store, provider).run();
+    IndexImporterProvider importerProvider = new IndexImporterProvider() {
+
+        @Override
+        public void importIndex(NodeState root, NodeBuilder defn, File indexDir) {
+        }
+
+        @Override
+        public String getType() {
+            return "property";
+        }
+    };
+    IndexImporter importer = new IndexImporter(store, temporaryFolder.getRoot(), provider, NOOP_LOCK);
+    importer.addImporterProvider(importerProvider);
+    importer.importIndex();
+    NodeState idx = store.getRoot().getChildNode("oak:index").getChildNode("barIndex");
+    assertEquals(TYPE_DISABLED, idx.getString(TYPE_PROPERTY_NAME));
+}

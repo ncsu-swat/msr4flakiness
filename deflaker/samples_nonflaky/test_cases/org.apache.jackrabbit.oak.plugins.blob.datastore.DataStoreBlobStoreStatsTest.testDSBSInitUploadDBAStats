@@ -1,0 +1,11 @@
+@Test
+public void testDSBSInitUploadDBAStats() throws IOException, RepositoryException {
+    DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withInitBlobUploadDelay());
+    long initBlobUploadCount = stats.getInitBlobUploadCount();
+    long initBlobUploadCountLastMinute = getLastMinuteStats(stats.getInitBlobUploadCountHistory());
+    long initBlobUploadTimeLastMinute = getLastMinuteStats(stats.getInitBlobUploadTimeHistory());
+    dsbs.initiateBlobUpload(BLOB_LEN, 20);
+    assertEquals(initBlobUploadCount + 1, stats.getInitBlobUploadCount());
+    assertEquals(initBlobUploadCountLastMinute + 1, waitForMetric(input -> getLastMinuteStats(input.getInitBlobUploadCountHistory()), stats, 1L, 0L).longValue());
+    assertTrue(initBlobUploadTimeLastMinute < waitForNonzeroMetric(input -> getLastMinuteStats(input.getInitBlobUploadTimeHistory()), stats));
+}

@@ -1,0 +1,21 @@
+// OAK-2695
+@Test
+public void dispatch() throws Exception {
+    DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
+    RevisionVector from = ns.getHeadRevision();
+    NodeBuilder builder = ns.getRoot().builder();
+    builder.child("test");
+    merge(ns, builder);
+    RevisionVector to = ns.getHeadRevision();
+    DiffCache.Entry entry = ns.getDiffCache().newEntry(from, to, true);
+    entry.append(Path.ROOT, "-\"foo\"");
+    entry.done();
+    ns.compare(ns.getRoot(), ns.getRoot(from), new DefaultNodeStateDiff() {
+
+        @Override
+        public boolean childNodeDeleted(String name, NodeState before) {
+            assertNotNull(before);
+            return true;
+        }
+    });
+}

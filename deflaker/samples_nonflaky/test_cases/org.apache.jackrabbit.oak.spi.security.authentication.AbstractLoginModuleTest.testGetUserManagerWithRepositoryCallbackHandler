@@ -1,0 +1,12 @@
+@Test
+public void testGetUserManagerWithRepositoryCallbackHandler() throws Exception {
+    Root r = mock(Root.class);
+    ContentSession cs = when(mock(ContentSession.class).getLatestRoot()).thenReturn(r).getMock();
+    ContentRepository cp = when(mock(ContentRepository.class).login(null, null)).thenReturn(cs).getMock();
+    UserManager um = mock(UserManager.class);
+    UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(r, NamePathMapper.DEFAULT)).thenReturn(um).getMock();
+    SecurityProvider sp = when(mock(SecurityProvider.class).getConfiguration(UserConfiguration.class)).thenReturn(uc).getMock();
+    CallbackHandler cbh = new TestCallbackHandler(cp, sp);
+    AbstractLoginModule loginModule = initLoginModule(cbh);
+    assertEquals(um, loginModule.getUserManager());
+}

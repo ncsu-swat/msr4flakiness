@@ -1,0 +1,24 @@
+/**
+ * Test dataInPartitions EL function (phase 3) which returns the complete partition value string of a single partition
+ * in case of hive-export type.
+ *
+ * @throws Exception
+ */
+@Test
+public void testDataInPartitions() throws Exception {
+    init("coord-action-start");
+    String expr = "${coord:dataInPartitions('ABC', 'hive-export')}";
+    eval.setVariable(".datain.ABC", "hcat://hcat.server.com:5080/mydb/clicks/datastamp=20120230;region=us");
+    eval.setVariable(".datain.ABC.unresolved", Boolean.FALSE);
+    String res = CoordELFunctions.evalAndWrap(eval, expr);
+    assertTrue(res.equals("datastamp='20120230',region='us'") || res.equals("region='us',datastamp='20120230'"));
+    // -ve test; execute EL function with any other type than hive-export
+    try {
+        expr = "${coord:dataInPartitions('ABC', 'invalid-type')}";
+        eval.setVariable(".datain.ABC", "hcat://hcat.server.com:5080/mydb/clicks/datastamp=20120230;region=us");
+        eval.setVariable(".datain.ABC.unresolved", Boolean.FALSE);
+        res = CoordELFunctions.evalAndWrap(eval, expr);
+        fail("EL function should throw exception because of invalid type");
+    } catch (Exception e) {
+    }
+}

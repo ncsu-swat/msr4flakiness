@@ -1,0 +1,15 @@
+@Test
+public void testRestore() throws Exception {
+    FileStore source = newFileStore(src);
+    SegmentNodeStore store = SegmentNodeStoreBuilders.builder(source).build();
+    FileStoreBackup fsb = new FileStoreBackupImpl();
+    FileStoreRestore fsr = new FileStoreRestoreImpl();
+    init(store);
+    source.flush();
+    fsb.backup(source.getReader(), source.getRevisions(), destination);
+    source.close();
+    fsr.restore(destination, src);
+    source = newFileStore(src);
+    compare(source, destination);
+    source.close();
+}

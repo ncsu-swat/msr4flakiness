@@ -1,0 +1,36 @@
+@Test
+public void testWindows_uncPaths() {
+    PathType windows = PathType.windows();
+    PathType.ParseResult path = windows.parsePath("\\\\host\\share");
+    assertParseResult(path, "\\\\host\\share\\");
+    path = windows.parsePath("\\\\HOST\\share\\foo\\bar");
+    assertParseResult(path, "\\\\HOST\\share\\", "foo", "bar");
+    try {
+        windows.parsePath("\\\\");
+        fail();
+    } catch (InvalidPathException expected) {
+        assertThat(expected.getInput()).isEqualTo("\\\\");
+        assertThat(expected.getReason()).isEqualTo("UNC path is missing hostname");
+    }
+    try {
+        windows.parsePath("\\\\host");
+        fail();
+    } catch (InvalidPathException expected) {
+        assertThat(expected.getInput()).isEqualTo("\\\\host");
+        assertThat(expected.getReason()).isEqualTo("UNC path is missing sharename");
+    }
+    try {
+        windows.parsePath("\\\\host\\");
+        fail();
+    } catch (InvalidPathException expected) {
+        assertThat(expected.getInput()).isEqualTo("\\\\host\\");
+        assertThat(expected.getReason()).isEqualTo("UNC path is missing sharename");
+    }
+    try {
+        windows.parsePath("//host");
+        fail();
+    } catch (InvalidPathException expected) {
+        assertThat(expected.getInput()).isEqualTo("//host");
+        assertThat(expected.getReason()).isEqualTo("UNC path is missing sharename");
+    }
+}

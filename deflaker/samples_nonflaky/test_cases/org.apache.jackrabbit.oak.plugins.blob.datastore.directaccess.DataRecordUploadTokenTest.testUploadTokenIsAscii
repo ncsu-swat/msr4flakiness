@@ -1,0 +1,13 @@
+@Test
+public void testUploadTokenIsAscii() {
+    // run a few times to rule out the (low) chance it is ascii just by chance; the seed will change regularly
+    for (int i = 0; i < 1000; i++) {
+        String encodedToken = new DataRecordUploadToken(BLOB_ID, UPLOAD_ID).getEncodedToken(SECRET);
+        assertTrue("upload token is not ascii: " + encodedToken, StringUtils.isAsciiPrintable(encodedToken));
+        // also check token can be parsed and is valid
+        DataRecordUploadToken parsedToken = DataRecordUploadToken.fromEncodedToken(encodedToken, SECRET);
+        assertEquals(BLOB_ID, parsedToken.getBlobId());
+        assertTrue(parsedToken.getUploadId().isPresent());
+        assertEquals(UPLOAD_ID, parsedToken.getUploadId().get());
+    }
+}

@@ -1,0 +1,8 @@
+@Test
+public void rendersViewsUsingUnsafeInputWithAutoEscapingEnabled() throws Exception {
+    final String unsafe = "<script>alert(\"hello\")</script>";
+    final Response response = target("/test/auto-escaping").request().post(Entity.form(new Form("input", unsafe)));
+    assertThat(response.getStatus()).isEqualTo(Response.Status.OK.getStatusCode());
+    assertThat(response.getHeaderString("content-type")).isEqualToIgnoringCase(MediaType.TEXT_HTML);
+    assertThat(response.readEntity(String.class)).doesNotContain(unsafe);
+}

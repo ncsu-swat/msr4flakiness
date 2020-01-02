@@ -1,0 +1,47 @@
+@SuppressWarnings("StreamResourceLeak")
+@Test
+public void testClosedSecureDirectoryStream() throws IOException {
+    Files.createDirectory(path("/foo"));
+    SecureDirectoryStream<Path> stream = (SecureDirectoryStream<Path>) Files.newDirectoryStream(path("/foo"));
+    stream.close();
+    try {
+        stream.iterator();
+        fail("expected ClosedDirectoryStreamException");
+    } catch (ClosedDirectoryStreamException expected) {
+    }
+    try {
+        stream.deleteDirectory(fs.getPath("a"));
+        fail("expected ClosedDirectoryStreamException");
+    } catch (ClosedDirectoryStreamException expected) {
+    }
+    try {
+        stream.deleteFile(fs.getPath("a"));
+        fail("expected ClosedDirectoryStreamException");
+    } catch (ClosedDirectoryStreamException expected) {
+    }
+    try {
+        stream.newByteChannel(fs.getPath("a"), ImmutableSet.of(CREATE, WRITE));
+        fail("expected ClosedDirectoryStreamException");
+    } catch (ClosedDirectoryStreamException expected) {
+    }
+    try {
+        stream.newDirectoryStream(fs.getPath("a"));
+        fail("expected ClosedDirectoryStreamException");
+    } catch (ClosedDirectoryStreamException expected) {
+    }
+    try {
+        stream.move(fs.getPath("a"), stream, fs.getPath("b"));
+        fail("expected ClosedDirectoryStreamException");
+    } catch (ClosedDirectoryStreamException expected) {
+    }
+    try {
+        stream.getFileAttributeView(BasicFileAttributeView.class);
+        fail("expected ClosedDirectoryStreamException");
+    } catch (ClosedDirectoryStreamException expected) {
+    }
+    try {
+        stream.getFileAttributeView(fs.getPath("a"), BasicFileAttributeView.class);
+        fail("expected ClosedDirectoryStreamException");
+    } catch (ClosedDirectoryStreamException expected) {
+    }
+}

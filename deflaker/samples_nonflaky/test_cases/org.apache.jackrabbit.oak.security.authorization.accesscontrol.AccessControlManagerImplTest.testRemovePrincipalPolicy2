@@ -1,0 +1,14 @@
+@Test
+public void testRemovePrincipalPolicy2() throws Exception {
+    ACL acl = setupPolicy(testPath);
+    assertTrue(acl.addAccessControlEntry(EveryonePrincipal.getInstance(), privilegesFromNames(PrivilegeConstants.REP_READ_PROPERTIES)));
+    acMgr.setPolicy(acl.getPath(), acl);
+    root.commit();
+    JackrabbitAccessControlPolicy[] policies = acMgr.getPolicies(testPrincipal);
+    assertPolicies(policies, 1);
+    // removing the 'testPrincipal' policy will not remove the entry for everyone
+    acMgr.removePolicy(policies[0].getPath(), policies[0]);
+    assertPolicies(acMgr.getPolicies(testPath), 1);
+    assertPolicies(acMgr.getPolicies(testPrincipal), 0);
+    assertPolicies(acMgr.getPolicies(EveryonePrincipal.getInstance()), 1);
+}

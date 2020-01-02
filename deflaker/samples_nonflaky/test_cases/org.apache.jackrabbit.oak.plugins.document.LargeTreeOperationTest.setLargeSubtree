@@ -1,0 +1,24 @@
+@Test
+public void setLargeSubtree() throws CommitFailedException {
+    setLargeSubtree("child");
+}
+private void setLargeSubtree(String... path) throws CommitFailedException {
+    MemoryNodeStore memStore = new MemoryNodeStore();
+    NodeBuilder builder = memStore.getRoot().builder();
+    NodeBuilder test = builder.child("test");
+    for (int i = 0; i < DocumentMK.UPDATE_LIMIT * 3; i++) {
+        test.child("child-" + i);
+    }
+    memStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    DocumentNodeStore ns = new DocumentMK.Builder().setUseSimpleRevision(true).getNodeStore();
+    builder = ns.getRoot().builder();
+    for (String name : path) {
+        builder = builder.child(name);
+    }
+    Revision r1 = ns.newRevision();
+    // must trigger branch commit
+    builder.setChildNode("test", memStore.getRoot().getChildNode("test"));
+    Revision r2 = ns.newRevision();
+    assertTrue("setting a large subtree must trigger branch commits", r2.getTimestamp() - r1.getTimestamp() > 1);
+    ns.dispose();
+}

@@ -1,0 +1,12 @@
+@Test
+public void testRefsNotAvailableAllRepos() throws Exception {
+    File rootFolder = folder.newFolder();
+    dataStore = getBlobStore(rootFolder);
+    Data data = loadData(true);
+    // Delete one of the references file
+    String expectedMissingRepoId = data.repoIds.get(data.repoIds.size() - 1);
+    dataStore.deleteAllMetadataRecords(SharedStoreRecordType.REFERENCES.getNameFromId(expectedMissingRepoId));
+    // check if All the references from registered repositories are available
+    Set<String> missingRepoIds = SharedDataStoreUtils.refsNotAvailableFromRepos(dataStore.getAllMetadataRecords(SharedStoreRecordType.REPOSITORY.getType()), dataStore.getAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType()));
+    assertEquals(Sets.newHashSet(expectedMissingRepoId), missingRepoIds);
+}

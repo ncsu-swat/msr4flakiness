@@ -1,0 +1,21 @@
+public void testLocalFileAttachmentError() throws Exception {
+    File attachFile1 = new File(getTestCaseDir() + File.separator + "attachment1.txt");
+    String content1 = "this is attachment content in file1";
+    File attachFile2 = new File(getTestCaseDir() + File.separator + "attachment2.txt");
+    String content2 = "this is attachment content in file2";
+    BufferedWriter output = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(attachFile1), StandardCharsets.UTF_8));
+    output.write(content1);
+    output.close();
+    output = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(attachFile2), StandardCharsets.UTF_8));
+    output.write(content2);
+    output.close();
+    StringBuilder tag = new StringBuilder();
+    tag.append("file://").append(attachFile1.getAbsolutePath()).append(",file://").append(attachFile2.getAbsolutePath());
+    // local file not attached to email (for security reason)
+    try {
+        assertAttachment(tag.toString(), 0, content1, content2);
+        fail();
+    } catch (ActionExecutorException e) {
+        assertEquals("EM008", e.getErrorCode());
+    }
+}

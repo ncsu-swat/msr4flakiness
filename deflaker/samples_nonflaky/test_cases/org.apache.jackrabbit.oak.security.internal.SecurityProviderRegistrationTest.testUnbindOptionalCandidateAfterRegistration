@@ -1,0 +1,16 @@
+@Test
+public void testUnbindOptionalCandidateAfterRegistration() {
+    registration.activate(context.bundleContext(), configWithRequiredServiceIds("serviceId"));
+    UserAuthenticationFactory uaf = mock(UserAuthenticationFactory.class);
+    ServiceReference serviceReference = when(mock(ServiceReference.class).getProperty(SERVICE_PID)).thenReturn("notMandatory").getMock();
+    registration.bindUserAuthenticationFactory(serviceReference, uaf);
+    assertNull(context.getService(SecurityProvider.class));
+    ServiceReference sr = when(mock(ServiceReference.class).getProperty(SERVICE_PID)).thenReturn("serviceId").getMock();
+    registration.bindAuthorizableActionProvider(sr, mock(AuthorizableActionProvider.class));
+    SecurityProvider service = context.getService(SecurityProvider.class);
+    assertNotNull(service);
+    // unbinding an optional configuration must not result in unrregistration of the service
+    registration.unbindUserAuthenticationFactory(serviceReference, uaf);
+    SecurityProvider service2 = context.getService(SecurityProvider.class);
+    assertSame(service, service2);
+}

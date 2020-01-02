@@ -1,0 +1,34 @@
+@Test
+public void observationQueueMaxLength() {
+    AtomicLong maxQueueLength = new AtomicLong();
+    SimpleStats stats = new SimpleStats(maxQueueLength, SimpleStats.Type.COUNTER);
+    Whiteboard wb = new DefaultWhiteboard();
+    wb.register(StatisticsProvider.class, new DummyStatsProvider() {
+
+        @Override
+        public CounterStats getCounterStats(String name, StatsOptions options) {
+            if (name.equals(RepositoryStats.OBSERVATION_QUEUE_MAX_LENGTH)) {
+                return stats;
+            }
+            return super.getCounterStats(name, options);
+        }
+    }, null);
+    StatisticManager mgr = new StatisticManager(wb, executorService);
+    TimeSeriesMax rec = mgr.maxQueLengthRecorder();
+    List<Runnable> services = wb.track(Runnable.class).getServices();
+    assertEquals(1, services.size());
+    // this is the scheduled task registered by the StatisticsManager
+    // updating the TimeSeries every second
+    Runnable pulse = services.get(0);
+    // must reset the stats to 'unknown' (-1)
+    pulse.run();
+    assertEquals(-1L, maxQueueLength.get());
+    rec.recordValue(7);
+    rec.recordValue(5);
+    rec.recordValue(-1);
+    // must return the max value
+    assertEquals(7L, maxQueueLength.get());
+    // must reset the stats to 'unknown' (-1)
+    pulse.run();
+    assertEquals(-1L, maxQueueLength.get());
+}

@@ -1,0 +1,17 @@
+@Test
+public void statsForSpecificIndex() throws Exception {
+    prepareStore();
+    NodeBuilder builder = store.getRoot().builder();
+    createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo", true, false, ImmutableSet.of("foo"), null);
+    setProperty(builder, "/a/b/c", "foo", "x");
+    setProperty(builder, "/a/e/c/d", "foo", "y");
+    store.merge(builder, HOOK, CommitInfo.EMPTY);
+    CompositeData cd = mbean.getStatsForSpecificIndex("/oak:index/foo", 5, 2, 100);
+    assertEquals(2L, cd.get("valueCount"));
+    assertArray(cd, "values", asList("x", "y"));
+    assertArray(cd, "paths", asList("/a/b", "/a/e"));
+    cd = mbean.getStatsForSpecificIndex("/oak:index/foo", 5, 3, 100);
+    assertArray(cd, "paths", asList("/a/b/c", "/a/e/c"));
+    cd = mbean.getStatsForSpecificIndex("/oak:index/foo", 5, 5, 100);
+    assertArray(cd, "paths", asList("/a/b/c", "/a/e/c/d"));
+}

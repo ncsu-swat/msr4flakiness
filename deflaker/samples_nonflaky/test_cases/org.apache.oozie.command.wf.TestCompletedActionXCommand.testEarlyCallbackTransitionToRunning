@@ -1,0 +1,69 @@
+public void testEarlyCallbackTransitionToRunning() throws Exception {
+    final Instrumentation inst = Services.get().get(InstrumentationService.class).get();
+    WorkflowJobBean job = addRecordToWfJobTable(WorkflowJob.Status.RUNNING, WorkflowInstance.Status.RUNNING);
+    final WorkflowActionBean action = addRecordToWfActionTable(job.getId(), "1", WorkflowAction.Status.PREP);
+    final CompletedActionXCommand cmd = new CompletedActionXCommand(action.getId(), "SUCCEEDED", null);
+    long xexceptionCount;
+    try {
+        xexceptionCount = inst.getCounters().get(XCommand.INSTRUMENTATION_GROUP).get(cmd.getName() + ".xexceptions").getValue();
+    } catch (NullPointerException npe) {
+        // counter might be null
+        xexceptionCount = 0L;
+    }
+    assertEquals(0L, xexceptionCount);
+    long executionsCount;
+    try {
+        executionsCount = inst.getCounters().get(XCommand.INSTRUMENTATION_GROUP).get(cmd.getName() + ".executions").getValue();
+    } catch (NullPointerException npe) {
+        // counter might be null
+        executionsCount = 0L;
+    }
+    assertEquals(0L, executionsCount);
+    long checkXCommandExecutionsCount;
+    try {
+        checkXCommandExecutionsCount = inst.getCounters().get(XCommand.INSTRUMENTATION_GROUP).get("action.check.executions").getValue();
+    } catch (NullPointerException npe) {
+        // counter might be null
+        checkXCommandExecutionsCount = 0L;
+    }
+    assertEquals(0L, checkXCommandExecutionsCount);
+    cmd.call();
+    int timeout = 100000 * 5 * 2;
+    waitFor(timeout, new Predicate() {
+
+        @Override
+        public boolean evaluate() throws Exception {
+            long executionsCount;
+            try {
+                executionsCount = inst.getCounters().get(XCommand.INSTRUMENTATION_GROUP).get(cmd.getName() + ".executions").getValue();
+            } catch (NullPointerException npe) {
+                // counter might be null
+                executionsCount = 0L;
+            }
+            if (executionsCount == 3 && !action.getStatus().equals(WorkflowAction.Status.RUNNING)) {
+                // Transition the action to RUNNING
+                action.setStatus(WorkflowAction.Status.RUNNING);
+                WorkflowActionQueryExecutor.getInstance().executeUpdate(WorkflowActionQueryExecutor.WorkflowActionQuery.UPDATE_ACTION, action);
+            }
+            long checkXCommandExecutionsCount;
+            try {
+                checkXCommandExecutionsCount = inst.getCounters().get(XCommand.INSTRUMENTATION_GROUP).get("action.check.executions").getValue();
+            } catch (NullPointerException npe) {
+                // counter might be null
+                checkXCommandExecutionsCount = 0L;
+            }
+            return (checkXCommandExecutionsCount == 1L);
+        }
+    });
+    executionsCount = inst.getCounters().get(XCommand.INSTRUMENTATION_GROUP).get(cmd.getName() + ".executions").getValue();
+    assertTrue("expected a value greater than 3L, but found " + executionsCount, executionsCount >= 3L);
+    checkXCommandExecutionsCount = inst.getCounters().get(XCommand.INSTRUMENTATION_GROUP).get("action.check.executions").getValue();
+    assertEquals(1L, checkXCommandExecutionsCount);
+    try {
+        xexceptionCount = inst.getCounters().get(XCommand.INSTRUMENTATION_GROUP).get(cmd.getName() + ".xexceptions").getValue();
+    } catch (NullPointerException npe) {
+        // counter might be null
+        xexceptionCount = 0L;
+    }
+    assertEquals(0L, xexceptionCount);
+}

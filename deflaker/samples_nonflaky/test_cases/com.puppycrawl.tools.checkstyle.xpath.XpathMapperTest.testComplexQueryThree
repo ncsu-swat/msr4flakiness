@@ -1,0 +1,12 @@
+@Test
+public void testComplexQueryThree() throws Exception {
+    final String xpath = "//CLASS_DEF | //CLASS_DEF//METHOD_DEF | /CLASS_DEF/OBJBLOCK";
+    final RootNode rootNode = getRootNode("InputXpathMapperAst.java");
+    final DetailAST[] actual = convertToArray(getXpathItems(xpath, rootNode));
+    final DetailAST expectedClassDefNode = getSiblingByType(rootNode.getUnderlyingNode(), TokenTypes.CLASS_DEF);
+    final DetailAST expectedObjblockNode = expectedClassDefNode.findFirstToken(TokenTypes.OBJBLOCK);
+    final DetailAST expectedMethodDefNode = expectedObjblockNode.findFirstToken(TokenTypes.METHOD_DEF);
+    final DetailAST expectedMethodDefNode2 = expectedObjblockNode.findFirstToken(TokenTypes.METHOD_DEF).getNextSibling();
+    final DetailAST[] expected = { expectedClassDefNode, expectedMethodDefNode, expectedMethodDefNode2, expectedObjblockNode };
+    assertThat("Result nodes differ from expected", actual, equalTo(expected));
+}

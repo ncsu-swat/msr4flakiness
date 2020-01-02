@@ -1,0 +1,24 @@
+// OAK-7378
+@Test
+public void recommendedInterval() throws Exception {
+    AtomicLong deletedOnceCountCalls = new AtomicLong();
+    // override the gc with a custom VersionGCSupport
+    gc = new VersionGarbageCollector(ns, new VersionGCSupport(store) {
+
+        @Override
+        public long getDeletedOnceCount() {
+            deletedOnceCountCalls.incrementAndGet();
+            return Iterables.size(Utils.getSelectedDocuments(store, NodeDocument.DELETED_ONCE, 1));
+        }
+    });
+    // run first RGC
+    gc.gc(1, TimeUnit.HOURS);
+    // afterwards there should be no more calls to getDeletedOnceCount()
+    deletedOnceCountCalls.set(0);
+    // try a couple of runs every five seconds to simulate continuous RGC
+    for (int i = 0; i < 10; i++) {
+        advanceClock(5, SECONDS);
+        gc.gc(1, TimeUnit.HOURS);
+        assertEquals(0, deletedOnceCountCalls.get());
+    }
+}

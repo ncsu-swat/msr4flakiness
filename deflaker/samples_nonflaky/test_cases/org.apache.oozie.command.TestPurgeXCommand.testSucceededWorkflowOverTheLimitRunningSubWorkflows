@@ -1,0 +1,22 @@
+/**
+ * Test : The subworkflows shouldn't get purged, but the workflow parent should get purged --> none will get purged
+ * There are more subworkflow children than the limit
+ *
+ * @throws Exception if cannot insert records to the database
+ */
+public void testSucceededWorkflowOverTheLimitRunningSubWorkflows() throws Exception {
+    WorkflowJobBean wfJob = addRecordToWfJobTableForNegCase(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED);
+    WorkflowActionBean[] wfActions = new WorkflowActionBean[TEST_CHILD_NUM];
+    WorkflowJobBean[] subwfJobs = new WorkflowJobBean[TEST_CHILD_NUM];
+    WorkflowActionBean[] subwfActions = new WorkflowActionBean[TEST_CHILD_NUM];
+    for (int i = 0; i < TEST_CHILD_NUM; ++i) {
+        wfActions[i] = addRecordToWfActionTable(wfJob.getId(), String.format("action%d", i), WorkflowAction.Status.OK);
+        subwfJobs[i] = addRecordToWfJobTable(WorkflowJob.Status.RUNNING, WorkflowInstance.Status.RUNNING, wfJob.getId());
+        subwfActions[i] = addRecordToWfActionTable(subwfJobs[i].getId(), String.format("action%d", i), WorkflowAction.Status.RUNNING);
+    }
+    purgeWithDefaultParameters();
+    assertWorkflowJobNotPurged(wfJob);
+    assertWorkflowActionsNotPurged(wfActions);
+    assertWorkflowJobsNotPurged(subwfJobs);
+    assertWorkflowActionsNotPurged(subwfActions);
+}

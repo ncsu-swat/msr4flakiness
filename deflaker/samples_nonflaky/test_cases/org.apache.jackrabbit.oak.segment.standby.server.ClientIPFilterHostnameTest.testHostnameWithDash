@@ -1,0 +1,22 @@
+@Test
+public void testHostnameWithDash() {
+    String[] filters = new String[] { "foo-bar" };
+    AddressResolver anythingToLocalhostResolver = new AddressResolver() {
+
+        @Override
+        public InetAddress resolve(String host) {
+            InetAddress address = null;
+            try {
+                if (host.equals("foo-bar")) {
+                    address = InetAddress.getByName("localhost");
+                }
+            } catch (UnknownHostException e) {
+            // ignore
+            }
+            return address;
+        }
+    };
+    ClientFilter clientFilter = new ClientIpFilter(filters, anythingToLocalhostResolver);
+    InetSocketAddress address = new InetSocketAddress("localhost", 8080);
+    assertEquals(true, clientFilter.isAllowed(address));
+}

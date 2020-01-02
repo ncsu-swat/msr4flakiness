@@ -1,0 +1,42 @@
+@Test
+public void clusterInitialization() throws CommitFailedException, InterruptedException {
+    MemoryNodeStore seed = new MemoryNodeStore();
+    NodeBuilder root = seed.getRoot().builder();
+    root.child("first");
+    root.child("second");
+    root.child("third");
+    for (int i = 0; i < 10; i++) {
+        NodeBuilder b = root.child("third").child("a-" + i);
+        for (int j = 0; j < 50; j++) {
+            b.child(("b-") + j);
+        }
+    }
+    seed.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    MountInfoProvider mip = Mounts.newBuilder().mount("seed", "/first").build();
+    DocumentStore sharedStore = new MemoryDocumentStore();
+    List<DocumentNodeStore> stores = new ArrayList<>();
+    for (int i = 0; i < 10; i++) {
+        stores.add(new DocumentMK.Builder().setDocumentStore(sharedStore).setClusterId(i + 1).build());
+    }
+    List<Throwable> exceptions = Collections.synchronizedList(new ArrayList<>());
+    AtomicBoolean migrated = new AtomicBoolean();
+    List<Thread> threads = stores.stream().map(dns -> (Runnable) () -> runMigration(dns, seed, mip.getMountByName("seed"), exceptions, migrated)).map(Thread::new).collect(Collectors.toList());
+    threads.stream().forEach(Thread::start);
+    for (Thread t : threads) {
+        t.join();
+    }
+    assertTrue("Exception list should be empty: " + exceptions, exceptions.isEmpty());
+    for (DocumentNodeStore dns : stores) {
+        NodeState targetRoot = dns.getRoot();
+        // verify that the 'second' and 'third' nodes are visible in the migrated store
+        assertFalse("Node /first should not have been migrated", targetRoot.hasChildNode("first"));
+        assertTrue("Node /second should have been migrated", targetRoot.hasChildNode("second"));
+        assertTrue("Node /third should have been migrated", targetRoot.hasChildNode("third"));
+        for (int i = 0; i < 10; i++) {
+            for (int j = 0; j < 10; j++) {
+                assertTrue("Node /third/" + i + "/" + j + " should have been migrated", targetRoot.getChildNode("third").getChildNode("a-" + i).hasChildNode("b-" + j));
+            }
+        }
+        dns.dispose();
+    }
+}

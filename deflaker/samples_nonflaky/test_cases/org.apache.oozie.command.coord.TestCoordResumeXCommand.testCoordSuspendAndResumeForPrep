@@ -1,0 +1,19 @@
+/**
+ * Test : suspend a PREP coordinator job and resume to PREP
+ *
+ * @throws Exception
+ */
+public void testCoordSuspendAndResumeForPrep() throws Exception {
+    CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.PREP, false, false);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    CoordJobGetJPAExecutor coordJobGetCmd = new CoordJobGetJPAExecutor(job.getId());
+    job = jpaService.execute(coordJobGetCmd);
+    assertEquals(job.getStatus(), CoordinatorJob.Status.PREP);
+    new CoordSuspendXCommand(job.getId()).call();
+    job = jpaService.execute(coordJobGetCmd);
+    assertEquals(job.getStatus(), CoordinatorJob.Status.PREPSUSPENDED);
+    new CoordResumeXCommand(job.getId()).call();
+    job = jpaService.execute(coordJobGetCmd);
+    assertEquals(job.getStatus(), CoordinatorJob.Status.PREP);
+}

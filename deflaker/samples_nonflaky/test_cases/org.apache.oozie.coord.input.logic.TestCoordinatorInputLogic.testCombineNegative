@@ -1,0 +1,24 @@
+public void testCombineNegative() throws Exception {
+    Configuration conf = getConf();
+    // @formatter:off
+    String inputLogic = "<combine name=\"test\">" + "<data-in dataset=\"A\" />" + "<data-in dataset=\"B\" />" + "</combine>";
+    // @formatter:on
+    conf.set("initial_instance_a", "2014-10-07T00:00Z");
+    conf.set("initial_instance_b", "2014-10-07T00:00Z");
+    final String jobId = _testCoordSubmit("coord-inputlogic-range.xml", conf, inputLogic, getInputEventForRange());
+    createTestCaseSubDir("input-data/a/2014/10/08/00/_SUCCESS".split("/"));
+    createTestCaseSubDir("input-data/a/2014/10/07/23/_SUCCESS".split("/"));
+    createTestCaseSubDir("input-data/b/2014/10/07/21/_SUCCESS".split("/"));
+    createTestCaseSubDir("input-data/b/2014/10/07/20/_SUCCESS".split("/"));
+    new CoordMaterializeTransitionXCommand(jobId, 3600).call();
+    new CoordActionInputCheckXCommand(jobId + "@1", jobId).call();
+    waitFor(5 * 1000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            CoordinatorActionBean actionBean = CoordActionQueryExecutor.getInstance().get(CoordActionQuery.GET_COORD_ACTION, jobId + "@1");
+            return !actionBean.getStatus().equals(CoordinatorAction.Status.WAITING);
+        }
+    });
+    CoordinatorAction actionBean = CoordActionQueryExecutor.getInstance().get(CoordActionQuery.GET_COORD_ACTION, jobId + "@1");
+    assertEquals(actionBean.getStatus(), CoordinatorAction.Status.WAITING);
+}

@@ -1,0 +1,22 @@
+@Test(expected = CommitFailedException.class)
+public void testChangePrimaryTypeToPolicyNode() throws Exception {
+    // grant the test session the ability to read/write at test node but don't
+    // allow to modify access control content
+    grant(TEST_ROOT_PATH, PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL, PrivilegeConstants.REP_WRITE);
+    // create a rep:policy node that is not detected as access control content
+    TreeUtil.addChild(root.getTree(TEST_CHILD_PATH), AccessControlConstants.REP_POLICY, NT_UNSTRUCTURED);
+    root.commit();
+    try (ContentSession testSession = createTestSession()) {
+        Root testRoot = testSession.getLatestRoot();
+        Tree testChild = testRoot.getTree(TEST_CHILD_PATH);
+        testChild.setProperty(PropertyStates.createProperty(JcrConstants.JCR_MIXINTYPES, ImmutableList.of(AccessControlConstants.MIX_REP_ACCESS_CONTROLLABLE), Type.NAMES));
+        Tree testPolicy = testChild.getChild(AccessControlConstants.REP_POLICY);
+        testPolicy.setOrderableChildren(true);
+        testPolicy.setProperty(JCR_PRIMARYTYPE, AccessControlConstants.NT_REP_ACL, Type.NAME);
+        testRoot.commit();
+    } catch (CommitFailedException e) {
+        assertTrue(e.isAccessViolation());
+        assertEquals(0, e.getCode());
+        throw e;
+    }
+}

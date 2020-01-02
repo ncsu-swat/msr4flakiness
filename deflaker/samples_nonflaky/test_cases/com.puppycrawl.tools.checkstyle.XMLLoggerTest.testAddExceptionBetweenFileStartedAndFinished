@@ -1,0 +1,15 @@
+@Test
+public void testAddExceptionBetweenFileStartedAndFinished() throws Exception {
+    final XMLLogger logger = new XMLLogger(outStream, OutputStreamOptions.CLOSE);
+    logger.auditStarted(null);
+    final LocalizedMessage message = new LocalizedMessage(1, 1, "messages.properties", null, null, null, getClass(), null);
+    final AuditEvent fileStartedEvent = new AuditEvent(this, "Test.java");
+    logger.fileStarted(fileStartedEvent);
+    final AuditEvent ev = new AuditEvent(this, "Test.java", message);
+    logger.addException(ev, new TestException("msg", new RuntimeException("msg")));
+    final AuditEvent fileFinishedEvent = new AuditEvent(this, "Test.java");
+    logger.fileFinished(fileFinishedEvent);
+    logger.auditFinished(null);
+    verifyXml(getPath("ExpectedXMLLoggerException2.xml"), outStream);
+    assertEquals(1, outStream.getCloseCount(), "Invalid close count");
+}

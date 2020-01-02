@@ -1,0 +1,19 @@
+@Test
+public void testSuccessfulOnlyRootKidsCheckWithBinaryTraversalAndFilterPaths() throws Exception {
+    StringWriter strOut = new StringWriter();
+    StringWriter strErr = new StringWriter();
+    PrintWriter outWriter = new PrintWriter(strOut, true);
+    PrintWriter errWriter = new PrintWriter(strErr, true);
+    Set<String> filterPaths = new LinkedHashSet<>();
+    filterPaths.add("/a");
+    filterPaths.add("/b");
+    filterPaths.add("/c");
+    filterPaths.add("/d");
+    filterPaths.add("/e");
+    filterPaths.add("/f");
+    Check.builder().withPath(new File(temporaryFolder.getRoot().getAbsolutePath())).withDebugInterval(Long.MAX_VALUE).withCheckBinaries(true).withCheckHead(true).withCheckpoints(new HashSet<String>()).withFilterPaths(filterPaths).withIOStatistics(true).withOutWriter(outWriter).withErrWriter(errWriter).build().run();
+    outWriter.close();
+    errWriter.close();
+    assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Searched through 1 revisions and 0 checkpoints", "Checked 1 nodes and 1 properties", "Checked 1 nodes and 2 properties", "Checked 1 nodes and 3 properties", "Path /a is consistent", "Path /b is consistent", "Path /c is consistent", "Path /d is consistent", "Path /e is consistent", "Path /f is consistent"));
+    assertExpectedOutput(strErr.toString(), Lists.newArrayList(""));
+}

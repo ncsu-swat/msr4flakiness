@@ -1,0 +1,22 @@
+@Test
+public void testTracker() {
+    List<CacheChangesTracker> list = new ArrayList<CacheChangesTracker>();
+    CacheChangesTracker tracker = new CacheChangesTracker(new Predicate<String>() {
+
+        @Override
+        public boolean apply(@Nullable String input) {
+            return !"ignored".equals(input);
+        }
+    }, list, 100);
+    assertFalse(tracker.mightBeenAffected("xyz"));
+    assertFalse(tracker.mightBeenAffected("abc"));
+    tracker.putDocument("xyz");
+    assertTrue(tracker.mightBeenAffected("xyz"));
+    tracker.invalidateDocument("abc");
+    assertTrue(tracker.mightBeenAffected("abc"));
+    tracker.putDocument("ignored");
+    tracker.invalidateDocument("ignored");
+    assertFalse(tracker.mightBeenAffected("ignored"));
+    tracker.close();
+    assertTrue(list.isEmpty());
+}

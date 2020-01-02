@@ -1,0 +1,15 @@
+/**
+ * We cannot reproduce situation when visitToken is called and leaveToken is not.
+ * So, we have to use reflection to be sure that even in such situation
+ * state of the field will be cleared.
+ *
+ * @throws Exception when code tested throws exception
+ */
+@Test
+@SuppressWarnings("unchecked")
+public void testClearState() throws Exception {
+    final AbstractSuperCheck check = new SuperCloneCheck();
+    final Optional<DetailAST> methodDef = TestUtil.findTokenInAstByPredicate(JavaParser.parseFile(new File(getPath("InputSuperCloneWithoutWarnings.java")), JavaParser.Options.WITHOUT_COMMENTS), ast -> ast.getType() == TokenTypes.METHOD_DEF);
+    assertTrue(methodDef.isPresent(), "Ast should contain METHOD_DEF");
+    assertTrue(TestUtil.isStatefulFieldClearedDuringBeginTree(check, methodDef.get(), "methodStack", methodStack -> ((Collection<Set<String>>) methodStack).isEmpty()), "State is not cleared on beginTree");
+}

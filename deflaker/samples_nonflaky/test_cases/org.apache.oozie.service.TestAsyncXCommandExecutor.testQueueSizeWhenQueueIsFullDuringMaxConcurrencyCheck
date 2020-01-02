@@ -1,0 +1,11 @@
+@Test
+public void testQueueSizeWhenQueueIsFullDuringMaxConcurrencyCheck() {
+    XCallable<?> callable = mock(XCallable.class);
+    when(callable.getType()).thenReturn(DEFAULT_TYPE);
+    Mockito.<XCallable<?>>when(callableWrapper.getElement()).thenReturn(callable);
+    when(callableQueueService.canSubmitCallable(eq(callable))).thenReturn(true);
+    asyncExecutor.handleConcurrencyExceeded(callableWrapper);
+    activeCommands.set(20);
+    asyncExecutor.checkMaxConcurrency(DEFAULT_TYPE);
+    assertEquals("Active commands", 19, activeCommands.get());
+}

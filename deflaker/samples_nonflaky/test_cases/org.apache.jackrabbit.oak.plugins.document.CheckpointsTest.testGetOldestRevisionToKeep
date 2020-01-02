@@ -1,0 +1,23 @@
+@Test
+public void testGetOldestRevisionToKeep() throws Exception {
+    long et1 = 1000, et2 = et1 + 1000;
+    String r1 = store.getHeadRevision().toString();
+    Revision c1 = Revision.fromString(store.checkpoint(et1));
+    // Do some commit to change headRevision
+    NodeBuilder b2 = store.getRoot().builder();
+    b2.child("x");
+    store.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    String r2 = store.getHeadRevision().toString();
+    Revision c2 = Revision.fromString(store.checkpoint(et2));
+    assertNotEquals(c1, c2);
+    // r1 is older
+    assertEquals(r1, store.getCheckpoints().getOldestRevisionToKeep().toString());
+    long starttime = clock.getTime();
+    // Trigger expiry by forwarding the clock to future e1
+    clock.waitUntil(starttime + et1 + 1);
+    assertEquals(r2, store.getCheckpoints().getOldestRevisionToKeep().toString());
+    // Trigger expiry by forwarding the clock to future e2
+    // This time no valid checkpoint
+    clock.waitUntil(starttime + et2 + 1);
+    assertNull(store.getCheckpoints().getOldestRevisionToKeep());
+}

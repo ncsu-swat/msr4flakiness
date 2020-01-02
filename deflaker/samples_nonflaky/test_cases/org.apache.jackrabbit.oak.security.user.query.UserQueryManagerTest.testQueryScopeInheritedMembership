@@ -1,0 +1,19 @@
+@Test
+public void testQueryScopeInheritedMembership() throws Exception {
+    Group g = createGroup("g1", null);
+    Group g2 = createGroup("g2", null);
+    g.addMember(g2);
+    g2.addMember(user);
+    user.setProperty(propertyName, v);
+    root.commit();
+    Query q = new Query() {
+
+        @Override
+        public <T> void build(@NotNull QueryBuilder<T> builder) {
+            builder.setCondition(builder.eq(propertyName, v));
+            builder.setScope("g1", false);
+        }
+    };
+    Iterator<Authorizable> result = queryMgr.findAuthorizables(q);
+    assertResultContainsAuthorizables(result, user);
+}

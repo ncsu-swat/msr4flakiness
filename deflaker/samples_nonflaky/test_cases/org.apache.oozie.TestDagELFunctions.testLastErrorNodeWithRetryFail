@@ -1,0 +1,28 @@
+// This test simulates an action that gets retried because of an Error and never succeeds on later retries.  The lastErrorNode
+// EL function should be set to this node, but only after the last retry.
+public void testLastErrorNodeWithRetryFail() throws Exception {
+    WorkflowJobBean job = this.addRecordToWfJobTable(WorkflowJob.Status.RUNNING, WorkflowInstance.Status.RUNNING);
+    WorkflowActionBean action = this.addRecordToWfActionTable(job.getId(), "1", WorkflowAction.Status.END_RETRY, true);
+    action.setType("java");
+    action.setExternalStatus("FAILED");
+    action.setErrorInfo("JA018", "some error occurred");
+    WorkflowActionQueryExecutor.getInstance().executeUpdate(WorkflowActionQueryExecutor.WorkflowActionQuery.UPDATE_ACTION, action);
+    new ActionEndXCommandIgnoreSignalException(action.getId(), action.getType()).call();
+    ELEvaluator eval = Services.get().get(ELService.class).createEvaluator("workflow");
+    job = WorkflowJobQueryExecutor.getInstance().get(WorkflowJobQueryExecutor.WorkflowJobQuery.GET_WORKFLOW, job.getId());
+    action = WorkflowActionQueryExecutor.getInstance().get(WorkflowActionQueryExecutor.WorkflowActionQuery.GET_ACTION, action.getId());
+    DagELFunctions.configureEvaluator(eval, job, action);
+    assertEquals("", eval.evaluate("${wf:lastErrorNode()}", String.class));
+    action.setExternalStatus("FAILED");
+    action.setErrorInfo("JA018", "some error occurred");
+    action.setStatus(WorkflowAction.Status.END_RETRY);
+    // make it the last retry
+    action.setUserRetryCount(action.getUserRetryMax());
+    WorkflowActionQueryExecutor.getInstance().executeUpdate(WorkflowActionQueryExecutor.WorkflowActionQuery.UPDATE_ACTION, action);
+    new ActionEndXCommandIgnoreSignalException(action.getId(), action.getType()).call();
+    job = WorkflowJobQueryExecutor.getInstance().get(WorkflowJobQueryExecutor.WorkflowJobQuery.GET_WORKFLOW, job.getId());
+    action = WorkflowActionQueryExecutor.getInstance().get(WorkflowActionQueryExecutor.WorkflowActionQuery.GET_ACTION, action.getId());
+    assertEquals(WorkflowAction.Status.ERROR, action.getStatus());
+    DagELFunctions.configureEvaluator(eval, job, action);
+    assertEquals(action.getName(), eval.evaluate("${wf:lastErrorNode()}", String.class));
+}

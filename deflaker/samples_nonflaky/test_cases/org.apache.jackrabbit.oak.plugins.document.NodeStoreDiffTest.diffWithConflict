@@ -1,0 +1,20 @@
+@Test
+public void diffWithConflict() throws Exception {
+    // Last rev on /var would be 1-0-1
+    createNodes("/var/a", "/var/b/b1");
+    // 1. Dummy commits to bump the version no
+    createNodes("/fake/b");
+    createNodes("/fake/c");
+    // Root rev = 3-0-1
+    // Root rev = 3-0-1
+    // 2. Create a node under /var/a but hold on commit
+    NodeBuilder b1 = ns.getRoot().builder();
+    createNodes(b1, "/var/a/a1");
+    // 3. Remove a node under /var/b and commit it
+    NodeBuilder b2 = ns.getRoot().builder();
+    b2.child("var").child("b").child("b1").remove();
+    merge(b2);
+    // 4. Now merge and commit the changes in b1 and include conflict hooks
+    // For now exception would be thrown
+    ns.merge(b1, new CompositeHook(ConflictHook.of(new AnnotatingConflictHandler()), new EditorHook(new ConflictValidatorProvider())), CommitInfo.EMPTY);
+}

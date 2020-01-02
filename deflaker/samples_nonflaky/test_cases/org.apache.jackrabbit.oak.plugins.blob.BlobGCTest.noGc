@@ -1,0 +1,9 @@
+@Test
+public void noGc() throws Exception {
+    log.info("Starting noGc()");
+    long afterSetupTime = clock.getTime();
+    log.info("after setup time {}", afterSetupTime);
+    Set<String> existingAfterGC = executeGarbageCollection(cluster, cluster.getCollector(afterSetupTime - cluster.startReferenceTime + 2), false);
+    assertTrue(Sets.symmetricDifference(cluster.blobStoreState.blobsAdded, existingAfterGC).isEmpty());
+    assertStats(cluster.statsProvider, 1, 0, 0, cluster.blobStoreState.blobsAdded.size() - cluster.blobStoreState.blobsPresent.size(), NAME);
+}

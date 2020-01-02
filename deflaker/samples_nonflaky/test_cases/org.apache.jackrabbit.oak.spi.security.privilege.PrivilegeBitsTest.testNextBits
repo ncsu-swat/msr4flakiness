@@ -1,0 +1,30 @@
+@Test
+public void testNextBits() {
+    // long based privilege bits
+    PrivilegeBits pb = READ_NODES_PRIVILEGE_BITS;
+    long l = getLongValue(pb);
+    while (l < Long.MAX_VALUE / 2) {
+        l = l << 1;
+        pb = pb.nextBits();
+        assertEquals(l, getLongValue(pb));
+    }
+    // other privilege bits: long value not available.
+    for (int i = 0; i < 10; i++) {
+        PrivilegeBits nxt = pb.nextBits();
+        assertEquals(nxt, pb.nextBits());
+        assertNotEquals(pb, nxt);
+        pb = nxt;
+    }
+    // modifiable privilege bits
+    pb = READ_NODES_PRIVILEGE_BITS;
+    for (int i = 0; i < 100; i++) {
+        PrivilegeBits modifiable = PrivilegeBits.getInstance(pb);
+        try {
+            modifiable.nextBits();
+            fail("UnsupportedOperation expected");
+        } catch (UnsupportedOperationException e) {
+        // success
+        }
+        pb = pb.nextBits();
+    }
+}

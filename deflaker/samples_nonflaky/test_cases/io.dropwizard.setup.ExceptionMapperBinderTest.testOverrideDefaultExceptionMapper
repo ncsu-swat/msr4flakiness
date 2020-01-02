@@ -1,0 +1,10 @@
+@Test
+public void testOverrideDefaultExceptionMapper() throws Exception {
+    environment.jersey().register(new TestValidationResource());
+    environment.jersey().register(new MyJerseyExceptionMapper());
+    final Server server = http.build(environment);
+    server.start();
+    final int port = ((AbstractNetworkConnector) server.getConnectors()[0]).getLocalPort();
+    assertThat(httpRequest("GET", "http://localhost:" + port + "/service/test")).isEqualTo("alright!");
+    server.stop();
+}

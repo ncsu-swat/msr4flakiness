@@ -1,0 +1,20 @@
+public void testGetWorkflowParent() throws Exception {
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    HashMap<String, WorkflowJobBean> wflist = new HashMap<String, WorkflowJobBean>();
+    WorkflowJobBean wfJobA = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED);
+    WorkflowJobBean wfJobB = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED);
+    WorkflowJobBean subwfJobA1 = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED, wfJobA.getId());
+    WorkflowJobBean subwfJobA2 = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED, wfJobA.getId());
+    WorkflowJobBean subwfJobB = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED, wfJobB.getId());
+    List<WorkflowJobBean> children = new ArrayList<WorkflowJobBean>();
+    children.addAll(jpaService.execute(new WorkflowJobsBasicInfoFromWorkflowParentIdJPAExecutor(wfJobA.getId(), 10)));
+    wflist.put(subwfJobA1.getId(), subwfJobA1);
+    wflist.put(subwfJobA2.getId(), subwfJobA2);
+    checkChildren(children, wflist);
+    children = new ArrayList<WorkflowJobBean>();
+    children.addAll(jpaService.execute(new WorkflowJobsBasicInfoFromWorkflowParentIdJPAExecutor(wfJobB.getId(), 10)));
+    wflist.clear();
+    wflist.put(subwfJobB.getId(), subwfJobB);
+    checkChildren(children, wflist);
+}

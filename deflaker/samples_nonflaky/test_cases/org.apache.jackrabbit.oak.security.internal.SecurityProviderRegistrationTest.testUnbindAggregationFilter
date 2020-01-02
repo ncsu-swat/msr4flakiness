@@ -1,0 +1,28 @@
+@Test
+public void testUnbindAggregationFilter() {
+    registration.activate(context.bundleContext(), configWithRequiredServiceIds("a1", "a2", "f1"));
+    AggregationFilter filter = mock(AggregationFilter.class, withSettings().defaultAnswer(invocationOnMock -> Boolean.TRUE));
+    ServiceRegistration sr = context.bundleContext().registerService(AggregationFilter.class.getName(), filter, new Hashtable(ImmutableMap.of(SERVICE_PID, "f1")));
+    registration.bindAggregationFilter(sr.getReference(), filter);
+    AggregatedPermissionProvider pp = mock(AggregatedPermissionProvider.class);
+    AuthorizationConfiguration ac1 = mock(AuthorizationConfiguration.class);
+    AuthorizationConfiguration ac2 = mock(AuthorizationConfiguration.class);
+    for (AuthorizationConfiguration ac : new AuthorizationConfiguration[] { ac1, ac2 }) {
+        when(ac.getPermissionProvider(any(Root.class), anyString(), any(Set.class))).thenReturn(pp);
+        when(ac.getParameters()).thenReturn(ConfigurationParameters.EMPTY);
+        when(ac.getContext()).thenReturn(Context.DEFAULT);
+    }
+    registration.bindAuthorizationConfiguration(ac1, new Hashtable(ImmutableMap.of(SERVICE_PID, "a1")));
+    registration.bindAuthorizationConfiguration(ac2, new Hashtable(ImmutableMap.of(SERVICE_PID, "a2")));
+    AuthorizationConfiguration ac = context.getService(SecurityProvider.class).getConfiguration(AuthorizationConfiguration.class);
+    assertTrue(ac instanceof CompositeAuthorizationConfiguration);
+    PermissionProvider permissionProvider = ac.getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.of());
+    assertSame(pp, permissionProvider);
+    verify(filter, times(1)).stop(pp, ImmutableSet.of());
+    registration.unbindAggregationFilter(sr.getReference(), filter);
+    assertNull(context.getService(SecurityProvider.class));
+    registration.modified(configWithRequiredServiceIds("a1", "a2"));
+    context.getService(SecurityProvider.class).getConfiguration(AuthorizationConfiguration.class).getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.of());
+    // since unbind was called on filter -> no additional calls
+    verify(filter, times(1)).stop(pp, ImmutableSet.of());
+}

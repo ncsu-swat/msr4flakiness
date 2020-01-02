@@ -1,0 +1,16 @@
+@Override
+@Test
+public void testTreePermissionIsNotGrantedOR() throws Exception {
+    PermissionProvider pp = createPermissionProviderOR();
+    TreePermission parentPermission = TreePermission.EMPTY;
+    PropertyState ps = PropertyStates.createProperty("propName", "val");
+    for (String path : TP_PATHS) {
+        Tree t = readOnlyRoot.getTree(path);
+        TreePermission tp = pp.getTreePermission(t, parentPermission);
+        assertFalse(tp.isGranted(Permissions.NO_PERMISSION));
+        assertTrue(tp.isGranted(Permissions.MODIFY_ACCESS_CONTROL));
+        assertFalse(tp.isGranted(Permissions.NO_PERMISSION, ps));
+        assertTrue(tp.isGranted(Permissions.MODIFY_ACCESS_CONTROL, ps));
+        parentPermission = tp;
+    }
+}

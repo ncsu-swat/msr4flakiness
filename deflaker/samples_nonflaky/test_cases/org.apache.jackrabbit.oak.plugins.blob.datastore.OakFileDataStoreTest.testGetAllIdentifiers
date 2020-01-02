@@ -1,0 +1,26 @@
+@Test
+public void testGetAllIdentifiers() throws Exception {
+    File f = new File("./target", "oak-fds-test3");
+    testGetAllIdentifiers(f.getAbsolutePath(), f.getPath());
+}
+private void testGetAllIdentifiers(String path, String unnormalizedPath) throws Exception {
+    File testDir = new File(path);
+    FileUtils.touch(new File(testDir, "ab/cd/ef/abcdef"));
+    FileUtils.touch(new File(testDir, "bc/de/fg/bcdefg"));
+    FileUtils.touch(new File(testDir, "cd/ef/gh/cdefgh"));
+    FileUtils.touch(new File(testDir, "c"));
+    FileDataStore fds = new OakFileDataStore();
+    fds.setPath(unnormalizedPath);
+    fds.init(null);
+    Iterator<DataIdentifier> dis = fds.getAllIdentifiers();
+    Set<String> fileNames = Sets.newHashSet(Iterators.transform(dis, new Function<DataIdentifier, String>() {
+
+        @Override
+        public String apply(@Nullable DataIdentifier input) {
+            return input.toString();
+        }
+    }));
+    Set<String> expectedNames = Sets.newHashSet("abcdef", "bcdefg", "cdefgh");
+    assertEquals(expectedNames, fileNames);
+    FileUtils.cleanDirectory(testDir);
+}

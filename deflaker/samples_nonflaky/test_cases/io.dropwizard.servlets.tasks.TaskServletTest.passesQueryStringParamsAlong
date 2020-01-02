@@ -1,0 +1,13 @@
+@Test
+void passesQueryStringParamsAlong() throws Exception {
+    final PrintWriter output = mock(PrintWriter.class);
+    final ServletInputStream bodyStream = new TestServletInputStream(new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8)));
+    when(request.getMethod()).thenReturn("POST");
+    when(request.getPathInfo()).thenReturn("/gc");
+    when(request.getParameterNames()).thenReturn(Collections.enumeration(Collections.singletonList("runs")));
+    when(request.getParameterValues("runs")).thenReturn(new String[] { "1" });
+    when(request.getInputStream()).thenReturn(bodyStream);
+    when(response.getWriter()).thenReturn(output);
+    servlet.service(request, response);
+    verify(gc).execute(Collections.singletonMap("runs", Collections.singletonList("1")), output);
+}

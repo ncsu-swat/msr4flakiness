@@ -1,0 +1,20 @@
+@Test
+public void dirtyBuffersShouldBeFlushed() throws Exception {
+    List<SegmentId> before;
+    try (FileStore store = openFileStore()) {
+    // init
+    }
+    try (ReadOnlyFileStore store = openReadOnlyFileStore()) {
+        before = newArrayList(store.getSegmentIds());
+    }
+    try (FileStore store = openFileStore()) {
+        SegmentWriter writer = defaultSegmentWriterBuilder("t").build(store);
+        writer.writeNode(EmptyNodeState.EMPTY_NODE);
+        writer.flush();
+    }
+    List<SegmentId> after;
+    try (ReadOnlyFileStore store = openReadOnlyFileStore()) {
+        after = newArrayList(store.getSegmentIds());
+    }
+    assertNotEquals(before, after);
+}

@@ -1,0 +1,18 @@
+/**
+ * Please note that this tests make assumptions about the environment. It assumes
+ * that user "root" exists and that the current user is not a "sudoer" already
+ * (thereby requiring a password).
+ */
+@Test(expected = ExecuteException.class, timeout = TEST_TIMEOUT)
+public void testExec65WithSudoUsingShellScript() throws Exception {
+    Assume.assumeFalse("Test is skipped on travis, because we have to be a sudoer " + "to make the other tests pass.", new File(".").getAbsolutePath().contains("travis"));
+    if (OS.isFamilyUnix()) {
+        final DefaultExecutor executor = new DefaultExecutor();
+        executor.setStreamHandler(new PumpStreamHandler(System.out, System.err, System.in));
+        executor.setWatchdog(new ExecuteWatchdog(WATCHDOG_TIMEOUT));
+        final CommandLine command = new CommandLine(resolveTestScript("issues", "exec-65"));
+        executor.execute(command);
+    } else {
+        throw new ExecuteException(testNotSupportedForCurrentOperatingSystem(), 0);
+    }
+}

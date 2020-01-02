@@ -1,0 +1,14 @@
+@Test
+public void testAll() throws Exception {
+    final Configuration checkConfig = createModuleConfig(SuppressWarningsHolder.class);
+    final DefaultConfiguration treeWalker = createModuleConfig(TreeWalker.class);
+    final Configuration filter = createModuleConfig(SuppressWarningsFilter.class);
+    final DefaultConfiguration violationCheck = createModuleConfig(TypecastParenPadCheck.class);
+    violationCheck.addAttribute("option", "space");
+    treeWalker.addChild(checkConfig);
+    treeWalker.addChild(violationCheck);
+    final DefaultConfiguration root = createRootConfig(treeWalker);
+    root.addChild(filter);
+    final String[] expected = { "8:72: " + getCheckMessage(TypecastParenPadCheck.class, AbstractParenPadCheck.MSG_WS_NOT_PRECEDED, ")") };
+    verify(root, getPath("InputSuppressWarningsHolder6.java"), expected);
+}

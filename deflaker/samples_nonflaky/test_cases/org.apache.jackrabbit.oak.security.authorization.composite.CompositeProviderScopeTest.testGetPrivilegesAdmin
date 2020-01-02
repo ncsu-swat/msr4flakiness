@@ -1,0 +1,13 @@
+@Test
+public void testGetPrivilegesAdmin() throws Exception {
+    for (String path : NODE_PATHS) {
+        Tree tree = readOnlyRoot.getTree(path);
+        Set<String> privNames = cppAdminUser.getPrivileges(tree);
+        if (testProvider.isSupported(path)) {
+            PrivilegeBits expected = pbp.getBits(JCR_ALL).modifiable().diff(denied).unmodifiable();
+            assertEquals(expected, pbp.getBits(privNames));
+        } else {
+            assertEquals(path, ImmutableSet.of(JCR_ALL), privNames);
+        }
+    }
+}

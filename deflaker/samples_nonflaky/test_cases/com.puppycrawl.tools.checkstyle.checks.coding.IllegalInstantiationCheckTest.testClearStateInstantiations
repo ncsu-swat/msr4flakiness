@@ -1,0 +1,16 @@
+/**
+ * We cannot reproduce situation when visitToken is called and leaveToken is not.
+ * So, we have to use reflection to be sure that even in such situation
+ * state of the field will be cleared.
+ *
+ * @throws Exception when code tested throws exception
+ */
+@Test
+@SuppressWarnings("unchecked")
+public void testClearStateInstantiations() throws Exception {
+    final IllegalInstantiationCheck check = new IllegalInstantiationCheck();
+    final DetailAST root = JavaParser.parseFile(new File(getNonCompilablePath("InputIllegalInstantiationLang.java")), JavaParser.Options.WITHOUT_COMMENTS);
+    final Optional<DetailAST> literalNew = TestUtil.findTokenInAstByPredicate(root, ast -> ast.getType() == TokenTypes.LITERAL_NEW);
+    assertTrue(literalNew.isPresent(), "Ast should contain LITERAL_NEW");
+    assertTrue(TestUtil.isStatefulFieldClearedDuringBeginTree(check, literalNew.get(), "instantiations", instantiations -> ((Collection<DetailAST>) instantiations).isEmpty()), "State is not cleared on beginTree");
+}

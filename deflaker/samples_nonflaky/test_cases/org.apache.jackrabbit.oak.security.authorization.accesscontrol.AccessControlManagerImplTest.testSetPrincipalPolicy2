@@ -1,0 +1,17 @@
+@Test
+public void testSetPrincipalPolicy2() throws Exception {
+    setupPolicy(testPath);
+    root.commit();
+    JackrabbitAccessControlPolicy[] policies = acMgr.getPolicies(testPrincipal);
+    ACL acl = (ACL) policies[0];
+    Value nodePathValue = getValueFactory().createValue(testPath, PropertyType.PATH);
+    assertTrue(acl.addEntry(testPrincipal, testPrivileges, true, ImmutableMap.of(REP_NODE_PATH, nodePathValue)));
+    // entry with * glob has already been created in the setup
+    Map<String, Value> restrictions = ImmutableMap.of(REP_NODE_PATH, nodePathValue, REP_GLOB, valueFactory.createValue("*"));
+    assertFalse(acl.addEntry(testPrincipal, testPrivileges, true, restrictions));
+    // entry with different glob -> should be added
+    restrictions = ImmutableMap.of(REP_NODE_PATH, nodePathValue, REP_GLOB, valueFactory.createValue("*/a/b"));
+    assertTrue(acl.addEntry(testPrincipal, testPrivileges, false, restrictions));
+    acMgr.setPolicy(acl.getPath(), acl);
+    assertEquals(3, ((ACL) acMgr.getPolicies(testPath)[0]).getAccessControlEntries().length);
+}

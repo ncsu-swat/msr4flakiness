@@ -1,0 +1,13 @@
+public void testSubmitWithLauncherQueue() throws Exception {
+    String actionXml = "<java>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>" + "<name-node>" + getNameNodeUri() + "</name-node>" + "<configuration>" + "  <property><name>oozie.launcher.queue</name><value>default1</value></property>" + "</configuration>" + "<main-class>" + LauncherMainTester.class.getName() + "</main-class>" + "</java>";
+    Context context = createContext(actionXml, null);
+    submitAction(context);
+    final ApplicationId appId = ConverterUtils.toApplicationId(context.getAction().getExternalId());
+    Configuration conf = getHadoopAccessorService().createConfiguration(getJobTrackerUri());
+    String queue = getHadoopAccessorService().createYarnClient(getTestUser(), conf).getApplicationReport(appId).getQueue();
+    if (isFairSchedulerUsed(conf)) {
+        assertEquals("root.default1", queue);
+    } else {
+        assertEquals("default1", queue);
+    }
+}

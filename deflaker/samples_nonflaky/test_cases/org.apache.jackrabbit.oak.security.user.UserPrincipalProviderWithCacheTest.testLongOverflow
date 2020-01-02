@@ -1,0 +1,18 @@
+@Test
+public void testLongOverflow() throws Exception {
+    long[] maxCache = new long[] { Long.MAX_VALUE, Long.MAX_VALUE - 1, Long.MAX_VALUE - 10000 };
+    Root systemRoot = getSystemSession().getLatestRoot();
+    for (long exp : maxCache) {
+        changeUserConfiguration(ConfigurationParameters.of(UserPrincipalProvider.PARAM_CACHE_EXPIRATION, exp));
+        PrincipalProvider pp = createPrincipalProvider(systemRoot);
+        pp.getPrincipals(userId);
+        Tree userTree = systemRoot.getTree(getTestUser().getPath());
+        Tree cache = userTree.getChild(CacheConstants.REP_CACHE);
+        assertTrue(cache.exists());
+        PropertyState propertyState = cache.getProperty(CacheConstants.REP_EXPIRATION);
+        assertNotNull(propertyState);
+        assertEquals(Long.MAX_VALUE, propertyState.getValue(Type.LONG).longValue());
+        cache.remove();
+        systemRoot.commit();
+    }
+}

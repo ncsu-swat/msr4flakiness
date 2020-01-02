@@ -1,0 +1,23 @@
+public void testJobPersistance() throws WorkflowException {
+    LiteWorkflowApp def = new LiteWorkflowApp("wf", "<worklfow-app/>", new StartNodeDef(TestControlNodeHandler.class, "one")).addNode(new NodeDef("one", null, AsynchNodeHandler.class, Arrays.asList(new String[] { "end" }))).addNode(new EndNodeDef("end", TestControlNodeHandler.class));
+    LiteWorkflowInstance job = new LiteWorkflowInstance(def, new XConfiguration(), "1");
+    job.setVar("a", "A");
+    job.setTransientVar("b", "B");
+    assertEquals(WorkflowInstance.Status.PREP, job.getStatus());
+    assertEquals("A", job.getVar("a"));
+    assertEquals("B", job.getTransientVar("b"));
+    assertEquals("1", job.getId());
+    byte[] array = WritableUtils.toByteArray(job);
+    job = WritableUtils.fromByteArray(array, LiteWorkflowInstance.class);
+    assertEquals(WorkflowInstance.Status.PREP, job.getStatus());
+    assertEquals("A", job.getVar("a"));
+    assertEquals(null, job.getTransientVar("b"));
+    assertEquals("1", job.getId());
+    job.start();
+    assertEquals(WorkflowInstance.Status.RUNNING, job.getStatus());
+    array = WritableUtils.toByteArray(job);
+    job = WritableUtils.fromByteArray(array, LiteWorkflowInstance.class);
+    assertEquals(WorkflowInstance.Status.RUNNING, job.getStatus());
+    job.signal("/", "");
+    assertEquals(WorkflowInstance.Status.SUCCEEDED, job.getStatus());
+}

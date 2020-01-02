@@ -1,0 +1,24 @@
+@Test
+public void localDiffCache() throws Exception {
+    initializeNodeStore(false);
+    // initialize a second cluster node using the same document store
+    DocumentNodeStore ns2 = builderProvider.newBuilder().setClusterId(2).setDocumentStore(store).setAsyncDelay(0).build();
+    // sync the two cluster nodes
+    ns2.runBackgroundOperations();
+    ns.runBackgroundOperations();
+    MeterStats stats = statsProvider.getMeter("PersistentCache.NodeCache.local_diff.REQUESTS", StatsOptions.DEFAULT);
+    NodeState r1 = ns.getRoot();
+    // external change from first cluster node POV
+    NodeBuilder builder = ns2.getRoot().builder();
+    builder.child("x");
+    ns2.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    // sync
+    ns2.runBackgroundOperations();
+    ns.runBackgroundOperations();
+    long requests = stats.getCount();
+    // diff for external change
+    NodeState r2 = ns.getRoot();
+    JsopDiff.diffToJsop(r1, r2);
+    // must not use local_diff persistent cache
+    assertEquals(requests, stats.getCount());
+}

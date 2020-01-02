@@ -1,0 +1,14 @@
+@Test
+public void testProxyWithAutoDetectedProxyType() throws IOException {
+    // obtain the service
+    SomeService someService = (SomeService) getSpringBean("someServiceAutoDetectProxyType");
+    assertNotNull(someService);
+    // disable the feature flag
+    FeatureContext.getFeatureManager().setFeatureState(new FeatureState(ProxyFeatures.SERVICE_TOGGLE, false));
+    // first the inactive Service is invoked
+    assertEquals("I'm SomeServiceInactive", someService.whoAreYou());
+    // enable the feature flag
+    FeatureContext.getFeatureManager().setFeatureState(new FeatureState(ProxyFeatures.SERVICE_TOGGLE, true));
+    // calls are now delegated to the other service implementation
+    assertEquals("I'm SomeServiceActive", someService.whoAreYou());
+}

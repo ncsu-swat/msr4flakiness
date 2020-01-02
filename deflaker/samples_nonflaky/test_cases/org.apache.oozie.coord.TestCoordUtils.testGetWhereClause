@@ -1,0 +1,20 @@
+public void testGetWhereClause() throws Exception {
+    Map<Pair<String, CoordinatorEngine.FILTER_COMPARATORS>, List<Object>> filterMap = new HashMap<Pair<String, CoordinatorEngine.FILTER_COMPARATORS>, List<Object>>();
+    final Pair<String, CoordinatorEngine.FILTER_COMPARATORS> STATUS_FILTER = Pair.of(OozieClient.FILTER_STATUS, CoordinatorEngine.FILTER_COMPARATORS.EQUALS);
+    List<Object> positiveFilter = new ArrayList<Object>();
+    positiveFilter.add("RUNNING");
+    positiveFilter.add("KILLED");
+    filterMap.put(STATUS_FILTER, positiveFilter);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    EntityManager em = jpaService.getEntityManager();
+    Query q = em.createNamedQuery("GET_COORD_ACTIONS_COUNT_BY_JOBID");
+    String query = q.toString();
+    StringBuilder sbTotal = new StringBuilder(query);
+    // Get the 'where' clause for status filters
+    StringBuilder statusClause = new StringBuilder();
+    Map<String, Object> params = CoordUtils.getWhereClause(statusClause, filterMap);
+    sbTotal.insert(sbTotal.length(), statusClause);
+    assertTrue(sbTotal.toString().contains("and a.statusStr IN (:p1, :p2)"));
+    assertEquals(params.get("p1"), "RUNNING");
+    assertEquals(params.get("p2"), "KILLED");
+}

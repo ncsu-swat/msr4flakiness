@@ -1,0 +1,20 @@
+/*
+     * Given 2 index plan with similar cost we expect a log at debug level to
+     * intimate user to either modify either of the indices or the query
+     */
+@Test
+public void testSimilarCostIndices() throws Exception {
+    LogCustomizer customLogs = LogCustomizer.forLogger(QueryImpl.class.getName()).enable(Level.DEBUG).create();
+    try {
+        customLogs.starting();
+        NodeUtil node = new NodeUtil(root.getTree("/"));
+        String uuid = UUID.randomUUID().toString();
+        node.setString(JcrConstants.JCR_UUID, uuid);
+        root.commit();
+        executeQuery("SELECT * FROM [nt:base] WHERE [jcr:uuid] is not null", SQL2, true, false);
+        String expectedLogMessage = String.format("selected index %s " + "with plan testIndexPlan1 and %s with plan testIndexPlan2 have similar costs 11.0 and 11.0 " + "for query Filter(query=SELECT * FROM [nt:base] WHERE [jcr:uuid] is not null, path=*, property=[jcr:uuid=[is not null]]) - check query explanation / index definitions", testIndexProvider.index, testIndexProvider.index);
+        Assert.assertThat(customLogs.getLogs(), IsCollectionContaining.hasItems(expectedLogMessage));
+    } finally {
+        customLogs.finished();
+    }
+}

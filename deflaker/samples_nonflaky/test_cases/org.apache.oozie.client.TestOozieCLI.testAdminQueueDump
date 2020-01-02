@@ -1,0 +1,17 @@
+public void testAdminQueueDump() throws Exception {
+    runTest(END_POINTS, SERVLET_CLASSES, IS_SECURITY_ENABLED, new Callable<Void>() {
+
+        @Override
+        public Void call() throws Exception {
+            HeaderTestingVersionServlet.OOZIE_HEADERS.clear();
+            String oozieUrl = getContextURL();
+            String[] args = new String[] { "admin", "-queuedump", "-oozie", oozieUrl };
+            String out = runOozieCLIAndGetStdout(args);
+            assertTrue("Queue dump", out.contains("Server Queue Dump"));
+            assertTrue("Queue dump empty message", out.contains("The queue dump is empty, nothing to display."));
+            assertTrue("Uniqueness map dump", out.contains("Server Uniqueness Map Dump"));
+            assertTrue("Uniqueness dump empty message", out.contains("The uniqueness map dump is empty, nothing to display."));
+            return null;
+        }
+    });
+}

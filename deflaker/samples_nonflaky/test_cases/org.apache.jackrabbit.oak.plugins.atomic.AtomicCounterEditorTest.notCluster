@@ -1,0 +1,17 @@
+@Test
+public void notCluster() throws CommitFailedException {
+    NodeBuilder builder;
+    NodeState before, after;
+    builder = EMPTY_NODE.builder();
+    before = builder.getNodeState();
+    builder = setMixin(builder);
+    builder = incrementBy(builder, INCREMENT_BY_1);
+    after = builder.getNodeState();
+    builder = HOOK_NO_CLUSTER.processCommit(before, after, EMPTY).builder();
+    assertCounterNodeState(builder, ImmutableSet.of(PREFIX_PROP_COUNTER, PREFIX_PROP_REVISION), 1);
+    before = builder.getNodeState();
+    builder = incrementBy(builder, INCREMENT_BY_2);
+    after = builder.getNodeState();
+    builder = HOOK_NO_CLUSTER.processCommit(before, after, EMPTY).builder();
+    assertCounterNodeState(builder, ImmutableSet.of(PREFIX_PROP_COUNTER, PREFIX_PROP_REVISION), 3);
+}

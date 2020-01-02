@@ -1,0 +1,27 @@
+@Test
+public void updates() throws Exception {
+    ContentRepository repo = newRepo(new JcrLastModifiedConflictHandler());
+    Root root = login(repo);
+    setup(root);
+    Root ourRoot = login(repo);
+    Root theirRoot = login(repo);
+    PropertyState p0 = createDateProperty(JCR_CREATED);
+    ourRoot.getTree("/c").setProperty(p0);
+    TimeUnit.MILLISECONDS.sleep(50);
+    theirRoot.getTree("/c").setProperty(createDateProperty(JCR_CREATED));
+    ourRoot.commit();
+    theirRoot.commit();
+    root.refresh();
+    Assert.assertEquals(p0, root.getTree("/c").getProperty(JCR_CREATED));
+    TimeUnit.MILLISECONDS.sleep(50);
+    ourRoot.refresh();
+    theirRoot.refresh();
+    ourRoot.getTree("/c").setProperty(createDateProperty(JCR_LASTMODIFIED));
+    TimeUnit.MILLISECONDS.sleep(50);
+    PropertyState p1 = createDateProperty(JCR_LASTMODIFIED);
+    theirRoot.getTree("/c").setProperty(p1);
+    ourRoot.commit();
+    theirRoot.commit();
+    root.refresh();
+    Assert.assertEquals(p1, root.getTree("/c").getProperty(JCR_LASTMODIFIED));
+}

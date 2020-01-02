@@ -1,0 +1,14 @@
+public void testGetDryrun() throws Exception {
+    Date startTime = DateUtils.parseDateOozieTZ("2009-03-06T10:00Z");
+    Date endTime = DateUtils.parseDateOozieTZ("2009-03-06T10:14Z");
+    CoordinatorJobBean job = createCoordJob(CoordinatorJob.Status.RUNNING, startTime, endTime, false, false, 0);
+    job.setFrequency("5");
+    job.setTimeUnit(Timeunit.MINUTE);
+    job.setMatThrottling(20);
+    String dryRunOutput = new CoordMaterializeTransitionXCommand(job, hoursToSeconds(1), startTime, endTime).materializeActions(true);
+    String[] actions = dryRunOutput.split("action for new instance");
+    assertEquals(3, actions.length - 1);
+    for (int i = 1; i < actions.length; i++) {
+        assertTrue(actions[i].contains("action-nominal-time"));
+    }
+}

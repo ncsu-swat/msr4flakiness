@@ -1,0 +1,49 @@
+@Test
+public void testQueue() throws InterruptedException {
+    int threads = 5;
+    int actionsPerThread = 100;
+    final CacheActionDispatcher dispatcher = new CacheActionDispatcher();
+    Thread queueThread = new Thread(dispatcher);
+    queueThread.start();
+    List<DummyCacheWriteAction> allActions = new ArrayList<DummyCacheWriteAction>();
+    List<Thread> producerThreads = new ArrayList<Thread>();
+    for (int i = 0; i < threads; i++) {
+        final List<DummyCacheWriteAction> threadActions = new ArrayList<DummyCacheWriteAction>();
+        for (int j = 0; j < actionsPerThread; j++) {
+            DummyCacheWriteAction action = new DummyCacheWriteAction(String.format("%d_%d", i, j));
+            threadActions.add(action);
+            allActions.add(action);
+        }
+        Thread t = new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+                for (DummyCacheWriteAction a : threadActions) {
+                    dispatcher.add(a);
+                }
+            }
+        });
+        producerThreads.add(t);
+    }
+    for (Thread t : producerThreads) {
+        t.start();
+    }
+    for (Thread t : producerThreads) {
+        t.join();
+    }
+    long start = currentTimeMillis();
+    while (!allActions.isEmpty()) {
+        Iterator<DummyCacheWriteAction> it = allActions.iterator();
+        while (it.hasNext()) {
+            if (it.next().finished) {
+                it.remove();
+            }
+        }
+        if (currentTimeMillis() - start > 10000) {
+            fail("Following actions hasn't been executed: " + allActions);
+        }
+    }
+    dispatcher.stop();
+    queueThread.join();
+    assertFalse(queueThread.isAlive());
+}

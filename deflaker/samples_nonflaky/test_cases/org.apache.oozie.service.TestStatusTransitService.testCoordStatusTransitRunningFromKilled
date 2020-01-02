@@ -1,0 +1,31 @@
+// Test coord transition from killed to running when one action is rerun.
+public void testCoordStatusTransitRunningFromKilled() throws Exception {
+    final JPAService jpaService = Services.get().get(JPAService.class);
+    String currentDatePlusMonth = XDataTestCase.getCurrentDateafterIncrementingInMonths(1);
+    Date start = DateUtils.parseDateOozieTZ(currentDatePlusMonth);
+    Date end = DateUtils.parseDateOozieTZ(currentDatePlusMonth);
+    CoordinatorJobBean coordJob = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, start, end, false, false, 1);
+    final CoordinatorActionBean coordAction = addRecordToCoordActionTable(coordJob.getId(), 1, CoordinatorAction.Status.RUNNING, "coord-action-get.xml", null, "RUNNING", 0);
+    new CoordKillXCommand(coordJob.getId()).call();
+    final CoordJobGetJPAExecutor coordJobGetCmd = new CoordJobGetJPAExecutor(coordJob.getId());
+    waitFor(5 * 1000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            CoordinatorJobBean coordJob = jpaService.execute(coordJobGetCmd);
+            return coordJob.getStatusStr().equals("KILLED");
+        }
+    });
+    Runnable runnable = new StatusTransitRunnable();
+    runnable.run();
+    sleep(1000);
+    coordJob = jpaService.execute(coordJobGetCmd);
+    assertEquals(CoordinatorJob.Status.KILLED, coordJob.getStatus());
+    coordAction.setStatus(CoordinatorAction.Status.RUNNING);
+    coordJob.setPending();
+    CoordJobQueryExecutor.getInstance().executeUpdate(CoordJobQuery.UPDATE_COORD_JOB_STATUS_PENDING, coordJob);
+    CoordActionQueryExecutor.getInstance().executeUpdate(CoordActionQuery.UPDATE_COORD_ACTION, coordAction);
+    runnable.run();
+    sleep(1000);
+    coordJob = jpaService.execute(coordJobGetCmd);
+    assertEquals(CoordinatorJob.Status.RUNNING, coordJob.getStatus());
+}

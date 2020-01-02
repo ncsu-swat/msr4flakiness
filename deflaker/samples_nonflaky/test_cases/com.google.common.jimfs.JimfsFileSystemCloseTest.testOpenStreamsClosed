@@ -1,0 +1,21 @@
+@Test
+public void testOpenStreamsClosed() throws IOException {
+    Path p = fs.getPath("/foo");
+    OutputStream out = Files.newOutputStream(p);
+    InputStream in = Files.newInputStream(p);
+    out.write(1);
+    assertEquals(1, in.read());
+    fs.close();
+    try {
+        out.write(1);
+        fail();
+    } catch (IOException expected) {
+        assertEquals("stream is closed", expected.getMessage());
+    }
+    try {
+        in.read();
+        fail();
+    } catch (IOException expected) {
+        assertEquals("stream is closed", expected.getMessage());
+    }
+}

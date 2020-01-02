@@ -1,0 +1,44 @@
+/**
+ * It will verify the Action status running when workflow triggered.
+ * @throws Exception
+ */
+public void testActionStatusRunningWithWorkflow() throws Exception {
+    Date start = DateUtils.parseDateOozieTZ("2009-12-15T01:00Z");
+    Date end = DateUtils.parseDateOozieTZ("2009-12-16T01:00Z");
+    CoordinatorJobBean coordJob = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, start, end, false, false, 1);
+    CoordinatorActionBean action = addRecordToWithLazyAction(coordJob.getId(), 1, CoordinatorAction.Status.SUBMITTED, "coord-rerun-action1.xml");
+    String actionId = action.getId();
+    new CoordActionStartXCommand(actionId, getTestUser(), "myapp", "myjob").call();
+    action = getCoordinatorAction(actionId);
+    if (action.getStatus() == CoordinatorAction.Status.SUBMITTED) {
+        fail("CoordActionStartCommand didn't work because the status for action id" + actionId + " is :" + action.getStatus() + " expected to be NOT SUBMITTED (i.e. RUNNING)");
+    }
+    final String wfId = action.getExternalId();
+    final OozieClient wfClient = LocalOozie.getClient();
+    waitFor(15 * 1000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            return wfClient.getJobInfo(wfId).getStatus() == WorkflowJob.Status.RUNNING;
+        }
+    });
+    wfClient.kill(wfId);
+    waitFor(15 * 1000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            return wfClient.getJobInfo(wfId).getStatus() == WorkflowJob.Status.KILLED;
+        }
+    });
+    assertEquals(WorkflowJob.Status.KILLED, wfClient.getJobInfo(wfId).getStatus());
+    Properties conf = wfClient.createConfiguration();
+    conf.setProperty(OozieClient.RERUN_FAIL_NODES, "true");
+    wfClient.reRun(wfId, conf);
+    waitFor(15 * 1000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            return wfClient.getJobInfo(wfId).getStatus() == WorkflowJob.Status.RUNNING;
+        }
+    });
+    assertEquals(WorkflowJob.Status.RUNNING, wfClient.getJobInfo(wfId).getStatus());
+    OozieClient coordActionClient = LocalOozie.getCoordClient();
+    assertEquals(CoordinatorAction.Status.RUNNING, coordActionClient.getCoordActionInfo(actionId).getStatus());
+}

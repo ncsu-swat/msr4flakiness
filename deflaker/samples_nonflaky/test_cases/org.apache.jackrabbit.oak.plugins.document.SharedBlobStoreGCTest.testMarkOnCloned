@@ -1,0 +1,21 @@
+@Test
+public void testMarkOnCloned() throws Exception {
+    log.debug("Running testMarkOnCloned()");
+    BlobStore blobeStore3 = getBlobStore(rootFolder);
+    DocumentNodeStore ds3 = new DocumentMK.Builder().setAsyncDelay(0).setDocumentStore(new MemoryDocumentStore()).setBlobStore(blobeStore3).clock(clock).getNodeStore();
+    NodeBuilder a = ds3.getRoot().builder();
+    a.child(":clusterConfig").setProperty(":clusterId", cluster2.repoId);
+    Cluster cluster3 = new Cluster(ds3, cluster2.repoId, 120);
+    cluster3.init();
+    log.debug("Initialized {}", cluster3);
+    // run the mark phase on other repositories
+    cluster1.gc.collectGarbage(true);
+    cluster2.gc.collectGarbage(true);
+    // Execute the gc with sweep
+    cluster3.gc.collectGarbage(false);
+    Set<String> existing = cluster1.getExistingBlobIds();
+    log.debug("Existing blobs {}", existing);
+    assertTrue(existing.containsAll(cluster2.getInitBlobs()));
+    assertTrue(existing.containsAll(cluster1.getInitBlobs()));
+    assertTrue(existing.containsAll(cluster3.getInitBlobs()));
+}

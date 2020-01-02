@@ -1,0 +1,45 @@
+@Test
+public void readFeatureStateFromOldFormat() throws IOException {
+    Properties initialProps = new Properties();
+    initialProps.setProperty("FEATURE1", "true");
+    initialProps.setProperty("FEATURE1.users", "chkal,tester");
+    initialProps.setProperty("FEATURE2", "false");
+    initialProps.setProperty("FEATURE3", "true");
+    File file = createPropertiesFile(initialProps);
+    try {
+        /*
+             * Check the state of the repository
+             */
+        FileBasedStateRepository repo = new FileBasedStateRepository(file);
+        // FEATURE1: enabled, strategy set by migration code, one property containing user list
+        FeatureState state1 = repo.getFeatureState(MyFeature.FEATURE1);
+        assertEquals(true, state1.isEnabled());
+        assertEquals(UsernameActivationStrategy.ID, state1.getStrategyId());
+        assertEquals(1, state1.getParameterNames().size());
+        assertEquals("chkal,tester", state1.getParameter(UsernameActivationStrategy.PARAM_USERS));
+        // FEATURE2: disabled, no strategy, no parameters
+        FeatureState state2 = repo.getFeatureState(MyFeature.FEATURE2);
+        assertEquals(false, state2.isEnabled());
+        assertEquals(null, state2.getStrategyId());
+        assertEquals(0, state2.getParameterNames().size());
+        // FEATURE3: enabled, no strategy, no parameters
+        FeatureState state3 = repo.getFeatureState(MyFeature.FEATURE3);
+        assertEquals(true, state3.isEnabled());
+        assertEquals(null, state2.getStrategyId());
+        assertEquals(0, state3.getParameterNames().size());
+        FeatureState state4 = repo.getFeatureState(MyFeature.FEATURE4);
+        assertNull(state4);
+        /*
+             * Now change one feature and check the new format is persisted
+             */
+        state1.disable();
+        repo.setFeatureState(state1);
+        Properties newProps = readPropertiesFile(file);
+        assertThat(newProps.getProperty("FEATURE1"), is("false"));
+        assertThat(newProps.getProperty("FEATURE1.strategy"), is(UsernameActivationStrategy.ID));
+        assertThat(newProps.getProperty("FEATURE1.param.users"), is("chkal,tester"));
+        assertThat(newProps.getProperty("FEATURE1.users"), nullValue());
+    } finally {
+        file.delete();
+    }
+}

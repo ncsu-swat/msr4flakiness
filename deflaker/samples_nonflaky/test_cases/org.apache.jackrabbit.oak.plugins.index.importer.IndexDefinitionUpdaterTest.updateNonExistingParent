@@ -1,0 +1,10 @@
+@Test(expected = IllegalStateException.class)
+public void updateNonExistingParent() throws Exception {
+    NodeBuilder builder = store.getRoot().builder();
+    builder.child("oak:index").child("fooIndex").setProperty("foo", "bar");
+    store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    NodeBuilder builder2 = EMPTY_NODE.builder();
+    builder2.child("a").child("oak:index").child("barIndex").setProperty("foo", "bar");
+    String json = createIndexDefn(builder2.getNodeState(), "/oak:index/fooIndex", "/a/oak:index/barIndex");
+    applyJson(json);
+}

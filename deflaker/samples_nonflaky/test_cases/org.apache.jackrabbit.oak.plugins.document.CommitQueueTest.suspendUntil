@@ -1,0 +1,44 @@
+@Test
+public void suspendUntil() throws Exception {
+    final AtomicReference<RevisionVector> headRevision = new AtomicReference<RevisionVector>();
+    RevisionContext context = new DummyRevisionContext() {
+
+        @NotNull
+        @Override
+        public RevisionVector getHeadRevision() {
+            return headRevision.get();
+        }
+    };
+    headRevision.set(new RevisionVector(context.newRevision()));
+    final CommitQueue queue = new CommitQueue(context);
+    final Revision newHeadRev = context.newRevision();
+    final Set<Revision> revisions = queue.createRevisions(10);
+    Thread t = new Thread(new Runnable() {
+
+        @Override
+        public void run() {
+            queue.suspendUntilAll(union(of(newHeadRev), revisions));
+        }
+    });
+    t.start();
+    // wait until t is suspended
+    for (int i = 0; i < 100; i++) {
+        if (queue.numSuspendedThreads() > 0) {
+            break;
+        }
+        Thread.sleep(10);
+    }
+    assertEquals(1, queue.numSuspendedThreads());
+    queue.headRevisionChanged();
+    // must still be suspended
+    assertEquals(1, queue.numSuspendedThreads());
+    headRevision.set(new RevisionVector(newHeadRev));
+    queue.headRevisionChanged();
+    // must still be suspended
+    assertEquals(1, queue.numSuspendedThreads());
+    for (Revision rev : revisions) {
+        queue.canceled(rev);
+    }
+    // must not be suspended anymore
+    assertEquals(0, queue.numSuspendedThreads());
+}

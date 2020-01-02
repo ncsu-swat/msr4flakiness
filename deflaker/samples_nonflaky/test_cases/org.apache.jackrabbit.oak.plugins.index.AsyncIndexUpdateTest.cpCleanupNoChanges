@@ -1,0 +1,15 @@
+@Test
+public void cpCleanupNoChanges() throws Exception {
+    MemoryNodeStore store = new MemoryNodeStore();
+    IndexEditorProvider provider = new PropertyIndexEditorProvider();
+    AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
+    assertTrue("Expecting no checkpoints", store.listCheckpoints().size() == 0);
+    // no changes on diff, no checkpoints left behind
+    async.run();
+    assertTrue(async.isFinished());
+    Set<String> checkpoints = newHashSet(store.listCheckpoints());
+    assertTrue("Expecting the initial checkpoint", checkpoints.size() == 1);
+    assertEquals(store.getRoot().getChildNode(ASYNC).getString("async"), checkpoints.iterator().next());
+    async.run();
+    assertEquals("Expecting no checkpoint changes", checkpoints, store.listCheckpoints());
+}

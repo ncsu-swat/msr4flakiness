@@ -1,0 +1,32 @@
+@Test
+public void modifyBundledChild() throws Exception {
+    NodeBuilder builder = store.getRoot().builder();
+    NodeBuilder appNB = newNode("app:Asset");
+    createChild(appNB, "jcr:content", // not bundled
+    "jcr:content/comments", "jcr:content/metadata", // not bundled
+    "jcr:content/metadata/xmp", // includes all
+    "jcr:content/renditions", "jcr:content/renditions/original", "jcr:content/renditions/original/jcr:content");
+    builder.child("test").setChildNode("book.jpg", appNB.getNodeState());
+    merge(builder);
+    // Modify bundled property
+    builder = store.getRoot().builder();
+    childBuilder(builder, "/test/book.jpg/jcr:content").setProperty("foo", "bar");
+    merge(builder);
+    NodeState state = childBuilder(builder, "/test/book.jpg").getNodeState();
+    assertEquals("bar", getLatestNode("/test/book.jpg/jcr:content").getString("foo"));
+    assertTrue(AssertingDiff.assertEquals(state, getLatestNode("/test/book.jpg")));
+    // Modify deep bundled property
+    builder = store.getRoot().builder();
+    childBuilder(builder, "/test/book.jpg/jcr:content/renditions").setProperty("foo", "bar");
+    merge(builder);
+    state = childBuilder(builder, "/test/book.jpg").getNodeState();
+    assertEquals("bar", getLatestNode("/test/book.jpg/jcr:content/renditions").getString("foo"));
+    assertTrue(AssertingDiff.assertEquals(state, getLatestNode("/test/book.jpg")));
+    // Modify deep unbundled property - jcr:content/comments/@foo
+    builder = store.getRoot().builder();
+    childBuilder(builder, "/test/book.jpg/jcr:content/comments").setProperty("foo", "bar");
+    merge(builder);
+    state = childBuilder(builder, "/test/book.jpg").getNodeState();
+    assertEquals("bar", getLatestNode("/test/book.jpg/jcr:content/comments").getString("foo"));
+    assertTrue(AssertingDiff.assertEquals(state, getLatestNode("/test/book.jpg")));
+}

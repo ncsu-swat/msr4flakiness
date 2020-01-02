@@ -1,0 +1,24 @@
+public void testValidateJobTracker() throws Exception {
+    HadoopAccessorService has = new HadoopAccessorService();
+    Configuration conf = new Configuration(false);
+    conf.set("oozie.service.HadoopAccessorService.jobTracker.whitelist", " ");
+    has.init(conf);
+    has.validateJobTracker("foo");
+    has.validateJobTracker("bar");
+    has.validateJobTracker("blah");
+    conf.set("oozie.service.HadoopAccessorService.jobTracker.whitelist", "foo,bar");
+    has.init(conf);
+    has.validateJobTracker("foo");
+    has.validateJobTracker("bar");
+    try {
+        has.validateJobTracker("blah");
+        fail("Should have gotten an exception");
+    } catch (HadoopAccessorException hae) {
+        assertEquals(ErrorCode.E0900, hae.getErrorCode());
+        // We have to check for either of these because Java 7 and 8 have a different order
+        String s1 = "E0900: JobTracker [blah] not allowed, not in Oozie's whitelist. Allowed values are: [foo, bar]";
+        String s2 = "E0900: JobTracker [blah] not allowed, not in Oozie's whitelist. Allowed values are: [bar, foo]";
+        assertTrue("expected:<" + s1 + "> or <" + s2 + "> but was:<" + hae.getMessage() + ">", s1.equals(hae.getMessage()) || s2.equals(hae.getMessage()));
+    }
+    has.destroy();
+}

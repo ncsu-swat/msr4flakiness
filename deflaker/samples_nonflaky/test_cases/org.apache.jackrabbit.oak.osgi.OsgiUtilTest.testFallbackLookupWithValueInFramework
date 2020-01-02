@@ -1,0 +1,12 @@
+@Test
+public void testFallbackLookupWithValueInFramework() {
+    Dictionary dictionary = mock(Dictionary.class);
+    doReturn(null).when(dictionary).get("cname");
+    BundleContext bundleContext = mock(BundleContext.class);
+    doReturn("value").when(bundleContext).getProperty("fname");
+    ComponentContext componentContext = mock(ComponentContext.class);
+    doReturn(dictionary).when(componentContext).getProperties();
+    doReturn(bundleContext).when(componentContext).getBundleContext();
+    assertEquals("value", lookupConfigurationThenFramework(componentContext, "cname", "fname"));
+    assertEquals("value", lookupFrameworkThenConfiguration(componentContext, "cname", "fname"));
+}

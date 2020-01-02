@@ -1,0 +1,20 @@
+@Test
+public void invalidateTests() throws ExecutionException {
+    cache.putSegment(segment1);
+    assertEquals(segment1, id1.getSegment());
+    assertEquals(segment1, cache.getSegment(id1, () -> failToLoad(id1)));
+    // Clearing the cache should cause an eviction call back for id
+    cache.clear();
+    // Check eviction cleared memoisation
+    expect(SegmentNotFoundException.class, id1::getSegment);
+    // Check that segment1 was evicted and needs reloading through the node store
+    AtomicBoolean cached = new AtomicBoolean(true);
+    assertEquals(segment1, cache.getSegment(id1, () -> {
+        cached.set(false);
+        return segment1;
+    }));
+    assertFalse(cached.get());
+    // Assert that segment1 was loaded again
+    assertEquals(segment1, id1.getSegment());
+    assertEquals(segment1, cache.getSegment(id1, () -> failToLoad(id1)));
+}

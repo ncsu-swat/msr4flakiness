@@ -1,0 +1,20 @@
+@Test
+public void bundlingPath() throws Exception {
+    NodeBuilder builder = store.getRoot().builder();
+    NodeBuilder appNB = newNode("app:Asset");
+    createChild(appNB, "jcr:content", // not bundled
+    "jcr:content/comments", "jcr:content/metadata", // not bundled
+    "jcr:content/metadata/xmp", // includes all
+    "jcr:content/renditions", "jcr:content/renditions/original", "jcr:content/renditions/original/jcr:content");
+    builder.child("test").setChildNode("book.jpg", appNB.getNodeState());
+    merge(builder);
+    DocumentNodeState appNode = (DocumentNodeState) getNode(store.getRoot(), "test/book.jpg");
+    assertEquals("jcr:content", getBundlingPath(appNode.getChildNode("jcr:content")));
+    assertEquals("jcr:content/metadata", getBundlingPath(appNode.getChildNode("jcr:content").getChildNode("metadata")));
+    assertEquals("jcr:content/renditions/original", getBundlingPath(appNode.getChildNode("jcr:content").getChildNode("renditions").getChildNode("original")));
+    List<String> bundledPaths = new ArrayList<>();
+    for (DocumentNodeState bs : appNode.getAllBundledNodesStates()) {
+        bundledPaths.add(bs.getPath().toString());
+    }
+    assertThat(bundledPaths, containsInAnyOrder("/test/book.jpg/jcr:content", "/test/book.jpg/jcr:content/metadata", "/test/book.jpg/jcr:content/renditions", "/test/book.jpg/jcr:content/renditions/original", "/test/book.jpg/jcr:content/renditions/original/jcr:content"));
+}

@@ -1,0 +1,29 @@
+public void testPriorityExecution() throws Exception {
+    EXEC_ORDER = new AtomicLong();
+    Services.get().destroy();
+    setSystemProperty(CallableQueueService.CONF_THREADS, "1");
+    new Services().init();
+    CallableQueueService queueservice = Services.get().get(CallableQueueService.class);
+    final MyCallable callable1 = new MyCallable(0, 200);
+    final MyCallable callable2 = new MyCallable(0, 200);
+    final MyCallable callable3 = new MyCallable(0, 200);
+    final MyCallable callableLow = new MyCallable();
+    final MyCallable callableHigh = new MyCallable(1, 10);
+    queueservice.queue(callable1);
+    queueservice.queue(callable2);
+    queueservice.queue(callable3);
+    queueservice.queue(callableLow);
+    queueservice.queue(callableHigh);
+    waitFor(3000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            return callable1.executed != 0 && callable2.executed != 0 && callable3.executed != 0 && callableLow.executed != 0 && callableHigh.executed != 0;
+        }
+    });
+    assertTrue(callable1.executed >= 0);
+    assertTrue(callable2.executed >= 0);
+    assertTrue(callable3.executed >= 0);
+    assertTrue(callableLow.executed >= 0);
+    assertTrue(callableHigh.executed >= 0);
+    assertTrue(callableHigh.order < callableLow.order);
+}

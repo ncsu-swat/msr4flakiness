@@ -1,0 +1,10 @@
+@Test
+public void testNoStackOverflowError() throws Exception {
+    final DefaultConfiguration checkConfig = createModuleConfig(RegexpMultilineCheck.class);
+    // http://madbean.com/2004/mb2004-20/
+    checkConfig.addAttribute("format", "(x|y)*");
+    final String[] expected = { "1: " + getCheckMessage(MSG_STACKOVERFLOW) };
+    final File file = File.createTempFile("junit", null, temporaryFolder);
+    Files.write(file.toPath(), makeLargeXyString().toString().getBytes(StandardCharsets.UTF_8));
+    verify(checkConfig, file.getPath(), expected);
+}

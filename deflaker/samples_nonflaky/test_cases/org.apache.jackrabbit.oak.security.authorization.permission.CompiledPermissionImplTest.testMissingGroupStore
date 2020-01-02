@@ -1,0 +1,27 @@
+@Test
+public void testMissingGroupStore() throws Exception {
+    grant(ACCESS_CONTROLLED_PATH, getTestUser().getPrincipal(), JCR_VERSION_MANAGEMENT);
+    root.commit();
+    Root readOnlyRoot = getRootProvider().createReadOnlyRoot(testSession.getLatestRoot());
+    String wspName = testSession.getWorkspaceName();
+    // create cp for user principal only (no group principals that hold the permission setup)
+    PermissionStore store = spy(new PermissionStoreImpl(readOnlyRoot, wspName, getConfig(AuthorizationConfiguration.class).getRestrictionProvider()));
+    CompiledPermissionImpl cp = create(ConfigurationParameters.EMPTY, ImmutableSet.of(getTestUser().getPrincipal()), store);
+    verify(store, times(1)).getNumEntries(anyString(), anyLong());
+    cp.refresh(readOnlyRoot, wspName);
+    verify(store, times(2)).getNumEntries(anyString(), anyLong());
+    assertFalse(cp.isGranted(ACCESS_CONTROLLED_PATH, SET_PROPERTY));
+    assertTrue(cp.isGranted(ACCESS_CONTROLLED_PATH, VERSION_MANAGEMENT));
+    Tree t = createReadonlyTree(ACCESS_CONTROLLED_PATH);
+    assertFalse(cp.hasPrivileges(t, JCR_WRITE));
+    assertTrue(cp.hasPrivileges(t, JCR_VERSION_MANAGEMENT));
+    assertEquals(ImmutableSet.of(JCR_VERSION_MANAGEMENT), cp.getPrivileges(createReadonlyTree(ACCESS_CONTROLLED_PATH)));
+    TreePermission tp = createTreePermission(cp, ACCESS_CONTROLLED_PATH);
+    assertTrue(tp.isGranted(VERSION_MANAGEMENT));
+    assertFalse(tp.canRead());
+    assertFalse(tp.canRead(mock(PropertyState.class)));
+    assertFalse(tp.canReadAll());
+    verify(store, times(2)).getNumEntries(anyString(), anyLong());
+    verify(store, times(2)).load(anyString());
+    verify(store, never()).load(anyString(), anyString());
+}

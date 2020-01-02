@@ -1,0 +1,12 @@
+@Test
+public void getInvalidQueryParamsIs400() {
+    // query parameter is too short and so will fail validation
+    final Response response = target("/valid/bar").queryParam("name", "hi").request().get();
+    assertThat(response.getStatus()).isEqualTo(400);
+    String ret = "{\"errors\":[\"query param name length must be between 3 and 2147483647\"]}";
+    assertThat(response.readEntity(String.class)).isEqualTo(ret);
+    // Send another request to trigger reflection cache
+    final Response cache = target("/valid/bar").queryParam("name", "hi").request().get();
+    assertThat(cache.getStatus()).isEqualTo(400);
+    assertThat(cache.readEntity(String.class)).isEqualTo(ret);
+}

@@ -1,0 +1,33 @@
+${coord:dataInPartitionFilter('ABC', 'java')}
+CoordELFunctions
+
+         * type=java
+         
+(datastamp=='12' AND region=='us')
+coord-action-start
+evalAndWrap
+assertTrue
+(region=='us' AND datastamp=='12') OR (region=='us' AND datastamp=='13')
+.datain.ABC
+expr
+hcat://hcat.server.com:5080/mydb/clicks/datastamp=13;region=us
+Boolean
+(datastamp='12' AND region='us')
+(region='us' AND datastamp='12')
+testdataInPartitionFilter
+init
+res
+(region=='us' AND datastamp=='12') OR (datastamp=='13' AND region=='us')
+hcat://hcat.server.com:5080/mydb/clicks/datastamp=12;region=us,
+.datain.ABC.unresolved
+setVariable
+${coord:dataInPartitionFilter('ABC', 'pig')}
+
+         * type=pig
+         
+(datastamp=='12' AND region=='us') OR (region=='us' AND datastamp=='13')
+(region=='us' AND datastamp=='12')
+(datastamp=='12' AND region=='us') OR (datastamp=='13' AND region=='us')
+eval
+equals
+hcat://hcat.server.com:5080/mydb/clicks/datastamp=12;region=us

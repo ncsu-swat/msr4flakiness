@@ -1,0 +1,33 @@
+@Test
+public void singleNodeAsync() throws CommitFailedException, InterruptedException, ExecutionException {
+    NodeStore store = new MemoryNodeStore();
+    MyExecutor exec1 = new MyExecutor();
+    Whiteboard board = new DefaultWhiteboard();
+    EditorHook hook1 = new EditorHook(new TestableACEProvider(CLUSTER_1, exec1, store, board));
+    NodeBuilder builder, root;
+    PropertyState p;
+    board.register(CommitHook.class, EmptyHook.INSTANCE, null);
+    root = store.getRoot().builder();
+    builder = root.child("c");
+    builder = setMixin(builder);
+    builder = incrementBy(builder, INCREMENT_BY_1);
+    store.merge(root, hook1, CommitInfo.EMPTY);
+    // as we're providing all the information we expect the counter not to be consolidated for
+    // as long as the scheduled process has run
+    builder = store.getRoot().builder().getChildNode("c");
+    assertTrue(builder.exists());
+    p = builder.getProperty(PREFIX_PROP_REVISION + CLUSTER_1.getInstanceId());
+    assertNotNull(p);
+    assertEquals(1, p.getValue(LONG).longValue());
+    p = builder.getProperty(PREFIX_PROP_COUNTER + CLUSTER_1.getInstanceId());
+    assertNotNull(p);
+    assertEquals(1, p.getValue(LONG).longValue());
+    p = builder.getProperty(PROP_COUNTER);
+    assertNull(p);
+    // executing the consolidation
+    exec1.execute();
+    // fetching the latest store state to see the changes
+    builder = store.getRoot().builder().getChildNode("c");
+    assertTrue("the counter node should exists", builder.exists());
+    assertCounterNodeState(builder, ImmutableSet.of(PREFIX_PROP_COUNTER + CLUSTER_1.getInstanceId(), PREFIX_PROP_REVISION + CLUSTER_1.getInstanceId()), 1);
+}

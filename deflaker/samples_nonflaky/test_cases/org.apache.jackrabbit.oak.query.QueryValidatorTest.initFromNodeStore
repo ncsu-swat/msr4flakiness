@@ -1,0 +1,24 @@
+@Test
+public void initFromNodeStore() throws CommitFailedException {
+    QueryValidator v = new QueryValidator();
+    MemoryNodeStore ns = new MemoryNodeStore();
+    v.init(ns);
+    assertEquals("[]", v.getJson());
+    NodeBuilder rootBuilder = ns.getRoot().builder();
+    NodeBuilder b;
+    b = rootBuilder.child(IndexConstants.INDEX_DEFINITIONS_NAME).child(QueryValidator.QUERY_VALIDATOR).child("ignored");
+    b = rootBuilder.child(IndexConstants.INDEX_DEFINITIONS_NAME).child(QueryValidator.QUERY_VALIDATOR).child("test");
+    b.setProperty("pattern", "testPattern");
+    b.setProperty("comment", "testComment");
+    b.setProperty("failQuery", "true");
+    ns.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    v.init(ns);
+    assertEquals("[\n" + "{\n" + "\"key\":\"test\"\n" + ",\"pattern\":\"testPattern\"\n" + ",\"comment\":\"testComment\"\n" + ",\"failQuery\":true\n" + ",\"executedLast\":\"\"\n" + ",\"executedCount\":0\n" + "}]", v.getJson());
+    b = rootBuilder.child(IndexConstants.INDEX_DEFINITIONS_NAME).child(QueryValidator.QUERY_VALIDATOR).child("test");
+    b.setProperty("pattern", asList("select", "order by @x"), Type.STRINGS);
+    b.setProperty("comment", "testComment");
+    b.setProperty("failQuery", "true");
+    ns.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    v.init(ns);
+    assertEquals("[\n" + "{\n" + "\"key\":\"test\"\n" + ",\"pattern\":\"\\\\Qselect\\\\E.*\\\\Qorder by @x\\\\E\"\n" + ",\"comment\":\"testComment\"\n" + ",\"failQuery\":true\n" + ",\"executedLast\":\"\"\n" + ",\"executedCount\":0\n" + "}]", v.getJson());
+}

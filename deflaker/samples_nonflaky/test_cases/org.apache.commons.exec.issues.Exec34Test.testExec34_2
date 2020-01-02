@@ -1,0 +1,21 @@
+/**
+ * Some user waited for an asynchronous process using watchdog.isWatching() which
+ * is now properly implemented  using {@code DefaultExecuteResultHandler}.
+ *
+ * @throws Exception the test failed
+ */
+@Test
+public void testExec34_2() throws Exception {
+    final CommandLine cmdLine = new CommandLine(pingScript);
+    // sleep 10 secs
+    cmdLine.addArgument("10");
+    final ExecuteWatchdog watchdog = new ExecuteWatchdog(5000);
+    final DefaultExecuteResultHandler handler = new DefaultExecuteResultHandler();
+    exec.setWatchdog(watchdog);
+    exec.execute(cmdLine, handler);
+    handler.waitFor();
+    assertTrue("Process has exited", handler.hasResult());
+    assertNotNull("Process was aborted", handler.getException());
+    assertTrue("Watchdog should have killed the process", watchdog.killedProcess());
+    assertFalse("Watchdog is no longer watching the process", watchdog.isWatching());
+}

@@ -1,0 +1,13 @@
+@Override
+@Test
+public void testTreePermissionGetChildOR() throws Exception {
+    List<String> childNames = ImmutableList.of("test", "a", "b", "c", "nonexisting");
+    Tree rootTree = readOnlyRoot.getTree(ROOT_PATH);
+    NodeState ns = getTreeProvider().asNodeState(rootTree);
+    TreePermission tp = createPermissionProviderOR().getTreePermission(rootTree, TreePermission.EMPTY);
+    for (String cName : childNames) {
+        ns = ns.getChildNode(cName);
+        tp = tp.getChildPermission(cName, ns);
+        assertTrue(tp instanceof LimitedTreePermission);
+    }
+}

@@ -1,0 +1,12 @@
+@Test
+void testDefaultPattern() throws Exception {
+    String url = String.format("http://localhost:%d/greet?name=Charley", dropwizardAppRule.getLocalPort());
+    for (int i = 0; i < 100; i++) {
+        client.target(url).request().get();
+    }
+    dropwizardAppRule.getConfiguration().getLoggingFactory().stop();
+    dropwizardAppRule.getConfiguration().getLoggingFactory().reset();
+    Thread.sleep(100L);
+    List<String> logs = Files.readAllLines(requestLogFile, UTF_8);
+    assertThat(logs).hasSize(100).allMatch(s -> REQUEST_LOG_PATTERN.matcher(s).matches());
+}

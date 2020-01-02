@@ -1,0 +1,14 @@
+@Test
+public void testCreateCacheByName() throws RepositoryException {
+    for (Authorizable a : authorizables) {
+        try {
+            Tree node = getAuthorizableTree(a);
+            TreeUtil.addChild(node, CacheConstants.REP_CACHE, JcrConstants.NT_UNSTRUCTURED);
+            root.commit();
+            fail("Creating rep:cache node below a user or group must fail.");
+        } catch (CommitFailedException e) {
+            assertTrue(e.isConstraintViolation());
+            assertEquals(34, e.getCode());
+        }
+    }
+}

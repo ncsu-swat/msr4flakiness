@@ -1,0 +1,22 @@
+@Test
+public void testBackup() throws Exception {
+    FileStore source = newFileStore(src);
+    SegmentNodeStore store = SegmentNodeStoreBuilders.builder(source).build();
+    FileStoreBackup fsb = new FileStoreBackupImpl();
+    try {
+        init(store);
+        source.flush();
+        fsb.backup(source.getReader(), source.getRevisions(), destination);
+        compare(source, destination);
+        addTestContent(store);
+        source.flush();
+        fsb.backup(source.getReader(), source.getRevisions(), destination);
+        compare(source, destination);
+        source.compactFull();
+        fsb.cleanup(source);
+        fsb.backup(source.getReader(), source.getRevisions(), destination);
+        compare(source, destination);
+    } finally {
+        source.close();
+    }
+}

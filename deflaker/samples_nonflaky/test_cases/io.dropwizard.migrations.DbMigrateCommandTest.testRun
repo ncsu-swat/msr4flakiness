@@ -1,0 +1,9 @@
+@Test
+void testRun() throws Exception {
+    migrateCommand.run(null, new Namespace(Collections.emptyMap()), conf);
+    try (Handle handle = Jdbi.create(databaseUrl, "sa", "").open()) {
+        final ResultIterable<Map<String, Object>> rows = handle.select("select * from persons").mapToMap();
+        assertThat(rows).hasSize(1);
+        assertThat(rows.first()).isEqualTo(Maps.of("id", 1, "name", "Bill Smith", "email", "bill@smith.me"));
+    }
+}

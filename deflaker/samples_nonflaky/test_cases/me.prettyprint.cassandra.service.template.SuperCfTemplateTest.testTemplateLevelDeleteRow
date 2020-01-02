@@ -1,0 +1,13 @@
+@Test
+public void testTemplateLevelDeleteRow() {
+    SuperCfTemplate<String, String, String> sTemplate = new ThriftSuperCfTemplate<String, String, String>(keyspace, "Super1", se, se, se);
+    SuperCfUpdater<String, String, String> sUpdater = sTemplate.createUpdater("skey_row_del", "super1");
+    sUpdater.setString("sub1_col_1", "sub1_val_1");
+    sTemplate.update(sUpdater);
+    SuperCfResult<String, String, String> result = sTemplate.querySuperColumn("skey_row_del", "super1");
+    assertEquals(1, result.getColumnNames().size());
+    sTemplate.deleteRow("skey_row_del");
+    result = sTemplate.querySuperColumns("skey_row_del");
+    assertFalse(result.hasResults());
+    assertEquals(0, result.getSuperColumns().size());
+}

@@ -1,0 +1,16 @@
+@Test
+public void testPredicateRootPathDontRespectParent() {
+    EntryPredicate pred = EntryPredicate.create(PathUtils.ROOT_PATH, false);
+    assertEquals(PathUtils.ROOT_PATH, pred.getPath());
+    // pattern doesn't match path
+    when(pattern.matches(PathUtils.ROOT_PATH)).thenReturn(false);
+    assertFalse(pred.apply(entry));
+    assertFalse(pred.apply(entry, true));
+    assertFalse(pred.apply(entry, false));
+    // pattern matches path
+    when(pattern.matches(PathUtils.ROOT_PATH)).thenReturn(true);
+    assertTrue(pred.apply(entry));
+    assertTrue(pred.apply(entry, true));
+    assertTrue(pred.apply(entry, false));
+    verify(pattern, times(6)).matches(PathUtils.ROOT_PATH);
+}

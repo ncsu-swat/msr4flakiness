@@ -1,0 +1,13 @@
+@Test
+public void shouldMigrateToVersion1() throws SQLException {
+    Connection connection = createConnection();
+    try {
+        SchemaUpdater updater = new SchemaUpdater(connection, "TOGGLZ", DefaultMapSerializer.multiline());
+        assertFalse(updater.doesTableExist());
+        updater.migrateToVersion1();
+        assertTrue(updater.doesTableExist());
+        assertTrue(querySucceeds(connection, "SELECT FEATURE_NAME FROM TOGGLZ"));
+    } finally {
+        DbUtils.closeQuietly(connection);
+    }
+}

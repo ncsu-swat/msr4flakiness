@@ -1,0 +1,30 @@
+@Test
+public void testModifyRestrictions() throws Exception {
+    Tree testAce = root.getTree(testPath + "/rep:policy").getChildren().iterator().next();
+    assertEquals(testPrincipal.getName(), testAce.getProperty(REP_PRINCIPAL_NAME).getValue(Type.STRING));
+    // add a new restriction node through the OAK API instead of access control manager
+    NodeUtil node = new NodeUtil(testAce);
+    NodeUtil restrictions = node.addChild(REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
+    restrictions.setString(REP_GLOB, "*");
+    String restrictionsPath = restrictions.getTree().getPath();
+    root.commit();
+    Tree principalRoot = getPrincipalRoot(testPrincipal);
+    assertEquals(2, cntEntries(principalRoot));
+    Tree parent = principalRoot.getChildren().iterator().next();
+    assertEquals("*", parent.getChildren().iterator().next().getProperty(REP_GLOB).getValue(Type.STRING));
+    // modify the restrictions node
+    Tree restrictionsNode = root.getTree(restrictionsPath);
+    restrictionsNode.setProperty(REP_GLOB, "/*/jcr:content/*");
+    root.commit();
+    principalRoot = getPrincipalRoot(testPrincipal);
+    assertEquals(2, cntEntries(principalRoot));
+    parent = principalRoot.getChildren().iterator().next();
+    assertEquals("/*/jcr:content/*", parent.getChildren().iterator().next().getProperty(REP_GLOB).getValue(Type.STRING));
+    // remove the restriction again
+    root.getTree(restrictionsPath).remove();
+    root.commit();
+    principalRoot = getPrincipalRoot(testPrincipal);
+    assertEquals(2, cntEntries(principalRoot));
+    parent = principalRoot.getChildren().iterator().next();
+    assertNull(parent.getChildren().iterator().next().getProperty(REP_GLOB));
+}

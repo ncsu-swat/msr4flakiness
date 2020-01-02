@@ -1,0 +1,12 @@
+@Test
+public void checkConsistencyFailure() throws Exception {
+    log.info("Starting checkConsistencyFailure()");
+    long afterSetupTime = clock.getTime();
+    log.info("after setup time {}", afterSetupTime);
+    cluster.blobStore.countDeleteChunks(Lists.newArrayList(Iterators.getLast(cluster.blobStoreState.blobsPresent.iterator())), 0);
+    MarkSweepGarbageCollector collector = cluster.getCollector(0);
+    long missing = collector.checkConsistency();
+    assertEquals(1, missing);
+    assertStats(cluster.statsProvider, 1, 1, 1, 0, CONSISTENCY_NAME);
+    assertStatsBean(collector.getConsistencyOperationStats(), 1, 1, 1);
+}

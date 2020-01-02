@@ -1,0 +1,14 @@
+@Test
+public void testKeyRequeuedOnResetIfEventsArePending() throws IOException {
+    AbstractWatchService.Key key = watcher.register(new StubWatchable(), ImmutableSet.of(ENTRY_CREATE));
+    key.post(new AbstractWatchService.Event<>(ENTRY_CREATE, 1, null));
+    key.signal();
+    key = (AbstractWatchService.Key) watcher.poll();
+    assertThat(watcher.queuedKeys()).isEmpty();
+    assertThat(key.pollEvents()).hasSize(1);
+    key.post(new AbstractWatchService.Event<>(ENTRY_CREATE, 1, null));
+    assertThat(watcher.queuedKeys()).isEmpty();
+    key.reset();
+    assertThat(key.state()).isEqualTo(SIGNALLED);
+    assertThat(watcher.queuedKeys()).hasSize(1);
+}

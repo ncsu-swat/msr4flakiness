@@ -1,0 +1,17 @@
+@Test
+public void testLaterAddedDescriptors() throws Exception {
+    final ValueFactory valueFactory = new SimpleValueFactory();
+    final MyTracker<Descriptors> tracker = createTracker();
+    AggregatingDescriptors aggregator = new AggregatingDescriptors(tracker);
+    assertMatches(aggregator, 0);
+    final GenericDescriptors input1 = new GenericDescriptors();
+    input1.put("a", valueFactory.createValue("b"), true, false);
+    input1.put("b", valueFactory.createValue("c"), true, true);
+    tracker.addService(input1);
+    assertMatches(aggregator, 2, input1);
+    final GenericDescriptors input2 = new GenericDescriptors();
+    input2.put("b", valueFactory.createValue("c2"), true, true);
+    input2.put("c", valueFactory.createValue("d"), true, true);
+    tracker.addService(input2);
+    assertMatches(aggregator, 3, input2, input1);
+}

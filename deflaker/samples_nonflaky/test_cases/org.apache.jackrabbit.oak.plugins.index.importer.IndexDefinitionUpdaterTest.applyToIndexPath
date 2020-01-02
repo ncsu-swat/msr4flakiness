@@ -1,0 +1,12 @@
+@Test
+public void applyToIndexPath() throws Exception {
+    String json = "{\"/oak:index/barIndex\": {\n" + "    \"compatVersion\": 2,\n" + "    \"type\": \"lucene\",\n" + "    \"barIndexProp\": \"barbar\",\n" + "    \"async\": \"async\",\n" + "    \"jcr:primaryType\": \"oak:QueryIndexDefinition\"\n" + "  }}";
+    NodeBuilder builder = store.getRoot().builder();
+    builder.child("oak:index");
+    store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    IndexDefinitionUpdater updater = new IndexDefinitionUpdater(json);
+    builder = store.getRoot().builder();
+    NodeBuilder idxBuilder = updater.apply(builder, "/oak:index/barIndex");
+    // Check builder returned is of /oak:index/barIndex
+    assertTrue(idxBuilder.hasProperty("barIndexProp"));
+}

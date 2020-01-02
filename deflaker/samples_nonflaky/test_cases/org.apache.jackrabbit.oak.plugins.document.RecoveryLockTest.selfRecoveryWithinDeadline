@@ -1,0 +1,41 @@
+@Test
+public void selfRecoveryWithinDeadline() throws Exception {
+    // expire clusterId 1
+    clock.waitUntil(info1.getLeaseEndTime() + DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS);
+    ClusterNodeInfoDocument c = infoDocument(1);
+    MissingLastRevSeeker seeker = new MissingLastRevSeeker(store, clock);
+    assertTrue(c.isRecoveryNeeded(clock.getTime()));
+    assertFalse(c.isBeingRecovered());
+    Semaphore recovering = new Semaphore(0);
+    Semaphore recovered = new Semaphore(0);
+    // simulate new startup and get info again
+    Future<ClusterNodeInfo> infoFuture = executor.submit(() -> ClusterNodeInfo.getInstance(store, clusterId -> {
+        assertTrue(lock1.acquireRecoveryLock(1));
+        recovering.release();
+        recovered.acquireUninterruptibly();
+        lock1.releaseRecoveryLock(true);
+        return true;
+    }, null, "node1", 1));
+    // wait until submitted task is in recovery
+    recovering.acquireUninterruptibly();
+    // check state again
+    c = infoDocument(1);
+    assertTrue(c.isRecoveryNeeded(clock.getTime()));
+    assertTrue(c.isBeingRecovered());
+    assertTrue(c.isBeingRecoveredBy(1));
+    // clusterId 2 must not be able to acquire (break) the recovery lock
+    assertFalse(lock1.acquireRecoveryLock(2));
+    // signal recovery to continue
+    recovered.release();
+    ClusterNodeInfo info1 = infoFuture.get();
+    assertEquals(1, info1.getId());
+    // check state again
+    c = infoDocument(1);
+    assertFalse(c.isRecoveryNeeded(clock.getTime()));
+    assertFalse(c.isBeingRecovered());
+    assertFalse(c.isBeingRecoveredBy(1));
+    // neither must be able to acquire a recovery lock on
+    // an active entry with a valid lease
+    assertFalse(lock1.acquireRecoveryLock(1));
+    assertFalse(lock1.acquireRecoveryLock(2));
+}

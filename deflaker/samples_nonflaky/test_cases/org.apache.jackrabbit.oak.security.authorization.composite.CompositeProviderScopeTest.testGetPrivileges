@@ -1,0 +1,15 @@
+@Test
+public void testGetPrivileges() throws Exception {
+    PrivilegeBitsProvider pbp = new PrivilegeBitsProvider(readOnlyRoot);
+    for (String path : defPrivileges.keySet()) {
+        Tree tree = readOnlyRoot.getTree(path);
+        Set<String> defaultPrivs = defPrivileges.get(path);
+        Set<String> privNames = cppTestUser.getPrivileges(tree);
+        if (testProvider.isSupported(path)) {
+            PrivilegeBits expected = pbp.getBits(defaultPrivs).modifiable().diff(denied).unmodifiable();
+            assertEquals(expected, pbp.getBits(privNames));
+        } else {
+            assertEquals(path, defaultPrivs, privNames);
+        }
+    }
+}

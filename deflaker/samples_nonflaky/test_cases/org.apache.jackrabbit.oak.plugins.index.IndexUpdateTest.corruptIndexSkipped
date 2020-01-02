@@ -1,0 +1,30 @@
+@Test
+public void corruptIndexSkipped() throws Exception {
+    NodeState before = builder.getNodeState();
+    createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "rootIndex", true, false, ImmutableSet.of("foo"), null);
+    NodeState after = builder.getNodeState();
+    CallbackCapturingProvider provider = new CallbackCapturingProvider();
+    EditorHook hook = new EditorHook(new IndexUpdateProvider(provider));
+    // 1. Basic sanity - provider gets invoked
+    NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+    String indexPath = "/oak:index/rootIndex";
+    assertNotNull(provider.getContext(indexPath));
+    // 2. Mark as corrupt and assert that editor is not invoked
+    builder = indexed.builder();
+    before = indexed;
+    builder.child("testRoot").setProperty("foo", "abc");
+    markCorrupt(builder, "rootIndex");
+    after = builder.getNodeState();
+    provider.reset();
+    indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+    assertNull(provider.getContext(indexPath));
+    // 3. Now reindex and that should reset corrupt flag
+    builder = indexed.builder();
+    before = indexed;
+    child(builder, indexPath).setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+    after = builder.getNodeState();
+    provider.reset();
+    indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+    assertFalse(NodeStateUtils.getNode(indexed, indexPath).hasProperty(IndexConstants.CORRUPT_PROPERTY_NAME));
+    assertNotNull(provider.getContext(indexPath));
+}

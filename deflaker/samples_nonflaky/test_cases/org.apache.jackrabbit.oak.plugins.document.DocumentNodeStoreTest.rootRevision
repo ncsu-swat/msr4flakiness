@@ -1,0 +1,16 @@
+@Test
+public void rootRevision() throws Exception {
+    DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
+    NodeBuilder builder = ns.getRoot().builder();
+    builder.child("foo").child("child");
+    builder.child("bar").child("child");
+    merge(ns, builder);
+    builder = ns.getRoot().builder();
+    builder.child("foo").child("child").child("node");
+    merge(ns, builder);
+    RevisionVector head = ns.getHeadRevision();
+    NodeState child = ns.getRoot().getChildNode("bar").getChildNode("child");
+    assertTrue(child instanceof DocumentNodeState);
+    DocumentNodeState state = (DocumentNodeState) child;
+    assertEquals(head, state.getRootRevision());
+}

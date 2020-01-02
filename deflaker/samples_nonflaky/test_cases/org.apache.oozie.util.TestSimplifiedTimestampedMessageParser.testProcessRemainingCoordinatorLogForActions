@@ -1,0 +1,27 @@
+public void testProcessRemainingCoordinatorLogForActions() throws IOException, ServiceException {
+    new Services().init();
+    XLogFilter.reset();
+    XLogFilter.defineParameter("USER");
+    XLogFilter.defineParameter("GROUP");
+    XLogFilter.defineParameter("TOKEN");
+    XLogFilter.defineParameter("APP");
+    XLogFilter.defineParameter("JOB");
+    XLogFilter.defineParameter("ACTION");
+    XLogFilter xf = new XLogFilter();
+    xf.setParameter("JOB", "14-200904160239--example-C");
+    xf.setParameter("ACTION", "14-200904160239--example-C@1");
+    File file = TestTimestampedMessageParser.prepareFile2(getTestCaseDir());
+    StringWriter sw = new StringWriter();
+    new SimpleTimestampedMessageParser(new BufferedReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8)), xf).processRemaining(sw, new XLogStreamer(xf));
+    String[] matches = sw.toString().split("\n");
+    assertEquals(9, matches.length);
+    assertTrue(matches[0].contains("_L1_"));
+    assertTrue(matches[1].contains("_L2_"));
+    assertTrue(matches[2].contains("_L3_"));
+    assertTrue(matches[3].contains("_L3A_"));
+    assertTrue(matches[4].contains("_L3B_"));
+    assertTrue(matches[5].contains("_L4_"));
+    assertTrue(matches[6].contains("_L5_"));
+    assertTrue(matches[7].contains("_L6_"));
+    assertTrue(matches[8].contains("_L7_"));
+}

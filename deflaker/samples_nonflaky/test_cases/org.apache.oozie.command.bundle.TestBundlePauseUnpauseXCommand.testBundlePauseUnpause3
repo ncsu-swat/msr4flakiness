@@ -1,0 +1,19 @@
+/**
+ * Test : Pause a RUNNINGWITHERROR bundle
+ *
+ * @throws Exception
+ */
+public void testBundlePauseUnpause3() throws Exception {
+    BundleJobBean job = this.addRecordToBundleJobTable(Job.Status.RUNNINGWITHERROR, false);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    BundleJobGetJPAExecutor bundleJobGetCmd = new BundleJobGetJPAExecutor(job.getId());
+    job = jpaService.execute(bundleJobGetCmd);
+    assertEquals(job.getStatus(), Job.Status.RUNNINGWITHERROR);
+    new BundlePauseXCommand(job).call();
+    job = jpaService.execute(bundleJobGetCmd);
+    assertEquals(job.getStatus(), Job.Status.PAUSEDWITHERROR);
+    new BundleUnpauseXCommand(job).call();
+    job = jpaService.execute(bundleJobGetCmd);
+    assertEquals(job.getStatus(), Job.Status.RUNNINGWITHERROR);
+}

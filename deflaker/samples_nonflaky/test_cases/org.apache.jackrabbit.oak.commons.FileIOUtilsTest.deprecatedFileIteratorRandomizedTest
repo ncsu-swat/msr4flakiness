@@ -1,0 +1,11 @@
+@Test
+public void deprecatedFileIteratorRandomizedTest() throws Exception {
+    Set<String> added = newHashSet();
+    for (int i = 0; i < 100; i++) {
+        added.add(getRandomTestString());
+    }
+    File f = assertWrite(added.iterator(), true, added.size());
+    BurnOnCloseFileIterator<String> iterator = new BurnOnCloseFileIterator<String>(FileUtils.lineIterator(f, UTF_8.toString()), f, (input) -> unescapeLineBreaks(input));
+    assertEquals(added, Sets.newHashSet(iterator));
+    assertTrue(!f.exists());
+}

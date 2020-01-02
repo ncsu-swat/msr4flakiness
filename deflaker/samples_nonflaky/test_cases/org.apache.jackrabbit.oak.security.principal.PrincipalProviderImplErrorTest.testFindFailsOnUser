@@ -1,0 +1,9 @@
+@Test
+public void testFindFailsOnUser() throws Exception {
+    Principal p = testUser.getPrincipal();
+    User userMock = when(mock(User.class).getPrincipal()).thenThrow(new RepositoryException()).getMock();
+    UserManager um = when(mock(UserManager.class).findAuthorizables(any(Query.class))).thenReturn(Iterators.singletonIterator(userMock)).getMock();
+    Iterator it = createPrincipalProvider(um).findPrincipals(PrincipalManager.SEARCH_TYPE_NOT_GROUP);
+    assertFalse(it.hasNext());
+    verify(userMock, times(1)).getPrincipal();
+}

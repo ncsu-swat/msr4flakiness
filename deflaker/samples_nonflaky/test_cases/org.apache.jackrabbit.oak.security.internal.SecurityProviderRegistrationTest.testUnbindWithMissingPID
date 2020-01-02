@@ -1,0 +1,11 @@
+@Test
+public void testUnbindWithMissingPID() {
+    registration.activate(context.bundleContext(), configWithRequiredServiceIds("rpId"));
+    ServiceReference sr = when(mock(ServiceReference.class).getProperty(SERVICE_PID)).thenReturn("rpId").getMock();
+    RestrictionProvider mockRp = mock(RestrictionProvider.class);
+    registration.bindRestrictionProvider(sr, mockRp);
+    assertNotNull(context.getService(SecurityProvider.class));
+    when(sr.getProperty(SERVICE_PID)).thenReturn(null);
+    registration.unbindRestrictionProvider(sr, mockRp);
+    assertNotNull(context.getService(SecurityProvider.class));
+}

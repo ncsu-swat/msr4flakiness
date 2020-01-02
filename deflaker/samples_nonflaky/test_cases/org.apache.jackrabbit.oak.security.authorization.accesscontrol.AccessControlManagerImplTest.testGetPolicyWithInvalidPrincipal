@@ -1,0 +1,21 @@
+@Test
+public void testGetPolicyWithInvalidPrincipal() throws Exception {
+    ACL policy = TestUtility.getApplicablePolicy(acMgr, testPath);
+    policy.addEntry(testPrincipal, testPrivileges, true, TestUtility.getGlobRestriction("*", valueFactory));
+    acMgr.setPolicy(testPath, policy);
+    Tree aclNode = root.getTree(testPath + '/' + REP_POLICY);
+    Tree aceNode = TreeUtil.addChild(aclNode, "testACE", NT_REP_DENY_ACE);
+    aceNode.setProperty(REP_PRINCIPAL_NAME, "invalidPrincipal");
+    aceNode.setProperty(REP_PRIVILEGES, ImmutableList.of(JCR_READ), Type.NAMES);
+    // reading policies with unknown principal name should not fail.
+    AccessControlPolicy[] policies = acMgr.getPolicies(testPath);
+    assertPolicies(policies, 1);
+    ACL acl = (ACL) policies[0];
+    List<String> principalNames = new ArrayList<>();
+    for (AccessControlEntry ace : acl.getEntries()) {
+        principalNames.add(ace.getPrincipal().getName());
+    }
+    assertTrue(principalNames.remove("invalidPrincipal"));
+    assertTrue(principalNames.remove(testPrincipal.getName()));
+    assertTrue(principalNames.isEmpty());
+}

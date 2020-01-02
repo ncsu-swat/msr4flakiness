@@ -1,0 +1,30 @@
+public void testRegisterAdvertiseUnadvertiseUnregister() throws Exception {
+    CuratorFramework client = getClient();
+    ServiceDiscovery<Map> sDiscovery = getServiceDiscovery();
+    assertNull(client.checkExists().forPath("/services"));
+    assertEquals(0, sDiscovery.queryForInstances("servers").size());
+    assertNull(sDiscovery.queryForInstance("servers", ZK_ID));
+    DummyUser du = new DummyUser();
+    DummyUser du2 = new DummyUser();
+    try {
+        du.register();
+        assertNotNull(client.checkExists().forPath("/services"));
+        assertEquals(1, sDiscovery.queryForInstances("servers").size());
+        assertNotNull(sDiscovery.queryForInstance("servers", ZK_ID));
+        du2.register();
+        assertNotNull(client.checkExists().forPath("/services"));
+        assertEquals(1, sDiscovery.queryForInstances("servers").size());
+        assertNotNull(sDiscovery.queryForInstance("servers", ZK_ID));
+        du.unregister();
+        assertNotNull(client.checkExists().forPath("/services"));
+        assertEquals(1, sDiscovery.queryForInstances("servers").size());
+        assertNotNull(sDiscovery.queryForInstance("servers", ZK_ID));
+        du2.unregister();
+        assertNotNull(client.checkExists().forPath("/services"));
+        assertEquals(0, sDiscovery.queryForInstances("servers").size());
+        assertNull(sDiscovery.queryForInstance("servers", ZK_ID));
+    } finally {
+        du.unregister();
+        du2.unregister();
+    }
+}

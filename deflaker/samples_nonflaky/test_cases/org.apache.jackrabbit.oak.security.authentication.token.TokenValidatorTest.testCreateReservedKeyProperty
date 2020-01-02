@@ -1,0 +1,16 @@
+@Test
+public void testCreateReservedKeyProperty() throws Exception {
+    Tree tree = TreeUtil.addChild(root.getTree("/"), "testNode", JcrConstants.NT_UNSTRUCTURED);
+    try {
+        tree.setProperty(TOKEN_ATTRIBUTE_KEY, "anyValue");
+        root.commit(CommitMarker.asCommitAttributes());
+        fail("The reserved token key property must not used with other node types.");
+    } catch (CommitFailedException e) {
+        assertEquals(60, e.getCode());
+    } finally {
+        tree.remove();
+        if (root.hasPendingChanges()) {
+            root.commit();
+        }
+    }
+}

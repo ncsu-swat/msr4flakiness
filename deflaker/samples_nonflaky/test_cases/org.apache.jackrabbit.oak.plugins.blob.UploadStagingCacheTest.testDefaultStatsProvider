@@ -1,0 +1,13 @@
+@Test
+public void testDefaultStatsProvider() throws Exception {
+    stagingCache = UploadStagingCache.build(root, null, 1, /*threads*/
+    8 * 1024, /* bytes */
+    uploader, null, /*cache*/
+    null, executor, null, 3000, 6000);
+    // add load
+    File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
+    Optional<SettableFuture<Integer>> future = stagingCache.put(ID_PREFIX + 0, f);
+    assertTrue(future.isPresent());
+    assertNotNull(stagingCache.getIfPresent(ID_PREFIX + 0));
+    assertCacheStats(stagingCache, 1, 4 * 1024, 1, 1);
+}

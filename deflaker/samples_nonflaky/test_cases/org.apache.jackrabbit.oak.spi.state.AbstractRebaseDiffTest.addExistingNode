@@ -1,0 +1,35 @@
+@Test
+public void addExistingNode() {
+    NodeBuilder headBuilder = base.builder();
+    headBuilder.setChildNode("n");
+    headBuilder.setChildNode("m").setChildNode("m1");
+    headBuilder.getChildNode("m").setProperty("a", 1);
+    headBuilder.getChildNode("m").setProperty("p", 1);
+    headBuilder.getChildNode("m").setChildNode("mm").setChildNode("mm1");
+    NodeState head = headBuilder.getNodeState();
+    NodeBuilder branchBuilder = base.builder();
+    branchBuilder.setChildNode("n");
+    branchBuilder.setChildNode("m").setChildNode("m2");
+    branchBuilder.getChildNode("m").setProperty("a", 1);
+    branchBuilder.getChildNode("m").setProperty("q", 1);
+    branchBuilder.getChildNode("m").setChildNode("mm").setChildNode("mm2");
+    NodeState branch = branchBuilder.getNodeState();
+    NodeBuilder builder = head.builder();
+    RebaseDiff rebaseDiff = new RebaseDiff(builder);
+    branch.compareAgainstBaseState(base, rebaseDiff);
+    NodeBuilder expectedBuilder = base.builder();
+    expectedBuilder.setChildNode("n");
+    expectedBuilder.setChildNode("n");
+    expectedBuilder.setChildNode("m").setChildNode("m1");
+    expectedBuilder.getChildNode("m").setChildNode("m2");
+    expectedBuilder.getChildNode("m").setProperty("a", 1);
+    expectedBuilder.getChildNode("m").setProperty("p", 1);
+    expectedBuilder.getChildNode("m").setProperty("q", 1);
+    expectedBuilder.getChildNode("m").setChildNode("mm").setChildNode("mm1");
+    expectedBuilder.getChildNode("m").getChildNode("mm").setChildNode("mm2");
+    assertEquals(expectedBuilder.getNodeState(), builder.getNodeState());
+}
+@Override
+protected void addExistingNode(NodeBuilder builder, String name, NodeState before, NodeState after) {
+    Assert.fail("addExistingNode " + name + '=' + after);
+}

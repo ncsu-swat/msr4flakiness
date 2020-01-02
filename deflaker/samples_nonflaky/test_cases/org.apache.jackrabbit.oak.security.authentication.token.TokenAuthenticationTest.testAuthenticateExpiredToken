@@ -1,0 +1,14 @@
+@Test
+public void testAuthenticateExpiredToken() {
+    TokenProvider tp = new TokenProviderImpl(root, ConfigurationParameters.of(TokenProvider.PARAM_TOKEN_EXPIRATION, 1), getUserConfiguration());
+    TokenInfo info = createTokenInfo(tp, userId);
+    waitUntilExpired(info);
+    try {
+        new TokenAuthentication(tp).authenticate(new TokenCredentials(info.getToken()));
+        fail("LoginException expected");
+    } catch (LoginException e) {
+    // success
+    }
+    // expired token must have been removed
+    assertNull(tp.getTokenInfo(info.getToken()));
+}

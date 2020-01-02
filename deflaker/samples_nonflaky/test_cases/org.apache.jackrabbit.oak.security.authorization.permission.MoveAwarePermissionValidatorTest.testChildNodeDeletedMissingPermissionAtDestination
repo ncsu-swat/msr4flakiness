@@ -1,0 +1,16 @@
+@Test(expected = CommitFailedException.class)
+public void testChildNodeDeletedMissingPermissionAtDestination() throws Exception {
+    grant(PathUtils.ROOT_PATH, EveryonePrincipal.getInstance(), PrivilegeConstants.JCR_REMOVE_CHILD_NODES, PrivilegeConstants.JCR_REMOVE_NODE);
+    MoveTracker moveTracker = new MoveTracker();
+    moveTracker.addMove("/src", "/dest");
+    MoveAwarePermissionValidator maValidator = spy(createRootValidator(ImmutableSet.of(EveryonePrincipal.getInstance()), moveTracker));
+    try {
+        maValidator.childNodeDeleted("src", mock(NodeState.class));
+    } catch (CommitFailedException e) {
+        verify(maValidator, times(1)).checkPermissions(t.getChild("src"), true, Permissions.REMOVE_NODE);
+        verify(pp, times(1)).isGranted(t.getChild("dest"), null, Permissions.ADD_NODE | Permissions.NODE_TYPE_MANAGEMENT);
+        assertTrue(e.isAccessViolation());
+        assertEquals(0, e.getCode());
+        throw e;
+    }
+}

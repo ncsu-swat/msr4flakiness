@@ -1,0 +1,28 @@
+@Test
+public void queryOnStableRevision() throws Exception {
+    // we check for max traversals for each 1000 node reads, see Cursors.java -> fetchNext()
+    long maxReadEntries = 1000;
+    ContentSession s = repository.login(null, null);
+    Root r = s.getLatestRoot();
+    Tree t = r.getTree("/").addChild("test");
+    for (int i = 0; i < maxReadEntries + 1; i++) {
+        t.addChild("node" + i).setProperty("jcr:primaryType", "nt:base");
+    }
+    r.commit();
+    ContentSession s2 = repository.login(null, null);
+    Root r2 = s2.getLatestRoot();
+    CounterStats slowQueryCounter = queryEngineSettings.getStatisticsProvider().getCounterStats(SLOW_QUERY_COUNT_NAME, StatsOptions.METRICS_ONLY);
+    HistogramStats histogramStats = queryEngineSettings.getStatisticsProvider().getHistogram(SLOW_QUERY_PERCENTILE_METRICS_NAME, StatsOptions.METRICS_ONLY);
+    long totalQueryCount = histogramStats.getCount();
+    long slowQueryCount = slowQueryCounter.getCount();
+    Assert.assertEquals(totalQueryCount, 0);
+    Assert.assertEquals(slowQueryCount, 0);
+    Result result = executeQuery(r2, "test/node1//element(*, nt:base)");
+    for (ResultRow rr : result.getRows()) {
+    }
+    totalQueryCount = histogramStats.getCount();
+    slowQueryCount = slowQueryCounter.getCount();
+    Assert.assertEquals(totalQueryCount, 1);
+    Assert.assertEquals(slowQueryCount, 0);
+    executeAndAssertSlowQuery(r2, queryEngineSettings);
+}

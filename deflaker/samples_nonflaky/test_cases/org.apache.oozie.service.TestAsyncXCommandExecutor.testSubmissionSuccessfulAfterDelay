@@ -1,0 +1,10 @@
+@Test
+public void testSubmissionSuccessfulAfterDelay() {
+    when(callableWrapper.getInitialDelay()).thenReturn(100L);
+    when(callableWrapper.getDelay(eq(TimeUnit.MILLISECONDS))).thenReturn(50L);
+    when(callableQueueService.canSubmitCallable(any(XCallable.class))).thenReturn(true);
+    configureMockScheduler();
+    asyncExecutor.queue(callableWrapper, false);
+    verify(scheduledExecutor).schedule(any(ScheduledXCallable.class), eq(50L), eq(TimeUnit.MILLISECONDS));
+    verify(executor).execute(callableWrapper);
+}

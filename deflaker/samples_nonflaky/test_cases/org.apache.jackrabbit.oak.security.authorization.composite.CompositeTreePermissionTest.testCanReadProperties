@@ -1,0 +1,17 @@
+@Test
+public void testCanReadProperties() {
+    PropertyState ps = PropertyStates.createProperty("propName", "value");
+    TreePermission mockTp = when(mock(TreePermission.class).canReadProperties()).thenReturn(true).getMock();
+    when(mockTp.canRead(ps)).thenReturn(false);
+    AggregatedPermissionProvider mockPP = mock(AggregatedPermissionProvider.class);
+    when(mockPP.getTreePermission(any(Tree.class), any(TreeType.class), any(TreePermission.class))).thenReturn(mockTp);
+    when(mockPP.supportedPermissions(mockTp, null, Permissions.READ_PROPERTY)).thenReturn(Permissions.ALL);
+    TreePermission rootTp = createRootTreePermission(mockPP, fullScopeProvider);
+    rootTp.canReadProperties();
+    rootTp.canReadProperties();
+    rootTp.canRead(ps);
+    verify(mockTp, never()).canRead();
+    verify(mockTp, times(1)).canReadProperties();
+    verify(mockTp, never()).canRead(ps);
+    verify(mockTp, never()).canReadAll();
+}

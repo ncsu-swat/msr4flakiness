@@ -1,0 +1,48 @@
+@Test(timeout = 1000)
+public void testFlush() throws IOException, InterruptedException {
+    Set<UUID> added = Collections.synchronizedSet(new HashSet<>());
+    Semaphore semaphore = new Semaphore(0);
+    queue = new SegmentWriteQueue((tarEntry, data, offset, size) -> {
+        try {
+            semaphore.acquire();
+        } catch (InterruptedException e) {
+        }
+        added.add(new UUID(tarEntry.getMsb(), tarEntry.getLsb()));
+    });
+    for (int i = 0; i < 3; i++) {
+        queue.addToQueue(tarEntry(i), EMPTY_DATA, 0, 0);
+    }
+    AtomicBoolean flushFinished = new AtomicBoolean(false);
+    Set<UUID> addedAfterFlush = new HashSet<>();
+    new Thread(() -> {
+        try {
+            queue.flush();
+            flushFinished.set(true);
+            addedAfterFlush.addAll(added);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }).start();
+    Thread.sleep(100);
+    assertFalse("Flush should be blocked", flushFinished.get());
+    AtomicBoolean addFinished = new AtomicBoolean(false);
+    new Thread(() -> {
+        try {
+            queue.addToQueue(tarEntry(10), EMPTY_DATA, 0, 0);
+            addFinished.set(true);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }).start();
+    Thread.sleep(100);
+    assertFalse("Adding segments should be blocked until the flush is finished", addFinished.get());
+    semaphore.release(Integer.MAX_VALUE);
+    while (!addFinished.get()) {
+        Thread.sleep(10);
+    }
+    assertTrue("Flush should be finished once the ", flushFinished.get());
+    assertTrue("Adding segments should be blocked until the flush is finished", addFinished.get());
+    for (int i = 0; i < 3; i++) {
+        assertTrue(addedAfterFlush.contains(uuid(i)));
+    }
+}

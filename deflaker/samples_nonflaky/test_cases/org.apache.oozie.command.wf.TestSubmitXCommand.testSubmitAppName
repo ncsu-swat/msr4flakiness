@@ -1,0 +1,15 @@
+public void testSubmitAppName() throws Exception {
+    Configuration conf = new XConfiguration();
+    String workflowUri = getTestCaseFileUri("workflow.xml");
+    String appXml = "<workflow-app xmlns='uri:oozie:workflow:0.1' name='${appName}-foo'> " + "<start to='end' /> " + "<end name='end' /> " + "</workflow-app>";
+    writeToFile(appXml, workflowUri);
+    conf.set(OozieClient.APP_PATH, workflowUri);
+    conf.set(OozieClient.USER_NAME, getTestUser());
+    conf.set("appName", "var-app-name");
+    SubmitXCommand sc = new SubmitXCommand(conf);
+    String jobId = sc.call();
+    WorkflowStoreService wss = Services.get().get(WorkflowStoreService.class);
+    WorkflowStore ws = wss.create();
+    WorkflowJobBean wfb = ws.getWorkflow(jobId, false);
+    assertEquals("var-app-name-foo", wfb.getAppName());
+}

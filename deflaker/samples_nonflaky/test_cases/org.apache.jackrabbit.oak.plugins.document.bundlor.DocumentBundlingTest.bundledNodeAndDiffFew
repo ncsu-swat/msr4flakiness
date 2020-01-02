@@ -1,0 +1,19 @@
+@Test
+public void bundledNodeAndDiffFew() throws Exception {
+    store.dispose();
+    disableJournalUse();
+    store = builderProvider.newBuilder().setDocumentStore(ds).memoryCacheSize(0).getNodeStore();
+    NodeBuilder builder = store.getRoot().builder();
+    NodeBuilder fileNode = newNode("nt:file");
+    fileNode.child("jcr:content").setProperty("jcr:data", "foo");
+    builder.child("test").setChildNode("book.jpg", fileNode.getNodeState());
+    merge(builder);
+    // Make some modifications under the bundled node
+    // This would cause an entry for bundled node in Commit modified set
+    builder = store.getRoot().builder();
+    childBuilder(builder, "/test/book.jpg/jcr:content").setProperty("foo", "bar");
+    TestNodeObserver o = new TestNodeObserver("test");
+    store.addObserver(o);
+    merge(builder);
+    assertEquals(1, o.changed.size());
+}

@@ -1,0 +1,13 @@
+@Test
+public void testAddMixin() throws Exception {
+    Root root = session.getLatestRoot();
+    Tree rootTree = root.getTree("/test");
+    rootTree.addChild("child").setProperty(JcrConstants.JCR_MIXINTYPES, Arrays.asList("aMixin1", "aMixin2"), Type.NAMES);
+    root.commit();
+    ChangeSet changeSet = getSingleChangeSet();
+    assertMatches("parentPaths", changeSet.getParentPaths(), "/test", "/test/child");
+    assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "test", "child");
+    assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:parentType", "aMixin1", "aMixin2");
+    assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType", "aMixin1", "aMixin2");
+    assertMatches("propertyNames", changeSet.getPropertyNames(), JcrConstants.JCR_MIXINTYPES);
+}

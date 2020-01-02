@@ -1,0 +1,35 @@
+@Test
+public void testMultipleMounts() throws CommitFailedException {
+    root.getTree("/oak:index/counter").setProperty("resolution", 1);
+    root.commit();
+    Tree rootTree = root.getTree("/");
+    Tree apps = rootTree.addChild("apps");
+    Tree libs = rootTree.addChild("libs");
+    Tree content = rootTree.addChild("content");
+    Tree nested = rootTree.addChild("nested");
+    Tree nestedMount = nested.addChild("mount");
+    Tree fragments = rootTree.addChild("var").addChild("fragments").addChild("oak:mount-libs");
+    addChildren(apps, 100);
+    addChildren(libs, 200);
+    addChildren(content, 400);
+    addChildren(nested, 800);
+    addChildren(nestedMount, 1600);
+    addChildren(fragments, 3200);
+    root.commit();
+    runAsyncIndex();
+    // leaves:
+    Mount defaultMount = mip.getDefaultMount();
+    Mount libsMount = mip.getMountByName("libs");
+    assertCountEquals(100, libsMount, "apps");
+    assertCountEquals(200, libsMount, "libs");
+    assertCountEquals(400, defaultMount, "content");
+    assertCountEquals(800, defaultMount, "nested");
+    assertCountEquals(1600, libsMount, "nested/mount");
+    assertCountEquals(3200, libsMount, "var");
+    assertCountEquals(3200, libsMount, "var/fragments");
+    assertCountEquals(3200, libsMount, "var/fragments/oak:mount-libs");
+    assertCountEquals(0, defaultMount, "var");
+    assertCountEquals(0, defaultMount, "var/fragments");
+    assertCountEquals(100 + 200 + 1600 + 3200, libsMount, "");
+    assertCountEquals(1600, libsMount, "nested");
+}

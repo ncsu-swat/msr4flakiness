@@ -1,0 +1,19 @@
+public void testProcessRemainingCoordinatorLogForActions() throws IOException, CommandException {
+    XLogFilter.reset();
+    XLogFilter.defineParameter("USER");
+    XLogFilter.defineParameter("GROUP");
+    XLogFilter.defineParameter("TOKEN");
+    XLogFilter.defineParameter("APP");
+    XLogFilter.defineParameter("JOB");
+    XLogFilter.defineParameter("ACTION");
+    XLogFilter xf = new XLogFilter();
+    xf.setParameter("JOB", "14-200904160239--example-C");
+    xf.setParameter("ACTION", "14-200904160239--example-C@1");
+    File file = prepareFile2(getTestCaseDir());
+    StringWriter sw = new StringWriter();
+    new TimestampedMessageParser(new BufferedReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8)), xf).processRemaining(sw, new XLogStreamer(xf));
+    String[] matches = sw.toString().split("\n");
+    assertEquals(2, matches.length);
+    assertTrue(matches[0].contains("_L1_"));
+    assertTrue(matches[1].contains("_L5_"));
+}

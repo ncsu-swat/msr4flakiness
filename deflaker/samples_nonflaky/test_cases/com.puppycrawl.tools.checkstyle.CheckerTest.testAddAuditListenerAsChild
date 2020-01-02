@@ -1,0 +1,21 @@
+@Test
+public void testAddAuditListenerAsChild() throws Exception {
+    final Checker checker = new Checker();
+    final DebugAuditAdapter auditAdapter = new DebugAuditAdapter();
+    final PackageObjectFactory factory = new PackageObjectFactory(new HashSet<>(), Thread.currentThread().getContextClassLoader()) {
+
+        @Override
+        public Object createModule(String name) throws CheckstyleException {
+            Object adapter = auditAdapter;
+            if (!name.equals(DebugAuditAdapter.class.getName())) {
+                adapter = super.createModule(name);
+            }
+            return adapter;
+        }
+    };
+    checker.setModuleFactory(factory);
+    checker.setupChild(createModuleConfig(DebugAuditAdapter.class));
+    // Let's try fire some events
+    checker.process(Collections.singletonList(new File("dummy.java")));
+    assertTrue(auditAdapter.wasCalled(), "Checker.fireAuditStarted() doesn't call listener");
+}

@@ -1,0 +1,17 @@
+@Test
+public void validatorProviderInvocation() throws Exception {
+    MemoryNodeStore store = new MemoryNodeStore();
+    IndexEditorProvider provider = new PropertyIndexEditorProvider();
+    NodeBuilder builder = store.getRoot().builder();
+    createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "rootIndex", true, false, ImmutableSet.of("foo"), null).setProperty(ASYNC_PROPERTY_NAME, "async");
+    builder.child("testRoot").setProperty("foo", "abc");
+    // merge it back in
+    store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
+    CollectingValidatorProvider v = new CollectingValidatorProvider();
+    async.setValidatorProviders(ImmutableList.<ValidatorProvider>of(v));
+    async.run();
+    assertFalse(v.visitedPaths.isEmpty());
+    assertThat(v.visitedPaths, hasItem("/:async"));
+    assertThat(v.visitedPaths, hasItem("/oak:index/rootIndex"));
+}

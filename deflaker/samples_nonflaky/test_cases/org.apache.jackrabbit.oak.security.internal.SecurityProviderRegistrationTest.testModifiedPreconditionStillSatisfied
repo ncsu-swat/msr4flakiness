@@ -1,0 +1,13 @@
+@Test
+public void testModifiedPreconditionStillSatisfied() {
+    registration.activate(context.bundleContext(), configWithRequiredServiceIds("rpId", "authorizationId"));
+    RestrictionProvider mockRp = mock(RestrictionProvider.class);
+    ServiceReference sr = when(mock(ServiceReference.class).getProperty(SERVICE_PID)).thenReturn("rpId").getMock();
+    registration.bindRestrictionProvider(sr, mockRp);
+    registration.bindAuthorizationConfiguration(new AuthorizationConfigurationImpl(), ImmutableMap.of(SERVICE_PID, "authorizationId"));
+    SecurityProvider service = context.getService(SecurityProvider.class);
+    assertNotNull(service);
+    registration.modified(configWithRequiredServiceIds("authorizationId"));
+    SecurityProvider service2 = context.getService(SecurityProvider.class);
+    assertSame(service, service2);
+}

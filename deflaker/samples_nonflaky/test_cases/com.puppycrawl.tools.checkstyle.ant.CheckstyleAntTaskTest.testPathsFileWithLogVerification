@@ -1,0 +1,25 @@
+@Test
+public final void testPathsFileWithLogVerification() throws IOException {
+    // given
+    TestRootModuleChecker.reset();
+    final CheckstyleAntTaskLogStub antTask = new CheckstyleAntTaskLogStub();
+    antTask.setConfig(getPath(CUSTOM_ROOT_CONFIG_FILE));
+    antTask.setProject(new Project());
+    final FileSet examinationFileSet = new FileSet();
+    examinationFileSet.setFile(new File(getPath(FLAWLESS_INPUT)));
+    final Path sourcePath = new Path(antTask.getProject());
+    sourcePath.addFileset(examinationFileSet);
+    antTask.addPath(sourcePath);
+    antTask.addPath(new Path(new Project()));
+    // when
+    antTask.execute();
+    // then
+    final List<String> loggedMessages = antTask.getLoggedMessages();
+    assertEquals(1, loggedMessages.stream().filter(msg -> msg.startsWith("1) Scanning path")).count(), "Scanning path was not logged");
+    assertEquals(1, loggedMessages.stream().filter(msg -> msg.startsWith("1) Adding 1 files from path")).count(), "Scanning path was not logged");
+    assertEquals(0, loggedMessages.stream().filter(msg -> msg.startsWith("2) Adding 0 files from path ")).count(), "Scanning empty was logged");
+    assertTrue(TestRootModuleChecker.isProcessed(), "Checker is not processed");
+    final List<File> filesToCheck = TestRootModuleChecker.getFilesToCheck();
+    assertThat("There are more files to check than expected", filesToCheck.size(), is(1));
+    assertThat("The path of file differs from expected", filesToCheck.get(0).getAbsolutePath(), is(getPath(FLAWLESS_INPUT)));
+}

@@ -1,0 +1,14 @@
+@Test
+public void testUnsuccessfulPartialCheckWithoutBinaryTraversal() throws Exception {
+    StringWriter strOut = new StringWriter();
+    StringWriter strErr = new StringWriter();
+    PrintWriter outWriter = new PrintWriter(strOut, true);
+    PrintWriter errWriter = new PrintWriter(strErr, true);
+    Set<String> filterPaths = new LinkedHashSet<>();
+    filterPaths.add("/g");
+    Check.builder().withPath(new File(temporaryFolder.getRoot().getAbsolutePath())).withDebugInterval(Long.MAX_VALUE).withCheckHead(true).withCheckpoints(new HashSet<String>()).withFilterPaths(filterPaths).withIOStatistics(true).withOutWriter(outWriter).withErrWriter(errWriter).build().run();
+    outWriter.close();
+    errWriter.close();
+    assertExpectedOutput(strOut.toString(), Lists.newArrayList("Checking head", "Searched through 1 revisions and 0 checkpoints", "No good revision found"));
+    assertExpectedOutput(strErr.toString(), Lists.newArrayList("Path /g not found"));
+}

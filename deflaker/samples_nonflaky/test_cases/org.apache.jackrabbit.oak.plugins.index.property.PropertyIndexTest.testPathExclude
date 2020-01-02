@@ -1,0 +1,30 @@
+@Test
+public void testPathExclude() throws Exception {
+    NodeState root = INITIAL_CONTENT;
+    // Add index definition
+    NodeBuilder builder = root.builder();
+    NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo", true, false, ImmutableSet.of("foo"), null);
+    index.setProperty(createProperty(PROP_EXCLUDED_PATHS, of("/test/a"), Type.STRINGS));
+    NodeState before = builder.getNodeState();
+    // Add some content and process it through the property index hook
+    builder.child("test").child("a").setProperty("foo", "abc");
+    builder.child("test").child("b").setProperty("foo", "abc");
+    NodeState after = builder.getNodeState();
+    NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+    FilterImpl f = createFilter(indexed, NT_BASE);
+    f.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("abc"));
+    // Query the index
+    PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+    assertEquals(ImmutableSet.of("test/b"), find(lookup, "foo", "abc", f));
+    // no path restriction, opt out
+    PropertyIndexPlan plan = new PropertyIndexPlan("plan", root, index.getNodeState(), f);
+    assertTrue(Double.POSITIVE_INFINITY == plan.getCost());
+    // path restriction is not an ancestor of excluded path, index may be used
+    f.setPath("/test2");
+    plan = new PropertyIndexPlan("plan", root, index.getNodeState(), f);
+    assertTrue(Double.POSITIVE_INFINITY != plan.getCost());
+    // path restriction is an ancestor of excluded path, opt out
+    f.setPath("/test");
+    plan = new PropertyIndexPlan("plan", root, index.getNodeState(), f);
+    assertTrue(Double.POSITIVE_INFINITY == plan.getCost());
+}

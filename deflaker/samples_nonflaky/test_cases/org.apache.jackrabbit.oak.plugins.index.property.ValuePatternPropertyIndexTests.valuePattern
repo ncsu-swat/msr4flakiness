@@ -1,0 +1,22 @@
+@Test
+public void valuePattern() throws Exception {
+    // valuePattern("", "* property test-index");
+    // valuePattern("x", "* property test-index");
+    valuePattern(" ", "* property test-index");
+    valuePattern("-", "* property test-index");
+    valuePattern("/", "* property test-index");
+}
+private void valuePattern(String middle, String plan) throws Exception {
+    Tree index = super.createTestIndexNode(root.getTree("/"), TYPE);
+    index.setProperty(PROPERTY_NAMES, of(INDEXED_PROPERTY), NAMES);
+    index.setProperty(IndexConstants.VALUE_INCLUDED_PREFIXES, "hello" + middle + "world");
+    index.setProperty(REINDEX_PROPERTY_NAME, true);
+    root.commit();
+    Tree content = root.getTree("/").addChild("content");
+    content.addChild("node1").setProperty(INDEXED_PROPERTY, "hello" + middle + "world");
+    content.addChild("node2").setProperty(INDEXED_PROPERTY, "hello");
+    root.commit();
+    String statement = "explain select * from [nt:base] where [" + INDEXED_PROPERTY + "] = 'hello" + middle + "world'";
+    String result = executeQuery(statement, Query.JCR_SQL2, false, false).toString();
+    assertTrue(result, result.indexOf(plan) >= 0);
+}

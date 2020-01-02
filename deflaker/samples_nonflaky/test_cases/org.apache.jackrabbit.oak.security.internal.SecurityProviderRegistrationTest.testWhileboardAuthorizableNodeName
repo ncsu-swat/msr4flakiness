@@ -1,0 +1,12 @@
+@Test
+public void testWhileboardAuthorizableNodeName() {
+    registration.activate(context.bundleContext(), configWithRequiredServiceIds("anId"));
+    AuthorizableNodeName mockAn = mock(AuthorizableNodeName.class);
+    ServiceRegistration rpSr = context.bundleContext().registerService(AuthorizableNodeName.class.getName(), mockAn, new Hashtable(ImmutableMap.of(SERVICE_PID, "anId")));
+    registration.bindAuthorizableNodeName(rpSr.getReference(), mockAn);
+    SecurityProvider service = context.getService(SecurityProvider.class);
+    AuthorizableNodeName an = service.getConfiguration(UserConfiguration.class).getParameters().getConfigValue(UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, null, AuthorizableNodeName.class);
+    assertTrue(an instanceof WhiteboardAuthorizableNodeName);
+    an.generateNodeName("id");
+    verify(mockAn, times(1)).generateNodeName("id");
+}

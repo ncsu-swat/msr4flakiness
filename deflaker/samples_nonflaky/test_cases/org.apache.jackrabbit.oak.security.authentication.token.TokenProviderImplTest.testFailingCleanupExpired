@@ -1,0 +1,29 @@
+@Test
+public void testFailingCleanupExpired() throws Exception {
+    User u = getTestUser();
+    // grant user principal access to read/create tokens but not removing them
+    AccessControlManager acMgr = getAccessControlManager(root);
+    JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, u.getPath());
+    acl.addAccessControlEntry(u.getPrincipal(), privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_MODIFY_PROPERTIES));
+    acMgr.setPolicy(acl.getPath(), acl);
+    root.commit();
+    try (ContentSession cs = login(new SimpleCredentials(u.getID(), u.getID().toCharArray()))) {
+        Root testRoot = cs.getLatestRoot();
+        ConfigurationParameters options = ConfigurationParameters.of(PARAM_TOKEN_CLEANUP_THRESHOLD, 1);
+        TokenProvider tp = createTokenProvider(testRoot, options, getUserConfiguration(), SimpleCredentialsSupport.getInstance());
+        SimpleCredentials sc = new SimpleCredentials(userId, new char[0]);
+        sc.setAttribute(TokenProvider.PARAM_TOKEN_EXPIRATION, 1);
+        TokenInfo info = tp.createToken(sc);
+        waitUntilExpired(info);
+        // create new infos until the cleanup is triggered or until max cnt has been reached.
+        // in either case the expired info must still exist
+        TokenInfo ti;
+        int cnt = 0;
+        do {
+            ti = tp.createToken(sc);
+            cnt++;
+        } while (ti.getToken().charAt(0) >= '2' && cnt < 50);
+        root.refresh();
+        assertTrue(getTokenTree(info).exists());
+    }
+}

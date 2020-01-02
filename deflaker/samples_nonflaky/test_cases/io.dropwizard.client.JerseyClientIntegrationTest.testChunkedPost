@@ -1,0 +1,20 @@
+@Test
+public void testChunkedPost() throws Exception {
+    httpServer.createContext("/register", httpExchange -> {
+        try {
+            Headers requestHeaders = httpExchange.getRequestHeaders();
+            assertThat(requestHeaders.get(TRANSFER_ENCODING)).containsExactly(CHUNKED);
+            assertThat(requestHeaders.get(HttpHeaders.CONTENT_LENGTH)).isNull();
+            assertThat(requestHeaders.get(HttpHeaders.CONTENT_ENCODING)).isNull();
+            assertThat(requestHeaders.get(HttpHeaders.ACCEPT_ENCODING)).containsExactly(GZIP_DEFLATE);
+            checkBody(httpExchange, false);
+            postResponse(httpExchange);
+        } finally {
+            httpExchange.close();
+        }
+    });
+    httpServer.start();
+    JerseyClientConfiguration configuration = new JerseyClientConfiguration();
+    configuration.setGzipEnabledForRequests(false);
+    postRequest(configuration);
+}

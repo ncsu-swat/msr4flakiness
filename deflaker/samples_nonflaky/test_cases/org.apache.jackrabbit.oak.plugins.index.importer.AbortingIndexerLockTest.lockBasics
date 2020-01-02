@@ -1,0 +1,10 @@
+@Test
+public void lockBasics() throws Exception {
+    AbortingIndexerLock lock = new AbortingIndexerLock(infoService);
+    when(statsMBean.getStatus()).thenReturn(IndexStatsMBean.STATUS_DONE);
+    SimpleToken lockToken = lock.lock("async");
+    assertNotNull(lockToken);
+    verify(statsMBean).abortAndPause();
+    lock.unlock(lockToken);
+    verify(statsMBean).resume();
+}

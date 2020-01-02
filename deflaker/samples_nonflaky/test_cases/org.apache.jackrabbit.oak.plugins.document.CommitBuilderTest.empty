@@ -1,0 +1,19 @@
+@Test
+public void empty() {
+    CommitBuilder builder = new CommitBuilder(ns, null);
+    assertNull(builder.getBaseRevision());
+    assertEquals(CommitBuilder.PSEUDO_COMMIT_REVISION, builder.getRevision());
+    try {
+        builder.build();
+        fail("CommitBuilder.build() must fail when the builder " + "was created without a commit revision");
+    } catch (IllegalStateException e) {
+    // expected
+    }
+    Revision r = ns.newRevision();
+    Commit c = builder.build(r);
+    assertNotNull(c);
+    assertEquals(r, c.getRevision());
+    assertNull(c.getBaseRevision());
+    assertFalse(c.getModifiedPaths().iterator().hasNext());
+    assertTrue(c.isEmpty());
+}

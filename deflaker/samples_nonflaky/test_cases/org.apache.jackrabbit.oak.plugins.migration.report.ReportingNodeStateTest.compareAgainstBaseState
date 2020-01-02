@@ -1,0 +1,13 @@
+@Test
+public void compareAgainstBaseState() {
+    final NodeBuilder root = EmptyNodeState.EMPTY_NODE.builder();
+    root.child("a").child("aa");
+    final NodeState before = root.getNodeState();
+    root.child("a").child("ab");
+    root.child("b");
+    final AssertingPeriodicReporter reporter = new AssertingPeriodicReporter(1, -1);
+    final NodeState after = ReportingNodeState.wrap(root.getNodeState(), reporter);
+    reporter.reset();
+    NodeStateTestUtils.expectDifference().childNodeAdded("/a/ab", "/b").childNodeChanged("/a").strict().verify(before, after);
+    assertThat(reporter, hasReportedNodes("/a", "/a/ab", "/b"));
+}

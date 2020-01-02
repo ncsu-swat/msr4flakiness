@@ -1,0 +1,23 @@
+@Test
+public void failed() throws InterruptedException, TimeoutException {
+    final Exception failure = new Exception("fail");
+    ManagementOperation<Void> op = newManagementOperation("test", new Callable<Void>() {
+
+        @Override
+        public Void call() throws Exception {
+            throw failure;
+        }
+    });
+    executor.execute(op);
+    try {
+        assertEquals(null, op.get(5, SECONDS));
+        fail("Expected " + failure);
+    } catch (ExecutionException e) {
+        assertEquals(failure, e.getCause());
+    }
+    assertTrue(op.isDone());
+    Status status = op.getStatus();
+    assertEquals(op.getId(), status.getId());
+    assertEquals(FAILED, status.getCode());
+    assertEquals("test failed: " + failure.getMessage(), status.getMessage());
+}

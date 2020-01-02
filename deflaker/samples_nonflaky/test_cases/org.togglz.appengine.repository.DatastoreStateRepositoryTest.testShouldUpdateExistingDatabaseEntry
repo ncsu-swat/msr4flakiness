@@ -1,0 +1,39 @@
+@SuppressWarnings({ "unchecked", "serial" })
+@Test
+public void testShouldUpdateExistingDatabaseEntry() throws EntityNotFoundException {
+    /*
+         * GIVEN a database row containing a simple feature state
+         */
+    final Map<String, String> map = new HashMap<String, String>() {
+
+        {
+            put("param23", "foobar");
+        }
+    };
+    update("F1", true, "myStrategy", map, null);
+    /*
+         * AND the database entries are like expected
+         */
+    /*
+         * THEN there should be a corresponding entry in the database
+         */
+    final Key key = KeyFactory.createKey(repository.kind(), TestFeature.F1.name());
+    Entity featureEntity = datastoreService.get(key);
+    assertEquals(true, featureEntity.getProperty(DatastoreStateRepository.ENABLED));
+    assertEquals("myStrategy", featureEntity.getProperty(DatastoreStateRepository.STRATEGY_ID));
+    assertThat((List<String>) featureEntity.getProperty(DatastoreStateRepository.STRATEGY_PARAMS_NAMES), is(Arrays.asList("param23")));
+    assertThat((List<String>) featureEntity.getProperty(DatastoreStateRepository.STRATEGY_PARAMS_VALUES), is(Arrays.asList("foobar")));
+    /*
+         * WHEN the repository writes new state
+         */
+    final FeatureState state = new FeatureState(TestFeature.F1).disable().setStrategyId("someId").setParameter("param", "foo");
+    repository.setFeatureState(state);
+    /*
+         * THEN the properties should be set like expected
+         */
+    featureEntity = datastoreService.get(key);
+    assertEquals(false, featureEntity.getProperty(DatastoreStateRepository.ENABLED));
+    assertEquals("someId", featureEntity.getProperty(DatastoreStateRepository.STRATEGY_ID));
+    assertThat((List<String>) featureEntity.getProperty(DatastoreStateRepository.STRATEGY_PARAMS_NAMES), is(Arrays.asList("param")));
+    assertThat((List<String>) featureEntity.getProperty(DatastoreStateRepository.STRATEGY_PARAMS_VALUES), is(Arrays.asList("foo")));
+}

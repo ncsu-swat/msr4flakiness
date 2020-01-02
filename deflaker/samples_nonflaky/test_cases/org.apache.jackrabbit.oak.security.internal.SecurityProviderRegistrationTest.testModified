@@ -1,0 +1,13 @@
+@Test
+public void testModified() {
+    registration.activate(context.bundleContext(), configWithRequiredServiceIds("rpId", "authorizationId"));
+    registration.bindAuthorizationConfiguration(new AuthorizationConfigurationImpl(), ImmutableMap.of(SERVICE_PID, "authorizationId"));
+    assertNull(context.getService(SecurityProvider.class));
+    // modify requiredServiceIds by removing the rpId from the mandatory services
+    // => should re-register the security provider
+    registration.modified(configWithRequiredServiceIds("authorizationId"));
+    SecurityProvider service = context.getService(SecurityProvider.class);
+    assertNotNull(service);
+    RestrictionProvider rp = service.getConfiguration(AuthorizationConfiguration.class).getRestrictionProvider();
+    assertTrue(rp instanceof WhiteboardRestrictionProvider);
+}

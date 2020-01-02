@@ -1,0 +1,25 @@
+@Test
+public void indexUpdateToleratesMalignCommitProgressCallback() throws Exception {
+    final IndexUpdateCallback noop = new IndexUpdateCallback() {
+
+        @Override
+        public void indexUpdate() {
+        }
+    };
+    NodeState before = builder.getNodeState();
+    createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "rootIndex", true, false, ImmutableSet.of("foo"), null);
+    NodeState after = builder.getNodeState();
+    CallbackCapturingProvider provider = new CallbackCapturingProvider();
+    IndexUpdate indexUpdate = new IndexUpdate(provider, null, after, builder, noop);
+    indexUpdate.enter(before, after);
+    ContextAwareCallback contextualCallback = (ContextAwareCallback) provider.callback;
+    IndexingContext context = contextualCallback.getIndexingContext();
+    context.registerIndexCommitCallback(new IndexCommitCallback() {
+
+        @Override
+        public void commitProgress(IndexProgress indexProgress) {
+            throw new NullPointerException("Malign callback");
+        }
+    });
+    indexUpdate.commitProgress(IndexCommitCallback.IndexProgress.COMMIT_SUCCEDED);
+}

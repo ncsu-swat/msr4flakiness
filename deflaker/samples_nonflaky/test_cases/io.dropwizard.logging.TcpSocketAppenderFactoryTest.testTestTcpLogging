@@ -1,0 +1,12 @@
+@Test
+void testTestTcpLogging() throws Exception {
+    DefaultLoggingFactory loggingFactory = yamlConfigurationFactory.build(new SubstitutingSourceProvider(new ResourceConfigurationSourceProvider(), new StringSubstitutor(Collections.singletonMap("tcp.server.port", tcpServer.getPort()))), "yaml/logging-tcp.yml");
+    loggingFactory.configure(new MetricRegistry(), "tcp-test");
+    Logger logger = LoggerFactory.getLogger("com.example.app");
+    for (int i = 0; i < tcpServer.getMessageCount(); i++) {
+        logger.info("Application log {}", i);
+    }
+    tcpServer.getLatch().await(5, TimeUnit.SECONDS);
+    assertThat(tcpServer.getLatch().getCount()).isEqualTo(0);
+    loggingFactory.reset();
+}

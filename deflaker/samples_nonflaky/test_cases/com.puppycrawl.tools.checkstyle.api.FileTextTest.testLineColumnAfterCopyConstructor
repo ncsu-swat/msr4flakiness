@@ -1,0 +1,15 @@
+@Test
+public void testLineColumnAfterCopyConstructor() throws IOException {
+    final Charset charset = StandardCharsets.ISO_8859_1;
+    final String filepath = getPath("InputFileTextImportControl.xml");
+    final FileText fileText = new FileText(new File(filepath), charset.name());
+    final FileText copy = new FileText(fileText);
+    assertNull(Whitebox.getInternalState(copy, "lineBreaks"), "LineBreaks not null");
+    final LineColumn lineColumn = copy.lineColumn(100);
+    assertEquals(3, lineColumn.getLine(), "Invalid line");
+    if (CheckUtil.CRLF.equals(CheckUtil.getLineSeparatorForFile(filepath, charset))) {
+        assertEquals(44, lineColumn.getColumn(), "Invalid column");
+    } else {
+        assertEquals(46, lineColumn.getColumn(), "Invalid column");
+    }
+}

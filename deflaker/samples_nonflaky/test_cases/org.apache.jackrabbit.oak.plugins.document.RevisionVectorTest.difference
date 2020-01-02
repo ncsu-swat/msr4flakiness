@@ -1,0 +1,30 @@
+@Test
+public void difference() {
+    RevisionVector rv1 = new RevisionVector();
+    RevisionVector rv2 = new RevisionVector();
+    assertEquals(new RevisionVector(), rv1.difference(rv2));
+    Revision r11 = new Revision(1, 0, 1);
+    rv1 = rv1.update(r11);
+    // rv1: [r1-0-1]
+    assertEquals(new RevisionVector(r11), rv1.difference(rv2));
+    assertEquals(new RevisionVector(), rv2.difference(rv1));
+    rv2 = rv2.update(r11);
+    // rv1: [r1-0-1], rv2: [r1-0-1]
+    assertEquals(new RevisionVector(), rv1.difference(rv2));
+    assertEquals(new RevisionVector(), rv2.difference(rv1));
+    Revision r12 = new Revision(1, 0, 2);
+    rv1 = rv1.update(r12);
+    // rv1: [r1-0-1, r1-0-2], rv2: [r1-0-1]
+    assertEquals(new RevisionVector(r12), rv1.difference(rv2));
+    assertEquals(new RevisionVector(), rv2.difference(rv1));
+    Revision r22 = new Revision(2, 0, 2);
+    rv2 = rv2.update(r22);
+    // rv1: [r1-0-1, r1-0-2], rv2: [r1-0-1, r2-0-2]
+    assertEquals(new RevisionVector(r12), rv1.difference(rv2));
+    assertEquals(new RevisionVector(r22), rv2.difference(rv1));
+    Revision r21 = new Revision(2, 0, 1);
+    rv1 = rv1.update(r21);
+    // rv1: [r2-0-1, r1-0-2], rv2: [r1-0-1, r2-0-2]
+    assertEquals(new RevisionVector(r21, r12), rv1.difference(rv2));
+    assertEquals(new RevisionVector(r11, r22), rv2.difference(rv1));
+}

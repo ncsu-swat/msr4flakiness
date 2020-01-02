@@ -1,0 +1,34 @@
+/**
+ * If the bundle action is in PREP state and coord is not yet created, recovery should submit new coord
+ * @throws Exception
+ */
+public void testBundleRecoveryCoordCreate() throws Exception {
+    final BundleJobBean bundle = addRecordToBundleJobTable(Job.Status.RUNNING, false);
+    addRecordToBundleActionTable(bundle.getId(), "coord1", 1, Job.Status.PREP);
+    final JPAService jpaService = Services.get().get(JPAService.class);
+    sleep(3000);
+    Runnable recoveryRunnable = new RecoveryRunnable(0, 1, 1);
+    recoveryRunnable.run();
+    waitFor(10000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            BundleActionBean mybundleAction = jpaService.execute(new BundleActionGetJPAExecutor(bundle.getId(), "coord1"));
+            try {
+                if (mybundleAction.getCoordId() != null) {
+                    jpaService.execute(new CoordJobGetJPAExecutor(mybundleAction.getCoordId()));
+                    return true;
+                }
+            } catch (Exception e) {
+            }
+            return false;
+        }
+    });
+    BundleActionBean mybundleAction = jpaService.execute(new BundleActionGetJPAExecutor(bundle.getId(), "coord1"));
+    assertNotNull(mybundleAction.getCoordId());
+    try {
+        jpaService.execute(new CoordJobGetJPAExecutor(mybundleAction.getCoordId()));
+    } catch (Exception e) {
+        e.printStackTrace();
+        fail("Expected coord " + mybundleAction.getCoordId() + " to be created");
+    }
+}

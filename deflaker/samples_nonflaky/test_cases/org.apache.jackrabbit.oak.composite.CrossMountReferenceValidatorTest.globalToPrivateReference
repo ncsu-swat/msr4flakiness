@@ -1,0 +1,12 @@
+@Test
+public void globalToPrivateReference() throws Exception {
+    NodeState root = EMPTY_NODE;
+    NodeBuilder builder = root.builder();
+    NodeState before = builder.getNodeState();
+    builder.child("a").setProperty(createProperty(JCR_UUID, "u1", Type.STRING));
+    builder.child("b").setProperty(createProperty("foo", "u1", Type.REFERENCE));
+    NodeState after = builder.getNodeState();
+    thrown.expect(CommitFailedException.class);
+    thrown.expectMessage("OakIntegrity0001: Unable to reference the node [/a] from node [/b]. Referencing across the mounts is not allowed.");
+    hook.processCommit(before, after, CommitInfo.EMPTY);
+}

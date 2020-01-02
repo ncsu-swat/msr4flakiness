@@ -1,0 +1,13 @@
+@Test
+public void shouldDecodeValidGetHeadResponses() throws Exception {
+    String recordId = "recordId";
+    byte[] recordIdBytes = recordId.getBytes(Charsets.UTF_8);
+    ByteBuf in = Unpooled.buffer();
+    in.writeInt(recordIdBytes.length + 1);
+    in.writeByte(Messages.HEADER_RECORD);
+    in.writeBytes(recordIdBytes);
+    EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder(folder.newFolder()));
+    channel.writeInbound(in);
+    GetHeadResponse response = (GetHeadResponse) channel.readInbound();
+    assertEquals(recordId, response.getHeadRecordId());
+}

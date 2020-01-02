@@ -1,0 +1,10 @@
+@Test
+public void shortCircuitShouldBreakCircuitWithParentOnFailure() {
+    MutableBoolean b = new MutableBoolean(false);
+    Canceller c = Canceller.newCanceller().withCondition("reason", b::booleanValue).withShortCircuit();
+    assertNotCancelled(c.check());
+    b.setValue(true);
+    assertCancelled(c.check(), "reason");
+    b.setValue(false);
+    assertCancelled(c.check(), "reason");
+}

@@ -1,0 +1,33 @@
+// rerun should use existing coord conf
+public void testRerunWithExistingCoodConf() throws Exception {
+    final OozieClient wfClient = LocalOozie.getClient();
+    Date start = DateUtils.parseDateOozieTZ("2009-12-15T01:00Z");
+    Date end = DateUtils.parseDateOozieTZ("2009-12-16T01:00Z");
+    CoordinatorJobBean coordJob = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, start, end, false, false, 1);
+    CoordinatorActionBean action = addRecordToCoordActionTable(coordJob.getId(), 1, CoordinatorAction.Status.SUBMITTED, "coord-action-start-escape-strings.xml", 0);
+    String actionId = action.getId();
+    new CoordActionStartXCommand(actionId, getTestUser(), "myapp", "myjob").call();
+    final JPAService jpaService = Services.get().get(JPAService.class);
+    action = jpaService.execute(new CoordActionGetJPAExecutor(actionId));
+    if (action.getStatus() == CoordinatorAction.Status.SUBMITTED) {
+        fail("CoordActionStartCommand didn't work because the status for action id" + actionId + " is :" + action.getStatus() + " expected to be NOT SUBMITTED (i.e. RUNNING)");
+    }
+    final String wfId = action.getExternalId();
+    wfClient.kill(wfId);
+    waitFor(15 * 1000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            return wfClient.getJobInfo(wfId).getStatus() == WorkflowJob.Status.KILLED;
+        }
+    });
+    Properties newConf = wfClient.createConfiguration();
+    newConf.setProperty(OozieClient.RERUN_FAIL_NODES, "true");
+    wfClient.reRun(wfId, newConf);
+    waitFor(15 * 1000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            return wfClient.getJobInfo(wfId).getStatus() == WorkflowJob.Status.SUCCEEDED;
+        }
+    });
+    assertEquals(WorkflowJob.Status.SUCCEEDED, wfClient.getJobInfo(wfId).getStatus());
+}

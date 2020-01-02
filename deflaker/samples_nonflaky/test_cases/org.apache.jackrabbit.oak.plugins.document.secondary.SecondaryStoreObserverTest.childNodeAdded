@@ -1,0 +1,14 @@
+@Test
+public void childNodeAdded() throws Exception {
+    PathFilter pathFilter = new PathFilter(of("/a"), empty);
+    SecondaryStoreObserver observer = createBuilder(pathFilter).buildObserver();
+    primary.addObserver(observer);
+    NodeBuilder nb = primary.getRoot().builder();
+    create(nb, "/a/b", "/a/c", "/x/y/z");
+    primary.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    nb = primary.getRoot().builder();
+    create(nb, "/a/d");
+    primary.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    assertMetaState(primary.getRoot(), secondaryRoot(), "/a/d");
+    assertMetaState(primary.getRoot(), secondaryRoot(), "/a");
+}

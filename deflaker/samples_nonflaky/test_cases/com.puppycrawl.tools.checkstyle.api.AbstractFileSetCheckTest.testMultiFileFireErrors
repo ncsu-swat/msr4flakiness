@@ -1,0 +1,17 @@
+@Test
+public void testMultiFileFireErrors() throws Exception {
+    final MultiFileViolationFileSetCheck check = new MultiFileViolationFileSetCheck();
+    check.configure(new DefaultConfiguration("filesetcheck"));
+    final ViolationDispatcher dispatcher = new ViolationDispatcher();
+    check.setMessageDispatcher(dispatcher);
+    check.finishProcessing();
+    assertEquals("fileName", dispatcher.name, "Invalid fileName reported");
+    assertEquals(1, dispatcher.errorList.size(), "errors should only have 1");
+    final LocalizedMessage message = dispatcher.errorList.iterator().next();
+    assertEquals(1, message.getLineNo(), "expected line");
+    assertEquals(0, message.getColumnNo(), "expected column");
+    // re-running erases previous errors
+    check.finishProcessing();
+    assertEquals(1, dispatcher.errorList.size(), "errors should still have 1 after re-run");
+    assertEquals(2, MultiFileViolationFileSetCheck.finishProcessingCount, "finishProcessing was called twice");
+}

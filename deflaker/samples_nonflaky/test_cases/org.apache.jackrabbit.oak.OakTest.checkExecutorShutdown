@@ -1,0 +1,26 @@
+@Test
+public void checkExecutorShutdown() throws Exception {
+    Runnable runnable = new Runnable() {
+
+        @Override
+        public void run() {
+        }
+    };
+    Oak oak = new Oak().with(new OpenSecurityProvider());
+    ContentRepository repo = oak.createContentRepository();
+    WhiteboardUtils.scheduleWithFixedDelay(oak.getWhiteboard(), runnable, 1);
+    ((Closeable) repo).close();
+    try {
+        WhiteboardUtils.scheduleWithFixedDelay(oak.getWhiteboard(), runnable, 1);
+        fail("Executor should have rejected the task");
+    } catch (RejectedExecutionException ignore) {
+    }
+    // Externally passed executor should not be shutdown upon repository close
+    ScheduledExecutorService externalExecutor = Executors.newSingleThreadScheduledExecutor();
+    Oak oak2 = new Oak().with(new OpenSecurityProvider()).with(externalExecutor);
+    ContentRepository repo2 = oak2.createContentRepository();
+    WhiteboardUtils.scheduleWithFixedDelay(oak2.getWhiteboard(), runnable, 1);
+    ((Closeable) repo2).close();
+    WhiteboardUtils.scheduleWithFixedDelay(oak2.getWhiteboard(), runnable, 1);
+    externalExecutor.shutdown();
+}

@@ -1,0 +1,17 @@
+@Test
+public void testAuthenticateExpiredTokenMock() {
+    TokenCredentials tc = new TokenCredentials("token");
+    TokenProvider tp = mock(TokenProvider.class);
+    TokenInfo ti = mock(TokenInfo.class);
+    when(tp.getTokenInfo(anyString())).thenReturn(ti);
+    when(ti.isExpired(anyLong())).thenReturn(true);
+    TokenAuthentication auth = new TokenAuthentication(tp);
+    try {
+        auth.authenticate(tc);
+        fail("LoginException expected");
+    } catch (LoginException e) {
+    // success
+    }
+    Mockito.verify(ti, Mockito.never()).matches(any());
+    Mockito.verify(ti, Mockito.never()).resetExpiration(anyLong());
+}

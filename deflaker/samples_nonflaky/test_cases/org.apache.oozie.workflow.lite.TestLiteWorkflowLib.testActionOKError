@@ -1,0 +1,18 @@
+public void testActionOKError() throws WorkflowException {
+    LiteWorkflowApp def = new LiteWorkflowApp("wf", "<worklfow-app/>", new StartNodeDef(TestControlNodeHandler.class, "a")).addNode(new ActionNodeDef("a", "", TestActionNodeHandler.class, "b", "c")).addNode(new NodeDef("b", null, SynchNodeHandler.class, Arrays.asList(new String[] { "end" }))).addNode(new NodeDef("c", null, SynchNodeHandler.class, Arrays.asList(new String[] { "end" }))).addNode(new EndNodeDef("end", TestControlNodeHandler.class));
+    LiteWorkflowInstance job = new LiteWorkflowInstance(def, new XConfiguration(), "1");
+    job.start();
+    assertEquals(WorkflowInstance.Status.RUNNING, job.getStatus());
+    job.signal("/", "OK");
+    assertEquals(WorkflowInstance.Status.SUCCEEDED, job.getStatus());
+    assertTrue(enters.containsKey("b"));
+    assertTrue(!enters.containsKey("c"));
+    enters.clear();
+    job = new LiteWorkflowInstance(def, new XConfiguration(), "1");
+    job.start();
+    assertEquals(WorkflowInstance.Status.RUNNING, job.getStatus());
+    job.signal("/", "ERROR");
+    assertEquals(WorkflowInstance.Status.SUCCEEDED, job.getStatus());
+    assertTrue(!enters.containsKey("b"));
+    assertTrue(enters.containsKey("c"));
+}

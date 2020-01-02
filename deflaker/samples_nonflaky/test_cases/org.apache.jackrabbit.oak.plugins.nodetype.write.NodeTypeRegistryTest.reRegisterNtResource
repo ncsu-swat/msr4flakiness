@@ -1,0 +1,44 @@
+// OAK-7886
+@Test
+public void reRegisterNtResource() throws Exception {
+    NodeTypeManager ntMgr = new ReadWriteNodeTypeManager() {
+
+        @NotNull
+        @Override
+        protected Tree getTypes() {
+            return root.getTree(NODE_TYPES_PATH);
+        }
+
+        @NotNull
+        @Override
+        protected Root getWriteRoot() {
+            return root;
+        }
+    };
+    ValueFactory vf = new ValueFactoryImpl(root, new NamePathMapperImpl(new GlobalNameMapper(root)));
+    NamespaceRegistry nsReg = new ReadWriteNamespaceRegistry(root) {
+
+        @Override
+        protected Root getWriteRoot() {
+            return root;
+        }
+    };
+    DefinitionBuilderFactory<NodeTypeTemplate, NamespaceRegistry> factory = new TemplateBuilderFactory(ntMgr, vf, nsReg);
+    NodeType ntResource = ntMgr.getNodeType(NT_RESOURCE);
+    List<String> supertypeNames = Arrays.asList(ntResource.getDeclaredSupertypeNames());
+    assertThat(supertypeNames, hasItem(NT_BASE));
+    List<NodeTypeTemplate> templates;
+    InputStream in = NodeTypeRegistryTest.class.getResourceAsStream("ntResource.cnd");
+    try {
+        CompactNodeTypeDefReader<NodeTypeTemplate, NamespaceRegistry> reader = new CompactNodeTypeDefReader<NodeTypeTemplate, NamespaceRegistry>(new InputStreamReader(in, UTF_8), "ntResource.cnd", factory);
+        templates = reader.getNodeTypeDefinitions();
+    } finally {
+        in.close();
+    }
+    for (NodeTypeTemplate t : templates) {
+        ntMgr.registerNodeType(t, true);
+    }
+    ntResource = ntMgr.getNodeType(NT_RESOURCE);
+    supertypeNames = Arrays.asList(ntResource.getDeclaredSupertypeNames());
+    assertThat(supertypeNames, hasItem(NT_BASE));
+}

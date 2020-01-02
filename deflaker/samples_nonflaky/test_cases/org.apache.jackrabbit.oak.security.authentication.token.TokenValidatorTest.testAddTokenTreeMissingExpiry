@@ -1,0 +1,16 @@
+@Test(expected = CommitFailedException.class)
+public void testAddTokenTreeMissingExpiry() throws Exception {
+    Tree tokenTree = getTokenTree(createTokenInfo(tokenProvider, userId));
+    tokenTree.removeProperty(TokenConstants.TOKEN_ATTRIBUTE_EXPIRY);
+    Tree rootTree = root.getTree(PathUtils.ROOT_PATH);
+    Validator v = createValidator(rootTree, rootTree, tokenTree.getParent().getPath(), false);
+    try {
+        v.childNodeAdded(tokenTree.getName(), getTreeProvider().asNodeState(tokenTree));
+    } catch (CommitFailedException e) {
+        assertTrue(e.isConstraintViolation());
+        assertEquals(67, e.getCode());
+        throw e;
+    } finally {
+        root.refresh();
+    }
+}

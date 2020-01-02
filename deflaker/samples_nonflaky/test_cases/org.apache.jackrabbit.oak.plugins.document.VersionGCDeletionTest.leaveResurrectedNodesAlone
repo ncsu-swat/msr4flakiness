@@ -1,0 +1,34 @@
+@Test
+public void leaveResurrectedNodesAlone() throws Exception {
+    TestDocumentStore ts = new TestDocumentStore();
+    store = new DocumentMK.Builder().clock(clock).setLeaseCheckMode(LeaseCheckMode.LENIENT).setDocumentStore(ts).setAsyncDelay(0).getNodeStore();
+    String id = Utils.getIdFromPath("/x");
+    NodeBuilder b1 = store.getRoot().builder();
+    b1.child("x");
+    store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    // Remove x
+    NodeBuilder b2 = store.getRoot().builder();
+    b2.child("x").remove();
+    store.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    store.runBackgroundOperations();
+    NodeDocument d2 = ts.find(Collection.NODES, id, 0);
+    assertTrue(d2.wasDeletedOnce());
+    // Re-add x
+    NodeBuilder b3 = store.getRoot().builder();
+    b3.child("x");
+    store.merge(b3, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    store.runBackgroundOperations();
+    NodeDocument d3 = ts.find(Collection.NODES, id, 0);
+    assertTrue(d3.wasDeletedOnce());
+    // hours
+    long maxAge = 1;
+    long delta = TimeUnit.MINUTES.toMillis(10);
+    // 3. Check that resurrected doc does not get collected post maxAge
+    clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge * 2) + delta);
+    VersionGarbageCollector gc = store.getVersionGarbageCollector();
+    VersionGCStats stats = gc.gc(maxAge * 2, HOURS);
+    assertEquals(1, stats.updateResurrectedGCCount);
+    NodeDocument d4 = ts.find(Collection.NODES, id, 0);
+    assertNotNull(d4);
+    assertFalse(d4.wasDeletedOnce());
+}

@@ -1,0 +1,8 @@
+@Test
+public void setsACustomPoolName() {
+    this.sessionFactory = factory.build(bundle, environment, config, Collections.singletonList(Person.class), "custom-hibernate-db");
+    ArgumentCaptor<SessionFactoryManager> sessionFactoryManager = ArgumentCaptor.forClass(SessionFactoryManager.class);
+    verify(lifecycleEnvironment).manage(sessionFactoryManager.capture());
+    ManagedPooledDataSource dataSource = (ManagedPooledDataSource) sessionFactoryManager.getValue().getDataSource();
+    assertThat(dataSource.getPool().getName()).isEqualTo("custom-hibernate-db");
+}

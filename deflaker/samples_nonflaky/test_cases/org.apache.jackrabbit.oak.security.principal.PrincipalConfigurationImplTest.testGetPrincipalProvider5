@@ -1,0 +1,24 @@
+@Test
+public void testGetPrincipalProvider5() {
+    PrincipalProvider pp = EmptyPrincipalProvider.INSTANCE;
+    PrincipalConfigurationImpl pc = new PrincipalConfigurationImpl() {
+
+        @NotNull
+        @Override
+        public PrincipalProvider getPrincipalProvider(Root root, NamePathMapper namePathMapper) {
+            return pp;
+        }
+    };
+    ConfigurationParameters params = ConfigurationParameters.EMPTY;
+    pc.setParameters(params);
+    SecurityProvider securityProvider = SecurityProviderBuilder.newBuilder().with(params).build();
+    CompositeConfiguration<PrincipalConfiguration> composite = (CompositeConfiguration) securityProvider.getConfiguration(PrincipalConfiguration.class);
+    PrincipalConfiguration defConfig = composite.getDefaultConfig();
+    pc.setSecurityProvider(securityProvider);
+    pc.setRootProvider(((ConfigurationBase) defConfig).getRootProvider());
+    pc.setTreeProvider(((ConfigurationBase) defConfig).getTreeProvider());
+    composite.addConfiguration(pc);
+    composite.addConfiguration(defConfig);
+    PrincipalProvider ppt = pc.getPrincipalProvider(root, NamePathMapper.DEFAULT);
+    assertEquals(pp, ppt);
+}

@@ -1,0 +1,14 @@
+public void testWriteLockSameThreadWait() throws Exception {
+    StringBuffer sb = new StringBuffer("");
+    SameThreadWriteLocker l1 = new SameThreadWriteLocker("a", 1, 0, sb);
+    Locker l2 = new WriteLocker("a", 2, 10000, sb);
+    new Thread(l1).start();
+    l1.awaitLockAcquire();
+    new Thread(l2).start();
+    l1.awaitStart();
+    l1.proceed();
+    l1.awaitTermination();
+    l2.proceed();
+    l2.awaitTermination();
+    assertEquals("a:1-L1 a:1-L2 a:1-U1 a:1-U2 a:2-L a:2-U", sb.toString().trim());
+}

@@ -1,0 +1,13 @@
+@Test
+public void testClearStateWithSessionCloseFailing() throws Exception {
+    ContentSession cs = mock(ContentSession.class);
+    ContentRepository cr = mockContentRepository(cs);
+    doThrow(IOException.class).when(cs).close();
+    LoginModuleStats stats = newLoginModuleStats();
+    CallbackHandler cbh = new TestCallbackHandler(cr, mock(SecurityProvider.class));
+    AbstractLoginModule loginModule = initLoginModule(cbh, stats);
+    loginModule.getRoot();
+    loginModule.clearState();
+    assertEquals(1, stats.getLoginErrors());
+    verify(cs, times(1)).close();
+}

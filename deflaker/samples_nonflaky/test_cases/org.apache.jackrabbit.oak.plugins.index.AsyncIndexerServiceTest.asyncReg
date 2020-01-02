@@ -1,0 +1,15 @@
+@Test
+public void asyncReg() throws Exception {
+    injectDefaultServices();
+    Map<String, Object> config = ImmutableMap.<String, Object>of("asyncConfigs", new String[] { "async:5" });
+    MockOsgi.activate(service, context.bundleContext(), config);
+    assertNotNull(context.getService(Runnable.class));
+    assertEquals(TimeUnit.MINUTES.toMillis(15), getIndexUpdate("async").getLeaseTimeOut());
+    AsyncIndexUpdate indexUpdate = getIndexUpdate("async");
+    IndexStatsMBean mbean = context.getService(IndexStatsMBean.class);
+    assertNotNull(mbean);
+    assertEquals("async", mbean.getName());
+    MockOsgi.deactivate(service, context.bundleContext());
+    assertNull(context.getService(Runnable.class));
+    assertTrue(indexUpdate.isClosed());
+}

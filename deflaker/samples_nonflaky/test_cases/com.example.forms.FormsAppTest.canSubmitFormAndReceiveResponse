@@ -1,0 +1,11 @@
+@Test
+public void canSubmitFormAndReceiveResponse() throws IOException {
+    config.setChunkedEncodingEnabled(false);
+    final Client client = new JerseyClientBuilder(RULE.getEnvironment()).using(config).build("test client 1");
+    try (final FormDataMultiPart fdmp = new FormDataMultiPart()) {
+        final MultiPart mp = fdmp.bodyPart(new FormDataBodyPart(FormDataContentDisposition.name("file").fileName("fileName").build(), "CONTENT"));
+        final String url = String.format("http://localhost:%d/uploadFile", RULE.getLocalPort());
+        final String response = client.target(url).register(MultiPartFeature.class).request().post(Entity.entity(mp, mp.getMediaType()), String.class);
+        assertThat(response).isEqualTo("fileName:\nCONTENT");
+    }
+}

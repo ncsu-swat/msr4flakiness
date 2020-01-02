@@ -1,0 +1,41 @@
+@Test
+public void concurrentSetHeadFromFunction() throws InterruptedException, ExecutionException, TimeoutException {
+    ListeningExecutorService executor = listeningDecorator(newFixedThreadPool(2));
+    try {
+        ListenableFuture<Boolean> t1 = executor.submit(new Callable<Boolean>() {
+
+            @Override
+            public Boolean call() throws Exception {
+                return null != revisions.setHead(new Function<RecordId, RecordId>() {
+
+                    @Nullable
+                    @Override
+                    public RecordId apply(RecordId headId) {
+                        return addChild(reader.readNode(headId), "a").getRecordId();
+                    }
+                });
+            }
+        });
+        ListenableFuture<Boolean> t2 = executor.submit(new Callable<Boolean>() {
+
+            @Override
+            public Boolean call() throws Exception {
+                return null != revisions.setHead(new Function<RecordId, RecordId>() {
+
+                    @Nullable
+                    @Override
+                    public RecordId apply(RecordId headId) {
+                        return addChild(reader.readNode(headId), "b").getRecordId();
+                    }
+                });
+            }
+        });
+        assertTrue(t1.get(500, MILLISECONDS));
+        assertTrue(t2.get(500, MILLISECONDS));
+        SegmentNodeState root = reader.readNode(revisions.getHead());
+        assertTrue(root.hasChildNode("a"));
+        assertTrue(root.hasChildNode("b"));
+    } finally {
+        executor.shutdown();
+    }
+}

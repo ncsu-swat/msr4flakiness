@@ -1,0 +1,21 @@
+/**
+ * Tests the custom restriction provider that checks on the absence of a property.
+ */
+@Test
+public void testUnProtectByRestriction() throws Exception {
+    // allow rep:write      /testroot
+    // deny  jcr:removeNode /testroot
+    // allow jcr:removeNode /testroot/a  hasProperty=!protect-me
+    addEntry(TEST_ROOT_PATH, true, "", PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE);
+    addEntry(TEST_ROOT_PATH, false, "", PrivilegeConstants.JCR_REMOVE_NODE);
+    addEntry(TEST_A_PATH, true, "!" + PROP_NAME_PROTECT_ME, PrivilegeConstants.JCR_REMOVE_NODE);
+    try (ContentSession testSession = createTestSession()) {
+        Root testRoot = testSession.getLatestRoot();
+        PermissionProvider pp = getPermissionProvider(testSession);
+        assertIsGranted(pp, testRoot, true, TEST_A_PATH, Permissions.REMOVE_NODE);
+        assertIsGranted(pp, testRoot, true, TEST_B_PATH, Permissions.REMOVE_NODE);
+        assertIsGranted(pp, testRoot, false, TEST_C_PATH, Permissions.REMOVE_NODE);
+        assertIsGranted(pp, testRoot, true, TEST_D_PATH, Permissions.REMOVE_NODE);
+        assertIsGranted(pp, testRoot, true, TEST_E_PATH, Permissions.REMOVE_NODE);
+    }
+}

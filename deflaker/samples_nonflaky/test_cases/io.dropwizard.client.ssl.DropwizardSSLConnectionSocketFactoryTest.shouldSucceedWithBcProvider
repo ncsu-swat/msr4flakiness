@@ -1,0 +1,17 @@
+@Test
+void shouldSucceedWithBcProvider() {
+    // switching host verifier off for simplicity
+    tlsConfiguration.setVerifyHostname(false);
+    tlsConfiguration.setKeyStorePath(new File(ResourceHelpers.resourceFilePath("stores/client/acme-weak.keystore.p12")));
+    tlsConfiguration.setKeyStorePassword("acme2");
+    tlsConfiguration.setKeyStoreType("PKCS12");
+    tlsConfiguration.setKeyStoreProvider(PROVIDER_NAME);
+    tlsConfiguration.setCertAlias("acme-weak");
+    tlsConfiguration.setTrustStorePath(new File(ResourceHelpers.resourceFilePath("stores/server/acme-weak.truststore.p12")));
+    tlsConfiguration.setTrustStorePassword("acme2");
+    tlsConfiguration.setTrustStoreType("PKCS12");
+    tlsConfiguration.setTrustStoreProvider(PROVIDER_NAME);
+    final Client client = new JerseyClientBuilder(TLS_APP_RULE.getEnvironment()).using(jerseyClientConfiguration).build("custom_jce_supported");
+    final Response response = client.target(String.format("https://localhost:%d", TLS_APP_RULE.getPort(5))).request().get();
+    assertThat(response.getStatus()).isEqualTo(200);
+}

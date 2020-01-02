@@ -1,0 +1,29 @@
+@Test
+public void relativeInexistence() throws Exception {
+    Tree rootTree = root.getTree("/").addChild("a");
+    rootTree.addChild("x").addChild("y");
+    rootTree.addChild("x1");
+    root.commit();
+    String query1 = "SELECT * FROM [nt:base] WHERE ISDESCENDANTNODE('/a') AND [y/z] IS NULL";
+    List<String> expected1 = ImmutableList.of("/a/x", "/a/x/y", "/a/x1");
+    List<String> expectedOld1 = ImmutableList.of("/a/x");
+    String query2 = "SELECT * FROM [nt:base] WHERE ISDESCENDANTNODE('/a/x') AND [y/z] IS NULL";
+    List<String> expected2 = ImmutableList.of("/a/x/y");
+    List<String> expectedOld2 = ImmutableList.of();
+    assertQuery(query1, expected1);
+    assertQuery(query2, expected2);
+    // old behavior for relative constraints differs from new
+    System.setProperty("oak.useOldInexistenceCheck", "true");
+    assertQuery(query1, expectedOld1);
+    assertQuery(query2, expectedOld2);
+    rootTree.addChild("x2").addChild("z").setProperty("y", "bar");
+    rootTree.addChild("x2").addChild("z1").addChild("y").setProperty("z", "bar");
+    root.commit();
+    System.setProperty("oak.useOldInexistenceCheck", "false");
+    String query3 = "SELECT * FROM [nt:base] WHERE ISDESCENDANTNODE('/a/x2') AND [y/z] IS NULL";
+    List<String> expected3 = ImmutableList.of("/a/x2/z", "/a/x2/z1/y");
+    List<String> expectedOld3 = ImmutableList.of();
+    assertQuery(query3, expected3);
+    System.setProperty("oak.useOldInexistenceCheck", "true");
+    assertQuery(query3, expectedOld3);
+}

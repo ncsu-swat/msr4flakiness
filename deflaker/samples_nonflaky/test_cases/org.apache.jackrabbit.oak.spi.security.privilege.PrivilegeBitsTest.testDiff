@@ -1,0 +1,68 @@
+@Test
+public void testDiff() {
+    // other privilege bits
+    PrivilegeBits pb = READ_NODES_PRIVILEGE_BITS;
+    PrivilegeBits mod = PrivilegeBits.getInstance(pb);
+    for (int i = 0; i < 100; i++) {
+        PrivilegeBits nxt = pb.nextBits();
+        try {
+            pb.diff(nxt);
+            fail("UnsupportedOperation expected");
+        } catch (UnsupportedOperationException e) {
+        // success
+        }
+        try {
+            pb.diff(mod);
+            fail("UnsupportedOperation expected");
+        } catch (UnsupportedOperationException e) {
+        // success
+        }
+        PrivilegeBits before = PrivilegeBits.getInstance(mod);
+        mod.diff(nxt);
+        assertEquivalent(before, mod);
+        mod.add(nxt);
+        assertNotEquals(before, mod);
+        mod.diff(nxt);
+        assertEquivalent(before, mod);
+        mod.add(nxt);
+        // diff with same pb must leave original bits empty
+        PrivilegeBits tmp = PrivilegeBits.getInstance(pb);
+        tmp.add(nxt);
+        tmp.add(READ_NODES_PRIVILEGE_BITS);
+        tmp.diff(tmp);
+        assertEquivalent(PrivilegeBits.EMPTY, tmp);
+        tmp = PrivilegeBits.getInstance(pb);
+        tmp.add(nxt);
+        tmp.add(READ_NODES_PRIVILEGE_BITS);
+        tmp.diff(PrivilegeBits.getInstance(tmp));
+        assertEquivalent(PrivilegeBits.EMPTY, tmp);
+        // diff without intersection -> leave privilege unmodified.
+        tmp = PrivilegeBits.getInstance(pb);
+        tmp.diff(nxt);
+        assertEquivalent(PrivilegeBits.getInstance(pb), tmp);
+        // diff with intersection -> privilege must be modified accordingly.
+        tmp = PrivilegeBits.getInstance(nxt);
+        tmp.add(READ_NODES_PRIVILEGE_BITS);
+        assertTrue(tmp.includes(READ_NODES_PRIVILEGE_BITS));
+        assertTrue(tmp.includes(nxt));
+        tmp.diff(nxt);
+        assertEquivalent(READ_NODES_PRIVILEGE_BITS, tmp);
+        assertTrue(tmp.includes(READ_NODES_PRIVILEGE_BITS));
+        assertFalse(tmp.includes(nxt));
+        tmp = PrivilegeBits.getInstance(pb);
+        tmp.add(READ_NODES_PRIVILEGE_BITS);
+        PrivilegeBits tmp2 = PrivilegeBits.getInstance(pb);
+        tmp2.add(nxt);
+        PrivilegeBits tmp3 = PrivilegeBits.getInstance(tmp2);
+        assertEquivalent(tmp2, tmp3);
+        tmp.diff(tmp2);
+        if (READ_NODES_PRIVILEGE_BITS.equals(pb)) {
+            assertEquivalent(PrivilegeBits.EMPTY, tmp);
+        } else {
+            assertEquivalent(READ_NODES_PRIVILEGE_BITS, tmp);
+        }
+        // but pb passed to the diff call must not be modified.
+        assertEquivalent(tmp3, tmp2);
+        pb = nxt;
+    }
+}

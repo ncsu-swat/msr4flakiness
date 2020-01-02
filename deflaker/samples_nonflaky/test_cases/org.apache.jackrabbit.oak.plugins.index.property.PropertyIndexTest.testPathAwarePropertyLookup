@@ -1,0 +1,18 @@
+@Test
+public void testPathAwarePropertyLookup() throws Exception {
+    NodeState root = INITIAL_CONTENT;
+    // Add index definition
+    NodeBuilder builder = root.builder();
+    createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo", true, false, ImmutableSet.of("foo"), null);
+    NodeState before = builder.getNodeState();
+    // Add some content and process it through the property index hook
+    builder.child("a").setProperty("foo", "abc");
+    builder.child("b").setProperty("foo", "abc");
+    NodeState after = builder.getNodeState();
+    NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+    FilterImpl f = createFilter(indexed, NT_BASE);
+    f.restrictPath("/a", Filter.PathRestriction.ALL_CHILDREN);
+    // Query the index
+    PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+    assertEquals(ImmutableSet.of("a"), find(lookup, "foo", "abc", f));
+}

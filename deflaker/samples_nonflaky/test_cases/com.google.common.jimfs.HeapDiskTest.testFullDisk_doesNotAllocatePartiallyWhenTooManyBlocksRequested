@@ -1,0 +1,12 @@
+@Test
+public void testFullDisk_doesNotAllocatePartiallyWhenTooManyBlocksRequested() throws IOException {
+    HeapDisk disk = new HeapDisk(4, 10, 4);
+    disk.allocate(blocks, 6);
+    RegularFile blocks2 = RegularFile.create(-2, disk);
+    try {
+        disk.allocate(blocks2, 5);
+        fail();
+    } catch (IOException expected) {
+    }
+    assertThat(blocks2.blockCount()).isEqualTo(0);
+}

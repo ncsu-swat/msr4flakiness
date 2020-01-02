@@ -1,0 +1,12 @@
+@Test
+public void locking() throws Exception {
+    new AsyncIndexUpdate(name, store, provider).run();
+    assertFalse(getAsync().hasProperty(AsyncIndexUpdate.leasify(name)));
+    ClusterNodeStoreLock lock = new ClusterNodeStoreLock(store);
+    ClusteredLockToken token = lock.lock("async");
+    assertTrue(getAsync().hasProperty(AsyncIndexUpdate.leasify(name)));
+    assertTrue(lock.isLocked(name));
+    lock.unlock(token);
+    assertFalse(getAsync().hasProperty(AsyncIndexUpdate.leasify(name)));
+    assertFalse(lock.isLocked(name));
+}

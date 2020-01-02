@@ -1,0 +1,11 @@
+@Test
+public void testInvalidTags() {
+    final String[] text = { "/** @fake block", " * {@bogus inline}", " * {@link List valid}" };
+    final Comment comment = new Comment(text, 1, 3, text[2].length());
+    final JavadocTags allTags = JavadocUtil.getJavadocTags(comment, JavadocUtil.JavadocTagType.ALL);
+    assertEquals(2, allTags.getInvalidTags().size(), "Unexpected invalid tags size");
+    assertTag("Unexpected invalid tag", new InvalidJavadocTag(1, 4, "fake"), allTags.getInvalidTags().get(0));
+    assertTag("Unexpected invalid tag", new InvalidJavadocTag(2, 4, "bogus"), allTags.getInvalidTags().get(1));
+    assertEquals(1, allTags.getValidTags().size(), "Unexpected valid tags size");
+    assertTag("Unexpected valid tag", new JavadocTag(3, 4, "link", "List valid"), allTags.getValidTags().get(0));
+}

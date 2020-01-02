@@ -1,0 +1,15 @@
+@Test
+public void getVisibleChanges() throws Exception {
+    final int numChanges = 200;
+    Random random = new Random();
+    DocumentNodeStore ns = createTestStore(numChanges);
+    DocumentStore store = ns.getDocumentStore();
+    NodeDocument doc = getRootDocument(store);
+    for (int i = 0; i < 10; i++) {
+        int idx = random.nextInt(numChanges);
+        Revision r = Iterables.get(doc.getValueMap("p").keySet(), idx);
+        Iterable<Map.Entry<Revision, String>> revs = doc.getVisibleChanges("p", new RevisionVector(r));
+        assertEquals(idx, numChanges - Iterables.size(revs));
+    }
+    ns.dispose();
+}

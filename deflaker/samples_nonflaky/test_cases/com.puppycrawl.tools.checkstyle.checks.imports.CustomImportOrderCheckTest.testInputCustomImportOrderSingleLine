@@ -1,0 +1,11 @@
+@Test
+public void testInputCustomImportOrderSingleLine() throws Exception {
+    final DefaultConfiguration checkConfig = createModuleConfig(CustomImportOrderCheck.class);
+    checkConfig.addAttribute("customImportOrderRules", "STATIC###STANDARD_JAVA_PACKAGE###THIRD_PARTY_PACKAGE###SPECIAL_IMPORTS" + "###SAME_PACKAGE(3)");
+    checkConfig.addAttribute("specialImportsRegExp", "^org\\..+");
+    checkConfig.addAttribute("thirdPartyPackageRegExp", "^com\\.google\\..+");
+    checkConfig.addAttribute("separateLineBetweenGroups", "true");
+    createChecker(checkConfig);
+    final String[] expected = { "1: " + getCheckMessage(MSG_LINE_SEPARATOR, "java.util.Map"), "2: " + getCheckMessage(MSG_LINE_SEPARATOR, "com.google.common.annotations.Beta"), "9: " + getCheckMessage(MSG_LINE_SEPARATOR, "com.puppycrawl.tools.*"), "13: " + getCheckMessage(MSG_LINE_SEPARATOR, "antlr.*") };
+    verify(checkConfig, getPath("InputCustomImportOrderSingleLine.java"), expected);
+}

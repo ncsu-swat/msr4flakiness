@@ -1,0 +1,15 @@
+@Test(expected = AccountLockedException.class)
+public void testAuthenticateResolvesToDisabledUser() throws Exception {
+    User testUser = getTestUser();
+    SimpleCredentials sc = new SimpleCredentials(testUser.getID(), testUser.getID().toCharArray());
+    Authentication a = new UserAuthentication(getUserConfiguration(), root, sc.getUserID());
+    try {
+        getTestUser().disable("disabled");
+        root.commit();
+        // authenticating disabled user should fail
+        a.authenticate(sc);
+    } finally {
+        getTestUser().disable(null);
+        root.commit();
+    }
+}

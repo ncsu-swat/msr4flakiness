@@ -1,0 +1,21 @@
+@Test
+public void orderBefore() throws Exception {
+    Tree t = root.getTree("/x/y/z");
+    NodeUtil n = new NodeUtil(t);
+    n.addChild("node1", JcrConstants.NT_UNSTRUCTURED);
+    n.addChild("node2", JcrConstants.NT_UNSTRUCTURED);
+    n.addChild("node3", JcrConstants.NT_UNSTRUCTURED);
+    t.getChild("node1").orderBefore("node2");
+    t.getChild("node3").orderBefore(null);
+    root.commit();
+    ImmutableTree tree = new ImmutableTree(((AbstractTree) t).getNodeState());
+    assertSequence(tree.getChildren(), "node1", "node2", "node3");
+    t.getChild("node3").orderBefore("node2");
+    root.commit();
+    tree = new ImmutableTree(((AbstractTree) t).getNodeState());
+    assertSequence(tree.getChildren(), "node1", "node3", "node2");
+    t.getChild("node1").orderBefore(null);
+    root.commit();
+    tree = new ImmutableTree(((AbstractTree) t).getNodeState());
+    assertSequence(tree.getChildren(), "node3", "node2", "node1");
+}

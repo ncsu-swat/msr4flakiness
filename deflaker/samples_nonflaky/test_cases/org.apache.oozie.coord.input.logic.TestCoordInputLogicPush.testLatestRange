@@ -1,0 +1,21 @@
+public void testLatestRange() throws Exception {
+    Configuration conf = getConfForCombine();
+    Date now = new Date();
+    conf.set("start_time", DateUtils.formatDateOozieTZ(now));
+    conf.set("end_time", DateUtils.formatDateOozieTZ(new Date(now.getTime() + 10 * TIME_DAYS)));
+    conf.set("initial_instance_a", DateUtils.formatDateOozieTZ(new Date(now.getTime() - 5 * TIME_DAYS)));
+    conf.set("initial_instance_b", DateUtils.formatDateOozieTZ(new Date(now.getTime() - 5 * TIME_DAYS)));
+    String inputLogic = // @formatter:off
+    "<and name=\"test\">" + "<data-in dataset=\"A\" />" + "<data-in dataset=\"B\" />" + "</and>";
+    // @formatter:on
+    String jobId = submitCoord("coord-inputlogic-combine.xml", conf, inputLogic, TEST_TYPE.LATEST_RANGE);
+    List<String> inputDir = createDirWithTime("input-data/b/", now, 0, 1, 2, 3, 4, 5);
+    inputDir.addAll(createPartitionWithTime("db_a", now, 0, 1, 2, 3, 4, 5));
+    startCoordAction(jobId);
+    CoordinatorActionBean actionBean = CoordActionQueryExecutor.getInstance().get(CoordActionQuery.GET_COORD_ACTION, jobId + "@1");
+    assertFalse(CoordinatorAction.Status.WAITING.equals(actionBean.getStatus()));
+    XConfiguration runConf = new XConfiguration(new StringReader(actionBean.getRunConf()));
+    String dataSets = runConf.get("inputLogicData");
+    assertEquals(dataSets.split(",").length, 12);
+    checkDataSets(dataSets, inputDir.toArray(new String[inputDir.size()]));
+}

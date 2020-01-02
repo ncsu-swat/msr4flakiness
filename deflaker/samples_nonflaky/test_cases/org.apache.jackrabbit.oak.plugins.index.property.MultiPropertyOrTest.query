@@ -1,0 +1,27 @@
+@Test
+public void query() throws Exception {
+    Tree t = root.getTree("/");
+    t.addChild("a").setProperty("x", "foo");
+    t.addChild("b").setProperty("y", "bar");
+    t.addChild("c").setProperty("z", "foo");
+    root.commit();
+    setTraversalEnabled(false);
+    assertQuery("select [jcr:path] from [nt:base] where [x] is not null", ImmutableList.of("/a"));
+    List<String> lines = executeQuery("explain select [jcr:path] from [nt:base] where [x] is not null", Query.JCR_SQL2);
+    assertEquals(1, lines.size());
+    // make sure it used the property index
+    assertTrue(lines.get(0).contains("property xyz IS NOT NULL"));
+    lines = executeQuery("explain select [jcr:path] from [nt:base] where [x] = 'foo' OR [y] = 'foo'", Query.JCR_SQL2);
+    assertEquals(1, lines.size());
+    // make sure it used the property index
+    assertTrue(lines.get(0).contains("property xyz = foo"));
+    lines = executeQuery("explain select [jcr:path] from [nt:base] where [x] = 'foo' OR [y] = 'bar'", Query.JCR_SQL2);
+    assertEquals(1, lines.size());
+    // make sure it used the property index
+    assertTrue(lines.get(0), lines.get(0).contains("property xyz = foo"));
+    assertTrue(lines.get(0), lines.get(0).contains("property xyz = bar"));
+    assertQuery("select [jcr:path] from [nt:base] where [x] = 'foo' OR [y] = 'foo'", ImmutableList.of("/a"));
+    assertQuery("select [jcr:path] from [nt:base] where [x] = 'foo' OR [z] = 'foo'", ImmutableList.of("/a", "/c"));
+    assertQuery("select [jcr:path] from [nt:base] where [x] = 'foo' OR [y] = 'bar'", ImmutableList.of("/a", "/b"));
+    setTraversalEnabled(false);
+}

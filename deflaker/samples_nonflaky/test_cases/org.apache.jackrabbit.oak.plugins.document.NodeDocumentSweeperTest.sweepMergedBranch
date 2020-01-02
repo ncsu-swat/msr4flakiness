@@ -1,0 +1,13 @@
+@Test
+public void sweepMergedBranch() throws Exception {
+    String branchRev = mk.branch(null);
+    branchRev = mk.commit("/", "+\"foo\":{}", branchRev, null);
+    branchRev = mk.commit("/", "+\"bar\":{}", branchRev, null);
+    branchRev = mk.commit("/", "+\"baz\":{}", branchRev, null);
+    mk.merge(branchRev, null);
+    ns.runBackgroundUpdateOperations();
+    List<UpdateOp> ops = Lists.newArrayList();
+    Revision nextSweepStart = sweep(ops);
+    assertEquals(ns.getHeadRevision().getRevision(ns.getClusterId()), nextSweepStart);
+    assertEquals(0, ops.size());
+}

@@ -1,0 +1,26 @@
+/**
+ * This SuppressWarning("unchecked") required to suppress
+ * "Unchecked generics array creation for varargs parameter" during mock.
+ * @throws IOException when smth wrong with file creation or cache.load
+ */
+@Test
+public void testNonExistentResource() throws IOException {
+    final Configuration config = new DefaultConfiguration("myName");
+    final String filePath = temporaryFolder.newFile().getPath();
+    final PropertyCacheFile cache = new PropertyCacheFile(config, filePath);
+    // create cache with one file
+    cache.load();
+    final String myFile = "myFile";
+    cache.put(myFile, 1);
+    final String hash = cache.get(PropertyCacheFile.CONFIG_HASH_KEY);
+    assertNotNull("Config hash key should not be null", hash);
+    mockStatic(ByteStreams.class);
+    when(ByteStreams.toByteArray(any(BufferedInputStream.class))).thenThrow(IOException.class);
+    // apply new external resource to clear cache
+    final Set<String> resources = new HashSet<>();
+    final String resource = getPath("InputPropertyCacheFile.header");
+    resources.add(resource);
+    cache.putExternalResources(resources);
+    assertFalse("Should return false in file is not in cache", cache.isInCache(myFile, 1));
+    assertFalse("Should return false in file is not in cache", cache.isInCache(resource, 1));
+}

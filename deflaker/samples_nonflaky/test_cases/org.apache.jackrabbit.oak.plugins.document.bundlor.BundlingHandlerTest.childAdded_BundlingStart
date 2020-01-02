@@ -1,0 +1,13 @@
+@Test
+public void childAdded_BundlingStart() throws Exception {
+    BundledTypesRegistry registry = BundledTypesRegistry.builder().forType("nt:file", "jcr:content").buildRegistry();
+    BundlingHandler handler = new BundlingHandler(registry);
+    childBuilder(builder, "sunrise.jpg/jcr:content").setProperty("jcr:data", "foo");
+    type(childBuilder(builder, "sunrise.jpg"), "nt:file");
+    NodeState state = builder.getNodeState();
+    BundlingHandler fileHandler = handler.childAdded("sunrise.jpg", state.getChildNode("sunrise.jpg"));
+    assertEquals(Path.fromString("/sunrise.jpg"), fileHandler.getRootBundlePath());
+    assertTrue(fileHandler.isBundlingRoot());
+    assertEquals("foo", fileHandler.getPropertyPath("foo"));
+    assertEquals(1, fileHandler.getMetaProps().size());
+}

@@ -1,0 +1,20 @@
+@Test
+public void testAddBeforeExecutionFileFilterAsChild() throws Exception {
+    final Checker checker = new Checker();
+    final TestBeforeExecutionFileFilter fileFilter = new TestBeforeExecutionFileFilter();
+    final PackageObjectFactory factory = new PackageObjectFactory(new HashSet<>(), Thread.currentThread().getContextClassLoader()) {
+
+        @Override
+        public Object createModule(String name) throws CheckstyleException {
+            Object filter = fileFilter;
+            if (!name.equals(TestBeforeExecutionFileFilter.class.getName())) {
+                filter = super.createModule(name);
+            }
+            return filter;
+        }
+    };
+    checker.setModuleFactory(factory);
+    checker.setupChild(createModuleConfig(TestBeforeExecutionFileFilter.class));
+    checker.process(Collections.singletonList(new File("dummy.java")));
+    assertTrue(fileFilter.wasCalled(), "Checker.acceptFileStarted() doesn't call listener");
+}

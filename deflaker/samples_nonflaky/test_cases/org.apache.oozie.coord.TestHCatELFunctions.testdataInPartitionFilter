@@ -1,0 +1,31 @@
+/**
+ * Test dataInPartitionPigFilter EL function (phase 3) which returns the
+ * partition filter to be used as input to load data from
+ *
+ * @throws Exception
+ */
+@Test
+public void testdataInPartitionFilter() throws Exception {
+    init("coord-action-start");
+    eval.setVariable(".datain.ABC", "hcat://hcat.server.com:5080/mydb/clicks/datastamp=12;region=us");
+    eval.setVariable(".datain.ABC.unresolved", Boolean.FALSE);
+    /*
+         * type=pig
+         */
+    String expr = "${coord:dataInPartitionFilter('ABC', 'pig')}";
+    String res = CoordELFunctions.evalAndWrap(eval, expr);
+    assertTrue(res.equals("(datastamp=='12' AND region=='us')") || res.equals("(region=='us' AND datastamp=='12')"));
+    eval.setVariable(".datain.ABC", "hcat://hcat.server.com:5080/mydb/clicks/datastamp=12;region=us," + "hcat://hcat.server.com:5080/mydb/clicks/datastamp=13;region=us");
+    eval.setVariable(".datain.ABC.unresolved", Boolean.FALSE);
+    expr = "${coord:dataInPartitionFilter('ABC', 'pig')}";
+    res = CoordELFunctions.evalAndWrap(eval, expr);
+    assertTrue(res.equals("(datastamp=='12' AND region=='us') OR (datastamp=='13' AND region=='us')") || res.equals("(datastamp=='12' AND region=='us') OR (region=='us' AND datastamp=='13')") || res.equals("(region=='us' AND datastamp=='12') OR (datastamp=='13' AND region=='us')") || res.equals("(region=='us' AND datastamp=='12') OR (region=='us' AND datastamp=='13')"));
+    /*
+         * type=java
+         */
+    eval.setVariable(".datain.ABC", "hcat://hcat.server.com:5080/mydb/clicks/datastamp=12;region=us");
+    eval.setVariable(".datain.ABC.unresolved", Boolean.FALSE);
+    expr = "${coord:dataInPartitionFilter('ABC', 'java')}";
+    res = CoordELFunctions.evalAndWrap(eval, expr);
+    assertTrue(res.equals("(datastamp='12' AND region='us')") || res.equals("(region='us' AND datastamp='12')"));
+}

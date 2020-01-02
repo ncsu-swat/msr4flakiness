@@ -1,0 +1,18 @@
+public void testAdminMetrics() throws Exception {
+    runTest(END_POINTS, SERVLET_CLASSES, IS_SECURITY_ENABLED, new Callable<Void>() {
+
+        @Override
+        public Void call() throws Exception {
+            HeaderTestingVersionServlet.OOZIE_HEADERS.clear();
+            Services.get().setService(MetricsInstrumentationService.class);
+            String oozieUrl = getContextURL();
+            String[] args = new String[] { "admin", "-metrics", "-oozie", oozieUrl };
+            String out = runOozieCLIAndGetStdout(args);
+            assertTrue(out.contains("webservices.version-GET"));
+            args = new String[] { "admin", "-instrumentation", "-oozie", oozieUrl };
+            out = runOozieCLIAndGetStdout(args);
+            assertTrue(out.contains("Instrumentation is unavailable"));
+            return null;
+        }
+    });
+}

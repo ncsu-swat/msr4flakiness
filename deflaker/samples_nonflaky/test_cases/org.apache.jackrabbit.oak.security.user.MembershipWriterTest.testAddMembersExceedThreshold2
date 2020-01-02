@@ -1,0 +1,38 @@
+@Test
+public void testAddMembersExceedThreshold2() throws Exception {
+    Tree groupTree = getTree(createGroup());
+    // 1. add array of 21 memberIDs exceeding the threshold
+    Map<String, String> memberIds = createIdMap(0, 21);
+    writer.addMembers(groupTree, memberIds);
+    PropertyState repMembers = groupTree.getProperty(REP_MEMBERS);
+    assertNotNull(repMembers);
+    assertEquals(SIZE_TH, repMembers.count());
+    // the members-list must how have two ref-members nodes one with 10 and
+    // one with a single ref-value
+    assertMemberList(groupTree, 2, 1);
+    // 2. add more members without reaching threshold => still 2 ref-nodes
+    memberIds = createIdMap(21, 29);
+    writer.addMembers(groupTree, memberIds);
+    assertMemberList(groupTree, 2, 9);
+    // 3. fill up second ref-members node => a new one must be created
+    memberIds = createIdMap(29, 35);
+    writer.addMembers(groupTree, memberIds);
+    assertMemberList(groupTree, 3, 5);
+    // 4. remove members from the initial set => ref nodes as before, rep:members prop on group modified
+    memberIds.clear();
+    memberIds.put(getContentID("member1"), "member1");
+    memberIds.put(getContentID("member2"), "member2");
+    writer.removeMembers(groupTree, Maps.newHashMap(memberIds));
+    assertMemberList(groupTree, 3, 5);
+    assertEquals(8, groupTree.getProperty(REP_MEMBERS).count());
+    // 5. add members again => best-tree is the ref-member-node
+    memberIds = createIdMap(35, 39);
+    writer.addMembers(groupTree, memberIds);
+    assertEquals(8, groupTree.getProperty(REP_MEMBERS).count());
+    assertMemberList(groupTree, 3, 9);
+    // 6. adding more members will fill up rep:members again and create new ref-node
+    memberIds = createIdMap(39, 45);
+    writer.addMembers(groupTree, memberIds);
+    assertEquals(SIZE_TH, groupTree.getProperty(REP_MEMBERS).count());
+    assertEquals(4, groupTree.getChild(REP_MEMBERS_LIST).getChildrenCount(10));
+}

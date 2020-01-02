@@ -1,0 +1,44 @@
+@Test
+public void emptyCacheStatsTest() throws Exception {
+    SegmentCache cache = newSegmentCache(0);
+    AbstractCacheStats stats = cache.getCacheStats();
+    // empty cache
+    assertEquals(0, stats.getElementCount());
+    assertEquals(0, stats.getLoadCount());
+    assertEquals(0, stats.estimateCurrentWeight());
+    assertEquals(0, stats.getHitCount());
+    assertEquals(0, stats.getMissCount());
+    assertEquals(0, stats.getRequestCount());
+    assertEquals(0, stats.getEvictionCount());
+    // load
+    cache.getSegment(id1, () -> segment1);
+    assertEquals(0, stats.getElementCount());
+    assertEquals(1, stats.getLoadCount());
+    assertEquals(0, stats.estimateCurrentWeight());
+    assertEquals(0, stats.getHitCount());
+    assertEquals(1, stats.getMissCount());
+    assertEquals(1, stats.getRequestCount());
+    assertEquals(0, stats.getEvictionCount());
+    // No cache hit
+    try {
+        id1.getSegment();
+        fail(id1 + " should not be in the cache");
+    } catch (SegmentNotFoundException expected) {
+    }
+    cache.clear();
+    assertEquals(0, stats.getElementCount());
+    assertEquals(1, stats.getLoadCount());
+    assertEquals(0, stats.estimateCurrentWeight());
+    assertEquals(0, stats.getHitCount());
+    assertEquals(1, stats.getMissCount());
+    assertEquals(1, stats.getRequestCount());
+    assertEquals(0, stats.getEvictionCount());
+    stats.resetStats();
+    assertEquals(0, stats.getElementCount());
+    assertEquals(0, stats.getLoadCount());
+    assertEquals(0, stats.estimateCurrentWeight());
+    assertEquals(0, stats.getHitCount());
+    assertEquals(0, stats.getMissCount());
+    assertEquals(0, stats.getRequestCount());
+    assertEquals(0, stats.getEvictionCount());
+}

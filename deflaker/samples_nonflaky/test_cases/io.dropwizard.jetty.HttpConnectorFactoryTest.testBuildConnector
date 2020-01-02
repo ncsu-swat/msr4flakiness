@@ -1,0 +1,53 @@
+@Test
+void testBuildConnector() throws Exception {
+    HttpConnectorFactory http = new HttpConnectorFactory();
+    http.setBindHost("127.0.0.1");
+    http.setAcceptorThreads(Optional.of(1));
+    http.setSelectorThreads(Optional.of(2));
+    http.setAcceptQueueSize(1024);
+    http.setMinResponseDataPerSecond(DataSize.bytes(200));
+    http.setMinRequestDataPerSecond(DataSize.bytes(42));
+    http.setRequestCookieCompliance(CookieCompliance.RFC6265);
+    http.setResponseCookieCompliance(CookieCompliance.RFC6265);
+    Server server = new Server();
+    MetricRegistry metrics = new MetricRegistry();
+    ThreadPool threadPool = new QueuedThreadPool();
+    ServerConnector connector = (ServerConnector) http.build(server, metrics, "test-http-connector", threadPool);
+    assertThat(connector.getPort()).isEqualTo(8080);
+    assertThat(connector.getHost()).isEqualTo("127.0.0.1");
+    assertThat(connector.getAcceptQueueSize()).isEqualTo(1024);
+    assertThat(connector.getReuseAddress()).isTrue();
+    assertThat(connector.getIdleTimeout()).isEqualTo(30000);
+    assertThat(connector.getName()).isEqualTo("test-http-connector");
+    assertThat(connector.getServer()).isSameAs(server);
+    assertThat(connector.getScheduler()).isInstanceOf(ScheduledExecutorScheduler.class);
+    assertThat(connector.getExecutor()).isSameAs(threadPool);
+    // That's gross, but unfortunately ArrayByteBufferPool doesn't have API for configuration
+    ByteBufferPool byteBufferPool = connector.getByteBufferPool();
+    assertThat(byteBufferPool).isInstanceOf(ArrayByteBufferPool.class);
+    assertThat(getField(ArrayByteBufferPool.class, "_minCapacity", true).get(byteBufferPool)).isEqualTo(64);
+    assertThat(getField(ArrayByteBufferPool.class, "_factor", true).get(byteBufferPool)).isEqualTo(1024);
+    assertThat(((Object[]) getField(ArrayByteBufferPool.class, "_direct", true).get(byteBufferPool)).length).isEqualTo(64);
+    assertThat(connector.getAcceptors()).isEqualTo(1);
+    assertThat(connector.getSelectorManager().getSelectorCount()).isEqualTo(2);
+    Jetty93InstrumentedConnectionFactory connectionFactory = (Jetty93InstrumentedConnectionFactory) connector.getConnectionFactory("http/1.1");
+    assertThat(connectionFactory).isInstanceOf(Jetty93InstrumentedConnectionFactory.class);
+    assertThat(connectionFactory.getTimer()).isSameAs(metrics.timer("org.eclipse.jetty.server.HttpConnectionFactory.127.0.0.1.8080.connections"));
+    HttpConnectionFactory httpConnectionFactory = (HttpConnectionFactory) connectionFactory.getConnectionFactory();
+    assertThat(httpConnectionFactory.getInputBufferSize()).isEqualTo(8192);
+    assertThat(httpConnectionFactory.getHttpCompliance()).isEqualByComparingTo(HttpCompliance.RFC7230);
+    HttpConfiguration httpConfiguration = httpConnectionFactory.getHttpConfiguration();
+    assertThat(httpConfiguration.getHeaderCacheSize()).isEqualTo(512);
+    assertThat(httpConfiguration.getOutputBufferSize()).isEqualTo(32768);
+    assertThat(httpConfiguration.getRequestHeaderSize()).isEqualTo(8192);
+    assertThat(httpConfiguration.getResponseHeaderSize()).isEqualTo(8192);
+    assertThat(httpConfiguration.getSendDateHeader()).isTrue();
+    assertThat(httpConfiguration.getSendServerVersion()).isFalse();
+    assertThat(httpConfiguration.getCustomizers()).noneMatch(customizer -> customizer.getClass().equals(ForwardedRequestCustomizer.class));
+    assertThat(httpConfiguration.getMinRequestDataRate()).isEqualTo(42);
+    assertThat(httpConfiguration.getMinResponseDataRate()).isEqualTo(200);
+    assertThat(httpConfiguration.getRequestCookieCompliance()).isEqualTo(CookieCompliance.RFC6265);
+    assertThat(httpConfiguration.getResponseCookieCompliance()).isEqualTo(CookieCompliance.RFC6265);
+    connector.stop();
+    server.stop();
+}

@@ -1,0 +1,13 @@
+@Test
+public void testCreateLink_absolute() throws IOException {
+    Files.createFile(path("/test.txt"));
+    Files.createLink(path("/link.txt"), path("/test.txt"));
+    // don't assert that the link is the same file here, just that it was created
+    // later tests check that linking works correctly
+    assertThatPath("/link.txt", NOFOLLOW_LINKS).isRegularFile();
+    assertThatPath("/").hasChildren("link.txt", "test.txt", "work");
+    Files.createDirectory(path("/foo"));
+    Files.createLink(path("/foo/link.txt"), path("/test.txt"));
+    assertThatPath("/foo/link.txt", NOFOLLOW_LINKS).isRegularFile();
+    assertThatPath("/foo").hasChildren("link.txt");
+}

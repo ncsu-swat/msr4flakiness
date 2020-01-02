@@ -1,0 +1,21 @@
+/**
+ * Test for OAK-1202
+ */
+@Test
+public void retryPersisted() throws Exception {
+    MemoryDocumentStore ds = new MemoryDocumentStore();
+    MemoryBlobStore bs = new MemoryBlobStore();
+    DocumentNodeStore ns1 = createMK(1, 1000, ds, bs);
+    DocumentNodeStore ns2 = createMK(2, 1000, ds, bs);
+    try {
+        NodeBuilder builder1 = ns1.getRoot().builder();
+        createTree(builder1.child("bar"), 2);
+        NodeBuilder builder2 = ns2.getRoot().builder();
+        createTree(builder2.child("qux"), 2);
+        ns1.merge(builder1, HOOK, CommitInfo.EMPTY);
+        ns2.merge(builder2, HOOK, CommitInfo.EMPTY);
+    } finally {
+        ns1.dispose();
+        ns2.dispose();
+    }
+}

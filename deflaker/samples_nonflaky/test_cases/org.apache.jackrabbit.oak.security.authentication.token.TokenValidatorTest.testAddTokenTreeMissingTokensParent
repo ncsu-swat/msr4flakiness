@@ -1,0 +1,16 @@
+@Test(expected = CommitFailedException.class)
+public void testAddTokenTreeMissingTokensParent() throws Exception {
+    Tree tokenTree = getTokenTree(createTokenInfo(tokenProvider, userId));
+    root.move(tokenTree.getPath(), PathUtils.concat(getTestUser().getPath(), tokenTree.getName()));
+    Tree rootTree = root.getTree(PathUtils.ROOT_PATH);
+    try {
+        Validator v = createValidator(rootTree, rootTree, getTestUser().getPath(), true);
+        v.childNodeAdded(tokenTree.getName(), mock(NodeState.class));
+    } catch (CommitFailedException e) {
+        assertTrue(e.isConstraintViolation());
+        assertEquals(65, e.getCode());
+        throw e;
+    } finally {
+        root.refresh();
+    }
+}

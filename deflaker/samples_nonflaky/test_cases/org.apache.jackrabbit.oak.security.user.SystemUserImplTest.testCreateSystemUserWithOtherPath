@@ -1,0 +1,25 @@
+@Test
+public void testCreateSystemUserWithOtherPath() throws Exception {
+    String path = null;
+    try {
+        Tree t = root.getTree(UserConstants.DEFAULT_USER_PATH);
+        NodeUtil systemUserTree = new NodeUtil(t).addChild("systemUser", UserConstants.NT_REP_SYSTEM_USER);
+        systemUserTree.setString(UserConstants.REP_PRINCIPAL_NAME, "systemUser");
+        systemUserTree.setString(UserConstants.REP_AUTHORIZABLE_ID, "systemUser");
+        path = systemUserTree.getTree().getPath();
+        root.commit();
+        fail();
+    } catch (CommitFailedException e) {
+        // success
+        assertTrue(e.isConstraintViolation());
+    } finally {
+        root.refresh();
+        if (path != null) {
+            Tree t = root.getTree(path);
+            if (t.exists()) {
+                t.remove();
+                root.commit();
+            }
+        }
+    }
+}

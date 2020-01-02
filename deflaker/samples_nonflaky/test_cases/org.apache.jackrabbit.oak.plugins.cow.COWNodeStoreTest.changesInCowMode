@@ -1,0 +1,26 @@
+@Test
+public void changesInCowMode() throws CommitFailedException {
+    NodeState root = cowNodeStore.getRoot();
+    NodeBuilder builder = root.builder();
+    builder.child("abc");
+    cowNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    cowNodeStore.enableCopyOnWrite();
+    root = cowNodeStore.getRoot();
+    builder = root.builder();
+    builder.child("foo");
+    cowNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    root = store.getRoot();
+    builder = root.builder();
+    builder.child("bar");
+    store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    assertTrue("Change introduced before enabling the CoW mode is not available", cowNodeStore.getRoot().hasChildNode("abc"));
+    assertTrue("Change introduced after enabling the CoW mode is not available", cowNodeStore.getRoot().hasChildNode("foo"));
+    assertFalse("Changed introduced to the main store after enabling the CoW mode shouldn't be visible", cowNodeStore.getRoot().hasChildNode("bar"));
+    assertTrue("Change introduced before enabling the CoW mode should be visible is the main store", store.getRoot().hasChildNode("abc"));
+    assertFalse("Change introduced after enabling the CoW mode shouldn't be visible in the main store", store.getRoot().hasChildNode("foo"));
+    assertTrue("Change introduced to the main store should be visible", store.getRoot().hasChildNode("bar"));
+    cowNodeStore.disableCopyOnWrite();
+    assertTrue("Change introduced before enabling the CoW mode is not available", cowNodeStore.getRoot().hasChildNode("abc"));
+    assertFalse("Change introduced in the CoW mode should be dropped after disabling it", cowNodeStore.getRoot().hasChildNode("foo"));
+    assertTrue("Change introduced to the main store should be visible", cowNodeStore.getRoot().hasChildNode("bar"));
+}

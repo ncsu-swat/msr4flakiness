@@ -1,0 +1,16 @@
+@Test
+public void removeReferencedNode() throws Exception {
+    NodeState root = INITIAL_CONTENT;
+    NodeBuilder builder = root.builder();
+    NodeState before = builder.getNodeState();
+    builder.child("a").setProperty(createProperty(JCR_UUID, "u1", Type.STRING));
+    builder.child("b").setProperty(createProperty("foo", "u1", Type.REFERENCE));
+    NodeState after = builder.getNodeState();
+    EditorHook hook = new EditorHook(new IndexUpdateProvider(new ReferenceEditorProvider()));
+    NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+    builder = indexed.builder();
+    builder.getChildNode("a").remove();
+    thrown.expect(CommitFailedException.class);
+    thrown.expectMessage("OakIntegrity0001: Unable to delete referenced node");
+    hook.processCommit(indexed, builder.getNodeState(), CommitInfo.EMPTY);
+}

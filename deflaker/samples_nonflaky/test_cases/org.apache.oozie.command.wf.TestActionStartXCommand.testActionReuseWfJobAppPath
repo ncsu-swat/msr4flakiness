@@ -1,0 +1,17 @@
+public void testActionReuseWfJobAppPath() throws Exception {
+    JPAService jpaService = Services.get().get(JPAService.class);
+    WorkflowJobBean job = this.addRecordToWfJobTableWithCustomAppPath(WorkflowJob.Status.RUNNING, WorkflowInstance.Status.RUNNING);
+    WorkflowActionBean action = this.addRecordToWfActionTableWithAppPathConfig(job.getId(), "1", WorkflowAction.Status.PREP);
+    WorkflowActionGetJPAExecutor wfActionGetCmd = new WorkflowActionGetJPAExecutor(action.getId());
+    new ActionStartXCommand(action.getId(), "map-reduce").call();
+    action = jpaService.execute(wfActionGetCmd);
+    assertNotNull(action.getExternalId());
+    Element actionXml = XmlUtils.parseXml(action.getConf());
+    Namespace ns = actionXml.getNamespace();
+    Element configElem = actionXml.getChild("configuration", ns);
+    String strConf = XmlUtils.prettyPrint(configElem).toString();
+    XConfiguration inlineConf = new XConfiguration(new StringReader(strConf));
+    String workDir = inlineConf.get("work.dir", null);
+    assertNotNull(workDir);
+    assertFalse(workDir.contains("workflow.xml"));
+}

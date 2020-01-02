@@ -1,0 +1,33 @@
+@Test
+public void testFlushBlocks() throws ExecutionException, InterruptedException {
+    GCGeneration gcGeneration = pool.getGCGeneration();
+    Future<RecordId> res = execute(gcGeneration, new WriteOperation() {
+
+        @Nullable
+        @Override
+        public RecordId execute(@NotNull SegmentBufferWriter writer) {
+            try {
+                // This should deadlock as flush waits for this write
+                // operation to finish, which in this case contains the
+                // call to flush itself.
+                executors[1].submit(new Callable<Void>() {
+
+                    @Override
+                    public Void call() throws Exception {
+                        pool.flush(store);
+                        return null;
+                    }
+                }).get(100, MILLISECONDS);
+                // No deadlock -> null indicates test failure
+                return null;
+            } catch (InterruptedException | ExecutionException ignore) {
+                // No deadlock -> null indicates test failure
+                return null;
+            } catch (TimeoutException ignore) {
+                // Deadlock -> rootId indicates test pass
+                return rootId;
+            }
+        }
+    }, 0);
+    assertEquals(rootId, res.get());
+}

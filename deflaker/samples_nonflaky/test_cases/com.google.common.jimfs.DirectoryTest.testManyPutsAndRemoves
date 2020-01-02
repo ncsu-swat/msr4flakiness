@@ -1,0 +1,43 @@
+@Test
+public void testManyPutsAndRemoves() {
+    // test resizing/rehashing
+    Set<DirectoryEntry> entriesInDir = new HashSet<>();
+    entriesInDir.add(new DirectoryEntry(dir, Name.SELF, dir));
+    entriesInDir.add(new DirectoryEntry(dir, Name.PARENT, root));
+    // add 1000 entries
+    for (int i = 0; i < 1000; i++) {
+        DirectoryEntry entry = entry(String.valueOf(i));
+        dir.put(entry);
+        entriesInDir.add(entry);
+        assertThat(ImmutableSet.copyOf(dir)).isEqualTo(entriesInDir);
+        for (DirectoryEntry expected : entriesInDir) {
+            assertThat(dir.get(expected.name())).isEqualTo(expected);
+        }
+    }
+    // remove 1000 entries
+    for (int i = 0; i < 1000; i++) {
+        dir.remove(Name.simple(String.valueOf(i)));
+        entriesInDir.remove(entry(String.valueOf(i)));
+        assertThat(ImmutableSet.copyOf(dir)).isEqualTo(entriesInDir);
+        for (DirectoryEntry expected : entriesInDir) {
+            assertThat(dir.get(expected.name())).isEqualTo(expected);
+        }
+    }
+    // mixed adds and removes
+    for (int i = 0; i < 10000; i++) {
+        DirectoryEntry entry = entry(String.valueOf(i));
+        dir.put(entry);
+        entriesInDir.add(entry);
+        if (i > 0 && i % 20 == 0) {
+            String nameToRemove = String.valueOf(i / 2);
+            dir.remove(Name.simple(nameToRemove));
+            entriesInDir.remove(entry(nameToRemove));
+        }
+    }
+    // for this one, only test that the end result is correct
+    // takes too long to test at each iteration
+    assertThat(ImmutableSet.copyOf(dir)).isEqualTo(entriesInDir);
+    for (DirectoryEntry expected : entriesInDir) {
+        assertThat(dir.get(expected.name())).isEqualTo(expected);
+    }
+}

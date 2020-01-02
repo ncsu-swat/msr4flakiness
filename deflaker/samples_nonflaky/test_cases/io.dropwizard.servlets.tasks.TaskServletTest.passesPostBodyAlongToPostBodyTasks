@@ -1,0 +1,13 @@
+@Test
+void passesPostBodyAlongToPostBodyTasks() throws Exception {
+    String body = "{\"json\": true}";
+    final PrintWriter output = mock(PrintWriter.class);
+    final ServletInputStream bodyStream = new TestServletInputStream(new ByteArrayInputStream(body.getBytes(StandardCharsets.UTF_8)));
+    when(request.getMethod()).thenReturn("POST");
+    when(request.getPathInfo()).thenReturn("/print-json");
+    when(request.getParameterNames()).thenReturn(Collections.enumeration(Collections.emptyList()));
+    when(request.getInputStream()).thenReturn(bodyStream);
+    when(response.getWriter()).thenReturn(output);
+    servlet.service(request, response);
+    verify(printJSON).execute(Collections.emptyMap(), body, output);
+}

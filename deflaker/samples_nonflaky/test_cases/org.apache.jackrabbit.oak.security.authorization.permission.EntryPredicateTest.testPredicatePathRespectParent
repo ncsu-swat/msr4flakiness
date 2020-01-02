@@ -1,0 +1,32 @@
+@Test
+public void testPredicatePathRespectParent() {
+    EntryPredicate pred = EntryPredicate.create(path, true);
+    assertEquals(path, pred.getPath());
+    // pattern neither matches path nor parent path
+    when(pattern.matches(path)).thenReturn(false);
+    when(pattern.matches(parentPath)).thenReturn(false);
+    assertFalse(pred.apply(entry));
+    assertFalse(pred.apply(entry, true));
+    assertFalse(pred.apply(entry, false));
+    // pattern matches path and parent path
+    when(pattern.matches(path)).thenReturn(true);
+    when(pattern.matches(parentPath)).thenReturn(true);
+    assertFalse(pred.apply(null));
+    assertTrue(pred.apply(entry));
+    assertTrue(pred.apply(entry, true));
+    assertTrue(pred.apply(entry, false));
+    // pattern only matches path
+    when(pattern.matches(path)).thenReturn(true);
+    when(pattern.matches(parentPath)).thenReturn(false);
+    assertTrue(pred.apply(entry));
+    assertTrue(pred.apply(entry, true));
+    assertTrue(pred.apply(entry, false));
+    // pattern only matches parent path
+    when(pattern.matches(path)).thenReturn(false);
+    when(pattern.matches(parentPath)).thenReturn(true);
+    assertTrue(pred.apply(entry));
+    assertTrue(pred.apply(entry, true));
+    assertFalse(pred.apply(entry, false));
+    verify(pattern, times(12)).matches(path);
+    verify(pattern, times(4)).matches(parentPath);
+}

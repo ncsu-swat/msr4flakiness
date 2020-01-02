@@ -1,0 +1,27 @@
+@Test
+public void testAsyncClose_read() throws Throwable {
+    RegularFile file = regularFile(15);
+    ExecutorService executor = Executors.newFixedThreadPool(2);
+    try {
+        JimfsAsynchronousFileChannel channel = channel(file, executor, READ, WRITE);
+        // cause another thread trying to read to block
+        file.writeLock().lock();
+        // future-returning read
+        Future<Integer> future = channel.read(ByteBuffer.allocate(10), 0);
+        // completion handler read
+        SettableFuture<Integer> completionHandlerFuture = SettableFuture.create();
+        channel.read(ByteBuffer.allocate(10), 0, null, setFuture(completionHandlerFuture));
+        // Despite this 10ms sleep to allow plenty of time, it's possible, though very rare, for a
+        // race to cause the channel to be closed before the asynchronous calls get to the initial
+        // check that the channel is open, causing ClosedChannelException to be thrown rather than
+        // AsynchronousCloseException. This is not a problem in practice, just a quirk of how these
+        // tests work and that we don't have a way of waiting for the operations to get past that
+        // check.
+        Uninterruptibles.sleepUninterruptibly(10, MILLISECONDS);
+        channel.close();
+        assertAsynchronousClose(future);
+        assertAsynchronousClose(completionHandlerFuture);
+    } finally {
+        executor.shutdown();
+    }
+}

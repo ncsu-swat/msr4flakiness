@@ -1,0 +1,30 @@
+@Test
+public void costEstimation() throws Exception {
+    NodeState root = INITIAL_CONTENT;
+    // Add index definition
+    NodeBuilder builder = root.builder();
+    NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo", true, false, ImmutableSet.of("foo"), null);
+    // disable the estimation
+    index.setProperty("entryCount", -1);
+    NodeState before = builder.getNodeState();
+    // Add some content and process it through the property index hook
+    for (int i = 0; i < MANY; i++) {
+        builder.child("n" + i).setProperty("foo", "x" + i % 20);
+    }
+    NodeState after = builder.getNodeState();
+    NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+    FilterImpl f = createFilter(indexed, NT_BASE);
+    // Query the index
+    PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+    double cost;
+    cost = lookup.getCost(f, "foo", PropertyValues.newString("x1"));
+    assertTrue("cost: " + cost, cost >= 6.5 && cost <= 7.5);
+    cost = lookup.getCost(f, "foo", PropertyValues.newString(Arrays.asList("x1", "x2")));
+    assertTrue("cost: " + cost, cost >= 11.5 && cost <= 12.5);
+    cost = lookup.getCost(f, "foo", PropertyValues.newString(Arrays.asList("x1", "x2", "x3", "x4", "x5")));
+    assertTrue("cost: " + cost, cost >= 26.5 && cost <= 27.5);
+    cost = lookup.getCost(f, "foo", PropertyValues.newString(Arrays.asList("x1", "x2", "x3", "x4", "x5", "x6", "x7", "x8", "x9", "x0")));
+    assertTrue("cost: " + cost, cost >= 51.5 && cost <= 52.5);
+    cost = lookup.getCost(f, "foo", null);
+    assertTrue("cost: " + cost, cost >= MANY);
+}

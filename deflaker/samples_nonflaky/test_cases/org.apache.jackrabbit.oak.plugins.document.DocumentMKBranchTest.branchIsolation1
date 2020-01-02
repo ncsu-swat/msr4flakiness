@@ -1,0 +1,19 @@
+@Test
+public void branchIsolation1() throws Exception {
+    String filter = "{\"properties\":[\"*\",\":hash\",\":id\"]}";
+    String baseRev = mk.commit("/", "+\"test\":{\"node\":{}}", null, null);
+    // branch commit under /test/node
+    String branchRev = mk.branch(baseRev);
+    String branchRev1 = mk.commit("/test/node", "+\"branch-node\":{}", branchRev, null);
+    // trunk commit under /test/node
+    mk.commit("/test/node", "+\"trunk-node\":{}", null, null);
+    // branch commit on /
+    String branchRev2 = mk.commit("/", "+\"other\":{}", branchRev1, null);
+    // get /test on branch and use returned identifier to get next level
+    String json = mk.getNodes("/test", branchRev2, 0, 0, 1000, filter);
+    JSONObject test = parseJSONObject(json);
+    String id = resolveValue(test, ":id").toString();
+    String revision = id.split("@")[1];
+    assertNodesExist(revision, "/test/node/branch-node");
+    assertNodesNotExist(revision, "/test/node/trunk-node");
+}

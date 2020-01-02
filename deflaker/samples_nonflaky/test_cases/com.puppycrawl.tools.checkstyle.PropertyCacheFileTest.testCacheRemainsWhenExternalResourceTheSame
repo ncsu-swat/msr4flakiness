@@ -1,0 +1,18 @@
+@Test
+public void testCacheRemainsWhenExternalResourceTheSame() throws IOException {
+    final Configuration config = new DefaultConfiguration("myName");
+    final String externalResourcePath = File.createTempFile("junit", null, temporaryFolder).getPath();
+    final String filePath = File.createTempFile("junit", null, temporaryFolder).getPath();
+    final PropertyCacheFile cache = new PropertyCacheFile(config, filePath);
+    // pre-populate with cache with resources
+    cache.load();
+    final Set<String> resources = new HashSet<>();
+    resources.add(externalResourcePath);
+    cache.putExternalResources(resources);
+    cache.persist();
+    // test cache with same resources and new file
+    cache.load();
+    cache.put("myFile", 1);
+    cache.putExternalResources(resources);
+    assertTrue(cache.isInCache("myFile", 1), "Should return true in file is in cache");
+}

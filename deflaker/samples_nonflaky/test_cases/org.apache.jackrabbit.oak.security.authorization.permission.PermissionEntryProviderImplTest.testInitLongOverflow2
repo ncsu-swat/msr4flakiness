@@ -1,0 +1,18 @@
+/**
+ * @see <a href="https://issues.apache.org/jira/browse/OAK-2465">OAK-2465</a>
+ */
+@Test
+public void testInitLongOverflow2() throws Exception {
+    MockPermissionStore store = new MockPermissionStore();
+    Set<String> principalNames = ImmutableSet.of(GROUP_LONG_MAX_MINUS_10, GROUP_50);
+    /*
+        create a new PermissionEntryProviderImpl to have it's #init() method
+        called, which may trigger the cache to be pre-filled if the max number
+        if entries is not exceeded -> still counting up the number of permission
+        entries must deal with the fact that the counter may become bigger that
+        Long.MAX_VALUE
+        */
+    PermissionEntryProviderImpl provider = new PermissionEntryProviderImpl(store, principalNames, ConfigurationParameters.EMPTY);
+    assertFalse(getNoExistingNames(provider));
+    assertNotSame(Collections.emptyIterator(), provider.getEntryIterator(EntryPredicate.create()));
+}

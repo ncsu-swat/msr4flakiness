@@ -1,0 +1,11 @@
+@Test
+public void usesDefaultHeaders() throws Exception {
+    final ConfiguredCloseableHttpClient client = builder.using(Collections.singletonList(new BasicHeader(HttpHeaders.ACCEPT_LANGUAGE, "de"))).createClient(apacheBuilder, connectionManager, "test");
+    assertThat(client).isNotNull();
+    @SuppressWarnings("unchecked")
+    List<? extends Header> defaultHeaders = (List<? extends Header>) FieldUtils.getField(httpClientBuilderClass, "defaultHeaders", true).get(apacheBuilder);
+    assertThat(defaultHeaders).hasSize(1);
+    final Header header = defaultHeaders.get(0);
+    assertThat(header.getName()).isEqualTo(HttpHeaders.ACCEPT_LANGUAGE);
+    assertThat(header.getValue()).isEqualTo("de");
+}

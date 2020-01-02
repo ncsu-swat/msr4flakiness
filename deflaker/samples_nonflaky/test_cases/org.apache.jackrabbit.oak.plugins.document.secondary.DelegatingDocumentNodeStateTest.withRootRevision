@@ -1,0 +1,14 @@
+@Test
+public void withRootRevision() throws Exception {
+    RevisionVector rv1 = new RevisionVector(new Revision(1, 0, 1));
+    RevisionVector rv2 = new RevisionVector(new Revision(1, 0, 3));
+    builder.setProperty(asPropertyState(PROP_REVISION, rv1));
+    builder.setProperty(asPropertyState(PROP_LAST_REV, rv2));
+    AbstractDocumentNodeState state = DelegatingDocumentNodeState.wrap(builder.getNodeState(), NodeStateDiffer.DEFAULT_DIFFER);
+    AbstractDocumentNodeState state2 = state.withRootRevision(rv1, false);
+    assertSame(state, state2);
+    RevisionVector rv4 = new RevisionVector(new Revision(1, 0, 4));
+    AbstractDocumentNodeState state3 = state.withRootRevision(rv4, true);
+    assertEquals(rv4, state3.getRootRevision());
+    assertTrue(state3.isFromExternalChange());
+}

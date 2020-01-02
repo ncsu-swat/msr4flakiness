@@ -1,0 +1,68 @@
+@Test
+public void testExcludeCommitsWithFullQueue() throws Exception {
+    MyFilter filter = new MyFilter();
+    Recorder recorder = new Recorder();
+    ExecutorService executor = newSingleThreadExecutor();
+    FilteringObserver fo = new FilteringObserver(executor, 2, filter, recorder);
+    closeables.add(fo);
+    List<Pair> expected = new LinkedList<Pair>();
+    NodeStateGenerator generator = new NodeStateGenerator();
+    recorder.pause();
+    // the first one will directly go to the recorder
+    NodeState initialHeldBack = generator.next();
+    fo.contentChanged(initialHeldBack, CommitInfo.EMPTY);
+    NodeState firstIncluded = generator.next();
+    expected.add(new Pair(initialHeldBack, firstIncluded));
+    fo.contentChanged(firstIncluded, CommitInfo.EMPTY);
+    assertTrue("observer did not get called (yet?)", recorder.waitForPausing(5, TimeUnit.SECONDS));
+    // this one will be queued as #1
+    NodeState secondIncluded = generator.next();
+    expected.add(new Pair(firstIncluded, secondIncluded));
+    fo.contentChanged(secondIncluded, CommitInfo.EMPTY);
+    // this one will be queued as #2
+    NodeState thirdIncluded = generator.next();
+    // expected.add(new Pair(secondIncluded, thirdIncluded));
+    fo.contentChanged(thirdIncluded, CommitInfo.EMPTY);
+    // this one will cause the queue to 'overflow' (full==true)
+    NodeState forthQueueFull = generator.next();
+    // not adding to expected, as this one ends up in the overflow element
+    fo.contentChanged(forthQueueFull, CommitInfo.EMPTY);
+    NodeState next;
+    // exclude when queue is full
+    filter.excludeNext(true);
+    next = generator.next();
+    // if excluded==true and full, hence not adding to expected
+    fo.contentChanged(next, CommitInfo.EMPTY);
+    // include after an exclude when queue was full
+    // => this is not supported. when the queue
+    filter.excludeNext(false);
+    next = generator.next();
+    // excluded==false BUT queue full, hence not adding to expected
+    fo.contentChanged(next, CommitInfo.EMPTY);
+    // with OAK-5740 the overflow entry now looks as follows:
+    expected.add(new Pair(secondIncluded, next));
+    // let recorder continue
+    recorder.unpause();
+    recorder.waitForUnpausing(5, TimeUnit.SECONDS);
+    // wait for 1 element to be dequeued at least
+    Thread.sleep(1000);
+    // exclude when queue is no longer full
+    filter.excludeNext(true);
+    NodeState seventhAfterQueueFull = generator.next();
+    // with the introduction of the FilteringAwareObserver this
+    // 'seventhAfterQueueFull' root will not be forwarded
+    // to the BackgroundObserver - thus entirely filtered
+    fo.contentChanged(seventhAfterQueueFull, CommitInfo.EMPTY);
+    // but with the introduction of FilteringAwareObserver the delivery
+    // only happens with non-filtered items, so adding yet another one now
+    filter.excludeNext(false);
+    NodeState last = generator.next();
+    // the 'seventhAfterQueueFull' DOES get filtered - and as per behavior
+    // pre-OAK-5740 it used to get flushed with the next contentChanged,
+    // however, with OAK-5740 this is no longer the case as we now
+    // use the last queue entry as the overflow entry
+    expected.add(new Pair(seventhAfterQueueFull, last));
+    fo.contentChanged(last, CommitInfo.EMPTY);
+    assertTrue("testExcludeCommitsWithFullQueue", fo.getBackgroundObserver().waitUntilStopped(10, TimeUnit.SECONDS));
+    assertMatches("testExcludeCommitsWithFullQueue", expected, recorder.includedChanges);
+}

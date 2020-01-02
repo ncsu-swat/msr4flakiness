@@ -1,0 +1,56 @@
+@Test
+public void differentPaths() throws Exception {
+    init(4);
+    final NodeStore nodeStore = new MemoryNodeStore();
+    stats.nodeStore = nodeStore;
+    final String path1 = "path/to/node/1";
+    final String path2 = "path/to/node/2";
+    final String path3 = "shortpath";
+    final String path4 = "a/very/very/long/path/leads/to/node/4";
+    final List<String> paths = Lists.newArrayList(path1, path2, path3, path4);
+    final String leadingSlashPath = "/" + path1;
+    final List<String> blobContents = Lists.newArrayList("1", "2", "3", "4");
+    final List<Blob> blobs = Lists.newArrayList(mock(Blob.class), mock(Blob.class), mock(Blob.class), mock(Blob.class));
+    final List<String> blobIds = Lists.newArrayList(getIdForInputStream(getStream(blobContents.get(0))), getIdForInputStream(getStream(blobContents.get(1))), getIdForInputStream(getStream(blobContents.get(2))), getIdForInputStream(getStream(blobContents.get(3))));
+    when(blobs.get(0).getContentIdentity()).thenReturn(blobIds.get(0));
+    when(blobs.get(1).getContentIdentity()).thenReturn(blobIds.get(1));
+    when(blobs.get(2).getContentIdentity()).thenReturn(blobIds.get(2));
+    when(blobs.get(3).getContentIdentity()).thenReturn(blobIds.get(3));
+    final NodeBuilder rootBuilder = nodeStore.getRoot().builder();
+    final List<NodeBuilder> builders = Lists.newArrayList();
+    for (final String path : paths) {
+        NodeBuilder builder = rootBuilder;
+        for (final String nodeName : PathUtils.elements(path)) {
+            builder = builder.child(nodeName);
+        }
+        builders.add(builder);
+    }
+    builders.get(0).setProperty("blob1", blobs.get(0));
+    builders.get(1).setProperty("blob2", blobs.get(1));
+    builders.get(2).setProperty("blob3", blobs.get(2));
+    builders.get(3).setProperty("blob4", blobs.get(3));
+    nodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    final List<DataRecord> records = Lists.newArrayList();
+    try {
+        for (final String s : blobContents) {
+            records.add(dataStore.addRecord(getStream(s)));
+        }
+        taskLatch.countDown();
+        callbackLatch.countDown();
+        waitFinish();
+        for (final String path : Lists.newArrayList(path1, path2, path3, path4, leadingSlashPath)) {
+            assertTrue(stats.isFileSynced(path));
+        }
+        for (final String invalidPath : Lists.newArrayList(path1 + "/", "/" + path1 + "/", "/path//to/node///1")) {
+            try {
+                stats.isFileSynced(invalidPath);
+                // shouldn't get here on an invalid path
+                assertFalse(false);
+            } catch (AssertionError e) {
+            // expected
+            }
+        }
+    } finally {
+        delete(dataStore, records);
+    }
+}

@@ -1,0 +1,11 @@
+@Test
+public void timerContext() throws Exception {
+    VirtualClock clock = new VirtualClock();
+    Timer time = new Timer(new ExponentiallyDecayingReservoir(), clock);
+    TimerStats timerStats = new TimerImpl(time);
+    TimerStats.Context context = timerStats.time();
+    clock.tick = TimeUnit.SECONDS.toNanos(314);
+    context.close();
+    assertEquals(1, time.getCount());
+    assertEquals(TimeUnit.SECONDS.toNanos(314), time.getSnapshot().getMax());
+}

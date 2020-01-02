@@ -1,0 +1,16 @@
+@Test
+public void testDSBSGetRecordForIdStats() throws IOException, RepositoryException {
+    DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withReadDelay());
+    DataRecord rec = dsbs.addRecord(getTestInputStream());
+    long getRecForIdCount = stats.getGetRecordForIdCount();
+    long getRecForIdCountLastMinute = getLastMinuteStats(stats.getGetRecordForIdCountHistory());
+    long getRecForIdTimeLastMinute = getLastMinuteStats(stats.getGetRecordForIdTimeHistory());
+    long downloadCount = stats.getDownloadCount();
+    dsbs.getRecordForId(rec.getIdentifier());
+    assertEquals(getRecForIdCount + 1, stats.getGetRecordForIdCount());
+    assertEquals(getRecForIdCountLastMinute + 1, waitForMetric(input -> getLastMinuteStats(input.getGetRecordForIdCountHistory()), stats, 1L, 0L).longValue());
+    assertTrue(getRecForIdTimeLastMinute < waitForNonzeroMetric(input -> getLastMinuteStats(input.getGetRecordForIdTimeHistory()), stats));
+    // Ensure that the metrics don't overlap.  Calling getRecordForId() shouldn't increment
+    // the download counts (which pertain to readBlob()).
+    assertEquals(downloadCount, stats.getDownloadCount());
+}

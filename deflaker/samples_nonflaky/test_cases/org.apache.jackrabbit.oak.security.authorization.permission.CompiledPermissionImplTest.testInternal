@@ -1,0 +1,19 @@
+@Test
+public void testInternal() throws Exception {
+    // grant read permissions at root path
+    grant(PathUtils.ROOT_PATH, EveryonePrincipal.getInstance(), JCR_READ);
+    root.commit();
+    CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.EMPTY);
+    String[] internalPaths = new String[] { PERMISSIONS_STORE_PATH, PathUtils.concat(PERMISSIONS_STORE_PATH, testSession.getWorkspaceName()) };
+    for (String internalPath : internalPaths) {
+        Tree internalTree = createReadonlyTree(internalPath);
+        assertTrue(internalTree.exists());
+        assertFalse(cp.isGranted(internalTree, null, Permissions.READ_NODE));
+        // isGranted(String, long) serves as fallback for non-existing items
+        // -> just regular permission eval without tree-type handling
+        assertTrue(cp.isGranted(internalPath, Permissions.READ_NODE));
+        assertTrue(cp.getPrivileges(internalTree).isEmpty());
+        TreePermission tp = createTreePermission(cp, internalPath);
+        assertSame(InternalTreePermission.INSTANCE, tp);
+    }
+}

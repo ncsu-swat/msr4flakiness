@@ -1,0 +1,37 @@
+/**
+ * Test : all coord actions suspended except one which is killed - check status change to SUSPENDEDWITHERROR
+ *
+ * @throws Exception
+ */
+public void testCoordStatusTransitServiceSuspendedWithError() throws Exception {
+    Services.get().destroy();
+    setSystemProperty(StatusTransitService.CONF_BACKWARD_SUPPORT_FOR_STATES_WITHOUT_ERROR, "false");
+    services = new Services();
+    setClassesToBeExcluded(services.getConf(), excludedServices);
+    services.init();
+    String currentDatePlusMonth = XDataTestCase.getCurrentDateafterIncrementingInMonths(1);
+    Date start = DateUtils.parseDateOozieTZ(currentDatePlusMonth);
+    Date end = DateUtils.parseDateOozieTZ(currentDatePlusMonth);
+    CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, start, end, true, true, 4);
+    addRecordToCoordActionTable(job.getId(), 1, CoordinatorAction.Status.KILLED, "coord-action-get.xml", 0);
+    addRecordToCoordActionTable(job.getId(), 2, CoordinatorAction.Status.SUSPENDED, "coord-action-get.xml", 0);
+    addRecordToCoordActionTable(job.getId(), 3, CoordinatorAction.Status.SUSPENDED, "coord-action-get.xml", 0);
+    addRecordToCoordActionTable(job.getId(), 4, CoordinatorAction.Status.SUSPENDED, "coord-action-get.xml", 0);
+    final String jobId = job.getId();
+    final JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    Runnable runnable = new StatusTransitRunnable();
+    runnable.run();
+    // Keeping wait time to 20s to ensure status is updated
+    waitFor(20 * 1000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            CoordinatorJobBean coordJob = jpaService.execute(new CoordJobGetJPAExecutor(jobId));
+            return coordJob.getStatus() == CoordinatorJob.Status.SUSPENDEDWITHERROR;
+        }
+    });
+    CoordJobGetJPAExecutor coordGetCmd = new CoordJobGetJPAExecutor(job.getId());
+    job = jpaService.execute(coordGetCmd);
+    assertEquals(CoordinatorJob.Status.SUSPENDEDWITHERROR, job.getStatus());
+    assertFalse(job.isPending());
+}

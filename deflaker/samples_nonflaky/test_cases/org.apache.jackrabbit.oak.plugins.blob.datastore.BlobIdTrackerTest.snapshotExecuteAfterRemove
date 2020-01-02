@@ -1,0 +1,13 @@
+@Test
+public void snapshotExecuteAfterRemove() throws Exception {
+    LOG.info("In snapshotExecuteAfterRemove");
+    Clock clock = Clock.ACCURATE;
+    BlobIdTracker.SnapshotJob job = tracker.new SnapshotJob(100, clock);
+    // Mimics a call to get after add and before remove similar to the calls in GC
+    Set<String> present = snapshotRemove(job, false);
+    clock.waitUntil(System.currentTimeMillis() + 100);
+    // Since already retrieved the datastore should not be empty unless the snapshot is ignored
+    ScheduledFuture<?> scheduledFuture = scheduler.schedule(job, 0, TimeUnit.MILLISECONDS);
+    scheduledFuture.get();
+    assertEquals("Elements not equal after snapshot after remove", present, read(dataStore.getAllMetadataRecords(BLOBREFERENCES.getType())));
+}

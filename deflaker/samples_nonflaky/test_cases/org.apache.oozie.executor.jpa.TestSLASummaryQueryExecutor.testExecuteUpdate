@@ -1,0 +1,34 @@
+public void testExecuteUpdate() throws Exception {
+    SLASummaryBean bean = addRecordToSLASummaryTable("test-sla-summary", SLAStatus.IN_PROCESS);
+    SLASummaryBean retBean = SLASummaryQueryExecutor.getInstance().get(SLASummaryQuery.GET_SLA_SUMMARY, bean.getId());
+    Date createdTime = retBean.getCreatedTime();
+    assertNotNull(createdTime);
+    Date startTime = new Date(System.currentTimeMillis() - 1000 * 3600 * 2);
+    Date endTime = new Date(System.currentTimeMillis() - 1000 * 3600 * 1);
+    bean.setActualStart(startTime);
+    bean.setActualEnd(endTime);
+    bean.setSLAStatus(SLAStatus.MET);
+    // Should not be updated
+    bean.setCreatedTime(startTime);
+    SLASummaryQueryExecutor.getInstance().executeUpdate(SLASummaryQuery.UPDATE_SLA_SUMMARY_ALL, bean);
+    retBean = SLASummaryQueryExecutor.getInstance().get(SLASummaryQuery.GET_SLA_SUMMARY, bean.getId());
+    assertEquals(bean.getActualStartTimestamp(), retBean.getActualStartTimestamp());
+    assertEquals(bean.getActualEndTimestamp(), retBean.getActualEndTimestamp());
+    assertEquals(SLAStatus.MET, retBean.getSLAStatus());
+    // Created time should not be updated
+    assertEquals(createdTime, retBean.getCreatedTime());
+    // test UPDATE_SLA_SUMMARY_FOR_ACTUAL_TIMES
+    bean = addRecordToSLASummaryTable("test-sla-summary", SLAStatus.IN_PROCESS);
+    bean.setActualStart(startTime);
+    bean.setActualStart(endTime);
+    bean.setActualDuration(endTime.getTime() - startTime.getTime());
+    bean.setLastModifiedTime(new Date());
+    bean.setEventProcessed(8);
+    SLASummaryQueryExecutor.getInstance().executeUpdate(SLASummaryQuery.UPDATE_SLA_SUMMARY_FOR_STATUS_ACTUAL_TIMES, bean);
+    retBean = SLASummaryQueryExecutor.getInstance().get(SLASummaryQuery.GET_SLA_SUMMARY, bean.getId());
+    assertEquals(bean.getActualStartTimestamp(), retBean.getActualStartTimestamp());
+    assertEquals(bean.getActualEndTimestamp(), retBean.getActualEndTimestamp());
+    assertEquals(bean.getActualDuration(), retBean.getActualDuration());
+    assertEquals(bean.getLastModifiedTimestamp(), retBean.getLastModifiedTimestamp());
+    assertEquals(bean.getEventProcessed(), retBean.getEventProcessed());
+}

@@ -1,0 +1,9 @@
+@Test
+public void shouldSubstituteCorrectly() throws IOException {
+    StringLookup dummyLookup = (x) -> "baz";
+    DummySourceProvider dummyProvider = new DummySourceProvider();
+    SubstitutingSourceProvider provider = new SubstitutingSourceProvider(dummyProvider, new StringSubstitutor(dummyLookup));
+    assertThat(provider.open("foo: ${bar}")).hasSameContentAs(new ByteArrayInputStream("foo: baz".getBytes(StandardCharsets.UTF_8)));
+    // ensure that opened streams are closed
+    assertThatThrownBy(() -> dummyProvider.lastStream.read()).isInstanceOf(IOException.class).hasMessage("Stream closed");
+}

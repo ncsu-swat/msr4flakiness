@@ -1,0 +1,16 @@
+@Test
+public void testBuildMaxEntriesReached() throws Exception {
+    PrincipalPermissionEntries ppeA = generatedPermissionEntries("/path1", false, 0, REP_READ_NODES);
+    PrincipalPermissionEntries ppeB = generatedPermissionEntries("/path2", false, 0, REP_READ_NODES);
+    when(store.load("a")).thenReturn(ppeA);
+    when(store.load("b")).thenReturn(ppeB);
+    when(store.getNumEntries(anyString(), anyLong())).thenReturn(NumEntries.valueOf(1, true));
+    Set<String> principalNames = Sets.newHashSet("a", "b");
+    long maxSize = 1;
+    assertFalse(permissionCacheBuilder.init(principalNames, maxSize));
+    PermissionCache cache = permissionCacheBuilder.build();
+    assertEquals(DEFAULT_CLASS_NAME, cache.getClass().getName());
+    verify(store, times(2)).getNumEntries(anyString(), anyLong());
+    verify(store, times(2)).load(anyString());
+    verify(store, never()).load(anyString(), anyString());
+}

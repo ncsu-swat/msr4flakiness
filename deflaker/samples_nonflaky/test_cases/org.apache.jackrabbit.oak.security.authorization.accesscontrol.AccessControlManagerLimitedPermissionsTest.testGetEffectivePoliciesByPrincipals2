@@ -1,0 +1,20 @@
+/**
+ * @since OAK 1.0 : only accessible policies are returned but not exception
+ * is raised.
+ */
+@Test
+public void testGetEffectivePoliciesByPrincipals2() throws Exception {
+    Privilege[] privs = privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
+    // create policy on testPath -> but deny access to test session
+    AccessControlManager acMgr = getAccessControlManager(root);
+    JackrabbitAccessControlList acl = TestUtility.getApplicablePolicy(acMgr, testPath);
+    acl.addEntry(testPrincipal, privs, false);
+    acMgr.setPolicy(testPath, acl);
+    // grant access at childpath
+    setupPolicy(childPath, privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
+    root.commit();
+    testRoot.refresh();
+    Set<Principal> principals = ImmutableSet.of(testPrincipal, EveryonePrincipal.getInstance());
+    AccessControlPolicy[] policies = testAcMgr.getEffectivePolicies(principals);
+    assertPolicies(policies, 1);
+}

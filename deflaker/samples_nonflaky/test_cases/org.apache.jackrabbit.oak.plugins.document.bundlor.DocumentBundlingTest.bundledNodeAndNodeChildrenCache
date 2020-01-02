@@ -1,0 +1,15 @@
+@Test
+public void bundledNodeAndNodeChildrenCache() throws Exception {
+    NodeBuilder builder = store.getRoot().builder();
+    NodeBuilder appNB = newNode("app:Asset");
+    createChild(appNB, "jcr:content", // not bundled
+    "jcr:content/comments", "jcr:content/metadata", // not bundled
+    "jcr:content/metadata/xmp", // includes all
+    "jcr:content/renditions", "jcr:content/renditions/original", "jcr:content/renditions/original/jcr:content");
+    builder.child("test").setChildNode("book.jpg", appNB.getNodeState());
+    merge(builder);
+    Set<NamePathRev> cachedPaths = store.getNodeChildrenCache().asMap().keySet();
+    for (NamePathRev pr : cachedPaths) {
+        assertFalse(pr.getPath().toString().contains("jcr:content/renditions"));
+    }
+}

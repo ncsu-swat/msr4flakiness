@@ -1,0 +1,13 @@
+@Test
+public void testDSBSMetaDeleteAllStats() throws IOException, RepositoryException {
+    DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withDeleteDelay());
+    String name = "meta-1";
+    dsbs.addMetadataRecord(getTestInputStream(), name);
+    long deleteAllMetadataRecordsCount = stats.getDeleteAllMetadataRecordsCount();
+    long deleteAllMetadataRecordsCountLastMinute = getLastMinuteStats(stats.getDeleteAllMetadataRecordsCountHistory());
+    long deleteAllMetadataRecordsTimeLastMinute = getLastMinuteStats(stats.getDeleteAllMetadataRecordsTimeHistory());
+    dsbs.deleteAllMetadataRecords(name);
+    assertEquals(deleteAllMetadataRecordsCount + 1, stats.getDeleteAllMetadataRecordsCount());
+    assertEquals(deleteAllMetadataRecordsCountLastMinute + 1, waitForMetric(input -> getLastMinuteStats(input.getDeleteAllMetadataRecordsCountHistory()), stats, 1L, 0L).longValue());
+    assertTrue(deleteAllMetadataRecordsTimeLastMinute < waitForNonzeroMetric(input -> getLastMinuteStats(input.getDeleteAllMetadataRecordsTimeHistory()), stats));
+}

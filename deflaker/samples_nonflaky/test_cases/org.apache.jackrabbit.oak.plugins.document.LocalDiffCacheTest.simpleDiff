@@ -1,0 +1,24 @@
+@Test
+public void simpleDiff() throws Exception {
+    TestNodeObserver o = new TestNodeObserver("/");
+    store = createMK().getNodeStore();
+    store.addObserver(o);
+    o.reset();
+    DiffCache cache = store.getDiffCache();
+    Iterable<CacheStats> stats = cache.getStats();
+    NodeBuilder builder = store.getRoot().builder();
+    builder.child("a").child("a2").setProperty("foo", "bar");
+    builder.child("b");
+    merge(store, builder);
+    assertTrue(getHitCount(stats) > 0);
+    assertEquals(0, getMissCount(stats));
+    assertEquals(3, o.added.size());
+    builder = store.getRoot().builder();
+    builder.child("a").child("a2").removeProperty("foo");
+    o.reset();
+    resetStats(stats);
+    merge(store, builder);
+    assertTrue(getHitCount(stats) > 0);
+    assertEquals(0, getMissCount(stats));
+    assertEquals(1, o.changed.size());
+}

@@ -1,0 +1,15 @@
+@Test
+public void testDefaultEvaluationFilter() {
+    PermissionProvider pp = mock(PermissionProvider.class, withSettings().extraInterfaces(AggregatedPermissionProvider.class));
+    AuthorizationConfiguration ac1 = mock(AuthorizationConfiguration.class);
+    AuthorizationConfiguration ac2 = mock(AuthorizationConfiguration.class);
+    for (AuthorizationConfiguration ac : new AuthorizationConfiguration[] { ac1, ac2 }) {
+        when(ac.getPermissionProvider(any(Root.class), anyString(), any(Set.class))).thenReturn(pp);
+        when(ac.getParameters()).thenReturn(ConfigurationParameters.EMPTY);
+        when(ac.getContext()).thenReturn(Context.DEFAULT);
+    }
+    CompositeAuthorizationConfiguration cc = getCompositeConfiguration(ac1, ac2);
+    PermissionProvider permissionProvider = cc.getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.of(EveryonePrincipal.getInstance()));
+    permissionProvider.refresh();
+    verify(pp, times(2)).refresh();
+}

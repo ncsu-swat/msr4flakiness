@@ -1,0 +1,37 @@
+@Test
+public void testRetain() {
+    PrivilegeBits pb = READ_NODES_PRIVILEGE_BITS;
+    List<PrivilegeBits> pbs = new ArrayList<>();
+    pbs.add(pb);
+    Random random = new Random();
+    for (int i = 0; i < 100; i++) {
+        PrivilegeBits nxt = pb.nextBits();
+        PrivilegeBits mod = PrivilegeBits.getInstance(nxt, pb);
+        mod.retain(nxt);
+        assertEquivalent(nxt, mod);
+        mod = PrivilegeBits.getInstance(nxt);
+        mod.retain(pb);
+        assertTrue(nxt.toString(), mod.isEmpty());
+        mod = PrivilegeBits.getInstance(nxt);
+        mod.retain(READ_NODES_PRIVILEGE_BITS);
+        assertTrue(nxt.toString(), mod.isEmpty());
+        mod = PrivilegeBits.getInstance(nxt, READ_NODES_PRIVILEGE_BITS);
+        mod.retain(nxt);
+        assertEquivalent(nxt, mod);
+        mod = PrivilegeBits.getInstance(nxt, pb, READ_NODES_PRIVILEGE_BITS);
+        mod.retain(READ_NODES_PRIVILEGE_BITS);
+        assertEquivalent(READ_NODES_PRIVILEGE_BITS, mod);
+        mod = PrivilegeBits.getInstance(nxt);
+        PrivilegeBits other = PrivilegeBits.getInstance();
+        for (int j = 0; j < pbs.size() / 2; j++) {
+            other.add(pbs.get(random.nextInt(pbs.size() - 1)));
+        }
+        mod.add(other);
+        mod.retain(other);
+        assertEquivalent(other, mod);
+        other.retain(nxt);
+        assertTrue(other.isEmpty());
+        pbs.add(nxt);
+        pb = nxt;
+    }
+}

@@ -1,0 +1,16 @@
+@Test
+public void testGetPrivileges() throws Exception {
+    PrivilegeBitsProvider pbp = new PrivilegeBitsProvider(readOnlyRoot);
+    PrivilegeBits readNodes = pbp.getBits(REP_READ_NODES);
+    Set<String> expected = ImmutableSet.of(REP_READ_NODES);
+    for (String path : defPrivileges.keySet()) {
+        Set<String> defaultPrivs = defPrivileges.get(path);
+        Tree tree = readOnlyRoot.getTree(path);
+        Set<String> privNames = cppTestUser.getPrivileges(tree);
+        if (pbp.getBits(defaultPrivs).includes(readNodes)) {
+            assertEquals(expected, privNames);
+        } else {
+            assertTrue(privNames.isEmpty());
+        }
+    }
+}

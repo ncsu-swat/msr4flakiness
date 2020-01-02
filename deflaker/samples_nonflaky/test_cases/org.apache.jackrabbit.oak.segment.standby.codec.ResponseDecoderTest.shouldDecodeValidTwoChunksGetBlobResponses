@@ -1,0 +1,21 @@
+@Test
+public void shouldDecodeValidTwoChunksGetBlobResponses() throws Exception {
+    byte[] blobData = new byte[] { 1, 2, 3, 4 };
+    byte[] firstChunkData = new byte[] { 1, 2 };
+    byte[] secondChunkbData = new byte[] { 3, 4 };
+    String blobId = "blobId";
+    byte firstMask = createMask(1, 2);
+    ByteBuf firstBuf = createBlobChunkBuffer(Messages.HEADER_BLOB, 4L, blobId, firstChunkData, firstMask);
+    byte secondMask = createMask(2, 2);
+    ByteBuf secondBuf = createBlobChunkBuffer(Messages.HEADER_BLOB, 4L, blobId, secondChunkbData, secondMask);
+    EmbeddedChannel channel = new EmbeddedChannel(new ResponseDecoder(folder.newFolder()));
+    channel.writeInbound(firstBuf);
+    channel.writeInbound(secondBuf);
+    GetBlobResponse response = (GetBlobResponse) channel.readInbound();
+    assertEquals("blobId", response.getBlobId());
+    assertEquals(blobData.length, response.getLength());
+    try (InputStream is = response.getInputStream()) {
+        byte[] receivedData = IOUtils.toByteArray(is);
+        assertArrayEquals(blobData, receivedData);
+    }
+}

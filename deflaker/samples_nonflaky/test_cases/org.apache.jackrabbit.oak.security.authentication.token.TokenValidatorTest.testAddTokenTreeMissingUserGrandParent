@@ -1,0 +1,25 @@
+@Test(expected = CommitFailedException.class)
+public void testAddTokenTreeMissingUserGrandParent() throws Exception {
+    // since adding/changing an invalid tokens-parent node will be detected, mocking is required to
+    // reach the desired invalid state, where the .tokens node isn't located below the user home.
+    Tree tokenTree = getTokenTree(createTokenInfo(tokenProvider, userId));
+    Tree tokensTree = tokenTree.getParent();
+    // move .tokens node one level up
+    String destPath = PathUtils.concat(PathUtils.getParentPath(getTestUser().getPath()), tokensTree.getName());
+    root.move(tokensTree.getPath(), destPath);
+    try {
+        // create a validator that has 'tokensTree' as parentBefore and parentAfter
+        NodeState ns = getTreeProvider().asNodeState(tokensTree);
+        TreeProvider tp = when(mock(TreeProvider.class).createReadOnlyTree(ns)).thenReturn(tokensTree).getMock();
+        TokenValidatorProvider tvp = new TokenValidatorProvider(ConfigurationParameters.EMPTY, tp);
+        Validator v = tvp.getRootValidator(ns, ns, new CommitInfo("sid", "uid", CommitMarker.asCommitAttributes()));
+        assertNotNull(v);
+        v.childNodeChanged(tokenTree.getName(), mock(NodeState.class), mock(NodeState.class));
+    } catch (CommitFailedException e) {
+        assertTrue(e.isConstraintViolation());
+        assertEquals(65, e.getCode());
+        throw e;
+    } finally {
+        root.refresh();
+    }
+}

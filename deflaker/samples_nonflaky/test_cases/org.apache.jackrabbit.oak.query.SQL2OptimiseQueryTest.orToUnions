@@ -1,0 +1,72 @@
+/**
+ * checks the {@code Query#optimise()} calls for the conversion from OR to UNION from a query
+ * POV; ensuring that it returns always the same, expected resultset.
+ *
+ * @throws RepositoryException
+ * @throws CommitFailedException
+ */
+@Test
+public void orToUnions() throws RepositoryException, CommitFailedException {
+    Tree test, t;
+    List<String> original, optimised, cheapest, expected;
+    String statement;
+    test = root.getTree("/").addChild("test");
+    test.setProperty(JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED, NAME);
+    t = addChildWithProperty(test, "a", "p", "a");
+    t.setProperty("p1", "a1");
+    t = addChildWithProperty(test, "b", "p", "b");
+    t.setProperty("p1", "b1");
+    t.setProperty("p2", "a");
+    t = addChildWithProperty(test, "c", "p", "c");
+    t.setProperty("p3", "a");
+    addChildWithProperty(test, "d", "p", "d");
+    addChildWithProperty(test, "e", "p", "e");
+    test = root.getTree("/").addChild("test2");
+    addChildWithProperty(test, "a", "p", "a");
+    root.commit();
+    statement = String.format("SELECT * FROM [%s] WHERE p = 'a' OR p = 'b'", NT_OAK_UNSTRUCTURED);
+    expected = of("/test/a", "/test/b", "/test2/a");
+    setQuerySelectionMode(ORIGINAL);
+    original = executeQuery(statement, JCR_SQL2, true);
+    setQuerySelectionMode(ALTERNATIVE);
+    optimised = executeQuery(statement, JCR_SQL2, true);
+    setQuerySelectionMode(CHEAPEST);
+    cheapest = executeQuery(statement, JCR_SQL2, true);
+    assertOrToUnionResults(expected, original, optimised, cheapest);
+    statement = String.format("SELECT * FROM [%s] WHERE p = 'a' OR p = 'b' OR p = 'c' OR p = 'd' OR p = 'e' ", NT_OAK_UNSTRUCTURED);
+    expected = of("/test/a", "/test/b", "/test/c", "/test/d", "/test/e", "/test2/a");
+    setQuerySelectionMode(ORIGINAL);
+    original = executeQuery(statement, JCR_SQL2, true);
+    setQuerySelectionMode(ALTERNATIVE);
+    optimised = executeQuery(statement, JCR_SQL2, true);
+    setQuerySelectionMode(CHEAPEST);
+    cheapest = executeQuery(statement, JCR_SQL2, true);
+    assertOrToUnionResults(expected, original, optimised, cheapest);
+    statement = String.format("SELECT * FROM [%s] WHERE (p = 'a' OR p = 'b') AND (p1 = 'a1' OR p1 = 'b1')", NT_OAK_UNSTRUCTURED);
+    expected = of("/test/a", "/test/b");
+    setQuerySelectionMode(ORIGINAL);
+    original = executeQuery(statement, JCR_SQL2, true);
+    setQuerySelectionMode(ALTERNATIVE);
+    optimised = executeQuery(statement, JCR_SQL2, true);
+    setQuerySelectionMode(CHEAPEST);
+    cheapest = executeQuery(statement, JCR_SQL2, true);
+    assertOrToUnionResults(expected, original, optimised, cheapest);
+    statement = String.format("SELECT * FROM [%s] WHERE (p = 'a' AND p1 = 'a1') OR (p = 'b' AND p1 = 'b1')", NT_OAK_UNSTRUCTURED);
+    expected = of("/test/a", "/test/b");
+    setQuerySelectionMode(ORIGINAL);
+    original = executeQuery(statement, JCR_SQL2, true);
+    setQuerySelectionMode(ALTERNATIVE);
+    optimised = executeQuery(statement, JCR_SQL2, true);
+    setQuerySelectionMode(CHEAPEST);
+    cheapest = executeQuery(statement, JCR_SQL2, true);
+    assertOrToUnionResults(expected, original, optimised, cheapest);
+    statement = "SELECT * FROM [oak:Unstructured] AS c " + "WHERE ( c.[p] = 'a' " + "OR c.[p2] = 'a' " + "OR c.[p3] = 'a') " + "AND ISDESCENDANTNODE(c, '/test') " + "ORDER BY added DESC";
+    expected = of("/test/a", "/test/b", "/test/c");
+    setQuerySelectionMode(ORIGINAL);
+    original = executeQuery(statement, JCR_SQL2, true);
+    setQuerySelectionMode(ALTERNATIVE);
+    optimised = executeQuery(statement, JCR_SQL2, true);
+    setQuerySelectionMode(CHEAPEST);
+    cheapest = executeQuery(statement, JCR_SQL2, true);
+    assertOrToUnionResults(expected, original, optimised, cheapest);
+}

@@ -1,0 +1,18 @@
+@Test
+public void testGetPoliciesByPrincipalRepositoryLevel() throws Exception {
+    setupPolicy(null, privilegesFromNames(PrivilegeConstants.JCR_NODE_TYPE_DEFINITION_MANAGEMENT));
+    // changes not yet persisted -> no existing policies found for user
+    AccessControlPolicy[] policies = acMgr.getPolicies(testPrincipal);
+    assertNotNull(policies);
+    assertEquals(0, policies.length);
+    // after persisting changes -> policies must be found
+    root.commit();
+    policies = acMgr.getPolicies(testPrincipal);
+    assertNotNull(policies);
+    assertEquals(1, policies.length);
+    JackrabbitAccessControlList acl = (JackrabbitAccessControlList) policies[0];
+    AccessControlEntry[] entries = acl.getAccessControlEntries();
+    assertEquals(1, entries.length);
+    JackrabbitAccessControlEntry entry = (JackrabbitAccessControlEntry) entries[0];
+    assertTrue(entry.getRestriction(REP_NODE_PATH).getString().isEmpty());
+}

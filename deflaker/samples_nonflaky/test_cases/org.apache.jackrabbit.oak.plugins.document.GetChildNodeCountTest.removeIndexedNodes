@@ -1,0 +1,16 @@
+@Test
+public void removeIndexedNodes() throws Exception {
+    Root root = session.getLatestRoot();
+    Tree t = root.getTree("/").addChild("test");
+    for (int i = 0; i < 200; i++) {
+        t.addChild("node-" + i).setProperty("p", "v");
+    }
+    root.commit();
+    ns.getNodeChildrenCache().invalidateAll();
+    store.resetCounters();
+    // remove nodes
+    root = session.getLatestRoot();
+    root.getTree("/test").remove();
+    root.commit();
+    assertThat(store.getNumQueryCalls(NODES), lessThan(13));
+}

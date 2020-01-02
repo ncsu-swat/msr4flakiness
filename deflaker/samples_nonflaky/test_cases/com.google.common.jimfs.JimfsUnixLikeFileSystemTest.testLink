@@ -1,0 +1,22 @@
+@Test
+public void testLink() throws IOException {
+    Files.createFile(path("/file.txt"));
+    // checking link count requires "unix" attribute support, which we're using here
+    assertThatPath("/file.txt").hasLinkCount(1);
+    Files.createLink(path("/link.txt"), path("/file.txt"));
+    assertThatPath("/link.txt").isSameFileAs("/file.txt");
+    assertThatPath("/file.txt").hasLinkCount(2);
+    assertThatPath("/link.txt").hasLinkCount(2);
+    assertThatPath("/file.txt").containsNoBytes();
+    assertThatPath("/link.txt").containsNoBytes();
+    byte[] bytes = { 0, 1, 2, 3 };
+    Files.write(path("/file.txt"), bytes);
+    assertThatPath("/file.txt").containsBytes(bytes);
+    assertThatPath("/link.txt").containsBytes(bytes);
+    Files.write(path("/link.txt"), bytes, APPEND);
+    assertThatPath("/file.txt").containsBytes(0, 1, 2, 3, 0, 1, 2, 3);
+    assertThatPath("/link.txt").containsBytes(0, 1, 2, 3, 0, 1, 2, 3);
+    Files.delete(path("/file.txt"));
+    assertThatPath("/link.txt").hasLinkCount(1);
+    assertThatPath("/link.txt").containsBytes(0, 1, 2, 3, 0, 1, 2, 3);
+}

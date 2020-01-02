@@ -1,0 +1,16 @@
+@Test
+public void testRecoveryWritesJobId() throws IOException, InterruptedException, LauncherException, NoSuchFieldException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+    // create empty file on the following path: ACTION_DIR/RECOVERY_ID
+    final Path path = new Path(ACTION_DIR, "1");
+    when(hdfsOperationsMock.readFileContents(any(Path.class), eq(launcherJobConfig))).thenReturn(EMPTY_STRING);
+    when(hdfsOperationsMock.fileExists(any(Path.class), eq(launcherJobConfig))).thenReturn(true);
+    // run launchermapper with the same ACTION_DIR/RECOVERY_ID
+    final Field f = launcherAM.getClass().getDeclaredField("actionDir");
+    f.setAccessible(true);
+    f.set(launcherAM, path);
+    final Method m = launcherAM.getClass().getDeclaredMethod("setRecoveryId");
+    m.setAccessible(true);
+    m.invoke(launcherAM);
+    // check empty file, launcherMapper should have written RECOVERY_ID into it
+    Mockito.verify(hdfsOperationsMock).writeStringToFile(eq(new Path(path, "1")), eq(launcherJobConfig), eq("application_1479473450392_0001"));
+}

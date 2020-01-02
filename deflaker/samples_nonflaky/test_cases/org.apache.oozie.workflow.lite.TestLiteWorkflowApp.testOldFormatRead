@@ -1,0 +1,15 @@
+/**
+ * Before OOZIE-2777 the "defintion" field of LiteWorkflowApp was split into 20k long strings and serialized out
+ * one after the other.
+ * @throws Exception
+ */
+@Test
+public void testOldFormatRead() throws Exception {
+    String definition = Strings.repeat("abcdefghijk", 6234);
+    LiteWorkflowApp app = new LiteWorkflowApp("name", definition, new StartNodeDef(LiteWorkflowStoreService.LiteControlNodeHandler.class, "foo"));
+    app.addNode(new EndNodeDef("foo", LiteWorkflowStoreService.LiteControlNodeHandler.class));
+    DataInputStream in = new DataInputStream(IOUtils.getResourceAsStream("oldWorkFlowApp.serialized", -1));
+    LiteWorkflowApp app2 = new LiteWorkflowApp();
+    app2.readFields(in);
+    assertTrue(app.equals(app2));
+}

@@ -1,0 +1,35 @@
+@Test
+public void testCrossingDependencyLines() {
+    final Node a = MapReduceActionBuilder.create().withName("A").build();
+    final Node b = MapReduceActionBuilder.create().withName("B").build();
+    MapReduceActionBuilder.create().withName("C").withParent(a).withParent(b).build();
+    MapReduceActionBuilder.create().withName("D").withParent(a).withParent(b).build();
+    final Workflow workflow = new WorkflowBuilder().withName("crossing-dependencies").withDagContainingNode(a).build();
+    final Graph graph = new Graph(workflow);
+    checkDependencies(workflow.getNodes(), graph);
+    final NodeBase A = new ExplicitNode("A", null);
+    final NodeBase B = new ExplicitNode("B", null);
+    final NodeBase C = new ExplicitNode("C", null);
+    final NodeBase D = new ExplicitNode("D", null);
+    final Start start = new Start("start");
+    final End end = new End("end");
+    final Fork fork1 = new Fork("fork1");
+    final Fork fork2 = new Fork("fork2");
+    final Join join1 = new Join("join1", fork1);
+    final Join join2 = new Join("join2", fork2);
+    end.addParent(join2);
+    join2.addParent(C);
+    join2.addParent(D);
+    C.addParent(fork2);
+    D.addParent(fork2);
+    fork2.addParent(join1);
+    join1.addParent(A);
+    join1.addParent(B);
+    A.addParent(fork1);
+    B.addParent(fork1);
+    fork1.addParent(start);
+    final List<NodeBase> nodes = Arrays.asList(start, end, fork1, fork2, join1, join2, A, B, C, D);
+    checkEqualStructureByNames(nodes, graph);
+// nodesToPng.withWorkflow(workflow);
+// nodesToPng.withGraph(graph);
+}

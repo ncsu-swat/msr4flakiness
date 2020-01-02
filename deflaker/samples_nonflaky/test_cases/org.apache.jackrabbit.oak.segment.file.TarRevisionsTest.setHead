@@ -1,0 +1,11 @@
+@Test
+public void setHead() throws IOException {
+    RecordId headId = revisions.getHead();
+    SegmentNodeState newRoot = addChild(reader.readNode(headId), "a");
+    assertTrue(revisions.setHead(headId, newRoot.getRecordId()));
+    store.flush();
+    try (JournalReader reader = createJournalReader()) {
+        assertTrue(reader.hasNext());
+        assertEquals(newRoot.getRecordId().toString10(), reader.next().getRevision());
+    }
+}

@@ -1,0 +1,20 @@
+@Test
+public void uuidConflict_threeStores() throws Exception {
+    MemoryNodeStore globalStore = new MemoryNodeStore();
+    MemoryNodeStore mountedStore = new MemoryNodeStore();
+    MemoryNodeStore mountedStore2 = new MemoryNodeStore();
+    populateStore(globalStore, b -> b.child("first").setProperty("foo", "bar"));
+    populateStore(globalStore, b -> b.child("second").setProperty("foo", "baz"));
+    populateStore(mountedStore, b -> b.child("libs").child("first").setProperty("foo", "bar"));
+    populateStore(mountedStore2, b -> b.child("apps").child("first").setProperty("foo", "baz"));
+    UniqueIndexNodeStoreChecker checker = new UniqueIndexNodeStoreChecker();
+    Context ctx = checker.createContext(globalStore, mip);
+    exception.expect(IllegalRepositoryStateException.class);
+    exception.expectMessage("2 errors were found");
+    exception.expectMessage("clash for value bar: 'duplicate unique index entry'");
+    exception.expectMessage("clash for value baz: 'duplicate unique index entry'");
+    ErrorHolder error = new ErrorHolder();
+    checker.check(new MountedNodeStore(mip.getMountByName("libs"), mountedStore), TreeFactory.createReadOnlyTree(mountedStore.getRoot()), error, ctx);
+    checker.check(new MountedNodeStore(mip.getMountByName("apps"), mountedStore2), TreeFactory.createReadOnlyTree(mountedStore.getRoot()), error, ctx);
+    error.end();
+}

@@ -1,0 +1,9 @@
+@Test
+public void testIsGrantedAction2() {
+    Map<String, String[]> noAccess = ImmutableMap.<String, String[]>builder().put(ROOT_PATH, new String[] { Session.ACTION_READ }).put(ROOT_PATH + "jcr:primaryType", new String[] { Session.ACTION_READ, Session.ACTION_SET_PROPERTY }).put("/nonexisting", new String[] { Session.ACTION_READ, Session.ACTION_ADD_NODE }).put(TEST_PATH_2, new String[] { Session.ACTION_READ, Session.ACTION_REMOVE }).put(TEST_PATH_2 + "/jcr:primaryType", new String[] { Session.ACTION_READ, Session.ACTION_SET_PROPERTY }).put(TEST_A_B_C_PATH, new String[] { Session.ACTION_READ, Session.ACTION_REMOVE }).put(TEST_A_B_C_PATH + "/noneExisting", new String[] { Session.ACTION_READ, JackrabbitSession.ACTION_REMOVE_NODE }).put(TEST_A_B_C_PATH + "/jcr:primaryType", new String[] { JackrabbitSession.ACTION_REMOVE_PROPERTY }).build();
+    for (String p : noAccess.keySet()) {
+        String actions = getActionString(noAccess.get(p));
+        assertFalse(p, cppTestUser.isGranted(p, actions));
+        assertFalse(p, defTestUser.isGranted(p, actions));
+    }
+}

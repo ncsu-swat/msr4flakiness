@@ -1,0 +1,20 @@
+// OAK-4536
+@Test
+public void commitException() throws Exception {
+    NodeBuilder builder = ns.getRoot().builder();
+    for (int i = 0; i < 5; i++) {
+        builder.child("test").setProperty("p", i);
+        try {
+            ns.merge(builder, new FailingHook(), CommitInfo.EMPTY);
+            fail("must fail with " + CommitFailedException.class.getSimpleName());
+        } catch (CommitFailedException e) {
+        // expected
+        }
+        // must not create the document as part of a branch
+        assertNull(store.find(Collection.NODES, testId));
+    }
+    for (int i = 0; i < DocumentMK.UPDATE_LIMIT * 2; i++) {
+        builder.child("test").setProperty("p-" + i, i);
+    }
+    assertNotNull(store.find(Collection.NODES, testId));
+}

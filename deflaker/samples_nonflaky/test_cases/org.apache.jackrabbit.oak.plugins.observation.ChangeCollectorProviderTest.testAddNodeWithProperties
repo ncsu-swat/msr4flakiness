@@ -1,0 +1,15 @@
+@Test
+public void testAddNodeWithProperties() throws Exception {
+    Root root = session.getLatestRoot();
+    Tree rootTree = root.getTree("/test");
+    Tree aChild = rootTree.addChild("newchild");
+    aChild.setProperty("aProp", "aValue", Type.NAME);
+    aChild.setProperty(JcrConstants.JCR_PRIMARYTYPE, "aPrimaryType", Type.NAME);
+    root.commit();
+    ChangeSet changeSet = getSingleChangeSet();
+    assertMatches("parentPaths", changeSet.getParentPaths(), "/test", "/test/newchild");
+    assertMatches("parentNodeNames", changeSet.getParentNodeNames(), "test", "newchild");
+    assertMatches("parentNodeTypes", changeSet.getParentNodeTypes(), "test:parentType", "aPrimaryType");
+    assertMatches("allNodeTypes", changeSet.getAllNodeTypes(), "test:parentType", "aPrimaryType");
+    assertMatches("propertyNames", changeSet.getPropertyNames(), JcrConstants.JCR_PRIMARYTYPE, "aProp");
+}

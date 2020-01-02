@@ -1,0 +1,23 @@
+/**
+ * Test : verify the PreconditionException is thrown when action != RUNNING
+ *
+ * @throws Exception
+ */
+public void testActionCheckPreCondition3() throws Exception {
+    Instrumentation inst = Services.get().get(InstrumentationService.class).get();
+    WorkflowJobBean job = this.addRecordToWfJobTable(WorkflowJob.Status.RUNNING, WorkflowInstance.Status.RUNNING);
+    WorkflowActionBean action = this.addRecordToWfActionTable(job.getId(), "1", WorkflowAction.Status.PREP);
+    ActionCheckXCommand checkCmd = new ActionCheckXCommand(action.getId());
+    long counterVal;
+    try {
+        counterVal = inst.getCounters().get(XCommand.INSTRUMENTATION_GROUP).get(checkCmd.getName() + ".preconditionfailed").getValue();
+    } catch (NullPointerException e) {
+        // counter might be null
+        counterVal = 0L;
+    }
+    assertEquals(0L, counterVal);
+    checkCmd.call();
+    // precondition failed because of action != RUNNING
+    counterVal = inst.getCounters().get(XCommand.INSTRUMENTATION_GROUP).get(checkCmd.getName() + ".preconditionfailed").getValue();
+    assertEquals(1L, counterVal);
+}

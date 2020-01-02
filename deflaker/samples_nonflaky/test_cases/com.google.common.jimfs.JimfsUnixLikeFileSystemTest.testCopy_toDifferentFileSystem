@@ -1,0 +1,12 @@
+@Test
+public void testCopy_toDifferentFileSystem() throws IOException {
+    try (FileSystem fs2 = Jimfs.newFileSystem(UNIX_CONFIGURATION)) {
+        Path foo = fs.getPath("/foo");
+        byte[] bytes = { 0, 1, 2, 3, 4 };
+        Files.write(foo, bytes);
+        Path foo2 = fs2.getPath("/foo");
+        Files.copy(foo, foo2);
+        assertThatPath(foo).exists();
+        assertThatPath(foo2).exists().and().containsBytes(bytes);
+    }
+}

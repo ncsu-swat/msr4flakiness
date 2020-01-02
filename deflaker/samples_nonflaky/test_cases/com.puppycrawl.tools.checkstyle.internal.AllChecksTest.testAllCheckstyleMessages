@@ -1,0 +1,27 @@
+@Test
+public void testAllCheckstyleMessages() throws Exception {
+    final Map<String, List<String>> usedMessages = new TreeMap<>();
+    // test validity of messages from modules
+    for (Class<?> module : CheckUtil.getCheckstyleModules()) {
+        for (Field message : CheckUtil.getCheckMessages(module)) {
+            assertEquals(Modifier.PUBLIC | Modifier.STATIC | Modifier.FINAL, message.getModifiers(), module.getSimpleName() + "." + message.getName() + " should be 'public static final'");
+            // below is required for package/private classes
+            if (!message.isAccessible()) {
+                message.setAccessible(true);
+            }
+            verifyCheckstyleMessage(usedMessages, module, message);
+        }
+    }
+    // test properties for messages not used by checks
+    for (Entry<String, List<String>> entry : usedMessages.entrySet()) {
+        final Properties pr = new Properties();
+        pr.load(AllChecksTest.class.getResourceAsStream("/" + entry.getKey().replace('.', '/') + "/messages.properties"));
+        for (Object key : pr.keySet()) {
+            // hidden exception messages
+            if ("translation.wrongLanguageCode".equals(key)) {
+                continue;
+            }
+            assertTrue(entry.getValue().contains(key.toString()), "property '" + key + "' isn't used by any check in package '" + entry.getKey() + "'");
+        }
+    }
+}

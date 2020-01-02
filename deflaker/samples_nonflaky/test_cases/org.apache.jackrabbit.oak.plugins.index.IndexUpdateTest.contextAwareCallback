@@ -1,0 +1,25 @@
+@Test
+public void contextAwareCallback() throws Exception {
+    NodeState before = builder.getNodeState();
+    createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "rootIndex", true, false, ImmutableSet.of("foo"), null);
+    NodeState after = builder.getNodeState();
+    CallbackCapturingProvider provider = new CallbackCapturingProvider();
+    EditorHook hook = new EditorHook(new IndexUpdateProvider(provider));
+    CommitInfo info = new CommitInfo("foo", "bar");
+    NodeState indexed = hook.processCommit(before, after, info);
+    assertNotNull(provider.callback);
+    assertThat(provider.callback, instanceOf(ContextAwareCallback.class));
+    ContextAwareCallback contextualCallback = (ContextAwareCallback) provider.callback;
+    IndexingContext context = contextualCallback.getIndexingContext();
+    assertNotNull(context);
+    assertEquals("/oak:index/rootIndex", context.getIndexPath());
+    assertTrue(context.isReindexing());
+    assertFalse(context.isAsync());
+    assertSame(info, context.getCommitInfo());
+    before = indexed;
+    builder = indexed.builder();
+    builder.child("a").setProperty("foo", "bar");
+    after = builder.getNodeState();
+    hook.processCommit(before, after, info);
+    assertFalse(((ContextAwareCallback) provider.callback).getIndexingContext().isReindexing());
+}

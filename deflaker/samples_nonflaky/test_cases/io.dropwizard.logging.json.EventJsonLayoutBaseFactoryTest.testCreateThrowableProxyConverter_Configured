@@ -1,0 +1,23 @@
+@Test
+void testCreateThrowableProxyConverter_Configured() {
+    ExceptionFormat format = new ExceptionFormat();
+    format.setDepth("8");
+    format.setRootFirst(false);
+    String packageFilter = "org.junit";
+    format.setEvaluators(Collections.singletonList(packageFilter));
+    EventJsonLayoutBaseFactory factory = new EventJsonLayoutBaseFactory();
+    factory.setExceptionFormat(format);
+    ThrowableHandlingConverter converter = factory.createThrowableProxyConverter(new LoggerContext());
+    converter.start();
+    // Verify the original stack includes the excluded packages
+    assertThat(proxy.getThrowable()).hasStackTraceContaining(packageFilter);
+    String conversion = converter.convert(event);
+    // Verify the conversion depth
+    // 2 messages and 8 lines of stack per throwable
+    assertThat(conversion).hasLineCount(18);
+    // Verify that the root is not first
+    assertThat(conversion).containsSubsequence("wrapp3d", "r00t");
+    // Verify the conversion does not includes the excluded packages and contains skipped lines
+    assertThat(conversion).doesNotContain(packageFilter);
+    assertThat(conversion).containsPattern("\\[\\d+ skipped\\]");
+}

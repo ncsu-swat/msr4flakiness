@@ -1,0 +1,12 @@
+@Test
+public void testGetPrivilegesOr() throws Exception {
+    Set<Principal> testPrincipals = ImmutableSet.of(getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
+    CompositePermissionProvider ccpTestUserOR = createPermissionProviderOR(testPrincipals);
+    PermissionProvider defTestUserOR = getConfig(AuthorizationConfiguration.class).getPermissionProvider(root, root.getContentSession().getWorkspaceName(), testPrincipals);
+    for (String p : defPrivileges.keySet()) {
+        Set<String> expected = defPrivileges.get(p);
+        Tree tree = readOnlyRoot.getTree(p);
+        assertEquals(p, expected, ccpTestUserOR.getPrivileges(tree));
+        assertEquals(p, defTestUserOR.getPrivileges(tree), ccpTestUserOR.getPrivileges(tree));
+    }
+}

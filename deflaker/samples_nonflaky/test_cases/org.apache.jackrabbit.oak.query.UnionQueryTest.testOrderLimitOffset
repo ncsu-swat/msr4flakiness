@@ -1,0 +1,17 @@
+@Test
+public void testOrderLimitOffset() throws Exception {
+    String left = "SELECT [jcr:path] FROM [nt:base] AS a WHERE ISDESCENDANTNODE(a, '/UnionQueryTest')";
+    String right = "SELECT [jcr:path] FROM [nt:base] AS a WHERE ISDESCENDANTNODE(a, '/UnionQueryTest')";
+    String order = "ORDER BY [jcr:path]";
+    String union = String.format("%s UNION %s %s", left, right, order);
+    final int limit = 3;
+    final int offset = 2;
+    String[] expected = { "/UnionQueryTest/a/b/c", "/UnionQueryTest/a/b/c/d", "/UnionQueryTest/a/b/c/d/e" };
+    Result result = qe.executeQuery(union, QueryEngineImpl.SQL2, limit, offset, QueryEngine.NO_BINDINGS, QueryEngine.NO_MAPPINGS);
+    List<ResultRow> rows = Lists.newArrayList(result.getRows());
+    assertEquals(expected.length, rows.size());
+    int i = 0;
+    for (ResultRow rr : result.getRows()) {
+        assertEquals(rr.getPath(), expected[i++]);
+    }
+}

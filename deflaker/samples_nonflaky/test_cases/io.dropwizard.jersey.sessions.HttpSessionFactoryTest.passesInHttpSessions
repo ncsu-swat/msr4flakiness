@@ -1,0 +1,11 @@
+@Test
+public void passesInHttpSessions() throws Exception {
+    Response firstResponse = target("/session/").request(MediaType.TEXT_PLAIN).post(Entity.entity("Mr. Peeps", MediaType.TEXT_PLAIN));
+    final Map<String, NewCookie> cookies = firstResponse.getCookies();
+    firstResponse.close();
+    Invocation.Builder builder = target("/session/").request().accept(MediaType.TEXT_PLAIN);
+    for (NewCookie cookie : cookies.values()) {
+        builder.cookie(cookie);
+    }
+    assertThat(builder.get(String.class)).isEqualTo("Mr. Peeps");
+}

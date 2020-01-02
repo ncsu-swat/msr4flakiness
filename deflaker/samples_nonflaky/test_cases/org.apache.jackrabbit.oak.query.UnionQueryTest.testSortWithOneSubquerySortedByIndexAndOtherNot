@@ -1,0 +1,38 @@
+// TODO - Write a similar test that might fail with guava's merge sort on some conditions
+@Test
+public void testSortWithOneSubquerySortedByIndexAndOtherNot() throws Exception {
+    String left = "SELECT [jcr:path] FROM [nt:base] AS a WHERE ISDESCENDANTNODE(a, '/UnionQueryTest2')";
+    String right = "SELECT [jcr:path] FROM [nt:base] AS a WHERE ISDESCENDANTNODE(a, '/UnionQueryTest/a')";
+    NodeTypeInfoProvider nodeTypes = new NodeStateNodeTypeInfoProvider(store.getRoot());
+    NodeTypeInfo type = nodeTypes.getNodeTypeInfo("nt:base");
+    SourceImpl sImpl = new SelectorImpl(type, "a");
+    SourceImpl sImpl2 = new SelectorImpl(type, "a");
+    SourceImpl sImpl3 = new SelectorImpl(type, "a");
+    QueryImpl qImplLeft = createQuery(left, new DescendantNodeImpl("a", "/UnionQueryTest2"), sImpl);
+    qImplLeft.setExecutionContext(((QueryEngineImpl) root.getQueryEngine()).getExecutionContext());
+    QueryImpl qImplRight = createQuery(right, new DescendantNodeImpl("a", "/UnionQueryTest/a"), sImpl2);
+    qImplRight.setExecutionContext(((QueryEngineImpl) root.getQueryEngine()).getExecutionContext());
+    PropertyValueImpl propValImpl = new PropertyValueImpl("a", "jcr:path");
+    propValImpl.bindSelector(sImpl);
+    PropertyValueImpl propValImpl2 = new PropertyValueImpl("a", "jcr:path");
+    propValImpl2.bindSelector(sImpl2);
+    PropertyValueImpl propValImpl3 = new PropertyValueImpl("a", "jcr:path");
+    propValImpl2.bindSelector(sImpl3);
+    // / One subquery sorted by index and the other not and orderBY != null in UnionQueryImpl
+    QueryImpl spyLeft = Mockito.spy(qImplLeft);
+    QueryImpl spyRight = Mockito.spy(qImplRight);
+    Mockito.doReturn(true).when(spyLeft).isSortedByIndex();
+    Mockito.doReturn(false).when(spyRight).isSortedByIndex();
+    spyLeft.setOrderings(new OrderingImpl[] { new OrderingImpl(propValImpl, Order.DESCENDING) });
+    spyRight.setOrderings(new OrderingImpl[] { new OrderingImpl(propValImpl2, Order.DESCENDING) });
+    UnionQueryImpl unionImpl = new UnionQueryImpl(true, spyLeft, spyRight, new QueryEngineSettings());
+    unionImpl.setOrderings(new OrderingImpl[] { new OrderingImpl(propValImpl3, Order.ASCENDING) });
+    unionImpl.init();
+    // Execute query with ORDER BY clause - This should use mergeSorted and the final result should be sorted across both the subqueries.
+    String[] expected = { "/UnionQueryTest/a/b", "/UnionQueryTest/a/b/c", "/UnionQueryTest/a/b/c/d", "/UnionQueryTest/a/b/c/d/e", "/UnionQueryTest2/a" };
+    Result result = unionImpl.executeQuery();
+    int i = 0;
+    for (ResultRow rr : result.getRows()) {
+        assertEquals(expected[i++], rr.getPath());
+    }
+}

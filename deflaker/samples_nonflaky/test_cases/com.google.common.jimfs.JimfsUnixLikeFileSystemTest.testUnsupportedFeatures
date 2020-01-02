@@ -1,0 +1,39 @@
+@Test
+public void testUnsupportedFeatures() throws IOException {
+    FileSystem fileSystem = Jimfs.newFileSystem(Configuration.unix().toBuilder().setSupportedFeatures().build());
+    Path foo = fileSystem.getPath("foo");
+    Path bar = foo.resolveSibling("bar");
+    try {
+        Files.createLink(foo, bar);
+        fail();
+    } catch (UnsupportedOperationException expected) {
+    }
+    try {
+        Files.createSymbolicLink(foo, bar);
+        fail();
+    } catch (UnsupportedOperationException expected) {
+    }
+    try {
+        Files.readSymbolicLink(foo);
+        fail();
+    } catch (UnsupportedOperationException expected) {
+    }
+    try {
+        FileChannel.open(foo);
+        fail();
+    } catch (UnsupportedOperationException expected) {
+    }
+    try {
+        AsynchronousFileChannel.open(foo);
+        fail();
+    } catch (UnsupportedOperationException expected) {
+    }
+    Files.createDirectory(foo);
+    Files.createFile(bar);
+    try (DirectoryStream<Path> stream = Files.newDirectoryStream(foo)) {
+        assertThat(stream).isNotInstanceOf(SecureDirectoryStream.class);
+    }
+    try (SeekableByteChannel channel = Files.newByteChannel(bar)) {
+        assertThat(channel).isNotInstanceOf(FileChannel.class);
+    }
+}

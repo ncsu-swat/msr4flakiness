@@ -1,0 +1,14 @@
+@Test
+public void testGetOrAddTree() throws Exception {
+    NodeUtil result = node.getOrAddTree(".", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+    assertSame(node, result);
+    NodeUtil child = node.getOrAddTree("child", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+    assertEqualNodeUtil(new NodeUtil(root.getTree("/child")), child);
+    NodeUtil parent = child.getOrAddTree("..", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+    assertEqualNodeUtil(node, parent);
+    Map<String, String> map = ImmutableMap.of("a/b/c", "/a/b/c", "a/../b/c", "/b/c", "a/b/c/../..", "/a", "a/././././b/c", "/a/b/c");
+    for (String relPath : map.keySet()) {
+        NodeUtil n = node.getOrAddTree(relPath, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        assertEqualNodeUtil(new NodeUtil(root.getTree(map.get(relPath))), n);
+    }
+}

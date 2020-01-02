@@ -1,0 +1,11 @@
+@Test
+public void testDSBSGetAllMetaRecsStats() throws IOException, RepositoryException {
+    DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withListDelay());
+    long getAllMetadataRecordsCount = stats.getGetAllMetadataRecordsCount();
+    long getAllMetadataRecordsCountLastMinute = getLastMinuteStats(stats.getGetAllMetadataRecordsCountHistory());
+    long getAllMetadataRecordsTimeLastMinute = getLastMinuteStats(stats.getGetAllMetadataRecordsTimeHistory());
+    dsbs.getAllMetadataRecords("prefix");
+    assertEquals(getAllMetadataRecordsCount + 1, stats.getGetAllMetadataRecordsCount());
+    assertEquals(getAllMetadataRecordsCountLastMinute + 1, waitForMetric(input -> getLastMinuteStats(input.getGetAllMetadataRecordsCountHistory()), stats, 1L, 0L).longValue());
+    assertTrue(getAllMetadataRecordsTimeLastMinute < waitForNonzeroMetric(input -> getLastMinuteStats(input.getGetAllMetadataRecordsTimeHistory()), stats));
+}

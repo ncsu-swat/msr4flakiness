@@ -1,0 +1,23 @@
+@Test
+public void testTokenValueIncorrect() throws IllegalAccessException {
+    int maxId = 0;
+    final Field[] fields = TokenTypes.class.getDeclaredFields();
+    for (final Field field : fields) {
+        // Only process the int declarations.
+        if (field.getType() != Integer.TYPE) {
+            continue;
+        }
+        final String name = field.getName();
+        final int id = field.getInt(name);
+        if (id > maxId) {
+            maxId = id;
+        }
+    }
+    final int nextAfterMaxId = maxId + 1;
+    try {
+        TokenUtil.getTokenName(nextAfterMaxId);
+        fail("IllegalArgumentException is expected");
+    } catch (IllegalArgumentException expectedException) {
+        assertEquals("given id " + nextAfterMaxId, expectedException.getMessage(), "Invalid exception message");
+    }
+}

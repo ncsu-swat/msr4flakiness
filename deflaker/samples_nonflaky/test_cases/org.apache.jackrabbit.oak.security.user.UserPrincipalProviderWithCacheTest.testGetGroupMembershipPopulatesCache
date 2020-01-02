@@ -1,0 +1,15 @@
+@Test
+public void testGetGroupMembershipPopulatesCache() throws Exception {
+    PrincipalProvider pp = createPrincipalProvider(systemRoot);
+    Set<? extends Principal> principals = pp.getMembershipPrincipals(getTestUser().getPrincipal());
+    assertPrincipals(principals, EveryonePrincipal.getInstance(), testGroup.getPrincipal());
+    root.refresh();
+    Tree principalCache = getCacheTree(root);
+    assertTrue(principalCache.exists());
+    assertEquals(CacheConstants.NT_REP_CACHE, TreeUtil.getPrimaryTypeName(principalCache));
+    assertNotNull(principalCache.getProperty(CacheConstants.REP_EXPIRATION));
+    PropertyState ps = principalCache.getProperty(CacheConstants.REP_GROUP_PRINCIPAL_NAMES);
+    assertNotNull(ps);
+    String val = ps.getValue(Type.STRING);
+    assertEquals(testGroup.getPrincipal().getName(), val);
+}

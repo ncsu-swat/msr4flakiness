@@ -1,0 +1,80 @@
+@Test
+public void mergeInternalDocAcrossCluster() throws Exception {
+    MemoryDocumentStore docStore = new MemoryDocumentStore();
+    final DocumentNodeStore store1 = builderProvider.newBuilder().setDocumentStore(docStore).setAsyncDelay(0).setClusterId(1).getNodeStore();
+    store1.setEnableConcurrentAddRemove(true);
+    final DocumentNodeStore store2 = builderProvider.newBuilder().setDocumentStore(docStore).setAsyncDelay(0).setClusterId(2).getNodeStore();
+    store2.setEnableConcurrentAddRemove(true);
+    NodeState root;
+    NodeBuilder builder;
+    // Prepare repo
+    root = store1.getRoot();
+    builder = root.builder();
+    builder.child(":hidden").child("deleteDeleted");
+    builder.child(":hidden").child("deleteChanged");
+    builder.child(":hidden").child("changeDeleted");
+    merge(store1, builder);
+    store1.runBackgroundOperations();
+    store2.runBackgroundOperations();
+    // Changes in store1
+    root = store1.getRoot();
+    builder = root.builder();
+    builder.child("visible");
+    builder.child(":hidden").child("b");
+    builder.child(":hidden").child("deleteDeleted").remove();
+    builder.child(":hidden").child("changeDeleted").remove();
+    builder.child(":hidden").child("deleteChanged").setProperty("foo", "bar");
+    builder.child(":dynHidden").child("c");
+    builder.child(":dynHidden").child("childWithProp").setProperty("foo", "bar");
+    merge(store1, builder);
+    // Changes in store2
+    // root would hold reference to store2 root state after initial repo initialization
+    root = store2.getRoot();
+    // The hidden node and children should be creatable across cluster concurrently
+    builder = root.builder();
+    builder.child(":hidden").child("b");
+    builder.child(":dynHidden").child("c");
+    merge(store2, builder);
+    // Deleted deleted conflict of internal node should work across cluster concurrently
+    builder = root.builder();
+    builder.child(":hidden").child("deleteDeleted").remove();
+    merge(store2, builder);
+    // Avoid repeated merge tries ... fail early
+    store2.setMaxBackOffMillis(0);
+    boolean commitFailed = false;
+    try {
+        builder = root.builder();
+        builder.child("visible");
+        merge(store2, builder);
+    } catch (CommitFailedException cfe) {
+        commitFailed = true;
+    }
+    assertTrue("Concurrent creation of visible node across cluster must fail", commitFailed);
+    commitFailed = false;
+    try {
+        builder = root.builder();
+        builder.child(":dynHidden").child("childWithProp").setProperty("foo", "bar");
+        merge(store2, builder);
+    } catch (CommitFailedException cfe) {
+        commitFailed = true;
+    }
+    assertTrue("Concurrent creation of hidden node with properties across cluster must fail", commitFailed);
+    commitFailed = false;
+    try {
+        builder = root.builder();
+        builder.child(":hidden").child("deleteChanged").remove();
+        merge(store2, builder);
+    } catch (CommitFailedException cfe) {
+        commitFailed = true;
+    }
+    assertTrue("Delete changed merge across cluster must fail even under hidden tree", commitFailed);
+    commitFailed = false;
+    try {
+        builder = root.builder();
+        builder.child(":hidden").child("changeDeleted").setProperty("foo", "bar");
+        merge(store2, builder);
+    } catch (CommitFailedException cfe) {
+        commitFailed = true;
+    }
+    assertTrue("Change deleted merge across cluster must fail even under hidden tree", commitFailed);
+}

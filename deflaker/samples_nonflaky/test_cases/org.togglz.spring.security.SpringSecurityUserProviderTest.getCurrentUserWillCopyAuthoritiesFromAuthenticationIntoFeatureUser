@@ -1,0 +1,19 @@
+@Test
+public void getCurrentUserWillCopyAuthoritiesFromAuthenticationIntoFeatureUser() throws Exception {
+    // arrange
+    Collection authorities = new ArrayList<GrantedAuthority>();
+    authorities.add(new SimpleGrantedAuthority("ROLE_1"));
+    authorities.add(new SimpleGrantedAuthority("ROLE_2"));
+    when(authentication.getAuthorities()).thenReturn(authorities);
+    // act
+    FeatureUser user = userProvider.getCurrentUser();
+    // assert
+    Object authoritiesAttr = user.getAttribute(USER_ATTRIBUTE_ROLES);
+    assertTrue(authoritiesAttr instanceof Set);
+    Set authSet = (Set) authoritiesAttr;
+    assertThat(authSet, notNullValue());
+    Set<String> authoritySet = (Set<String>) authSet;
+    assertThat(authoritySet.size(), is(2));
+    assertThat(authoritySet.contains("ROLE_1"), is(true));
+    assertThat(authoritySet.contains("ROLE_2"), is(true));
+}

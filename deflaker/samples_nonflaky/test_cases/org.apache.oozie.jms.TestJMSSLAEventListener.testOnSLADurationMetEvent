@@ -1,0 +1,50 @@
+public void testOnSLADurationMetEvent() throws Exception {
+    JMSSLAEventListener slaListener = new JMSSLAEventListener();
+    slaListener.init(conf);
+    String id = "0000000-000000000000001-oozie-wrkf-C@1";
+    SLACalcStatus durationMet = _createSLACalcStatus(id);
+    SLARegistrationBean durationMetBean = durationMet.getSLARegistrationBean();
+    Date expectedStartDate = DateUtils.parseDateUTC("2013-01-01T00:00Z");
+    Date actualStartDate = DateUtils.parseDateUTC("2013-01-01T01:00Z");
+    Date expectedEndDate = DateUtils.parseDateUTC("2013-01-01T12:00Z");
+    Date actualEndDate = DateUtils.parseDateUTC("2013-01-01T14:00Z");
+    long expectedDuration = (expectedEndDate.getTime() - actualStartDate.getTime()) / (1000 * 60);
+    durationMet.setId(id);
+    durationMetBean.setParentId("0000000-000000000000001-oozie-wrkf-C");
+    durationMetBean.setAppName("Test-SLA-Duration-Met");
+    durationMet.setEventStatus(EventStatus.DURATION_MET);
+    durationMet.setSLAStatus(SLAStatus.MET);
+    durationMetBean.setAppType(AppType.COORDINATOR_ACTION);
+    durationMetBean.setUser("dummyuser");
+    durationMetBean.setNotificationMsg("notification of duration met");
+    durationMetBean.setExpectedStart(expectedStartDate);
+    durationMet.setActualStart(actualStartDate);
+    durationMetBean.setExpectedEnd(expectedEndDate);
+    durationMet.setActualEnd(actualEndDate);
+    durationMetBean.setExpectedDuration(expectedDuration);
+    long actualDuration = actualEndDate.getTime() - actualStartDate.getTime();
+    durationMet.setActualDuration(actualDuration);
+    ConnectionContext jmsContext = getConnectionContext();
+    Session session = jmsContext.createSession(Session.AUTO_ACKNOWLEDGE);
+    MessageConsumer consumer = jmsContext.createConsumer(session, slaListener.getTopic(durationMet));
+    slaListener.onDurationMet(durationMet);
+    TextMessage message = (TextMessage) consumer.receive(5000);
+    SLAMessage durationMissMsg = (SLAMessage) JMSMessagingUtils.getEventMessage(message);
+    // check msg header
+    assertEquals(EventStatus.DURATION_MET, durationMissMsg.getEventStatus());
+    assertEquals(SLAStatus.MET, durationMissMsg.getSLAStatus());
+    assertEquals(AppType.COORDINATOR_ACTION, durationMissMsg.getAppType());
+    assertEquals(MessageType.SLA, durationMissMsg.getMessageType());
+    assertEquals("Test-SLA-Duration-Met", durationMissMsg.getAppName());
+    assertEquals("dummyuser", durationMissMsg.getUser());
+    // check msg body
+    assertEquals("0000000-000000000000001-oozie-wrkf-C@1", durationMissMsg.getId());
+    assertEquals("0000000-000000000000001-oozie-wrkf-C", durationMissMsg.getParentId());
+    assertEquals(expectedStartDate, durationMissMsg.getExpectedStartTime());
+    assertEquals(actualStartDate, durationMissMsg.getActualStartTime());
+    assertEquals(expectedEndDate, durationMissMsg.getExpectedEndTime());
+    assertEquals(actualEndDate, durationMissMsg.getActualEndTime());
+    assertEquals(expectedDuration, durationMissMsg.getExpectedDuration());
+    assertEquals(actualDuration, durationMissMsg.getActualDuration());
+    assertEquals("notification of duration met", durationMissMsg.getNotificationMessage());
+}

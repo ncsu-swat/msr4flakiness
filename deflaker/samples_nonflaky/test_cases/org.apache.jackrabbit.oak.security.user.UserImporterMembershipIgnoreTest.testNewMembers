@@ -1,0 +1,11 @@
+@Test
+public void testNewMembers() throws Exception {
+    Tree userTree = createUserTree();
+    String contentId = userProvider.getContentID(userTree);
+    assertTrue(importer.handlePropInfo(userTree, createPropInfo(REP_AUTHORIZABLE_ID, TEST_USER_ID), mockPropertyDefinition(NT_REP_AUTHORIZABLE, false)));
+    assertTrue(importer.handlePropInfo(groupTree, createPropInfo(REP_MEMBERS, contentId), mockPropertyDefinition(NT_REP_MEMBER_REFERENCES, true)));
+    importer.processReferences();
+    PropertyState members = groupTree.getProperty(REP_MEMBERS);
+    assertNotNull(members);
+    assertEquals(ImmutableList.of(contentId), ImmutableList.copyOf(members.getValue(Type.STRINGS)));
+}

@@ -1,0 +1,19 @@
+@Test
+public void fromMultipleJournalEntries() throws Exception {
+    DocumentNodeStore ns = builderProvider.newBuilder().clock(clock).setAsyncDelay(0).getNodeStore();
+    DocumentNodeState s1 = ns.getRoot();
+    NodeBuilder builder = ns.getRoot().builder();
+    builder.child("foo");
+    merge(ns, builder);
+    ns.runBackgroundOperations();
+    builder = ns.getRoot().builder();
+    builder.child("bar");
+    merge(ns, builder);
+    ns.runBackgroundOperations();
+    builder = ns.getRoot().builder();
+    builder.child("baz");
+    merge(ns, builder);
+    ns.runBackgroundOperations();
+    DocumentNodeState s2 = ns.getRoot();
+    assertEquals(newHashSet("foo", "bar", "baz"), changeChildNodes(ns, s1, s2));
+}

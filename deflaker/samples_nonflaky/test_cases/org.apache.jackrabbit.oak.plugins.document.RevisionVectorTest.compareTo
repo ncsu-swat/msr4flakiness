@@ -1,0 +1,33 @@
+@Test
+public void compareTo() {
+    RevisionVector rv1 = new RevisionVector();
+    RevisionVector rv2 = new RevisionVector();
+    assertEquals(0, rv1.compareTo(rv2));
+    Revision r11 = new Revision(1, 0, 1);
+    // [r1-0-1]
+    rv1 = rv1.update(r11);
+    assertTrue(rv1.compareTo(rv2) > 0);
+    assertTrue(rv2.compareTo(rv1) < 0);
+    Revision r12 = new Revision(1, 0, 2);
+    // [r1-0-2]
+    rv2 = rv2.update(r12);
+    assertTrue(rv1.compareTo(rv2) > 0);
+    assertTrue(rv2.compareTo(rv1) < 0);
+    // [r1-0-1, r1-0-2]
+    rv2 = rv2.update(r11);
+    assertTrue(rv1.compareTo(rv2) < 0);
+    assertTrue(rv2.compareTo(rv1) > 0);
+    // [r1-0-1, r1-0-2]
+    rv1 = rv1.update(r12);
+    assertEquals(0, rv1.compareTo(rv2));
+    assertEquals(0, rv2.compareTo(rv1));
+    Revision r22 = new Revision(2, 0, 2);
+    // [r1-0-1, r2-0-2]
+    rv2 = rv2.update(r22);
+    assertTrue(rv1.compareTo(rv2) < 0);
+    assertTrue(rv2.compareTo(rv1) > 0);
+    Revision rb22 = r22.asBranchRevision();
+    rv1 = rv1.update(rb22);
+    assertTrue(rv1.compareTo(rv2) < 0);
+    assertTrue(rv2.compareTo(rv1) > 0);
+}

@@ -1,0 +1,45 @@
+public void testBundlePauseExtendMaterializesCoordinator() throws Exception {
+    BundleJobBean bundle = this.addRecordToBundleJobTable(Job.Status.PAUSED, false);
+    Date startTime = new Date();
+    Date endTime = new Date(startTime.getTime() + (20 * 60 * 1000));
+    // coord job with num actions materialized = 1
+    CoordinatorJobBean coord = addRecordToCoordJobTable(CoordinatorJob.Status.PAUSED, startTime, endTime, true, false, 1);
+    // setting dummy old pause time
+    coord.setPauseTime(startTime);
+    CoordJobQueryExecutor.getInstance().executeUpdate(CoordJobQuery.UPDATE_COORD_JOB_CHANGE, coord);
+    // persist corresponding bundle action bean
+    BundleActionBean bundleAction = this.addRecordToBundleActionTable(bundle.getId(), "COORD-TEST", 1, Job.Status.PAUSED);
+    coord.setBundleId(bundle.getId());
+    CoordJobQueryExecutor.getInstance().executeUpdate(CoordJobQuery.UPDATE_COORD_JOB_BUNDLEID, coord);
+    bundleAction.setCoordId(coord.getId());
+    BundleActionQueryExecutor.getInstance().executeUpdate(BundleActionQuery.UPDATE_BUNDLE_ACTION_STATUS_PENDING_MODTIME_COORDID, bundleAction);
+    // 20 sec later
+    Date later = new Date(System.currentTimeMillis() + 20 * 1000);
+    // 10 min later
+    Date evenLater = new Date(later.getTime() + 10 * 60 * 1000);
+    bundle = BundleJobQueryExecutor.getInstance().get(BundleJobQuery.GET_BUNDLE_JOB, bundle.getId());
+    assertEquals(Job.Status.PAUSED, bundle.getStatus());
+    coord = CoordJobQueryExecutor.getInstance().get(CoordJobQuery.GET_COORD_JOB, coord.getId());
+    assertEquals(Job.Status.PAUSED, coord.getStatus());
+    // coordinator has previous actions
+    // before the new pausetime
+    coord.setNextMaterializedTime(new Date(startTime.getTime() + (300 * 1000)));
+    CoordJobQueryExecutor.getInstance().executeUpdate(CoordJobQuery.UPDATE_COORD_JOB, coord);
+    Date lastMod = coord.getLastModifiedTime();
+    addRecordToCoordActionTable(coord.getId(), 1, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    // change pausetime to even later
+    new BundleJobChangeXCommand(bundle.getId(), "pausetime=" + DateUtils.formatDateOozieTZ(evenLater)).call();
+    // time for the queued CoordChangeXCommand to complete
+    sleep(1000);
+    Runnable runnable = new PauseTransitRunnable();
+    // simulating run which would happen usually after interval
+    runnable.run();
+    Thread.sleep(1000);
+    bundle = BundleJobQueryExecutor.getInstance().get(BundleJobQuery.GET_BUNDLE_JOB, bundle.getId());
+    assertEquals(Job.Status.RUNNING, bundle.getStatus());
+    assertEquals(DateUtils.formatDateOozieTZ(evenLater), DateUtils.formatDateOozieTZ(bundle.getPauseTime()));
+    coord = CoordJobQueryExecutor.getInstance().get(CoordJobQuery.GET_COORD_JOB, coord.getId());
+    assertEquals(Job.Status.RUNNING, coord.getStatus());
+    assertEquals(DateUtils.formatDateOozieTZ(evenLater), DateUtils.formatDateOozieTZ(coord.getPauseTime()));
+    assertTrue(coord.getLastModifiedTime().after(lastMod));
+}

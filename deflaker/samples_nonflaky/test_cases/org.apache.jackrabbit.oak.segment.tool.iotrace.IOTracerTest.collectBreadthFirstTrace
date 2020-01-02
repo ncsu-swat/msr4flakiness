@@ -1,0 +1,21 @@
+@Test
+public void collectBreadthFirstTrace() throws IOException {
+    try (StringWriter out = new StringWriter()) {
+        Function<IOMonitor, FileStore> factory = this::createFileStore;
+        IOTracer ioTracer = newIOTracer(factory, out, BreadthFirstTrace.CONTEXT_SPEC);
+        ioTracer.collectTrace(new BreadthFirstTrace(2, "/", ioTracer::setContext));
+        try (BufferedReader reader = new BufferedReader(new StringReader(out.toString()))) {
+            Optional<String> header = reader.lines().findFirst();
+            List<String[]> entries = reader.lines().map(line -> line.split(",")).collect(toList());
+            assertTrue(header.isPresent());
+            assertEquals("timestamp,file,segmentId,length,elapsed,depth,count", header.get());
+            long now = currentTimeMillis();
+            assertTrue("The timestamps of all entries must be in the past", entries.stream().map(// ts
+            row -> parseLong(row[0])).allMatch(ts -> ts <= now));
+            assertEquals("Expected depths 0, 1 and 2", ImmutableSet.of(0, 1, 2), entries.stream().map(// depth
+            row -> parseInt(row[5])).distinct().collect(toSet()));
+            assertEquals("Expected max 10 nodes", Optional.of(true), entries.stream().map(// count
+            row -> parseInt(row[6])).max(Comparator.naturalOrder()).map(max -> max <= 10));
+        }
+    }
+}

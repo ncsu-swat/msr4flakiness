@@ -1,0 +1,37 @@
+@Test
+public void collisionOnOrphanedBranch() throws Exception {
+    DocumentStore store = new MemoryDocumentStore();
+    DocumentNodeStore ns = newBuilder().setDocumentStore(store).setAsyncDelay(0).setUpdateLimit(10).build();
+    NodeBuilder builder = ns.getRoot().builder();
+    // force a branch commit
+    for (int i = 0; i < 20; i++) {
+        builder.child("n-" + i).setProperty("p", "v");
+    }
+    retainBranches(ns);
+    ns.dispose();
+    NodeDocument root = store.find(NODES, Utils.getIdFromPath(ROOT));
+    assertNotNull(root);
+    assertThat(root.getLocalBranchCommits(), not(empty()));
+    // make sure start timestamp of node store is higher than
+    // branch commit revision timestamp
+    clock.getTimeIncreasing();
+    // start it up again
+    ns = newBuilder().setDocumentStore(store).setAsyncDelay(0).setUpdateLimit(10).build();
+    ns.updateClusterState();
+    root = store.find(NODES, Utils.getIdFromPath(ROOT));
+    assertNotNull(root);
+    // on init the DocumentNodeStore removes orphaned
+    // branch commit entries on the root document
+    assertThat(root.getLocalBranchCommits(), empty());
+    // but some changes are still there
+    Path p = Path.fromString("/n-0");
+    NodeDocument doc = store.find(NODES, Utils.getIdFromPath(p));
+    assertNotNull(doc);
+    assertThat(doc.getLocalBranchCommits(), not(empty()));
+    builder = ns.getRoot().builder();
+    builder.child("n-0");
+    merge(ns, builder);
+    // must not create a collision marker for a branch commit
+    // that cannot be merged
+    assertNoCollisions(store, ROOT);
+}

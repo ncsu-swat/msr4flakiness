@@ -1,0 +1,8 @@
+@Test
+public void testParse() throws Exception {
+    Buffer entries = Buffer.allocate(512).putInt(1).putInt(2).put((byte) 0).putInt(2).putLong(1).putLong(1).putInt(2).putInt(length("1.1.1")).put(bytes("1.1.1")).putInt(length("1.1.2")).put(bytes("1.1.2")).putLong(1).putLong(2).putInt(2).putInt(length("1.2.1")).put(bytes("1.2.1")).putInt(length("1.2.2")).put(bytes("1.2.2")).putInt(3).putInt(4).put((byte) 1).putInt(2).putLong(1).putLong(1).putInt(2).putInt(length("2.1.1")).put(bytes("2.1.1")).putInt(length("2.1.2")).put(bytes("2.1.2")).putLong(1).putLong(2).putInt(2).putInt(length("2.2.1")).put(bytes("2.2.1")).putInt(length("2.2.2")).put(bytes("2.2.2"));
+    entries.flip();
+    Buffer buffer = Buffer.allocate(entries.remaining() + FOOTER_SIZE);
+    buffer.duplicate().put(entries.duplicate()).putInt(checksum(entries)).putInt(2).putInt(entries.remaining() + FOOTER_SIZE).putInt(MAGIC);
+    assertNotNull(loadIndex(buffer));
+}

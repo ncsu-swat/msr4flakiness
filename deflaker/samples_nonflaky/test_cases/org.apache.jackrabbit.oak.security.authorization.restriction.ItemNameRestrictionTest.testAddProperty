@@ -1,0 +1,23 @@
+@Test
+public void testAddProperty() throws Exception {
+    Root testRoot = testSession.getLatestRoot();
+    List<String> paths = ImmutableList.of("/a", "/a/d/b", "/a/d/b/e/c");
+    for (String p : paths) {
+        Tree t = testRoot.getTree(p);
+        t.setProperty("b", "anyvalue");
+        testRoot.commit();
+    }
+    for (String p : paths) {
+        Tree t = testRoot.getTree(p);
+        try {
+            t.setProperty("notAllowed", "anyvalue");
+            testRoot.commit();
+            fail();
+        } catch (CommitFailedException e) {
+            // success
+            assertTrue(e.isAccessViolation());
+        } finally {
+            testRoot.refresh();
+        }
+    }
+}

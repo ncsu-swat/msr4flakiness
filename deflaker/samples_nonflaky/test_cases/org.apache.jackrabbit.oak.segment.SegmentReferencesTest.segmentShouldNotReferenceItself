@@ -1,0 +1,17 @@
+@Test
+public void segmentShouldNotReferenceItself() throws Exception {
+    try (FileStore store = newFileStore()) {
+        // Write two records, one referencing the other.
+        SegmentWriter writer = defaultSegmentWriterBuilder("test").build(store);
+        RecordId a = writer.writeNode(EmptyNodeState.EMPTY_NODE);
+        NodeBuilder builder = EmptyNodeState.EMPTY_NODE.builder();
+        builder.setChildNode("referred", store.getReader().readNode(a));
+        RecordId b = writer.writeNode(builder.getNodeState());
+        writer.flush();
+        // The two records should be living in the same segment.
+        assertEquals(b.getSegmentId(), a.getSegmentId());
+        // This inter-segment reference shouldn't generate a reference from
+        // this segment to itself.
+        assertEquals(0, b.getSegment().getReferencedSegmentIdCount());
+    }
+}

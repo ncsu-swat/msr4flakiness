@@ -1,0 +1,11 @@
+@Test
+public void testSnapshot_sortsUsingStringAndNotCanonicalValueOfNames() {
+    dir.link(caseInsensitive("FOO"), regularFile(10));
+    dir.link(caseInsensitive("bar"), regularFile(10));
+    ImmutableSortedSet<Name> snapshot = dir.snapshot();
+    Iterable<String> strings = Iterables.transform(snapshot, Functions.toStringFunction());
+    // "FOO" comes before "bar"
+    // if the order were based on the normalized, canonical form of the names ("foo" and "bar"),
+    // "bar" would come first
+    assertThat(strings).containsExactly("FOO", "bar").inOrder();
+}

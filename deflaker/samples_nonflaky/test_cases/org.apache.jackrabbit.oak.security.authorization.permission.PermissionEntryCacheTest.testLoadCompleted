@@ -1,0 +1,16 @@
+@Test
+public void testLoadCompleted() throws Exception {
+    cache.init("a", 1);
+    Collection<PermissionEntry> entries = Sets.newHashSet(permissionEntry);
+    when(store.load("a", "/path")).thenReturn(entries);
+    Collection<PermissionEntry> result = Sets.newHashSet();
+    cache.load(store, result, "a", "/path");
+    assertEquals(entries, result);
+    PrincipalPermissionEntries inspectedEntries = inspectEntries(cache, "a");
+    assertTrue(inspectedEntries.isFullyLoaded());
+    // requesting the entries again must NOT hit the store
+    when(store.load("a", "/path")).thenThrow(IllegalStateException.class);
+    result.clear();
+    cache.load(store, result, "a", "/path");
+    assertEquals(entries, result);
+}

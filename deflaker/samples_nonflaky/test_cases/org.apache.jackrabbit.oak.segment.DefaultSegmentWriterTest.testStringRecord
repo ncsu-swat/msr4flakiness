@@ -1,0 +1,16 @@
+@Test
+public void testStringRecord() throws IOException {
+    RecordId empty = writer.writeString("");
+    RecordId space = writer.writeString(" ");
+    RecordId hello = writer.writeString("Hello, World!");
+    StringBuilder builder = new StringBuilder();
+    for (int i = 0; i < 2 * Segment.MAX_SEGMENT_SIZE + 1000; i++) {
+        builder.append((char) ('0' + i % 10));
+    }
+    RecordId large = writer.writeString(builder.toString());
+    Segment segment = large.getSegmentId().getSegment();
+    assertEquals("", store.fileStore().getReader().readString(empty));
+    assertEquals(" ", store.fileStore().getReader().readString(space));
+    assertEquals("Hello, World!", store.fileStore().getReader().readString(hello));
+    assertEquals(builder.toString(), store.fileStore().getReader().readString(large));
+}

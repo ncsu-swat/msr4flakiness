@@ -1,0 +1,9 @@
+@Test(expected = IllegalStateException.class)
+public void testMembersHandlesFailingPrincipalAccess() throws Exception {
+    Authorizable a = when(mock(Authorizable.class).getPrincipal()).thenThrow(new RepositoryException()).getMock();
+    AbstractGroupPrincipal agp = mock(AbstractGroupPrincipal.class);
+    when(agp.getMembers()).thenReturn(Iterators.singletonIterator(a));
+    when(agp.members()).thenCallRealMethod();
+    Enumeration<? extends Principal> members = agp.members();
+    assertFalse(members.hasMoreElements());
+}

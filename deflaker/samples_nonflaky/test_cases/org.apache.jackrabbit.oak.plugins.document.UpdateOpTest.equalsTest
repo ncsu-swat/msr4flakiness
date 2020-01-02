@@ -1,0 +1,20 @@
+@Test
+public void equalsTest() {
+    Revision r = Revision.newRevision(1);
+    UpdateOp op = new UpdateOp("id", true);
+    try {
+        op.equals("p", r, "v");
+        fail("expected " + IllegalStateException.class.getName());
+    } catch (IllegalStateException e) {
+    // expected
+    }
+    op = new UpdateOp("id", false);
+    op.equals("p", r, "v");
+    assertEquals(1, op.getConditions().size());
+    UpdateOp.Key key = op.getConditions().keySet().iterator().next();
+    assertEquals(r, key.getRevision());
+    assertEquals("p", key.getName());
+    UpdateOp.Condition c = op.getConditions().get(key);
+    assertEquals(UpdateOp.Condition.Type.EQUALS, c.type);
+    assertEquals("v", c.value);
+}

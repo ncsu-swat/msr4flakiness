@@ -1,0 +1,12 @@
+@Test
+public void testSubmissionWhenQueueIsFull() {
+    asyncExecutor = createExecutor(true, 2, DEFAULT_MAXWAIT, TEST_PRIORITIES, AWAIT_TERMINATION_TIMEOUT_SECONDS);
+    callableWrapper = mock(CallableWrapper.class, Mockito.RETURNS_DEEP_STUBS);
+    when(callableWrapper.filterDuplicates()).thenReturn(true);
+    when(callableWrapper.getElement().getKey()).thenReturn("key");
+    asyncExecutor.queue(callableWrapper, false);
+    asyncExecutor.queue(callableWrapper, false);
+    boolean finalResult = asyncExecutor.queue(callableWrapper, false);
+    assertFalse("Last submission shouldn't have succeeded", finalResult);
+    verify(executor, times(2)).execute(same(callableWrapper));
+}

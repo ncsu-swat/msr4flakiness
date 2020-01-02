@@ -1,0 +1,11 @@
+public void testNotifyTimeout() throws Exception {
+    Map<String, String> params = new HashMap<String, String>();
+    params.put(HangServlet.SLEEP_TIME_MS, "1000000");
+    Configuration conf = setupEmbeddedContainer(HangServlet.class, "/hang/*", "/hang/*", params);
+    LauncherAMCallbackNotifier cnSpy = Mockito.spy(new LauncherAMCallbackNotifier(conf));
+    long start = System.currentTimeMillis();
+    cnSpy.notifyURL(OozieActionResult.SUCCEEDED);
+    long end = System.currentTimeMillis();
+    Mockito.verify(cnSpy, Mockito.times(1)).notifyURLOnce();
+    Assert.assertTrue("Should have taken more than 5 seconds but it only took " + (end - start), end - start >= 5000);
+}

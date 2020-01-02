@@ -1,0 +1,16 @@
+@Test
+public void inexistence() throws Exception {
+    Tree rootTree = root.getTree("/").addChild("a");
+    rootTree.addChild("x").addChild("y");
+    root.commit();
+    String query1 = "SELECT * FROM [nt:base] WHERE ISDESCENDANTNODE('/a') AND [z] IS NULL";
+    List<String> expected1 = ImmutableList.of("/a/x", "/a/x/y");
+    String query2 = "SELECT * FROM [nt:base] WHERE ISDESCENDANTNODE('/a/x') AND [z] IS NULL";
+    List<String> expected2 = ImmutableList.of("/a/x/y");
+    assertQuery(query1, expected1);
+    assertQuery(query2, expected2);
+    // old behavior remains same as new for non-relative constraints
+    System.setProperty("oak.useOldInexistenceCheck", "true");
+    assertQuery(query1, expected1);
+    assertQuery(query2, expected2);
+}

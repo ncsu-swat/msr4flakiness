@@ -1,0 +1,8 @@
+@Test
+public void testCreateSymbolicLink_withInitialAttributes() throws IOException {
+    FileAttribute<Set<PosixFilePermission>> permissions = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwxrwxrwx"));
+    Files.createSymbolicLink(path("/foo"), path("bar"), permissions);
+    assertThatPath("/foo", NOFOLLOW_LINKS).isSymbolicLink().and().attribute("posix:permissions").is(permissions.value());
+    Files.createSymbolicLink(path("/normal"), path("bar"));
+    assertThatPath("/normal", NOFOLLOW_LINKS).isSymbolicLink().and().attribute("posix:permissions").isNot(permissions.value());
+}

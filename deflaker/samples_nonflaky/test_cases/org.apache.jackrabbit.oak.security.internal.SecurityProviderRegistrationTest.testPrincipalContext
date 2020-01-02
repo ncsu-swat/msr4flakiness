@@ -1,0 +1,36 @@
+@Test
+public void testPrincipalContext() throws Exception {
+    Tree t = root.getTree("/");
+    Field f = registration.getClass().getDeclaredField("principalConfiguration");
+    f.setAccessible(true);
+    PrincipalConfiguration pc = new PrincipalConfigurationImpl();
+    registration.bindPrincipalConfiguration(pc, PROPS);
+    CompositePrincipalConfiguration cpc = (CompositePrincipalConfiguration) f.get(registration);
+    Context ctx = cpc.getContext();
+    // expected size = 0 because PrincipalConfigurationImpl comes with the default ctx
+    assertContext(ctx, 0, t, false);
+    PrincipalConfiguration pc1 = mockConfiguration(PrincipalConfiguration.class);
+    registration.bindPrincipalConfiguration(pc1, PROPS);
+    cpc = (CompositePrincipalConfiguration) f.get(registration);
+    ctx = cpc.getContext();
+    // expected size 1 because the PrincipalConfigurationImpl comes with the default ctx
+    assertContext(ctx, 1, t, true);
+    PrincipalConfiguration pc2 = mockConfiguration(PrincipalConfiguration.class);
+    registration.bindPrincipalConfiguration(pc2, PROPS);
+    cpc = (CompositePrincipalConfiguration) f.get(registration);
+    ctx = cpc.getContext();
+    assertContext(ctx, 2, t, true);
+    // unbind again:
+    registration.unbindPrincipalConfiguration(pc, PROPS);
+    cpc = (CompositePrincipalConfiguration) f.get(registration);
+    ctx = cpc.getContext();
+    assertContext(ctx, 2, t, true);
+    registration.unbindPrincipalConfiguration(pc1, PROPS);
+    cpc = (CompositePrincipalConfiguration) f.get(registration);
+    ctx = cpc.getContext();
+    assertContext(ctx, 1, t, true);
+    registration.unbindPrincipalConfiguration(pc2, PROPS);
+    cpc = (CompositePrincipalConfiguration) f.get(registration);
+    ctx = cpc.getContext();
+    assertContext(ctx, 0, t, false);
+}

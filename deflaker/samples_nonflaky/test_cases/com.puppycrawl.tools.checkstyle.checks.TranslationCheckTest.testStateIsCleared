@@ -1,0 +1,21 @@
+/**
+ * Even when we pass several files to AbstractModuleTestSupport#verify,
+ * the check processes it during one run, so we cannot reproduce situation
+ * when TranslationCheck#beginProcessing called several times during single run.
+ * So, we have to use reflection to check this particular case.
+ *
+ * @throws Exception when code tested throws exception
+ */
+@Test
+@SuppressWarnings("unchecked")
+public void testStateIsCleared() throws Exception {
+    final File fileToProcess = new File(getPath("InputTranslationCheckFireErrors_de.properties"));
+    final String charset = StandardCharsets.UTF_8.name();
+    final TranslationCheck check = new TranslationCheck();
+    check.beginProcessing(charset);
+    check.processFiltered(fileToProcess, new FileText(fileToProcess, charset));
+    check.beginProcessing(charset);
+    final Field field = check.getClass().getDeclaredField("filesToProcess");
+    field.setAccessible(true);
+    assertTrue(((Collection<File>) field.get(check)).isEmpty(), "Stateful field is not cleared on beginProcessing");
+}

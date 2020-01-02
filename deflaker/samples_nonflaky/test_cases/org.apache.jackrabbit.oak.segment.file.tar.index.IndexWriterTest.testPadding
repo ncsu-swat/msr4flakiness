@@ -1,0 +1,12 @@
+@Test
+public void testPadding() throws Exception {
+    IndexWriter writer = newIndexWriter(256);
+    writer.addEntry(7, 8, 9, 10, 11, 12, true);
+    writer.addEntry(1, 2, 3, 4, 5, 6, false);
+    int dataSize = 2 * IndexEntryV2.SIZE + IndexV2.FOOTER_SIZE;
+    ByteBuffer buffer = ByteBuffer.allocate(256);
+    ByteBuffer duplicate = buffer.duplicate();
+    duplicate.position(duplicate.limit() - dataSize);
+    duplicate.putLong(1).putLong(2).putInt(3).putInt(4).putInt(5).putInt(6).put((byte) 0).putLong(7).putLong(8).putInt(9).putInt(10).putInt(11).putInt(12).put((byte) 1).putInt(0xE2138EB4).putInt(2).putInt(256).putInt(IndexLoaderV2.MAGIC);
+    assertArrayEquals(buffer.array(), writer.write());
+}

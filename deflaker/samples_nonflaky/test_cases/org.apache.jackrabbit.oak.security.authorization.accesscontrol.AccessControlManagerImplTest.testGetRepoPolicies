@@ -1,0 +1,19 @@
+@Test
+public void testGetRepoPolicies() throws Exception {
+    String path = null;
+    AccessControlPolicy[] policies = acMgr.getPolicies(path);
+    assertPolicies(policies, 0);
+    acMgr.setPolicy(null, acMgr.getApplicablePolicies(path).nextAccessControlPolicy());
+    assertFalse(acMgr.getApplicablePolicies(path).hasNext());
+    policies = acMgr.getPolicies(path);
+    assertPolicies(policies, 1);
+    assertTrue(policies[0] instanceof ACL);
+    ACL acl = (ACL) policies[0];
+    assertTrue(acl.isEmpty());
+    assertNull(acl.getPath());
+    assertNull(acl.getOakPath());
+    assertFalse(acMgr.getApplicablePolicies(path).hasNext());
+    acMgr.removePolicy(path, acl);
+    assertPolicies(acMgr.getPolicies(path), 0);
+    assertTrue(acMgr.getApplicablePolicies(path).hasNext());
+}

@@ -1,0 +1,112 @@
+@Test
+public void concurrentUpdates() throws Exception {
+    concurrentUpdates(false);
+}
+private void concurrentUpdates(final boolean useBranch) throws Exception {
+    LOG.info("====== Start test =======");
+    final AtomicInteger conflicts = new AtomicInteger();
+    final List<Exception> exceptions = Collections.synchronizedList(new ArrayList<Exception>());
+    List<Thread> writers = new ArrayList<Thread>();
+    for (final DocumentMK mk : kernels) {
+        writers.add(new Thread(new Runnable() {
+
+            Random random = new Random();
+
+            Map<Integer, JSONObject> nodes = new HashMap<Integer, JSONObject>();
+
+            @Override
+            public void run() {
+                BitSet conflictSet = new BitSet();
+                int numTransfers = 0;
+                try {
+                    while (numTransfers < NUM_TRANSFERS_PER_THREAD && exceptions.isEmpty()) {
+                        try {
+                            if (!transfer()) {
+                                continue;
+                            }
+                        } catch (DocumentStoreException e) {
+                            log("Failed transfer @" + mk.getHeadRevision());
+                            // assume conflict
+                            conflicts.incrementAndGet();
+                            conflictSet.set(numTransfers);
+                        }
+                        numTransfers++;
+                    }
+                } catch (Exception e) {
+                    exceptions.add(e);
+                }
+                log("conflicts (" + conflictSet.cardinality() + "): " + conflictSet);
+            }
+
+            private boolean transfer() throws Exception {
+                // read 3 random nodes and re-distribute values
+                nodes.clear();
+                while (nodes.size() < 3) {
+                    nodes.put(random.nextInt(NUM_NODES), null);
+                }
+                String rev;
+                if (useBranch) {
+                    rev = mk.branch(null);
+                } else {
+                    rev = mk.getHeadRevision();
+                }
+                int sum = 0;
+                for (Map.Entry<Integer, JSONObject> entry : nodes.entrySet()) {
+                    String json = mk.getNodes("/node-" + entry.getKey(), rev, 0, 0, 1000, null);
+                    JSONParser parser = new JSONParser();
+                    JSONObject obj = (JSONObject) parser.parse(json);
+                    entry.setValue(obj);
+                    sum += (Long) obj.get("value");
+                }
+                if (sum < 60) {
+                    // retry with other nodes
+                    return false;
+                }
+                StringBuilder jsop = new StringBuilder();
+                boolean withdrawn = false;
+                for (Map.Entry<Integer, JSONObject> entry : nodes.entrySet()) {
+                    long value = (Long) entry.getValue().get("value");
+                    jsop.append("^\"/node-").append(entry.getKey());
+                    jsop.append("/value\":");
+                    if (value >= 20 && !withdrawn) {
+                        jsop.append(value - 20);
+                        withdrawn = true;
+                    } else {
+                        jsop.append(value + 10);
+                    }
+                }
+                String oldRev = rev;
+                rev = mk.commit("", jsop.toString(), rev, null);
+                if (useBranch) {
+                    rev = mk.merge(rev, null);
+                }
+                log("Successful transfer @" + oldRev + ": " + jsop.toString() + " (new rev: " + rev + ")");
+                long s = calculateSum(mk, rev);
+                if (s != NUM_NODES * 100) {
+                    throw new Exception("Sum mismatch: " + s);
+                }
+                return true;
+            }
+        }));
+    }
+    for (Thread t : writers) {
+        t.start();
+    }
+    for (Thread t : writers) {
+        t.join();
+    }
+    // dispose will flush all pending revisions
+    for (DocumentMK mk : kernels) {
+        mk.dispose();
+    }
+    DocumentMK mk = openDocumentMK(1);
+    String rev = mk.getHeadRevision();
+    long sum = calculateSum(mk, rev);
+    log("Conflict rate: " + conflicts.get() + "/" + (NUM_WRITERS * NUM_TRANSFERS_PER_THREAD));
+    System.out.print(logBuffer);
+    assertEquals(NUM_NODES * 100, sum);
+    if (!exceptions.isEmpty()) {
+        throw exceptions.get(0);
+    }
+    mk.dispose();
+}

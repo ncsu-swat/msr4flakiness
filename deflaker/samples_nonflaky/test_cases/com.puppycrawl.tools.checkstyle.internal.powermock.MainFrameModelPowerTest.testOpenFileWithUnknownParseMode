@@ -1,0 +1,15 @@
+@Test
+public void testOpenFileWithUnknownParseMode() throws CheckstyleException {
+    final ParseMode unknownParseMode = PowerMockito.mock(ParseMode.class);
+    Whitebox.setInternalState(unknownParseMode, "ordinal", 3);
+    PowerMockito.when(unknownParseMode.toString()).thenReturn("Unknown parse mode");
+    PowerMockito.mockStatic(ParseMode.class);
+    PowerMockito.when(ParseMode.values()).thenReturn(new ParseMode[] { ParseMode.PLAIN_JAVA, ParseMode.JAVA_WITH_COMMENTS, ParseMode.JAVA_WITH_JAVADOC_AND_COMMENTS, unknownParseMode });
+    try {
+        model.setParseMode(unknownParseMode);
+        model.openFile(testData);
+        fail("Expected IllegalArgumentException is not thrown.");
+    } catch (IllegalArgumentException ex) {
+        assertEquals("Invalid exception message", "Unknown mode: Unknown parse mode", ex.getMessage());
+    }
+}

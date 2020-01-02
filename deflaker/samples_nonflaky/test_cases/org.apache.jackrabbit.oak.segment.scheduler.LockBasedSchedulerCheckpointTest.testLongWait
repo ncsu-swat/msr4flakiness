@@ -1,0 +1,44 @@
+/**
+ * OAK-3587 test simulates a wait less than configured
+ * {@code SegmentNodeStore#setCheckpointsLockWaitTime(int)} value so the
+ * checkpoint call must return a valid value
+ */
+@Test
+public void testLongWait() throws Exception {
+    final int blockTime = 1;
+    MemoryStore ms = new MemoryStore();
+    System.setProperty("oak.checkpoints.lockWaitTime", "2");
+    StatisticsProvider statsProvider = StatisticsProvider.NOOP;
+    SegmentNodeStoreStats stats = new SegmentNodeStoreStats(statsProvider);
+    final LockBasedScheduler scheduler = LockBasedScheduler.builder(ms.getRevisions(), ms.getReader(), stats).build();
+    final Semaphore semaphore = new Semaphore(0);
+    final Callable<Boolean> block = new Callable<Boolean>() {
+
+        @Override
+        public Boolean call() {
+            try {
+                semaphore.release();
+                SECONDS.sleep(blockTime);
+            } catch (InterruptedException e) {
+            // 
+            }
+            return true;
+        }
+    };
+    Thread background = new Thread() {
+
+        @Override
+        public void run() {
+            try {
+                Commit commit = createBlockingCommit(scheduler, "foo", "bar", block);
+                scheduler.schedule(commit);
+            } catch (Exception e) {
+            // 
+            }
+        }
+    };
+    background.start();
+    semaphore.acquire();
+    String cp0 = scheduler.checkpoint(10, Collections.<String, String>emptyMap());
+    assertNotNull(retrieveCheckpoint(scheduler, cp0));
+}

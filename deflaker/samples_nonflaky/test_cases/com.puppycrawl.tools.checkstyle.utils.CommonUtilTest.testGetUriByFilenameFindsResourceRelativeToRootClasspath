@@ -1,0 +1,17 @@
+/**
+ * This test illustrates #6232.
+ * Without fix, the assertion will fail because the URL under test
+ * "com/puppycrawl/tools/checkstyle/utils/commonutil/InputCommonUtilTest_resource.txt"
+ * will be interpreted relative to the current package
+ * "com/puppycrawl/tools/checkstyle/utils/"
+ */
+@Test
+public void testGetUriByFilenameFindsResourceRelativeToRootClasspath() throws Exception {
+    final String filename = getPackageLocation() + "/InputCommonUtilTest_resource.txt";
+    final URI uri = CommonUtil.getUriByFilename(filename);
+    assertThat("URI is null for: " + filename, uri, is(not(nullValue())));
+    final String uriRelativeToPackage = "com/puppycrawl/tools/checkstyle/utils/" + getPackageLocation() + "/InputCommonUtilTest_resource.txt";
+    assertThat("URI is relative to package " + uriRelativeToPackage, uri.toString(), not(containsString(uriRelativeToPackage)));
+    final String content = IOUtils.toString(uri.toURL(), StandardCharsets.UTF_8);
+    assertThat("Content mismatches for: " + uri, content, startsWith("good"));
+}

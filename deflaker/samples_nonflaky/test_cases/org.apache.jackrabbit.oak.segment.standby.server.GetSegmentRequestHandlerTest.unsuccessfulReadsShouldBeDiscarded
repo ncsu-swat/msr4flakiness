@@ -1,0 +1,9 @@
+@Test
+public void unsuccessfulReadsShouldBeDiscarded() throws Exception {
+    UUID uuid = new UUID(1, 2);
+    StandbySegmentReader reader = mock(StandbySegmentReader.class);
+    when(reader.readSegment(uuid.toString())).thenReturn(null);
+    EmbeddedChannel channel = new EmbeddedChannel(new GetSegmentRequestHandler(reader));
+    channel.writeInbound(new GetSegmentRequest("clientId", uuid.toString()));
+    assertNull(channel.readOutbound());
+}

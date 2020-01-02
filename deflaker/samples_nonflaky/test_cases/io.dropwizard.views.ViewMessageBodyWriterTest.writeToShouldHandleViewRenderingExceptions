@@ -1,0 +1,17 @@
+@Test
+public void writeToShouldHandleViewRenderingExceptions() throws IOException {
+    final ViewRenderer renderer = mock(ViewRenderer.class);
+    final Locale locale = new Locale("en-US");
+    final ViewRenderException exception = new ViewRenderException("oops");
+    when(metricRegistry.timer(anyString())).thenReturn(timer);
+    when(timer.time()).thenReturn(timerContext);
+    when(renderer.isRenderable(view)).thenReturn(true);
+    doThrow(exception).when(renderer).render(view, locale, stream);
+    final ViewMessageBodyWriter writer = spy(new ViewMessageBodyWriter(metricRegistry, Collections.singletonList(renderer)));
+    doReturn(locale).when(writer).detectLocale(any());
+    writer.setHeaders(mock(HttpHeaders.class));
+    assertThatExceptionOfType(WebApplicationException.class).isThrownBy(() -> {
+        writer.writeTo(view, Class.class, Class.class, new Annotation[] {}, new MediaType(), new MultivaluedHashMap<>(), stream);
+    }).withCause(exception);
+    verify(timerContext).stop();
+}

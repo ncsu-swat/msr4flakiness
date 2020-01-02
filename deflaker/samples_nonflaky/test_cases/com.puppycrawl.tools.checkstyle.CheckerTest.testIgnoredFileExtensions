@@ -1,0 +1,24 @@
+@Test
+public void testIgnoredFileExtensions() throws Exception {
+    final DefaultConfiguration checkerConfig = new DefaultConfiguration("configuration");
+    checkerConfig.addAttribute("charset", StandardCharsets.UTF_8.name());
+    final File tempFile = File.createTempFile("junit", null, temporaryFolder);
+    checkerConfig.addAttribute("cacheFile", tempFile.getPath());
+    final Checker checker = new Checker();
+    checker.setModuleClassLoader(Thread.currentThread().getContextClassLoader());
+    checker.configure(checkerConfig);
+    final DebugAuditAdapter auditAdapter = new DebugAuditAdapter();
+    checker.addListener(auditAdapter);
+    final List<File> allIgnoredFiles = new ArrayList<>();
+    final File ignoredFile = new File("file.pdf");
+    allIgnoredFiles.add(ignoredFile);
+    final String[] fileExtensions = { "java", "xml", "properties" };
+    checker.setFileExtensions(fileExtensions);
+    checker.setCacheFile(File.createTempFile("junit", null, temporaryFolder).getPath());
+    final int counter = checker.process(allIgnoredFiles);
+    // comparing to 0 as there is no legal file in input
+    final int numLegalFiles = 0;
+    assertEquals(numLegalFiles, counter, "There were more legal files than expected");
+    assertEquals(numLegalFiles, auditAdapter.getNumFilesStarted(), "Audit was started on larger amount of files than expected");
+    assertEquals(numLegalFiles, auditAdapter.getNumFilesFinished(), "Audit was finished on larger amount of files than expected");
+}

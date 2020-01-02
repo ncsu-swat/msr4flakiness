@@ -1,0 +1,17 @@
+public void testLocksAreReused() throws ServiceException, InterruptedException {
+    String path = "a";
+    ZKLocksService lockService = new ZKLocksService();
+    try {
+        lockService.init(Services.get());
+        LockToken lock = lockService.getWriteLock(path, TestMemoryLocks.DEFAULT_LOCK_TIMEOUT);
+        int oldHash = System.identityHashCode(lockService.getLocks().get(path));
+        System.gc();
+        lock.release();
+        lock = lockService.getWriteLock(path, TestMemoryLocks.DEFAULT_LOCK_TIMEOUT);
+        assertEquals(lockService.getLocks().size(), 1);
+        int newHash = System.identityHashCode(lockService.getLocks().get(path));
+        assertTrue(oldHash == newHash);
+    } finally {
+        lockService.destroy();
+    }
+}

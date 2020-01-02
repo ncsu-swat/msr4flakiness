@@ -1,0 +1,23 @@
+@Test
+public void testParseCustomConfiguration() throws Exception {
+    DefaultLoggingFactory loggingFactory = yamlConfigurationFactory.build(resourcePath("yaml/logging-tls-custom.yml"));
+    assertThat(loggingFactory.getAppenders()).hasSize(1);
+    TlsSocketAppenderFactory<ILoggingEvent> appenderFactory = (TlsSocketAppenderFactory<ILoggingEvent>) loggingFactory.getAppenders().get(0);
+    assertThat(appenderFactory.getHost()).isEqualTo("172.16.11.244");
+    assertThat(appenderFactory.getPort()).isEqualTo(17002);
+    assertThat(appenderFactory.getKeyStorePath()).isEqualTo("/path/to/keystore.p12");
+    assertThat(appenderFactory.getKeyStorePassword()).isEqualTo("keystore_pass");
+    assertThat(appenderFactory.getKeyStoreType()).isEqualTo("PKCS12");
+    assertThat(appenderFactory.getKeyStoreProvider()).isEqualTo("BC");
+    assertThat(appenderFactory.getTrustStorePath()).isEqualTo("/path/to/trust_store.jks");
+    assertThat(appenderFactory.getTrustStorePassword()).isEqualTo("trust_store_pass");
+    assertThat(appenderFactory.getTrustStoreType()).isEqualTo("JKS");
+    assertThat(appenderFactory.getTrustStoreProvider()).isEqualTo("SUN");
+    assertThat(appenderFactory.getJceProvider()).isEqualTo("Conscrypt");
+    assertThat(appenderFactory.isValidateCerts()).isTrue();
+    assertThat(appenderFactory.isValidatePeers()).isTrue();
+    assertThat(appenderFactory.getSupportedProtocols()).containsExactly("TLSv1.1", "TLSv1.2");
+    assertThat(appenderFactory.getExcludedProtocols()).isEmpty();
+    assertThat(appenderFactory.getSupportedCipherSuites()).containsExactly("ECDHE-RSA-AES128-GCM-SHA256", "ECDHE-ECDSA-AES128-GCM-SHA256");
+    assertThat(appenderFactory.getExcludedCipherSuites()).isEmpty();
+}

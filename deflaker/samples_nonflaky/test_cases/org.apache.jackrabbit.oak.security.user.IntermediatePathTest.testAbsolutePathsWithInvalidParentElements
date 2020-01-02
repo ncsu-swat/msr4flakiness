@@ -1,0 +1,16 @@
+@Test
+public void testAbsolutePathsWithInvalidParentElements() throws Exception {
+    try {
+        String invalidPath = UserConstants.DEFAULT_GROUP_PATH + "/../a";
+        Authorizable authorizable = createAuthorizable(true, invalidPath);
+        assertTrue(authorizable.getPath().startsWith(PathUtils.getAncestorPath(UserConstants.DEFAULT_GROUP_PATH, 1) + "/a"));
+        root.commit();
+        fail("Invalid path " + invalidPath + " outside of configured scope.");
+    } catch (CommitFailedException e) {
+        // success
+        assertTrue(e.isConstraintViolation());
+        assertEquals(28, e.getCode());
+    } finally {
+        root.refresh();
+    }
+}

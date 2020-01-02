@@ -1,0 +1,9 @@
+@Test
+public void testAllowEscapesForControlCharacterSetForAllCharacters() throws Exception {
+    final DefaultConfiguration checkConfig = createModuleConfig(AvoidEscapedUnicodeCharactersCheck.class);
+    checkConfig.addAttribute("allowEscapesForControlCharacters", "true");
+    final int indexOfStartLineInInputFile = 6;
+    final String message = getCheckMessage(MSG_KEY);
+    final String[] expected = IntStream.rangeClosed(0, 0xffff).parallel().filter(val -> !isControlCharacter(val)).mapToObj(msg -> indexOfStartLineInInputFile + msg + ": " + message).toArray(String[]::new);
+    verify(checkConfig, getPath("InputAvoidEscapedUnicodeCharactersAllEscapedUnicodeCharacters.java"), expected);
+}

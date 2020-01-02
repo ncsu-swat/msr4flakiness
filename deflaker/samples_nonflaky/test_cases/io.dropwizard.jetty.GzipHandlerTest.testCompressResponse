@@ -1,0 +1,15 @@
+@Test
+void testCompressResponse() throws Exception {
+    request.setMethod("GET");
+    request.setHeader(HttpHeader.ACCEPT_ENCODING.asString(), "gzip");
+    HttpTester.Response response = HttpTester.parseResponse(servletTester.getResponses(request.generate()));
+    assertThat(response.getStatus()).isEqualTo(200);
+    assertThat(response.get(HttpHeader.CONTENT_ENCODING)).isEqualTo("gzip");
+    assertThat(response.get(HttpHeader.VARY)).isEqualTo(HttpHeader.ACCEPT_ENCODING.asString());
+    assertThat(response.get(HttpHeader.CONTENT_TYPE)).isEqualToIgnoringCase(PLAIN_TEXT_UTF_8);
+    final byte[] expectedBytes = Resources.toByteArray(Resources.getResource("assets/banner.txt"));
+    try (GZIPInputStream is = new GZIPInputStream(new ByteArrayInputStream(response.getContentBytes()));
+        ByteArrayInputStream expected = new ByteArrayInputStream(expectedBytes)) {
+        assertThat(is).hasSameContentAs(expected);
+    }
+}

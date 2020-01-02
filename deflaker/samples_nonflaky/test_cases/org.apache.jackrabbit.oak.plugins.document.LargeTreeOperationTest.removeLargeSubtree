@@ -1,0 +1,17 @@
+@Test
+public void removeLargeSubtree() throws CommitFailedException {
+    DocumentNodeStore ns = new DocumentMK.Builder().setUseSimpleRevision(true).getNodeStore();
+    NodeBuilder builder = ns.getRoot().builder();
+    NodeBuilder test = builder.child("test");
+    for (int i = 0; i < DocumentMK.UPDATE_LIMIT * 3; i++) {
+        test.child("child-" + i);
+    }
+    ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    builder = ns.getRoot().builder();
+    Revision r1 = ns.newRevision();
+    // must trigger branch commit
+    builder.getChildNode("test").remove();
+    Revision r2 = ns.newRevision();
+    assertTrue("remove of large subtree must trigger branch commits", r2.getTimestamp() - r1.getTimestamp() > 1);
+    ns.dispose();
+}

@@ -1,0 +1,44 @@
+@Test
+public void testConversionToStringArray() {
+    String[] stringArray = new String[] { "a", "b" };
+    Set<String> stringSet = ImmutableSet.copyOf(stringArray);
+    TestObject[] testObjectArray = new TestObject[] { new TestObject("a"), new TestObject("b") };
+    Set<TestObject> testObjectSet = ImmutableSet.copyOf(testObjectArray);
+    String[] defaultStrings = new String[] { "abc", "def", "ghi" };
+    // map of config value (key) and expected result set.
+    Map<Object, Object[]> configValues = new HashMap<>();
+    configValues.put("a", new String[] { "a" });
+    configValues.put(stringArray, stringArray);
+    configValues.put(stringSet, stringArray);
+    configValues.put(testObjectArray, stringArray);
+    configValues.put(testObjectSet, stringArray);
+    configValues.put(new String[0], new String[0]);
+    configValues.put(new HashSet<>(), new String[0]);
+    configValues.put(ImmutableSet.of(), new String[0]);
+    configValues.put(new ArrayList<>(), new String[0]);
+    configValues.put(ConfigurationParameters.EMPTY, new String[0]);
+    for (Object value : configValues.keySet()) {
+        ConfigurationParameters config;
+        if (value instanceof ConfigurationParameters) {
+            config = ConfigurationParameters.of((ConfigurationParameters) value);
+        } else {
+            config = ConfigurationParameters.of("key", value);
+        }
+        Object[] expected = configValues.get(value);
+        assertArrayEquals(expected, config.getConfigValue("key", new String[0]));
+        assertArrayEquals(expected, config.getConfigValue("key", new String[0], String[].class));
+        // test with default values
+        if (!config.containsKey("key")) {
+            assertArrayEquals(defaultStrings, config.getConfigValue("key", defaultStrings, String[].class));
+            assertArrayEquals(null, config.getConfigValue("key", null, String[].class));
+            assertArrayEquals(defaultStrings, config.getConfigValue("key", defaultStrings));
+        } else {
+            assertArrayEquals(expected, config.getConfigValue("key", defaultStrings, String[].class));
+            assertArrayEquals(expected, config.getConfigValue("key", null, String[].class));
+            assertArrayEquals(expected, config.getConfigValue("key", defaultStrings));
+        }
+        // non existing kez with default values
+        assertArrayEquals(defaultStrings, config.getConfigValue("nonexisting", defaultStrings));
+        assertArrayEquals(defaultStrings, config.getConfigValue("nonexisting", defaultStrings, String[].class));
+    }
+}

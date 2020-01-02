@@ -1,0 +1,33 @@
+@Test
+public void shouldWorkUnderHeavyLoad() throws Exception {
+    final FileBasedStateRepository repo = new FileBasedStateRepository(testFile);
+    // Step 1: concurrently write a large number of state
+    for (int i = 0; i < NUMBER_OF_FEATURES; i++) {
+        // build up a feature state containing some data
+        String name = "FEATURE" + i;
+        Feature feature = new TestFeature(name);
+        final FeatureState state = new FeatureState(feature).setStrategyId("strategy-for-" + name).setParameter("param-of-" + name, "some-value-of-" + name);
+        // queue a thread writing that state
+        executor.submit(new Runnable() {
+
+            @Override
+            public void run() {
+                repo.setFeatureState(state);
+            }
+        });
+    }
+    // Step 2: Wait for all threads to finish
+    executor.shutdown();
+    executor.awaitTermination(5, TimeUnit.SECONDS);
+    // Step 3: Verify the state written to the repository
+    for (int i = 0; i < NUMBER_OF_FEATURES; i++) {
+        // read the state
+        String name = "FEATURE" + i;
+        TestFeature feature = new TestFeature(name);
+        FeatureState state = repo.getFeatureState(feature);
+        // verify that the state is as expected
+        assertThat(state).isNotNull();
+        assertThat(state.getStrategyId()).isEqualTo("strategy-for-" + name);
+        assertThat(state.getParameterMap()).hasSize(1).contains(MapEntry.entry("param-of-" + name, "some-value-of-" + name));
+    }
+}

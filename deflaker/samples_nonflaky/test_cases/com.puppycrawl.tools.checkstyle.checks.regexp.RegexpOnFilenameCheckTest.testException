@@ -1,0 +1,13 @@
+@Test
+public void testException() throws Exception {
+    // escape character needed for testing IOException from File.getCanonicalPath on all OSes
+    final File file = new File(getPath("") + "\u0000" + File.separatorChar + "Test");
+    try {
+        final RegexpOnFilenameCheck check = new RegexpOnFilenameCheck();
+        check.setFileNamePattern(Pattern.compile("BAD"));
+        check.process(file, new FileText(file, Collections.emptyList()));
+        fail("CheckstyleException expected");
+    } catch (CheckstyleException ex) {
+        assertEquals("unable to create canonical path names for " + file.getAbsolutePath(), ex.getMessage(), "Invalid exception message");
+    }
+}

@@ -1,0 +1,61 @@
+@Test
+public void testSecureDirectoryStream() throws IOException {
+    Files.createDirectories(path("/foo/bar"));
+    Files.createFile(path("/foo/a"));
+    Files.createFile(path("/foo/b"));
+    Files.createSymbolicLink(path("/foo/barLink"), path("bar"));
+    try (DirectoryStream<Path> stream = Files.newDirectoryStream(path("/foo"))) {
+        if (!(stream instanceof SecureDirectoryStream)) {
+            fail("should be a secure directory stream");
+        }
+        SecureDirectoryStream<Path> secureStream = (SecureDirectoryStream<Path>) stream;
+        assertThat(ImmutableList.copyOf(secureStream)).isEqualTo(ImmutableList.of(path("/foo/a"), path("/foo/b"), path("/foo/bar"), path("/foo/barLink")));
+        secureStream.deleteFile(path("b"));
+        assertThatPath("/foo/b").doesNotExist();
+        secureStream.newByteChannel(path("b"), ImmutableSet.of(WRITE, CREATE_NEW)).close();
+        assertThatPath("/foo/b").isRegularFile();
+        assertThatPath("/foo").hasChildren("a", "b", "bar", "barLink");
+        Files.createDirectory(path("/baz"));
+        Files.move(path("/foo"), path("/baz/stuff"));
+        assertThatPath(path("/foo")).doesNotExist();
+        assertThatPath("/baz/stuff").hasChildren("a", "b", "bar", "barLink");
+        secureStream.deleteFile(path("b"));
+        assertThatPath("/baz/stuff/b").doesNotExist();
+        assertThatPath("/baz/stuff").hasChildren("a", "bar", "barLink");
+        assertThat(secureStream.getFileAttributeView(BasicFileAttributeView.class).readAttributes().isDirectory()).isTrue();
+        assertThat(secureStream.getFileAttributeView(path("a"), BasicFileAttributeView.class).readAttributes().isRegularFile()).isTrue();
+        try {
+            secureStream.deleteFile(path("bar"));
+            fail();
+        } catch (FileSystemException expected) {
+            assertThat(expected.getFile()).isEqualTo("bar");
+        }
+        try {
+            secureStream.deleteDirectory(path("a"));
+            fail();
+        } catch (FileSystemException expected) {
+            assertThat(expected.getFile()).isEqualTo("a");
+        }
+        try (SecureDirectoryStream<Path> barStream = secureStream.newDirectoryStream(path("bar"))) {
+            barStream.newByteChannel(path("stuff"), ImmutableSet.of(WRITE, CREATE_NEW)).close();
+            assertThat(barStream.getFileAttributeView(path("stuff"), BasicFileAttributeView.class).readAttributes().isRegularFile()).isTrue();
+            assertThat(secureStream.getFileAttributeView(path("bar/stuff"), BasicFileAttributeView.class).readAttributes().isRegularFile()).isTrue();
+        }
+        try (SecureDirectoryStream<Path> barLinkStream = secureStream.newDirectoryStream(path("barLink"))) {
+            assertThat(barLinkStream.getFileAttributeView(path("stuff"), BasicFileAttributeView.class).readAttributes().isRegularFile()).isTrue();
+            assertThat(barLinkStream.getFileAttributeView(path(".."), BasicFileAttributeView.class).readAttributes().isDirectory()).isTrue();
+        }
+        try {
+            secureStream.newDirectoryStream(path("barLink"), NOFOLLOW_LINKS);
+            fail();
+        } catch (NotDirectoryException expected) {
+            assertThat(expected.getFile()).isEqualTo("barLink");
+        }
+        try (SecureDirectoryStream<Path> barStream = secureStream.newDirectoryStream(path("bar"))) {
+            secureStream.move(path("a"), barStream, path("moved"));
+            assertThatPath(path("/baz/stuff/a")).doesNotExist();
+            assertThatPath(path("/baz/stuff/bar/moved")).isRegularFile();
+            assertThat(barStream.getFileAttributeView(path("moved"), BasicFileAttributeView.class).readAttributes().isRegularFile()).isTrue();
+        }
+    }
+}

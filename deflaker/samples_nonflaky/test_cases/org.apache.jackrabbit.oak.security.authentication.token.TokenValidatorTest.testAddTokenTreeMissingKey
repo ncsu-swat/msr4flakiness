@@ -1,0 +1,16 @@
+@Test(expected = CommitFailedException.class)
+public void testAddTokenTreeMissingKey() throws Exception {
+    Tree tokenTree = getTokenTree(createTokenInfo(tokenProvider, userId));
+    tokenTree.removeProperty(TokenConstants.TOKEN_ATTRIBUTE_KEY);
+    Tree rootTree = root.getTree(PathUtils.ROOT_PATH);
+    try {
+        Validator v = createValidator(rootTree, rootTree, tokenTree.getParent().getPath(), false);
+        v.childNodeAdded(tokenTree.getName(), getTreeProvider().asNodeState(tokenTree));
+    } catch (CommitFailedException e) {
+        assertTrue(e.isConstraintViolation());
+        assertEquals(66, e.getCode());
+        throw e;
+    } finally {
+        root.refresh();
+    }
+}

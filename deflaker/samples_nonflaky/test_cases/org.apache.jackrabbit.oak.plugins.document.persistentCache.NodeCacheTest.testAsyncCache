@@ -1,0 +1,21 @@
+@Test
+public void testAsyncCache() throws Exception {
+    initializeNodeStore(true);
+    ns.setNodeStateCache(new PathExcludingCache("/c"));
+    NodeBuilder builder = ns.getRoot().builder();
+    builder.child("a").child("b");
+    builder.child("c").child("d");
+    AbstractDocumentNodeState root = (AbstractDocumentNodeState) ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    PathRev prc = new PathRev(Path.fromString("/c"), root.getRootRevision());
+    PathRev pra = new PathRev(Path.fromString("/a"), root.getRootRevision());
+    Counting counter = nodeCache.getPersistentCacheStats().getPutRejectedAsCachedInSecCounter();
+    long count0 = counter.getCount();
+    // Adding this should be rejected
+    nodeCache.evicted(prc, (DocumentNodeState) root.getChildNode("c"), RemovalCause.SIZE);
+    long count1 = counter.getCount();
+    assertTrue(count1 > count0);
+    // Adding this should NOT be rejected
+    nodeCache.evicted(pra, (DocumentNodeState) root.getChildNode("a"), RemovalCause.SIZE);
+    long count2 = counter.getCount();
+    assertEquals(count1, count2);
+}

@@ -1,0 +1,21 @@
+public void testRawValue() {
+    JsopStream s = new JsopStream().tag('+').key("x").object().key("y").array().value(1).array().endArray().value(2).endArray().endObject();
+    assertEquals("+\"x\":{\"y\":[1,[],2]}", s.toString());
+    testRawValue(s);
+    testRawValue(new JsopTokenizer(s.toString()));
+}
+private static void testRawValue(JsopReader s) {
+    for (int i = 0; i < 3; i++) {
+        assertFalse(s.matches('-'));
+        assertTrue(s.matches('+'));
+        assertEquals("x", s.read(JsopReader.STRING));
+        s.read(':');
+        assertEquals("{", s.read('{'));
+        assertEquals("y", s.readString());
+        s.read(':');
+        assertEquals("[1,[],2]", s.readRawValue());
+        s.read('}');
+        s.read(JsopReader.END);
+        s.resetReader();
+    }
+}

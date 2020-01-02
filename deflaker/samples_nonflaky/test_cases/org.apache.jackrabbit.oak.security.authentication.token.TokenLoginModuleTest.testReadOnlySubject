@@ -1,0 +1,17 @@
+@Test
+public void testReadOnlySubject() throws Exception {
+    User u = getTestUser();
+    Subject subject = new Subject();
+    subject.setReadOnly();
+    TokenProvider tp = spy(new TokenProviderImpl(root, ConfigurationParameters.EMPTY, getUserConfiguration()));
+    SimpleCredentials sc = new SimpleCredentials(u.getID(), u.getID().toCharArray());
+    sc.setAttribute(".token", "");
+    TokenLoginModule lm = new TokenLoginModule();
+    Map sharedState = Maps.newHashMap(ImmutableMap.of(AbstractLoginModule.SHARED_KEY_CREDENTIALS, sc));
+    lm.initialize(subject, new TestCallbackHandler(tp), sharedState, ImmutableMap.<String, Object>of());
+    assertFalse(lm.login());
+    assertFalse(lm.commit());
+    verify(tp, times(1)).createToken(sc);
+    assertTrue(subject.getPublicCredentials(TokenCredentials.class).isEmpty());
+    assertFalse(lm.logout());
+}

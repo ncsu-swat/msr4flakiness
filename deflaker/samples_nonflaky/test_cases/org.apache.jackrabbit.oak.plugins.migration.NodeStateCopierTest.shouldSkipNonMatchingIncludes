@@ -1,0 +1,12 @@
+@Test
+public void shouldSkipNonMatchingIncludes() throws CommitFailedException, IOException {
+    final NodeStore source = createNodeStoreWithContent();
+    final NodeBuilder builder = source.getRoot().builder();
+    create(builder, "/a", primaryType);
+    create(builder, "/a/b", primaryType);
+    create(builder, "/a/b/c", primaryType);
+    commit(source, builder);
+    final NodeStore target = createNodeStoreWithContent();
+    builder().include("/a", "/z").copy(source, target);
+    expectDifference().strict().verify(source.getRoot(), target.getRoot());
+}

@@ -1,0 +1,39 @@
+@Test
+public void testMappingGraphFromWorkflow() {
+    final String errorHandlerName = "error-handler";
+    final EmailActionBuilder emailBuilder = EmailActionBuilder.create().withName(errorHandlerName).withRecipient("somebody@workplace.com").withSubject("Subject").withBody("Email body.");
+    final ErrorHandler errorHandler = ErrorHandler.buildAsErrorHandler(emailBuilder);
+    final MapReduceAction mrAction = MapReduceActionBuilder.create().withName("map-reduce-action").withErrorHandler(errorHandler).build();
+    final FSAction fsAction = FSActionBuilder.create().withName("fs-action").withParent(mrAction).withErrorHandler(errorHandler).build();
+    final Workflow workflow = new WorkflowBuilder().withName("workflow-name").withDagContainingNode(mrAction).build();
+    final Graph graph = new Graph(workflow);
+    final WORKFLOWAPP workflowapp = DozerBeanMapperSingleton.instance().map(graph, WORKFLOWAPP.class);
+    final WORKFLOWAPP expectedWorkflowapp = OBJECT_FACTORY.createWORKFLOWAPP();
+    expectedWorkflowapp.setName(workflow.getName());
+    final START start = OBJECT_FACTORY.createSTART();
+    start.setTo(mrAction.getName());
+    expectedWorkflowapp.setStart(start);
+    final END end = OBJECT_FACTORY.createEND();
+    end.setName("end");
+    expectedWorkflowapp.setEnd(end);
+    final List<Object> actions = expectedWorkflowapp.getDecisionOrForkOrJoin();
+    final ACTION actionMr = convertEmailActionByHand((ExplicitNode) graph.getNodeByName(mrAction.getName()));
+    final ACTIONTRANSITION mrErrorTransition = actionMr.getError();
+    mrErrorTransition.setTo(errorHandlerName);
+    final ACTION actionFs = convertEmailActionByHand((ExplicitNode) graph.getNodeByName(fsAction.getName()));
+    final ACTIONTRANSITION fsErrorTransition = actionFs.getError();
+    fsErrorTransition.setTo(errorHandlerName);
+    final Node emailErrorHandlerNode = emailBuilder.build();
+    final ExplicitNode emailErrorHandlerExplicitNode = new ExplicitNode(emailErrorHandlerNode.getName(), emailErrorHandlerNode);
+    final ACTION errorHandlerAction = convertEmailActionByHand(emailErrorHandlerExplicitNode);
+    final KILL kill = createKill();
+    final ACTIONTRANSITION okAndError = OBJECT_FACTORY.createACTIONTRANSITION();
+    okAndError.setTo(kill.getName());
+    errorHandlerAction.setOk(okAndError);
+    errorHandlerAction.setError(okAndError);
+    actions.add(kill);
+    actions.add(errorHandlerAction);
+    actions.add(actionMr);
+    actions.add(actionFs);
+    assertEquals("expected and actual WORKFLOWAPP should look the same", expectedWorkflowapp, workflowapp);
+}

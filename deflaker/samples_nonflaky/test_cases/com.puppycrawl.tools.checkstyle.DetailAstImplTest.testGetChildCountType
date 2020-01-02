@@ -1,0 +1,23 @@
+@Test
+public void testGetChildCountType() throws Exception {
+    final DetailAstImpl root = new DetailAstImpl();
+    final DetailAstImpl firstLevelA = new DetailAstImpl();
+    final DetailAstImpl firstLevelB = new DetailAstImpl();
+    root.setFirstChild(firstLevelA);
+    final Method setParentMethod = getSetParentMethod();
+    setParentMethod.invoke(firstLevelA, root);
+    firstLevelA.setNextSibling(firstLevelB);
+    firstLevelA.setType(TokenTypes.IDENT);
+    firstLevelB.setType(TokenTypes.EXPR);
+    setParentMethod.invoke(firstLevelB, root);
+    final int childCountLevelB = firstLevelB.getChildCount(0);
+    assertEquals(0, childCountLevelB, "Invalid child count");
+    final int childCountLevelA = firstLevelA.getChildCount(TokenTypes.EXPR);
+    assertEquals(0, childCountLevelA, "Invalid child count");
+    final int identTypeCount = root.getChildCount(TokenTypes.IDENT);
+    assertEquals(1, identTypeCount, "Invalid child count");
+    final int exprTypeCount = root.getChildCount(TokenTypes.EXPR);
+    assertEquals(1, exprTypeCount, "Invalid child count");
+    final int invalidTypeCount = root.getChildCount(0);
+    assertEquals(0, invalidTypeCount, "Invalid child count");
+}

@@ -1,0 +1,32 @@
+public void testSerialConcurrencyLimit() throws Exception {
+    EXEC_ORDER = new AtomicLong();
+    final MyCallable callable1 = new MyCallable("TestSerialConcurrencyLimit", 0, 100);
+    final MyCallable callable2 = new MyCallable("TestSerialConcurrencyLimit", 0, 100);
+    final MyCallable callable3 = new MyCallable("TestSerialConcurrencyLimit", 0, 100);
+    final MyCallable callable4 = new MyCallable("TestSerialConcurrencyLimit", 0, 100);
+    final MyCallable callable5 = new MyCallable("TestSerialConcurrencyLimit", 0, 100);
+    List<MyCallable> callables = Arrays.asList(callable1, callable2, callable3, callable4, callable5);
+    CallableQueueService queueservice = Services.get().get(CallableQueueService.class);
+    String type = "SerialConcurrencyLimit";
+    for (MyCallable c : callables) {
+        queueservice.queueSerial(Arrays.asList(c, new MyCallable(type = type + "x", 0, 0)));
+    }
+    waitFor(3000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            return callable1.executed != 0 && callable2.executed != 0 && callable3.executed != 0 && callable4.executed != 0 && callable5.executed != 0;
+        }
+    });
+    long first = Long.MAX_VALUE;
+    for (MyCallable c : callables) {
+        assertTrue(c.executed != 0);
+        first = Math.min(first, c.executed);
+    }
+    int secondBatch = 0;
+    for (MyCallable c : callables) {
+        if (c.executed - first > 0) {
+            secondBatch++;
+        }
+    }
+    assertTrue(secondBatch >= 2);
+}

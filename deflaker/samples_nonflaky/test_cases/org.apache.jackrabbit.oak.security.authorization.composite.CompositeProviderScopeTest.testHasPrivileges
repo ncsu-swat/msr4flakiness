@@ -1,0 +1,16 @@
+@Test
+public void testHasPrivileges() throws Exception {
+    for (String path : defPrivileges.keySet()) {
+        Set<String> defaultPrivs = defPrivileges.get(path);
+        Tree tree = readOnlyRoot.getTree(path);
+        if (testProvider.isSupported(path)) {
+            Set<String> expected = pbp.getPrivilegeNames(pbp.getBits(defaultPrivs).modifiable().diff(denied));
+            assertTrue(path, cppTestUser.hasPrivileges(tree, expected.toArray(new String[expected.size()])));
+            assertFalse(path, cppTestUser.hasPrivileges(tree, JCR_ADD_CHILD_NODES));
+            assertFalse(path, cppTestUser.hasPrivileges(tree, REP_ADD_PROPERTIES));
+            assertFalse(path, cppTestUser.hasPrivileges(tree, JCR_MODIFY_PROPERTIES));
+        } else {
+            assertTrue(path, cppTestUser.hasPrivileges(tree, defaultPrivs.toArray(new String[defaultPrivs.size()])));
+        }
+    }
+}

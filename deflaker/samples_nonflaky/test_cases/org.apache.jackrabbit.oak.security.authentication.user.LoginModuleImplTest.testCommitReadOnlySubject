@@ -1,0 +1,18 @@
+@Test
+public void testCommitReadOnlySubject() throws Exception {
+    Principal principal = new PrincipalImpl("subjetPrincipal");
+    Subject subject = new Subject(true, ImmutableSet.of(principal), ImmutableSet.of(), ImmutableSet.of());
+    Map<String, Object> shared = Maps.newHashMap();
+    shared.put(AbstractLoginModule.SHARED_KEY_CREDENTIALS, new SimpleCredentials(getTestUser().getID(), getTestUser().getID().toCharArray()));
+    LoginModuleImpl loginModule = new LoginModuleImpl();
+    loginModule.initialize(subject, new TestCallbackHandler(new UserAuthenticationFactoryImpl()), shared, Maps.newHashMap());
+    assertTrue(loginModule.login());
+    assertTrue(loginModule.commit());
+    // auth-Info field must not be cleared by successful commit
+    Field f = LoginModuleImpl.class.getDeclaredField("authInfo");
+    f.setAccessible(true);
+    AuthInfo ai = (AuthInfo) f.get(loginModule);
+    assertNotNull(ai);
+    assertTrue(ai.getPrincipals().contains(principal));
+    assertTrue(ai.getPrincipals().contains(getTestUser().getPrincipal()));
+}

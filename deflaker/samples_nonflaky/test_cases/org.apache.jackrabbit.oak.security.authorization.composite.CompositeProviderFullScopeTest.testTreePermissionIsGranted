@@ -1,0 +1,18 @@
+@Test
+public void testTreePermissionIsGranted() throws Exception {
+    TreePermission parentPermission = TreePermission.EMPTY;
+    for (String path : TP_PATHS) {
+        TreePermission tp = cppTestUser.getTreePermission(readOnlyRoot.getTree(path), parentPermission);
+        Long toTest = (defPermissions.containsKey(path)) ? defPermissions.get(path) : defPermissions.get(PathUtils.getAncestorPath(path, 1));
+        if (toTest != null) {
+            if (Permissions.READ_NODE == toTest) {
+                assertTrue(path, tp.isGranted(toTest));
+            } else {
+                boolean canRead = Permissions.includes(toTest, Permissions.READ_NODE);
+                assertEquals(path, canRead, tp.isGranted(Permissions.READ_NODE));
+                assertFalse(path, tp.isGranted(toTest));
+            }
+        }
+        parentPermission = tp;
+    }
+}

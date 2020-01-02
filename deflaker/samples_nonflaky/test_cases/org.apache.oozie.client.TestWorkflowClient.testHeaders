@@ -1,0 +1,39 @@
+// UNCOMMENT TO QUICKLY RUN THE WS WITH MOCK engine
+// public void testRunning() throws Exception {
+// runTest(END_POINTS, SERVLET_CLASSES, new Callable<Void>() {
+// public Void call() throws Exception {
+// Thread.sleep(Long.MAX_VALUE);
+// return null;
+// }
+// });
+// 
+// }
+/**
+ * Test methods for headers manipulation
+ */
+public void testHeaders() throws Exception {
+    runTest(END_POINTS, SERVLET_CLASSES, IS_SECURITY_ENABLED, new Callable<Void>() {
+
+        public Void call() throws Exception {
+            HeaderTestingVersionServlet.OOZIE_HEADERS.clear();
+            String oozieUrl = getContextURL();
+            OozieClient wc = new OozieClient(oozieUrl);
+            wc.setHeader("header", "test");
+            assertEquals("test", wc.getHeader("header"));
+            assertEquals("test", wc.getHeaders().get("header"));
+            boolean found = false;
+            for (Iterator<String> headers = wc.getHeaderNames(); headers.hasNext(); ) {
+                if ("header".equals(headers.next())) {
+                    found = true;
+                }
+            }
+            assertTrue("headers does not contain header!", found);
+            wc.validateWSVersion();
+            assertTrue(HeaderTestingVersionServlet.OOZIE_HEADERS.containsKey("header"));
+            assertTrue(HeaderTestingVersionServlet.OOZIE_HEADERS.containsValue("test"));
+            wc.removeHeader("header");
+            assertNull(wc.getHeader("header"));
+            return null;
+        }
+    });
+}

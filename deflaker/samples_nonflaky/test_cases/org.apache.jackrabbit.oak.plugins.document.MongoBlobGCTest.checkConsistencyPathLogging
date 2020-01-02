@@ -1,0 +1,12 @@
+@Test
+public void checkConsistencyPathLogging() throws Exception {
+    String rootFolder = folder.newFolder().getAbsolutePath();
+    LogCustomizer customLogs = LogCustomizer.forLogger(MarkSweepGarbageCollector.class.getName()).enable(Level.TRACE).filter(Level.TRACE).create();
+    setUp(false);
+    customLogs.starting();
+    ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
+    MarkSweepGarbageCollector gcObj = init(86400, executor, rootFolder);
+    gcObj.checkConsistency();
+    customLogs.finished();
+    assertBlobReferenceRecords(2, rootFolder);
+}

@@ -1,0 +1,18 @@
+@Test
+public void timeSeriesOnly() throws Exception {
+    Whiteboard wb = new DefaultWhiteboard();
+    final Map<String, StatsOptions> optionsPassed = Maps.newHashMap();
+    wb.register(StatisticsProvider.class, new DummyStatsProvider() {
+
+        @Override
+        public MeterStats getMeter(String name, StatsOptions options) {
+            optionsPassed.put(name, options);
+            return super.getMeter(name, options);
+        }
+    }, null);
+    StatisticManager mgr = new StatisticManager(wb, executorService);
+    mgr.getMeter(Type.SESSION_READ_COUNTER);
+    assertEquals(StatsOptions.TIME_SERIES_ONLY, optionsPassed.get(Type.SESSION_READ_COUNTER.name()));
+    mgr.getMeter(Type.SESSION_WRITE_COUNTER);
+    assertEquals(StatsOptions.DEFAULT, optionsPassed.get(Type.SESSION_WRITE_COUNTER.name()));
+}

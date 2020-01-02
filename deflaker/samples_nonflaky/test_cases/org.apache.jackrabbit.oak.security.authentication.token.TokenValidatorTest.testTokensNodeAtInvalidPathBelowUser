@@ -1,0 +1,19 @@
+@Test
+public void testTokensNodeAtInvalidPathBelowUser() throws Exception {
+    Tree userTree = root.getTree(getUserManager(root).getAuthorizable(userId).getPath());
+    Tree n = null;
+    try {
+        // Invalid node type of '.tokens' node
+        n = TreeUtil.addChild(userTree, "test", JcrConstants.NT_UNSTRUCTURED);
+        TreeUtil.addChild(n, TOKENS_NODE_NAME, TOKENS_NT_NAME);
+        root.commit();
+        fail("The token parent node must be located below the user home node.");
+    } catch (CommitFailedException e) {
+        assertEquals(68, e.getCode());
+    } finally {
+        if (n != null) {
+            n.remove();
+            root.commit(CommitMarker.asCommitAttributes());
+        }
+    }
+}

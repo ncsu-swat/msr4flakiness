@@ -1,0 +1,14 @@
+@Test
+public void testGetEffectivePoliciesByPrincipals() throws Exception {
+    Privilege[] privs = privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
+    setupPolicy(testPath, privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
+    AccessControlManager acMgr = getAccessControlManager(root);
+    JackrabbitAccessControlList acl = TestUtility.getApplicablePolicy(acMgr, childPath);
+    acl.addEntry(EveryonePrincipal.getInstance(), privs, true);
+    acMgr.setPolicy(childPath, acl);
+    root.commit();
+    testRoot.refresh();
+    Set<Principal> principals = ImmutableSet.of(testPrincipal, EveryonePrincipal.getInstance());
+    AccessControlPolicy[] policies = testAcMgr.getEffectivePolicies(principals);
+    assertPolicies(policies, 2);
+}

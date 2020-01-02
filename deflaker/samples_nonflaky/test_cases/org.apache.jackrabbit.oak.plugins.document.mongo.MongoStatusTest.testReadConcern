@@ -1,0 +1,21 @@
+@Test
+public void testReadConcern() {
+    BasicDBObject mockServerStatus = new BasicDBObject();
+    BasicDBObject storageEngine = new BasicDBObject();
+    status.setServerStatus(mockServerStatus);
+    if (status.isVersion(3, 6)) {
+        // OAK-7291: majority read concern is enabled by default
+        assertTrue(status.isMajorityReadConcernSupported());
+    } else {
+        assertFalse(status.isMajorityReadConcernSupported());
+    }
+    mockServerStatus.put("storageEngine", storageEngine);
+    status.setServerStatus(mockServerStatus);
+    assertFalse(status.isMajorityReadConcernSupported());
+    storageEngine.put("supportsCommittedReads", false);
+    status.setServerStatus(mockServerStatus);
+    assertFalse(status.isMajorityReadConcernSupported());
+    storageEngine.put("supportsCommittedReads", true);
+    status.setServerStatus(mockServerStatus);
+    assertTrue(status.isMajorityReadConcernSupported());
+}

@@ -1,0 +1,20 @@
+@Test
+public void changeCollectionEnabled() throws Exception {
+    injectDefaultServices();
+    Map<String, Object> config = ImmutableMap.<String, Object>of("asyncConfigs", new String[] { "async:5" });
+    context.registerService(IndexEditorProvider.class, new PropertyIndexEditorProvider());
+    MockOsgi.activate(service, context.bundleContext(), config);
+    NodeBuilder builder = nodeStore.getRoot().builder();
+    createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "rootIndex", true, false, ImmutableSet.of("foo"), null).setProperty(ASYNC_PROPERTY_NAME, "async");
+    builder.child("testRoot").setProperty("foo", "abc");
+    // merge it back in
+    nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    CommitInfoCollector infoCollector = new CommitInfoCollector();
+    nodeStore.addObserver(infoCollector);
+    AsyncIndexUpdate indexUpdate = getIndexUpdate("async");
+    indexUpdate.run();
+    CommitContext commitContext = (CommitContext) infoCollector.infos.get(0).getInfo().get(CommitContext.NAME);
+    assertNotNull(commitContext);
+    ChangeSet changeSet = (ChangeSet) commitContext.get(ChangeSet.COMMIT_CONTEXT_OBSERVATION_CHANGESET);
+    assertNotNull(changeSet);
+}

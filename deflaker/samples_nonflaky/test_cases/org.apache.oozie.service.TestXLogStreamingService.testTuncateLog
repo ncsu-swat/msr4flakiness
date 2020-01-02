@@ -1,0 +1,20 @@
+public void testTuncateLog() throws Exception {
+    File log4jFile = new File(getTestCaseConfDir(), "test-log4j.properties");
+    ClassLoader cl = Thread.currentThread().getContextClassLoader();
+    InputStream is = cl.getResourceAsStream("test-no-dash-log4j.properties");
+    Properties log4jProps = new Properties();
+    log4jProps.load(is);
+    log4jProps.setProperty("log4j.appender.oozie.File", getTestCaseDir() + "/oozie.log");
+    log4jProps.store(new FileOutputStream(log4jFile), "");
+    setSystemProperty(XLogService.LOG4J_FILE, log4jFile.getName());
+    new Services().init();
+    ConfigurationService.set(XLogFilter.MAX_SCAN_DURATION, "10");
+    Date startDate = new Date();
+    Date endDate = new Date(startDate.getTime() + FIFTEEN_HOURS);
+    String log = doStreamLog(new XLogFilter(), startDate, endDate);
+    assertTrue(log.contains("Truncated logs to max log scan duration"));
+    log = doStreamErrorLog(new XLogFilter(), startDate, endDate);
+    assertFalse(log.contains("Truncated logs to max log scan duration"));
+    log = doStreamAuditLog(new XLogFilter(), startDate, endDate);
+    assertFalse(log.contains("Truncated logs to max log scan duration"));
+}

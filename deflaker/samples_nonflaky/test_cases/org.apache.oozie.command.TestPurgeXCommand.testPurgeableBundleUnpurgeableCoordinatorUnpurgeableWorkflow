@@ -1,0 +1,20 @@
+/**
+ * Test : The workflow and coordinator should not get purged, but the bundle parent should get purged --> none will get purged
+ *
+ * @throws Exception if cannot insert records to the database
+ */
+public void testPurgeableBundleUnpurgeableCoordinatorUnpurgeableWorkflow() throws Exception {
+    BundleJobBean bundleJob = addRecordToBundleJobTable(Job.Status.SUCCEEDED, DateUtils.parseDateOozieTZ("2011-01-01T01:00Z"));
+    CoordinatorJobBean coordJob = addRecordToCoordJobTable(CoordinatorJob.Status.SUCCEEDED, false, false);
+    WorkflowJobBean wfJob = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED);
+    WorkflowActionBean wfAction = addRecordToWfActionTable(wfJob.getId(), "1", WorkflowAction.Status.OK);
+    CoordinatorActionBean coordAction = addRecordToCoordActionTable(coordJob.getId(), 1, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", wfJob.getId(), "SUCCEEDED", 0);
+    BundleActionBean bundleAction = addRecordToBundleActionTable(bundleJob.getId(), coordJob.getId(), coordJob.getAppName(), 0, Job.Status.SUCCEEDED);
+    purgeWithSpecialParameters(wfJob, coordJob);
+    assertBundleJobNotPurged(bundleJob);
+    assertBundleActionNotPurged(bundleAction);
+    assertCoordinatorJobNotPurged(coordJob);
+    assertCoordinatorActionNotPurged(coordAction);
+    assertWorkflowJobNotPurged(wfJob);
+    assertWorkflowActionNotPurged(wfAction);
+}

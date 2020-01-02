@@ -1,0 +1,17 @@
+/**
+ * Using direct call to check here because there is no other way
+ * to reproduce exception with invalid canonical path.
+ */
+@Test
+public void testCheckstyleExceptionIfFailedToGetCanonicalPathToFile() {
+    final JavadocPackageCheck check = new JavadocPackageCheck();
+    final File fileWithInvalidPath = new File("\u0000\u0000\u0000");
+    final FileText mockFileText = new FileText(fileWithInvalidPath, Collections.emptyList());
+    final String expectedExceptionMessage = "Exception while getting canonical path to file " + fileWithInvalidPath.getPath();
+    try {
+        check.processFiltered(fileWithInvalidPath, mockFileText);
+        fail("CheckstyleException expected to be thrown");
+    } catch (CheckstyleException ex) {
+        assertEquals(expectedExceptionMessage, ex.getMessage(), "Invalid exception message. Expected: " + expectedExceptionMessage);
+    }
+}

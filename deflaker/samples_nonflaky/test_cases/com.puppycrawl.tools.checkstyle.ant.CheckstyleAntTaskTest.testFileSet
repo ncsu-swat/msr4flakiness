@@ -1,0 +1,13 @@
+@Test
+public final void testFileSet() throws IOException {
+    TestRootModuleChecker.reset();
+    final CheckstyleAntTask antTask = getCheckstyleAntTask(CUSTOM_ROOT_CONFIG_FILE);
+    final FileSet examinationFileSet = new FileSet();
+    examinationFileSet.setFile(new File(getPath(FLAWLESS_INPUT)));
+    antTask.addFileset(examinationFileSet);
+    antTask.execute();
+    assertTrue(TestRootModuleChecker.isProcessed(), "Checker is not processed");
+    final List<File> filesToCheck = TestRootModuleChecker.getFilesToCheck();
+    assertThat("There are more files to check than expected", filesToCheck.size(), is(1));
+    assertThat("The path of file differs from expected", filesToCheck.get(0).getAbsolutePath(), is(getPath(FLAWLESS_INPUT)));
+}

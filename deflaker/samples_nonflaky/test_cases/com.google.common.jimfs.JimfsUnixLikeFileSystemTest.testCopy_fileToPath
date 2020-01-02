@@ -1,0 +1,18 @@
+@Test
+public void testCopy_fileToPath() throws IOException {
+    byte[] bytes = preFilledBytes(512);
+    Files.write(path("/foo"), bytes);
+    assertThatPath("/bar").doesNotExist();
+    Files.copy(path("/foo"), path("/bar"));
+    assertThatPath("/bar").containsBytes(bytes);
+    byte[] moreBytes = preFilledBytes(2048);
+    Files.write(path("/baz"), moreBytes);
+    Files.copy(path("/baz"), path("/bar"), REPLACE_EXISTING);
+    assertThatPath("/bar").containsBytes(moreBytes);
+    try {
+        Files.copy(path("/none"), path("/bar"));
+        fail();
+    } catch (NoSuchFileException expected) {
+        assertEquals("/none", expected.getMessage());
+    }
+}

@@ -1,0 +1,23 @@
+@Test
+public void bundledNodes() throws Exception {
+    SecondaryStoreCache cache = createCache(new PathFilter(of("/"), empty));
+    primary.setNodeStateCache(cache);
+    NodeBuilder builder = primary.getRoot().builder();
+    new InitialContent().initialize(builder);
+    BundlingConfigInitializer.INSTANCE.initialize(builder);
+    merge(builder);
+    BundledTypesRegistry registry = BundledTypesRegistry.from(NodeStateUtils.getNode(primary.getRoot(), BundlingConfigHandler.CONFIG_PATH));
+    assertNotNull("DocumentBundling not found to be enabled for nt:file", registry.getBundlor(newNode("nt:file").getNodeState()));
+    // 1. Create a file node
+    builder = primary.getRoot().builder();
+    NodeBuilder fileNode = newNode("nt:file");
+    fileNode.child("jcr:content").setProperty("jcr:data", "foo");
+    builder.child("test").setChildNode("book.jpg", fileNode.getNodeState());
+    merge(builder);
+    // 2. Assert that bundling is working
+    assertNull(getNodeDocument("/test/book.jpg/jcr:content"));
+    // 3. Now update the file node
+    builder = primary.getRoot().builder();
+    builder.getChildNode("test").getChildNode("book.jpg").getChildNode("jcr:content").setProperty("foo", "bar");
+    merge(builder);
+}

@@ -1,0 +1,15 @@
+@Test
+public void testDSBSDeleteAllOlderThanStats() throws Exception {
+    DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withDeleteDelay(1010));
+    DataRecord record = dsbs.addRecord(getTestInputStream());
+    long modifiedBefore = tomorrow();
+    long deleteByDateCount = stats.getDeleteByDateCount();
+    long deleteByDateCountLastMinute = getLastMinuteStats(stats.getDeleteByDateCountHistory());
+    long deleteByDateTimeLastMinute = getLastMinuteStats(stats.getDeleteByDateTimeHistory());
+    assertTrue(idInDsbs(record.getIdentifier(), dsbs));
+    assertEquals(1, dsbs.deleteAllOlderThan(modifiedBefore));
+    assertFalse(idInDsbs(record.getIdentifier(), dsbs));
+    assertEquals(deleteByDateCount + 1, stats.getDeleteByDateCount());
+    assertEquals(deleteByDateCountLastMinute + 1, waitForMetric(input -> getLastMinuteStats(input.getDeleteByDateCountHistory()), stats, 1L, 0L).longValue());
+    assertTrue(deleteByDateTimeLastMinute < waitForNonzeroMetric(input -> getLastMinuteStats(input.getDeleteByDateTimeHistory()), stats));
+}

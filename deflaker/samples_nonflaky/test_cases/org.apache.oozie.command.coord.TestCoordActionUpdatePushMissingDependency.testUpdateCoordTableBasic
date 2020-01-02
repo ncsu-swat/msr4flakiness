@@ -1,0 +1,16 @@
+@Test
+public void testUpdateCoordTableBasic() throws Exception {
+    String newHCatDependency = "hcat://hcat.server.com:5080/mydb/clicks/datastamp=12;region=us";
+    HCatURI hcatUri = new HCatURI(newHCatDependency);
+    String actionId = addInitRecords(newHCatDependency);
+    checkCoordAction(actionId, newHCatDependency, CoordinatorAction.Status.WAITING);
+    PartitionDependencyManagerService pdms = Services.get().get(PartitionDependencyManagerService.class);
+    pdms.addMissingDependency(hcatUri, actionId);
+    pdms.partitionAvailable("hcat.server.com:5080", "mydb", "clicks", getPartitionMap("src=search;datastamp=12;region=us"));
+    Collection<String> availableURIs = pdms.getAvailableDependencyURIs(actionId);
+    assertEquals(availableURIs.size(), 1);
+    assertTrue(availableURIs.contains(newHCatDependency));
+    new CoordActionUpdatePushMissingDependency(actionId).call();
+    checkCoordAction(actionId, "", CoordinatorAction.Status.READY);
+    assertNull(pdms.getAvailableDependencyURIs(actionId));
+}

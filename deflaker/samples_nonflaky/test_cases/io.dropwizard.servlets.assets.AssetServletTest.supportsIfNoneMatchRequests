@@ -1,0 +1,13 @@
+@Test
+public void supportsIfNoneMatchRequests() throws Exception {
+    response = HttpTester.parseResponse(SERVLET_TESTER.getResponses(request.generate()));
+    final String correctEtag = response.get(HttpHeader.ETAG);
+    request.setHeader(HttpHeader.IF_NONE_MATCH.asString(), correctEtag);
+    response = HttpTester.parseResponse(SERVLET_TESTER.getResponses(request.generate()));
+    final int statusWithMatchingEtag = response.getStatus();
+    request.setHeader(HttpHeader.IF_NONE_MATCH.asString(), correctEtag + "FOO");
+    response = HttpTester.parseResponse(SERVLET_TESTER.getResponses(request.generate()));
+    final int statusWithNonMatchingEtag = response.getStatus();
+    assertThat(statusWithMatchingEtag).isEqualTo(304);
+    assertThat(statusWithNonMatchingEtag).isEqualTo(200);
+}

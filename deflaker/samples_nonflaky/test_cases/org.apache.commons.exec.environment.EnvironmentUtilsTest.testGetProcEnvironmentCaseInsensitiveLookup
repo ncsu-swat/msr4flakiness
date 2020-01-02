@@ -1,0 +1,27 @@
+/**
+ * On Windows platforms test that accessing environment variables
+ * can be done in a case-insensitive way, e.g. "PATH", "Path" and
+ * "path" would reference the same environment variable.
+ *
+ * @throws IOException the test failed
+ */
+@Test
+public void testGetProcEnvironmentCaseInsensitiveLookup() throws IOException {
+    // run tests only on windows platforms
+    if (!OS.isFamilyWindows()) {
+        return;
+    }
+    // ensure that we have the same value for upper and lowercase keys
+    final Map<String, String> procEnvironment = EnvironmentUtils.getProcEnvironment();
+    for (final Entry<String, String> entry : procEnvironment.entrySet()) {
+        final String key = entry.getKey();
+        final String value = entry.getValue();
+        assertEquals(value, procEnvironment.get(key.toLowerCase(Locale.ENGLISH)));
+        assertEquals(value, procEnvironment.get(key.toUpperCase(Locale.ENGLISH)));
+    }
+    // add an environment variable and check access
+    EnvironmentUtils.addVariableToEnvironment(procEnvironment, "foo=bar");
+    assertEquals("bar", procEnvironment.get("FOO"));
+    assertEquals("bar", procEnvironment.get("Foo"));
+    assertEquals("bar", procEnvironment.get("foo"));
+}

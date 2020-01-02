@@ -1,0 +1,52 @@
+/**
+ * <p>
+ * Tests the index pruning mechanism
+ * </p>
+ * <ul>
+ * <li>
+ * adds a few levels of nodes, nodes with an even index will have the
+ * 'match' property set</li>
+ *
+ * <li>
+ * pruning in this case means that whatever path that doesn't have a 'match'
+ * property is considered dead weight and should be removed from the index</li>
+ * </ul>
+ */
+@Test
+public void testIndexPruning() throws CommitFailedException {
+    IndexStoreStrategy store = new ContentMirrorStoreStrategy();
+    NodeState root = EMPTY_NODE;
+    NodeBuilder builder = root.builder();
+    Supplier<NodeBuilder> index = () -> builder;
+    for (String path : asList("/", "a/b/c", "a/b/d", "b", "d/e", "d/e/f")) {
+        store.update(index, path, null, null, EMPTY, KEY);
+    }
+    checkPath(builder, "key", "", true);
+    checkPath(builder, "key", "a/b/c", true);
+    checkPath(builder, "key", "a/b/d", true);
+    checkPath(builder, "key", "b", true);
+    checkPath(builder, "key", "d/e", true);
+    checkPath(builder, "key", "d/e/f", true);
+    // remove the root key, removes just the "match" property, when the
+    // index is not empty
+    store.update(index, "/", null, null, KEY, EMPTY);
+    checkPath(builder, "key", "d/e/f", true);
+    // removing intermediary path doesn't remove the entire subtree
+    store.update(index, "d/e", null, null, KEY, EMPTY);
+    checkPath(builder, "key", "d/e/f", true);
+    // removing intermediary path doesn't remove the entire subtree
+    store.update(index, "d/e/f", null, null, KEY, EMPTY);
+    checkNotPath(builder, "key", "d");
+    // brother segment removed
+    store.update(index, "a/b/d", null, null, KEY, EMPTY);
+    store.update(index, "a/b", null, null, KEY, EMPTY);
+    checkPath(builder, "key", "a/b/c", true);
+    // reinsert root and remove everything else
+    store.update(index, "", null, null, EMPTY, KEY);
+    store.update(index, "d/e/f", null, null, KEY, EMPTY);
+    store.update(index, "b", null, null, KEY, EMPTY);
+    store.update(index, "a/b/c", null, null, KEY, EMPTY);
+    // remove the root key when the index is empty
+    store.update(index, "", null, null, KEY, EMPTY);
+    Assert.assertEquals(0, builder.getChildNodeCount(1));
+}

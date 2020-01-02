@@ -1,0 +1,9 @@
+@Test
+public void testCancel() throws IOException, CommitFailedException {
+    Compactor compactor = createCompactor(fileStore, null);
+    addTestContent(nodeStore);
+    NodeBuilder builder = nodeStore.getRoot().builder();
+    builder.setChildNode("cancel").setProperty("cancel", "cancel");
+    nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    assertNull(compactor.compact(nodeStore.getRoot(), Canceller.newCanceller().withCondition("reason", () -> true)));
+}

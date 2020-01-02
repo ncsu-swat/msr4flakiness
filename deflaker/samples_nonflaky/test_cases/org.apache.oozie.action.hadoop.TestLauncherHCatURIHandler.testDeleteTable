@@ -1,0 +1,17 @@
+public void testDeleteTable() throws Exception {
+    try {
+        createTestTable();
+        createPartitionForTestDelete(true, true);
+        URI hcatURI = getHCatURI(db, table, "year=2012;month=12;dt=02;country=us");
+        URIHandler uriHandler = uriService.getURIHandler(hcatURI);
+        assertTrue(uriHandler.exists(hcatURI, conf, getTestUser()));
+        hcatURI = getHCatURI(db, table);
+        assertTrue(uriHandler.exists(hcatURI, conf, getTestUser()));
+        LauncherURIHandlerFactory uriHandlerFactory = new LauncherURIHandlerFactory(uriService.getLauncherConfig());
+        LauncherURIHandler handler = uriHandlerFactory.getURIHandler(hcatURI);
+        handler.delete(hcatURI, conf);
+        assertFalse(uriHandler.exists(hcatURI, conf, getTestUser()));
+    } finally {
+        dropTestTable(true);
+    }
+}

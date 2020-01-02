@@ -1,0 +1,16 @@
+@Test
+public void testLoginWithReadOnlySubject() throws Exception {
+    Map<String, Object> sharedState = Maps.newHashMap();
+    sharedState.put(SHARED_KEY_CREDENTIALS, getAdminCredentials());
+    Principal unknownPrincipal = new PrincipalImpl("unknown");
+    Subject subject = new Subject(true, Collections.singleton(unknownPrincipal), Collections.emptySet(), Collections.emptySet());
+    LoginModuleImpl lm = new LoginModuleImpl();
+    lm.initialize(subject, new TestCallbackHandler(new UserAuthenticationFactoryImpl()), sharedState, Maps.newHashMap());
+    assertTrue(lm.login());
+    assertTrue(lm.commit());
+    assertFalse(subject.getPrincipals().isEmpty());
+    assertTrue(subject.getPublicCredentials().isEmpty());
+    assertTrue(lm.logout());
+    assertFalse(subject.getPrincipals().isEmpty());
+    assertTrue(subject.getPublicCredentials().isEmpty());
+}

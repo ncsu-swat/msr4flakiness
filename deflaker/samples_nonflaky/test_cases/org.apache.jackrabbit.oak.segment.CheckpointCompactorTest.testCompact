@@ -1,0 +1,36 @@
+@Test
+public void testCompact() throws Exception {
+    addTestContent("cp1", nodeStore);
+    String cp1 = nodeStore.checkpoint(DAYS.toMillis(1));
+    addTestContent("cp2", nodeStore);
+    String cp2 = nodeStore.checkpoint(DAYS.toMillis(1));
+    SegmentNodeState uncompacted1 = fileStore.getHead();
+    SegmentNodeState compacted1 = compactor.compact(EMPTY_NODE, uncompacted1, EMPTY_NODE, Canceller.newCanceller());
+    assertNotNull(compacted1);
+    assertFalse(uncompacted1 == compacted1);
+    checkGeneration(compacted1, compactedGeneration);
+    assertSameStableId(uncompacted1, compacted1);
+    assertSameStableId(getCheckpoint(uncompacted1, cp1), getCheckpoint(compacted1, cp1));
+    assertSameStableId(getCheckpoint(uncompacted1, cp2), getCheckpoint(compacted1, cp2));
+    assertSameRecord(getCheckpoint(compacted1, cp2), compacted1.getChildNode("root"));
+    // Simulate a 2nd compaction cycle
+    addTestContent("cp3", nodeStore);
+    String cp3 = nodeStore.checkpoint(DAYS.toMillis(1));
+    addTestContent("cp4", nodeStore);
+    String cp4 = nodeStore.checkpoint(DAYS.toMillis(1));
+    SegmentNodeState uncompacted2 = fileStore.getHead();
+    SegmentNodeState compacted2 = compactor.compact(uncompacted1, uncompacted2, compacted1, Canceller.newCanceller());
+    assertNotNull(compacted2);
+    assertFalse(uncompacted2 == compacted2);
+    checkGeneration(compacted2, compactedGeneration);
+    assertTrue(fileStore.getRevisions().setHead(uncompacted2.getRecordId(), compacted2.getRecordId()));
+    assertEquals(uncompacted2, compacted2);
+    assertSameStableId(uncompacted2, compacted2);
+    assertSameStableId(getCheckpoint(uncompacted2, cp1), getCheckpoint(compacted2, cp1));
+    assertSameStableId(getCheckpoint(uncompacted2, cp2), getCheckpoint(compacted2, cp2));
+    assertSameStableId(getCheckpoint(uncompacted2, cp3), getCheckpoint(compacted2, cp3));
+    assertSameStableId(getCheckpoint(uncompacted2, cp4), getCheckpoint(compacted2, cp4));
+    assertSameRecord(getCheckpoint(compacted1, cp1), getCheckpoint(compacted2, cp1));
+    assertSameRecord(getCheckpoint(compacted1, cp2), getCheckpoint(compacted2, cp2));
+    assertSameRecord(getCheckpoint(compacted2, cp4), compacted2.getChildNode("root"));
+}

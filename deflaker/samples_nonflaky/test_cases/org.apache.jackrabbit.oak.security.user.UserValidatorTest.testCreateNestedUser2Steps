@@ -1,0 +1,20 @@
+@Test(expected = CommitFailedException.class)
+public void testCreateNestedUser2Steps() throws Exception {
+    Tree userTree = root.getTree(getTestUser().getPath());
+    NodeUtil userNode = new NodeUtil(userTree);
+    NodeUtil profile = userNode.addChild("profile", JcrConstants.NT_UNSTRUCTURED);
+    NodeUtil nested = profile.addChild("nested", JcrConstants.NT_UNSTRUCTURED);
+    nested.setString(UserConstants.REP_PRINCIPAL_NAME, "nested");
+    nested.setString(UserConstants.REP_AUTHORIZABLE_ID, "nested");
+    nested.setString(JcrConstants.JCR_UUID, UUIDUtils.generateUUID("nested"));
+    root.commit();
+    try {
+        nested.setName(JCR_PRIMARYTYPE, UserConstants.NT_REP_USER);
+        root.commit();
+        fail("Creating nested users must be detected.");
+    } catch (CommitFailedException e) {
+        // success
+        assertEquals(29, e.getCode());
+        throw e;
+    }
+}

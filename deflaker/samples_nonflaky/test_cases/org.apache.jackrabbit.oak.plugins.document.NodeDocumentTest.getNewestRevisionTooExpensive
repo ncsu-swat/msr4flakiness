@@ -1,0 +1,49 @@
+@Test
+public void getNewestRevisionTooExpensive() throws Exception {
+    final int NUM_CHANGES = 200;
+    final Set<String> prevDocCalls = newHashSet();
+    DocumentStore store = new MemoryDocumentStore() {
+
+        @Override
+        public <T extends Document> T find(Collection<T> collection, String key) {
+            if (Utils.getPathFromId(key).startsWith("p")) {
+                prevDocCalls.add(key);
+            }
+            return super.find(collection, key);
+        }
+    };
+    DocumentNodeStore ns = new DocumentMK.Builder().setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+    // create test data
+    for (int i = 0; i < NUM_CHANGES; i++) {
+        NodeBuilder builder = ns.getRoot().builder();
+        if (builder.hasChildNode("test")) {
+            builder.child("test").remove();
+            builder.child("foo").remove();
+        } else {
+            builder.child("test");
+            builder.child("foo");
+        }
+        merge(ns, builder);
+        if (Math.random() < 0.2) {
+            RevisionVector head = ns.getHeadRevision();
+            NodeDocument doc = ns.getDocumentStore().find(NODES, Utils.getIdFromPath("/test"));
+            for (UpdateOp op : SplitOperations.forDocument(doc, ns, head, NO_BINARY, 2)) {
+                store.createOrUpdate(NODES, op);
+            }
+        }
+    }
+    NodeDocument doc = ns.getDocumentStore().find(NODES, Utils.getIdFromPath("/test"));
+    // get most recent previous doc
+    NodeDocument prev = doc.getAllPreviousDocs().next();
+    // simulate a change revision within the range of
+    // the most recent previous document
+    Iterable<Revision> changes = prev.getAllChanges();
+    Revision baseRev = Iterables.getLast(changes);
+    Revision changeRev = new Revision(baseRev.getTimestamp(), 1000, ns.getClusterId());
+    // reset calls to previous documents
+    prevDocCalls.clear();
+    doc.getNewestRevision(ns, new RevisionVector(baseRev), changeRev, null, new HashSet<Revision>());
+    // must not read all previous docs
+    assertTrue("too many calls for previous documents: " + prevDocCalls, prevDocCalls.size() <= 5);
+    ns.dispose();
+}

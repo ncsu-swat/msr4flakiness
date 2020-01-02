@@ -1,0 +1,16 @@
+@Test
+public void testCanReadTwiceDenied() {
+    TreePermission mockTp = when(mock(TreePermission.class).canRead()).thenReturn(false).getMock();
+    AggregatedPermissionProvider mockPP = mock(AggregatedPermissionProvider.class);
+    when(mockPP.getTreePermission(any(Tree.class), any(TreeType.class), any(TreePermission.class))).thenReturn(mockTp);
+    when(mockPP.supportedPermissions(mockTp, null, Permissions.READ_NODE)).thenReturn(Permissions.ALL);
+    TreePermission rootTp = createRootTreePermission(mockPP, fullScopeProvider);
+    rootTp.canRead();
+    rootTp.canRead();
+    verify(mockTp, times(1)).canRead();
+    verify(mockTp, never()).canReadProperties();
+    verify(mockTp, never()).canRead(any(PropertyState.class));
+    verify(mockTp, never()).canReadAll();
+    verify(mockPP, times(1)).getTreePermission(any(Tree.class), any(TreeType.class), any(TreePermission.class));
+    verify(mockPP, times(1)).supportedPermissions(mockTp, null, Permissions.READ_NODE);
+}

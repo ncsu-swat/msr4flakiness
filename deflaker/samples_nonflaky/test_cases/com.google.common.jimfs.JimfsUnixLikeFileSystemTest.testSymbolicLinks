@@ -1,0 +1,43 @@
+@Test
+public void testSymbolicLinks() throws IOException {
+    Files.createSymbolicLink(path("/link.txt"), path("/file.txt"));
+    assertThatPath("/link.txt", NOFOLLOW_LINKS).isSymbolicLink().withTarget("/file.txt");
+    // following the link; target doesn't exist
+    assertThatPath("/link.txt").doesNotExist();
+    try {
+        Files.createFile(path("/link.txt"));
+        fail();
+    } catch (FileAlreadyExistsException expected) {
+    }
+    try {
+        Files.readAllBytes(path("/link.txt"));
+        fail();
+    } catch (NoSuchFileException expected) {
+    }
+    Files.createFile(path("/file.txt"));
+    // following the link; target does exist
+    assertThatPath("/link.txt").isRegularFile();
+    assertThatPath("/link.txt").containsNoBytes();
+    Files.createSymbolicLink(path("/foo"), path("/bar/baz"));
+    assertThatPath("/foo", NOFOLLOW_LINKS).isSymbolicLink().withTarget("/bar/baz");
+    // following the link; target doesn't exist
+    assertThatPath("/foo").doesNotExist();
+    Files.createDirectories(path("/bar/baz"));
+    // following the link; target does exist
+    assertThatPath("/foo").isDirectory();
+    Files.createFile(path("/bar/baz/test.txt"));
+    // follow intermediate link
+    assertThatPath("/foo/test.txt", NOFOLLOW_LINKS).isRegularFile();
+    try {
+        Files.readSymbolicLink(path("/none"));
+        fail();
+    } catch (NoSuchFileException expected) {
+        assertEquals("/none", expected.getMessage());
+    }
+    try {
+        Files.readSymbolicLink(path("/file.txt"));
+        fail();
+    } catch (NotLinkException expected) {
+        assertEquals("/file.txt", expected.getMessage());
+    }
+}

@@ -1,0 +1,21 @@
+public void testHcatHdfs() throws Exception {
+    Configuration conf = getConfForCombine();
+    conf.set("initial_instance_a", "2014-10-07T00:00Z");
+    conf.set("initial_instance_b", "2014-10-07T00:00Z");
+    String inputLogic = // @formatter:off
+    "<and name=\"test\">" + "<data-in name=\"testA\" dataset=\"A\" />" + "<data-in name=\"testB\" dataset=\"B\" />" + "</and>";
+    // @formatter:on
+    String jobId = submitCoord("coord-inputlogic-combine.xml", conf, inputLogic, TEST_TYPE.CURRENT_SINGLE);
+    String input1 = createTestCaseSubDir("input-data/b/2014/10/08/_SUCCESS".split("/"));
+    String input2 = addPartition("db_a", "table1", "dt=20141008;country=usa");
+    new CoordMaterializeTransitionXCommand(jobId, 3600).call();
+    new CoordPushDependencyCheckXCommand(jobId + "@1").call();
+    new CoordActionInputCheckXCommand(jobId + "@1", jobId).call();
+    startCoordAction(jobId);
+    CoordinatorActionBean actionBean = CoordActionQueryExecutor.getInstance().get(CoordActionQuery.GET_COORD_ACTION, jobId + "@1");
+    assertFalse(CoordinatorAction.Status.WAITING.equals(actionBean.getStatus()));
+    XConfiguration runConf = new XConfiguration(new StringReader(actionBean.getRunConf()));
+    String dataSets = runConf.get("inputLogicData");
+    assertEquals(dataSets.split(",").length, 2);
+    checkDataSets(dataSets, input1, input2);
+}

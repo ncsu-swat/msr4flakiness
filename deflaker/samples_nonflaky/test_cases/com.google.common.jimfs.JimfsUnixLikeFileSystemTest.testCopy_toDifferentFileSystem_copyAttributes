@@ -1,0 +1,19 @@
+@Test
+public void testCopy_toDifferentFileSystem_copyAttributes() throws IOException {
+    try (FileSystem fs2 = Jimfs.newFileSystem(UNIX_CONFIGURATION)) {
+        Path foo = fs.getPath("/foo");
+        byte[] bytes = { 0, 1, 2, 3, 4 };
+        Files.write(foo, bytes);
+        Files.getFileAttributeView(foo, BasicFileAttributeView.class).setTimes(FileTime.fromMillis(0), FileTime.fromMillis(1), FileTime.fromMillis(2));
+        UserPrincipal owner = fs.getUserPrincipalLookupService().lookupPrincipalByName("foobar");
+        Files.setOwner(foo, owner);
+        assertThatPath(foo).attribute("owner:owner").is(owner);
+        Path foo2 = fs2.getPath("/foo");
+        Files.copy(foo, foo2, COPY_ATTRIBUTES);
+        assertThatPath(foo).exists();
+        // when copying with COPY_ATTRIBUTES to a different FileSystem, only basic attributes (that
+        // is, file times) can actually be copied
+        assertThatPath(foo2).exists().and().attribute("lastModifiedTime").is(FileTime.fromMillis(0)).and().attribute("lastAccessTime").is(FileTime.fromMillis(1)).and().attribute("creationTime").is(FileTime.fromMillis(2)).and().attribute("owner:owner").isNot(owner).and().attribute("owner:owner").isNot(fs2.getUserPrincipalLookupService().lookupPrincipalByName("foobar")).and().containsBytes(// do this last; it updates the access time
+        bytes);
+    }
+}

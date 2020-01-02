@@ -1,0 +1,26 @@
+// OAK-4403
+@Test
+public void diffWithPersistedBranch() throws Exception {
+    createNodes("/content/a", "/etc/x", "var/x", "/etc/y");
+    // #1 - Start making some changes
+    NodeBuilder b = ns.getRoot().builder();
+    createNodes(b, "/content/b");
+    // #2 - Do lots of change so as to trigger branch creation
+    // BranchState > Unmodified -> InMemory
+    for (int i = 0; i <= UPDATE_LIMIT; i++) {
+        b.child("content").child("a").child("c" + i);
+    }
+    // #3 -  In between push some changes to NodeStore
+    NodeBuilder b2 = ns.getRoot().builder();
+    b2.child("etc").child("x").setProperty("foo", 1);
+    b2.child("var").remove();
+    merge(b2);
+    ns.runBackgroundOperations();
+    createNodes(b, "/content/e");
+    tds.reset();
+    merge(b);
+    // With the merge the diff logic should not be accessing the
+    // paths which are not part of the current commit like /etc and /var
+    assertThat(tds.paths, not(hasItem("/etc/x")));
+    assertThat(tds.paths, not(hasItem("/var/x")));
+}

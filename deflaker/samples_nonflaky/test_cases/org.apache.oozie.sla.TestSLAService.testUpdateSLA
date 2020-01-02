@@ -1,0 +1,101 @@
+@Test
+public void testUpdateSLA() throws Exception {
+    SLAService slas = Services.get().get(SLAService.class);
+    assertNotNull(slas);
+    assertTrue(SLAService.isEnabled());
+    EventHandlerService ehs = Services.get().get(EventHandlerService.class);
+    // test start-miss
+    WorkflowJobBean wfJob = addRecordToWfJobTable(WorkflowJob.Status.RUNNING, WorkflowInstance.Status.RUNNING);
+    SLARegistrationBean sla1 = _createSLARegistration(wfJob.getId(), AppType.WORKFLOW_JOB);
+    // 1 hour back
+    sla1.setExpectedStart(new Date(System.currentTimeMillis() - 1 * 1 * 3600 * 1000));
+    // 1 hour back
+    sla1.setExpectedEnd(new Date(System.currentTimeMillis() - 1 * 1 * 3600 * 1000));
+    // 10 mins
+    sla1.setExpectedDuration(10 * 60 * 1000);
+    slas.addRegistrationEvent(sla1);
+    assertEquals(1, slas.getSLACalculator().size());
+    slas.runSLAWorker();
+    ehs.new EventWorker().run();
+    assertEventNoDuplicates(output.toString(), "Sla START - MISS!!!");
+    assertEventNoDuplicates(output.toString(), "Sla END - MISS!!!");
+    output.setLength(0);
+    // test different jobs and events start-met and end-miss
+    WorkflowJobBean wfJob2 = addRecordToWfJobTable(WorkflowJob.Status.RUNNING, WorkflowInstance.Status.RUNNING);
+    sla1 = _createSLARegistration(wfJob2.getId(), AppType.WORKFLOW_JOB);
+    // 1 hour ahead
+    sla1.setExpectedStart(new Date(System.currentTimeMillis() + 1 * 3600 * 1000));
+    // 2 hours ahead
+    sla1.setExpectedEnd(new Date(System.currentTimeMillis() + 2 * 3600 * 1000));
+    slas.addRegistrationEvent(sla1);
+    wfJob2.setStatusStr("RUNNING");
+    wfJob2.setLastModifiedTime(new Date());
+    wfJob2.setStartTime(new Date());
+    WorkflowJobQueryExecutor.getInstance().executeUpdate(WorkflowJobQuery.UPDATE_WORKFLOW_STATUS_INSTANCE_MOD_START_END, wfJob2);
+    slas.addStatusEvent(sla1.getId(), WorkflowJob.Status.RUNNING.name(), EventStatus.STARTED, new Date(), new Date());
+    CoordinatorActionBean action = addRecordToCoordActionTable("coord_id-C", 1, CoordinatorAction.Status.TIMEDOUT, "coord-action-get.xml", 0);
+    SLARegistrationBean sla2 = _createSLARegistration(action.getId(), AppType.COORDINATOR_ACTION);
+    // 1 hour ahead only for testing
+    sla2.setExpectedStart(new Date(System.currentTimeMillis() + 1 * 3600 * 1000));
+    // 2 hours back
+    sla2.setExpectedEnd(new Date(System.currentTimeMillis() - 2 * 3600 * 1000));
+    // to process duration too
+    sla2.setExpectedDuration(10);
+    slas.addRegistrationEvent(sla2);
+    assertEquals(3, slas.getSLACalculator().size());
+    Date startTime = new Date();
+    WorkflowJobBean wfJob3 = addRecordToWfJobTable(WorkflowJob.Status.RUNNING, WorkflowInstance.Status.RUNNING);
+    wfJob3.setStatusStr("SUCCEEDED");
+    wfJob3.setLastModifiedTime(new Date());
+    wfJob3.setStartTime(startTime);
+    wfJob3.setEndTime(startTime);
+    WorkflowJobQueryExecutor.getInstance().executeUpdate(WorkflowJobQuery.UPDATE_WORKFLOW_STATUS_INSTANCE_MOD_START_END, wfJob3);
+    action.setCreatedTime(startTime);
+    action.setStatus(CoordinatorAction.Status.SUCCEEDED);
+    action.setLastModifiedTime(new Date());
+    action.setExternalId(wfJob3.getId());
+    CoordActionQueryExecutor.getInstance().executeUpdate(CoordActionQuery.UPDATE_COORD_ACTION_RERUN, action);
+    slas.addStatusEvent(sla1.getId(), CoordinatorAction.Status.RUNNING.name(), EventStatus.STARTED, new Date(), new Date());
+    slas.addStatusEvent(sla2.getId(), CoordinatorAction.Status.SUCCEEDED.name(), EventStatus.SUCCESS, startTime, new Date());
+    slas.runSLAWorker();
+    ehs.new EventWorker().run();
+    assertTrue(output.toString().contains(sla1.getId() + " Sla START - MET!!!"));
+    assertTrue(output.toString().contains(sla2.getId() + " Sla END - MISS!!!"));
+    assertTrue(output.toString().contains(sla2.getId() + " Sla DURATION - MET!!!"));
+    output.setLength(0);
+    // test same job multiple events (start-miss, end-miss) through regular check
+    WorkflowJobBean job4 = addRecordToWfJobTable(WorkflowJob.Status.KILLED, WorkflowInstance.Status.KILLED);
+    job4.setLastModifiedTime(new Date());
+    job4.setEndTime(new Date());
+    job4.setStartTime(new Date());
+    WorkflowJobQueryExecutor.getInstance().executeUpdate(WorkflowJobQuery.UPDATE_WORKFLOW_STATUS_INSTANCE_MOD_START_END, job4);
+    sla2 = _createSLARegistration(job4.getId(), AppType.WORKFLOW_JOB);
+    // 2 hours back
+    sla2.setExpectedStart(new Date(System.currentTimeMillis() - 2 * 3600 * 1000));
+    // 1 hour back
+    sla2.setExpectedEnd(new Date(System.currentTimeMillis() - 1 * 3600 * 1000));
+    slas.addRegistrationEvent(sla2);
+    // tests job slaProcessed == 7 removed from map
+    assertEquals(3, slas.getSLACalculator().size());
+    slas.runSLAWorker();
+    ehs.new EventWorker().run();
+    assertTrue(output.toString().contains(sla2.getId() + " Sla START - MISS!!!"));
+    assertTrue(output.toString().contains(sla2.getId() + " Sla END - MISS!!!"));
+    output.setLength(0);
+    // As expected duration is not set, duration shall be processed and job removed from map
+    assertEquals(2, slas.getSLACalculator().size());
+    // test same job multiple events (start-met, end-met) through job status event
+    sla1 = _createCoordActionSLARegistration(CoordinatorAction.Status.SUCCEEDED.name());
+    // 1 hour ahead
+    sla1.setExpectedStart(new Date(System.currentTimeMillis() + 1 * 3600 * 1000));
+    // 2 hours ahead
+    sla1.setExpectedEnd(new Date(System.currentTimeMillis() + 2 * 3600 * 1000));
+    slas.addRegistrationEvent(sla1);
+    assertEquals(3, slas.getSLACalculator().size());
+    slas.addStatusEvent(sla1.getId(), CoordinatorAction.Status.SUCCEEDED.name(), EventStatus.SUCCESS, new Date(), new Date());
+    slas.runSLAWorker();
+    assertEquals(2, ehs.getEventQueue().size());
+    ehs.new EventWorker().run();
+    assertTrue(output.toString().contains(sla1.getId() + " Sla START - MET!!!"));
+    assertTrue(output.toString().contains(sla1.getId() + " Sla END - MET!!!"));
+}

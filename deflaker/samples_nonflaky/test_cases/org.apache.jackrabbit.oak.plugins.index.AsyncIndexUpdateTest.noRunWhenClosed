@@ -1,0 +1,14 @@
+@Test
+public void noRunWhenClosed() throws Exception {
+    NodeStore store = new MemoryNodeStore();
+    IndexEditorProvider provider = new PropertyIndexEditorProvider();
+    AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
+    async.run();
+    async.close();
+    LogCustomizer lc = createLogCustomizer(Level.WARN);
+    async.run();
+    assertEquals(1, lc.getLogs().size());
+    assertThat(lc.getLogs().get(0), containsString("Could not acquire run permit"));
+    lc.finished();
+    async.close();
+}

@@ -1,0 +1,11 @@
+@Test
+public void inMemoryRecord() throws Exception {
+    File fdsDir = temporaryFolder.newFolder();
+    FileDataStore fds = DataStoreUtils.createFDS(fdsDir, 10000);
+    DataStoreBlobStore dbs = new DataStoreBlobStore(fds);
+    ByteArrayInputStream is = new ByteArrayInputStream("".getBytes());
+    String blobId = dbs.writeBlob(is);
+    File writerDir = temporaryFolder.newFolder();
+    PreExtractedTextProvider textProvider = new DataStoreTextWriter(writerDir, true);
+    assertNull(textProvider.getText("/content", new BlobStoreBlob(dbs, blobId)));
+}

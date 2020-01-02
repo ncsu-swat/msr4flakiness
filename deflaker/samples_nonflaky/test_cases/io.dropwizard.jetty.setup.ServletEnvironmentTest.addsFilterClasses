@@ -1,0 +1,10 @@
+@Test
+public void addsFilterClasses() throws Exception {
+    final FilterRegistration.Dynamic builder = environment.addFilter("filter", WelcomeFilter.class);
+    assertThat(builder).isNotNull();
+    final ArgumentCaptor<FilterHolder> holder = ArgumentCaptor.forClass(FilterHolder.class);
+    verify(servletHandler).addFilter(holder.capture());
+    assertThat(holder.getValue().getName()).isEqualTo("filter");
+    // this is ugly, but comparing classes sucks with these type bounds
+    assertThat(holder.getValue().getHeldClass().equals(WelcomeFilter.class)).isTrue();
+}

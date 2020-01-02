@@ -1,0 +1,17 @@
+@Test
+public void addNamedPropertyWithBadRequiredType() {
+    EditorHook hook = new EditorHook(new TypeEditorProvider());
+    NodeState root = INITIAL_CONTENT;
+    NodeBuilder builder = root.builder();
+    NodeState before = builder.getNodeState();
+    NodeBuilder testNode = builder.child("testNode");
+    testNode.setProperty(JCR_PRIMARYTYPE, NT_FOLDER, Type.NAME);
+    testNode.setProperty(JCR_MIXINTYPES, ImmutableList.of("mix:title"), Type.NAMES);
+    testNode.setProperty("jcr:title", true);
+    try {
+        hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
+        fail();
+    } catch (CommitFailedException e) {
+        assertTrue(e.isConstraintViolation());
+    }
+}

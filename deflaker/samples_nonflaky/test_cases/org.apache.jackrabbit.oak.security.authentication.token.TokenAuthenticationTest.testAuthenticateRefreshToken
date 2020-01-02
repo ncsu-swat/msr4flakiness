@@ -1,0 +1,16 @@
+@Test
+public void testAuthenticateRefreshToken() {
+    TokenCredentials tc = new TokenCredentials("token");
+    TokenProvider tp = mock(TokenProvider.class);
+    TokenInfo ti = mock(TokenInfo.class);
+    when(tp.getTokenInfo(anyString())).thenReturn(ti);
+    when(ti.isExpired(anyLong())).thenReturn(false);
+    when(ti.matches(tc)).thenReturn(true);
+    TokenAuthentication auth = new TokenAuthentication(tp);
+    try {
+        assertTrue(auth.authenticate(tc));
+        Mockito.verify(ti).resetExpiration(anyLong());
+    } catch (LoginException e) {
+        fail(e.getMessage());
+    }
+}

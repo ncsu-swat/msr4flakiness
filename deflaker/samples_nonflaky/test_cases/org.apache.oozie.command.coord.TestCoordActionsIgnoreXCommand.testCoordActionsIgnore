@@ -1,0 +1,34 @@
+public void testCoordActionsIgnore() throws Exception {
+    createDBRecords();
+    // positive test of single action - oozie job -ingore job1 -action 1
+    CoordinatorActionInfo retInfo = new CoordActionsIgnoreXCommand(coordJobs.get(0).getId(), "action", "1").call();
+    CoordinatorActionBean actionBean1 = CoordActionQueryExecutor.getInstance().get(CoordActionQuery.GET_COORD_ACTION, coordActions.get(0).getId());
+    assertEquals(CoordinatorAction.Status.IGNORED, actionBean1.getStatus());
+    assertEquals(1, retInfo.getCoordActions().size());
+    assertEquals(actionBean1.getId(), retInfo.getCoordActions().get(0).getId());
+    // positive test of action range - oozie job -ignore job1 -action 2-3
+    retInfo = new CoordActionsIgnoreXCommand(coordJobs.get(0).getId(), "action", "2-3").call();
+    CoordinatorActionBean actionBean2 = CoordActionQueryExecutor.getInstance().get(CoordActionQuery.GET_COORD_ACTION, coordActions.get(1).getId());
+    CoordinatorActionBean actionBean3 = CoordActionQueryExecutor.getInstance().get(CoordActionQuery.GET_COORD_ACTION, coordActions.get(2).getId());
+    assertEquals(CoordinatorAction.Status.IGNORED, actionBean2.getStatus());
+    assertEquals(CoordinatorAction.Status.IGNORED, actionBean3.getStatus());
+    assertEquals(2, retInfo.getCoordActions().size());
+    String retId1 = retInfo.getCoordActions().get(0).getId();
+    String retId2 = retInfo.getCoordActions().get(1).getId();
+    assertTrue(actionBean2.getId().equals(retId1) || actionBean2.getId().equals(retId2));
+    assertTrue(actionBean3.getId().equals(retId1) || actionBean3.getId().equals(retId2));
+    // negative test when ignoring a coord action in RUNNING (@5 is running)
+    try {
+        new CoordActionsIgnoreXCommand(coordJobs.get(0).getId(), "action", "4-5").call();
+    } catch (CommandException ex) {
+        assertEquals(ex.getErrorCode(), ErrorCode.E1024);
+        assertTrue(ex.getMessage().indexOf("part or all actions are not eligible to ignore, check state of action number(s) [5]") > -1);
+    }
+    // negative test when ignore command on coordinator job in PREP
+    try {
+        new CoordActionsIgnoreXCommand(coordJobs.get(1).getId(), "action", "1").call();
+    } catch (CommandException ex) {
+        assertEquals(ex.getErrorCode(), ErrorCode.E1024);
+        assertTrue(ex.getMessage().indexOf("No actions are materialized to ignore") > -1);
+    }
+}

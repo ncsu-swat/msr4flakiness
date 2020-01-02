@@ -1,0 +1,16 @@
+@Test
+public void testNullKeyInvalidQuery() {
+    SliceQuery<String, String, Long> sq = HFactory.createSliceQuery(keyspace, se, se, le);
+    sq.setColumnFamily(cf);
+    sq.setRange("birthyear1", "birthyear4", false, 100);
+    // we are missing sq.setKey(...);
+    try {
+        sq.execute();
+        fail();
+    } catch (HInvalidRequestException he) {
+    // ok!
+    }
+    sq.setKey("getSliceTest_key3");
+    QueryResult<ColumnSlice<String, Long>> result = sq.execute();
+    assertEquals(4, result.get().getColumns().size());
+}

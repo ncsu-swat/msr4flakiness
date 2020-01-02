@@ -1,0 +1,13 @@
+@Test
+public void testGetPoliciesByPrincipalRemapped() throws Exception {
+    setupPolicy(testPath);
+    root.commit();
+    NamePathMapper mapper = getNamePathMapperWithLocalRemapping();
+    AccessControlPolicy[] policies = createAccessControlManager(root, mapper).getPolicies(testPrincipal);
+    assertNotNull(policies);
+    assertEquals(1, policies.length);
+    List<ACE> entries = ((ACL) policies[0]).getEntries();
+    Value rest = entries.get(0).getRestriction(REP_NODE_PATH);
+    assertNotNull(rest);
+    assertEquals(mapper.getJcrPath(testPath), rest.getString());
+}

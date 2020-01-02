@@ -1,0 +1,16 @@
+@Test
+public void testDSBSGetRecordStats() throws IOException, RepositoryException {
+    DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withReadDelay().withStatsCollector(stats));
+    DataRecord rec = dsbs.addRecord(getTestInputStream());
+    long getRecCount = stats.getGetRecordCount();
+    long getRecCountLastMinute = getLastMinuteStats(stats.getGetRecordCountHistory());
+    long getRecTimeLastMinute = getLastMinuteStats(stats.getGetRecordTimeHistory());
+    long downloadCount = stats.getDownloadCount();
+    dsbs.getRecord(rec.getIdentifier());
+    assertEquals(getRecCount + 1, stats.getGetRecordCount());
+    assertEquals(getRecCountLastMinute + 1, waitForMetric(input -> getLastMinuteStats(input.getGetRecordCountHistory()), stats, 1L, 0L).longValue());
+    assertTrue(getRecTimeLastMinute < waitForNonzeroMetric(input -> getLastMinuteStats(input.getGetRecordTimeHistory()), stats));
+    // Ensure that the metrics don't overlap.  Calling getRecord() shouldn't increment
+    // the download counts (which pertain to readBlob()).
+    assertEquals(downloadCount, stats.getDownloadCount());
+}

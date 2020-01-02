@@ -1,0 +1,14 @@
+public void testMaskProperties() throws Exception {
+    prepareOozieConfDir("oozie-site-mask.xml");
+    ConfigurationService cl = new ConfigurationService();
+    cl.init(null);
+    Configuration conf = cl.getConf();
+    assertEquals("my-secret", conf.get("oozie.authentication.signature.secret"));
+    assertEquals("my-password", conf.get("oozie.service.JPAService.jdbc.password"));
+    assertEquals("true", conf.get("oozie.is.awesome"));
+    conf = cl.getMaskedConfiguration();
+    assertEquals("**MASKED**", conf.get("oozie.authentication.signature.secret"));
+    assertEquals("**MASKED**", conf.get("oozie.service.JPAService.jdbc.password"));
+    assertEquals("true", conf.get("oozie.is.awesome"));
+    cl.destroy();
+}

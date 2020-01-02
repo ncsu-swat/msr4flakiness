@@ -1,0 +1,23 @@
+@Test
+public void testByteArrayInterningGivesSameInstances() {
+    final int byteArrayCount = 1000;
+    final int elementCount = 100;
+    final byte[][] sameContent = new byte[byteArrayCount][];
+    for (int i = 0; i < byteArrayCount; i++) {
+        final byte[] source = new byte[elementCount];
+        sameContent[i] = source;
+        for (int j = 0; j < elementCount; j++) {
+            source[j] = (byte) j;
+        }
+    }
+    for (int i = 1; i < byteArrayCount; i++) {
+        Assert.assertTrue("copied byte[]s should be another instances", sameContent[i - 1] != sameContent[i]);
+    }
+    final byte[][] interned = new byte[byteArrayCount][];
+    for (int i = 0; i < byteArrayCount; i++) {
+        interned[i] = ByteArrayUtils.weakIntern(sameContent[i]);
+    }
+    for (int i = 1; i < byteArrayCount; i++) {
+        Assert.assertTrue("weak interned byte[]s should be the same instance", interned[i - 1] == interned[i]);
+    }
+}

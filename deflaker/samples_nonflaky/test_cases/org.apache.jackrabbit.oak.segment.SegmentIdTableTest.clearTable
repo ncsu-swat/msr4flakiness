@@ -1,0 +1,24 @@
+@Test
+public void clearTable() throws IOException {
+    SegmentIdFactory maker = newSegmentIdMaker();
+    final SegmentIdTable tbl = new SegmentIdTable();
+    List<SegmentId> refs = new ArrayList<SegmentId>();
+    for (int i = 0; i < 8; i++) {
+        refs.add(tbl.newSegmentId(i, i % 2, maker));
+    }
+    Set<UUID> reclaimed = newHashSet();
+    for (SegmentId id : refs) {
+        if (id.getMostSignificantBits() < 4) {
+            reclaimed.add(id.asUUID());
+        }
+    }
+    assertEquals(0, tbl.getMapRebuildCount());
+    tbl.clearSegmentIdTables(reclaimed, "TestGcInfo");
+    for (SegmentId id : refs) {
+        if (id.getMostSignificantBits() < 4) {
+            assertEquals("TestGcInfo", id.getGcInfo());
+        } else {
+            assertNull(id.getGcInfo());
+        }
+    }
+}

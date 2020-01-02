@@ -1,0 +1,13 @@
+public void testLockRelease() throws ServiceException, InterruptedException {
+    final String path = UUID.randomUUID().toString();
+    ZKLocksService zkls = new ZKLocksService();
+    try {
+        zkls.init(Services.get());
+        ZKLockToken lock = (ZKLockToken) zkls.getWriteLock(path, TestMemoryLocks.DEFAULT_LOCK_TIMEOUT);
+        assertTrue(zkls.getLocks().containsKey(path));
+        lock.release();
+        checkLockRelease(path, zkls);
+    } finally {
+        zkls.destroy();
+    }
+}

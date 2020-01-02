@@ -1,0 +1,9 @@
+@Test
+void testRunMigrationWithCustomSchema() throws Exception {
+    String schemaName = "customschema";
+    Jdbi dbi = Jdbi.create(databaseUrl, "sa", "");
+    dbi.useHandle(h -> h.execute("create schema " + schemaName));
+    Namespace namespace = new Namespace(Maps.of("schema", schemaName, "catalog", "public"));
+    migrateCommand.run(null, namespace, conf);
+    dbi.useHandle(handle -> assertThat(handle.select("select * from " + schemaName + ".persons").mapToMap()).hasSize(1).containsExactly(Maps.<String, Object>of("id", 1, "name", "Bill Smith", "email", "bill@smith.me")));
+}

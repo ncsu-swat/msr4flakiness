@@ -1,0 +1,22 @@
+@Test
+public void disableCheckpointCleanup() throws Exception {
+    String propertyName = "oak.async.checkpointCleanupIntervalMinutes";
+    MemoryNodeStore store = new MemoryNodeStore();
+    IndexEditorProvider provider = new PropertyIndexEditorProvider();
+    try {
+        System.setProperty(propertyName, "-1");
+        final AtomicBoolean cleaned = new AtomicBoolean();
+        AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider) {
+
+            @Override
+            void cleanUpCheckpoints() {
+                cleaned.set(true);
+                super.cleanUpCheckpoints();
+            }
+        };
+        async.run();
+        assertFalse(cleaned.get());
+    } finally {
+        System.clearProperty(propertyName);
+    }
+}

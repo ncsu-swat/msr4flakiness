@@ -1,0 +1,19 @@
+public void testCronFrequencyCatchupThrottleMoreThanDurationNoDSTChange() throws Exception {
+    final String startInThePast = "2013-03-10T08:00Z";
+    final Date startTime = DateUtils.parseDateOozieTZ(startInThePast);
+    final String startPlusOneHourAndSome = "2013-03-10T09:01Z";
+    final Date endTime = DateUtils.parseDateOozieTZ(startPlusOneHourAndSome);
+    CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.PREP, startTime, endTime, false, false, 0);
+    job.setNextMaterializedTime(startTime);
+    job.setMatThrottling(5);
+    final String everyHour = "0 * * * *";
+    job.setFrequency(everyHour);
+    job.setTimeUnit(Timeunit.CRON);
+    CoordJobQueryExecutor.getInstance().executeUpdate(CoordJobQuery.UPDATE_COORD_JOB, job);
+    new CoordMaterializeTransitionXCommand(job.getId(), hoursToSeconds(1)).call();
+    final String startPlusOneHour = "2013-03-10T09:00Z";
+    final Date[] nominalTimesWithoutDSTChange = new Date[] { DateUtils.parseDateOozieTZ(startInThePast), DateUtils.parseDateOozieTZ(startPlusOneHour) };
+    final int expectedNominalTimeCount = 2;
+    checkCoordActionsNominalTime(job.getId(), expectedNominalTimeCount, nominalTimesWithoutDSTChange);
+    checkTwoActionsAfterCatchup(job, expectedNominalTimeCount, "2013-03-10T10:00Z");
+}

@@ -1,0 +1,16 @@
+@Test
+public void testWindows() {
+    PathType windows = PathType.windows();
+    assertThat(windows.getSeparator()).isEqualTo("\\");
+    assertThat(windows.getOtherSeparators()).isEqualTo("/");
+    // "C:\\foo\bar" results from "C:\", "foo", "bar" passed to getPath
+    PathType.ParseResult path = windows.parsePath("C:\\\\foo\\bar");
+    assertParseResult(path, "C:\\", "foo", "bar");
+    assertThat(windows.toString(path.root(), path.names())).isEqualTo("C:\\foo\\bar");
+    PathType.ParseResult path2 = windows.parsePath("foo/bar/");
+    assertParseResult(path2, null, "foo", "bar");
+    assertThat(windows.toString(path2.root(), path2.names())).isEqualTo("foo\\bar");
+    PathType.ParseResult path3 = windows.parsePath("hello world/foo/bar");
+    assertParseResult(path3, null, "hello world", "foo", "bar");
+    assertThat(windows.toString(null, path3.names())).isEqualTo("hello world\\foo\\bar");
+}

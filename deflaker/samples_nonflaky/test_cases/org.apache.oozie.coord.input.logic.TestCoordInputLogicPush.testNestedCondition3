@@ -1,0 +1,20 @@
+public void testNestedCondition3() throws Exception {
+    Configuration conf = getConf();
+    // @formatter:off
+    String inputLogic = "<and name=\"test\">" + "<and>" + "<data-in dataset=\"A\" />" + "<data-in dataset=\"B\" />" + "</and>" + "<and>" + "<data-in dataset=\"C\" />" + "<data-in dataset=\"D\" />" + "</and>" + "<and>" + "<data-in dataset=\"E\" />" + "<data-in dataset=\"F\" />" + "</and>" + "</and>";
+    // @formatter:on
+    conf.set("partitionName", "test");
+    final String jobId = submitCoord("coord-inputlogic-hcat.xml", conf, inputLogic, TEST_TYPE.CURRENT_SINGLE);
+    String input1 = addPartition("db_a", "table1", "dt=20141008;country=usa");
+    String input2 = addPartition("db_b", "table1", "dt=20141008;country=usa");
+    String input3 = addPartition("db_c", "table1", "dt=20141008;country=usa");
+    String input4 = addPartition("db_d", "table1", "dt=20141008;country=usa");
+    String input5 = addPartition("db_e", "table1", "dt=20141008;country=usa");
+    String input6 = addPartition("db_f", "table1", "dt=20141008;country=usa");
+    startCoordAction(jobId);
+    CoordinatorActionBean actionBean = CoordActionQueryExecutor.getInstance().get(CoordActionQuery.GET_COORD_ACTION, jobId + "@1");
+    Configuration runConf = getActionConf(actionBean);
+    String dataSets = runConf.get("inputLogicData");
+    assertEquals(dataSets.split(",").length, 6);
+    checkDataSets(dataSets, input1, input2, input3, input4, input5, input6);
+}

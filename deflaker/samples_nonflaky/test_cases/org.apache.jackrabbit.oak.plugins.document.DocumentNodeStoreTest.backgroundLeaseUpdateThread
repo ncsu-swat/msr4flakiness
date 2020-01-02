@@ -1,0 +1,26 @@
+// OAK-3579
+@Test
+public void backgroundLeaseUpdateThread() throws Exception {
+    int clusterId = -1;
+    Random random = new Random();
+    // pick a random clusterId between 1000 and 2000
+    // and make sure it is not in use (give up after 10 tries)
+    for (int i = 0; i < 10; i++) {
+        int id = random.nextInt(1000) + 1000;
+        if (!backgroundLeaseUpdateThreadRunning(id)) {
+            clusterId = id;
+            break;
+        }
+    }
+    assertNotEquals(-1, clusterId);
+    DocumentNodeStore ns = builderProvider.newBuilder().setAsyncDelay(0).setClusterId(clusterId).getNodeStore();
+    for (int i = 0; i < 10; i++) {
+        if (!backgroundLeaseUpdateThreadRunning(clusterId)) {
+            Thread.sleep(100);
+        }
+    }
+    assertTrue(backgroundLeaseUpdateThreadRunning(clusterId));
+    // access DocumentNodeStore to make sure it is not
+    // garbage collected prematurely
+    assertEquals(clusterId, ns.getClusterId());
+}

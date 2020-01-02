@@ -1,0 +1,11 @@
+@Test
+public void throwsAJsonProcessingExceptionForMalformedRequestEntities() throws Exception {
+    final ByteArrayInputStream entity = new ByteArrayInputStream("{\"id\":-1d".getBytes(StandardCharsets.UTF_8));
+    try {
+        final Class<?> klass = Example.class;
+        provider.readFrom((Class<Object>) klass, Example.class, NONE, MediaType.APPLICATION_JSON_TYPE, new MultivaluedHashMap<>(), entity);
+        failBecauseExceptionWasNotThrown(WebApplicationException.class);
+    } catch (JsonProcessingException e) {
+        assertThat(e.getMessage()).startsWith("Unexpected character ('d' (code 100)): " + "was expecting comma to separate Object entries\n");
+    }
+}

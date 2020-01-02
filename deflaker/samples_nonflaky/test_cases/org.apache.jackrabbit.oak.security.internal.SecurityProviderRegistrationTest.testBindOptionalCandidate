@@ -1,0 +1,11 @@
+@Test
+public void testBindOptionalCandidate() throws Exception {
+    registration.activate(context.bundleContext(), configWithRequiredServiceIds("serviceId"));
+    Field f = registration.getClass().getDeclaredField("preconditions");
+    f.setAccessible(true);
+    TokenConfiguration tc = mockConfiguration(TokenConfiguration.class);
+    registration.bindTokenConfiguration(tc, ImmutableMap.of(SERVICE_PID, "otherServiceId"));
+    Preconditions preconditions = (Preconditions) f.get(registration);
+    assertFalse(preconditions.areSatisfied());
+    assertNull(context.getService(SecurityProvider.class));
+}

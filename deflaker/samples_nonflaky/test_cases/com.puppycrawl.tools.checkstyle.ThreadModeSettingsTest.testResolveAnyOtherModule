@@ -1,0 +1,15 @@
+@Test
+public void testResolveAnyOtherModule() throws Exception {
+    final Set<Class<?>> allModules = CheckUtil.getCheckstyleModules();
+    final ThreadModeSettings multiThreadModeSettings = new ThreadModeSettings(2, 2);
+    final ThreadModeSettings singleThreadModeSettings = ThreadModeSettings.SINGLE_THREAD_MODE_INSTANCE;
+    for (Class<?> module : allModules) {
+        if (Checker.class.isAssignableFrom(module) || TreeWalker.class.isAssignableFrom(module)) {
+            // they're handled in other tests
+            continue;
+        }
+        final String moduleName = module.getSimpleName();
+        assertThat("Invalid name resolved", singleThreadModeSettings.resolveName(moduleName), is(moduleName));
+        assertThat("Invalid name resolved", multiThreadModeSettings.resolveName(moduleName), is(moduleName));
+    }
+}

@@ -1,0 +1,34 @@
+/**
+ * The issue was detected when trying to capture stdout with a PipedOutputStream and
+ * then pass that to a PipedInputStream. The following code will produce the error.
+ * The reason for the error is the PipedOutputStream is not being closed correctly,
+ * causing the PipedInputStream to break.
+ *
+ * @throws Exception the test failed
+ */
+@Test
+public void testExec49_2() throws Exception {
+    if (OS.isFamilyUnix()) {
+        final CommandLine cl = CommandLine.parse("/bin/ls");
+        cl.addArgument("/opt");
+        // redirect only stdout to pipedOutputStream
+        final PipedOutputStream pipedOutputStream = new PipedOutputStream();
+        final PumpStreamHandler psh = new PumpStreamHandler(pipedOutputStream, new ByteArrayOutputStream());
+        exec.setStreamHandler(psh);
+        // start an asynchronous process to enable the main thread
+        System.out.println("Preparing to execute process - commandLine=" + cl.toString());
+        final DefaultExecuteResultHandler handler = new DefaultExecuteResultHandler();
+        exec.execute(cl, handler);
+        System.out.println("Process spun off successfully - process=" + cl.getExecutable());
+        int x;
+        final PipedInputStream pis = new PipedInputStream(pipedOutputStream);
+        while ((x = pis.read()) >= 0) {
+        // System.out.println("pis.available() " + pis.available());
+        // System.out.println("x " + x);
+        }
+        pis.close();
+        handler.waitFor(10000);
+        // will fail if process has not finished
+        handler.getExitValue();
+    }
+}

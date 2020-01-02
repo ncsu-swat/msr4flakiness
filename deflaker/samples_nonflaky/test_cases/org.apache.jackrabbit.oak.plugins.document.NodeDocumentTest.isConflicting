@@ -1,0 +1,28 @@
+// OAK-3557
+@Test
+public void isConflicting() throws Exception {
+    final int numChanges = 200;
+    final Set<String> prevDocCalls = newHashSet();
+    MemoryDocumentStore store = new MemoryDocumentStore() {
+
+        @Override
+        public <T extends Document> T find(Collection<T> collection, String key) {
+            if (Utils.getPathFromId(key).startsWith("p")) {
+                prevDocCalls.add(key);
+            }
+            return super.find(collection, key);
+        }
+    };
+    DocumentNodeStore ns = createTestStore(store, 0, numChanges);
+    NodeDocument doc = getRootDocument(store);
+    Map<Revision, String> valueMap = doc.getValueMap("p");
+    assertEquals(200, valueMap.size());
+    RevisionVector baseRev = new RevisionVector(valueMap.keySet().iterator().next());
+    Revision commitRev = ns.newRevision();
+    UpdateOp op = new UpdateOp(Utils.getIdFromPath("/"), false);
+    op.setMapEntry("p", commitRev, "v");
+    prevDocCalls.clear();
+    assertFalse(doc.isConflicting(op, baseRev, commitRev, false));
+    assertTrue("too many calls for previous documents: " + prevDocCalls, prevDocCalls.size() <= 6);
+    ns.dispose();
+}

@@ -1,0 +1,21 @@
+public void testValidateSla() throws Exception {
+    runTest("/v2/validate", V2ValidateServlet.class, IS_SECURITY_ENABLED, new Callable<Void>() {
+
+        public Void call() throws Exception {
+            Map<String, String> params = new HashMap<String, String>();
+            params.put("file", "workflow.xml");
+            params.put("user", getTestUser());
+            URL url = createURL("", params);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("content-type", RestConstants.XML_CONTENT_TYPE);
+            conn.setDoOutput(true);
+            String xml = "<workflow-app xmlns=\"uri:oozie:workflow:0.5\" xmlns:sla=\"uri:oozie:sla:0.2\" name=\"test\">\n" + "    <start to=\"shell-1\"/>\n" + "    <action name=\"shell-1\">\n" + "        <shell xmlns=\"uri:oozie:shell-action:0.3\">\n" + "            <job-tracker>${jobTracker}</job-tracker>\n" + "            <name-node>${nameNode}</name-node>\n" + "            <exec>script-outstream.sh</exec>\n" + "            <argument></argument>\n" + "            <file>script-outstream.sh</file>\n" + "            <capture-output/>\n" + "        </shell>\n" + "        <ok to=\"end\"/>\n" + "        <error to=\"fail\"/>\n" + "        <sla:info>\n" + "            <sla:nominal-time>${nominal_time}</sla:nominal-time>\n" + "            <sla:should-start>${10 * MINUTES}</sla:should-start>\n" + "            <sla:should-end>${30 * MINUTES}</sla:should-end>\n" + "            <sla:max-duration>${30 * MINUTES}</sla:max-duration>\n" + "            <sla:alert-events>start_miss,end_met,end_miss</sla:alert-events>\n" + "            <sla:alert-contact>joe@example.com</sla:alert-contact>\n" + "        </sla:info>\n" + "    </action>\n" + "    <kill name=\"fail\">\n" + "        <message>failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>\n" + "    </kill>\n" + "    <end name=\"end\"/>\n" + "</workflow-app>";
+            writeXML(conn.getOutputStream(), xml);
+            assertEquals(HttpServletResponse.SC_OK, conn.getResponseCode());
+            JSONObject obj = (JSONObject) JSONValue.parse(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
+            assertEquals("Valid workflow-app", obj.get(JsonTags.VALIDATE));
+            return null;
+        }
+    });
+}

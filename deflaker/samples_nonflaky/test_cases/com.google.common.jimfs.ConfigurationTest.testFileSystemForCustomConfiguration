@@ -1,0 +1,16 @@
+@Test
+public void testFileSystemForCustomConfiguration() throws IOException {
+    Configuration config = Configuration.builder(PathType.unix()).setRoots("/").setWorkingDirectory("/hello/world").setNameCanonicalNormalization(NFD, CASE_FOLD_UNICODE).setNameDisplayNormalization(NFC).setPathEqualityUsesCanonicalForm(true).setBlockSize(10).setMaxSize(100).setMaxCacheSize(50).setAttributeViews("unix").setDefaultAttributeValue("posix:permissions", PosixFilePermissions.fromString("---------")).build();
+    FileSystem fs = Jimfs.newFileSystem(config);
+    assertThat(fs.getRootDirectories()).containsExactlyElementsIn(ImmutableList.of(fs.getPath("/"))).inOrder();
+    assertThatPath(fs.getPath("").toRealPath()).isEqualTo(fs.getPath("/hello/world"));
+    assertThat(Iterables.getOnlyElement(fs.getFileStores()).getTotalSpace()).isEqualTo(100);
+    assertThat(fs.supportedFileAttributeViews()).containsExactly("basic", "owner", "posix", "unix");
+    Files.createFile(fs.getPath("/foo"));
+    assertThat(Files.getAttribute(fs.getPath("/foo"), "posix:permissions")).isEqualTo(PosixFilePermissions.fromString("---------"));
+    try {
+        Files.createFile(fs.getPath("/FOO"));
+        fail();
+    } catch (FileAlreadyExistsException expected) {
+    }
+}

@@ -1,0 +1,13 @@
+@Test
+public void testAddSuperCounterInsertion() {
+    // Create 1 super counter.
+    CounterSuperColumn csc1 = new CounterSuperColumn(StringSerializer.get().toByteBuffer("c_name"), Arrays.asList(new CounterColumn(StringSerializer.get().toByteBuffer("c_name"), 123)));
+    batchMutate.addSuperCounterInsertion("key1", columnFamilies, csc1);
+    // assert there is one outter map row with 'key' as the key
+    assertEquals(1, batchMutate.getMutationMap().get(StringSerializer.get().toByteBuffer("key1")).size());
+    // add again with a different column and verify there is one key and two mutations underneath
+    // for "standard1"
+    CounterSuperColumn csc2 = new CounterSuperColumn(StringSerializer.get().toByteBuffer("c_name2"), Arrays.asList(new CounterColumn(StringSerializer.get().toByteBuffer("c_name"), 456)));
+    batchMutate.addSuperCounterInsertion("key1", columnFamilies, csc2);
+    assertEquals(2, batchMutate.getMutationMap().get(StringSerializer.get().toByteBuffer("key1")).get("Standard1").size());
+}

@@ -1,0 +1,28 @@
+/**
+ * Trigger build cache on start.
+ * @throws Exception
+ */
+@Test
+public void rebuild() throws Exception {
+    LOG.info("Started rebuild");
+    afterExecuteLatch.await();
+    LOG.info("Cache built");
+    File f = createFile(0, loader, cache, folder);
+    assertCache(0, cache, f);
+    cache.close();
+    CountDownLatch beforeLatch = new CountDownLatch(1);
+    CountDownLatch afterLatch = new CountDownLatch(1);
+    afterExecuteLatch = new CountDownLatch(1);
+    TestExecutor executor = new TestExecutor(1, beforeLatch, afterLatch, afterExecuteLatch);
+    beforeLatch.countDown();
+    afterLatch.countDown();
+    cache = FileCache.build(4 * 1024, /* bytes */
+    root, loader, executor);
+    closer.register(cache);
+    afterExecuteLatch.await();
+    Futures.successfulAsList((Iterable<? extends ListenableFuture<?>>) executor.futures).get();
+    LOG.info("Cache rebuilt");
+    assertCacheIfPresent(0, cache, f);
+    assertCacheStats(cache, 1, 4 * 1024, 0, 0);
+    LOG.info("Finished rebuild");
+}

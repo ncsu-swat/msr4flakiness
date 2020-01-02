@@ -1,0 +1,16 @@
+public void testIdBundleId() throws Exception {
+    ListMultimap<String, String> filterParams = LinkedListMultimap.create();
+    filterParams.put("id", cjBean2.getId() + "@1");
+    filterParams.put("bundle", sampleBundleId);
+    JSONArray array = getSLAJSONResponse("GMT", filterParams);
+    assertEquals("sla filter result size for id + sampleBundleId", 1, array.size());
+    for (int i = 0; i < array.size(); i++) {
+        JSONObject json = (JSONObject) array.get(i);
+        String id = (String) json.get(JsonTags.SLA_SUMMARY_ID);
+        if (id.equals(cjBean1.getId() + "@1")) {
+            assertEquals("id + sampleBundleId filter summary start delay", -2L, json.get(JsonTags.SLA_SUMMARY_START_DELAY));
+            assertEquals("id + sampleBundleId filter summary duration delay", 0L, json.get(JsonTags.SLA_SUMMARY_DURATION_DELAY));
+            assertEquals("id + sampleBundleId filter summary end delay", -1L, json.get(JsonTags.SLA_SUMMARY_END_DELAY));
+        }
+    }
+}

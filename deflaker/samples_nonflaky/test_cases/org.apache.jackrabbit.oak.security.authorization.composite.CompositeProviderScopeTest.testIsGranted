@@ -1,0 +1,17 @@
+@Test
+public void testIsGranted() throws Exception {
+    for (String p : defPermissions.keySet()) {
+        long defaultPerms = defPermissions.get(p);
+        Tree tree = readOnlyRoot.getTree(p);
+        if (testProvider.isSupported(p)) {
+            long expected = Permissions.diff(defaultPerms, Permissions.ADD_NODE | Permissions.ADD_PROPERTY);
+            assertTrue(cppTestUser.isGranted(tree, null, expected));
+            assertFalse(cppTestUser.isGranted(tree, null, Permissions.ADD_NODE));
+            assertFalse(cppTestUser.isGranted(tree, null, Permissions.ADD_PROPERTY));
+            assertFalse(cppTestUser.isGranted(tree, null, Permissions.SET_PROPERTY));
+            assertFalse(cppTestUser.isGranted(tree, null, Permissions.WRITE));
+        } else {
+            assertTrue(cppTestUser.isGranted(tree, null, defaultPerms));
+        }
+    }
+}

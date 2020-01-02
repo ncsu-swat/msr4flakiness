@@ -1,0 +1,9 @@
+@Test
+void shouldReturn200IfAbleToClientAuth() {
+    tlsConfiguration.setKeyStorePath(new File(ResourceHelpers.resourceFilePath("stores/client/keycert.p12")));
+    tlsConfiguration.setKeyStorePassword("password");
+    tlsConfiguration.setKeyStoreType("PKCS12");
+    final Client client = new JerseyClientBuilder(TLS_APP_RULE.getEnvironment()).using(jerseyClientConfiguration).build("client_auth_working");
+    final Response response = client.target(String.format("https://localhost:%d", TLS_APP_RULE.getPort(2))).request().get();
+    assertThat(response.getStatus()).isEqualTo(200);
+}

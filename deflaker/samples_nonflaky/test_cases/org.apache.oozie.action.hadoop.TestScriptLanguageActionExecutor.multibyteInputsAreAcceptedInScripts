@@ -1,0 +1,21 @@
+@Test
+public void multibyteInputsAreAcceptedInScripts() throws Exception {
+    final String testInput = "林檎";
+    doReturn(mockScript).when(mockElement).getChild(anyString(), any());
+    doReturn("script").when(mockScript).getTextTrim();
+    doReturn(mockActionConfig).when(mockContext).getProtoActionConf();
+    doReturn(testInput).when(mockActionConfig).get(isNull());
+    doReturn(new Path(".")).when(mockContext).getActionDir();
+    doReturn(mockFs).when(mockContext).getAppFileSystem();
+    doReturn(fsDataOutputStream).when(mockFs).create(any());
+    ScriptLanguageActionExecutor scriptLanguageActionExecutor = spy(new ScriptLanguageActionExecutor("pig") {
+
+        @Override
+        protected String getScriptName() {
+            return null;
+        }
+    });
+    scriptLanguageActionExecutor.addScriptToCache(mockConfiguration, mockElement, mockPath, mockContext);
+    byte[] expectedInput = testInput.getBytes(StandardCharsets.UTF_8);
+    verify(fsDataOutputStream).write(expectedInput);
+}

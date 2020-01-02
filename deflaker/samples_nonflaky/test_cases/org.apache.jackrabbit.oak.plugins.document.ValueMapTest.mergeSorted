@@ -1,0 +1,32 @@
+// OAK-2433
+@Test
+public void mergeSorted() throws Exception {
+    DocumentNodeStore store = new DocumentMK.Builder().setAsyncDelay(0).getNodeStore();
+    DocumentStore docStore = store.getDocumentStore();
+    String id = Utils.getIdFromPath("/");
+    List<NodeBuilder> branches = Lists.newArrayList();
+    int i = 0;
+    while (docStore.find(NODES, id).getPreviousRanges().size() < 2) {
+        i++;
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("foo").setProperty("prop", i);
+        builder.child("bar").setProperty("prop", i);
+        if (i % 7 == 0) {
+            // every now and then create a branch
+            int numRevs = docStore.find(NODES, id).getLocalRevisions().size();
+            NodeBuilder child = builder.child("node" + i);
+            int p = 0;
+            while (numRevs == docStore.find(NODES, id).getLocalRevisions().size()) {
+                child.setProperty("prop", p++);
+                persistToBranch(builder);
+            }
+            branches.add(builder);
+        } else {
+            store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        }
+        store.runBackgroundOperations();
+    }
+    NodeDocument doc = docStore.find(NODES, id);
+    Iterators.size(doc.getValueMap(NodeDocument.REVISIONS).entrySet().iterator());
+    store.dispose();
+}

@@ -1,0 +1,16 @@
+@Test
+public void lockTimedout() throws Exception {
+    Clock.Virtual clock = new Clock.Virtual();
+    AbortingIndexerLock lock = new AbortingIndexerLock(infoService, clock);
+    when(statsMBean.getStatus()).thenReturn(IndexStatsMBean.STATUS_RUNNING).thenReturn(IndexStatsMBean.STATUS_RUNNING).then(invocation -> {
+        clock.waitUntil(AbortingIndexerLock.TIMEOUT_SECONDS * 1000 + 1);
+        return IndexStatsMBean.STATUS_RUNNING;
+    });
+    try {
+        lock.lock("async");
+        fail();
+    } catch (IllegalStateException ignore) {
+    }
+    verify(statsMBean).abortAndPause();
+    verify(statsMBean, times(3)).getStatus();
+}

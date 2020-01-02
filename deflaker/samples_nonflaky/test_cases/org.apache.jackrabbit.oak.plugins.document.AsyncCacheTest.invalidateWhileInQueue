@@ -1,0 +1,23 @@
+@Test
+public void invalidateWhileInQueue() throws Exception {
+    FileUtils.deleteDirectory(new File("target/cacheTest"));
+    DocumentMK.Builder builder = builderProvider.newBuilder();
+    builder.setPersistentCache("target/cacheTest");
+    DocumentNodeStore nodeStore = builder.getNodeStore();
+    Cache<NamePathRev, DocumentNodeState.Children> cache = builder.buildChildrenCache(nodeStore);
+    DocumentNodeState.Children c = new DocumentNodeState.Children();
+    for (int i = 0; i < 100; i++) {
+        c.children.add("node-" + i);
+    }
+    Path path = Path.fromString("/foo/bar");
+    NamePathRev key = null;
+    for (int i = 0; i < 1000; i++) {
+        key = new NamePathRev("", path, new RevisionVector(new Revision(i, 0, 1)));
+        cache.put(key, c);
+    }
+    cache.invalidate(key);
+    // give the write queue some time to write back entries
+    Thread.sleep(200);
+    assertNull(cache.getIfPresent(key));
+    builder.getPersistentCache().close();
+}

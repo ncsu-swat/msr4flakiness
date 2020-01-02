@@ -1,0 +1,17 @@
+@Test
+public void isHealthyIfNoExceptionIsThrown() throws Exception {
+    final Session session = mock(Session.class);
+    when(factory.openSession()).thenReturn(session);
+    final Transaction transaction = mock(Transaction.class);
+    when(session.beginTransaction()).thenReturn(transaction);
+    final NativeQuery<?> query = mock(NativeQuery.class);
+    when(session.createNativeQuery(anyString())).thenReturn(query);
+    assertThat(healthCheck("SELECT 1").execute().isHealthy()).isTrue();
+    final InOrder inOrder = inOrder(factory, session, transaction, query);
+    inOrder.verify(factory).openSession();
+    inOrder.verify(session).beginTransaction();
+    inOrder.verify(session).createNativeQuery("SELECT 1");
+    inOrder.verify(query).list();
+    inOrder.verify(transaction).commit();
+    inOrder.verify(session).close();
+}

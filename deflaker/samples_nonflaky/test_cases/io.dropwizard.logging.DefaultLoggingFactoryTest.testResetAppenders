@@ -1,0 +1,14 @@
+@Test
+public void testResetAppenders() throws Exception {
+    final String configPath = Resources.getResource("yaml/logging.yml").getFile();
+    final DefaultLoggingFactory config = factory.build(new FileConfigurationSourceProvider(), configPath);
+    config.configure(new MetricRegistry(), "test-logger");
+    config.reset();
+    // There should be exactly one appender configured, a ConsoleAppender
+    final Logger logger = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+    final List<Appender<ILoggingEvent>> appenders = Lists.of(logger.iteratorForAppenders());
+    assertThat(appenders).hasAtLeastOneElementOfType(ConsoleAppender.class);
+    assertThat(appenders).as("context").allMatch((Appender<?> a) -> a.getContext() != null);
+    assertThat(appenders).as("started").allMatch(LifeCycle::isStarted);
+    assertThat(appenders).hasSize(1);
+}

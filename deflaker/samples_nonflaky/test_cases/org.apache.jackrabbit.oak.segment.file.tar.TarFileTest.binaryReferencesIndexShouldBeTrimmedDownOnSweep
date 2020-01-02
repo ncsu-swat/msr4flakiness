@@ -1,0 +1,31 @@
+@Test
+public void binaryReferencesIndexShouldBeTrimmedDownOnSweep() throws Exception {
+    try (TarWriter writer = new TarWriter(archiveManager, "data00000a.tar")) {
+        writer.writeEntry(1, 1, new byte[] { 1 }, 0, 1, generation(1));
+        writer.writeEntry(1, 2, new byte[] { 1 }, 0, 1, generation(1));
+        writer.writeEntry(2, 1, new byte[] { 1 }, 0, 1, generation(2));
+        writer.writeEntry(2, 2, new byte[] { 1 }, 0, 1, generation(2));
+        writer.addBinaryReference(generation(1), new UUID(1, 1), "a");
+        writer.addBinaryReference(generation(1), new UUID(1, 2), "b");
+        writer.addBinaryReference(generation(2), new UUID(2, 1), "c");
+        writer.addBinaryReference(generation(2), new UUID(2, 2), "d");
+    }
+    Set<UUID> sweep = newSet(new UUID(1, 1), new UUID(2, 2));
+    try (TarReader reader = TarReader.open("data00000a.tar", archiveManager)) {
+        try (TarReader swept = reader.sweep(sweep, new HashSet<>())) {
+            assertNotNull(swept);
+            Map<UUID, Set<String>> one = newHashMap();
+            one.put(new UUID(1, 2), newSet("b"));
+            Map<UUID, Set<String>> two = newHashMap();
+            two.put(new UUID(2, 1), newSet("c"));
+            Map<GCGeneration, Map<UUID, Set<String>>> references = newHashMap();
+            references.put(generation(1), one);
+            references.put(generation(2), two);
+            Map<GCGeneration, Map<UUID, Set<String>>> actual = new HashMap<>();
+            swept.getBinaryReferences().forEach((generation, full, compacted, uuid, reference) -> {
+                actual.computeIfAbsent(newGCGeneration(generation, full, compacted), x -> new HashMap<>()).computeIfAbsent(uuid, x -> new HashSet<>()).add(reference);
+            });
+            assertEquals(references, actual);
+        }
+    }
+}

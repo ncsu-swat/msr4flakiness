@@ -1,0 +1,17 @@
+@Test(expected = CommitFailedException.class)
+public void testRemoveAdminUserFolder() throws Exception {
+    String adminId = getConfig().getConfigValue(PARAM_ADMIN_ID, DEFAULT_ADMIN_ID);
+    UserManager userMgr = getUserManager(root);
+    Authorizable admin = userMgr.getAuthorizable(adminId);
+    if (admin == null) {
+        admin = userMgr.createUser(adminId, adminId);
+        root.commit();
+    }
+    try {
+        root.getTree(admin.getPath()).getParent().remove();
+        root.commit();
+    } catch (CommitFailedException e) {
+        assertEquals(27, e.getCode());
+        throw e;
+    }
+}

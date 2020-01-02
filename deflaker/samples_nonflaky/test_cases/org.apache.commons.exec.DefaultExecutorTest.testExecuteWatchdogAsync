@@ -1,0 +1,25 @@
+/**
+ * Start a script looping forever (asynchronously) and check if the
+ * ExecuteWatchdog kicks in killing the run away process. To make killing
+ * a process more testable the "forever" scripts write each second a '.'
+ * into "./target/forever.txt" (a marker file). After a test run
+ * we should have a few dots in there.
+ *
+ * @throws Exception the test failed
+ */
+@Test
+public void testExecuteWatchdogAsync() throws Exception {
+    final long timeout = 10000;
+    final CommandLine cl = new CommandLine(foreverTestScript);
+    final DefaultExecuteResultHandler handler = new DefaultExecuteResultHandler();
+    final DefaultExecutor executor = new DefaultExecutor();
+    executor.setWorkingDirectory(new File("."));
+    executor.setWatchdog(new ExecuteWatchdog(timeout));
+    executor.execute(cl, handler);
+    handler.waitFor(WAITFOR_TIMEOUT);
+    assertTrue("Killed process should be true", executor.getWatchdog().killedProcess());
+    assertTrue("ResultHandler received a result", handler.hasResult());
+    assertNotNull("ResultHandler received an exception as result", handler.getException());
+    final int nrOfInvocations = getOccurrences(readFile(this.foreverOutputFile), '.');
+    assertTrue("Killing the process did not work : " + nrOfInvocations, nrOfInvocations > 5 && nrOfInvocations <= 11);
+}

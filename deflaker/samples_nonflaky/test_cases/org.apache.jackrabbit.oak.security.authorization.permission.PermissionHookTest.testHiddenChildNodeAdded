@@ -1,0 +1,13 @@
+@Test
+public void testHiddenChildNodeAdded() throws Exception {
+    PermissionHook ph = createPermissionHook(adminSession.getWorkspaceName());
+    NodeState before = getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH));
+    NodeState after = spy(before);
+    NodeState child = mock(NodeState.class);
+    Iterable newCnes = Collections.singleton(new MemoryChildNodeEntry(":hidden", child));
+    Iterable cnes = Iterables.concat(newCnes, before.getChildNodeEntries());
+    when(after.getChildNodeEntries()).thenReturn(cnes);
+    when(after.getChildNode(":hidden")).thenReturn(child);
+    ph.processCommit(before, after, new CommitInfo("sid", null));
+    verify(child, never()).getProperty(anyString());
+}

@@ -1,0 +1,40 @@
+/**
+ * OAK-3409
+ */
+@Test
+public void testDoubleUnregister() {
+    BundleContext bundleContext = mock(BundleContext.class);
+    OsgiWhiteboard w = new OsgiWhiteboard(bundleContext);
+    Runnable r = new Runnable() {
+
+        @Override
+        public void run() {
+        // 
+        }
+    };
+    final AtomicBoolean unregistered = new AtomicBoolean();
+    ServiceRegistration sr = new ServiceRegistration() {
+
+        @Override
+        public void unregister() {
+            if (unregistered.get()) {
+                throw new IllegalStateException("Service already unregistered.");
+            }
+            unregistered.set(true);
+        }
+
+        @Override
+        public void setProperties(Dictionary properties) {
+        }
+
+        @Override
+        public ServiceReference getReference() {
+            return null;
+        }
+    };
+    when(bundleContext.registerService(Runnable.class.getName(), r, new Hashtable<Object, Object>())).thenReturn(sr);
+    Registration reg = w.register(Runnable.class, r, new HashMap<String, Object>());
+    reg.unregister();
+    assertTrue(unregistered.get());
+    reg.unregister();
+}

@@ -1,0 +1,22 @@
+@Test
+public void canBootstrapViaConstructor() {
+    FeatureManager featureManager = mock(FeatureManager.class);
+    Set<Feature> features = new HashSet<Feature>();
+    String name1 = "Feature 1";
+    String name2 = "Feature 2";
+    Feature feature1 = mock(Feature.class, name1);
+    Feature feature2 = mock(Feature.class, name2);
+    features.add(feature1);
+    features.add(feature2);
+    when(featureManager.getFeatures()).thenReturn(features);
+    when(feature1.name()).thenReturn(name1);
+    when(feature2.name()).thenReturn(name2);
+    when(featureManager.isActive(featureNamed(name1))).thenReturn(true);
+    when(featureManager.isActive(featureNamed(name2))).thenReturn(false);
+    Map<Object, Boolean> map = new FeatureMap(featureManager);
+    assertThat(map.size(), equalTo(2));
+    assertThat(map.isEmpty(), is(false));
+    assertThat(map.get(name1), equalTo(true));
+    assertThat(map.get(name2), equalTo(false));
+    assertThat(map.get("unknown"), equalTo(false));
+}

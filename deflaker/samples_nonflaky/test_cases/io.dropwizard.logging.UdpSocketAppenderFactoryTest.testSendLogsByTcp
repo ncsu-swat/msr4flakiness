@@ -1,0 +1,14 @@
+@Test
+public void testSendLogsByTcp() throws Exception {
+    ObjectMapper objectMapper = Jackson.newObjectMapper();
+    objectMapper.getSubtypeResolver().registerSubtypes(UdpSocketAppenderFactory.class);
+    DefaultLoggingFactory loggingFactory = new YamlConfigurationFactory<>(DefaultLoggingFactory.class, BaseValidator.newValidator(), objectMapper, "dw-udp").build(new File(Resources.getResource("yaml/logging-udp.yml").toURI()));
+    loggingFactory.configure(new MetricRegistry(), "udp-test");
+    Logger logger = LoggerFactory.getLogger("com.example.app");
+    for (int i = 0; i < 100; i++) {
+        logger.info("Application log {}", i);
+    }
+    countDownLatch.await(5, TimeUnit.SECONDS);
+    assertThat(countDownLatch.getCount()).isEqualTo(0);
+    loggingFactory.reset();
+}

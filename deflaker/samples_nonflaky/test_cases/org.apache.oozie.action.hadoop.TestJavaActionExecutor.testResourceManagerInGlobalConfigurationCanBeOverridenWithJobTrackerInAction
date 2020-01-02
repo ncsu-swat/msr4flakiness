@@ -1,0 +1,29 @@
+public void testResourceManagerInGlobalConfigurationCanBeOverridenWithJobTrackerInAction() throws Exception {
+    try {
+        final String global = "<global>" + "<resource-manager>RM</resource-manager>" + "</global>";
+        final String workflowUri = helper.createTestWorkflowXml(global, helper.getJavaActionXml(""));
+        LocalOozie.start();
+        final OozieClient wfClient = LocalOozie.getClient();
+        final Properties conf = wfClient.createConfiguration();
+        conf.setProperty(OozieClient.APP_PATH, workflowUri);
+        conf.setProperty(OozieClient.USER_NAME, getTestUser());
+        conf.setProperty("appName", "var-app-name");
+        final String jobId = wfClient.submit(conf);
+        wfClient.start(jobId);
+        WorkflowJob workflow = wfClient.getJobInfo(jobId);
+        waitFor(20 * 1000, new Predicate() {
+
+            @Override
+            public boolean evaluate() throws Exception {
+                WorkflowAction javaAction = helper.getJavaAction(wfClient.getJobInfo(jobId));
+                return javaAction != null && !javaAction.getStatus().equals("PREP");
+            }
+        });
+        final WorkflowAction workflowAction = helper.getJavaAction(workflow);
+        final String actualConfig = workflowAction.getConf();
+        final String actualJobTrackerURI = XmlUtils.parseXml(actualConfig).getChildTextNormalize("job-tracker", null);
+        assertEquals(getJobTrackerUri(), actualJobTrackerURI);
+    } finally {
+        LocalOozie.stop();
+    }
+}

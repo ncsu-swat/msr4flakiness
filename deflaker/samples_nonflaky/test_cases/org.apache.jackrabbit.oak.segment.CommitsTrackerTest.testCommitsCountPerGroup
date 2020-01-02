@@ -1,0 +1,19 @@
+@Test
+public void testCommitsCountPerGroup() throws InterruptedException {
+    String[] groups = new String[] { "Thread-1.*", "Thread-2.*", "Thread-3.*" };
+    CommitsTracker commitsTracker = new CommitsTracker(groups, 10);
+    for (int k = 0; k < 40; k++) {
+        CommitTask commitTask = new CommitTask(commitsTracker, "Thread-" + (10 + k), GCGeneration.NULL);
+        commitTask.queued();
+        commitTask.dequeue();
+        commitTask.executed();
+    }
+    Map<String, Long> commitsCountPerGroup = commitsTracker.getCommitsCountPerGroupLastMinute();
+    assertEquals(3, commitsCountPerGroup.size());
+    for (String group : groups) {
+        Long groupCount = commitsCountPerGroup.get(group);
+        assertNotNull(groupCount);
+        assertEquals(10, (long) groupCount);
+    }
+    assertEquals(10, commitsTracker.getCommitsCountOthers().size());
+}

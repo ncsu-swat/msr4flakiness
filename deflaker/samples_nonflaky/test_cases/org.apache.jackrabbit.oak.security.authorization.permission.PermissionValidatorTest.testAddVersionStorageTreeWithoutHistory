@@ -1,0 +1,13 @@
+@Test(expected = CommitFailedException.class)
+public void testAddVersionStorageTreeWithoutHistory() throws Exception {
+    PermissionValidator validator = createValidator(ImmutableSet.of(), VERSION_STORE_PATH);
+    try {
+        Tree t = root.getTree(VERSION_STORE_PATH);
+        TreeUtil.addChild(t, "any", REP_VERSIONSTORAGE);
+        validator.childNodeAdded("any", mock(NodeState.class));
+    } catch (CommitFailedException e) {
+        assertTrue(e.isAccessViolation());
+        assertEquals(21, e.getCode());
+        throw e;
+    }
+}

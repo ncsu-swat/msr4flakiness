@@ -1,0 +1,29 @@
+public void testGlobalConfigurationWithActionDefaults() throws Exception {
+    try {
+        String workflowUri = helper.createTestWorkflowXml(getWorkflowGlobalXml(), helper.getJavaActionXml(""));
+        LocalOozie.start();
+        final OozieClient wfClient = LocalOozie.getClient();
+        Properties conf = wfClient.createConfiguration();
+        conf.setProperty(OozieClient.APP_PATH, workflowUri);
+        conf.setProperty(OozieClient.USER_NAME, getTestUser());
+        conf.setProperty("appName", "var-app-name");
+        final String jobId = wfClient.submit(conf);
+        wfClient.start(jobId);
+        WorkflowJob workflow = wfClient.getJobInfo(jobId);
+        waitFor(20 * 1000, new Predicate() {
+
+            @Override
+            public boolean evaluate() throws Exception {
+                WorkflowAction javaAction = helper.getJavaAction(wfClient.getJobInfo(jobId));
+                return javaAction != null && !javaAction.getStatus().equals("PREP");
+            }
+        });
+        final WorkflowAction workflowAction = helper.getJavaAction(workflow);
+        Element eConf = XmlUtils.parseXml(workflowAction.getConf());
+        Element element = eConf.getChild("configuration", eConf.getNamespace());
+        Configuration actionConf = new XConfiguration(new StringReader(XmlUtils.prettyPrint(element).toString()));
+        assertEquals("Config value set in <global> section is not propagated correctly", "foo2", actionConf.get("action.foo"));
+    } finally {
+        LocalOozie.stop();
+    }
+}

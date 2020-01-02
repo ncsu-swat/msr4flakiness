@@ -1,0 +1,29 @@
+@Test
+public void testOpenChannelsClosed() throws IOException {
+    Path p = fs.getPath("/foo");
+    FileChannel fc = FileChannel.open(p, READ, WRITE, CREATE);
+    SeekableByteChannel sbc = Files.newByteChannel(p, READ);
+    AsynchronousFileChannel afc = AsynchronousFileChannel.open(p, READ, WRITE);
+    assertTrue(fc.isOpen());
+    assertTrue(sbc.isOpen());
+    assertTrue(afc.isOpen());
+    fs.close();
+    assertFalse(fc.isOpen());
+    assertFalse(sbc.isOpen());
+    assertFalse(afc.isOpen());
+    try {
+        fc.size();
+        fail();
+    } catch (ClosedChannelException expected) {
+    }
+    try {
+        sbc.size();
+        fail();
+    } catch (ClosedChannelException expected) {
+    }
+    try {
+        afc.size();
+        fail();
+    } catch (ClosedChannelException expected) {
+    }
+}

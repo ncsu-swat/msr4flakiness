@@ -1,0 +1,18 @@
+/**
+ * Tests IO exception, that can occur during reading of properties file.
+ */
+@Test
+public void testIoException() throws Exception {
+    final DefaultConfiguration checkConfig = createModuleConfig(UniquePropertiesCheck.class);
+    final UniquePropertiesCheck check = new UniquePropertiesCheck();
+    check.configure(checkConfig);
+    final String fileName = getPath("InputUniquePropertiesCheckNotExisting.properties");
+    final File file = new File(fileName);
+    final FileText fileText = new FileText(file, Collections.emptyList());
+    final SortedSet<LocalizedMessage> messages = check.process(file, fileText);
+    assertEquals(1, messages.size(), "Wrong messages count: " + messages.size());
+    final LocalizedMessage message = messages.iterator().next();
+    final String retrievedMessage = messages.iterator().next().getKey();
+    assertEquals("unable.open.cause", retrievedMessage, "Message key '" + retrievedMessage + "' is not valid");
+    assertEquals(message.getMessage(), getCheckMessage(MSG_IO_EXCEPTION_KEY, fileName, getFileNotFoundDetail(file)), "Message '" + message.getMessage() + "' is not valid");
+}

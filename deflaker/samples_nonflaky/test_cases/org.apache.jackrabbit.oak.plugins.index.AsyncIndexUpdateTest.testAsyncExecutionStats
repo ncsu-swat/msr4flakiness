@@ -1,0 +1,44 @@
+@Test
+public void testAsyncExecutionStats() throws Exception {
+    final Set<String> knownCheckpoints = Sets.newHashSet();
+    MemoryNodeStore store = new MemoryNodeStore() {
+
+        @Override
+        public synchronized NodeState retrieve(@NotNull String checkpoint) {
+            if (!knownCheckpoints.isEmpty() && !knownCheckpoints.contains(checkpoint)) {
+                return null;
+            }
+            return super.retrieve(checkpoint);
+        }
+    };
+    IndexEditorProvider provider = new PropertyIndexEditorProvider();
+    NodeBuilder builder = store.getRoot().builder();
+    createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "rootIndex", true, false, ImmutableSet.of("foo"), null).setProperty(ASYNC_PROPERTY_NAME, "async");
+    builder.child("testRoot").setProperty("foo", "abc");
+    // merge it back in
+    store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider, statsProvider, false);
+    runOneCycle(async);
+    assertEquals(1, async.getIndexStats().getExecutionStats().getExecutionCounter().getCount());
+    // Run a cycle so that change of reindex flag gets indexed
+    runOneCycle(async);
+    assertEquals(2, async.getIndexStats().getExecutionStats().getExecutionCounter().getCount());
+    long indexedNodeCount = async.getIndexStats().getExecutionStats().getIndexedNodeCount().getCount();
+    // Now run so that it results in an empty cycle
+    runOneCycle(async);
+    assertEquals(indexedNodeCount, async.getIndexStats().getExecutionStats().getIndexedNodeCount().getCount());
+    // Do some updates and counter should increase
+    builder = store.getRoot().builder();
+    builder.child("testRoot2").setProperty("foo", "abc");
+    store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    runOneCycle(async);
+    assertEquals(4, async.getIndexStats().getExecutionStats().getExecutionCounter().getCount());
+    // Do some updates but disable checkpoints. Counter should not increase
+    builder = store.getRoot().builder();
+    builder.child("testRoot3").setProperty("foo", "abc");
+    store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    // Disable new checkpoint retrieval
+    knownCheckpoints.addAll(store.listCheckpoints());
+    runOneCycle(async);
+    assertEquals(0, lastExecutionStats(async.getIndexStats().getExecutionCount()));
+}

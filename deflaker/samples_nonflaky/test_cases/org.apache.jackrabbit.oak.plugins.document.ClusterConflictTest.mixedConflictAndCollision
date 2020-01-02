@@ -1,0 +1,31 @@
+// OAK-3859
+@Test
+public void mixedConflictAndCollision() throws Exception {
+    NodeBuilder b1 = ns1.getRoot().builder();
+    b1.child("test");
+    merge(ns1, b1);
+    ns1.runBackgroundOperations();
+    ns2.runBackgroundOperations();
+    AtomicLong counter = new AtomicLong();
+    final List<Exception> exceptions = Collections.synchronizedList(new ArrayList<Exception>());
+    // the writers perform conflicting changes
+    List<Thread> writers = Lists.newArrayList();
+    writers.add(new Thread(new Writer(exceptions, ns1, counter)));
+    writers.add(new Thread(new Writer(exceptions, ns1, counter)));
+    for (Thread t : writers) {
+        t.start();
+    }
+    for (int i = 0; i < 10; i++) {
+        NodeBuilder b21 = ns2.getRoot().builder();
+        // this change does not conflict with changes on ns1 but
+        // will be considered a collision
+        b21.child("test").setProperty("q", 1);
+        merge(ns2, b21);
+    }
+    for (Thread t : writers) {
+        t.join(10000);
+    }
+    for (Exception e : exceptions) {
+        throw e;
+    }
+}

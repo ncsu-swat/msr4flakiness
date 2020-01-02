@@ -1,0 +1,12 @@
+@Test
+public void testDifferentPaths() throws Exception {
+    final File file = new File(temporaryFolder, "messages_test_de.properties");
+    try (Writer writer = Files.newBufferedWriter(file.toPath(), StandardCharsets.UTF_8)) {
+        final String content = "hello=Hello\ncancel=Cancel";
+        writer.write(content);
+    }
+    final Configuration checkConfig = createModuleConfig(TranslationCheck.class);
+    final String[] expected = { "1: " + getCheckMessage(MSG_KEY_MISSING_TRANSLATION_FILE, "messages_test.properties") };
+    final File[] propertyFiles = { file, new File(getPath("messages_test.properties")) };
+    verify(createChecker(checkConfig), propertyFiles, file.getParent(), expected);
+}

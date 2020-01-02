@@ -1,0 +1,18 @@
+@Test
+public void testInvalidPolicyNodeBecomesTypeRepACL() throws Exception {
+    Tree t = root.getTree(testPath).getChild("childNode");
+    TreeUtil.addChild(t, AccessControlConstants.REP_POLICY, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+    root.commit();
+    Tree principalPermissionStore = root.getTree(PermissionConstants.PERMISSIONS_STORE_PATH).getChild(adminSession.getWorkspaceName()).getChild(testPrincipal.getName());
+    assertEquals(1, principalPermissionStore.getChildrenCount(10));
+    AccessControlManager acMgr = getAccessControlManager(root);
+    t.getChild(REP_POLICY).remove();
+    JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, t.getPath());
+    acl.addAccessControlEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_READ));
+    acMgr.setPolicy(acl.getPath(), acl);
+    root.commit();
+    principalPermissionStore = root.getTree(PermissionConstants.PERMISSIONS_STORE_PATH).getChild(adminSession.getWorkspaceName()).getChild(testPrincipal.getName());
+    assertEquals(2, principalPermissionStore.getChildrenCount(10));
+    Iterable<String> paths = Iterables.transform(principalPermissionStore.getChildren(), tree -> tree.getProperty(REP_ACCESS_CONTROLLED_PATH).getValue(Type.STRING));
+    assertEquals(ImmutableSet.of(testPath, t.getPath()), ImmutableSet.copyOf(paths));
+}

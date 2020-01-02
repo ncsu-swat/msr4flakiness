@@ -1,0 +1,18 @@
+@SuppressWarnings("unchecked")
+@Test
+public void testShouldSaveStateStrategyAndParameters() throws EntityNotFoundException {
+    /*
+         * WHEN a feature without strategy is persisted
+         */
+    final FeatureState state = new FeatureState(TestFeature.F1).enable().setStrategyId("someId").setParameter("param", "foo");
+    repository.setFeatureState(state);
+    /*
+         * THEN there should be a corresponding entry in the database
+         */
+    final Key key = KeyFactory.createKey(repository.kind(), TestFeature.F1.name());
+    final Entity featureEntity = datastoreService.get(key);
+    assertEquals(true, featureEntity.getProperty(DatastoreStateRepository.ENABLED));
+    assertEquals("someId", featureEntity.getProperty(DatastoreStateRepository.STRATEGY_ID));
+    assertThat((List<String>) featureEntity.getProperty(DatastoreStateRepository.STRATEGY_PARAMS_NAMES), is(Arrays.asList("param")));
+    assertThat((List<String>) featureEntity.getProperty(DatastoreStateRepository.STRATEGY_PARAMS_VALUES), is(Arrays.asList("foo")));
+}

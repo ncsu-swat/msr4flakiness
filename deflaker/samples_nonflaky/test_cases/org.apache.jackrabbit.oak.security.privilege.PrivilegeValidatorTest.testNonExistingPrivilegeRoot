@@ -1,0 +1,12 @@
+@Test(expected = CommitFailedException.class)
+public void testNonExistingPrivilegeRoot() throws Exception {
+    Tree t = when(mock(Tree.class).exists()).thenReturn(false).getMock();
+    Root r = when(mock(Root.class).getTree(PRIVILEGES_PATH)).thenReturn(t).getMock();
+    PrivilegeValidator validator = new PrivilegeValidator(r, r, getTreeProvider());
+    try {
+        PropertyState ps = PropertyStates.createProperty(REP_NEXT, "any");
+        validator.propertyChanged(ps, ps);
+    } catch (CommitFailedException e) {
+        throw assertCommitFailed(e, 44);
+    }
+}

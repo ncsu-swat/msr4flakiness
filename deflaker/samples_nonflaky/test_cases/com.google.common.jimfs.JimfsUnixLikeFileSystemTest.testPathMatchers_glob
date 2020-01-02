@@ -1,0 +1,23 @@
+@Test
+public void testPathMatchers_glob() {
+    assertThatPath("bar").matches("glob:bar");
+    assertThatPath("bar").matches("glob:*");
+    assertThatPath("/foo").doesNotMatch("glob:*");
+    assertThatPath("/foo/bar").doesNotMatch("glob:*");
+    assertThatPath("/foo/bar").matches("glob:**");
+    assertThatPath("/foo/bar").matches("glob:/**");
+    assertThatPath("foo/bar").doesNotMatch("glob:/**");
+    assertThatPath("/foo/bar/baz/stuff").matches("glob:/foo/**");
+    assertThatPath("/foo/bar/baz/stuff").matches("glob:/**/stuff");
+    assertThatPath("/foo").matches("glob:/[a-z]*");
+    assertThatPath("/Foo").doesNotMatch("glob:/[a-z]*");
+    assertThatPath("/foo/bar/baz/Stuff.java").matches("glob:**/*.java");
+    assertThatPath("/foo/bar/baz/Stuff.java").matches("glob:**/*.{java,class}");
+    assertThatPath("/foo/bar/baz/Stuff.class").matches("glob:**/*.{java,class}");
+    assertThatPath("/foo/bar/baz/Stuff.java").matches("glob:**/*.*");
+    try {
+        fs.getPathMatcher("glob:**/*.{java,class");
+        fail();
+    } catch (PatternSyntaxException expected) {
+    }
+}

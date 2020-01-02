@@ -1,0 +1,28 @@
+/**
+ * It is OK to have long test method name here as it describes the test purpose.
+ */
+@Test
+public void testCacheAndCheckWhichDoesNotImplementExternalResourceHolderInterface() throws Exception {
+    assertFalse(ExternalResourceHolder.class.isAssignableFrom(HiddenFieldCheck.class), "ExternalResourceHolder has changed his parent");
+    final DefaultConfiguration checkConfig = createModuleConfig(HiddenFieldCheck.class);
+    final DefaultConfiguration treeWalkerConfig = createModuleConfig(TreeWalker.class);
+    treeWalkerConfig.addChild(checkConfig);
+    final DefaultConfiguration checkerConfig = createRootConfig(treeWalkerConfig);
+    checkerConfig.addAttribute("charset", StandardCharsets.UTF_8.name());
+    final File cacheFile = File.createTempFile("junit", null, temporaryFolder);
+    checkerConfig.addAttribute("cacheFile", cacheFile.getPath());
+    final File tmpFile = File.createTempFile("file", ".java", temporaryFolder);
+    final String[] expected = CommonUtil.EMPTY_STRING_ARRAY;
+    verify(checkerConfig, tmpFile.getPath(), expected);
+    final Properties cacheAfterFirstRun = new Properties();
+    try (BufferedReader reader = Files.newBufferedReader(cacheFile.toPath())) {
+        cacheAfterFirstRun.load(reader);
+    }
+    // one more time to reuse cache
+    verify(checkerConfig, tmpFile.getPath(), expected);
+    final Properties cacheAfterSecondRun = new Properties();
+    try (BufferedReader reader = Files.newBufferedReader(cacheFile.toPath())) {
+        cacheAfterSecondRun.load(reader);
+    }
+    assertEquals(cacheAfterFirstRun, cacheAfterSecondRun, "Cache from first run differs from second run cache");
+}

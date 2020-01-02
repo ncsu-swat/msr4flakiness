@@ -1,0 +1,13 @@
+@Test
+public void testDeactivateClearsPreconditions() throws Exception {
+    Field f = registration.getClass().getDeclaredField("preconditions");
+    f.setAccessible(true);
+    registration.activate(context.bundleContext(), configWithRequiredServiceIds("nodeName"));
+    assertFalse(((Preconditions) f.get(registration)).areSatisfied());
+    AuthorizableNodeName mock = mock(AuthorizableNodeName.class);
+    ServiceReference sr = when(mock(ServiceReference.class).getProperty(SERVICE_PID)).thenReturn("nodeName").getMock();
+    registration.bindAuthorizableNodeName(sr, mock);
+    assertTrue(((Preconditions) f.get(registration)).areSatisfied());
+    registration.deactivate();
+    assertTrue(((Preconditions) f.get(registration)).areSatisfied());
+}

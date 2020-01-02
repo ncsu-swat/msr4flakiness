@@ -1,0 +1,33 @@
+public void testChmodWithGlob() throws Exception {
+    FsActionExecutor ae = new FsActionExecutor();
+    FileSystem fs = getFileSystem();
+    Context context = createContext("<fs/>");
+    Path basePath = new Path(getFsTestCaseDir(), "2010");
+    createTestDirForChmod(basePath, fs);
+    Path globPath = new Path(basePath + "/1[0-1]");
+    ae.chmod(context, globPath, "-rwx------", false, false);
+    assertEquals("rwx------", fs.getFileStatus(new Path(basePath, "10")).getPermission().toString());
+    assertEquals("rwx------", fs.getFileStatus(new Path(basePath, "11")).getPermission().toString());
+    assertEquals("rwxrwxrwx", fs.getFileStatus(new Path(basePath, "12")).getPermission().toString());
+    assertEquals("rwxrwxrwx", fs.getFileStatus(new Path(basePath + "/10/dir1")).getPermission().toString());
+    assertEquals("rwxrwxrwx", fs.getFileStatus(new Path(basePath + "/10/dir2")).getPermission().toString());
+    assertEquals("rwxrwxrwx", fs.getFileStatus(new Path(basePath + "/11/dir3")).getPermission().toString());
+    assertEquals("rw-rw-rw-", fs.getFileStatus(new Path(basePath + "/10/dir1/file1")).getPermission().toString());
+    ae.chmod(context, globPath, "-rwx------", true, false);
+    assertEquals("rwx------", fs.getFileStatus(new Path(basePath, "10")).getPermission().toString());
+    assertEquals("rwx------", fs.getFileStatus(new Path(basePath, "11")).getPermission().toString());
+    assertEquals("rwxrwxrwx", fs.getFileStatus(new Path(basePath, "12")).getPermission().toString());
+    assertEquals("rwx------", fs.getFileStatus(new Path(basePath + "/10/dir1")).getPermission().toString());
+    assertEquals("rwx------", fs.getFileStatus(new Path(basePath + "/10/dir2")).getPermission().toString());
+    assertEquals("rwx------", fs.getFileStatus(new Path(basePath + "/11/dir3")).getPermission().toString());
+    assertEquals("rw-rw-rw-", fs.getFileStatus(new Path(basePath + "/10/dir1/file1")).getPermission().toString());
+    ae.chmod(context, globPath, "-rwx------", true, true);
+    assertEquals("rwx------", fs.getFileStatus(new Path(basePath, "10")).getPermission().toString());
+    assertEquals("rwx------", fs.getFileStatus(new Path(basePath, "11")).getPermission().toString());
+    assertEquals("rwxrwxrwx", fs.getFileStatus(new Path(basePath, "12")).getPermission().toString());
+    assertEquals("rwx------", fs.getFileStatus(new Path(basePath + "/10/dir1")).getPermission().toString());
+    assertEquals("rwx------", fs.getFileStatus(new Path(basePath + "/10/dir2")).getPermission().toString());
+    assertEquals("rwx------", fs.getFileStatus(new Path(basePath + "/11/dir3")).getPermission().toString());
+    assertEquals("rwx------", fs.getFileStatus(new Path(basePath + "/10/dir1/file1")).getPermission().toString());
+    fs.delete(basePath, true);
+}

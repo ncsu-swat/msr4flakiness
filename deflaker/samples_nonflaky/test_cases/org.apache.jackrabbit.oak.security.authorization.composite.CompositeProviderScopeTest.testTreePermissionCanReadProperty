@@ -1,0 +1,11 @@
+@Test
+public void testTreePermissionCanReadProperty() throws Exception {
+    Map<String, Boolean> readMap = ImmutableMap.<String, Boolean>builder().put(ROOT_PATH, false).put(TEST_PATH, true).put(TEST_A_PATH, true).put(TEST_A_B_PATH, true).put(TEST_A_B_C_PATH, true).put(TEST_A_B_C_PATH + "/nonexisting", true).build();
+    TreePermission parentPermission = TreePermission.EMPTY;
+    for (String nodePath : readMap.keySet()) {
+        Tree tree = readOnlyRoot.getTree(nodePath);
+        TreePermission tp = cppTestUser.getTreePermission(tree, parentPermission);
+        assertEquals(nodePath, readMap.get(nodePath), tp.canRead(PROPERTY_STATE));
+        parentPermission = tp;
+    }
+}

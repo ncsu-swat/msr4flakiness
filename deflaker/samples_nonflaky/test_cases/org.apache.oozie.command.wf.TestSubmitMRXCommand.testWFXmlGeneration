@@ -1,0 +1,37 @@
+public void testWFXmlGeneration() throws Exception {
+    Configuration conf = new Configuration(false);
+    conf.set(XOozieClient.RM, "jobtracker");
+    conf.set(XOozieClient.NN, "namenode");
+    conf.set(OozieClient.LIBPATH, "libpath");
+    conf.set("mapred.mapper.class", "A.Mapper");
+    conf.set("mapred.reducer.class", "A.Reducer");
+    conf.set(XOozieClient.FILES, "/user/oozie/input1.txt,/user/oozie/input2.txt#my.txt");
+    conf.set(XOozieClient.ARCHIVES, "/user/oozie/udf1.jar,/user/oozie/udf2.jar#my.jar");
+    SubmitMRXCommand submitMRCmd = new SubmitMRXCommand(conf);
+    String xml = submitMRCmd.getWorkflowXml(conf);
+    XLog.getLog(getClass()).info("xml = " + xml);
+    // verifying is a valid WF
+    WorkflowAppService wps = Services.get().get(WorkflowAppService.class);
+    wps.parseDef(xml, conf);
+    Element wfE = XmlUtils.parseXml(xml);
+    Namespace ns = wfE.getNamespace();
+    Element actionE = wfE.getChild("action", ns).getChild("map-reduce", ns);
+    Element confE = actionE.getChild("configuration", ns);
+    Map<String, String> props = new HashMap<String, String>();
+    for (Object prop : confE.getChildren("property", ns)) {
+        Element propE = (Element) prop;
+        String name = propE.getChild("name", ns).getTextTrim();
+        String value = propE.getChild("value", ns).getTextTrim();
+        props.put(name, value);
+    }
+    Map<String, String> expected = new HashMap<String, String>();
+    expected.put("mapred.mapper.class", "A.Mapper");
+    expected.put("mapred.reducer.class", "A.Reducer");
+    for (Map.Entry<String, String> entry : expected.entrySet()) {
+        assertEquals(entry.getValue(), expected.get(entry.getKey()));
+    }
+    assertEquals("/user/oozie/input1.txt#input1.txt", ((Element) actionE.getChildren("file", ns).get(0)).getTextTrim());
+    assertEquals("/user/oozie/input2.txt#my.txt", ((Element) actionE.getChildren("file", ns).get(1)).getTextTrim());
+    assertEquals("/user/oozie/udf1.jar#udf1.jar", ((Element) actionE.getChildren("archive", ns).get(0)).getTextTrim());
+    assertEquals("/user/oozie/udf2.jar#my.jar", ((Element) actionE.getChildren("archive", ns).get(1)).getTextTrim());
+}

@@ -1,0 +1,16 @@
+@Test
+public void testAccessControlledChildInFrozenNode() throws Exception {
+    Tree version = createVersions(TEST_PATH).getChild("1.2");
+    Tree frozenNode = version.getChild(JCR_FROZENNODE);
+    Tree copiedAccessControlledChild = frozenNode.getChild("accessControlled");
+    // default read-paths -> only accessControlled tree readable
+    CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.EMPTY);
+    assertTrue(cp.isGranted(copiedAccessControlledChild, null, Permissions.READ | Permissions.SET_PROPERTY));
+    // isGranted(String, long) serves as fallback when no versionable node available
+    // -> just regular permission eval based on path, no tree-type taken into account
+    assertFalse(cp.isGranted(copiedAccessControlledChild.getPath(), Permissions.READ));
+    assertEquals(ImmutableSet.of(JCR_READ, JCR_WRITE), cp.getPrivileges(copiedAccessControlledChild));
+    assertTrue(cp.hasPrivileges(copiedAccessControlledChild, JCR_READ, JCR_WRITE));
+    TreePermission tp = createTreePermission(cp, version.getPath());
+    assertTrue(tp instanceof VersionTreePermission);
+}

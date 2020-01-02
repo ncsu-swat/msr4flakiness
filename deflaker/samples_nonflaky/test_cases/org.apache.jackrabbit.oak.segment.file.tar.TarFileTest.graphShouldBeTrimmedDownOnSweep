@@ -1,0 +1,24 @@
+@Test
+public void graphShouldBeTrimmedDownOnSweep() throws Exception {
+    try (TarWriter writer = new TarWriter(archiveManager, "data00000a.tar")) {
+        writer.writeEntry(1, 1, new byte[] { 1 }, 0, 1, generation(1));
+        writer.writeEntry(1, 2, new byte[] { 1 }, 0, 1, generation(1));
+        writer.writeEntry(1, 3, new byte[] { 1 }, 0, 1, generation(1));
+        writer.writeEntry(2, 1, new byte[] { 1 }, 0, 1, generation(2));
+        writer.writeEntry(2, 2, new byte[] { 1 }, 0, 1, generation(2));
+        writer.writeEntry(2, 3, new byte[] { 1 }, 0, 1, generation(2));
+        writer.addGraphEdge(new UUID(1, 1), new UUID(1, 2));
+        writer.addGraphEdge(new UUID(1, 2), new UUID(1, 3));
+        writer.addGraphEdge(new UUID(2, 1), new UUID(2, 2));
+        writer.addGraphEdge(new UUID(2, 2), new UUID(2, 3));
+    }
+    Set<UUID> sweep = newSet(new UUID(1, 2), new UUID(2, 3));
+    try (TarReader reader = TarReader.open("data00000a.tar", archiveManager)) {
+        try (TarReader swept = reader.sweep(sweep, new HashSet<UUID>())) {
+            assertNotNull(swept);
+            Map<UUID, List<UUID>> graph = newHashMap();
+            graph.put(new UUID(2, 1), newArrayList(new UUID(2, 2)));
+            assertEquals(graph, swept.getGraph());
+        }
+    }
+}

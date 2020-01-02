@@ -1,0 +1,19 @@
+public void testReRun() throws Exception {
+    runTest(END_POINTS, SERVLET_CLASSES, IS_SECURITY_ENABLED, new Callable<Void>() {
+
+        public Void call() throws Exception {
+            String oozieUrl = getContextURL();
+            OozieClient wc = new OozieClient(oozieUrl);
+            Properties conf = wc.createConfiguration();
+            conf.setProperty(OozieClient.USER_NAME, getTestUser());
+            Path appPath = new Path(getFsTestCaseDir(), "app");
+            getFileSystem().mkdirs(appPath);
+            getFileSystem().create(new Path(appPath, "workflow.xml")).close();
+            conf.setProperty(OozieClient.APP_PATH, appPath.toString());
+            wc.reRun(MockDagEngineService.JOB_ID + "1" + MockDagEngineService.JOB_ID_END, conf);
+            assertEquals(RestConstants.JOB_ACTION_RERUN, MockDagEngineService.did);
+            assertTrue(MockDagEngineService.started.get(1));
+            return null;
+        }
+    });
+}

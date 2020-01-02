@@ -1,0 +1,11 @@
+@Test
+public void testSuppressionCommentsInPropertiesFile() throws Exception {
+    final DefaultConfiguration filterCfg = createModuleConfig(SuppressWithPlainTextCommentFilter.class);
+    filterCfg.addAttribute("offCommentFormat", "# CHECKSTYLE:OFF");
+    filterCfg.addAttribute("onCommentFormat", "# CHECKSTYLE:ON");
+    final DefaultConfiguration checkCfg = createModuleConfig(RegexpSinglelineCheck.class);
+    checkCfg.addAttribute("format", "^key[0-9]=$");
+    final String[] suppressed = { "2: " + getCheckMessage(RegexpSinglelineCheck.class, MSG_REGEXP_EXCEEDED, "^key[0-9]=$") };
+    final String[] violationMessages = { "2: " + getCheckMessage(RegexpSinglelineCheck.class, MSG_REGEXP_EXCEEDED, "^key[0-9]=$"), "4: " + getCheckMessage(RegexpSinglelineCheck.class, MSG_REGEXP_EXCEEDED, "^key[0-9]=$") };
+    verifySuppressed("InputSuppressWithPlainTextCommentFilter.properties", removeSuppressed(violationMessages, suppressed), filterCfg, checkCfg);
+}

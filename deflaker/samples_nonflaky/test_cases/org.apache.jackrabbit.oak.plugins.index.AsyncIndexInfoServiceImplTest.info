@@ -1,0 +1,19 @@
+@Test
+public void info() throws Exception {
+    AsyncIndexUpdate async = new AsyncIndexUpdate("foo-async", store, provider);
+    async.run();
+    Set<String> names = ImmutableSet.copyOf(service.getAsyncLanes());
+    assertThat(names, containsInAnyOrder("foo-async"));
+    service.bindStatsMBeans(async.getIndexStats());
+    AsyncIndexInfo info = service.getInfo("foo-async");
+    assertNotNull(info);
+    assertEquals("foo-async", info.getName());
+    assertNotNull(info.getStatsMBean());
+    assertTrue(info.getLastIndexedTo() > -1);
+    assertFalse(info.isRunning());
+    assertEquals(-1, info.getLeaseExpiryTime());
+    System.out.println(info);
+    service.unbindStatsMBeans(async.getIndexStats());
+    AsyncIndexInfo info2 = service.getInfo("foo-async");
+    assertNull(info2.getStatsMBean());
+}

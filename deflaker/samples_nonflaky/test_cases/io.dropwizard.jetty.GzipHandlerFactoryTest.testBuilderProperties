@@ -1,0 +1,20 @@
+@Test
+void testBuilderProperties() {
+    GzipHandlerFactory gzip = new GzipHandlerFactory();
+    gzip.setMinimumEntitySize(DataSize.bytes(4096));
+    gzip.setIncludedMethods(Sets.of("GET", "POST"));
+    gzip.setExcludedUserAgentPatterns(Collections.singleton("MSIE 6.0"));
+    gzip.setCompressedMimeTypes(Sets.of("text/html", "application/json"));
+    gzip.setExcludedMimeTypes(Collections.singleton("application/thrift"));
+    gzip.setIncludedPaths(Collections.singleton("/include/me"));
+    gzip.setExcludedPaths(Collections.singleton("/exclude/me"));
+    Handler handler = mock(Handler.class);
+    GzipHandler biDiGzipHandler = gzip.build(handler);
+    assertThat(biDiGzipHandler.getMinGzipSize()).isEqualTo(4096);
+    assertThat(biDiGzipHandler.getIncludedMethods()).containsExactlyInAnyOrder("GET", "POST");
+    assertThat(biDiGzipHandler.getExcludedAgentPatterns()).containsExactly("MSIE 6.0");
+    assertThat(biDiGzipHandler.getIncludedMimeTypes()).containsExactlyInAnyOrder("text/html", "application/json");
+    assertThat(biDiGzipHandler.getExcludedMimeTypes()).containsExactly("application/thrift");
+    assertThat(biDiGzipHandler.getIncludedPaths()).containsExactly("/include/me");
+    assertThat(biDiGzipHandler.getExcludedPaths()).containsExactly("/exclude/me");
+}

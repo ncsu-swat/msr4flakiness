@@ -1,0 +1,40 @@
+// OAK-5602
+@Test
+public void gcWithCheckpoint2() throws Exception {
+    Clock c = new Clock.Virtual();
+    c.waitUntil(System.currentTimeMillis());
+    Revision.setClock(c);
+    MemoryDocumentStore docStore = new MemoryDocumentStore();
+    DocumentNodeStore ns = builderProvider.newBuilder().setDocumentStore(docStore).setUpdateLimit(100).setJournalGCMaxAge(TimeUnit.HOURS.toMillis(1)).setLeaseCheckMode(LeaseCheckMode.LENIENT).clock(c).setAsyncDelay(0).getNodeStore();
+    NodeBuilder builder = ns.getRoot().builder();
+    NodeBuilder test = builder.child("test");
+    String testId = Utils.getIdFromPath("/test");
+    for (int i = 0; ; i++) {
+        NodeBuilder child = test.child("child-" + i);
+        for (int j = 0; j < 10; j++) {
+            child.setProperty("p-" + j, "value");
+        }
+        if (docStore.find(NODES, testId) != null) {
+            // branch was created
+            break;
+        }
+    }
+    // simulate a long running commit taking 20 minutes
+    c.waitUntil(c.getTime() + TimeUnit.MINUTES.toMillis(20));
+    merge(ns, builder);
+    ns.runBackgroundOperations();
+    Revision head = ns.getHeadRevision().getRevision(ns.getClusterId());
+    assertNotNull(head);
+    ns.checkpoint(TimeUnit.DAYS.toMillis(1));
+    JournalEntry entry = ns.getDocumentStore().find(JOURNAL, JournalEntry.asId(head));
+    assertNotNull(entry);
+    // wait two hours
+    c.waitUntil(c.getTime() + TimeUnit.HOURS.toMillis(2));
+    // instruct journal collector to remove entries older than one hour
+    ns.getJournalGarbageCollector().gc();
+    // must not remove existing entry, because checkpoint is still valid
+    entry = ns.getDocumentStore().find(JOURNAL, JournalEntry.asId(head));
+    assertNotNull(entry);
+    // referenced branch commits must also be available
+    assertThat(Iterables.size(entry.getBranchCommits()), greaterThan(0));
+}

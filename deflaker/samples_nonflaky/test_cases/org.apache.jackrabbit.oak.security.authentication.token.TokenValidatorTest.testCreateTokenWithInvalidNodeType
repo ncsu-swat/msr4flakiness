@@ -1,0 +1,19 @@
+@Test
+public void testCreateTokenWithInvalidNodeType() throws Exception {
+    TokenInfo info = createTokenInfo(tokenProvider, userId);
+    assertNotNull(tokenProvider.getTokenInfo(info.getToken()));
+    Tree userTree = root.getTree(getUserManager(root).getAuthorizable(userId).getPath());
+    Tree t = null;
+    try {
+        t = replaceTokenTree(info, userTree.getChild(TOKENS_NODE_NAME), JcrConstants.NT_UNSTRUCTURED);
+        root.commit(CommitMarker.asCommitAttributes());
+        fail("The token node must be of type rep:Token.");
+    } catch (CommitFailedException e) {
+        assertEquals(60, e.getCode());
+    } finally {
+        if (t != null) {
+            t.remove();
+            root.commit(CommitMarker.asCommitAttributes());
+        }
+    }
+}

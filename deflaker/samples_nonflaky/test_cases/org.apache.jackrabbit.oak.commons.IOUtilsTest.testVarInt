@@ -1,0 +1,41 @@
+public void testVarInt() throws IOException {
+    testVarInt(0, 1);
+    testVarInt(0x7f, 1);
+    testVarInt(0x80, 2);
+    testVarInt(0x3fff, 2);
+    testVarInt(0x4000, 3);
+    testVarInt(0x1fffff, 3);
+    testVarInt(0x200000, 4);
+    testVarInt(0xfffffff, 4);
+    testVarInt(0x10000000, 5);
+    testVarInt(-1, 5);
+    for (int x = 0; x < 0x20000; x++) {
+        testVarInt(x, 0);
+        testVarInt(Integer.MIN_VALUE + x, 0);
+        testVarInt(Integer.MAX_VALUE - x, 5);
+        testVarInt(0x200000 + x - 100, 0);
+        testVarInt(0x10000000 + x - 100, 0);
+    }
+    Random r = new Random(1);
+    for (int i = 0; i < 100000; i++) {
+        testVarInt(r.nextInt(), 0);
+        testVarInt(r.nextInt(10000000), 0);
+    }
+    // trailing 0s are never written, but are an alternative way to encode a value
+    InputStream in = new ByteArrayInputStream(new byte[] { (byte) 0x80, 0 });
+    assertEquals(0, IOUtils.readVarInt(in));
+    assertEquals(-1, in.read());
+}
+private static void testVarInt(int x, int expectedLen) throws IOException {
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    IOUtils.writeVarInt(out, x);
+    byte[] data = out.toByteArray();
+    assertTrue(data.length <= 5);
+    if (expectedLen > 0) {
+        assertEquals(expectedLen, data.length);
+    }
+    ByteArrayInputStream in = new ByteArrayInputStream(data);
+    int x2 = IOUtils.readVarInt(in);
+    assertEquals(x, x2);
+    assertEquals(-1, in.read());
+}

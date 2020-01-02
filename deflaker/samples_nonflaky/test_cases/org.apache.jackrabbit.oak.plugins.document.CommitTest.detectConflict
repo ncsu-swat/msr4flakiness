@@ -1,0 +1,33 @@
+// OAK-3733
+@Test
+public void detectConflict() throws Exception {
+    // prepare node store
+    DocumentNodeStore ns = builderProvider.newBuilder().getNodeStore();
+    NodeBuilder b = ns.getRoot().builder();
+    b.child("foo");
+    b.child("bar");
+    ns.merge(b, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    b = ns.getRoot().builder();
+    b.child("foo").remove();
+    ns.merge(b, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    // this commit should fail
+    Commit c = ns.newCommit(changes -> {
+        changes.addNode(Path.fromString("/foo/baz"));
+    }, ns.getHeadRevision(), null);
+    try {
+        UpdateOp op = c.getUpdateOperationForNode(Path.fromString("/bar"));
+        op.setMapEntry("p", c.getRevision(), "v");
+        try {
+            c.apply();
+            ns.done(c, false, CommitInfo.EMPTY);
+        } catch (ConflictException e) {
+        // expected
+        }
+    } finally {
+        ns.canceled(c);
+    }
+    // try to re-create /foo
+    b = ns.getRoot().builder();
+    b.child("foo");
+    ns.merge(b, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+}

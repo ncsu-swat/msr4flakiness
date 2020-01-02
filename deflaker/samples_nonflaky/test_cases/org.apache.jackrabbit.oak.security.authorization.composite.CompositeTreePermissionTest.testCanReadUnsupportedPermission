@@ -1,0 +1,12 @@
+@Test
+public void testCanReadUnsupportedPermission() {
+    TreePermission mockTp = when(mock(TreePermission.class).canRead()).thenReturn(true).getMock();
+    AggregatedPermissionProvider mockPP = mock(AggregatedPermissionProvider.class);
+    when(mockPP.getTreePermission(any(Tree.class), any(TreeType.class), any(TreePermission.class))).thenReturn(mockTp);
+    when(mockPP.supportedPermissions(mockTp, null, Permissions.READ_NODE)).thenReturn(Permissions.NO_PERMISSION);
+    TreePermission rootTp = createRootTreePermission(mockPP, mockPP);
+    assertFalse(rootTp.canRead());
+    verify(mockTp, never()).canRead();
+    verify(mockPP, times(2)).getTreePermission(any(Tree.class), any(TreeType.class), any(TreePermission.class));
+    verify(mockPP, times(2)).supportedPermissions(mockTp, null, Permissions.READ_NODE);
+}

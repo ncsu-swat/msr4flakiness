@@ -1,0 +1,73 @@
+// OAK-3081
+@Test
+public void removeGarbage() throws Exception {
+    final DocumentStore store = mk.getDocumentStore();
+    final DocumentNodeStore ns = mk.getNodeStore();
+    final List<Exception> exceptions = Lists.newArrayList();
+    final List<RevisionVector> revisions = Lists.newArrayList();
+    Thread t = new Thread(new Runnable() {
+
+        @Override
+        public void run() {
+            try {
+                for (int i = 0; i < 200; i++) {
+                    NodeBuilder builder = ns.getRoot().builder();
+                    builder.child("foo").child("node").child("node").child("node").child("node");
+                    builder.child("bar").child("node").child("node").child("node").child("node");
+                    merge(ns, builder);
+                    revisions.add(ns.getHeadRevision());
+                    builder = ns.getRoot().builder();
+                    builder.child("foo").child("node").remove();
+                    builder.child("bar").child("node").remove();
+                    merge(ns, builder);
+                    revisions.add(ns.getHeadRevision());
+                }
+            } catch (CommitFailedException e) {
+                exceptions.add(e);
+            }
+        }
+    });
+    t.start();
+    // Use a revision context, which wraps the DocumentNodeStore and
+    // randomly delays calls to get the head revision
+    RevisionContext rc = new TestRevisionContext(ns);
+    while (t.isAlive()) {
+        for (String id : ns.getSplitCandidates()) {
+            RevisionVector head = ns.getHeadRevision();
+            NodeDocument doc = store.find(NODES, id);
+            List<UpdateOp> ops = SplitOperations.forDocument(doc, rc, head, NO_BINARY, NUM_REVS_THRESHOLD);
+            Set<Revision> removed = Sets.newHashSet();
+            Set<Revision> added = Sets.newHashSet();
+            for (UpdateOp op : ops) {
+                for (Map.Entry<Key, Operation> e : op.getChanges().entrySet()) {
+                    if (!"_deleted".equals(e.getKey().getName())) {
+                        continue;
+                    }
+                    Revision r = e.getKey().getRevision();
+                    if (e.getValue().type == Operation.Type.REMOVE_MAP_ENTRY) {
+                        removed.add(r);
+                    } else if (e.getValue().type == Operation.Type.SET_MAP_ENTRY) {
+                        added.add(r);
+                    }
+                }
+            }
+            removed.removeAll(added);
+            assertTrue("SplitOperations must not remove committed changes: " + removed, removed.isEmpty());
+        }
+        // perform the actual cleanup
+        ns.runBackgroundOperations();
+    }
+    // check documents below /foo and /bar
+    // the _deleted map must contain all revisions
+    for (NodeDocument doc : Utils.getAllDocuments(store)) {
+        if (doc.isSplitDocument() || Utils.getDepthFromId(doc.getId()) < 2) {
+            continue;
+        }
+        Set<Revision> revs = Sets.newHashSet();
+        for (RevisionVector rv : revisions) {
+            Iterables.addAll(revs, rv);
+        }
+        revs.removeAll(doc.getValueMap("_deleted").keySet());
+        assertTrue("Missing _deleted entries on " + doc.getId() + ": " + revs, revs.isEmpty());
+    }
+}

@@ -1,0 +1,22 @@
+@Test(expected = CommitFailedException.class)
+public void testRemoveTree2() throws Exception {
+    AccessControlManager acMgr = getAccessControlManager(root);
+    JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/a");
+    acl.addEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_REMOVE_CHILD_NODES), true);
+    acMgr.setPolicy(acl.getPath(), acl);
+    root.commit();
+    Root testRoot = testSession.getLatestRoot();
+    List<String> paths = ImmutableList.of("/a/d/b/e/c", "/a/d/b");
+    for (String p : paths) {
+        testRoot.getTree(p).remove();
+        testRoot.commit();
+    }
+    try {
+        testRoot.getTree("/a").remove();
+        testRoot.commit();
+    } catch (CommitFailedException e) {
+        // success
+        assertTrue(e.isAccessViolation());
+        throw e;
+    }
+}

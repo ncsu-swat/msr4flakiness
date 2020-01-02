@@ -1,0 +1,7 @@
+@Test
+public void testOpenChannel_withInitialAttributes_fileExists() throws IOException {
+    Files.createFile(path("/foo"));
+    FileAttribute<Set<PosixFilePermission>> permissions = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwxrwxrwx"));
+    Files.newByteChannel(path("/foo"), ImmutableSet.of(WRITE, CREATE), permissions).close();
+    assertThatPath("/foo").isRegularFile().and().attribute("posix:permissions").isNot(permissions.value());
+}

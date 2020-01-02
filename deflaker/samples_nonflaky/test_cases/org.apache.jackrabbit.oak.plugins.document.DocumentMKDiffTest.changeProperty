@@ -1,0 +1,19 @@
+@Test
+public void changeProperty() {
+    String rev0 = mk.commit("/", "+\"level1\":{ \"prop1\" : \"value1\"}", null, null);
+    assertTrue(mk.nodeExists("/level1", null));
+    JSONObject obj = parseJSONObject(mk.getNodes("/level1", null, 0, 0, -1, null));
+    assertPropertyValue(obj, "prop1", "value1");
+    // Change property
+    String rev1 = mk.commit("/", "^\"level1/prop1\" : \"value2\"", null, null);
+    obj = parseJSONObject(mk.getNodes("/level1", null, 0, 0, -1, null));
+    assertPropertyValue(obj, "prop1", "value2");
+    // Generate reverseDiff from rev1 to rev0
+    String reverseDiff = mk.diff(rev1, rev0, "/level1", 0);
+    assertNotNull(reverseDiff);
+    assertTrue(reverseDiff.length() > 0);
+    // Commit the reverseDiff and check property is set back.
+    mk.commit("", reverseDiff, null, null);
+    obj = parseJSONObject(mk.getNodes("/level1", null, 0, 0, -1, null));
+    assertPropertyValue(obj, "prop1", "value1");
+}

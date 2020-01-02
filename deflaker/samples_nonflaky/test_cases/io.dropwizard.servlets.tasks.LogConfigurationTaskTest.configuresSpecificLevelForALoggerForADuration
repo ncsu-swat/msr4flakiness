@@ -1,0 +1,15 @@
+@Test
+public void configuresSpecificLevelForALoggerForADuration() throws Exception {
+    // given
+    long millis = 2000;
+    Level oneEffectiveBefore = logger1.getEffectiveLevel();
+    Map<String, List<String>> parameters = Maps.of("logger", Collections.singletonList("logger.one"), "level", Collections.singletonList("debug"), "duration", Collections.singletonList(Duration.ofMillis(millis).toString()));
+    // when
+    task.execute(parameters, output);
+    // then
+    assertThat(logger1.getLevel()).isEqualTo(Level.DEBUG);
+    assertThat(stringWriter.toString()).isEqualTo(String.format("Configured logging level for logger.one to DEBUG for %d milliseconds%n", millis));
+    // after
+    Thread.sleep(4000);
+    assertThat(logger1.getEffectiveLevel()).isEqualTo(oneEffectiveBefore);
+}

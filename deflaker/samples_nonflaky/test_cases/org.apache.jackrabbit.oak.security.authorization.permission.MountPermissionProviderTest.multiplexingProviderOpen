@@ -1,0 +1,20 @@
+@Test
+public void multiplexingProviderOpen() throws Exception {
+    Tree rootNode = root.getTree("/");
+    Tree test = TreeUtil.addChild(rootNode, testNode, JcrConstants.NT_UNSTRUCTURED);
+    Tree content = TreeUtil.addChild(test, "content", JcrConstants.NT_UNSTRUCTURED);
+    root.commit();
+    Principal p = getTestUser().getPrincipal();
+    setPrivileges(p, "/", true, JCR_READ);
+    setPrivileges(p, test.getPath(), false, JCR_READ);
+    setPrivileges(p, content.getPath(), true, JCR_READ);
+    ContentSession testSession = createTestSession();
+    try {
+        Root r = testSession.getLatestRoot();
+        assertTrue(r.getTree("/").exists());
+        assertFalse(test.getPath(), r.getTree(test.getPath()).exists());
+        assertTrue(r.getTree(content.getPath()).exists());
+    } finally {
+        testSession.close();
+    }
+}

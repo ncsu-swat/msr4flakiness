@@ -1,0 +1,22 @@
+@Test
+public void testForNoDuplicatesCoordinatorActionEvents() throws Exception {
+    // test coordinator action events (failure case)
+    Date startTime = DateUtils.parseDateOozieTZ("2009-02-01T23:59Z");
+    Date endTime = DateUtils.parseDateOozieTZ("2009-02-02T23:59Z");
+    CoordinatorJobBean coord = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, startTime, endTime, false, false, 0);
+    _modifyCoordForFailureAction(coord, "wf-invalid-fork.xml");
+    new CoordMaterializeTransitionXCommand(coord.getId(), 3600).call();
+    final CoordJobGetJPAExecutor readCmd1 = new CoordJobGetJPAExecutor(coord.getId());
+    waitFor(1 * 100, new Predicate() {
+
+        @Override
+        public boolean evaluate() throws Exception {
+            CoordinatorJobBean bean = jpaService.execute(readCmd1);
+            return bean.getStatus() == CoordinatorJob.Status.SUCCEEDED || bean.getStatus() == CoordinatorJob.Status.KILLED;
+        }
+    });
+    assertEquals(2, queue.size());
+    assertEquals(EventStatus.WAITING, ((JobEvent) queue.poll()).getEventStatus());
+    assertEquals(EventStatus.FAILURE, ((JobEvent) queue.poll()).getEventStatus());
+    queue.clear();
+}

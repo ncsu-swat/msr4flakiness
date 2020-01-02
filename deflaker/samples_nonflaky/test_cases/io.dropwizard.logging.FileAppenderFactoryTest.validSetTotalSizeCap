@@ -1,0 +1,21 @@
+@Test
+void validSetTotalSizeCap() throws IOException, ConfigurationException, NoSuchFieldException {
+    final Field totalSizeCap = TimeBasedRollingPolicy.class.getDeclaredField("totalSizeCap");
+    totalSizeCap.setAccessible(true);
+    final Field maxFileSize = SizeAndTimeBasedRollingPolicy.class.getDeclaredField("maxFileSize");
+    maxFileSize.setAccessible(true);
+    final YamlConfigurationFactory<FileAppenderFactory> factory = new YamlConfigurationFactory<>(FileAppenderFactory.class, validator, mapper, "dw");
+    final FileAppenderFactory appenderFactory = factory.build(new File(Resources.getResource("yaml/appender_file_cap.yaml").getFile()));
+    final FileAppender appender = appenderFactory.buildAppender(new LoggerContext());
+    assertThat(appender).isInstanceOfSatisfying(RollingFileAppender.class, roller -> {
+        assertThat(roller.getRollingPolicy()).isInstanceOfSatisfying(SizeAndTimeBasedRollingPolicy.class, policy -> {
+            try {
+                assertThat(totalSizeCap.get(policy)).isInstanceOfSatisfying(FileSize.class, x -> assertThat(x.getSize()).isEqualTo(DataSize.mebibytes(50).toBytes()));
+                assertThat(maxFileSize.get(policy)).isInstanceOfSatisfying(FileSize.class, x -> assertThat(x.getSize()).isEqualTo(DataSize.mebibytes(10).toBytes()));
+                assertThat(policy.getMaxHistory()).isEqualTo(5);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException("Unexpected illegal access", e);
+            }
+        });
+    });
+}

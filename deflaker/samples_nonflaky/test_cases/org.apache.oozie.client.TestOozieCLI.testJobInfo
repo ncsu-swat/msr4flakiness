@@ -1,0 +1,44 @@
+public void testJobInfo() throws Exception {
+    runTest(END_POINTS, SERVLET_CLASSES, IS_SECURITY_ENABLED, new Callable<Void>() {
+
+        @Override
+        public Void call() throws Exception {
+            String oozieUrl = getContextURL();
+            MockDagEngineService.reset();
+            String[] args = new String[] { "job", "-oozie", oozieUrl, "-info", MockDagEngineService.JOB_ID + "0" + MockDagEngineService.JOB_ID_END };
+            assertEquals(0, new OozieCLI().run(args));
+            assertEquals(RestConstants.JOB_SHOW_INFO, MockDagEngineService.did);
+            args = new String[] { "job", "-oozie", oozieUrl, "-info", MockDagEngineService.JOB_ID + "1" + MockDagEngineService.JOB_ID_END, "-len", "3", "-offset", "1" };
+            assertEquals(0, new OozieCLI().run(args));
+            assertEquals(RestConstants.JOB_SHOW_INFO, MockDagEngineService.did);
+            args = new String[] { "job", "-oozie", oozieUrl, "-info", MockDagEngineService.JOB_ID + "2" + MockDagEngineService.JOB_ID_END, "-len", "2" };
+            assertEquals(0, new OozieCLI().run(args));
+            assertEquals(RestConstants.JOB_SHOW_INFO, MockDagEngineService.did);
+            args = new String[] { "job", "-oozie", oozieUrl, "-info", MockDagEngineService.JOB_ID + "3" + MockDagEngineService.JOB_ID_END, "-offset", "3" };
+            assertEquals(0, new OozieCLI().run(args));
+            assertEquals(RestConstants.JOB_SHOW_INFO, MockDagEngineService.did);
+            args = new String[] { "job", "-oozie", oozieUrl, "-info", MockCoordinatorEngineService.JOB_ID + 1 + MockCoordinatorEngineService.JOB_ID_END };
+            assertEquals(0, new OozieCLI().run(args));
+            assertEquals(RestConstants.JOB_SHOW_INFO, MockCoordinatorEngineService.did);
+            assertEquals(MockCoordinatorEngineService.offset, new Integer(1));
+            assertEquals(MockCoordinatorEngineService.length, new Integer(1000));
+            MockCoordinatorEngineService.reset();
+            args = new String[] { "job", "-oozie", oozieUrl, "-info", MockCoordinatorEngineService.JOB_ID + 1 + MockCoordinatorEngineService.JOB_ID_END, "-len", "10", "-offset", "5", "-order", "desc", "-filter", "status=FAILED" };
+            assertEquals(0, new OozieCLI().run(args));
+            assertEquals(RestConstants.JOB_SHOW_INFO, MockCoordinatorEngineService.did);
+            assertEquals(MockCoordinatorEngineService.offset, new Integer(5));
+            assertEquals(MockCoordinatorEngineService.length, new Integer(10));
+            assertEquals(MockCoordinatorEngineService.order, "desc");
+            assertEquals(MockCoordinatorEngineService.filter, "status=FAILED");
+            MockCoordinatorEngineService.reset();
+            args = new String[] { "job", "-oozie", oozieUrl, "-info", MockCoordinatorEngineService.JOB_ID + 1 + MockCoordinatorEngineService.JOB_ID_END, "-len", "10", "-offset", "5", "-order", "desc", "-filter", "status!=FAILED" };
+            assertEquals(0, new OozieCLI().run(args));
+            assertEquals(RestConstants.JOB_SHOW_INFO, MockCoordinatorEngineService.did);
+            assertEquals(MockCoordinatorEngineService.offset, new Integer(5));
+            assertEquals(MockCoordinatorEngineService.length, new Integer(10));
+            assertEquals(MockCoordinatorEngineService.order, "desc");
+            assertEquals(MockCoordinatorEngineService.filter, "status!=FAILED");
+            return null;
+        }
+    });
+}

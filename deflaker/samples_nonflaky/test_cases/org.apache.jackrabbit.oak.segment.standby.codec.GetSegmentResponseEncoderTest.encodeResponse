@@ -1,0 +1,16 @@
+@Test
+public void encodeResponse() throws Exception {
+    UUID uuid = new UUID(1, 2);
+    byte[] data = new byte[] { 3, 4, 5 };
+    EmbeddedChannel channel = new EmbeddedChannel(new GetSegmentResponseEncoder());
+    channel.writeOutbound(new GetSegmentResponse("clientId", uuid.toString(), data));
+    ByteBuf buffer = (ByteBuf) channel.readOutbound();
+    ByteBuf expected = Unpooled.buffer();
+    expected.writeInt(data.length + 25);
+    expected.writeByte(Messages.HEADER_SEGMENT);
+    expected.writeLong(uuid.getMostSignificantBits());
+    expected.writeLong(uuid.getLeastSignificantBits());
+    expected.writeLong(hash(data));
+    expected.writeBytes(data);
+    assertEquals(expected, buffer);
+}

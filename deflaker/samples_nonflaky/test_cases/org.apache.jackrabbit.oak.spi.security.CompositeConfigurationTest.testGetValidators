@@ -1,0 +1,16 @@
+@Test
+public void testGetValidators() {
+    assertTrue(compositeConfiguration.getValidators(null, ImmutableSet.of(), new MoveTracker()).isEmpty());
+    addConfiguration(new SecurityConfiguration.Default());
+    assertTrue(compositeConfiguration.getValidators(null, ImmutableSet.of(), new MoveTracker()).isEmpty());
+    SecurityConfiguration withValidator = new SecurityConfiguration.Default() {
+
+        @NotNull
+        @Override
+        public List<? extends ValidatorProvider> getValidators(@NotNull String workspaceName, @NotNull Set<Principal> principals, @NotNull MoveTracker moveTracker) {
+            return ImmutableList.of(Mockito.mock(ValidatorProvider.class));
+        }
+    };
+    addConfiguration(withValidator);
+    assertEquals(1, compositeConfiguration.getValidators(null, ImmutableSet.of(), new MoveTracker()).size());
+}

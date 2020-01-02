@@ -1,0 +1,26 @@
+@Test
+public void usageTest() throws Exception {
+    AtomicLong counter = new AtomicLong();
+    SimpleStats stats = new SimpleStats(counter, SimpleStats.Type.COUNTER);
+    stats.mark();
+    assertEquals(1, counter.get());
+    assertEquals(1, stats.getCount());
+    stats.inc();
+    assertEquals(2, counter.get());
+    stats.dec();
+    assertEquals(1, counter.get());
+    stats.inc(7);
+    assertEquals(8, counter.get());
+    stats.dec(7);
+    assertEquals(1, counter.get());
+    stats.mark(2);
+    assertEquals(3, counter.get());
+    counter.set(0);
+    stats.update(100, TimeUnit.SECONDS);
+    assertEquals(TimeUnit.MILLISECONDS.convert(100, TimeUnit.SECONDS), counter.get());
+    counter.set(0);
+    TimerStats.Context context = stats.time();
+    long delta = context.stop();
+    TimeUnit.MILLISECONDS.sleep(42);
+    assertEquals(TimeUnit.NANOSECONDS.toMillis(delta), counter.get());
+}

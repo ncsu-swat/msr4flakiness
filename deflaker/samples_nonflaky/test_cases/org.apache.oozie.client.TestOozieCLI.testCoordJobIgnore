@@ -1,0 +1,20 @@
+public void testCoordJobIgnore() throws Exception {
+    runTest(END_POINTS, SERVLET_CLASSES, IS_SECURITY_ENABLED, new Callable<Void>() {
+
+        @Override
+        public Void call() throws Exception {
+            String oozieUrl = getContextURL();
+            String[] args = new String[] { "job", "-oozie", oozieUrl, "-ignore", MockCoordinatorEngineService.JOB_ID + "1" };
+            assertEquals(0, new OozieCLI().run(args));
+            assertEquals(RestConstants.JOB_ACTION_CHANGE, MockCoordinatorEngineService.did);
+            assertTrue(MockCoordinatorEngineService.startedCoordJobs.get(1));
+            // negative test for "oozie job -ignore <non-existent coord>"
+            MockCoordinatorEngineService.reset();
+            args = new String[] { "job", "-oozie", oozieUrl, "ignore", MockDagEngineService.JOB_ID + (MockCoordinatorEngineService.coordJobs.size() + 1) };
+            assertEquals(-1, new OozieCLI().run(args));
+            assertNull(MockCoordinatorEngineService.did);
+            assertFalse(MockCoordinatorEngineService.startedCoordJobs.get(1));
+            return null;
+        }
+    });
+}

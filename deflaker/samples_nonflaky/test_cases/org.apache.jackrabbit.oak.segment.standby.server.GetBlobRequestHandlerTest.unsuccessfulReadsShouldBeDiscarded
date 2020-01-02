@@ -1,0 +1,8 @@
+@Test
+public void unsuccessfulReadsShouldBeDiscarded() throws Exception {
+    StandbyBlobReader reader = mock(StandbyBlobReader.class);
+    when(reader.readBlob("blobId")).thenReturn(null);
+    EmbeddedChannel channel = new EmbeddedChannel(new GetBlobRequestHandler(reader));
+    channel.writeInbound(new GetBlobRequest("clientId", "blobId"));
+    assertNull(channel.readOutbound());
+}

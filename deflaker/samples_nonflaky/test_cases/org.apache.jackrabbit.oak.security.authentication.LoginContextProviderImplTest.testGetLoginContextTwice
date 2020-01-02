@@ -1,0 +1,15 @@
+@Test
+public void testGetLoginContextTwice() throws Exception {
+    Configuration.setConfiguration(new Configuration() {
+
+        @Override
+        public AppConfigurationEntry[] getAppConfigurationEntry(String applicationName) {
+            return new AppConfigurationEntry[] { new AppConfigurationEntry(GuestLoginModule.class.getName(), AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL, new HashMap<>()) };
+        }
+    });
+    LoginContextProvider provider = newLoginContextProviderImpl(ConfigurationParameters.EMPTY);
+    provider.getLoginContext(null, null);
+    LoginContext ctx = provider.getLoginContext(null, null);
+    ctx.login();
+    assertFalse(ctx.getSubject().getPublicCredentials(GuestCredentials.class).isEmpty());
+}

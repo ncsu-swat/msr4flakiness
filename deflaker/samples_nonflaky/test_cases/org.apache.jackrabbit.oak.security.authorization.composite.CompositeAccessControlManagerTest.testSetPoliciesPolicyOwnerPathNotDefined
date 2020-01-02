@@ -1,0 +1,14 @@
+@Test(expected = AccessControlException.class)
+public void testSetPoliciesPolicyOwnerPathNotDefined() throws Exception {
+    AccessControlPolicy policy = mock(AccessControlPolicy.class);
+    AccessControlManager mgr = mock(AccessControlManager.class, withSettings().extraInterfaces(PolicyOwner.class));
+    when(mgr.getPolicies(anyString())).thenReturn(new AccessControlPolicy[] { policy }).getMock();
+    when(((PolicyOwner) mgr).defines(anyString(), any(AccessControlPolicy.class))).thenReturn(false);
+    try {
+        CompositeAccessControlManager composite = createComposite(mgr);
+        composite.setPolicy(ROOT_PATH, policy);
+    } finally {
+        verify(mgr, never()).setPolicy(ROOT_PATH, policy);
+        verify(((PolicyOwner) mgr), times(1)).defines(ROOT_PATH, policy);
+    }
+}

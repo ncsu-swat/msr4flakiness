@@ -1,0 +1,26 @@
+@Test
+public void childNodeEntries() throws Exception {
+    final AtomicInteger counter = new AtomicInteger();
+    DocumentStore docStore = new MemoryDocumentStore() {
+
+        @NotNull
+        @Override
+        public <T extends Document> List<T> query(Collection<T> collection, String fromKey, String toKey, int limit) {
+            counter.incrementAndGet();
+            return super.query(collection, fromKey, toKey, limit);
+        }
+    };
+    DocumentNodeStore store = builderProvider.newBuilder().setDocumentStore(docStore).getNodeStore();
+    NodeBuilder root = store.getRoot().builder();
+    for (int i = 0; i < 10; i++) {
+        root.child("node-" + i);
+    }
+    store.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    counter.set(0);
+    // the following must read from the nodeChildrenCache populated by
+    // the commit and not use a query on the document store (OAK-1322)
+    for (ChildNodeEntry e : store.getRoot().getChildNodeEntries()) {
+        e.getNodeState();
+    }
+    assertEquals(0, counter.get());
+}

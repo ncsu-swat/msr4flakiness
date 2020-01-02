@@ -1,0 +1,16 @@
+@Test
+public void testAddMembersAgain() throws Exception {
+    Group grp = createGroup();
+    List<String> memberPaths = createMembers(grp, NUM_USERS);
+    root.commit();
+    Map<String, String> m = new HashMap();
+    for (String path : memberPaths) {
+        Tree memberTree = root.getTree(path);
+        String memberId = TreeUtil.getString(memberTree, REP_AUTHORIZABLE_ID);
+        m.put(getContentID(memberTree), memberId);
+    }
+    Set<String> expected = Sets.newHashSet(m.values());
+    Set<String> failed = mp.addMembers(getTree(grp), m);
+    assertFalse(failed.isEmpty());
+    assertEquals(expected, failed);
+}

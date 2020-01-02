@@ -1,0 +1,23 @@
+@Test
+public void customType() throws Exception {
+    File out = folder.newFile();
+    int testCount = 1000;
+    List<TestLine> testLines = new ArrayList<>(1000);
+    for (int i = 0; i < testCount; i++) {
+        testLines.add(new TestLine(i + ":" + "foo-" + i));
+    }
+    Collections.shuffle(testLines);
+    Comparator<TestLine> cmp = Comparator.naturalOrder();
+    Charset charset = Charsets.UTF_8;
+    Function<String, TestLine> stringToType = line -> line != null ? new TestLine(line) : null;
+    Function<TestLine, String> typeToString = tl -> tl != null ? tl.line : null;
+    String testData = Joiner.on('\n').join(transform(testLines, tl -> tl.line));
+    File testFile = folder.newFile();
+    Files.write(testData, testFile, charset);
+    List<File> listOfFiles = ExternalSort.sortInBatch(testFile, cmp, ExternalSort.DEFAULTMAXTEMPFILES, 100, charset, folder.newFolder(), false, 0, false, typeToString, stringToType);
+    ExternalSort.mergeSortedFiles(listOfFiles, out, cmp, charset, false, true, false, typeToString, stringToType);
+    Collections.sort(testLines);
+    List<TestLine> linesFromSortedFile = new ArrayList<>();
+    Files.readLines(out, charset).forEach(line -> linesFromSortedFile.add(new TestLine(line)));
+    assertEquals(testLines, linesFromSortedFile);
+}

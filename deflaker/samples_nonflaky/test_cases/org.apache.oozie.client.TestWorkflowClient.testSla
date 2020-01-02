@@ -1,0 +1,25 @@
+/**
+ * Test SlaServlet and client's method getSlaInfo
+ */
+public void testSla() throws Exception {
+    runTest(END_POINTS, SERVLET_CLASSES, IS_SECURITY_ENABLED, new Callable<Void>() {
+
+        public Void call() throws Exception {
+            cleanUpDBTables();
+            String oozieUrl = getContextURL();
+            OozieClient wc = new OozieClient(oozieUrl);
+            PrintStream oldStream = System.out;
+            ByteArrayOutputStream data = new ByteArrayOutputStream();
+            System.setOut(new PrintStream(data, false, StandardCharsets.UTF_8.name()));
+            try {
+                wc.getSlaInfo(0, 10, null);
+            } finally {
+                System.setOut(oldStream);
+            }
+            assertTrue(data.toString(StandardCharsets.UTF_8.name()).contains("<sla-message>"));
+            assertTrue(data.toString(StandardCharsets.UTF_8.name()).contains("<last-sequence-id>0</last-sequence-id>"));
+            assertTrue(data.toString(StandardCharsets.UTF_8.name()).contains("</sla-message>"));
+            return null;
+        }
+    });
+}

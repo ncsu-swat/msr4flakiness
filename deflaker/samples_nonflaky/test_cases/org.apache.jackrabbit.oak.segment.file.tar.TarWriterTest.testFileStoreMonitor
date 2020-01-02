@@ -1,0 +1,11 @@
+@Test
+public void testFileStoreMonitor() throws Exception {
+    try (TarWriter writer = new TarWriter(archiveManager, 0, NoopStats.INSTANCE)) {
+        long sizeBefore = writer.fileLength();
+        long writtenBefore = monitor.written;
+        writer.writeEntry(0, 0, new byte[42], 0, 42, newGCGeneration(0, 0, false));
+        long sizeAfter = writer.fileLength();
+        long writtenAfter = monitor.written;
+        assertEquals(sizeAfter - sizeBefore, writtenAfter - writtenBefore);
+    }
+}

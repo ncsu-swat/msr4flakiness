@@ -1,0 +1,12 @@
+@Test
+public void shouldDecorateAncestorOfExcludedDescendants() {
+    final NodeState foo = getNodeState(rootNodeState, "/content/foo");
+    final NodeState decorated = wrap("/content/foo", foo, of("/content"), of("/content/foo/de"), null, null);
+    assertNotSame("foo should not be identical to decorated", foo, decorated);
+    assertMissing(decorated, "de");
+    assertExists(decorated, "en");
+    assertFalse("child nodes \"de\" should not be equal", getNodeState(foo, "de").equals(getNodeState(decorated, "de")));
+    final NodeState en = getNodeState(decorated, "en");
+    assertEquals("child nodes \"en\" should be equal", getNodeState(foo, "en"), en);
+    assertTrue("child node \"en\" should not be decorated", !(en instanceof FilteringNodeState));
+}

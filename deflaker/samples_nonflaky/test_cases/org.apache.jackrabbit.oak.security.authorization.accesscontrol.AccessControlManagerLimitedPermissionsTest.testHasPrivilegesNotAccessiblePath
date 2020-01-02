@@ -1,0 +1,45 @@
+/**
+ * @since OAK 1.0 As of OAK AccessControlManager#hasPrivilege will throw
+ * PathNotFoundException in case the node associated with a given path is
+ * not readable to the editing session (compatibility with the specification
+ * which was missing in jackrabbit).
+ */
+@Test
+public void testHasPrivilegesNotAccessiblePath() throws Exception {
+    List<String> notAccessible = new ArrayList<>();
+    notAccessible.add(PathUtils.ROOT_PATH);
+    notAccessible.addAll(getAcContentPaths());
+    Privilege[] privs = privilegesFromNames(PrivilegeConstants.JCR_ALL);
+    for (String path : notAccessible) {
+        try {
+            testAcMgr.hasPrivileges(path, privs);
+            fail("AccessControlManager#hasPrivileges for node that is not accessible should fail.");
+        } catch (PathNotFoundException e) {
+        // success
+        }
+    }
+    for (String path : notAccessible) {
+        try {
+            testAcMgr.hasPrivileges(path, getPrincipals(root.getContentSession()), privs);
+            fail("AccessControlManager#hasPrivileges for node that is not accessible should fail.");
+        } catch (PathNotFoundException e) {
+        // success
+        }
+    }
+    for (String path : notAccessible) {
+        try {
+            testAcMgr.hasPrivileges(path, getPrincipals(testRoot.getContentSession()), privs);
+            fail("AccessControlManager#hasPrivileges for node that is not accessible should fail.");
+        } catch (PathNotFoundException e) {
+        // success
+        }
+    }
+    for (String path : notAccessible) {
+        try {
+            testAcMgr.hasPrivileges(path, ImmutableSet.of(), privs);
+            fail("AccessControlManager#hasPrivileges for node that is not accessible should fail.");
+        } catch (PathNotFoundException e) {
+        // success
+        }
+    }
+}

@@ -1,0 +1,36 @@
+@Override
+public Resolution addExistingProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs) {
+    called.set(true);
+    assertEquals("ours", ours.getValue(STRING));
+    assertEquals("theirs", theirs.getValue(STRING));
+    return Resolution.IGNORED;
+}
+@Test
+public void addExistingProperty() throws Exception {
+    AtomicBoolean called = new AtomicBoolean(false);
+    ThreeWayConflictHandler handler = new ErrorThreeWayConflictHandler() {
+
+        @Override
+        public Resolution addExistingProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs) {
+            called.set(true);
+            assertEquals("ours", ours.getValue(STRING));
+            assertEquals("theirs", theirs.getValue(STRING));
+            return Resolution.IGNORED;
+        }
+    };
+    ContentRepository repo = newRepo(handler);
+    Root root = login(repo);
+    setup(root);
+    Root ourRoot = login(repo);
+    Root theirRoot = login(repo);
+    theirRoot.getTree("/c").setProperty("p0", "theirs");
+    ourRoot.getTree("/c").setProperty("p0", "ours");
+    theirRoot.commit();
+    ourRoot.commit();
+    assertTrue(called.get());
+}
+@Override
+public Resolution addExistingProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs) {
+    Assert.fail("method should not be called");
+    return Resolution.IGNORED;
+}

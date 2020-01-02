@@ -1,0 +1,12 @@
+@Test
+public void testDSBSCompleteUploadDBAErrorStats() throws IOException, RepositoryException {
+    DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withErrorOnCompleteBlobUpload());
+    long completeBlobUploadErrorCount = stats.getCompleteBlobUploadErrorCount();
+    long completeBlobUploadErrorCountLastMinute = getLastMinuteStats(stats.getCompleteBlobUploadErrorCountHistory());
+    try {
+        dsbs.completeBlobUpload("fake token");
+    } catch (IllegalArgumentException e) {
+    }
+    assertEquals(completeBlobUploadErrorCount + 1, stats.getCompleteBlobUploadErrorCount());
+    assertEquals(completeBlobUploadErrorCountLastMinute + 1, waitForMetric(input -> getLastMinuteStats(input.getCompleteBlobUploadErrorCountHistory()), stats, 1L, 0L).longValue());
+}

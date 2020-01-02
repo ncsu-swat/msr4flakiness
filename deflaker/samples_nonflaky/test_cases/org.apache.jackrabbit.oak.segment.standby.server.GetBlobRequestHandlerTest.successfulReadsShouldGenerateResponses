@@ -1,0 +1,17 @@
+@Test
+public void successfulReadsShouldGenerateResponses() throws Exception {
+    byte[] blobData = new byte[] { 99, 114, 97, 112 };
+    StandbyBlobReader reader = mock(StandbyBlobReader.class);
+    when(reader.readBlob("blobId")).thenReturn(new ByteArrayInputStream(blobData));
+    when(reader.getBlobLength("blobId")).thenReturn(4L);
+    EmbeddedChannel channel = new EmbeddedChannel(new GetBlobRequestHandler(reader));
+    channel.writeInbound(new GetBlobRequest("clientId", "blobId"));
+    GetBlobResponse response = (GetBlobResponse) channel.readOutbound();
+    assertEquals("clientId", response.getClientId());
+    assertEquals("blobId", response.getBlobId());
+    assertEquals(blobData.length, response.getLength());
+    try (InputStream is = response.getInputStream()) {
+        byte[] receivedData = IOUtils.toByteArray(is);
+        assertArrayEquals(blobData, receivedData);
+    }
+}

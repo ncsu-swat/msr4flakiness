@@ -1,0 +1,23 @@
+@Test
+public void testCollisionRemoval3() throws Exception {
+    Tree testRoot = getPrincipalRoot(testPrincipal);
+    assertNumPermissionsProperty(1, testRoot);
+    String aaPath = testPath + "/Aa";
+    String bbPath = testPath + "/BB";
+    if (aaPath.hashCode() == bbPath.hashCode()) {
+        Tree parent = root.getTree(testPath);
+        Tree aa = TreeUtil.addChild(parent, "Aa", JcrConstants.NT_UNSTRUCTURED);
+        addACE(aa.getPath(), testPrincipal, JCR_READ);
+        Tree bb = TreeUtil.addChild(parent, "BB", JcrConstants.NT_UNSTRUCTURED);
+        addACE(bb.getPath(), testPrincipal, JCR_READ);
+        root.commit();
+        root.getTree(aaPath).remove();
+        root.getTree(bbPath).remove();
+        root.commit();
+        assertEquals(1, testRoot.getChildrenCount(Long.MAX_VALUE));
+        assertFalse(testRoot.hasChild(aaPath.hashCode() + ""));
+        assertFalse(testRoot.hasChild(bbPath.hashCode() + ""));
+        assertEquals(Sets.newHashSet(testPath), getAccessControlledPaths(testRoot));
+        assertNumPermissionsProperty(1, testRoot);
+    }
+}

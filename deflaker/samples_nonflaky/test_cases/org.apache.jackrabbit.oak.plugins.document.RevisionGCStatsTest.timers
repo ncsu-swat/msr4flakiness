@@ -1,0 +1,24 @@
+@Test
+public void timers() {
+    VersionGCStats vgcs = new VersionGCStats();
+    vgcs.collectDeletedDocsElapsed = MILLISECONDS.toMicros(2);
+    vgcs.checkDeletedDocsElapsed = MILLISECONDS.toMicros(3);
+    vgcs.deleteDeletedDocsElapsed = MILLISECONDS.toMicros(5);
+    vgcs.collectAndDeleteSplitDocsElapsed = MILLISECONDS.toMicros(7);
+    vgcs.sortDocIdsElapsed = MILLISECONDS.toMicros(11);
+    vgcs.updateResurrectedDocumentsElapsed = MILLISECONDS.toMicros(13);
+    vgcs.active.start();
+    while (vgcs.active.elapsed(MILLISECONDS) < 5) {
+        // busy wait
+        assertTrue(vgcs.active.isRunning());
+    }
+    vgcs.active.stop();
+    stats.finished(vgcs);
+    assertTimer(vgcs.active.elapsed(MILLISECONDS), RevisionGCStats.ACTIVE_TIMER);
+    assertTimer(2, RevisionGCStats.READ_DOC_TIMER);
+    assertTimer(3, RevisionGCStats.CHECK_DELETED_TIMER);
+    assertTimer(5, RevisionGCStats.DELETE_DOC_TIMER);
+    assertTimer(7, RevisionGCStats.DELETE_SPLIT_DOC_TIMER);
+    assertTimer(11, RevisionGCStats.SORT_IDS_TIMER);
+    assertTimer(13, RevisionGCStats.RESET_DELETED_FLAG_TIMER);
+}

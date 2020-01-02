@@ -1,0 +1,44 @@
+public void testMultipleIDGeneration_withMultiThread() throws Exception {
+    final int size = 10000;
+    final boolean[] result = new boolean[size];
+    Arrays.fill(result, false);
+    final ZKUUIDService uuid1 = new ZKUUIDService();
+    final ZKUUIDService uuid2 = new ZKUUIDService();
+    setSystemProperty(UUIDService.CONF_GENERATOR, "counter");
+    uuid1.init(Services.get());
+    uuid2.init(Services.get());
+    try {
+        Thread t1 = new Thread() {
+
+            public void run() {
+                for (int i = 0; i < size / 2; i++) {
+                    String id = uuid1.generateId(ApplicationType.WORKFLOW);
+                    log.info("[Thread-1] Generated id: {0}", id);
+                    int index = Integer.parseInt(id.substring(0, 7));
+                    result[index] = true;
+                }
+            }
+        };
+        Thread t2 = new Thread() {
+
+            public void run() {
+                for (int i = 0; i < size / 2; i++) {
+                    String id = uuid2.generateId(ApplicationType.WORKFLOW);
+                    log.info("[Thread-2] Generated id: {0}", id);
+                    int index = Integer.parseInt(id.substring(0, 7));
+                    result[index] = true;
+                }
+            }
+        };
+        t1.start();
+        t2.start();
+        t1.join();
+        t2.join();
+        for (int i = 0; i < size; i++) {
+            assertTrue("Array index " + i + " is not set to true", result[i]);
+        }
+    } finally {
+        uuid1.destroy();
+        uuid2.destroy();
+    }
+}

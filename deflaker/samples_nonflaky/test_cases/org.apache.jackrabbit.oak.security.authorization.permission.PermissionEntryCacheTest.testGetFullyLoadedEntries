@@ -1,0 +1,13 @@
+@Test
+public void testGetFullyLoadedEntries() throws Exception {
+    PrincipalPermissionEntries ppeA = getPrincipalPermissionEntries(true);
+    when(store.load("a")).thenReturn(ppeA);
+    PrincipalPermissionEntries entries = cache.getFullyLoadedEntries(store, "a");
+    assertSame(ppeA, entries);
+    PrincipalPermissionEntries inspectedEntries = inspectEntries(cache, "a");
+    assertSame(ppeA, inspectedEntries);
+    // requesting the entries again must NOT hit the store
+    when(store.load("a")).thenThrow(IllegalStateException.class);
+    entries = cache.getFullyLoadedEntries(store, "a");
+    assertSame(ppeA, entries);
+}

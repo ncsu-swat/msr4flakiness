@@ -1,0 +1,25 @@
+/**
+ * Start a asynchronous process and terminate it manually before the
+ * watchdog timeout occurs.
+ *
+ * @throws Exception the test failed
+ */
+@Test
+public void testExecuteAsyncWithTimelyUserTermination() throws Exception {
+    final CommandLine cl = new CommandLine(foreverTestScript);
+    final ExecuteWatchdog watchdog = new ExecuteWatchdog(Integer.MAX_VALUE);
+    exec.setWatchdog(watchdog);
+    final DefaultExecuteResultHandler handler = new DefaultExecuteResultHandler();
+    exec.execute(cl, handler);
+    // wait for script to run
+    Thread.sleep(2000);
+    assertTrue("Watchdog should watch the process", watchdog.isWatching());
+    // terminate it manually using the watchdog
+    watchdog.destroyProcess();
+    // wait until the result of the process execution is propagated
+    handler.waitFor(WAITFOR_TIMEOUT);
+    assertTrue("Watchdog should have killed the process", watchdog.killedProcess());
+    assertFalse("Watchdog is no longer watching the process", watchdog.isWatching());
+    assertTrue("ResultHandler received a result", handler.hasResult());
+    assertNotNull("ResultHandler received an exception as result", handler.getException());
+}

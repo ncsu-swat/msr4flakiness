@@ -1,0 +1,18 @@
+@Test
+public void testAllModulesWithDefaultConfiguration() throws Exception {
+    final String inputFilePath = getPath("InputAllChecksDefaultConfig.java");
+    final String[] expected = CommonUtil.EMPTY_STRING_ARRAY;
+    for (Class<?> module : CheckUtil.getCheckstyleModules()) {
+        if (ModuleReflectionUtil.isRootModule(module)) {
+            continue;
+        }
+        final DefaultConfiguration moduleConfig = createModuleConfig(module);
+        if (module.equals(ImportControlCheck.class)) {
+            // ImportControlCheck must have the import control configuration file to avoid
+            // violation.
+            moduleConfig.addAttribute("file", getPath("InputAllChecksImportControl.xml"));
+        }
+        final Checker checker = createChecker(moduleConfig);
+        verify(checker, inputFilePath, expected);
+    }
+}

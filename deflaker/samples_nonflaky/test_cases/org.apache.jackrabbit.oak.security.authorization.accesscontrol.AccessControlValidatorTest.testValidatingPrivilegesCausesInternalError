@@ -1,0 +1,12 @@
+@Test(expected = IllegalStateException.class)
+public void testValidatingPrivilegesCausesInternalError() throws Exception {
+    PrivilegeManager privMgr = when(mock(PrivilegeManager.class).getPrivilege(anyString())).thenThrow(new RepositoryException()).getMock();
+    PrivilegeConfiguration pc = when(mock(PrivilegeConfiguration.class).getPrivilegeManager(any(Root.class), any(NamePathMapper.class))).thenReturn(privMgr).getMock();
+    Tree rootTree = root.getTree(PathUtils.ROOT_PATH);
+    Tree policy = createPolicy(rootTree, false);
+    TreeProvider tp = getTreeProvider();
+    AccessControlValidatorProvider provider = createValidatorProvider(getConfig(AuthorizationConfiguration.class).getRestrictionProvider(), pc);
+    NodeState ns = tp.asNodeState(rootTree);
+    Validator v = provider.getRootValidator(ns, ns, new CommitInfo("sid", null));
+    v.childNodeAdded(policy.getName(), tp.asNodeState(policy)).childNodeAdded(aceName, tp.asNodeState(policy.getChild(aceName)));
+}

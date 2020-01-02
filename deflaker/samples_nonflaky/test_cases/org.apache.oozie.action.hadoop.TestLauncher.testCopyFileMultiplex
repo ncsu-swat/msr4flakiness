@@ -1,0 +1,17 @@
+public void testCopyFileMultiplex() throws Exception {
+    String contents = "Hello World!\nThis is Oozie";
+    File src = new File(getTestCaseDir(), "src.txt");
+    Writer w = new OutputStreamWriter(new FileOutputStream(src), StandardCharsets.UTF_8);
+    w.write(contents);
+    w.close();
+    File[] dsts = new File[] { new File(getTestCaseDir(), "dst1.txt"), new File(getTestCaseDir(), "dist2.txt"), new File(getTestCaseDir(), "dist3.txt") };
+    for (File dst : dsts) {
+        dst.delete();
+        assertFalse(dst.exists());
+    }
+    LauncherMain.copyFileMultiplex(src, dsts);
+    for (File dst : dsts) {
+        assertTrue(dst.exists());
+        assertEquals(contents, FileUtils.readFileToString(dst));
+    }
+}

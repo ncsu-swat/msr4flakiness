@@ -1,0 +1,23 @@
+// Test start and end date, start as absolute
+public void testStartEnd_EndOffset() throws Exception {
+    File log4jFile = new File(getTestCaseConfDir(), "test-log4j.properties");
+    ClassLoader cl = Thread.currentThread().getContextClassLoader();
+    InputStream is = cl.getResourceAsStream("test-no-dash-log4j.properties");
+    Properties log4jProps = new Properties();
+    log4jProps.load(is);
+    // prevent conflicts with other tests by changing the log file location
+    log4jProps.setProperty("log4j.appender.oozie.File", getTestCaseDir() + "/oozie.log");
+    log4jProps.store(new FileOutputStream(log4jFile), "");
+    setSystemProperty(XLogService.LOG4J_FILE, log4jFile.getName());
+    new Services().init();
+    XLogFilter.reset();
+    Map<String, String[]> paramMap = new HashMap<String, String[]>();
+    String param = "start=14-02-20 02:06:25,499;end=3m;debug";
+    paramMap.put(RestConstants.LOG_FILTER_OPTION, new String[] { param });
+    XLogFilter filter = new XLogFilter(new XLogUserFilterParam(paramMap));
+    // Param date will be overwritten by user param
+    String out = doStreamLog(filter, dt.parse("14-02-20 02:06:25,499"), new Date());
+    assertEquals(out.split(System.getProperty("line.separator")).length, 1);
+    assertTrue(out.split(System.getProperty("line.separator"))[0].contains("Log start time = Tue Feb 20 02:06:25"));
+    assertTrue(out.split(System.getProperty("line.separator"))[0].contains("Log end time = Tue Feb 20 02:11:25"));
+}

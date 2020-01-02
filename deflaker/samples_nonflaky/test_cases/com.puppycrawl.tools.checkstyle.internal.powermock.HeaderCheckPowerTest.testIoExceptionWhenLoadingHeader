@@ -1,0 +1,17 @@
+/**
+ * This test needs powermock because {@code StringReader} can't throw an exception to trigger
+ * the catch otherwise unless the reader is mishandled.
+ * @throws Exception if there is an error.
+ */
+@Test
+public void testIoExceptionWhenLoadingHeader() throws Exception {
+    final HeaderCheck check = PowerMockito.spy(new HeaderCheck());
+    PowerMockito.doThrow(new IOException("expected exception")).when(check, "loadHeader", any());
+    try {
+        check.setHeader("header");
+        fail("Exception expected");
+    } catch (IllegalArgumentException ex) {
+        assertTrue("Invalid exception cause", ex.getCause() instanceof IOException);
+        assertEquals("Invalid exception message", "unable to load header", ex.getMessage());
+    }
+}

@@ -1,0 +1,59 @@
+@Test
+public void testAddDifference() {
+    // other privilege bits
+    PrivilegeBits pb = READ_NODES_PRIVILEGE_BITS;
+    PrivilegeBits mod = PrivilegeBits.getInstance(pb);
+    for (int i = 0; i < 100; i++) {
+        PrivilegeBits nxt = pb.nextBits();
+        try {
+            pb.addDifference(nxt, mod);
+            fail("UnsupportedOperation expected");
+        } catch (UnsupportedOperationException e) {
+        // success
+        }
+        try {
+            pb.addDifference(nxt, READ_NODES_PRIVILEGE_BITS);
+            fail("UnsupportedOperation expected");
+        } catch (UnsupportedOperationException e) {
+        // success
+        }
+        PrivilegeBits tmp = PrivilegeBits.getInstance(mod);
+        tmp.addDifference(nxt, READ_NODES_PRIVILEGE_BITS);
+        mod.add(nxt);
+        // since there is diff(nxt, read) which results in nxt
+        assertEquivalent(mod, tmp);
+        if (!pb.equals(READ_NODES_PRIVILEGE_BITS)) {
+            tmp = PrivilegeBits.getInstance(nxt);
+            PrivilegeBits mod2 = PrivilegeBits.getInstance(mod);
+            tmp.addDifference(mod2, READ_NODES_PRIVILEGE_BITS);
+            // tmp should be modified by addDifference call.
+            assertNotEquals(nxt, tmp);
+            // mod2 should not be modified here
+            assertEquivalent(mod2, mod);
+            assertTrue(tmp.includes(pb));
+            assertFalse(tmp.includes(READ_NODES_PRIVILEGE_BITS));
+            assertFalse(tmp.includes(mod));
+        }
+        tmp = PrivilegeBits.getInstance(nxt);
+        PrivilegeBits mod2 = PrivilegeBits.getInstance(mod);
+        tmp.addDifference(READ_NODES_PRIVILEGE_BITS, mod2);
+        // tmp not modified by addDifference call.
+        assertEquivalent(nxt, tmp);
+        // mod2 should not be modified here
+        assertEquivalent(mod2, mod);
+        assertFalse(tmp.includes(pb));
+        assertFalse(tmp.includes(READ_NODES_PRIVILEGE_BITS));
+        assertFalse(tmp.includes(mod));
+        tmp = PrivilegeBits.getInstance(nxt);
+        tmp.addDifference(READ_NODES_PRIVILEGE_BITS, READ_NODES_PRIVILEGE_BITS);
+        // tmp not modified by addDifference call.
+        assertEquivalent(nxt, tmp);
+        assertFalse(tmp.includes(READ_NODES_PRIVILEGE_BITS));
+        tmp = PrivilegeBits.getInstance(mod);
+        tmp.addDifference(READ_NODES_PRIVILEGE_BITS, READ_NODES_PRIVILEGE_BITS);
+        // tmp not modified by addDifference call.
+        assertEquivalent(mod, tmp);
+        assertTrue(tmp.includes(READ_NODES_PRIVILEGE_BITS));
+        pb = nxt;
+    }
+}

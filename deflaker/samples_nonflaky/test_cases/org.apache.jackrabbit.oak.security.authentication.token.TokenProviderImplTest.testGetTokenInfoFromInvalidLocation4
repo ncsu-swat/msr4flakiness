@@ -1,0 +1,17 @@
+@Test
+public void testGetTokenInfoFromInvalidLocation4() throws Exception {
+    TokenInfo info = createTokenInfo(tokenProvider, userId);
+    Tree tokenTree = getTokenTree(info);
+    assertNotNull(tokenProvider.getTokenInfo(info.getToken()));
+    TokenInfo info2 = null;
+    try {
+        Tree adminTree = root.getTree(getUserManager(root).getAuthorizable(adminSession.getAuthInfo().getUserID()).getPath());
+        Tree node = TreeUtil.getOrAddChild(adminTree, TOKENS_NODE_NAME, JcrConstants.NT_UNSTRUCTURED);
+        assertTrue(root.move(tokenTree.getPath(), node.getPath() + '/' + tokenTree.getName()));
+        info2 = tokenProvider.getTokenInfo(info.getToken());
+        assertNotNull(info2);
+        assertFalse(info2.matches(new TokenCredentials(info.getToken())));
+    } finally {
+        root.refresh();
+    }
+}

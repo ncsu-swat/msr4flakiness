@@ -1,0 +1,16 @@
+public void testNestedFork() throws WorkflowException {
+    LiteWorkflowApp def = new LiteWorkflowApp("testWf", "<worklfow-app/>", new StartNodeDef(TestControlNodeHandler.class, "one")).addNode(new NodeDef("one", null, SynchNodeHandler.class, Arrays.asList(new String[] { "f" }))).addNode(new ForkNodeDef("f", TestControlNodeHandler.class, Arrays.asList(new String[] { "two", "three" }))).addNode(new NodeDef("two", null, SynchNodeHandler.class, Arrays.asList(new String[] { "f2" }))).addNode(new NodeDef("three", null, SynchNodeHandler.class, Arrays.asList(new String[] { "j" }))).addNode(new ForkNodeDef("f2", TestControlNodeHandler.class, Arrays.asList(new String[] { "four", "five", "six" }))).addNode(new NodeDef("four", null, SynchNodeHandler.class, Arrays.asList(new String[] { "j2" }))).addNode(new NodeDef("five", null, SynchNodeHandler.class, Arrays.asList(new String[] { "j2" }))).addNode(new NodeDef("six", null, SynchNodeHandler.class, Arrays.asList(new String[] { "j2" }))).addNode(new JoinNodeDef("j2", TestControlNodeHandler.class, "seven")).addNode(new NodeDef("seven", null, SynchNodeHandler.class, Arrays.asList(new String[] { "j" }))).addNode(new JoinNodeDef("j", TestControlNodeHandler.class, "end")).addNode(new EndNodeDef("end", TestControlNodeHandler.class));
+    LiteWorkflowInstance job = new LiteWorkflowInstance(def, new XConfiguration(), "abcde");
+    job.start();
+    assertEquals(WorkflowInstance.Status.SUCCEEDED, job.getStatus());
+    assertEquals(7, enters.size());
+    assertEquals(7, exits.size());
+    assertEquals(0, kills.size());
+    assertEquals(0, fails.size());
+    assertTrue(enters.get("one") < enters.get("two"));
+    assertTrue(enters.get("one") < enters.get("three"));
+    assertTrue(enters.get("two") < enters.get("four"));
+    assertTrue(enters.get("four") < enters.get("seven"));
+    assertTrue(enters.get("five") < enters.get("seven"));
+    assertTrue(enters.get("six") < enters.get("seven"));
+}

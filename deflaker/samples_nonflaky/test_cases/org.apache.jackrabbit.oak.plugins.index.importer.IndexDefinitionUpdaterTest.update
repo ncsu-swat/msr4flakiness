@@ -1,0 +1,14 @@
+@Test
+public void update() throws Exception {
+    NodeBuilder builder = store.getRoot().builder();
+    builder.child("oak:index").child("fooIndex").setProperty("foo", "bar");
+    builder.child("oak:index").child("fooIndex").child("a").setProperty("foo2", 2);
+    store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    String json = createIndexDefn();
+    applyJson(json);
+    NodeState root = store.getRoot();
+    assertTrue(NodeStateUtils.getNode(root, "/oak:index/fooIndex").exists());
+    assertTrue(NodeStateUtils.getNode(root, "/oak:index/fooIndex/b").exists());
+    assertFalse(NodeStateUtils.getNode(root, "/oak:index/fooIndex/a").exists());
+    assertTrue(NodeStateUtils.getNode(root, "/oak:index/barIndex").exists());
+}

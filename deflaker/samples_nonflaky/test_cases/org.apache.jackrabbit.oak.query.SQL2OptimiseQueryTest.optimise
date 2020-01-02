@@ -1,0 +1,30 @@
+/**
+ * ensure that an optimisation is available for the provided queries.
+ *
+ * @throws ParseException
+ */
+@Test
+public void optimise() throws ParseException {
+    SQL2Parser parser = SQL2ParserTest.createTestSQL2Parser(getMappings(), getNodeTypes(), qeSettings);
+    String statement;
+    Query original, optimised;
+    statement = "SELECT * FROM [nt:unstructured] AS c " + "WHERE " + "(c.[p1]='a' OR c.[p2]='b') ";
+    original = parser.parse(statement, false);
+    assertNotNull(original);
+    optimised = original.buildAlternativeQuery();
+    assertNotNull(optimised);
+    assertNotSame(original, optimised);
+    assertTrue(optimised instanceof UnionQueryImpl);
+    statement = "SELECT * FROM [nt:unstructured] AS c " + "WHERE " + "(c.[p1]='a' OR c.[p2]='b') " + "AND " + "ISDESCENDANTNODE(c, '/test') ";
+    original = parser.parse(statement, false);
+    assertNotNull(original);
+    optimised = original.buildAlternativeQuery();
+    assertNotNull(optimised);
+    assertNotSame(original, optimised);
+    statement = "SELECT * FROM [nt:unstructured] AS c " + "WHERE " + "(c.[p1]='a' OR c.[p2]='b' OR c.[p3]='c') " + "AND " + "ISDESCENDANTNODE(c, '/test') ";
+    original = parser.parse(statement, false);
+    assertNotNull(original);
+    optimised = original.buildAlternativeQuery();
+    assertNotNull(optimised);
+    assertNotSame(original, optimised);
+}

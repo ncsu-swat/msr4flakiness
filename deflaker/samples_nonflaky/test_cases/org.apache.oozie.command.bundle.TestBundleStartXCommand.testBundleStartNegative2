@@ -1,0 +1,23 @@
+/**
+ * Test : Start bundle job that contains bad coordinator job
+ *
+ * @throws Exception
+ */
+public void testBundleStartNegative2() throws Exception {
+    BundleJobBean job = this.addRecordToBundleJobTableNegative(Job.Status.PREP);
+    final JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    final BundleJobGetJPAExecutor bundleJobGetExecutor = new BundleJobGetJPAExecutor(job.getId());
+    job = jpaService.execute(bundleJobGetExecutor);
+    assertEquals(job.getStatus(), Job.Status.PREP);
+    new BundleStartXCommand(job.getId()).call();
+    waitFor(120000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            BundleJobBean job1 = jpaService.execute(bundleJobGetExecutor);
+            return job1.getStatus().equals(Job.Status.FAILED);
+        }
+    });
+    job = jpaService.execute(bundleJobGetExecutor);
+    assertEquals(Job.Status.FAILED, job.getStatus());
+}

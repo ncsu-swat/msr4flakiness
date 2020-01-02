@@ -1,0 +1,12 @@
+@Test
+public void testComplementaryEntry1() throws Exception {
+    Privilege[] privileges = privilegesFromNames(JCR_READ, JCR_ADD_CHILD_NODES);
+    acl.addEntry(testPrincipal, privileges, true);
+    // revoke the 'READ' privilege
+    privileges = privilegesFromNames(JCR_READ);
+    assertTrue(acl.addEntry(testPrincipal, privileges, false));
+    // expected: 2 entries one allowing ADD_CHILD_NODES, the other denying READ
+    assertEquals(2, acl.size());
+    assertACE(acl.getEntries().get(0), true, privilegesFromNames(JCR_ADD_CHILD_NODES));
+    assertACE(acl.getEntries().get(1), false, privilegesFromNames(JCR_READ));
+}

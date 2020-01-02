@@ -1,0 +1,18 @@
+public void testMessage_withMixedStatus() throws Exception {
+    Date start = DateUtils.addMonths(new Date(), -1);
+    // 4 hrs
+    Date end = DateUtils.addHours(new Date(), 4);
+    Date createdTime = start;
+    final CoordinatorJobBean job1 = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, start, end, createdTime, true, false, 5);
+    addRecordToCoordActionTable(job1.getId(), 5, CoordinatorAction.Status.FAILED, CoordinatorAction.Status.SUSPENDED, CoordinatorAction.Status.TIMEDOUT);
+    final CoordinatorJobBean job2 = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, start, end, createdTime, true, false, 5);
+    addRecordToCoordActionTable(job2.getId(), 5, CoordinatorAction.Status.FAILED, CoordinatorAction.Status.SUSPENDED, CoordinatorAction.Status.TIMEDOUT);
+    final CoordinatorJobBean job3 = addRecordToCoordJobTable(CoordinatorJob.Status.SUCCEEDED, start, end, createdTime, true, false, 5);
+    addRecordToCoordActionTable(job3.getId(), 5, CoordinatorAction.Status.FAILED, CoordinatorAction.Status.SUSPENDED, CoordinatorAction.Status.TIMEDOUT);
+    ExtendedAbandonedCoordCheckerRunnable coordChecked = new ExtendedAbandonedCoordCheckerRunnable(5);
+    coordChecked.run();
+    String msg = coordChecked.getMessage();
+    assertTrue(msg.contains(job1.getId()));
+    assertTrue(msg.contains(job2.getId()));
+    assertFalse(msg.contains(job3.getId()));
+}

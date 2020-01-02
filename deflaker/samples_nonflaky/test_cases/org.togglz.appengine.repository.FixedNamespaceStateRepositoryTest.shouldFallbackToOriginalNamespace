@@ -1,0 +1,20 @@
+@Test
+public void shouldFallbackToOriginalNamespace() {
+    NamespaceManager.set(ORIGINAL_NAMESPACE);
+    repository = new FixedNamespaceStateRepository(ACME_NAMESPACE, new StateRepository() {
+
+        @Override
+        public void setFeatureState(FeatureState featureState) {
+        }
+
+        @Override
+        public FeatureState getFeatureState(Feature feature) {
+            return null;
+        }
+    });
+    final FeatureState state = new FeatureState(TestFeature.F1).disable().setStrategyId("someId").setParameter("param", "foo");
+    repository.setFeatureState(state);
+    assertEquals(ORIGINAL_NAMESPACE, NamespaceManager.get());
+    repository.getFeatureState(TestFeature.F1);
+    assertEquals(ORIGINAL_NAMESPACE, NamespaceManager.get());
+}

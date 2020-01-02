@@ -1,0 +1,57 @@
+public void testRecovery() throws Exception {
+    FsActionExecutor ae = new FsActionExecutor();
+    FileSystem fs = getFileSystem();
+    Path mkdir = new Path(getFsTestCaseDir(), "mkdir");
+    Path delete = new Path(getFsTestCaseDir(), "delete");
+    fs.mkdirs(delete);
+    Path source = new Path(getFsTestCaseDir(), "source");
+    fs.mkdirs(source);
+    Path target = new Path(new Path(getFsTestCaseDir(), "target").toUri().getPath());
+    Path chmod1 = new Path(getFsTestCaseDir(), "chmod1");
+    fs.mkdirs(chmod1);
+    Path child1 = new Path(chmod1, "child1");
+    fs.mkdirs(child1);
+    Path chmod2 = new Path(getFsTestCaseDir(), "chmod2");
+    fs.mkdirs(chmod2);
+    Path child2 = new Path(chmod2, "child2");
+    fs.mkdirs(child2);
+    String actionXml = MessageFormat.format("<fs>" + "<mkdir path=''{0}''/>" + "<delete path=''{1}''/>" + "<move source=''{2}'' target=''{3}''/>" + "<chmod path=''{4}'' permissions=''111''/>" + "<chmod path=''{5}'' permissions=''222'' dir-files=''false''/>" + "</fs>", mkdir, delete, source.toUri().getPath(), target, chmod1, chmod2);
+    String id = "ID" + System.currentTimeMillis();
+    Context context = createContext(actionXml);
+    ((WorkflowJobBean) context.getWorkflow()).setId(id);
+    ((WorkflowActionBean) context.getWorkflow().getActions().get(0)).setJobId(id);
+    ((WorkflowActionBean) context.getWorkflow().getActions().get(0)).setId(id + "-FS");
+    WorkflowAction action = context.getAction();
+    assertFalse(fs.exists(ae.getRecoveryPath(context)));
+    try {
+        ae.start(context, action);
+    } catch (ActionExecutorException ex) {
+        if (!ex.getErrorCode().equals("FS001")) {
+            throw ex;
+        }
+    }
+    assertTrue(fs.exists(mkdir));
+    assertFalse(fs.exists(delete));
+    assertTrue(fs.exists(ae.getRecoveryPath(context)));
+    actionXml = MessageFormat.format("<fs>" + "<mkdir path=''{0}''/>" + "<delete path=''{1}''/>" + "<move source=''{2}'' target=''{3}''/>" + "<chmod path=''{4}'' permissions=''-rwxrwxrwx''/>" + "<chmod path=''{5}'' permissions=''-rwxrwx---'' dir-files=''false''/>" + "</fs>", mkdir, delete, source, target, chmod1, chmod2);
+    context = createContext(actionXml);
+    ((WorkflowJobBean) context.getWorkflow()).setId(id);
+    ((WorkflowActionBean) context.getWorkflow().getActions().get(0)).setJobId(id);
+    ((WorkflowActionBean) context.getWorkflow().getActions().get(0)).setId(id + "-FS");
+    action = context.getAction();
+    ae.start(context, action);
+    ae.check(context, context.getAction());
+    assertEquals("OK", context.getAction().getExternalStatus());
+    assertNull(context.getAction().getData());
+    ae.end(context, context.getAction());
+    assertEquals(WorkflowAction.Status.OK, context.getAction().getStatus());
+    assertFalse(fs.exists(ae.getRecoveryPath(context)));
+    assertTrue(fs.exists(mkdir));
+    assertFalse(fs.exists(delete));
+    assertFalse(fs.exists(source));
+    assertTrue(fs.exists(target));
+    assertEquals("rwxrwxrwx", fs.getFileStatus(chmod1).getPermission().toString());
+    assertNotSame("rwxrwxrwx", fs.getFileStatus(child1).getPermission().toString());
+    assertEquals("rwxrwx---", fs.getFileStatus(chmod2).getPermission().toString());
+    assertNotSame("rwxrwx---", fs.getFileStatus(child2).getPermission().toString());
+}

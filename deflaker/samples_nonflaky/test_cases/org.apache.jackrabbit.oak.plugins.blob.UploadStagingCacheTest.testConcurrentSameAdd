@@ -1,0 +1,20 @@
+/**
+ * Stage same file concurrently.
+ * @throws Exception
+ */
+@Test
+public void testConcurrentSameAdd() throws Exception {
+    LOG.info("Starting testConcurrentSameAdd");
+    // Add load
+    List<ListenableFuture<Integer>> futures = put(folder);
+    File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
+    Optional<SettableFuture<Integer>> future2 = stagingCache.put(ID_PREFIX + 0, f);
+    assertTrue(future2.isPresent());
+    assertEquals(future2.get().get().intValue(), 0);
+    // start
+    taskLatch.countDown();
+    callbackLatch.countDown();
+    assertFuture(futures, 0);
+    assertCacheStats(stagingCache, 0, 0, 1, 2);
+    LOG.info("Finished testConcurrentSameAdd");
+}

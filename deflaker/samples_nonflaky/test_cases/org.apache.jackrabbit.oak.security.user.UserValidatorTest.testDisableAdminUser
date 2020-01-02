@@ -1,0 +1,17 @@
+@Test(expected = CommitFailedException.class)
+public void testDisableAdminUser() throws Exception {
+    try {
+        String adminId = getConfig().getConfigValue(PARAM_ADMIN_ID, DEFAULT_ADMIN_ID);
+        UserManager userMgr = getUserManager(root);
+        Authorizable admin = userMgr.getAuthorizable(adminId);
+        if (admin == null) {
+            admin = userMgr.createUser(adminId, adminId);
+            root.commit();
+        }
+        root.getTree(admin.getPath()).setProperty(REP_DISABLED, "disabled");
+        root.commit();
+    } catch (CommitFailedException e) {
+        assertEquals(20, e.getCode());
+        throw e;
+    }
+}

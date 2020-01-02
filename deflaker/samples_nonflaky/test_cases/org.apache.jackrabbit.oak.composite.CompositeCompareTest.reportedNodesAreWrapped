@@ -1,0 +1,47 @@
+@Test
+public void reportedNodesAreWrapped() {
+    Mounts.Builder mipBuilder = Mounts.newBuilder();
+    mipBuilder.readOnlyMount("libs", "/libs");
+    MountInfoProvider mip = mipBuilder.build();
+    NodeStore globalStore = new MemoryNodeStore();
+    CompositeNodeStore.Builder nsBuilder = new CompositeNodeStore.Builder(mip, globalStore);
+    nsBuilder.addMount("libs", new MemoryNodeStore());
+    CompositeNodeStore compositeNodeStore = nsBuilder.build();
+    NodeBuilder builder = compositeNodeStore.getRoot().builder();
+    builder.child("changed");
+    builder.child("deleted");
+    NodeState base = builder.getNodeState();
+    builder.getChildNode("changed").setProperty("newProp", "xyz", Type.STRING);
+    builder.getChildNode("deleted").remove();
+    builder.child("added");
+    final NodeState modified = builder.getNodeState();
+    final Set<String> modifiedNodes = newHashSet();
+    modified.compareAgainstBaseState(base, new DefaultNodeStateDiff() {
+
+        @Override
+        public boolean childNodeAdded(String name, NodeState after) {
+            assertTrue(after instanceof CompositeNodeState);
+            assertEquals(name, "added");
+            modifiedNodes.add(name);
+            return true;
+        }
+
+        @Override
+        public boolean childNodeChanged(String name, NodeState before, NodeState after) {
+            assertTrue(before instanceof CompositeNodeState);
+            assertTrue(after instanceof CompositeNodeState);
+            assertEquals(name, "changed");
+            modifiedNodes.add(name);
+            return true;
+        }
+
+        @Override
+        public boolean childNodeDeleted(String name, NodeState before) {
+            assertTrue(before instanceof CompositeNodeState);
+            assertEquals(name, "deleted");
+            modifiedNodes.add(name);
+            return true;
+        }
+    });
+    assertEquals(ImmutableSet.of("added", "changed", "deleted"), modifiedNodes);
+}

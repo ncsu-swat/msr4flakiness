@@ -1,0 +1,15 @@
+@Test
+public void isUnhealthyIfIsNotValid() {
+    final Session session = mock(Session.class);
+    when(factory.openSession()).thenReturn(session);
+    final Transaction transaction = mock(Transaction.class);
+    when(session.beginTransaction()).thenReturn(transaction);
+    when(session.doReturningWork(any(ReturningWork.class))).thenReturn(false);
+    assertThat(healthCheck().execute().isHealthy()).isFalse();
+    final InOrder inOrder = inOrder(factory, session, transaction);
+    inOrder.verify(factory).openSession();
+    inOrder.verify(session).beginTransaction();
+    inOrder.verify(session).doReturningWork(any(ReturningWork.class));
+    inOrder.verify(transaction).commit();
+    inOrder.verify(session).close();
+}

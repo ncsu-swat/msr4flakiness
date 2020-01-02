@@ -1,0 +1,31 @@
+@Test
+public void complexQuery() throws ParseException {
+    for (int n = 1; n < 15; n++) {
+        for (int m = 1; m < 15; m++) {
+            complexQuery(n, m);
+        }
+    }
+}
+private void complexQuery(int n, int m) throws ParseException {
+    StringBuilder buff = new StringBuilder();
+    buff.append("/jcr:root//*[");
+    for (int i = 0; i < n; i++) {
+        if (i > 0) {
+            buff.append("and ");
+        }
+        buff.append("(");
+        for (int j = 0; j < m; j++) {
+            if (j > 0) {
+                buff.append("or ");
+            }
+            buff.append("@x" + j + " = " + j);
+        }
+        buff.append(")\n");
+    }
+    buff.append("]");
+    String xpath = buff.toString();
+    String sql2 = new XPathToSQL2Converter().convert(xpath);
+    assertTrue("Length: " + sql2.length(), sql2.length() < 200000);
+    Query q = parser.parse(sql2, false);
+    q.buildAlternativeQuery();
+}

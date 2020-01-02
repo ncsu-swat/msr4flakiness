@@ -1,0 +1,37 @@
+@Test
+public void testChangeCache() throws Exception {
+    PrincipalProvider pp = createPrincipalProvider(systemRoot);
+    pp.getPrincipals(userId);
+    root.refresh();
+    List<PropertyState> props = new ArrayList<>();
+    props.add(PropertyStates.createProperty(CacheConstants.REP_EXPIRATION, 25));
+    props.add(PropertyStates.createProperty(CacheConstants.REP_GROUP_PRINCIPAL_NAMES, EveryonePrincipal.NAME));
+    props.add(PropertyStates.createProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED));
+    props.add(PropertyStates.createProperty("residualProp", "anyvalue"));
+    // changing cache with (normally) sufficiently privileged session must not succeed
+    for (PropertyState ps : props) {
+        try {
+            Tree cache = getCacheTree(root);
+            cache.setProperty(ps);
+            root.commit();
+            fail("Attempt to modify the cache tree must fail.");
+        } catch (CommitFailedException e) {
+        // success
+        } finally {
+            root.refresh();
+        }
+    }
+    // changing cache with system session must not succeed either
+    for (PropertyState ps : props) {
+        try {
+            Tree cache = getCacheTree(systemRoot);
+            cache.setProperty(ps);
+            systemRoot.commit();
+            fail("Attempt to modify the cache tree must fail.");
+        } catch (CommitFailedException e) {
+        // success
+        } finally {
+            systemRoot.refresh();
+        }
+    }
+}

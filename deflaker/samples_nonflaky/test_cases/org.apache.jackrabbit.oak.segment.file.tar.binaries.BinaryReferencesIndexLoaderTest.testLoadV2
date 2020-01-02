@@ -1,0 +1,30 @@
+@Test
+public void testLoadV2() throws Exception {
+    Buffer entries = Buffer.allocate(512).putInt(1).putInt(2).put((byte) 0).putInt(2).putLong(1).putLong(1).putInt(2).putInt(length("1.1.1")).put(bytes("1.1.1")).putInt(length("1.1.2")).put(bytes("1.1.2")).putLong(1).putLong(2).putInt(2).putInt(length("1.2.1")).put(bytes("1.2.1")).putInt(length("1.2.2")).put(bytes("1.2.2")).putInt(3).putInt(4).put((byte) 1).putInt(2).putLong(2).putLong(1).putInt(2).putInt(length("2.1.1")).put(bytes("2.1.1")).putInt(length("2.1.2")).put(bytes("2.1.2")).putLong(2).putLong(2).putInt(2).putInt(length("2.2.1")).put(bytes("2.2.1")).putInt(length("2.2.2")).put(bytes("2.2.2"));
+    entries.flip();
+    Buffer buffer = Buffer.allocate(entries.remaining() + BinaryReferencesIndexLoaderV2.FOOTER_SIZE);
+    buffer.duplicate().put(entries.duplicate()).putInt(checksum(entries)).putInt(2).putInt(entries.remaining() + BinaryReferencesIndexLoaderV2.FOOTER_SIZE).putInt(BinaryReferencesIndexLoaderV2.MAGIC);
+    BinaryReferencesIndex index = loadIndex(buffer);
+    Generation g1 = new Generation(1, 2, false);
+    Generation g2 = new Generation(3, 4, true);
+    UUID s1 = new UUID(1, 1);
+    UUID s2 = new UUID(1, 2);
+    UUID s3 = new UUID(2, 1);
+    UUID s4 = new UUID(2, 2);
+    Map<Generation, Map<UUID, Set<String>>> expected = new HashMap<>();
+    expected.put(g1, new HashMap<>());
+    expected.put(g2, new HashMap<>());
+    expected.get(g1).put(s1, new HashSet<>());
+    expected.get(g1).put(s2, new HashSet<>());
+    expected.get(g2).put(s3, new HashSet<>());
+    expected.get(g2).put(s4, new HashSet<>());
+    expected.get(g1).get(s1).addAll(asList("1.1.1", "1.1.2"));
+    expected.get(g1).get(s2).addAll(asList("1.2.1", "1.2.2"));
+    expected.get(g2).get(s3).addAll(asList("2.1.1", "2.1.2"));
+    expected.get(g2).get(s4).addAll(asList("2.2.1", "2.2.2"));
+    Map<Generation, Map<UUID, Set<String>>> actual = new HashMap<>();
+    index.forEach((generation, full, compacted, id, reference) -> {
+        actual.computeIfAbsent(new Generation(generation, full, compacted), k -> new HashMap<>()).computeIfAbsent(id, k -> new HashSet<>()).add(reference);
+    });
+    assertEquals(expected, actual);
+}

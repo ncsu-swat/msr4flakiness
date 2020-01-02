@@ -1,0 +1,13 @@
+public void testImmediateError() throws WorkflowException {
+    LiteWorkflowApp workflowDef = new LiteWorkflowApp("testWf", "<worklfow-app/>", new StartNodeDef(TestControlNodeHandler.class, "one")).addNode(new NodeDef("one", null, SynchNodeHandler.class, Arrays.asList(new String[] { "two" }))).addNode(new NodeDef("two", null, SynchNodeHandler.class, Arrays.asList(new String[] { "four" }))).addNode(new NodeDef("three", null, SynchNodeHandler.class, Arrays.asList(new String[] { "end" }))).addNode(new EndNodeDef("end", TestControlNodeHandler.class));
+    LiteWorkflowInstance workflowJob = new LiteWorkflowInstance(workflowDef, new XConfiguration(), "abcde");
+    try {
+        workflowJob.start();
+    } catch (WorkflowException e) {
+    }
+    assertEquals(WorkflowInstance.Status.FAILED, workflowJob.getStatus());
+    assertEquals(2, enters.size());
+    assertEquals(2, exits.size());
+    assertEquals(0, kills.size());
+    assertEquals(0, fails.size());
+}

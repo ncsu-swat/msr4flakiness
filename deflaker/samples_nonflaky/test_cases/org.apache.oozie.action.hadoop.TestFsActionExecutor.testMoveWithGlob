@@ -1,0 +1,55 @@
+public void testMoveWithGlob() throws Exception {
+    FsActionExecutor ae = new FsActionExecutor();
+    FileSystem fs = getFileSystem();
+    Path source = new Path(getFsTestCaseDir(), "source");
+    Path target = new Path(getFsTestCaseDir(), "target");
+    Context context = createContext("<fs/>");
+    // Test simple example of glob
+    fs.mkdirs(source);
+    fs.mkdirs(target);
+    fs.createNewFile(new Path(source, "newfile1"));
+    fs.createNewFile(new Path(source, "newfile2"));
+    ae.move(context, new Path(source.toString() + "/*"), target, false);
+    assertTrue(fs.exists(new Path(target, "newfile1")));
+    assertTrue(fs.exists(new Path(target, "newfile2")));
+    // Test another example of glob
+    fs.delete(target, true);
+    fs.mkdirs(target);
+    fs.mkdirs(new Path(source + "/2010"));
+    fs.mkdirs(new Path(source + "/2011"));
+    fs.mkdirs(new Path(source + "/2012"));
+    fs.mkdirs(new Path(source + "/2010/10"));
+    fs.mkdirs(new Path(source + "/2010/11"));
+    fs.createNewFile(new Path(source + "/2010/10/newfile1"));
+    fs.createNewFile(new Path(source + "/2010/11/newfile2"));
+    fs.mkdirs(new Path(source + "/2011/09"));
+    fs.mkdirs(new Path(source + "/2011/10"));
+    fs.createNewFile(new Path(source + "/2011/09/newfile3"));
+    fs.createNewFile(new Path(source + "/2011/10/newfile4"));
+    ae.move(context, new Path(source.toString() + "/201[0-1]/1{0,1}/*"), target, false);
+    assertTrue(fs.exists(new Path(target.toString() + "/newfile1")));
+    assertTrue(fs.exists(new Path(target.toString() + "/newfile2")));
+    assertFalse(fs.exists(new Path(target.toString() + "/newfile3")));
+    assertTrue(fs.exists(new Path(target.toString() + "/newfile4")));
+    fs.delete(new Path(source + "/2010"), true);
+    fs.delete(new Path(source + "/2011"), true);
+    fs.delete(new Path(source + "/2012"), true);
+    // Catch exception when trying to move multiple files (match glob) to
+    // the same name which doesn't exist
+    fs.delete(target, true);
+    try {
+        ae.move(context, new Path(source.toString() + "/*"), target, true);
+    } catch (ActionExecutorException ex) {
+        assertEquals("FS012", ex.getErrorCode());
+    }
+    // Catch exception when trying to move multiple files (match glob) to
+    // the same file name which exists
+    fs.delete(target, true);
+    Path targetFile = new Path(target, "newfile1");
+    fs.createNewFile(targetFile);
+    try {
+        ae.move(context, new Path(source.toString() + "/*"), targetFile, true);
+    } catch (ActionExecutorException ex) {
+        assertEquals("FS012", ex.getErrorCode());
+    }
+}

@@ -1,0 +1,11 @@
+// Test parameterization of retry-max and retry-interval
+public void testParameterizationRetry() throws Exception {
+    LiteWorkflowAppParser parser = newLiteWorkflowAppParser();
+    String wf = "<workflow-app xmlns=\"uri:oozie:workflow:0.5\" name=\"test\" > " + "<global> <job-tracker>localhost</job-tracker><name-node>localhost</name-node></global>" + "<start to=\"retry\"/><action name=\"retry\" retry-max=\"${retryMax}\" retry-interval=\"${retryInterval}\">" + "<java> <main-class>com.retry</main-class>" + "</java>" + "<ok to=\"end\"/>" + "<error to=\"end\"/>" + "</action> <end name=\"end\"/></workflow-app>";
+    Configuration conf = new Configuration();
+    conf.set("retryMax", "3");
+    conf.set("retryInterval", "10");
+    LiteWorkflowApp app = parser.validateAndParse(new StringReader(wf), conf);
+    assertEquals(app.getNode("retry").getUserRetryMax(), "3");
+    assertEquals(app.getNode("retry").getUserRetryInterval(), "10");
+}

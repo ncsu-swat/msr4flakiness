@@ -1,0 +1,9 @@
+@Test
+public void setValidateAfterInactivityPeriodFromConfiguration() throws Exception {
+    int validateAfterInactivityPeriod = 50000;
+    configuration.setValidateAfterInactivityPeriod(Duration.milliseconds(validateAfterInactivityPeriod));
+    final ConfiguredCloseableHttpClient client = builder.using(configuration).createClient(apacheBuilder, builder.configureConnectionManager(connectionManager), "test");
+    assertThat(client).isNotNull();
+    assertThat(spyHttpClientBuilderField("connManager", apacheBuilder)).isSameAs(connectionManager);
+    verify(connectionManager).setValidateAfterInactivity(validateAfterInactivityPeriod);
+}

@@ -1,0 +1,13 @@
+@Test
+public void testUpdateActionDataFailsWithActionError() throws Exception {
+    setupActionOutputContents();
+    given(localFsOperationsMock.getLocalFileContentAsString(any(File.class), eq(ACTION_DATA_EXTERNAL_CHILD_IDS), anyInt())).willThrow(new IOException());
+    thrown.expect(IOException.class);
+    try {
+        executeLauncher();
+    } finally {
+        Map<String, String> actionData = launcherAM.getActionData();
+        assertThat(actionData, not(hasKey(ACTION_DATA_EXTERNAL_CHILD_IDS)));
+        verify(launcherCallbackNotifierMock).notifyURL(OozieActionResult.FAILED);
+    }
+}

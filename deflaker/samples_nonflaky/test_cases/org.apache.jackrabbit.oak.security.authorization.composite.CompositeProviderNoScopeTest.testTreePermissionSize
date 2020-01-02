@@ -1,0 +1,15 @@
+@Test
+public void testTreePermissionSize() throws Exception {
+    Field tpField = CompositeTreePermission.class.getDeclaredField("treePermissions");
+    tpField.setAccessible(true);
+    Tree rootTree = readOnlyRoot.getTree(ROOT_PATH);
+    NodeState ns = getTreeProvider().asNodeState(rootTree);
+    TreePermission tp = cppTestUser.getTreePermission(rootTree, TreePermission.EMPTY);
+    assertEquals(2, ((TreePermission[]) tpField.get(tp)).length);
+    List<String> childNames = ImmutableList.of("test", "a", "b", "c", "nonexisting");
+    for (String cName : childNames) {
+        ns = ns.getChildNode(cName);
+        tp = tp.getChildPermission(cName, ns);
+        assertCompositeTreePermission(false, tp);
+    }
+}

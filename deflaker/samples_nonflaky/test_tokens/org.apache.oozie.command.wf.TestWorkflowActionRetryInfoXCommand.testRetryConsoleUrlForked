@@ -1,0 +1,29 @@
+<action name="action2" retry-max="2" retry-interval="0">
+<workflow-app xmlns="uri:oozie:workflow:0.3" name="wf-fork">
+<external-status>${wf:conf('external-status')}</external-status> 
+<error to="kill"/>
+<path start="action1"/>
+</fork>
+</action>
+</workflow-app>
+<external-childIds>${wf:conf('external-status')}</external-childIds> 
+<join name="join" to="end"/>
+<action name="action1" retry-max="2" retry-interval="0">
+<error>${wf:conf('error')}</error>
+</test>
+ @formatter:off
+<start to="fork1"/>
+ @Formatter:on
+<ok to="join"/>
+<signal-value>${wf:conf('signal-value')}</signal-value>
+testRetryConsoleUrlForked
+<path start="action2"/>
+<avoid-set-end-data>${wf:conf('avoid-set-end-data')}</avoid-set-end-data>
+validateRetryConsoleUrl
+<test xmlns="uri:test">
+wfXml
+<avoid-set-execution-data>${wf:conf('avoid-set-execution-data')}</avoid-set-execution-data>
+<running-mode>async-error</running-mode>
+<fork name="fork1">
+<kill name="kill"><message>killed</message></kill>
+<end name="end"/>

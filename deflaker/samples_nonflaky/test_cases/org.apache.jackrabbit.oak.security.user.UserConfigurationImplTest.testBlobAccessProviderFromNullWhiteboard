@@ -1,0 +1,15 @@
+@Test
+public void testBlobAccessProviderFromNullWhiteboard() throws Exception {
+    SecurityProvider sp = mock(SecurityProvider.class, withSettings().extraInterfaces(WhiteboardAware.class));
+    UserConfigurationImpl uc = new UserConfigurationImpl(sp);
+    uc.setParameters(ConfigurationParameters.EMPTY);
+    uc.setRootProvider(getRootProvider());
+    uc.setTreeProvider(getTreeProvider());
+    when(sp.getConfiguration(UserConfiguration.class)).thenReturn(uc);
+    UserManager um = uc.getUserManager(root, getNamePathMapper());
+    assertTrue(um instanceof UserManagerImpl);
+    PartialValueFactory vf = ((UserManagerImpl) um).getPartialValueFactory();
+    Field f = PartialValueFactory.class.getDeclaredField("blobAccessProvider");
+    f.setAccessible(true);
+    assertSame(PartialValueFactory.DEFAULT_BLOB_ACCESS_PROVIDER, f.get(vf));
+}

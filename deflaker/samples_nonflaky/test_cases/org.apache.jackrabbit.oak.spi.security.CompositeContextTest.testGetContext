@@ -1,0 +1,38 @@
+@Test
+public void testGetContext() throws Exception {
+    Class<?> cls = Class.forName(CompositeConfiguration.class.getName() + "$CompositeContext");
+    Field def = cls.getDeclaredField("defaultCtx");
+    def.setAccessible(true);
+    Field delegatees = cls.getDeclaredField("delegatees");
+    delegatees.setAccessible(true);
+    Context ctx = compositeConfiguration.getContext();
+    assertSame(cls, ctx.getClass());
+    assertNull(delegatees.get(ctx));
+    assertSame(Context.DEFAULT, def.get(ctx));
+    SecurityConfiguration sc = new TestConfiguration();
+    setDefault(sc);
+    ctx = compositeConfiguration.getContext();
+    assertNull(delegatees.get(ctx));
+    assertSame(sc.getContext(), def.get(ctx));
+    assertSame(cls, ctx.getClass());
+    addConfiguration(sc);
+    ctx = compositeConfiguration.getContext();
+    assertNotSame(sc.getContext(), ctx);
+    assertEquals(1, ((Context[]) delegatees.get(ctx)).length);
+    // add configuration that has DEFAULT ctx -> must not be added
+    SecurityConfiguration defConfig = new SecurityConfiguration.Default();
+    addConfiguration(defConfig);
+    assertEquals(1, ((Context[]) delegatees.get(compositeConfiguration.getContext())).length);
+    // add same test configuration again -> no duplicate entries
+    addConfiguration(sc);
+    assertEquals(1, ((Context[]) delegatees.get(compositeConfiguration.getContext())).length);
+    SecurityConfiguration sc2 = new TestConfiguration();
+    addConfiguration(sc2);
+    assertEquals(2, ((Context[]) delegatees.get(compositeConfiguration.getContext())).length);
+    removeConfiguration(sc2);
+    assertEquals(1, ((Context[]) delegatees.get(compositeConfiguration.getContext())).length);
+    removeConfiguration(sc);
+    removeConfiguration(sc);
+    removeConfiguration(defConfig);
+    assertNull(delegatees.get(compositeConfiguration.getContext()));
+}

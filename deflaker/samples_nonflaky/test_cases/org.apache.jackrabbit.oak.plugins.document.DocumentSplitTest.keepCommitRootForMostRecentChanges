@@ -1,0 +1,33 @@
+// OAK-1794
+@Test
+public void keepCommitRootForMostRecentChanges() throws Exception {
+    DocumentStore store = mk.getDocumentStore();
+    NodeStore ns = mk.getNodeStore();
+    NodeBuilder builder = ns.getRoot().builder();
+    builder.setProperty("p", -1);
+    NodeBuilder test = builder.child("test");
+    test.setProperty("foo", -1);
+    test.setProperty("bar", -1);
+    ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    for (int i = 0; i < NUM_REVS_THRESHOLD; i++) {
+        builder = ns.getRoot().builder();
+        builder.setProperty("p", i);
+        test = builder.child("test");
+        test.setProperty("foo", i);
+        ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    }
+    mk.runBackgroundOperations();
+    NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test"));
+    assertNotNull(doc);
+    // the local _commitRoot map must still contain the entry for
+    // the initial 'bar' property
+    Map<Revision, String> valueMap = doc.getValueMap("bar");
+    assertFalse(valueMap.isEmpty());
+    Revision r = valueMap.keySet().iterator().next();
+    assertTrue(doc.getLocalCommitRoot().containsKey(r));
+    // but also the previous document must contain the commitRoot entry
+    List<NodeDocument> prevDocs = Lists.newArrayList(doc.getAllPreviousDocs());
+    assertEquals(1, prevDocs.size());
+    NodeDocument prev = prevDocs.get(0);
+    assertTrue(prev.getLocalCommitRoot().containsKey(r));
+}

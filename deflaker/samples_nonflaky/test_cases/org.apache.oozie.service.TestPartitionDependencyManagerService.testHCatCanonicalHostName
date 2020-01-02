@@ -1,0 +1,24 @@
+@Test
+public void testHCatCanonicalHostName() throws Exception {
+    ConfigurationService.setBoolean(SimpleHCatDependencyCache.USE_CANONICAL_HOSTNAME, true);
+    ConfigurationService.set(PartitionDependencyManagerService.CACHE_MANAGER_IMPL, SimpleHCatDependencyCacheExtended.class.getName());
+    services.init();
+    // Test all APIs related to dependency caching
+    String actionId1 = "1";
+    String server1 = "hcat-server1-A:5080";
+    String server2 = "hcat-server1-B:5080";
+    String db = "mydb";
+    String table1 = "mytbl1";
+    HCatURI dep1 = new HCatURI(new URI("hcat://" + server1 + "/" + db + "/" + table1 + "/dt=20120101;country=us"));
+    HCatURI dep2 = new HCatURI(new URI("hcat://" + server2 + "/" + db + "/" + table1 + "/dt=20120101;country=us"));
+    PartitionDependencyManagerService pdms = Services.get().get(PartitionDependencyManagerService.class);
+    addMissingDependencyAndRegister(dep1, actionId1, pdms);
+    assertTrue(pdms.getWaitingActions(dep1).contains(actionId1));
+    assertTrue(pdms.getWaitingActions(dep2).contains(actionId1));
+    ConfigurationService.set(PartitionDependencyManagerService.CACHE_MANAGER_IMPL, EhcacheHCatDependencyCacheExtended.class.getName());
+    services.init();
+    pdms = Services.get().get(PartitionDependencyManagerService.class);
+    addMissingDependencyAndRegister(dep1, actionId1, pdms);
+    assertTrue(pdms.getWaitingActions(dep1).contains(actionId1));
+    assertTrue(pdms.getWaitingActions(dep2).contains(actionId1));
+}

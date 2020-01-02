@@ -1,0 +1,28 @@
+@Test
+public void testAsyncWithCustomized() throws Exception {
+    httpServer.createContext("/test", httpExchange -> {
+        try {
+            httpExchange.getResponseHeaders().add(HttpHeaders.CONTENT_TYPE, TEXT_PLAIN);
+            byte[] body = "Hello World!".getBytes(StandardCharsets.UTF_8);
+            httpExchange.sendResponseHeaders(200, body.length);
+            httpExchange.getResponseBody().write(body);
+        } finally {
+            httpExchange.close();
+        }
+    });
+    httpServer.start();
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    Client jersey = new JerseyClientBuilder(new MetricRegistry()).using(executor, JSON_MAPPER).build("test-jersey-client");
+    String uri = "http://127.0.0.1:" + httpServer.getAddress().getPort() + "/test";
+    final List<CompletableFuture<String>> requests = new ArrayList<>();
+    for (int i = 0; i < 25; i++) {
+        requests.add(jersey.target(uri).register(HttpAuthenticationFeature.basic("scott", "t1ger")).request().rx().get(String.class).toCompletableFuture());
+    }
+    final CompletableFuture<Void> allDone = CompletableFuture.allOf(requests.toArray(new CompletableFuture[0]));
+    final CompletableFuture<List<String>> futures = allDone.thenApply(x -> requests.stream().map(CompletableFuture::join).collect(toList()));
+    final List<String> responses = futures.get(5, TimeUnit.SECONDS);
+    assertThat(futures).isCompleted();
+    assertThat(responses).hasSize(25).allMatch(x -> x.equals("Hello World!"));
+    executor.shutdown();
+    jersey.close();
+}

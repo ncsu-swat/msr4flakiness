@@ -1,0 +1,19 @@
+@Test
+public void checkpointsInCowMode() throws CommitFailedException {
+    String checkpoint1 = cowNodeStore.checkpoint(Long.MAX_VALUE, of("k", "v"));
+    cowNodeStore.enableCopyOnWrite();
+    Map<String, String> info = cowNodeStore.checkpointInfo(checkpoint1);
+    assertEquals("The checkpoint is not inherited", of("k", "v"), info);
+    NodeState root = cowNodeStore.getRoot();
+    NodeBuilder builder = root.builder();
+    builder.child("foo");
+    cowNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    String checkpoint2 = cowNodeStore.checkpoint(Long.MAX_VALUE, of("k", "v2"));
+    info = cowNodeStore.checkpointInfo(checkpoint2);
+    assertEquals("The new checkpoint is not available", of("k", "v2"), info);
+    assertTrue("The retrieve() doesn't work for the new checkpoint", cowNodeStore.retrieve(checkpoint2).hasChildNode("foo"));
+    assertEquals(ImmutableList.of(checkpoint1, checkpoint2), cowNodeStore.checkpoints());
+    assertTrue("The new checkpoint shouldn't be stored in the main store", store.checkpointInfo(checkpoint2).isEmpty());
+    cowNodeStore.disableCopyOnWrite();
+    assertTrue("The new checkpoint should be dropped after disabling the CoW mode", cowNodeStore.checkpointInfo(checkpoint2).isEmpty());
+}

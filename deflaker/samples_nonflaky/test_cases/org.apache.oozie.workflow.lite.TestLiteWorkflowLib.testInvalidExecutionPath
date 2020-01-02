@@ -1,0 +1,8 @@
+public void testInvalidExecutionPath() throws WorkflowException {
+    LiteWorkflowApp def = new LiteWorkflowApp("wf", "<worklfow-app/>", new StartNodeDef(TestControlNodeHandler.class, "one")).addNode(new NodeDef("one", null, AsynchNodeHandler.class, Arrays.asList(new String[] { "end" }))).addNode(new EndNodeDef("end", TestControlNodeHandler.class));
+    LiteWorkflowInstance job = new LiteWorkflowInstance(def, new XConfiguration(), "1");
+    job.start();
+    assertEquals(WorkflowInstance.Status.RUNNING, job.getStatus());
+    job.signal("/a/", "");
+    assertEquals(WorkflowInstance.Status.FAILED, job.getStatus());
+}

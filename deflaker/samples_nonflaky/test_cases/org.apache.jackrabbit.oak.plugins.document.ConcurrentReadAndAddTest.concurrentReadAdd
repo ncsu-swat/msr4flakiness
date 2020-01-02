@@ -1,0 +1,30 @@
+@Test
+public void concurrentReadAdd() throws Exception {
+    main = Thread.currentThread();
+    NodeBuilder builder = ns.getRoot().builder();
+    builder.child("test");
+    merge(builder);
+    final Semaphore sem = new Semaphore(0);
+    Thread u = new Thread(new Runnable() {
+
+        @Override
+        public void run() {
+            for (int i = 0; i < 100; i++) {
+                addNode(i);
+                if (i == 20) {
+                    sem.release();
+                }
+            }
+        }
+    });
+    u.setName("writer");
+    u.start();
+    sem.acquireUninterruptibly();
+    readNodes();
+    u.join();
+    if (!exceptions.isEmpty()) {
+        throw exceptions.get(0);
+    }
+    NodeState test = ns.getRoot().getChildNode("test");
+    assertEquals(100, Iterables.size(test.getChildNodeEntries()));
+}

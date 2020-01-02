@@ -1,0 +1,13 @@
+@Test
+void overrideBufferSize() throws NoSuchFieldException, IllegalAccessException {
+    FileAppenderFactory<ILoggingEvent> fileAppenderFactory = new FileAppenderFactory<>();
+    fileAppenderFactory.setArchive(false);
+    fileAppenderFactory.setBufferSize(DataSize.kibibytes(256));
+    AsyncAppender asyncAppender = (AsyncAppender) fileAppenderFactory.build(new LoggerContext(), "test", new DropwizardLayoutFactory(), new NullLevelFilterFactory<>(), new AsyncLoggingEventAppenderFactory());
+    final Appender<ILoggingEvent> fileAppender = asyncAppender.getAppender("file-appender");
+    assertThat(fileAppender).isInstanceOf(FileAppender.class);
+    final Field bufferSizeField = FileAppender.class.getDeclaredField("bufferSize");
+    bufferSizeField.setAccessible(true);
+    FileSize bufferSizeFromAppender = (FileSize) bufferSizeField.get(fileAppender);
+    assertThat(bufferSizeFromAppender.getSize()).isEqualTo(fileAppenderFactory.getBufferSize().toBytes());
+}

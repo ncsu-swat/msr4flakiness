@@ -1,0 +1,29 @@
+/**
+ * Invalidate cache entry.
+ * @throws Exception
+ */
+@Test
+public void invalidate() throws Exception {
+    LOG.info("Starting invalidate");
+    File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
+    loader.write(ID_PREFIX + 0, f);
+    // present after loading
+    File cached = cache.get(ID_PREFIX + 0);
+    assertNotNull(cached);
+    assertTrue(Files.equal(f, cached));
+    cache.invalidate(ID_PREFIX + 0);
+    // Not present now
+    cached = cache.getIfPresent(ID_PREFIX + 0);
+    assertNull(cached);
+    assertCacheStats(cache.getStagingCacheStats(), 0, 0, 0, 0);
+    assertEquals(2, cache.getStagingCacheStats().getLoadCount());
+    assertEquals(0, cache.getStagingCacheStats().getLoadSuccessCount());
+    assertCacheStats(cache.getCacheStats(), 0, 0, 0, 2);
+    assertEquals(1, cache.getCacheStats().getLoadCount());
+    assertEquals(1, cache.getCacheStats().getLoadSuccessCount());
+    /**
+     * Check eviction count
+     */
+    assertEquals(0, cache.getCacheStats().getEvictionCount());
+    LOG.info("Finished invalidate");
+}

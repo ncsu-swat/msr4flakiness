@@ -1,0 +1,18 @@
+// OAK-8538
+@Test
+public void trunkCommitAfterNodesAdded() throws Exception {
+    performTest(new Callback() {
+
+        @Override
+        public void call(DocumentNodeStore ns) throws Exception {
+            // delay the commit
+            clock.waitUntil(clock.getTime() + TimeUnit.MINUTES.toMillis(1));
+            ns.runBackgroundOperations();
+            // perform some other change
+            NodeBuilder builder = ns.getRoot().builder();
+            builder.child("foo");
+            merge(ns, builder);
+            ns.runBackgroundOperations();
+        }
+    });
+}

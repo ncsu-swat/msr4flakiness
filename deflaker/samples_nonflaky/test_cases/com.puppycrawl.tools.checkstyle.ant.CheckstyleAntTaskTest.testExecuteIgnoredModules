@@ -1,0 +1,25 @@
+@Test
+public final void testExecuteIgnoredModules() throws IOException {
+    final CheckstyleAntTask antTask = getCheckstyleAntTask();
+    antTask.setFile(new File(getPath(VIOLATED_INPUT)));
+    antTask.setFailOnViolation(false);
+    antTask.setExecuteIgnoredModules(true);
+    final CheckstyleAntTask.Formatter formatter = new CheckstyleAntTask.Formatter();
+    final File outputFile = new File("target/ant_task_plain_output.txt");
+    formatter.setTofile(outputFile);
+    final CheckstyleAntTask.FormatterType formatterType = new CheckstyleAntTask.FormatterType();
+    formatterType.setValue("plain");
+    formatter.setType(formatterType);
+    formatter.createListener(null);
+    antTask.addFormatter(formatter);
+    antTask.execute();
+    final LocalizedMessage auditStartedMessage = new LocalizedMessage(1, Definitions.CHECKSTYLE_BUNDLE, "DefaultLogger.auditStarted", null, null, getClass(), null);
+    final LocalizedMessage auditFinishedMessage = new LocalizedMessage(1, Definitions.CHECKSTYLE_BUNDLE, "DefaultLogger.auditFinished", null, null, getClass(), null);
+    final List<String> output = FileUtils.readLines(outputFile, StandardCharsets.UTF_8);
+    final String errorMessage = "Content of file with violations differs from expected";
+    assertThat(errorMessage, output.get(0), is(auditStartedMessage.getMessage()));
+    assertThat(errorMessage, output.get(1), allOf(startsWith("[WARN]"), containsString("InputCheckstyleAntTaskError.java:4: "), endsWith("@incomplete=Some javadoc [WriteTag]")));
+    assertThat(errorMessage, output.get(2), allOf(startsWith("[ERROR]"), endsWith("InputCheckstyleAntTaskError.java:7: " + "Line is longer than 70 characters (found 80). [LineLength]")));
+    assertThat(errorMessage, output.get(3), allOf(startsWith("[ERROR]"), endsWith("InputCheckstyleAntTaskError.java:9: " + "Line is longer than 70 characters (found 81). [LineLength]")));
+    assertThat(errorMessage, output.get(4), is(auditFinishedMessage.getMessage()));
+}

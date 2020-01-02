@@ -1,0 +1,20 @@
+@Test
+public void getAllChangesAfterGC1() throws Exception {
+    int numChanges = 200;
+    DocumentNodeStore ns = createTestStore(numChanges);
+    NodeDocument root = getRootDocument(ns.getDocumentStore());
+    // remove most recent previous doc
+    NodeDocument toRemove = root.getAllPreviousDocs().next();
+    int numDeleted = new SplitDocumentCleanUp(ns.getDocumentStore(), new VersionGCStats(), Collections.singleton(toRemove)).disconnect().deleteSplitDocuments();
+    assertEquals(1, numDeleted);
+    numChanges -= Iterables.size(toRemove.getAllChanges());
+    root = getRootDocument(ns.getDocumentStore());
+    Revision previous = ns.newRevision();
+    for (Revision r : root.getAllChanges()) {
+        assertTrue(previous.compareRevisionTime(r) > 0);
+        previous = r;
+    }
+    // numChanges + one revision when node was created
+    assertEquals(numChanges + 1, Iterables.size(root.getAllChanges()));
+    ns.dispose();
+}

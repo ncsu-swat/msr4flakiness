@@ -1,0 +1,28 @@
+@Test
+public void testDSBSWriteBlobErrorStats() throws IOException, RepositoryException {
+    DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withErrorOnAddRecord());
+    long uploadErrorCount = stats.getUploadErrorCount();
+    long uploadErrorCountLastMinute = getLastMinuteStats(stats.getUploadErrorCountHistory());
+    long addRecordErrorCount = stats.getAddRecordErrorCount();
+    try {
+        dsbs.writeBlob(getTestInputStream());
+    } catch (IOException e) {
+    }
+    try {
+        dsbs.writeBlob(getTestInputStream(), new BlobOptions());
+    } catch (IOException e) {
+    }
+    try {
+        File f = folder.newFile();
+        try (OutputStream out = new FileOutputStream(f)) {
+            IOUtils.copy(getTestInputStream(), out);
+        }
+        dsbs.writeBlob(f.getAbsolutePath());
+    } catch (IOException e) {
+    }
+    assertEquals(uploadErrorCount + 3, stats.getUploadErrorCount());
+    assertEquals(uploadErrorCountLastMinute + 3, waitForMetric(input -> getLastMinuteStats(input.getUploadErrorCountHistory()), stats, 3L, 0L).longValue());
+    // Ensure that the metrics don't overlap.  Calling writeBlob() shouldn't increment
+    // the addRecord() counts.
+    assertEquals(addRecordErrorCount, stats.getAddRecordErrorCount());
+}

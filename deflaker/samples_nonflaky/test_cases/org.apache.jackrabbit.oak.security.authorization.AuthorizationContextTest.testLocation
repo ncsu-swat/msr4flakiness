@@ -1,0 +1,19 @@
+@Test
+public void testLocation() throws Exception {
+    createAcl("/", PrivilegeConstants.JCR_READ);
+    Context ctx = AuthorizationContext.getInstance();
+    String policyPath = "/rep:policy";
+    assertTrue(ctx.definesLocation(TreeLocation.create(root, policyPath + "/allow")));
+    assertTrue(ctx.definesLocation(TreeLocation.create(root, policyPath + "/allow/" + AccessControlConstants.REP_PRINCIPAL_NAME)));
+    assertTrue(ctx.definesLocation(TreeLocation.create(root, policyPath + "/allow/" + AccessControlConstants.REP_PRIVILEGES)));
+    List<String> existingRegular = ImmutableList.of("/", "/jcr:system");
+    for (String path : existingRegular) {
+        assertFalse(path, ctx.definesLocation(TreeLocation.create(root, path)));
+        assertFalse(path, ctx.definesLocation(TreeLocation.create(root, PathUtils.concat(path, JcrConstants.JCR_PRIMARYTYPE))));
+    }
+    List<String> nonExistingItem = ImmutableList.of('/' + AccessControlConstants.REP_REPO_POLICY, "/content/" + AccessControlConstants.REP_POLICY, "/content/" + AccessControlConstants.REP_PRIVILEGES, "/content/" + AccessControlConstants.REP_REPO_POLICY, "/jcr:system/" + AccessControlConstants.REP_POLICY, PermissionConstants.PERMISSIONS_STORE_PATH + "/nonexisting");
+    for (String path : nonExistingItem) {
+        assertTrue(path, ctx.definesLocation(TreeLocation.create(root, path)));
+        assertTrue(path, ctx.definesLocation(TreeLocation.create(root, PathUtils.concat(path, AccessControlConstants.REP_PRIVILEGES))));
+    }
+}

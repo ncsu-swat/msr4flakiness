@@ -1,0 +1,19 @@
+@Test
+public void lastRevRecoveryWithMissingDocument() throws Exception {
+    NodeBuilder builder = ns.getRoot().builder();
+    NodeBuilder file = builder.child("file");
+    file.child(JCR_CONTENT).child("metadata");
+    merge(ns, builder);
+    ns.runBackgroundOperations();
+    String id = Utils.getIdFromPath(Path.fromString("/file/" + JCR_CONTENT));
+    store.remove(Collection.NODES, id);
+    log.starting();
+    try {
+        LastRevRecoveryAgent agent = ns.getLastRevRecoveryAgent();
+        assertEquals(0, agent.recover(Utils.getAllDocuments(store), ns.getClusterId(), true));
+        // must log a message about the deleted document
+        assertThat(log.getLogs(), contains(containsString(id)));
+    } finally {
+        log.finished();
+    }
+}

@@ -1,0 +1,13 @@
+@Test
+void testBufferingTcpLogging() throws Exception {
+    DefaultLoggingFactory loggingFactory = yamlConfigurationFactory.build(new SubstitutingSourceProvider(new ResourceConfigurationSourceProvider(), new StringSubstitutor(Collections.singletonMap("tcp.server.port", tcpServer.getPort()))), "yaml/logging-tcp-buffered.yml");
+    loggingFactory.configure(new MetricRegistry(), "tcp-test");
+    Logger logger = LoggerFactory.getLogger("com.example.app");
+    for (int i = 0; i < tcpServer.getMessageCount(); i++) {
+        logger.info("Application log {}", i);
+    }
+    // We have to flush the buffer manually
+    loggingFactory.reset();
+    tcpServer.getLatch().await(5, TimeUnit.SECONDS);
+    assertThat(tcpServer.getLatch().getCount()).isEqualTo(0);
+}

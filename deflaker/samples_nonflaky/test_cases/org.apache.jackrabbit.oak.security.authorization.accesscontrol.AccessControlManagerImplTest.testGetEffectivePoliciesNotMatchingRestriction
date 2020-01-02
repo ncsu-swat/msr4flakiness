@@ -1,0 +1,11 @@
+@Test
+public void testGetEffectivePoliciesNotMatchingRestriction() throws Exception {
+    TestUtility.setupPolicy(acMgr, testPath, testPrincipal, privilegesFromNames(JCR_READ), true, null, getMvRestriction(REP_NT_NAMES, PropertyType.NAME, NT_OAK_UNSTRUCTURED));
+    Tree child = TreeUtil.addChild(root.getTree(testPath), "child", NT_OAK_UNSTRUCTURED);
+    Tree grandChild = TreeUtil.addChild(child, "grandChild", JcrConstants.NT_UNSTRUCTURED);
+    Tree other = TreeUtil.addChild(root.getTree(testPath), "other", JcrConstants.NT_UNSTRUCTURED);
+    root.commit();
+    assertPolicies(acMgr.getEffectivePolicies(testPath), 1);
+    assertPolicies(acMgr.getEffectivePolicies(grandChild.getPath()), 1);
+    assertPolicies(acMgr.getEffectivePolicies(other.getPath()), 1);
+}

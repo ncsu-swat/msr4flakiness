@@ -1,0 +1,19 @@
+@SuppressWarnings("ConstantConditions")
+@Test
+public void testGetFileAttributeView() throws IOException {
+    final File file = Directory.create(0);
+    service.setInitialAttributes(file);
+    FileLookup fileLookup = new FileLookup() {
+
+        @Override
+        public File lookup() throws IOException {
+            return file;
+        }
+    };
+    assertThat(service.getFileAttributeView(fileLookup, TestAttributeView.class)).isNotNull();
+    assertThat(service.getFileAttributeView(fileLookup, BasicFileAttributeView.class)).isNotNull();
+    TestAttributes attrs = service.getFileAttributeView(fileLookup, TestAttributeView.class).readAttributes();
+    assertThat(attrs.foo()).isEqualTo("hello");
+    assertThat(attrs.bar()).isEqualTo(0);
+    assertThat(attrs.baz()).isEqualTo(1);
+}

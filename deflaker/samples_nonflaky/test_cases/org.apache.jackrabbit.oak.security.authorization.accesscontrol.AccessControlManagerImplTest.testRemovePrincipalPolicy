@@ -1,0 +1,16 @@
+// --------------------------------------------< removePrincipalPolicy() >---
+@Test
+public void testRemovePrincipalPolicy() throws Exception {
+    JackrabbitAccessControlPolicy[] applicable = acMgr.getApplicablePolicies(testPrincipal);
+    assertPolicies(applicable, 1);
+    assertTrue(applicable[0] instanceof ACL);
+    ACL acl = (ACL) applicable[0];
+    Value pathValue = getValueFactory().createValue(testPath, PropertyType.PATH);
+    assertTrue(acl.addEntry(testPrincipal, testPrivileges, true, Collections.singletonMap(REP_NODE_PATH, pathValue)));
+    acMgr.setPolicy(acl.getPath(), acl);
+    root.commit();
+    acMgr.removePolicy(acl.getPath(), acl);
+    root.commit();
+    assertPolicies(acMgr.getPolicies(testPrincipal), 0);
+    assertPolicies(acMgr.getPolicies(testPath), 0);
+}

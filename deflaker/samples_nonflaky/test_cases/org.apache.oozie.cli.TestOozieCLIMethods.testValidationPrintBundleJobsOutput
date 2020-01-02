@@ -1,0 +1,32 @@
+/**
+ * Create list of {@code BundleJob} mocks,
+ * call {@code new OozieCLI().printBundleJobs()}
+ * and validate {@code System.out} on match with expected pattern
+ * <p>
+ * Method do pass only if output matched with predefined pattern
+ * </p>
+ */
+@Test
+public void testValidationPrintBundleJobsOutput() throws IOException {
+    final DataObject dtObject1 = new DataObject() {
+
+        {
+            this.deamonName = "testBundleJob1";
+            this.appName = "testBundleJobApp1";
+            this.appPath = "testBundleJobAppPath1";
+        }
+    };
+    final DataObject dtObject2 = new DataObject() {
+
+        {
+            this.deamonName = "testBundleJob2";
+            this.appName = "testBundleJobApp2";
+            this.appPath = "testBundleJobAppPath2";
+        }
+    };
+    ImmutableList<BundleJob> bundleJobs = ImmutableList.of(createBundleJob(dtObject1), createBundleJob(dtObject2));
+    Pattern pattern = Pattern.compile(dtObject1.deamonName + "[\\s]+" + dtObject1.appName + "[\\s]+" + dtObject1.appPath);
+    assertPrintBundleJobsOutput(readBundleJobsOutput(bundleJobs, true), pattern);
+    pattern = Pattern.compile(dtObject1.deamonName + "[\\s]+" + dtObject1.appName);
+    assertPrintBundleJobsOutput(readBundleJobsOutput(bundleJobs, false), pattern);
+}

@@ -1,0 +1,44 @@
+/**
+ * Test inserts and updates rollback
+ *
+ * @throws Exception
+ */
+@Test
+public void testRollback() throws Exception {
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    String wfId1 = "workflow-1";
+    String wfId2 = "workflow-2";
+    // initial insert
+    SLASummaryBean bean1 = _createSLASummaryBean(wfId1, "RUNNING", EventStatus.START_MISS, new Date(), new Date(), 1000, null, null, 2000, 0, null);
+    List<JsonBean> list = new ArrayList<JsonBean>();
+    list.add(bean1);
+    BatchQueryExecutor.getInstance().executeBatchInsertUpdateDelete(list, null, null);
+    // update existing record and insert another
+    Date newDate = new Date();
+    bean1 = new SLASummaryBean();
+    bean1.setId(wfId1);
+    bean1.setActualEnd(newDate);
+    List<UpdateEntry> updateList = new ArrayList<UpdateEntry>();
+    updateList.add(new UpdateEntry<SLASummaryQuery>(SLASummaryQuery.UPDATE_SLA_SUMMARY_ALL, bean1));
+    SLASummaryBean bean2 = _createSLASummaryBean(wfId2, "RUNNING", EventStatus.END_MISS, new Date(), new Date(), 1000, null, null, 2000, 0, null);
+    List<JsonBean> insertList = new ArrayList<JsonBean>();
+    insertList.add(bean2);
+    // set fault injection to true, so transaction is roll backed
+    setSystemProperty(FaultInjection.FAULT_INJECTION, "true");
+    setSystemProperty(SkipCommitFaultInjection.ACTION_FAILOVER_FAULT_INJECTION, "true");
+    try {
+        BatchQueryExecutor.getInstance().executeBatchInsertUpdateDelete(insertList, updateList, null);
+        fail("Expected exception due to commit failure but didn't get any");
+    } catch (Exception e) {
+    }
+    FaultInjection.deactivate("org.apache.oozie.command.SkipCommitFaultInjection");
+    // Check whether transactions are rolled back or not
+    SLASummaryBean sBean = SLASummaryQueryExecutor.getInstance().get(SLASummaryQuery.GET_SLA_SUMMARY, wfId1);
+    // isSlaProcessed should NOT be changed to 1
+    // actualEnd should be null as before
+    assertNull(sBean.getActualEnd());
+    sBean = SLASummaryQueryExecutor.getInstance().get(SLASummaryQuery.GET_SLA_SUMMARY, wfId2);
+    // new bean should not have been inserted due to rollback
+    assertNull(sBean);
+}

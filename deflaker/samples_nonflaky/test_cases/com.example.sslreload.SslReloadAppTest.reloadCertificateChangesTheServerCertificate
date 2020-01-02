@@ -1,0 +1,16 @@
+@Test
+public void reloadCertificateChangesTheServerCertificate() throws Exception {
+    // Copy over our new keystore that has our new certificate to the current
+    // location of our keystore
+    final byte[] keystore2Bytes = Resources.toByteArray(Resources.getResource("sslreload/keystore2.jks"));
+    Files.write(keystore, keystore2Bytes);
+    // Get the bytes for the first certificate, and trigger a reload
+    byte[] firstCertBytes = certBytes(200, "Reloaded certificate configuration\n");
+    // Get the bytes from our newly reloaded certificate
+    byte[] secondCertBytes = certBytes(200, "Reloaded certificate configuration\n");
+    // Get the bytes from the reloaded certificate, but it should be the same
+    // as the second cert because we didn't change anything!
+    byte[] thirdCertBytes = certBytes(200, "Reloaded certificate configuration\n");
+    assertThat(firstCertBytes).isNotEqualTo(secondCertBytes);
+    assertThat(secondCertBytes).isEqualTo(thirdCertBytes);
+}

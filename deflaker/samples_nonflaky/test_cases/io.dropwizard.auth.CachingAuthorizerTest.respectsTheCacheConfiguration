@@ -1,0 +1,13 @@
+@Test
+public void respectsTheCacheConfiguration() throws Exception {
+    cached.authorize(principal, role, requestContext);
+    // We need to make sure that background cache invalidation is done before other requests
+    cached.cache.cleanUp();
+    cached.authorize(principal2, role, requestContext);
+    cached.cache.cleanUp();
+    cached.authorize(principal, role, requestContext);
+    final InOrder inOrder = inOrder(underlying);
+    inOrder.verify(underlying, times(1)).authorize(principal, role, requestContext);
+    inOrder.verify(underlying, times(1)).authorize(principal2, role, requestContext);
+    inOrder.verify(underlying, times(1)).authorize(principal, role, requestContext);
+}

@@ -1,0 +1,34 @@
+/**
+ * Test : all coord jobs are succeeded - bundle job's status will be updated to succeeded. coordinator action ->
+ * coordinator job -> bundle action -> bundle job
+ *
+ * @throws Exception
+ */
+public void testBundleStatusTransitServiceSucceeded2() throws Exception {
+    BundleJobBean job = this.addRecordToBundleJobTable(Job.Status.RUNNING, false);
+    final JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    final String bundleId = job.getId();
+    addRecordToBundleActionTable(bundleId, "action1", 0, Job.Status.RUNNING);
+    addRecordToBundleActionTable(bundleId, "action2", 0, Job.Status.RUNNING);
+    String currentDatePlusMonth = XDataTestCase.getCurrentDateafterIncrementingInMonths(1);
+    Date start = DateUtils.parseDateOozieTZ(currentDatePlusMonth);
+    Date end = DateUtils.parseDateOozieTZ(currentDatePlusMonth);
+    addRecordToCoordJobTableWithBundle(bundleId, "action1", CoordinatorJob.Status.RUNNING, start, end, true, true, 2);
+    addRecordToCoordJobTableWithBundle(bundleId, "action2", CoordinatorJob.Status.RUNNING, start, end, true, true, 2);
+    addRecordToCoordActionTable("action1", 1, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    addRecordToCoordActionTable("action1", 2, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    addRecordToCoordActionTable("action2", 1, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    addRecordToCoordActionTable("action2", 2, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    Runnable runnable = new StatusTransitRunnable();
+    runnable.run();
+    waitFor(15 * 1000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            BundleJobBean bundle = jpaService.execute(new BundleJobGetJPAExecutor(bundleId));
+            return bundle.getStatus().equals(Job.Status.SUCCEEDED);
+        }
+    });
+    job = jpaService.execute(new BundleJobGetJPAExecutor(bundleId));
+    assertEquals(Job.Status.SUCCEEDED, job.getStatus());
+}

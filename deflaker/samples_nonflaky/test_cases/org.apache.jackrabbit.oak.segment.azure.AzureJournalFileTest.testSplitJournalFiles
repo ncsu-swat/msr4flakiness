@@ -1,0 +1,23 @@
+@Test
+public void testSplitJournalFiles() throws IOException, URISyntaxException, StorageException {
+    assertFalse(journal.exists());
+    int index = 0;
+    // 10
+    index = writeNLines(index, 10);
+    assertTrue(journal.exists());
+    assertEquals(1, countJournalBlobs());
+    // 30
+    index = writeNLines(index, 20);
+    assertEquals(1, countJournalBlobs());
+    // 60
+    index = writeNLines(index, 30);
+    assertEquals(2, countJournalBlobs());
+    // 160
+    index = writeNLines(index, 100);
+    assertEquals(4, countJournalBlobs());
+    try (JournalFileReader reader = journal.openJournalReader()) {
+        for (int i = index - 1; i >= 0; i--) {
+            assertEquals("line " + i, reader.readLine());
+        }
+    }
+}

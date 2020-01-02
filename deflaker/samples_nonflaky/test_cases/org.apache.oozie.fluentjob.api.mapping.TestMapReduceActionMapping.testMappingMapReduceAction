@@ -1,0 +1,34 @@
+@Test
+public void testMappingMapReduceAction() {
+    final String resourceManager = "${resourceManager}";
+    final String nameNode = "${nameNode}";
+    final List<String> jobXmls = Arrays.asList("job1.xml", "job2.xml");
+    final String configClass = "${configClass}";
+    final List<String> files = Arrays.asList("file1", "file2");
+    final List<String> archives = Arrays.asList("archive1", "archive2");
+    final MapReduceActionBuilder builder = MapReduceActionBuilder.create();
+    builder.withResourceManager(resourceManager).withNameNode(nameNode).withPrepare(new PrepareBuilder().build()).withStreaming(new StreamingBuilder().build()).withPipes(new PipesBuilder().build());
+    for (final String jobXml : jobXmls) {
+        builder.withJobXml(jobXml);
+    }
+    builder.withConfigProperty("propertyName1", "propertyValue1").withConfigProperty("propertyName2", "propertyValue2");
+    builder.withConfigClass(configClass);
+    for (final String file : files) {
+        builder.withFile(file);
+    }
+    for (final String archive : archives) {
+        builder.withArchive(archive);
+    }
+    final MapReduceAction action = builder.build();
+    final MAPREDUCE mapreduce = DozerBeanMapperSingleton.instance().map(action, MAPREDUCE.class);
+    assertEquals(resourceManager, mapreduce.getResourceManager());
+    assertEquals(nameNode, mapreduce.getNameNode());
+    assertNotNull(mapreduce.getPrepare());
+    assertNotNull(mapreduce.getStreaming());
+    assertNotNull(mapreduce.getPipes());
+    assertEquals(jobXmls, mapreduce.getJobXml());
+    assertNotNull(mapreduce.getConfiguration());
+    assertEquals(configClass, mapreduce.getConfigClass());
+    assertEquals(files, mapreduce.getFile());
+    assertEquals(archives, mapreduce.getArchive());
+}

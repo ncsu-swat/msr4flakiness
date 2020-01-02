@@ -1,0 +1,42 @@
+public void testServerTimeouts() throws Exception {
+    final ServerSocket srvSocket = new ServerSocket(0);
+    int srvPort = srvSocket.getLocalPort();
+    Thread serverThread = new Thread() {
+
+        @Override
+        public void run() {
+            try {
+                Socket clientSocket = srvSocket.accept();
+                // Sleep 1s (timeout applied on client is 0.1s)
+                Thread.sleep(1000);
+                clientSocket.getOutputStream().write(0);
+                clientSocket.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    };
+    serverThread.setDaemon(true);
+    try {
+        serverThread.start();
+        EmailActionExecutor email = new EmailActionExecutor();
+        Context ctx = createNormalContext("email-action");
+        Services.get().get(ConfigurationService.class).getConf().setInt(EMAIL_SMTP_PORT, srvPort);
+        // Apply a 0.1s timeout to induce a very quick "Read timed out" error
+        Services.get().get(ConfigurationService.class).getConf().setInt(EMAIL_SMTP_SOCKET_TIMEOUT_MS, 100);
+        try {
+            email.validateAndMail(ctx, prepareEmailElement(false, false));
+            fail("Should have failed with a socket timeout error!");
+        } catch (Exception e) {
+            Throwable rootCause = e;
+            while (rootCause.getCause() != null) {
+                rootCause = rootCause.getCause();
+            }
+            assertTrue("Expected exception type to be a SocketTimeoutException, but received: " + rootCause, rootCause instanceof SocketTimeoutException);
+            assertTrue("Expected error to be that of a socket read timeout, but got: " + rootCause.getMessage(), rootCause.getMessage().contains("Read timed out"));
+        }
+    } finally {
+        serverThread.interrupt();
+        srvSocket.close();
+    }
+}

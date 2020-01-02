@@ -1,0 +1,44 @@
+/**
+ * Ignore resource errors for testing.
+ * @noinspection resource, IOResourceOpenedButNotSafelyClosed
+ */
+@Test
+public void testBundleReloadUrlNotNullFalseReload() throws IOException {
+    final AtomicBoolean closed = new AtomicBoolean();
+    final InputStream inputStream = new InputStream() {
+
+        @Override
+        public int read() {
+            return -1;
+        }
+
+        @Override
+        public void close() {
+            closed.set(true);
+        }
+    };
+    final URLConnection urlConnection = new URLConnection(null) {
+
+        @Override
+        public void connect() {
+        // no code
+        }
+
+        @Override
+        public InputStream getInputStream() {
+            return inputStream;
+        }
+    };
+    final URL url = new URL("test", null, 0, "", new URLStreamHandler() {
+
+        @Override
+        protected URLConnection openConnection(URL u) {
+            return urlConnection;
+        }
+    });
+    final LocalizedMessage.Utf8Control control = new LocalizedMessage.Utf8Control();
+    final ResourceBundle bundle = control.newBundle("com.puppycrawl.tools.checkstyle.checks.coding.messages", Locale.ENGLISH, "java.class", new TestUrlsClassLoader(url), false);
+    assertNotNull(bundle, "Bundle should not be null when stream is not null");
+    assertTrue(urlConnection.getUseCaches(), "connection should not be using caches");
+    assertTrue(closed.get(), "connection should be closed");
+}

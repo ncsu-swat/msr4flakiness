@@ -1,0 +1,24 @@
+@Test
+public void testEquals() throws Exception {
+    RestrictionProvider rp = getRestrictionProvider();
+    ACE ace1 = createEntry(testPrincipal, PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_VERSION_MANAGEMENT), false);
+    ACE ace2 = createEntry(true, PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES);
+    ACE ace2b = createEntry(true, PrivilegeConstants.REP_READ_NODES, PrivilegeConstants.REP_READ_PROPERTIES, PrivilegeConstants.JCR_ADD_CHILD_NODES);
+    JackrabbitAccessControlList acl = createACL(ace1, ace2);
+    assertTrue(acl instanceof ImmutableACL);
+    assertEquals(acl, acl);
+    JackrabbitAccessControlList repoAcl = createACL((String) null, ace1, ace2);
+    assertTrue(repoAcl instanceof ImmutableACL);
+    assertEquals(repoAcl, repoAcl);
+    assertEquals(acl, createACL(ace1, ace2));
+    assertEquals(acl, createACL(ace1, ace2b));
+    assertEquals(repoAcl, createACL((String) null, ace1, ace2b));
+    assertFalse(acl.equals(createACL(ace2, ace1)));
+    assertFalse(acl.equals(repoAcl));
+    assertFalse(acl.equals(createEmptyACL()));
+    assertFalse(acl.equals(createACL("/anotherPath", ace1, ace2)));
+    assertFalse(acl.equals(new TestACL("/anotherPath", rp, getNamePathMapper(), ace1, ace2)));
+    assertFalse(acl.equals(new TestACL("/anotherPath", rp, getNamePathMapper(), ace1, ace2)));
+    assertFalse(acl.equals(new TestACL("/anotherPath", rp, getNamePathMapper())));
+    assertFalse(acl.equals(new TestACL(getTestPath(), rp, getNamePathMapper(), ace1, ace2)));
+}

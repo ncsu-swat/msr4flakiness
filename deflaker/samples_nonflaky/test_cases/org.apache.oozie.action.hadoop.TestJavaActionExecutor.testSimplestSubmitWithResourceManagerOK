@@ -1,0 +1,12 @@
+public void testSimplestSubmitWithResourceManagerOK() throws Exception {
+    final String actionXml = "<java>" + "<resource-manager>" + getJobTrackerUri() + "</resource-manager>" + "<name-node>" + getNameNodeUri() + "</name-node>" + "<main-class>" + LauncherMainTester.class.getName() + "</main-class>" + "</java>";
+    final Context context = createContext(actionXml, null);
+    submitAction(context);
+    waitUntilYarnAppDoneAndAssertSuccess(context.getAction().getExternalId());
+    final ActionExecutor ae = new JavaActionExecutor();
+    ae.check(context, context.getAction());
+    assertEquals("SUCCEEDED", context.getAction().getExternalStatus());
+    assertNull(context.getAction().getData());
+    ae.end(context, context.getAction());
+    assertEquals(WorkflowAction.Status.OK, context.getAction().getStatus());
+}

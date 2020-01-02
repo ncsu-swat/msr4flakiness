@@ -1,0 +1,11 @@
+@Test
+public void returnsErrorsWhenEnabled() throws Exception {
+    setup(TestApplication.class);
+    final Dog raf = new Dog();
+    raf.setName("Raf");
+    // Raf already exists so this should cause a primary key constraint violation
+    final Response response = client.target(getUrlPrefix() + "/dogs/Raf").request().put(Entity.entity(raf, MediaType.APPLICATION_JSON));
+    assertThat(response.getStatusInfo()).isEqualTo(Response.Status.BAD_REQUEST);
+    assertThat(response.getHeaderString(HttpHeaders.CONTENT_TYPE)).isEqualTo(MediaType.APPLICATION_JSON);
+    assertThat(response.readEntity(ErrorMessage.class).getMessage()).contains("unique constraint", "table: DOGS");
+}

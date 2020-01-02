@@ -1,0 +1,19 @@
+public void testVerifyPrecondition() throws Exception {
+    Date startTime = new Date();
+    Date endTime = new Date(startTime.getTime() + 1 * 60 * 1000);
+    CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, startTime, endTime, false, true, 0);
+    int actionNum = 1;
+    for (CoordinatorAction.Status actionStatus : CoordinatorAction.Status.values()) {
+        CoordinatorActionBean action = addRecordToCoordActionTable(job.getId(), actionNum, actionStatus, "coord-action-get.xml", 0);
+        try {
+            new CoordActionSkipXCommand(action, getTestUser(), "my-app-name").verifyPrecondition();
+            if (!(actionStatus.equals(CoordinatorAction.Status.WAITING) || actionStatus.equals(CoordinatorAction.Status.READY))) {
+                fail();
+            }
+        } catch (PreconditionException pe) {
+            assertEquals(ErrorCode.E1100, pe.getErrorCode());
+            assertTrue(pe.getMessage().endsWith("[" + actionStatus + "]]"));
+        }
+        actionNum++;
+    }
+}

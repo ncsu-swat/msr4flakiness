@@ -1,0 +1,16 @@
+/**
+ * @see <a href="https://issues.apache.org/jira/browse/OAK-1985">OAK-1985</a>
+ */
+@Test
+public void testTokenValidationIsCaseInsensitive() {
+    Root root = adminSession.getLatestRoot();
+    TokenConfiguration tokenConfig = getSecurityProvider().getConfiguration(TokenConfiguration.class);
+    TokenProvider tp = tokenConfig.getTokenProvider(root);
+    String userId = ((SimpleCredentials) getAdminCredentials()).getUserID();
+    TokenInfo info = tp.createToken(userId.toUpperCase(), Collections.<String, Object>emptyMap());
+    assertTrue(info.matches(new TokenCredentials(info.getToken())));
+    assertEquals(userId, info.getUserId());
+    info = tp.getTokenInfo(info.getToken());
+    assertTrue(info.matches(new TokenCredentials(info.getToken())));
+    assertEquals(userId, info.getUserId());
+}

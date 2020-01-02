@@ -1,0 +1,11 @@
+@Test
+public void testRegExpParentAlternationInParentIfUserCaresForIt() {
+    // the regular expression has to be adjusted to (com\.foo|com\.bar)
+    final PkgImportControl root = new PkgImportControl("(com\\.foo|com\\.bar)", true, MismatchStrategy.DISALLOWED);
+    final PkgImportControl common = new PkgImportControl(root, "common", false, MismatchStrategy.DELEGATE_TO_PARENT);
+    root.addChild(common);
+    assertEquals(root, root.locateFinest("com.foo", "MyClass"), "Invalid package");
+    assertEquals(common, root.locateFinest("com.foo.common", "MyClass"), "Invalid package");
+    assertEquals(root, root.locateFinest("com.bar", "MyClass"), "Invalid package");
+    assertEquals(common, root.locateFinest("com.bar.common", "MyClass"), "Invalid package");
+}

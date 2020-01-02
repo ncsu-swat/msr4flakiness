@@ -1,0 +1,29 @@
+public void testParser() throws Exception {
+    LiteWorkflowAppParser parser = newLiteWorkflowAppParser();
+    parser.validateAndParse(IOUtils.getResourceAsReader("wf-schema-valid.xml", -1), new Configuration());
+    try {
+        // Check TestLiteWorkflowAppService.TestActionExecutor is registered.
+        parser.validateAndParse(IOUtils.getResourceAsReader("wf-unsupported-action.xml", -1), new Configuration());
+        fail();
+    } catch (WorkflowException ex) {
+        assertEquals(ErrorCode.E0723, ex.getErrorCode());
+    } catch (Exception ex) {
+        fail();
+    }
+    try {
+        parser.validateAndParse(IOUtils.getResourceAsReader("wf-loop2-invalid.xml", -1), new Configuration());
+        fail();
+    } catch (WorkflowException ex) {
+        assertEquals(ErrorCode.E0706, ex.getErrorCode());
+    } catch (Exception ex) {
+        fail();
+    }
+    try {
+        parser.validateAndParse(IOUtils.getResourceAsReader("wf-transition-invalid.xml", -1), new Configuration());
+        fail();
+    } catch (WorkflowException ex) {
+        assertEquals(ErrorCode.E0708, ex.getErrorCode());
+    } catch (Exception ex) {
+        fail();
+    }
+}

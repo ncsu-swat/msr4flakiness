@@ -1,0 +1,37 @@
+@Test
+public void testWrite() throws Exception {
+    UUID s1 = new UUID(1, 1);
+    UUID s2 = new UUID(1, 2);
+    UUID s3 = new UUID(2, 1);
+    UUID s4 = new UUID(2, 2);
+    BinaryReferencesIndexWriter writer = newBinaryReferencesIndexWriter();
+    writer.addEntry(1, 2, false, s1, "1.1.1");
+    writer.addEntry(1, 2, false, s1, "1.1.2");
+    writer.addEntry(1, 2, false, s2, "1.2.1");
+    writer.addEntry(1, 2, false, s2, "1.2.2");
+    writer.addEntry(3, 4, true, s3, "2.1.1");
+    writer.addEntry(3, 4, true, s3, "2.1.2");
+    writer.addEntry(3, 4, true, s4, "2.2.1");
+    writer.addEntry(3, 4, true, s4, "2.2.2");
+    byte[] data = writer.write();
+    Buffer buffer = loadBinaryReferencesIndex((whence, length) -> Buffer.wrap(data, data.length - whence, length));
+    BinaryReferencesIndex index = parseBinaryReferencesIndex(buffer);
+    Generation g1 = new Generation(1, 2, false);
+    Generation g2 = new Generation(3, 4, true);
+    Map<Generation, Map<UUID, Set<String>>> expected = new HashMap<>();
+    expected.put(g1, new HashMap<>());
+    expected.put(g2, new HashMap<>());
+    expected.get(g1).put(s1, new HashSet<>());
+    expected.get(g1).put(s2, new HashSet<>());
+    expected.get(g2).put(s3, new HashSet<>());
+    expected.get(g2).put(s4, new HashSet<>());
+    expected.get(g1).get(s1).addAll(asList("1.1.1", "1.1.2"));
+    expected.get(g1).get(s2).addAll(asList("1.2.1", "1.2.2"));
+    expected.get(g2).get(s3).addAll(asList("2.1.1", "2.1.2"));
+    expected.get(g2).get(s4).addAll(asList("2.2.1", "2.2.2"));
+    Map<Generation, Map<UUID, Set<String>>> actual = new HashMap<>();
+    index.forEach((generation, full, compacted, id, reference) -> {
+        actual.computeIfAbsent(new Generation(generation, full, compacted), k -> new HashMap<>()).computeIfAbsent(id, k -> new HashSet<>()).add(reference);
+    });
+    assertEquals(expected, actual);
+}

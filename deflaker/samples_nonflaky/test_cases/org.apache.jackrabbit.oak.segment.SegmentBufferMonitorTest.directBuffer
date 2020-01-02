@@ -1,0 +1,15 @@
+@Test
+public void directBuffer() {
+    Buffer buffer = Buffer.allocateDirect(42);
+    segmentBufferMonitor.trackAllocation(buffer);
+    assertEquals(1, stats.get(DIRECT_BUFFER_COUNT).getCount());
+    assertEquals(42, stats.get(DIRECT_BUFFER_CAPACITY).getCount());
+    assertEquals(0, stats.get(HEAP_BUFFER_COUNT).getCount());
+    assertEquals(0, stats.get(HEAP_BUFFER_CAPACITY).getCount());
+    buffer = null;
+    System.gc();
+    assertTrue(stats.get(DIRECT_BUFFER_COUNT).getCount() <= 1);
+    assertTrue(stats.get(DIRECT_BUFFER_CAPACITY).getCount() <= 42);
+    assertEquals(0, stats.get(HEAP_BUFFER_COUNT).getCount());
+    assertEquals(0, stats.get(HEAP_BUFFER_CAPACITY).getCount());
+}

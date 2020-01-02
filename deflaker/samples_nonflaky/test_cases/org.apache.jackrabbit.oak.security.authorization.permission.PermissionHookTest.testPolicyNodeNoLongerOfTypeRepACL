@@ -1,0 +1,16 @@
+@Test
+public void testPolicyNodeNoLongerOfTypeRepACL() throws Exception {
+    AccessControlManager acMgr = getAccessControlManager(root);
+    JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, testPath);
+    acMgr.removePolicy(acl.getPath(), acl);
+    Tree test = root.getTree(testPath);
+    test.removeProperty(JCR_MIXINTYPES);
+    TreeUtil.addChild(test, AccessControlConstants.REP_POLICY, NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+    Tree principalPermissionStore = root.getTree(PermissionConstants.PERMISSIONS_STORE_PATH).getChild(adminSession.getWorkspaceName()).getChild(testPrincipal.getName());
+    Tree permissionEntry = principalPermissionStore.getChildren().iterator().next();
+    assertTrue(permissionEntry.exists());
+    String path = permissionEntry.getPath();
+    root.commit();
+    permissionEntry = root.getTree(path);
+    assertFalse(permissionEntry.exists());
+}

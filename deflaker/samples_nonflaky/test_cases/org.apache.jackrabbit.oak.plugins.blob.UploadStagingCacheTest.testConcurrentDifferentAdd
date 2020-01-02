@@ -1,0 +1,20 @@
+/**
+ * Stage different files concurrently
+ * @throws Exception
+ */
+@Test
+public void testConcurrentDifferentAdd() throws Exception {
+    // Add load
+    List<ListenableFuture<Integer>> futures = put(folder);
+    // Add diff load
+    File f2 = copyToFile(randomStream(1, 4 * 1024), folder.newFile());
+    Optional<SettableFuture<Integer>> future2 = stagingCache.put(ID_PREFIX + 1, f2);
+    if (future2.isPresent()) {
+        futures.add(future2.get());
+    }
+    // start
+    taskLatch.countDown();
+    callbackLatch.countDown();
+    assertFuture(futures, 0, 1);
+    assertCacheStats(stagingCache, 0, 0, 2, 2);
+}

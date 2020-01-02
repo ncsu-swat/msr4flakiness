@@ -1,0 +1,22 @@
+public void testLocksAreGarbageCollected() throws ServiceException, InterruptedException {
+    String path = new String("a");
+    String path1 = new String("a");
+    ZKLocksService lockService = new ZKLocksService();
+    try {
+        lockService.init(Services.get());
+        LockToken lock = lockService.getWriteLock(path, TestMemoryLocks.DEFAULT_LOCK_TIMEOUT);
+        lock.release();
+        assertEquals(lockService.getLocks().size(), 1);
+        int oldHash = lockService.getLocks().get(path).hashCode();
+        lock = lockService.getWriteLock(path1, TestMemoryLocks.DEFAULT_LOCK_TIMEOUT);
+        int newHash = lockService.getLocks().get(path1).hashCode();
+        assertTrue(oldHash == newHash);
+        lock = null;
+        System.gc();
+        lock = lockService.getWriteLock(path, TestMemoryLocks.DEFAULT_LOCK_TIMEOUT);
+        newHash = lockService.getLocks().get(path).hashCode();
+        assertFalse(oldHash == newHash);
+    } finally {
+        lockService.destroy();
+    }
+}

@@ -1,0 +1,23 @@
+@Test
+public void usesACustomConnectionFactoryRegistry() throws Exception {
+    final SSLContext ctx = SSLContext.getInstance(SSLConnectionSocketFactory.TLS);
+    ctx.init(null, new TrustManager[] { new X509TrustManager() {
+
+        @Override
+        public void checkClientTrusted(X509Certificate[] xcs, String string) throws CertificateException {
+        }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] xcs, String string) throws CertificateException {
+        }
+
+        @Override
+        @Nullable
+        public X509Certificate[] getAcceptedIssuers() {
+            return null;
+        }
+    } }, null);
+    final Registry<ConnectionSocketFactory> customRegistry = RegistryBuilder.<ConnectionSocketFactory>create().register("http", PlainConnectionSocketFactory.getSocketFactory()).register("https", new SSLConnectionSocketFactory(ctx, new NoopHostnameVerifier())).build();
+    builder.using(customRegistry);
+    verify(apacheHttpClientBuilder).using(customRegistry);
+}

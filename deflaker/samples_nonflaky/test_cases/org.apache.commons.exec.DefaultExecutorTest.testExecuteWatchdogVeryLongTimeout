@@ -1,0 +1,23 @@
+/**
+ * [EXEC-68] Synchronously starts a short script with a Watchdog attached with an extremely large timeout. Checks
+ * to see if the script terminated naturally or if it was killed by the Watchdog. Fail if killed by Watchdog.
+ *
+ * @throws Exception
+ *             the test failed
+ */
+@Test
+public void testExecuteWatchdogVeryLongTimeout() throws Exception {
+    final long timeout = Long.MAX_VALUE;
+    final CommandLine cl = new CommandLine(testScript);
+    final DefaultExecutor executor = new DefaultExecutor();
+    executor.setWorkingDirectory(new File("."));
+    final ExecuteWatchdog watchdog = new ExecuteWatchdog(timeout);
+    executor.setWatchdog(watchdog);
+    try {
+        executor.execute(cl);
+    } catch (final ExecuteException e) {
+        assertFalse("Process should exit normally, not be killed by watchdog", watchdog.killedProcess());
+        // If the Watchdog did not kill it, something else went wrong.
+        throw e;
+    }
+}

@@ -1,0 +1,37 @@
+@Test
+public void isGrantedTest() throws Exception {
+    Set<String> supp1 = ImmutableSet.of(JCR_READ, JCR_NODE_TYPE_MANAGEMENT);
+    Set<String> supp2 = ImmutableSet.of(JCR_READ, JCR_WRITE);
+    Set<String> all = Sets.union(supp1, supp2);
+    Map<String, Long> grantMap = Maps.newHashMap();
+    grantMap.put(JCR_READ, Permissions.READ);
+    grantMap.put(JCR_NODE_TYPE_MANAGEMENT, Permissions.NODE_TYPE_MANAGEMENT);
+    grantMap.put(JCR_WRITE, Permissions.WRITE);
+    Map<String, String> actionMap = Maps.newHashMap();
+    actionMap.put(JCR_READ, JackrabbitSession.ACTION_READ);
+    actionMap.put(JCR_NODE_TYPE_MANAGEMENT, JackrabbitSession.ACTION_NODE_TYPE_MANAGEMENT);
+    actionMap.put(JCR_WRITE, JackrabbitSession.ACTION_ADD_NODE);
+    Tree tree = mock(Tree.class, withSettings().extraInterfaces(ReadOnly.class));
+    // tests all possible 256 shuffles
+    for (CompositionType type : CompositionType.values()) {
+        for (Set<String> granted1 : Sets.powerSet(supp1)) {
+            for (Set<String> granted2 : Sets.powerSet(supp2)) {
+                for (Set<String> ps : Sets.powerSet(all)) {
+                    CompositePermissionProvider cpp = buildCpp(supp1, granted1, supp2, granted2, type, grantMap);
+                    boolean expected = expected(ps, supp1, granted1, supp2, granted2, type, false);
+                    boolean result1 = cpp.isGranted(tree, null, mapToPermissions(ps, grantMap));
+                    String err1 = "[isGranted1] Checking " + ps + " in {supported: " + supp1 + ", granted: " + granted1 + "} " + type + " {supported: " + supp2 + ", granted: " + granted2 + "}";
+                    assertEquals(err1, expected, result1);
+                    // check existing path
+                    boolean result2 = cpp.isGranted("/", mapToActions(ps, actionMap));
+                    String err2 = "[isGranted2] Checking " + ps + " in {supported: " + supp1 + ", granted: " + granted1 + "} " + type + " {supported: " + supp2 + ", granted: " + granted2 + "}";
+                    assertEquals(err2, expected, result2);
+                    // check non existing path
+                    boolean result3 = cpp.isGranted("/doesnotexist", mapToActions(ps, actionMap));
+                    String err3 = "[isGranted3] Checking " + ps + " in {supported: " + supp1 + ", granted: " + granted1 + "} " + type + " {supported: " + supp2 + ", granted: " + granted2 + "}";
+                    assertEquals(err3, expected, result3);
+                }
+            }
+        }
+    }
+}

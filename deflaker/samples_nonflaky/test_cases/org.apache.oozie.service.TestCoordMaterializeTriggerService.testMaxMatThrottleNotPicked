@@ -1,0 +1,28 @@
+public void testMaxMatThrottleNotPicked() throws Exception {
+    Services.get().destroy();
+    setSystemProperty(CoordMaterializeTriggerService.CONF_MATERIALIZATION_SYSTEM_LIMIT, "10");
+    services = new Services();
+    services.init();
+    jpaService = services.get(JPAService.class);
+    Date start = new Date();
+    Date end = new Date(start.getTime() + 3600 * 5 * 1000);
+    CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, start, end, false, false, 1);
+    addRecordToCoordActionTable(job.getId(), 1, CoordinatorAction.Status.WAITING, "coord-action-get.xml", 0);
+    addRecordToCoordActionTable(job.getId(), 2, CoordinatorAction.Status.WAITING, "coord-action-get.xml", 0);
+    job.setMatThrottling(3);
+    CoordJobQueryExecutor.getInstance().executeUpdate(CoordJobQuery.UPDATE_COORD_JOB, job);
+    job = jpaService.execute(new CoordJobGetJPAExecutor(job.getId()));
+    Date lastModifiedDate = job.getLastModifiedTime();
+    Runnable runnable = new CoordMaterializeTriggerRunnable(3600, 300);
+    runnable.run();
+    waitForModification(job.getId(), lastModifiedDate);
+    job = jpaService.execute(new CoordJobGetJPAExecutor(job.getId()));
+    assertNotSame(lastModifiedDate, job.getLastModifiedTime());
+    job.setMatThrottling(2);
+    CoordJobQueryExecutor.getInstance().executeUpdate(CoordJobQuery.UPDATE_COORD_JOB, job);
+    job = jpaService.execute(new CoordJobGetJPAExecutor(job.getId()));
+    lastModifiedDate = job.getLastModifiedTime();
+    runnable.run();
+    job = jpaService.execute(new CoordJobGetJPAExecutor(job.getId()));
+    assertEquals(lastModifiedDate, job.getLastModifiedTime());
+}

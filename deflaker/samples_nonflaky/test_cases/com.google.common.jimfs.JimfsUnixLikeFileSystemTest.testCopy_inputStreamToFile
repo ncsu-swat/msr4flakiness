@@ -1,0 +1,16 @@
+@Test
+public void testCopy_inputStreamToFile() throws IOException {
+    byte[] bytes = preFilledBytes(512);
+    Files.copy(new ByteArrayInputStream(bytes), path("/test"));
+    assertThatPath("/test").containsBytes(bytes);
+    try {
+        Files.copy(new ByteArrayInputStream(bytes), path("/test"));
+        fail();
+    } catch (FileAlreadyExistsException expected) {
+        assertEquals("/test", expected.getMessage());
+    }
+    Files.copy(new ByteArrayInputStream(bytes), path("/test"), REPLACE_EXISTING);
+    assertThatPath("/test").containsBytes(bytes);
+    Files.copy(new ByteArrayInputStream(bytes), path("/foo"), REPLACE_EXISTING);
+    assertThatPath("/foo").containsBytes(bytes);
+}

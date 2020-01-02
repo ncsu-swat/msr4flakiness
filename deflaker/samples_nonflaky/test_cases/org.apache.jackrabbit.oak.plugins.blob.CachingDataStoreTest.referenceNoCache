@@ -1,0 +1,20 @@
+@Test
+public void referenceNoCache() throws Exception {
+    LOG.info("Starting referenceNoCache");
+    dataStore.close();
+    init(1, 0, 0);
+    File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
+    String id = getIdForInputStream(f);
+    FileInputStream fin = new FileInputStream(f);
+    closer.register(fin);
+    // Record still in staging
+    DataRecord rec = dataStore.addRecord(fin);
+    assertEquals(id, rec.getIdentifier().toString());
+    assertFile(rec.getStream(), f, folder);
+    assertEquals(backend.getReferenceFromIdentifier(rec.getIdentifier()), rec.getReference());
+    rec = dataStore.getRecordIfStored(new DataIdentifier(id));
+    assertNotNull(rec);
+    assertFile(rec.getStream(), f, folder);
+    assertEquals(backend.getReferenceFromIdentifier(rec.getIdentifier()), rec.getReference());
+    LOG.info("Finished referenceNoCache");
+}

@@ -1,0 +1,10 @@
+@Test
+public void testAttributeOr() throws Exception {
+    final String xpath = "//METHOD_DEF[./IDENT[@text='getSomeMethod'] " + "or ./IDENT[@text='nonExistentMethod']]";
+    final RootNode rootNode = getRootNode("InputXpathMapperAst.java");
+    final DetailAST[] actual = convertToArray(getXpathItems(xpath, rootNode));
+    final DetailAST expectedClassDefNode = getSiblingByType(rootNode.getUnderlyingNode(), TokenTypes.CLASS_DEF);
+    final DetailAST expectedMethodDefNode = expectedClassDefNode.findFirstToken(TokenTypes.OBJBLOCK).findFirstToken(TokenTypes.METHOD_DEF).getNextSibling();
+    final DetailAST[] expected = { expectedMethodDefNode };
+    assertThat("Result nodes differ from expected", actual, equalTo(expected));
+}

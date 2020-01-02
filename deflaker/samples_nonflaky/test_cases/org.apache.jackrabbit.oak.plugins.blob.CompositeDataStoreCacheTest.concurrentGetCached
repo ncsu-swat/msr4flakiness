@@ -1,0 +1,36 @@
+/**
+ * Concurrently retrieves 2 different files from cache.
+ * @throws Exception
+ */
+@Test
+public void concurrentGetCached() throws Exception {
+    LOG.info("Starting concurrentGetCached");
+    // Add 2 files to backend
+    // Concurrently get both
+    ListeningExecutorService executorService = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(2));
+    closer.register(new ExecutorCloser(executorService, 5, TimeUnit.MILLISECONDS));
+    File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
+    loader.write(ID_PREFIX + 0, f);
+    assertTrue(f.exists());
+    File f2 = copyToFile(randomStream(1, 4 * 1024), folder.newFile());
+    loader.write(ID_PREFIX + 1, f2);
+    assertTrue(f2.exists());
+    CountDownLatch thread1Start = new CountDownLatch(1);
+    SettableFuture<File> future1 = retrieveThread(executorService, ID_PREFIX + 0, cache, thread1Start);
+    CountDownLatch thread2Start = new CountDownLatch(1);
+    SettableFuture<File> future2 = retrieveThread(executorService, ID_PREFIX + 1, cache, thread2Start);
+    thread1Start.countDown();
+    thread2Start.countDown();
+    File cached = future1.get();
+    File cached2 = future2.get();
+    LOG.info("Async tasks finished");
+    assertTrue(Files.equal(f, cached));
+    assertTrue(Files.equal(f2, cached2));
+    assertCacheStats(cache.getStagingCacheStats(), 0, 0, 0, 0);
+    assertEquals(2, cache.getStagingCacheStats().getLoadCount());
+    assertEquals(0, cache.getStagingCacheStats().getLoadSuccessCount());
+    assertCacheStats(cache.getCacheStats(), 2, 8 * 1024, 0, 2);
+    assertEquals(2, cache.getCacheStats().getLoadCount());
+    assertEquals(2, cache.getCacheStats().getLoadSuccessCount());
+    LOG.info("Finished concurrentGetCached");
+}

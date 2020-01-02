@@ -1,0 +1,11 @@
+@Test(expected = CommitFailedException.class)
+public void testAbstractPrivilege() throws Exception {
+    PrivilegeManager pMgr = getPrivilegeManager(root);
+    pMgr.registerPrivilege("abstractPrivilege", true, new String[0]);
+    createACE(createPolicy(getTestTree(), false), "invalid", NT_REP_GRANT_ACE, testPrincipal.getName(), "abstractPrivilege");
+    try {
+        root.commit();
+    } catch (CommitFailedException e) {
+        throw assertCommitFailedException(e, CommitFailedException.ACCESS_CONTROL, 11);
+    }
+}

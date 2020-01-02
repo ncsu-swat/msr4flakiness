@@ -1,0 +1,17 @@
+public void testQueueSerial() throws Exception {
+    EXEC_ORDER = new AtomicLong();
+    final MyCallable callable1 = new MyCallable(0, 10);
+    final MyCallable callable2 = new MyCallable(0, 10);
+    final MyCallable callable3 = new MyCallable(0, 10);
+    CallableQueueService queueservice = Services.get().get(CallableQueueService.class);
+    queueservice.queueSerial(Arrays.asList(callable1, callable2, callable3));
+    waitFor(100, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            return callable1.executed != 0 && callable2.executed != 0 && callable3.executed != 0;
+        }
+    });
+    assertEquals(0, callable1.order);
+    assertEquals(1, callable2.order);
+    assertEquals(2, callable3.order);
+}

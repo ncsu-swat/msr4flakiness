@@ -1,0 +1,32 @@
+@Test
+public void testClosedWatcher() throws IOException, InterruptedException {
+    AbstractWatchService.Key key1 = watcher.register(new StubWatchable(), ImmutableSet.of(ENTRY_CREATE));
+    AbstractWatchService.Key key2 = watcher.register(new StubWatchable(), ImmutableSet.of(ENTRY_MODIFY));
+    assertThat(key1.isValid()).isTrue();
+    assertThat(key2.isValid()).isTrue();
+    watcher.close();
+    assertThat(key1.isValid()).isFalse();
+    assertThat(key2.isValid()).isFalse();
+    assertThat(key1.reset()).isFalse();
+    assertThat(key2.reset()).isFalse();
+    try {
+        watcher.poll();
+        fail();
+    } catch (ClosedWatchServiceException expected) {
+    }
+    try {
+        watcher.poll(10, SECONDS);
+        fail();
+    } catch (ClosedWatchServiceException expected) {
+    }
+    try {
+        watcher.take();
+        fail();
+    } catch (ClosedWatchServiceException expected) {
+    }
+    try {
+        watcher.register(new StubWatchable(), ImmutableList.<WatchEvent.Kind<?>>of());
+        fail();
+    } catch (ClosedWatchServiceException expected) {
+    }
+}

@@ -1,0 +1,21 @@
+@Test
+public void testSetPrincipalPolicyRemapped() throws Exception {
+    setupPolicy(testPath);
+    root.commit();
+    NamePathMapper mapper = getNamePathMapperWithLocalRemapping();
+    JackrabbitAccessControlManager remappedAcMgr = createAccessControlManager(root, mapper);
+    JackrabbitAccessControlPolicy[] policies = remappedAcMgr.getPolicies(testPrincipal);
+    assertNotNull(policies);
+    assertEquals(1, policies.length);
+    ACL acl = (ACL) policies[0];
+    Value pathValue = new ValueFactoryImpl(root, mapper).createValue(mapper.getJcrPath(testPath), PropertyType.PATH);
+    assertTrue(acl.addEntry(testPrincipal, testPrivileges, true, Collections.singletonMap(REP_NODE_PATH, pathValue)));
+    remappedAcMgr.setPolicy(acl.getPath(), acl);
+    root.commit();
+    AccessControlPolicy[] acps = remappedAcMgr.getPolicies(mapper.getJcrPath(testPath));
+    assertEquals(1, acps.length);
+    assertEquals(2, ((ACL) acps[0]).getAccessControlEntries().length);
+    acps = acMgr.getPolicies(testPath);
+    assertEquals(1, acps.length);
+    assertEquals(2, ((ACL) acps[0]).getAccessControlEntries().length);
+}

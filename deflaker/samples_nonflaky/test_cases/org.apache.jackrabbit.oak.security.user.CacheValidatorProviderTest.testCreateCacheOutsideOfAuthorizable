@@ -1,0 +1,20 @@
+@Test
+public void testCreateCacheOutsideOfAuthorizable() throws Exception {
+    Tree n = root.getTree(PathUtils.ROOT_PATH);
+    try {
+        Tree child = TreeUtil.addChild(n, CacheConstants.REP_CACHE, CacheConstants.NT_REP_CACHE);
+        child.setProperty(CacheConstants.REP_EXPIRATION, 1L, Type.LONG);
+        root.commit();
+        fail("Using rep:cache/rep:Cache outside a user or group must fail.");
+    } catch (CommitFailedException e) {
+        assertTrue(e.isConstraintViolation());
+        assertEquals(34, e.getCode());
+    } finally {
+        root.refresh();
+        Tree c = n.getChild(CacheConstants.REP_CACHE);
+        if (c.exists()) {
+            c.remove();
+            root.commit();
+        }
+    }
+}

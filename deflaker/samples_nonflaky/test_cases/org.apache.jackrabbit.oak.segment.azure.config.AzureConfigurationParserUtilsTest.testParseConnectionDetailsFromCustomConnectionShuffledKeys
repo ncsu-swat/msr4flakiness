@@ -1,0 +1,16 @@
+@Test
+public void testParseConnectionDetailsFromCustomConnectionShuffledKeys() {
+    StringBuilder conn = new StringBuilder();
+    conn.append("Directory=repository;");
+    conn.append("DefaultEndpointsProtocol=https;");
+    conn.append("ContainerName=oak-test;");
+    conn.append("AccountName=myaccount;");
+    conn.append("BlobEndpoint=http://127.0.0.1:32806/myaccount;");
+    conn.append("AccountKey=mykey==");
+    assertTrue(AzureConfigurationParserUtils.isCustomAzureConnectionString(conn.toString()));
+    String azureConn = "DefaultEndpointsProtocol=https;AccountName=myaccount;AccountKey=mykey==;BlobEndpoint=http://127.0.0.1:32806/myaccount;";
+    Map<String, String> config = AzureConfigurationParserUtils.parseAzureConfigurationFromCustomConnection(conn.toString());
+    assertEquals(azureConn, config.get(KEY_CONNECTION_STRING));
+    assertEquals("oak-test", config.get(KEY_CONTAINER_NAME));
+    assertEquals("repository", config.get(KEY_DIR));
+}

@@ -1,0 +1,10 @@
+@Test
+public void usesKeepAliveForPersistentConnections() throws Exception {
+    configuration.setKeepAlive(Duration.seconds(1));
+    assertThat(builder.using(configuration).createClient(apacheBuilder, connectionManager, "test")).isNotNull();
+    final DefaultConnectionKeepAliveStrategy strategy = (DefaultConnectionKeepAliveStrategy) spyHttpClientBuilderField("keepAliveStrategy", apacheBuilder);
+    final HttpContext context = mock(HttpContext.class);
+    final HttpResponse response = mock(HttpResponse.class);
+    when(response.headerIterator(HTTP.CONN_KEEP_ALIVE)).thenReturn(mock(HeaderIterator.class));
+    assertThat(strategy.getKeepAliveDuration(response, context)).isEqualTo(1000);
+}

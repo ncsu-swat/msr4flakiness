@@ -1,0 +1,13 @@
+@Test
+public void testNullLogin() throws LoginException {
+    CallbackHandler cbh = new TestCallbackHandler(null);
+    guestLoginModule.initialize(subject, cbh, sharedState, Collections.emptyMap());
+    assertTrue(guestLoginModule.login());
+    Object sharedCreds = sharedState.get(AbstractLoginModule.SHARED_KEY_CREDENTIALS);
+    assertNotNull(sharedCreds);
+    assertTrue(sharedCreds instanceof GuestCredentials);
+    assertTrue(guestLoginModule.commit());
+    assertFalse(subject.getPrincipals(EveryonePrincipal.class).isEmpty());
+    assertFalse(subject.getPublicCredentials(GuestCredentials.class).isEmpty());
+    assertTrue(guestLoginModule.logout());
+}

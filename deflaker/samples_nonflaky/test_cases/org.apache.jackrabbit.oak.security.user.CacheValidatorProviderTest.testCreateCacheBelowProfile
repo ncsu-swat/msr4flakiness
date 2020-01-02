@@ -1,0 +1,13 @@
+@Test
+public void testCreateCacheBelowProfile() throws Exception {
+    try {
+        Tree node = getAuthorizableTree(getTestUser());
+        Tree child = TreeUtil.addChild(node, "profile", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        TreeUtil.addChild(child, CacheConstants.REP_CACHE, CacheConstants.NT_REP_CACHE).setProperty(CacheConstants.REP_EXPIRATION, 23L, Type.LONG);
+        root.commit(CacheValidatorProvider.asCommitAttributes());
+        fail("Creating rep:cache node below a user or group must fail.");
+    } catch (CommitFailedException e) {
+        assertTrue(e.isConstraintViolation());
+        assertEquals(34, e.getCode());
+    }
+}

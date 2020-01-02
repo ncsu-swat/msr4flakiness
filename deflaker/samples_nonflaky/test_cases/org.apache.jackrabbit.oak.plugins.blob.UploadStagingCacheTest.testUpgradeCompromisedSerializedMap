@@ -1,0 +1,14 @@
+@Test
+public void testUpgradeCompromisedSerializedMap() throws IOException {
+    // Close the init setup
+    closer.close();
+    // Create pre-upgrade load
+    File home = folder.newFolder();
+    File pendingUploadsFile = new File(home, DataStoreCacheUpgradeUtils.UPLOAD_MAP);
+    createGibberishLoad(home, pendingUploadsFile);
+    LogCustomizer lc = LogCustomizer.forLogger(DataStoreCacheUpgradeUtils.class.getName()).filter(Level.WARN).enable(Level.WARN).create();
+    lc.starting();
+    // Start
+    init(2, new TestStagingUploader(folder.newFolder()), home);
+    assertThat(lc.getLogs().toString(), containsString("Error in reading pending uploads map"));
+}

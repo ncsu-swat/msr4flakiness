@@ -1,0 +1,16 @@
+public void testGetList() throws Exception {
+    BundleJobBean job = this.addRecordToBundleJobTable(Job.Status.RUNNING, false);
+    this.addRecordToBundleActionTable(job.getId(), "coord1", 0, Job.Status.PREP);
+    this.addRecordToBundleActionTable(job.getId(), "coord2", 1, Job.Status.RUNNING);
+    this.addRecordToBundleActionTable(job.getId(), "coord3", 1, Job.Status.RUNNING);
+    List<BundleActionBean> bActions = BundleActionQueryExecutor.getInstance().getList(BundleActionQuery.GET_BUNDLE_WAITING_ACTIONS_OLDER_THAN, (long) (1000 * 60));
+    assertEquals(0, bActions.size());
+    bActions = BundleActionQueryExecutor.getInstance().getList(BundleActionQuery.GET_BUNDLE_WAITING_ACTIONS_OLDER_THAN, (long) (-1000 * 60));
+    assertEquals(2, bActions.size());
+    // GET_BUNDLE_ACTIONS_STATUS_UNIGNORED_FOR_BUNDLE
+    List<BundleActionBean> retList = BundleActionQueryExecutor.getInstance().getList(BundleActionQuery.GET_BUNDLE_ACTIONS_STATUS_UNIGNORED_FOR_BUNDLE, job.getId());
+    assertEquals(3, retList.size());
+    for (BundleActionBean bean : retList) {
+        assertTrue(bean.getCoordName().equals("coord1") || bean.getCoordName().equals("coord2") || bean.getCoordName().equals("coord3"));
+    }
+}

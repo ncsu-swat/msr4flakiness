@@ -1,0 +1,12 @@
+@Test
+public void testBuildPathEntryMapResultsInEmptyCache() {
+    when(store.load(anyString())).thenReturn(new PrincipalPermissionEntries());
+    when(store.getNumEntries(anyString(), anyLong())).thenReturn(NumEntries.valueOf(MAX_PATH_SIZE + 1, false));
+    Set<String> principalNames = Sets.newHashSet("a", "b");
+    assertFalse(permissionCacheBuilder.init(principalNames, Long.MAX_VALUE));
+    PermissionCache cache = permissionCacheBuilder.build();
+    assertEquals(EMPTY_CLASS_NAME, cache.getClass().getName());
+    verify(store, times(2)).getNumEntries(anyString(), anyLong());
+    verify(store, times(2)).load(anyString());
+    verify(store, never()).load(anyString(), anyString());
+}

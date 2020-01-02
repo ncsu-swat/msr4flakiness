@@ -1,0 +1,14 @@
+@Test
+public void testInvalidXpath() throws IOException {
+    final String fileContent = "class Test { public void method() {int a = 5; int b = 5;}}";
+    final File file = File.createTempFile("junit", null, tempFolder);
+    Files.write(file.toPath(), fileContent.getBytes(StandardCharsets.UTF_8));
+    final String invalidXpath = "\\//CLASS_DEF//METHOD_DEF//VARIABLE_DEF//IDENT";
+    try {
+        XpathUtil.printXpathBranch(invalidXpath, file);
+        fail("Should end with exception");
+    } catch (CheckstyleException ex) {
+        final String expectedMessage = "Error during evaluation for xpath: " + invalidXpath + ", file: " + file.getCanonicalPath();
+        assertThat("Exception message is different", ex.getMessage(), is(expectedMessage));
+    }
+}

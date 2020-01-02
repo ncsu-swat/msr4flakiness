@@ -1,0 +1,25 @@
+@Test
+public void shouldHaveCorrectChildOrderProperty() throws CommitFailedException {
+    final NodeState content = rootNodeState.getChildNode("content");
+    final NodeState decorated = wrap("/content", content, null, of("/content/foo"), null, null);
+    assertTrue(decorated.hasProperty(OAK_CHILD_ORDER));
+    {
+        // access via getProperty()
+        final PropertyState childOrder = decorated.getProperty(OAK_CHILD_ORDER);
+        final Iterable<String> values = childOrder.getValue(Type.STRINGS);
+        assertEquals(newArrayList("football"), newArrayList(values));
+    }
+    {
+        // access via getProperties()
+        final Predicate<PropertyState> isChildOrderProperty = new Predicate<PropertyState>() {
+
+            @Override
+            public boolean apply(PropertyState propertyState) {
+                return OAK_CHILD_ORDER.equals(propertyState.getName());
+            }
+        };
+        final PropertyState childOrder = Iterables.find(decorated.getProperties(), isChildOrderProperty);
+        final Iterable<String> values = childOrder.getValue(Type.STRINGS);
+        assertEquals(newArrayList("football"), newArrayList(values));
+    }
+}

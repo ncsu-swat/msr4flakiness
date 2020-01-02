@@ -1,0 +1,18 @@
+@Test
+public void testMissingRoot() throws Exception {
+    CallbackHandler cbh = callbacks -> {
+        for (Callback callback : callbacks) {
+            if (callback instanceof RepositoryCallback) {
+                ((RepositoryCallback) callback).setSecurityProvider(getSecurityProvider());
+                ((RepositoryCallback) callback).setContentRepository(null);
+            } else {
+                throw new UnsupportedCallbackException(callback);
+            }
+        }
+    };
+    LoginModuleImpl loginModule = new LoginModuleImpl();
+    loginModule.initialize(new Subject(), cbh, Maps.newHashMap(), Maps.newHashMap());
+    assertFalse(loginModule.login());
+    assertFalse(loginModule.commit());
+    assertFalse(loginModule.logout());
+}

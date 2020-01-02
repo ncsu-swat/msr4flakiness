@@ -1,0 +1,9 @@
+@Test
+public void shouldNotDeleteMergedExcludedPaths() throws CommitFailedException, IOException {
+    final NodeStore source = createNodeStoreWithContent("/content/foo/en", "/jcr:system");
+    final NodeStore target = createNodeStoreWithContent("/jcr:system/jcr:versionStorage");
+    final NodeState before = target.getRoot();
+    builder().merge("/jcr:system").exclude("/jcr:system").copy(source, target);
+    final NodeState after = target.getRoot();
+    expectDifference().strict().childNodeAdded("/content", "/content/foo", "/content/foo/en").verify(before, after);
+}

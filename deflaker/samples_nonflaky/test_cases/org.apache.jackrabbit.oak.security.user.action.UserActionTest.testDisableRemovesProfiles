@@ -1,0 +1,21 @@
+@Test
+public void testDisableRemovesProfiles() throws Exception {
+    User user = getTestUser();
+    ValueFactory vf = getValueFactory();
+    user.setProperty("any", vf.createValue("value"));
+    user.setProperty("profiles/public/nickname", vf.createValue("amal"));
+    user.setProperty("profiles/private/age", vf.createValue(14));
+    root.commit();
+    user.disable("disabled");
+    assertTrue(user.hasProperty("any"));
+    assertFalse(user.hasProperty("profiles/public/nickname"));
+    assertFalse(user.hasProperty("profiles/private/age"));
+    Tree t = root.getTree(user.getPath());
+    assertTrue(t.hasProperty(UserConstants.REP_DISABLED));
+    assertFalse(t.hasChild("profiles"));
+    // it's transient:
+    root.refresh();
+    t = root.getTree(user.getPath());
+    assertFalse(t.hasProperty(UserConstants.REP_DISABLED));
+    assertTrue(t.hasChild("profiles"));
+}

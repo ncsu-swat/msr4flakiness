@@ -1,0 +1,22 @@
+public void testConcurrencyLimit() throws Exception {
+    CLCallable.resetConcurrency();
+    final CallableQueueService queueservice = Services.get().get(CallableQueueService.class);
+    for (int i = 0; i < 10; i++) {
+        queueservice.queue(new CLCallable(), 10);
+    }
+    float originalRatio = XTestCase.WAITFOR_RATIO;
+    try {
+        XTestCase.WAITFOR_RATIO = 1;
+        waitFor(2000, new Predicate() {
+
+            public boolean evaluate() throws Exception {
+                return queueservice.queueSize() == 0;
+            }
+        });
+    } finally {
+        XTestCase.WAITFOR_RATIO = originalRatio;
+    }
+    System.out.println("Callable Queue Size :" + queueservice.queueSize());
+    System.out.println("CLCallable Concurrency :" + CLCallable.getConcurrency());
+    assertTrue(CLCallable.getConcurrency() <= 3);
+}

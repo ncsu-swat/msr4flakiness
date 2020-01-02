@@ -1,0 +1,20 @@
+/**
+ * This must be a reflection test as it is too difficult to hit normally and
+ * the responsible code can't be removed without failing tests.
+ * TokenEnd is only used for processingTokenEnd and it is only set during visitConditional
+ * and visitUnitaryOperator. For it to be the same line/column, it must be the exact same
+ * token or a token who has the same line/column as it's child and we visit. We never
+ * visit the same token twice and we are only visiting on very specific tokens.
+ * The line can't be removed or reworked as other tests fail, and regression shows us no
+ * use cases to create a UT for.
+ * @throws Exception if there is an error.
+ */
+@Test
+public void testTokenEndIsAfterSameLineColumn() throws Exception {
+    final NPathComplexityCheck check = new NPathComplexityCheck();
+    final Object tokenEnd = TestUtil.getClassDeclaredField(NPathComplexityCheck.class, "processingTokenEnd").get(check);
+    final DetailAstImpl token = new DetailAstImpl();
+    token.setLineNo(0);
+    token.setColumnNo(0);
+    assertTrue((Boolean) TestUtil.getClassDeclaredMethod(tokenEnd.getClass(), "isAfter").invoke(tokenEnd, token), "isAfter must be true for same line/column");
+}

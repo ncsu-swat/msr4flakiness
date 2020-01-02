@@ -1,0 +1,38 @@
+// OAK-2359
+@Test
+public void readNullEntry() throws CommitFailedException {
+    final Set<String> reads = Sets.newHashSet();
+    MemoryDocumentStore docStore = new MemoryDocumentStore() {
+
+        @Override
+        public <T extends Document> T find(Collection<T> collection, String key) {
+            reads.add(key);
+            return super.find(collection, key);
+        }
+    };
+    DocumentNodeStore store = builderProvider.newBuilder().setClusterId(1).setAsyncDelay(0).setDocumentStore(docStore).getNodeStore();
+    NodeBuilder builder = store.getRoot().builder();
+    builder.child("test").setProperty("foo", "bar");
+    merge(store, builder);
+    builder = store.getRoot().builder();
+    builder.child("test").remove();
+    merge(store, builder);
+    RevisionVector removedAt = store.getHeadRevision();
+    String id = Utils.getIdFromPath("/test");
+    int count = 0;
+    // update node until we have at least two levels of split documents
+    while (docStore.find(NODES, id).getPreviousRanges().size() <= PREV_SPLIT_FACTOR) {
+        builder = store.getRoot().builder();
+        builder.child("test").setProperty("count", count++);
+        merge(store, builder);
+        store.runBackgroundOperations();
+    }
+    NodeDocument doc = docStore.find(NODES, id);
+    assertNotNull(doc);
+    reads.clear();
+    doc.getNodeAtRevision(store, store.getHeadRevision(), null);
+    assertNoPreviousDocs(reads);
+    reads.clear();
+    doc.getValueMap("foo").get(removedAt.getRevision(store.getClusterId()));
+    assertNoPreviousDocs(reads);
+}

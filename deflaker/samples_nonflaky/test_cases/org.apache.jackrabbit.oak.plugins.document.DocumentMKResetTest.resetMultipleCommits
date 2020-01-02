@@ -1,0 +1,35 @@
+@Test
+public void resetMultipleCommits() {
+    DocumentStore store = mk.getDocumentStore();
+    addNodes(null, "/foo");
+    String b0 = mk.branch(null);
+    String b1 = mk.commit("", "^\"/foo/p1\":1", b0, null);
+    String b2 = mk.commit("", "^\"/foo/p2\":1", b1, null);
+    String b3 = mk.commit("", "^\"/foo/p3\":1", b2, null);
+    // will mark conflict on b2 and b3
+    mk.commit("", "^\"/foo/p2\":1^\"/foo/p3\":1", null, null);
+    // check collision markers
+    NodeDocument rootDoc = store.find(NODES, getIdFromPath("/"));
+    assertNotNull(rootDoc);
+    Map<Revision, String> collisions = rootDoc.getValueMap(COLLISIONS);
+    assertEquals(2, collisions.size());
+    assertTrue(collisions.containsKey(Revision.fromString(b2).asTrunkRevision()));
+    assertTrue(collisions.containsKey(Revision.fromString(b3).asTrunkRevision()));
+    try {
+        mk.merge(b3, null);
+        fail("merge with conflict must fail");
+    } catch (DocumentStoreException e) {
+    // expected
+    }
+    String b4 = mk.reset(b3, b1);
+    String b5 = mk.commit("", "^\"/foo/p4\":1", b4, null);
+    rootDoc = store.find(NODES, getIdFromPath("/"));
+    assertNotNull(rootDoc);
+    collisions = rootDoc.getValueMap(COLLISIONS);
+    assertEquals(0, collisions.size());
+    String rev = mk.merge(b5, null);
+    assertPropExists(rev, "/foo", "p1");
+    assertPropExists(rev, "/foo", "p2");
+    assertPropExists(rev, "/foo", "p3");
+    assertPropExists(rev, "/foo", "p4");
+}

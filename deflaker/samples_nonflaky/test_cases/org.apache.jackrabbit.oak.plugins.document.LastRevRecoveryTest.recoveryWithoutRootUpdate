@@ -1,0 +1,20 @@
+// OAK-3079
+@Test
+public void recoveryWithoutRootUpdate() throws Exception {
+    String clusterId = String.valueOf(c1Id);
+    ClusterNodeInfoDocument doc = sharedStore.find(CLUSTER_NODES, clusterId);
+    NodeBuilder builder = ds1.getRoot().builder();
+    builder.child("x").child("y").child("z");
+    merge(ds1, builder);
+    ds1.dispose();
+    // reset clusterNodes entry to simulate a crash
+    sharedStore.remove(CLUSTER_NODES, clusterId);
+    sharedStore.create(CLUSTER_NODES, newArrayList(updateOpFromDocument(doc)));
+    // 'wait' until lease expires
+    clock.waitUntil(doc.getLeaseEndTime() + 1);
+    // run recovery on ds2
+    LastRevRecoveryAgent agent = new LastRevRecoveryAgent(sharedStore, ds2);
+    Iterable<Integer> clusterIds = agent.getRecoveryCandidateNodes();
+    assertTrue(Iterables.contains(clusterIds, c1Id));
+    assertEquals("must not recover any documents", 0, agent.recover(c1Id));
+}

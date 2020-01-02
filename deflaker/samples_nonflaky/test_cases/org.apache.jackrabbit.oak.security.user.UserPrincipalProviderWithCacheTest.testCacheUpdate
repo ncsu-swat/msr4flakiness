@@ -1,0 +1,29 @@
+@Test
+public void testCacheUpdate() throws Exception {
+    PrincipalProvider pp = createPrincipalProvider(systemRoot);
+    // set of principals that read from user + membership-provider -> cache being filled
+    Set<? extends Principal> principals = pp.getPrincipals(userId);
+    assertTrue(getCacheTree(systemRoot).exists());
+    // change the group membership of the test user
+    UserManager uMgr = getUserConfiguration().getUserManager(systemRoot, namePathMapper);
+    Group gr = uMgr.getAuthorizable(groupId, Group.class);
+    assertTrue(gr.removeMember(uMgr.getAuthorizable(userId)));
+    systemRoot.commit();
+    // force cache expiration by manually setting the expiration time
+    Tree cache = getCacheTree(systemRoot);
+    cache.setProperty(CacheConstants.REP_EXPIRATION, 2);
+    systemRoot.commit(CacheValidatorProvider.asCommitAttributes());
+    // retrieve principals again to have cache updated
+    pp = createPrincipalProvider(systemRoot);
+    Set<? extends Principal> principalsAgain = pp.getPrincipals(userId);
+    assertFalse(principals.equals(principalsAgain));
+    assertPrincipals(principalsAgain, EveryonePrincipal.getInstance(), getTestUser().getPrincipal());
+    // verify that the cache has really been updated
+    cache = getCacheTree(systemRoot);
+    assertNotSame(2, TreeUtil.getLong(cache, CacheConstants.REP_EXPIRATION, 2));
+    assertEquals("", TreeUtil.getString(cache, CacheConstants.REP_GROUP_PRINCIPAL_NAMES));
+    // check that an cached empty membership set doesn't break the retrieval (OAK-8306)
+    principalsAgain = pp.getPrincipals(userId);
+    assertFalse(principals.equals(principalsAgain));
+    assertPrincipals(principalsAgain, EveryonePrincipal.getInstance(), getTestUser().getPrincipal());
+}

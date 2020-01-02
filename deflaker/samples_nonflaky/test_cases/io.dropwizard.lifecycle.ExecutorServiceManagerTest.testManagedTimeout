@@ -1,0 +1,11 @@
+@Test
+public void testManagedTimeout() throws Exception {
+    final String poolName = this.getClass().getSimpleName();
+    when(this.exec.awaitTermination(anyLong(), any())).thenReturn(false);
+    final ExecutorServiceManager test = new ExecutorServiceManager(this.exec, TEST_DURATION, poolName);
+    test.start();
+    verifyZeroInteractions(this.exec);
+    test.stop();
+    verify(this.exec).shutdown();
+    verify(this.exec).awaitTermination(TEST_DURATION.getQuantity(), TEST_DURATION.getUnit());
+}

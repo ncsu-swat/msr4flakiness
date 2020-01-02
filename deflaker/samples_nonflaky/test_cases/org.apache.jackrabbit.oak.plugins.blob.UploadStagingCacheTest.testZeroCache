@@ -1,0 +1,14 @@
+@Test
+public void testZeroCache() throws IOException {
+    stagingCache = UploadStagingCache.build(root, null, 1, /*threads*/
+    0, /* bytes */
+    uploader, null, /*cache*/
+    statsProvider, executor, null, 3000, 6000);
+    closer.register(stagingCache);
+    File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
+    Optional<SettableFuture<Integer>> future = stagingCache.put(ID_PREFIX + 0, f);
+    assertFalse(future.isPresent());
+    assertNull(stagingCache.getIfPresent(ID_PREFIX + 0));
+    assertEquals(0, Iterators.size(stagingCache.getAllIdentifiers()));
+    assertEquals(0, stagingCache.getStats().getMaxTotalWeight());
+}

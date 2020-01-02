@@ -1,0 +1,36 @@
+/**
+ * covers the revision increments aspect
+ * @throws CommitFailedException
+ */
+@Test
+public void revisionIncrements() throws CommitFailedException {
+    NodeBuilder builder;
+    NodeState before, after;
+    PropertyState rev;
+    builder = EMPTY_NODE.builder();
+    before = builder.getNodeState();
+    builder = setMixin(builder);
+    builder = incrementBy(builder, INCREMENT_BY_1);
+    after = builder.getNodeState();
+    builder = HOOK_1_SYNC.processCommit(before, after, EMPTY).builder();
+    rev = builder.getProperty(PREFIX_PROP_REVISION + "1");
+    assertNotNull(rev);
+    assertEquals(1, rev.getValue(LONG).longValue());
+    before = builder.getNodeState();
+    builder = incrementBy(builder, INCREMENT_BY_2);
+    after = builder.getNodeState();
+    builder = HOOK_1_SYNC.processCommit(before, after, EMPTY).builder();
+    rev = builder.getProperty(PREFIX_PROP_REVISION + "1");
+    assertNotNull(rev);
+    assertEquals(2, rev.getValue(LONG).longValue());
+    before = builder.getNodeState();
+    builder = incrementBy(builder, INCREMENT_BY_1);
+    after = builder.getNodeState();
+    builder = HOOK_2_SYNC.processCommit(before, after, EMPTY).builder();
+    rev = builder.getProperty(PREFIX_PROP_REVISION + "1");
+    assertNotNull(rev);
+    assertEquals(2, rev.getValue(LONG).longValue());
+    rev = builder.getProperty(PREFIX_PROP_REVISION + "2");
+    assertNotNull(rev);
+    assertEquals(1, rev.getValue(LONG).longValue());
+}

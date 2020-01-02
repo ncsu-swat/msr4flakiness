@@ -1,0 +1,16 @@
+@Test
+void multiple_headers_with_the_same_name_are_processed_successfully() throws Exception {
+    final CloseableHttpClient client = mock(CloseableHttpClient.class);
+    final DropwizardApacheConnector dropwizardApacheConnector = new DropwizardApacheConnector(client, null, false);
+    final Header[] apacheHeaders = { new BasicHeader("Set-Cookie", "test1"), new BasicHeader("Set-Cookie", "test2") };
+    final CloseableHttpResponse apacheResponse = mock(CloseableHttpResponse.class);
+    when(apacheResponse.getStatusLine()).thenReturn(new BasicStatusLine(new ProtocolVersion("HTTP", 1, 1), 200, "OK"));
+    when(apacheResponse.getAllHeaders()).thenReturn(apacheHeaders);
+    when(client.execute(Mockito.any())).thenReturn(apacheResponse);
+    final ClientRequest jerseyRequest = mock(ClientRequest.class);
+    when(jerseyRequest.getUri()).thenReturn(URI.create("http://localhost"));
+    when(jerseyRequest.getMethod()).thenReturn("GET");
+    when(jerseyRequest.getHeaders()).thenReturn(new MultivaluedHashMap<>());
+    final ClientResponse jerseyResponse = dropwizardApacheConnector.apply(jerseyRequest);
+    assertThat(jerseyResponse.getStatus()).isEqualTo(apacheResponse.getStatusLine().getStatusCode());
+}

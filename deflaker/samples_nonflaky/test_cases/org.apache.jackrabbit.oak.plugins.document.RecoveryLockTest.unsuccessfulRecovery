@@ -1,0 +1,12 @@
+@Test
+public void unsuccessfulRecovery() throws Exception {
+    clock.waitUntil(info1.getLeaseEndTime() + DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS);
+    assertTrue(lock1.acquireRecoveryLock(2));
+    lock1.releaseRecoveryLock(false);
+    ClusterNodeInfoDocument c = infoDocument(1);
+    assertTrue(c.isActive());
+    assertFalse(c.isBeingRecovered());
+    assertFalse(c.isBeingRecoveredBy(2));
+    assertNotNull(c.get(ClusterNodeInfo.LEASE_END_KEY));
+    assertThat(c.getLeaseEndTime(), lessThan(clock.getTime()));
+}

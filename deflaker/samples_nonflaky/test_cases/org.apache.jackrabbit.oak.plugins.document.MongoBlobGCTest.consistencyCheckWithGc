@@ -1,0 +1,11 @@
+@Test
+public void consistencyCheckWithGc() throws Exception {
+    DataStoreState state = setUp(true);
+    Set<String> existingAfterGC = gc(0);
+    assertTrue("blobsAdded: " + state.blobsAdded + ", blobsPresent: " + state.blobsPresent + ", existingAfterGC: " + existingAfterGC, Sets.symmetricDifference(state.blobsPresent, existingAfterGC).isEmpty());
+    ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
+    MarkSweepGarbageCollector gcObj = init(86400, executor);
+    long candidates = gcObj.checkConsistency();
+    assertEquals(1, executor.getTaskCount());
+    assertEquals(0, candidates);
+}

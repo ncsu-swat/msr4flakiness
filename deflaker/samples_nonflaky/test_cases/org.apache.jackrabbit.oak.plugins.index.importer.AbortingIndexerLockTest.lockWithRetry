@@ -1,0 +1,9 @@
+@Test
+public void lockWithRetry() throws Exception {
+    AbortingIndexerLock lock = new AbortingIndexerLock(infoService);
+    when(statsMBean.getStatus()).thenReturn(IndexStatsMBean.STATUS_RUNNING).thenReturn(IndexStatsMBean.STATUS_RUNNING).thenReturn(IndexStatsMBean.STATUS_DONE);
+    SimpleToken lockToken = lock.lock("async");
+    assertNotNull(lockToken);
+    verify(statsMBean).abortAndPause();
+    verify(statsMBean, times(3)).getStatus();
+}

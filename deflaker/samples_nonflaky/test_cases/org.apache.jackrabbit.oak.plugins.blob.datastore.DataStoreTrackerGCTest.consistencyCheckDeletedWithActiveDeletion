@@ -1,0 +1,21 @@
+@Test
+public void consistencyCheckDeletedWithActiveDeletion() throws Exception {
+    Cluster cluster = new Cluster("cluster1");
+    BlobStore s = cluster.blobStore;
+    BlobIdTracker tracker = (BlobIdTracker) ((BlobTrackingStore) s).getTracker();
+    DataStoreState state = init(cluster.nodeStore, 0);
+    // Directly delete from blobstore
+    ArrayList<String> blobs = Lists.newArrayList(state.blobsPresent);
+    String removedId = blobs.remove(0);
+    ((DataStoreBlobStore) s).deleteChunks(Lists.newArrayList(removedId), 0);
+    state.blobsPresent = Sets.newHashSet(blobs);
+    File f = folder.newFile();
+    writeStrings(Lists.newArrayList(removedId).iterator(), f, false);
+    tracker.remove(f);
+    List<String> addlAdded = doActiveDelete(cluster.nodeStore, (DataStoreBlobStore) cluster.blobStore, tracker, folder, 0, 2);
+    List<String> addlPresent = Lists.newArrayList(addlAdded.get(2), addlAdded.get(3));
+    state.blobsPresent.addAll(addlPresent);
+    state.blobsAdded.addAll(addlPresent);
+    // Only the missing blob should be reported and not the active deletions
+    assertEquals(1, cluster.gc.checkConsistency());
+}

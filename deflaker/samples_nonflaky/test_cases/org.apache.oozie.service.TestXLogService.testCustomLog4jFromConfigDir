@@ -1,0 +1,12 @@
+public void testCustomLog4jFromConfigDir() throws Exception {
+    File log4jFile = new File(getTestCaseConfDir(), "test-log4j.properties");
+    ClassLoader cl = Thread.currentThread().getContextClassLoader();
+    InputStream is = cl.getResourceAsStream("test-oozie-log4j.properties");
+    IOUtils.copyStream(is, new FileOutputStream(log4jFile));
+    setSystemProperty(XLogService.LOG4J_FILE, "test-log4j.properties");
+    XLogService ls = new XLogService();
+    ls.init(null);
+    Assert.assertFalse(ls.getFromClasspath());
+    Assert.assertEquals("test-log4j.properties", ls.getLog4jProperties());
+    ls.destroy();
+}

@@ -1,0 +1,13 @@
+@Test
+public void testShareLibLoadFileMultipleFile() throws Exception {
+    FileSystem fs = getFileSystem();
+    createTestShareLibMetaFile_multipleFile(fs);
+    Configuration conf = getOozieConfig();
+    setShipLauncherInOozieConfig();
+    setShareLibMappingFileInOozieConfig(fs, conf);
+    services.init();
+    ShareLibService shareLibService = Services.get().get(ShareLibService.class);
+    assertNull(shareLibService.getShareLibJars("something_new"));
+    assertEquals(shareLibService.getShareLibJars("pig").size(), 2);
+    fs.delete(new Path(SHARELIB_PATH), true);
+}

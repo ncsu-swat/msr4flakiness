@@ -1,0 +1,16 @@
+@Test
+public void testFrozenNode() throws Exception {
+    Tree version = createVersions(TEST_PATH).getChildren().iterator().next();
+    Tree frozenNode = version.getChild(JCR_FROZENNODE);
+    // default read-paths -> only accessControlled tree readable
+    CompiledPermissionImpl cp = createForTestSession(ConfigurationParameters.EMPTY);
+    for (Tree tree : new Tree[] { frozenNode, frozenNode.getChild("subtree"), frozenNode.getChild("nonExistingChild") }) {
+        String path = tree.getPath();
+        assertFalse(path, cp.isGranted(tree, null, Permissions.READ));
+        assertFalse(path, cp.isGranted(path, Permissions.READ));
+        assertTrue(path, cp.getPrivileges(tree).isEmpty());
+        assertFalse(path, cp.hasPrivileges(tree, JCR_READ));
+        TreePermission tp = createTreePermission(cp, path);
+        assertTrue(tp instanceof VersionTreePermission);
+    }
+}

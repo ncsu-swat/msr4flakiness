@@ -1,0 +1,21 @@
+@Test
+public void testPathMethodsThrow() throws IOException {
+    Path p = fs.getPath("/foo");
+    Files.createDirectory(p);
+    WatchService ws = fs.newWatchService();
+    fs.close();
+    try {
+        p.register(ws, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
+        fail();
+    } catch (ClosedWatchServiceException expected) {
+    }
+    try {
+        p = p.toRealPath();
+        fail();
+    } catch (ClosedFileSystemException expected) {
+    }
+// While technically (according to the FileSystem.close() spec) all methods on Path should
+// probably throw, we only throw for methods that access the file system itself in some way...
+// path manipulation methods seem totally harmless to keep working, and I don't see any need to
+// add the overhead of checking that the file system is open for each of those method calls.
+}

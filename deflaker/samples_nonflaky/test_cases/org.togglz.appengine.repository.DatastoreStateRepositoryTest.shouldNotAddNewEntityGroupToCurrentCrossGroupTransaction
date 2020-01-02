@@ -1,0 +1,11 @@
+@Test
+public void shouldNotAddNewEntityGroupToCurrentCrossGroupTransaction() {
+    update("F", false, null, null, null);
+    final Transaction txn = datastoreService.beginTransaction(TransactionOptions.Builder.withXG(true));
+    for (int i = 0; i < MAX_ENTITY_GROUPS - 1; i++) {
+        update("F" + i, false, null, null, txn);
+    }
+    update("F", false, null, null, txn);
+    repository.getFeatureState(TestFeature.F1);
+    txn.commit();
+}

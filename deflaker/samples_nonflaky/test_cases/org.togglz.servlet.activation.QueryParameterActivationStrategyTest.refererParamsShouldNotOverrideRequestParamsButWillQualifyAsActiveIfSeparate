@@ -1,0 +1,12 @@
+@Test
+public void refererParamsShouldNotOverrideRequestParamsButWillQualifyAsActiveIfSeparate() {
+    Map<String, String[]> parameters = new HashMap<>();
+    parameters.put("toggleFeatureX", (String[]) Arrays.asList("false").toArray());
+    when(request.getParameterMap()).thenReturn(parameters);
+    when(request.getHeader("referer")).thenReturn("http://mysite.com/?toggleFeatureX=true");
+    boolean isActive = strategy.isActive(state, user);
+    Assert.assertFalse(isActive);
+    when(request.getHeader("referer")).thenReturn("http://mysite.com/?parameterWithoutValue");
+    isActive = strategy.isActive(state, user);
+    Assert.assertTrue(isActive);
+}

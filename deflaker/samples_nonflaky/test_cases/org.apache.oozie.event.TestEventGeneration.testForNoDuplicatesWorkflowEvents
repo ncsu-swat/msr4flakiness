@@ -1,0 +1,24 @@
+@Test
+public void testForNoDuplicatesWorkflowEvents() throws Exception {
+    // test workflow job events
+    Reader reader = IOUtils.getResourceAsReader("wf-no-op.xml", -1);
+    Writer writer = new OutputStreamWriter(new FileOutputStream(getTestCaseDir() + "/workflow.xml"), StandardCharsets.UTF_8);
+    IOUtils.copyCharStream(reader, writer);
+    final DagEngine engine = new DagEngine(getTestUser());
+    Configuration conf = new XConfiguration();
+    conf.set(OozieClient.APP_PATH, getTestCaseFileUri("workflow.xml"));
+    conf.set(OozieClient.USER_NAME, getTestUser());
+    final String jobId1 = engine.submitJob(conf, true);
+    final WorkflowJobGetJPAExecutor readCmd = new WorkflowJobGetJPAExecutor(jobId1);
+    waitFor(1 * 100, new Predicate() {
+
+        @Override
+        public boolean evaluate() throws Exception {
+            return jpaService.execute(readCmd).getStatus() == WorkflowJob.Status.SUCCEEDED;
+        }
+    });
+    assertEquals(2, queue.size());
+    assertEquals(EventStatus.STARTED, ((JobEvent) queue.poll()).getEventStatus());
+    assertEquals(EventStatus.SUCCESS, ((JobEvent) queue.poll()).getEventStatus());
+    queue.clear();
+}

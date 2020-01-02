@@ -1,0 +1,20 @@
+/**
+ * Test : purge succeeded bundle job and action successfully
+ *
+ * @throws Exception if cannot insert records to the database
+ */
+public void testSucceededBundle() throws Exception {
+    BundleJobBean job = addRecordToBundleJobTable(Job.Status.SUCCEEDED, DateUtils.parseDateOozieTZ("2011-01-01T01:00Z"));
+    CoordinatorJobBean coordJob1 = addRecordToCoordJobTable(CoordinatorJob.Status.SUCCEEDED, false, false);
+    coordJob1.setAppName("action1");
+    CoordinatorJobBean coordJob2 = addRecordToCoordJobTable(CoordinatorJob.Status.SUCCEEDED, false, false);
+    coordJob2.setAppName("action2");
+    BundleActionBean bundleAction1 = addRecordToBundleActionTable(job.getId(), coordJob1.getAppName(), 0, Job.Status.SUCCEEDED);
+    BundleActionBean bundleAction2 = addRecordToBundleActionTable(job.getId(), coordJob2.getAppName(), 0, Job.Status.SUCCEEDED);
+    purgeWithDefaultParameters();
+    assertBundleJobPurged(job);
+    assertBundleActionPurged(bundleAction1);
+    assertBundleActionPurged(bundleAction2);
+    assertCoordinatorJobPurged(coordJob1);
+    assertCoordinatorJobPurged(coordJob2);
+}

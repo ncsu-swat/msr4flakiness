@@ -1,0 +1,20 @@
+@Test
+public void randomized() throws IOException {
+    SegmentIdFactory maker = newSegmentIdMaker();
+    final SegmentIdTable tbl = new SegmentIdTable();
+    List<SegmentId> refs = new ArrayList<SegmentId>();
+    Random r = new Random(1);
+    for (int i = 0; i < 16 * 1024; i++) {
+        refs.add(tbl.newSegmentId(r.nextLong(), r.nextLong(), maker));
+    }
+    assertEquals(16 * 1024, tbl.getEntryCount());
+    assertEquals(16 * 2048, tbl.getMapSize());
+    assertEquals(5, tbl.getMapRebuildCount());
+    r = new Random(1);
+    for (int i = 0; i < 16 * 1024; i++) {
+        refs.add(tbl.newSegmentId(r.nextLong(), r.nextLong(), maker));
+        assertEquals(16 * 1024, tbl.getEntryCount());
+        assertEquals(16 * 2048, tbl.getMapSize());
+        assertEquals(5, tbl.getMapRebuildCount());
+    }
+}

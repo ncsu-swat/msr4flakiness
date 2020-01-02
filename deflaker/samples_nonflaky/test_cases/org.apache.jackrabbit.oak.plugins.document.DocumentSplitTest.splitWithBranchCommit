@@ -1,0 +1,32 @@
+@Test
+public void splitWithBranchCommit() throws Exception {
+    DocumentStore store = mk.getDocumentStore();
+    DocumentNodeStore ns = mk.getNodeStore();
+    NodeBuilder builder = ns.getRoot().builder();
+    builder.child("foo");
+    merge(ns, builder);
+    String branch = mk.branch(null);
+    branch = mk.commit("/foo", "^\"p\":\"value\"", branch, null);
+    mk.merge(branch, null);
+    String id = Utils.getIdFromPath("/foo");
+    NodeDocument doc = store.find(NODES, id);
+    assertNotNull(doc);
+    assertThat(doc.getLocalBranchCommits(), is(not(empty())));
+    for (int i = 0; i < 5; i++) {
+        builder = ns.getRoot().builder();
+        builder.child("foo").setProperty("p", "value-" + i);
+        merge(ns, builder);
+    }
+    ns.runBackgroundOperations();
+    doc = store.find(NODES, id);
+    for (UpdateOp op : SplitOperations.forDocument(doc, ns, ns.getHeadRevision(), NO_BINARY, 5)) {
+        store.createOrUpdate(NODES, op);
+    }
+    doc = store.find(NODES, id);
+    // must have a previous document now
+    assertThat(doc.getPreviousRanges().keySet(), hasSize(1));
+    // branch commit entry moved to previous document
+    assertThat(doc.getLocalBranchCommits(), is(empty()));
+    NodeDocument prev = doc.getAllPreviousDocs().next();
+    assertThat(prev.getLocalBranchCommits(), is(not(empty())));
+}

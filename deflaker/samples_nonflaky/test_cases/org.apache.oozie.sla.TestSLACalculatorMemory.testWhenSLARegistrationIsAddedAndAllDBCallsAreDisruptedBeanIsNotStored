@@ -1,0 +1,16 @@
+public void testWhenSLARegistrationIsAddedAndAllDBCallsAreDisruptedBeanIsNotStored() throws Exception {
+    SLACalculatorMemory slaCalcMemory = new SLACalculatorMemory();
+    slaCalcMemory.init(Services.get().get(ConfigurationService.class).getConf());
+    SLARegistrationBean slaRegBean = _createSLARegistration("job-1-W", AppType.WORKFLOW_JOB);
+    try {
+        FailingDBHelperForTest.setDbPredicate(new SLARegistrationInsertUpdatePredicate());
+        prepareFailingDB();
+        slaCalcMemory.addRegistration(slaRegBean.getId(), slaRegBean);
+        fail("Expected JPAExecutorException not thrown");
+    } catch (JPAExecutorException ex) {
+        Assert.assertNull(slaCalcMemory.get(slaRegBean.getId()));
+    } finally {
+        FailingDBHelperForTest.resetDbPredicate();
+        System.clearProperty(FailingHSQLDBDriverWrapper.USE_FAILING_DRIVER);
+    }
+}

@@ -1,0 +1,28 @@
+/**
+ * Try to start an non-existing application where the exception is caught/processed
+ * by the result handler. The watchdog in notified to avoid waiting for the
+ * process infinitely.
+ *
+ * @see <a href="https://issues.apache.org/jira/browse/EXEC-71">EXEC-71</a>
+ */
+@Test
+public void testExecuteAsyncNonExistingApplicationWithWatchdog() throws Exception {
+    final CommandLine cl = new CommandLine(nonExistingTestScript);
+    final DefaultExecuteResultHandler resultHandler = new DefaultExecuteResultHandler() {
+
+        @Override
+        public void onProcessFailed(ExecuteException e) {
+            System.out.println("Process did not stop gracefully, had exception '" + e.getMessage() + "' while executing process");
+            super.onProcessFailed(e);
+        }
+    };
+    final DefaultExecutor executor = new DefaultExecutor();
+    executor.setWatchdog(new ExecuteWatchdog(ExecuteWatchdog.INFINITE_TIMEOUT));
+    executor.execute(cl, resultHandler);
+    resultHandler.waitFor();
+    assertTrue(executor.isFailure(resultHandler.getExitValue()));
+    assertNotNull(resultHandler.getException());
+    assertFalse(executor.getWatchdog().isWatching());
+    assertFalse(executor.getWatchdog().killedProcess());
+    executor.getWatchdog().destroyProcess();
+}

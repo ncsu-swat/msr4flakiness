@@ -1,0 +1,14 @@
+@Test
+public void testJournalWriteStats() throws Exception {
+    StatisticsProvider statsProvider = new DefaultStatisticsProvider(executor);
+    FileStore fileStore = fileStoreBuilder(segmentFolder.newFolder()).withStatisticsProvider(statsProvider).build();
+    FileStoreStats stats = new FileStoreStats(statsProvider, fileStore, 0);
+    SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
+    for (int i = 0; i < 10; i++) {
+        NodeBuilder root = nodeStore.getRoot().builder();
+        root.setProperty("count", i);
+        nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        fileStore.flush();
+    }
+    assertEquals(10, stats.getJournalWriteStatsAsCount());
+}

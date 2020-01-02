@@ -1,0 +1,28 @@
+@Test
+public void testCheckstyleChecks() throws Exception {
+    final Properties props = new Properties();
+    props.setProperty("checkstyle.basedir", "basedir");
+    final DefaultConfiguration config = (DefaultConfiguration) loadConfiguration("InputConfigurationLoaderChecks.xml", props);
+    // verify the root, and property substitution
+    final Properties atts = new Properties();
+    atts.setProperty("tabWidth", "4");
+    atts.setProperty("basedir", "basedir");
+    verifyConfigNode(config, "Checker", 3, atts);
+    // verify children
+    final Configuration[] children = config.getChildren();
+    atts.clear();
+    verifyConfigNode((DefaultConfiguration) children[1], "JavadocPackage", 0, atts);
+    verifyConfigNode((DefaultConfiguration) children[2], "Translation", 0, atts);
+    atts.setProperty("testName", "testValue");
+    verifyConfigNode((DefaultConfiguration) children[0], "TreeWalker", 8, atts);
+    // verify TreeWalker's first, last, NoWhitespaceAfterCheck
+    final Configuration[] grandchildren = children[0].getChildren();
+    atts.clear();
+    verifyConfigNode((DefaultConfiguration) grandchildren[0], "AvoidStarImport", 0, atts);
+    atts.setProperty("format", "System.out.println");
+    verifyConfigNode((DefaultConfiguration) grandchildren[grandchildren.length - 1], "GenericIllegalRegexp", 0, atts);
+    atts.clear();
+    atts.setProperty("tokens", "DOT");
+    atts.setProperty("allowLineBreaks", "true");
+    verifyConfigNode((DefaultConfiguration) grandchildren[6], "NoWhitespaceAfter", 0, atts);
+}

@@ -1,0 +1,14 @@
+@Test
+public void testGetApplicablePolicies() throws Exception {
+    setupPolicy(testPath);
+    root.commit();
+    testRoot.refresh();
+    List<Principal> principals = ImmutableList.of(testPrincipal, EveryonePrincipal.getInstance());
+    for (Principal principal : principals) {
+        // testRoot can't read access control content -> doesn't see
+        // the existing policies and creates a new applicable policy.
+        AccessControlPolicy[] applicable = testAcMgr.getApplicablePolicies(principal);
+        assertPolicies(applicable, 1);
+        assertTrue(applicable[0] instanceof ACL);
+    }
+}

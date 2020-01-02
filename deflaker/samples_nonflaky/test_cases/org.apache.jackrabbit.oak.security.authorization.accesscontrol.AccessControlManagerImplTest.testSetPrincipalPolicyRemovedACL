@@ -1,0 +1,14 @@
+@Test
+public void testSetPrincipalPolicyRemovedACL() throws Exception {
+    setupPolicy(testPath);
+    root.commit();
+    ACL acl = (ACL) acMgr.getPolicies(testPrincipal)[0];
+    // remove policy at test-path before writing back the principal-based policy
+    ACL nodeBased = (ACL) acMgr.getPolicies(testPath)[0];
+    int expectedSize = nodeBased.size();
+    acMgr.removePolicy(testPath, nodeBased);
+    // now write it back
+    acMgr.setPolicy(acl.getPath(), acl);
+    // entries needed to be added again
+    assertPolicies(acMgr.getPolicies(testPath), expectedSize);
+}

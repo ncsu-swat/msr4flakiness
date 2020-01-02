@@ -1,0 +1,12 @@
+@Test
+public void testReferencedStateIsCleared() throws Exception {
+    final DefaultConfiguration checkConfig = createModuleConfig(UnusedImportsCheck.class);
+    final String inputWithoutWarnings = getPath("InputUnusedImportsWithoutWarnings.java");
+    final String inputWithWarnings = getPath("InputUnusedImportsCheckClearState.java");
+    final List<String> expectedFirstInput = Arrays.asList(CommonUtil.EMPTY_STRING_ARRAY);
+    final List<String> expectedSecondInput = Arrays.asList("3:8: " + getCheckMessage(MSG_KEY, "java.util.Arrays"), "4:8: " + getCheckMessage(MSG_KEY, "java.util.List"), "5:8: " + getCheckMessage(MSG_KEY, "java.util.Set"));
+    final File[] inputsWithWarningsFirst = { new File(inputWithWarnings), new File(inputWithoutWarnings) };
+    final File[] inputsWithoutWarningFirst = { new File(inputWithoutWarnings), new File(inputWithWarnings) };
+    verify(createChecker(checkConfig), inputsWithWarningsFirst, ImmutableMap.of(inputWithoutWarnings, expectedFirstInput, inputWithWarnings, expectedSecondInput));
+    verify(createChecker(checkConfig), inputsWithoutWarningFirst, ImmutableMap.of(inputWithoutWarnings, expectedFirstInput, inputWithWarnings, expectedSecondInput));
+}

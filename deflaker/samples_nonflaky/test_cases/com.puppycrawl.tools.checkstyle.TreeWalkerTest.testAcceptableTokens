@@ -1,0 +1,15 @@
+@Test
+public void testAcceptableTokens() throws Exception {
+    final DefaultConfiguration checkConfig = createModuleConfig(HiddenFieldCheck.class);
+    checkConfig.addAttribute("tokens", "VARIABLE_DEF, ENUM_DEF, CLASS_DEF, METHOD_DEF," + "IMPORT");
+    try {
+        final String[] expected = CommonUtil.EMPTY_STRING_ARRAY;
+        verify(checkConfig, getPath("InputTreeWalker.java"), expected);
+        fail("CheckstyleException is expected");
+    } catch (CheckstyleException ex) {
+        final String errorMsg = ex.getMessage();
+        final Pattern expected = Pattern.compile(Pattern.quote("cannot initialize module" + " com.puppycrawl.tools.checkstyle.TreeWalker - Token ") + "\"(ENUM_DEF|CLASS_DEF|METHOD_DEF|IMPORT)\"" + Pattern.quote(" was not found in Acceptable tokens list in check" + " com.puppycrawl.tools.checkstyle.checks.coding.HiddenFieldCheck"));
+        final Matcher errorMsgMatcher = expected.matcher(errorMsg);
+        assertTrue(errorMsgMatcher.matches(), "Failure for: " + errorMsg);
+    }
+}

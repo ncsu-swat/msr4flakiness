@@ -1,0 +1,14 @@
+@Test
+public void testSetEmptyPrincipalPolicyRemovedACL() throws Exception {
+    setupPolicy(testPath);
+    root.commit();
+    ACL acl = (ACL) acMgr.getPolicies(testPrincipal)[0];
+    acl.getEntries().clear();
+    // remove policy at test-path before writing back the principal-based policy
+    AccessControlPolicy nodeBased = acMgr.getPolicies(testPath)[0];
+    acMgr.removePolicy(testPath, nodeBased);
+    // now write back the empty principal-based policy
+    acMgr.setPolicy(acl.getPath(), acl);
+    // ... which must not have an effect and the policy must not be re-added.
+    assertPolicies(acMgr.getPolicies(testPath), 0);
+}

@@ -1,0 +1,29 @@
+public void testExtSchema() throws Exception {
+    setSystemProperty(SchemaService.WF_CONF_EXT_SCHEMAS, "wf-ext-schema.xsd");
+    setSystemProperty("oozie.service.ActionService.executor.ext.classes", TestActionExecutor.class.getName());
+    Services services = new Services();
+    try {
+        services.init();
+        Reader reader = IOUtils.getResourceAsReader("wf-ext-schema-valid.xml", -1);
+        Writer writer = new OutputStreamWriter(new FileOutputStream(new File(getTestCaseDir(), "workflow.xml")), StandardCharsets.UTF_8);
+        IOUtils.copyCharStream(reader, writer);
+        WorkflowAppService wps = services.get(WorkflowAppService.class);
+        Configuration jobConf = new XConfiguration();
+        jobConf.set(OozieClient.APP_PATH, getTestCaseFileUri("workflow.xml"));
+        jobConf.set(OozieClient.USER_NAME, getTestUser());
+        LiteWorkflowApp app = (LiteWorkflowApp) wps.parseDef(jobConf);
+        assertNotNull(app);
+        assertEquals("test-wf", app.getName());
+        reader = IOUtils.getResourceAsReader("wf-ext-schema-invalid.xml", -1);
+        writer = new OutputStreamWriter(new FileOutputStream(new File(getTestCaseDir(), "workflow.xml")), StandardCharsets.UTF_8);
+        IOUtils.copyCharStream(reader, writer);
+        try {
+            wps.parseDef(jobConf);
+            fail();
+        } catch (WorkflowException ex) {
+        // nop
+        }
+    } finally {
+        services.destroy();
+    }
+}

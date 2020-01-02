@@ -1,0 +1,20 @@
+@Test
+public void testMatchesItem() throws Exception {
+    Tree rootTree = root.getTree("/");
+    List<String> matching = ImmutableList.of("a", "b", "c", "d/e/a", "a/b/c/d/b", "test/c");
+    for (String relPath : matching) {
+        Tree testTree = addTree(rootTree, relPath);
+        assertTrue(pattern.matches(testTree, null));
+        assertTrue(pattern.matches(testTree, PropertyStates.createProperty("a", Boolean.FALSE)));
+        assertFalse(pattern.matches(testTree, PropertyStates.createProperty("f", "anyval")));
+        testTree.remove();
+    }
+    List<String> notMatching = ImmutableList.of("d", "b/d", "d/e/f", "c/b/abc");
+    for (String relPath : notMatching) {
+        Tree testTree = addTree(rootTree, relPath);
+        assertFalse(pattern.matches(testTree, null));
+        assertTrue(pattern.matches(testTree, PropertyStates.createProperty("a", Boolean.FALSE)));
+        assertFalse(pattern.matches(testTree, PropertyStates.createProperty("f", "anyval")));
+        testTree.remove();
+    }
+}

@@ -1,0 +1,24 @@
+@Test
+public void testGetChild() throws Exception {
+    Tree versionHistory = checkNotNull(vMgr.getVersionHistory(testTree));
+    Tree t = getRootProvider().createReadOnlyRoot(root).getTree("/");
+    TreePermission tp = pp.getTreePermission(t, TreePermission.EMPTY);
+    for (String name : PathUtils.elements(versionHistory.getPath())) {
+        t = t.getChild(name);
+        tp = tp.getChildPermission(name, getTreeProvider().asNodeState(t));
+    }
+    String expectedPath = "/test";
+    assertVersionPermission(tp, "/test", true);
+    NodeState ns = getTreeProvider().asNodeState(t.getChild("1.0"));
+    tp = tp.getChildPermission("1.0", ns);
+    assertVersionPermission(tp, "/test", true);
+    ns = ns.getChildNode(JCR_FROZENNODE);
+    tp = tp.getChildPermission(JCR_FROZENNODE, ns);
+    assertVersionPermission(tp, "/test", true);
+    for (String name : new String[] { "a", "b", "c" }) {
+        ns = ns.getChildNode(name);
+        expectedPath = PathUtils.concat(expectedPath, name);
+        tp = tp.getChildPermission(name, ns);
+        assertVersionPermission(tp, expectedPath, true);
+    }
+}

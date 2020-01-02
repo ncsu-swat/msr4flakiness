@@ -1,0 +1,10 @@
+@Test
+public void testGetApplicablePoliciesByPrincipal() throws Exception {
+    JackrabbitAccessControlPolicy policy = mock(JackrabbitAccessControlPolicy.class);
+    JackrabbitAccessControlManager mgr = mock(JackrabbitAccessControlManager.class, withSettings().extraInterfaces(PolicyOwner.class));
+    when(mgr.getApplicablePolicies(any(Principal.class))).thenReturn(new JackrabbitAccessControlPolicy[] { policy }).getMock();
+    CompositeAccessControlManager composite = createComposite(mgr);
+    JackrabbitAccessControlPolicy[] applicable = composite.getApplicablePolicies(EveryonePrincipal.getInstance());
+    assertArrayEquals(new JackrabbitAccessControlPolicy[] { policy }, applicable);
+    verify(mgr, times(1)).getApplicablePolicies(EveryonePrincipal.getInstance());
+}

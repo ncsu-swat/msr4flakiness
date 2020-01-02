@@ -1,0 +1,15 @@
+@Test
+public void timer() throws Exception {
+    AtomicLong counter = new AtomicLong();
+    Timer time = registry.timer("test");
+    CompositeStats timerStats = new CompositeStats(counter, time);
+    timerStats.update(100, TimeUnit.SECONDS);
+    assertEquals(1, time.getCount());
+    assertEquals(TimeUnit.SECONDS.toMillis(100), counter.get());
+    timerStats.update(100, TimeUnit.SECONDS);
+    assertEquals(2, timerStats.getCount());
+    assertFalse(timerStats.isMeter());
+    assertTrue(timerStats.isTimer());
+    assertFalse(timerStats.isCounter());
+    assertNotNull(timerStats.getTimer());
+}

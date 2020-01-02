@@ -1,0 +1,25 @@
+@Test
+public void testGetPolicies() throws Exception {
+    int len = 0;
+    AccessControlPolicy[] policies = acMgr.getPolicies(TEST_PATH);
+    assertEquals(len, policies.length);
+    acMgr.setPolicy(TEST_PATH, TestPolicy.INSTANCE);
+    len++;
+    policies = acMgr.getPolicies(TEST_PATH);
+    assertEquals(len, policies.length);
+    assertSame(TestPolicy.INSTANCE, policies[0]);
+    AccessControlPolicyIterator it = acMgr.getApplicablePolicies(TEST_PATH);
+    while (it.hasNext()) {
+        AccessControlPolicy plc = it.nextAccessControlPolicy();
+        if (plc == TestPolicy.INSTANCE) {
+            fail("TestPolicy should only be applicable at /test.");
+        } else {
+            acMgr.setPolicy(TEST_PATH, plc);
+            len++;
+            Set<AccessControlPolicy> policySet = ImmutableSet.copyOf(acMgr.getPolicies(TEST_PATH));
+            assertEquals(len, policySet.size());
+            assertTrue(policySet.contains(TestPolicy.INSTANCE));
+            assertTrue(policySet.contains(plc));
+        }
+    }
+}

@@ -1,0 +1,35 @@
+/**
+ * Retrieve and invalidate concurrently.
+ * @throws Exception
+ */
+@Test
+public void getInvalidateConcurrent() throws Exception {
+    LOG.info("Started getInvalidateConcurrent");
+    // Create load
+    for (int i = 0; i < 15; i++) {
+        if (i != 4) {
+            File f = createFile(i, loader, cache, folder);
+            assertCache(i, cache, f);
+        }
+    }
+    LOG.info("Finished creating load");
+    ListeningExecutorService executorService = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(2));
+    closer.register(new ExecutorCloser(executorService, 5, TimeUnit.MILLISECONDS));
+    CountDownLatch thread1Start = new CountDownLatch(1);
+    SettableFuture<File> future1 = retrieveThread(executorService, ID_PREFIX + 10, cache, thread1Start);
+    thread1Start.countDown();
+    File f = createFile(4, loader, cache, folder);
+    CountDownLatch thread2Start = new CountDownLatch(1);
+    SettableFuture<File> future2 = retrieveThread(executorService, ID_PREFIX + 4, cache, thread2Start);
+    thread2Start.countDown();
+    File f10 = future1.get();
+    File f4 = future2.get();
+    LOG.info("Async tasks finished");
+    if (f10.exists()) {
+        assertCacheIfPresent(10, cache, f10);
+    }
+    if (f4.exists()) {
+        assertCacheIfPresent(4, cache, f4);
+    }
+    LOG.info("Finished getInvalidateConcurrent");
+}

@@ -1,0 +1,17 @@
+@Test
+public void testCalculatePermissionsModifyPropertyAggregated() {
+    PrivilegeBitsProvider provider = new PrivilegeBitsProvider(mock(Root.class));
+    // jcr:modifyProperty aggregate
+    PrivilegeBits add_change = provider.getBits(REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES);
+    long permissions = (Permissions.ADD_PROPERTY | Permissions.MODIFY_PROPERTY);
+    assertEquals(permissions, PrivilegeBits.calculatePermissions(add_change, PrivilegeBits.EMPTY, true));
+    assertEquals(permissions, PrivilegeBits.calculatePermissions(add_change, add_change, true));
+    PrivilegeBits add_rm = provider.getBits(REP_ADD_PROPERTIES, REP_REMOVE_PROPERTIES);
+    permissions = (Permissions.ADD_PROPERTY | Permissions.REMOVE_PROPERTY);
+    assertEquals(permissions, PrivilegeBits.calculatePermissions(add_rm, PrivilegeBits.EMPTY, true));
+    assertEquals(permissions, PrivilegeBits.calculatePermissions(add_rm, add_rm, true));
+    PrivilegeBits ch_rm = provider.getBits(REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES);
+    permissions = (Permissions.MODIFY_PROPERTY | Permissions.REMOVE_PROPERTY);
+    assertEquals(permissions, PrivilegeBits.calculatePermissions(ch_rm, PrivilegeBits.EMPTY, true));
+    assertEquals(permissions, PrivilegeBits.calculatePermissions(ch_rm, add_rm, true));
+}

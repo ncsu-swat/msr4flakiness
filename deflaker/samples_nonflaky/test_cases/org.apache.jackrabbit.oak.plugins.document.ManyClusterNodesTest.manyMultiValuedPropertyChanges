@@ -1,0 +1,23 @@
+// OAK-5479
+@Test
+public void manyMultiValuedPropertyChanges() throws Exception {
+    String value = "some-long-value-that-will-bloat-the-document";
+    String id = Utils.getIdFromPath("/test");
+    for (int i = 0; i < 1000; i++) {
+        DocumentNodeStore ns = stores.get(i % NUM_CLUSTER_NODES);
+        ns.runBackgroundOperations();
+        NodeBuilder builder = ns.getRoot().builder();
+        NodeBuilder test = builder.child("test");
+        PropertyState p = test.getProperty("p");
+        List<String> values = newArrayList();
+        if (p != null) {
+            Iterables.addAll(values, p.getValue(Type.STRINGS));
+        }
+        values.add(value);
+        test.setProperty("p", values, Type.STRINGS);
+        merge(ns, builder);
+        int size = ds.find(Collection.NODES, id).getMemory();
+        assertTrue(size < 8 * MB);
+        ns.runBackgroundOperations();
+    }
+}

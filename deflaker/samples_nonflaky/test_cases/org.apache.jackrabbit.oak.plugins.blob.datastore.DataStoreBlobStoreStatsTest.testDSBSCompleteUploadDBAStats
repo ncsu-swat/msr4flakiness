@@ -1,0 +1,11 @@
+@Test
+public void testDSBSCompleteUploadDBAStats() throws IOException, RepositoryException {
+    DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withCompleteBlobUploadDelay());
+    long completeBlobUploadCount = stats.getCompleteBlobUploadCount();
+    long completeBlobUploadCountLastMinute = getLastMinuteStats(stats.getCompleteBlobUploadCountHistory());
+    long completeBlobUploadTimeLastMinute = getLastMinuteStats(stats.getCompleteBlobUploadTimeHistory());
+    dsbs.completeBlobUpload("fake token");
+    assertEquals(completeBlobUploadCount + 1, stats.getCompleteBlobUploadCount());
+    assertEquals(completeBlobUploadCountLastMinute + 1, waitForMetric(input -> getLastMinuteStats(input.getCompleteBlobUploadCountHistory()), stats, 1L, 0L).longValue());
+    assertTrue(completeBlobUploadTimeLastMinute < waitForNonzeroMetric(input -> getLastMinuteStats(input.getCompleteBlobUploadTimeHistory()), stats));
+}

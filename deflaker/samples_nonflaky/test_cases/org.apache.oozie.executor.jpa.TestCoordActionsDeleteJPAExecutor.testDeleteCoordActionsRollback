@@ -1,0 +1,41 @@
+public void testDeleteCoordActionsRollback() throws Exception {
+    CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, false, false);
+    CoordinatorActionBean action1 = addRecordToCoordActionTable(job.getId(), 1, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    CoordinatorActionBean action2 = addRecordToCoordActionTable(job.getId(), 2, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    CoordinatorActionBean action3 = addRecordToCoordActionTable(job.getId(), 3, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    List<String> deleteList = new ArrayList<String>();
+    deleteList.add(action1.getId());
+    deleteList.add(action2.getId());
+    deleteList.add(action3.getId());
+    try {
+        // set fault injection to true, so transaction is roll backed
+        setSystemProperty(FaultInjection.FAULT_INJECTION, "true");
+        setSystemProperty(SkipCommitFaultInjection.ACTION_FAILOVER_FAULT_INJECTION, "true");
+        try {
+            jpaService.execute(new CoordActionsDeleteJPAExecutor(deleteList));
+            fail("Should have skipped commit for failover testing");
+        } catch (final JPAExecutorException jee) {
+            assertTrue(jee.getMessage().contains("Skipping Commit for Failover Testing"));
+        }
+    } finally {
+        // Remove fault injection
+        FaultInjection.deactivate("org.apache.oozie.command.SkipCommitFaultInjection");
+    }
+    try {
+        jpaService.execute(new CoordActionGetJPAExecutor(action1.getId()));
+    } catch (JPAExecutorException je) {
+        fail("Coordinator Action1 should not have been deleted");
+    }
+    try {
+        jpaService.execute(new CoordActionGetJPAExecutor(action2.getId()));
+    } catch (JPAExecutorException je) {
+        fail("Coordinator Action2 should not have been deleted");
+    }
+    try {
+        jpaService.execute(new CoordActionGetJPAExecutor(action3.getId()));
+    } catch (JPAExecutorException je) {
+        fail("Coordinator Action3 should not have been deleted");
+    }
+}

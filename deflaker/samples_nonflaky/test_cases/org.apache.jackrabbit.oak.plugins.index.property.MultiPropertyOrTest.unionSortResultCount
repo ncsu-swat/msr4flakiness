@@ -1,0 +1,30 @@
+@Test
+public void unionSortResultCount() throws Exception {
+    // create test data
+    Tree test = root.getTree("/").addChild("test");
+    root.commit();
+    List<Integer> nodes = Lists.newArrayList();
+    Random r = new Random();
+    int seed = -2;
+    for (int i = 0; i < 1000; i++) {
+        Tree a = test.addChild("a" + i);
+        a.setProperty("x", "fooa");
+        seed += 2;
+        int num = r.nextInt(100);
+        a.setProperty("z", num);
+        nodes.add(num);
+    }
+    seed = -1;
+    for (int i = 0; i < 1000; i++) {
+        Tree a = test.addChild("b" + i);
+        a.setProperty("y", "foob");
+        seed += 2;
+        int num = 100 + r.nextInt(100);
+        a.setProperty("z", num);
+        nodes.add(num);
+    }
+    root.commit();
+    // scan count scans the whole result set
+    String query = "measure /jcr:root//element(*, nt:base)[(@x = 'fooa' or @y = 'foob')] order by @z";
+    assertThat(measureWithLimit(query, XPATH, 100), containsString("scanCount: 2000"));
+}

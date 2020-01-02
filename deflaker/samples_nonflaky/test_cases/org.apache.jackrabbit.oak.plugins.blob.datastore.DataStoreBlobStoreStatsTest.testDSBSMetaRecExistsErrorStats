@@ -1,0 +1,12 @@
+@Test
+public void testDSBSMetaRecExistsErrorStats() throws IOException, RepositoryException {
+    DataStoreBlobStore dsbs = setupDSBS(getDSBuilder().withErrorOnGetRecord());
+    long metadataRecordExistsErrorCount = stats.getMetadataRecordExistsErrorCount();
+    long metadataRecordExistsErrorCountLastMinute = getLastMinuteStats(stats.getMetadataRecordExistsErrorCountHistory());
+    try {
+        dsbs.metadataRecordExists("fake-name");
+    } catch (Exception e) {
+    }
+    assertEquals(metadataRecordExistsErrorCount + 1, stats.getMetadataRecordExistsErrorCount());
+    assertEquals(metadataRecordExistsErrorCountLastMinute + 1, waitForMetric(input -> getLastMinuteStats(input.getMetadataRecordExistsErrorCountHistory()), stats, 1L, 0L).longValue());
+}

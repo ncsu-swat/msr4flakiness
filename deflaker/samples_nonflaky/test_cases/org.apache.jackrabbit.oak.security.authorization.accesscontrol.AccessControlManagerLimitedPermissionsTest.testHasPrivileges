@@ -1,0 +1,27 @@
+@Test
+public void testHasPrivileges() throws Exception {
+    setupPolicy(testPath);
+    root.commit();
+    testRoot.refresh();
+    // granted privileges
+    List<Privilege[]> granted = new ArrayList<>();
+    granted.add(privilegesFromNames(PrivilegeConstants.JCR_READ));
+    granted.add(privilegesFromNames(PrivilegeConstants.REP_READ_NODES));
+    granted.add(privilegesFromNames(PrivilegeConstants.REP_READ_PROPERTIES));
+    granted.add(privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES));
+    granted.add(testPrivileges);
+    for (Privilege[] privileges : granted) {
+        assertTrue(testAcMgr.hasPrivileges(testPath, privileges));
+        assertTrue(testAcMgr.hasPrivileges(testPath, getPrincipals(testRoot.getContentSession()), privileges));
+    }
+    // denied privileges
+    List<Privilege[]> denied = new ArrayList<>();
+    denied.add(privilegesFromNames(PrivilegeConstants.JCR_ALL));
+    denied.add(privilegesFromNames(PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
+    denied.add(privilegesFromNames(PrivilegeConstants.JCR_WRITE));
+    denied.add(privilegesFromNames(PrivilegeConstants.JCR_LOCK_MANAGEMENT));
+    for (Privilege[] privileges : denied) {
+        assertFalse(testAcMgr.hasPrivileges(testPath, privileges));
+        assertFalse(testAcMgr.hasPrivileges(testPath, getPrincipals(testRoot.getContentSession()), privileges));
+    }
+}

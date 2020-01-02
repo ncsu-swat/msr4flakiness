@@ -1,0 +1,23 @@
+@Test
+public void testLogoutCPSuccess() throws LoginException {
+    PrincipalProvider pp = new TestPrincipalProvider("user");
+    Principal p = pp.getPrincipal("user");
+    Principal foreignPrincipal = TestPrincipalProvider.UNKNOWN;
+    String userId = TestPrincipalProvider.getIDFromPrincipal(p);
+    Set<? extends Principal> principals = pp.getPrincipals(userId);
+    Set<Principal> all = ImmutableSet.<Principal>builder().add(p).add(foreignPrincipal).addAll(principals).build();
+    AuthInfo authInfo = new AuthInfoImpl(userId, null, all);
+    Credentials foreign1 = new GuestCredentials();
+    Credentials foreign2 = new TokenCredentials("token");
+    Subject subject = new Subject(false, ImmutableSet.of(foreignPrincipal, p), ImmutableSet.of(authInfo, foreign1, foreign2), ImmutableSet.of());
+    TestLoginModule loginModule = new TestLoginModule(SimpleCredentials.class);
+    loginModule.initialize(subject, new TestCallbackHandler(pp), Collections.emptyMap(), null);
+    assertTrue(loginModule.logout(ImmutableSet.of(authInfo), principals));
+    Set publicCreds = subject.getPublicCredentials();
+    assertFalse(publicCreds.contains(authInfo));
+    assertTrue(publicCreds.contains(foreign1));
+    assertTrue(publicCreds.contains(foreign2));
+    assertFalse(subject.getPrincipals().contains(p));
+    assertTrue(Collections.disjoint(subject.getPrincipals(), principals));
+    assertTrue(subject.getPrincipals().contains(foreignPrincipal));
+}

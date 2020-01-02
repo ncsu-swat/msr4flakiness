@@ -1,0 +1,16 @@
+@Test
+public void sysPropSupercedes() throws Exception {
+    System.setProperty(QueryEngineSettings.OAK_QUERY_LIMIT_IN_MEMORY, String.valueOf(QueryEngineSettings.DEFAULT_QUERY_LIMIT_IN_MEMORY));
+    System.setProperty(QueryEngineSettings.OAK_QUERY_LIMIT_READS, String.valueOf(QueryEngineSettings.DEFAULT_QUERY_LIMIT_READS));
+    System.setProperty(QueryEngineSettings.OAK_QUERY_FAIL_TRAVERSAL, "false");
+    QueryEngineSettings settings = new QueryEngineSettings();
+    context.registerService(QueryEngineSettingsMBean.class, settings);
+    Map<String, Object> config = Maps.newHashMap();
+    config.put(QueryEngineSettingsService.QUERY_LIMIT_READS, 100);
+    config.put(QueryEngineSettingsService.QUERY_LIMIT_IN_MEMORY, 142);
+    config.put(QueryEngineSettingsService.QUERY_FAIL_TRAVERSAL, true);
+    context.registerInjectActivateService(settingsService, config);
+    assertEquals(QueryEngineSettings.DEFAULT_QUERY_LIMIT_READS, settings.getLimitReads());
+    assertEquals(QueryEngineSettings.DEFAULT_QUERY_LIMIT_IN_MEMORY, settings.getLimitInMemory());
+    assertFalse(settings.getFailTraversal());
+}

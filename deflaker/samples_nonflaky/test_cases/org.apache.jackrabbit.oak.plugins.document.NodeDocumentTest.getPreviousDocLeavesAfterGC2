@@ -1,0 +1,21 @@
+@Test
+public void getPreviousDocLeavesAfterGC2() throws Exception {
+    DocumentNodeStore ns = createTestStore(200);
+    Revision previous = ns.newRevision();
+    NodeDocument root = getRootDocument(ns.getDocumentStore());
+    int numLeaves = Iterators.size(root.getPreviousDocLeaves());
+    // remove oldest previous doc
+    NodeDocument toRemove = Iterators.getLast(root.getAllPreviousDocs());
+    int numDeleted = new SplitDocumentCleanUp(ns.getDocumentStore(), new VersionGCStats(), Collections.singleton(toRemove)).disconnect().deleteSplitDocuments();
+    assertEquals(1, numDeleted);
+    root = getRootDocument(ns.getDocumentStore());
+    assertEquals(numLeaves - 1, Iterators.size(root.getPreviousDocLeaves()));
+    Iterator<NodeDocument> it = root.getPreviousDocLeaves();
+    while (it.hasNext()) {
+        NodeDocument leaf = it.next();
+        Revision r = leaf.getAllChanges().iterator().next();
+        assertTrue(previous.compareRevisionTime(r) > 0);
+        previous = r;
+    }
+    ns.dispose();
+}

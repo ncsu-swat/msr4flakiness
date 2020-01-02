@@ -1,0 +1,22 @@
+/**
+ * Coord action XML contains disallowed property change and
+ * test that CoordActionStartXCommand stores error code and error message in
+ * action's table during error handling
+ *
+ * @throws IOException
+ * @throws JPAExecutorException
+ * @throws CommandException
+ */
+public void testActionStartWithError1003Reported() throws IOException, JPAExecutorException, CommandException {
+    String actionId = new Date().getTime() + "-COORD-ActionStartCommand-C@1";
+    String wfApp = "<start to='${someParam}' />";
+    Map<String, String> additionalProperties = new HashMap<>();
+    additionalProperties.put("user.name", "admin");
+    addRecordToActionTable(actionId, 1, wfApp, additionalProperties);
+    new CoordActionStartXCommand(actionId, "test", "myapp", "myjob").call();
+    final JPAService jpaService = Services.get().get(JPAService.class);
+    CoordinatorActionBean action = jpaService.execute(new CoordActionGetForStartJPAExecutor(actionId));
+    assertEquals("Expected status was FAILED due to E1003 error code", CoordinatorAction.Status.FAILED, action.getStatus());
+    assertEquals(action.getErrorCode(), ErrorCode.E1003.toString());
+    assertTrue(action.getErrorMessage().contains("Invalid coordinator application attributes"));
+}

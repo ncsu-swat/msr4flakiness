@@ -1,0 +1,19 @@
+@Test
+public void copyPath() {
+    String rev1 = mk.commit("/", "+\"level1\":{}", null, null);
+    rev1 = mk.commit("/", "+\"level1/level2\":{}", null, null);
+    assertTrue(mk.nodeExists("/level1", null));
+    assertTrue(mk.nodeExists("/level1/level2", null));
+    String rev2 = mk.commit("/", "*\"level1\" : \"level1new\"", null, null);
+    assertTrue(mk.nodeExists("/level1", null));
+    assertTrue(mk.nodeExists("/level1new", null));
+    assertTrue(mk.nodeExists("/level1new/level2", null));
+    String reverseDiff = mk.diff(rev2, rev1, null, 0);
+    assertNotNull(reverseDiff);
+    assertTrue(reverseDiff.length() > 0);
+    mk.commit("", reverseDiff, null, null);
+    assertTrue(mk.nodeExists("/level1", null));
+    assertTrue(mk.nodeExists("/level1/level2", null));
+    assertFalse(mk.nodeExists("/level1new", null));
+    assertFalse(mk.nodeExists("/level1new/level2", null));
+}

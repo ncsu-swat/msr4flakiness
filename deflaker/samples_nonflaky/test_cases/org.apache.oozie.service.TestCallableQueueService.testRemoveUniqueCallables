@@ -1,0 +1,41 @@
+public void testRemoveUniqueCallables() throws Exception {
+    XCommand<?> command = new XCommand<Object>("Test", "type", 100) {
+
+        @Override
+        protected boolean isLockRequired() {
+            return false;
+        }
+
+        @Override
+        public String getEntityKey() {
+            return "TEST";
+        }
+
+        @Override
+        protected void loadState() throws CommandException {
+        }
+
+        @Override
+        protected void verifyPrecondition() throws CommandException, PreconditionException {
+        }
+
+        @Override
+        protected Object execute() throws CommandException {
+            return null;
+        }
+    };
+    Services.get().destroy();
+    setSystemProperty(CallableQueueService.CONF_THREADS, "1");
+    new Services().init();
+    CallableQueueService queueservice = Services.get().get(CallableQueueService.class);
+    List<String> uniquesBefore = queueservice.getUniqueDump();
+    try {
+        queueservice.queue(command);
+        fail("Expected illegal argument exception: priority = 100");
+    } catch (Exception e) {
+        assertTrue(e.getCause() != null && e.getCause() instanceof IllegalArgumentException);
+    }
+    List<String> uniquesAfter = queueservice.getUniqueDump();
+    uniquesAfter.removeAll(uniquesBefore);
+    assertTrue(uniquesAfter.toString(), uniquesAfter.isEmpty());
+}

@@ -1,0 +1,15 @@
+@Test
+public void testShouldSaveStateStrategyAndParameters() throws SQLException {
+    /*
+         * WHEN a feature without strategy is persisted
+         */
+    FeatureState state = new FeatureState(TestFeature.F1).enable().setStrategyId("someId").setParameter("param", "foo");
+    repository.setFeatureState(state);
+    /*
+         * THEN there should be a corresponding entry in the database
+         */
+    assertEquals(1l, query(dataSource, "SELECT COUNT(*) FROM TOGGLZ WHERE FEATURE_NAME = 'F1'"));
+    assertEquals(1, query(dataSource, "SELECT FEATURE_ENABLED FROM TOGGLZ WHERE FEATURE_NAME = 'F1'"));
+    assertEquals("someId", query(dataSource, "SELECT STRATEGY_ID FROM TOGGLZ WHERE FEATURE_NAME = 'F1'"));
+    assertEquals("param=foo", query(dataSource, "SELECT STRATEGY_PARAMS FROM TOGGLZ WHERE FEATURE_NAME = 'F1'"));
+}

@@ -1,0 +1,20 @@
+@Test
+void testRunsExceptionMeteredTask() throws Exception {
+    final ServletInputStream bodyStream = new TestServletInputStream(new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8)));
+    final Task exceptionMeteredTask = new Task("exception-metered-task") {
+
+        @Override
+        @ExceptionMetered(name = "vacuum-cleaning-exceptions")
+        public void execute(Map<String, List<String>> parameters, PrintWriter output) {
+            throw new RuntimeException("The engine has died");
+        }
+    };
+    servlet.add(exceptionMeteredTask);
+    when(request.getInputStream()).thenReturn(bodyStream);
+    when(request.getParameterNames()).thenReturn(Collections.emptyEnumeration());
+    when(request.getMethod()).thenReturn("POST");
+    when(request.getPathInfo()).thenReturn("/exception-metered-task");
+    when(response.getWriter()).thenReturn(mock(PrintWriter.class));
+    servlet.service(request, response);
+    assertThat(metricRegistry.getMeters()).containsKey(name(exceptionMeteredTask.getClass(), "vacuum-cleaning-exceptions"));
+}

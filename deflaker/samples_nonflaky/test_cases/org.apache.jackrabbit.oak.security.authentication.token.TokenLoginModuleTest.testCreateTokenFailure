@@ -1,0 +1,17 @@
+@Test(expected = LoginException.class)
+public void testCreateTokenFailure() throws Exception {
+    TokenProvider tp = mock(TokenProvider.class);
+    when(tp.doCreateToken(any(Credentials.class))).thenReturn(true);
+    when(tp.createToken(any(Credentials.class))).thenReturn(null);
+    when(tp.createToken(anyString(), any(Map.class))).thenReturn(null);
+    TokenLoginModule lm = new TokenLoginModule();
+    lm.initialize(new Subject(), new TestCallbackHandler(tp), ImmutableMap.<String, Object>of(AbstractLoginModule.SHARED_KEY_CREDENTIALS, new Credentials() {
+    }), ImmutableMap.<String, Object>of());
+    assertFalse(lm.login());
+    try {
+        lm.commit();
+    } finally {
+        verify(tp, times(1)).doCreateToken(any(Credentials.class));
+        assertFalse(lm.logout());
+    }
+}

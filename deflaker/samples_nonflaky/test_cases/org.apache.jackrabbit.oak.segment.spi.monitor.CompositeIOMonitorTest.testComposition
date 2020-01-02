@@ -1,0 +1,15 @@
+@Test
+public void testComposition() {
+    ImmutableList<IOMonitorAssertion> ioMonitors = ImmutableList.of(new IOMonitorAssertion(), new IOMonitorAssertion());
+    IOMonitor ioMonitor = new CompositeIOMonitor(ioMonitors);
+    ioMonitor.beforeSegmentRead(FILE, 0, 0, 0);
+    ioMonitor.afterSegmentRead(FILE, 0, 0, 1, 0);
+    ioMonitor.beforeSegmentWrite(FILE, 0, 0, 2);
+    ioMonitor.afterSegmentWrite(FILE, 0, 0, 3, 0);
+    ioMonitors.forEach(ioMonitorAssertion -> {
+        ioMonitorAssertion.assertBeforeReadLength(0);
+        ioMonitorAssertion.assertAfterReadLength(1);
+        ioMonitorAssertion.assertBeforeWriteLength(2);
+        ioMonitorAssertion.assertAfterWriteLength(3);
+    });
+}

@@ -1,0 +1,33 @@
+@Test
+public void testIndexCountersUsageWithoutPathRestriction() {
+    final long approxNodeCount = 50;
+    final long approxKeyCount = 25;
+    final long entryCount = 30 * DEFAULT_RESOLUTION;
+    final long keyCount = 75;
+    final int maxTraversal = 200;
+    final String keyValue = KEY.iterator().next();
+    final String approxPropName = COUNT_PROPERTY_PREFIX + "gen_uuid";
+    IndexStoreStrategy store = new ContentMirrorStoreStrategy();
+    NodeState root = EMPTY_NODE;
+    NodeBuilder indexMeta = root.builder();
+    NodeBuilder index = indexMeta.child(INDEX_CONTENT_NODE_NAME);
+    NodeBuilder key = index.child(keyValue);
+    // is-not-null query without entryCount
+    index.setProperty(approxPropName, approxNodeCount, Type.LONG);
+    Assert.assertEquals("Approximate count not used for is-not-null query", approxNodeCount, store.count(root, indexMeta.getNodeState(), null, maxTraversal));
+    // prop=value query without entryCount
+    key.setProperty(approxPropName, approxKeyCount, Type.LONG);
+    Assert.assertEquals("Approximate count not used for key=value query", approxKeyCount, store.count(root, indexMeta.getNodeState(), KEY, maxTraversal));
+    // is-not-null query with entryCount
+    indexMeta.setProperty(ENTRY_COUNT_PROPERTY_NAME, entryCount, Type.LONG);
+    Assert.assertEquals("Entry count not used even when present for is-not-null query", entryCount, store.count(root, indexMeta.getNodeState(), null, maxTraversal));
+    // prop=value query with entryCount but without keyCount
+    Assert.assertTrue("Rough key count not considered for key=value query", entryCount > store.count(root, indexMeta.getNodeState(), KEY, maxTraversal));
+    // prop=value query with entryCount and keyCount
+    indexMeta.setProperty(KEY_COUNT_PROPERTY_NAME, keyCount, Type.LONG);
+    Assert.assertTrue("Key count not considered for key=value query", entryCount > store.count(root, indexMeta.getNodeState(), KEY, maxTraversal));
+    // is-not-null query with entryCount=-1 (this should lead to traversal
+    // and hence should result in '0'
+    indexMeta.setProperty(ENTRY_COUNT_PROPERTY_NAME, (long) -1, Type.LONG);
+    Assert.assertEquals("Entry count not used even when present for is-not-null query", 0, store.count(root, indexMeta.getNodeState(), null, maxTraversal));
+}

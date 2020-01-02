@@ -1,0 +1,15 @@
+@Test
+public void testGCGeneration() throws Exception {
+    UUID id = UUID.randomUUID();
+    long msb = id.getMostSignificantBits();
+    long lsb = id.getLeastSignificantBits();
+    String data = "test";
+    byte[] buffer = data.getBytes(UTF_8);
+    try (TarWriter writer = new TarWriter(archiveManager, "data00000a.tar")) {
+        writer.writeEntry(msb, lsb, buffer, 0, buffer.length, newGCGeneration(1, 2, false));
+    }
+    try (TarReader reader = TarReader.open("data00000a.tar", archiveManager)) {
+        SegmentArchiveEntry[] entries = reader.getEntries();
+        assertEquals(newGCGeneration(1, 2, false), newGCGeneration(entries[0]));
+    }
+}

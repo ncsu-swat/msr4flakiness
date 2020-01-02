@@ -1,0 +1,17 @@
+@Test
+public void testCreateTokenAtInvalidLocationInsideUser() throws Exception {
+    TokenInfo info = createTokenInfo(tokenProvider, userId);
+    assertNotNull(tokenProvider.getTokenInfo(info.getToken()));
+    Tree userTree = root.getTree(getUserManager(root).getAuthorizable(userId).getPath());
+    Tree tree = TreeUtil.addChild(userTree, "testNode", JcrConstants.NT_UNSTRUCTURED);
+    try {
+        replaceTokenTree(info, tree, TOKEN_NT_NAME);
+        root.commit(CommitMarker.asCommitAttributes());
+        fail("Creating a new token '" + tree.getPath() + "' must fail.");
+    } catch (CommitFailedException e) {
+        assertEquals(65, e.getCode());
+    } finally {
+        tree.remove();
+        root.commit(CommitMarker.asCommitAttributes());
+    }
+}

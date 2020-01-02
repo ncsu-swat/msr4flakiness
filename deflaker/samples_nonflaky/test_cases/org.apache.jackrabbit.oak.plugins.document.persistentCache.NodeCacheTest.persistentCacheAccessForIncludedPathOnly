@@ -1,0 +1,22 @@
+// OAK-7153
+@Test
+public void persistentCacheAccessForIncludedPathOnly() throws Exception {
+    Path a = Path.fromString("/a");
+    initializeNodeStore(false, b -> b.setNodeCachePathPredicate(path -> path != null && (a.equals(path) || a.isAncestorOf(path))));
+    NodeBuilder builder = ns.getRoot().builder();
+    builder.child("x");
+    ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    // clean caches
+    ns.getNodeCache().invalidateAll();
+    ns.getNodeChildrenCache().invalidateAll();
+    MeterStats stats = statsProvider.getMeter("PersistentCache.NodeCache.node.REQUESTS", StatsOptions.DEFAULT);
+    // hasChildNode() is not cached and will cause a request
+    // to the persistent cache
+    long requests = stats.getCount() + 1;
+    ns.getRoot().hasChildNode("a");
+    assertEquals(requests, stats.getCount());
+    // next call must not cause request to persistent cache
+    // because path is not included
+    ns.getRoot().hasChildNode("b");
+    assertEquals(requests, stats.getCount());
+}

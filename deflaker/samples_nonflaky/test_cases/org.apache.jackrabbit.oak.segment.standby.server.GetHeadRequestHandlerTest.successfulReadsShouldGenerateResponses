@@ -1,0 +1,10 @@
+@Test
+public void successfulReadsShouldGenerateResponses() throws Exception {
+    StandbyHeadReader reader = mock(StandbyHeadReader.class);
+    when(reader.readHeadRecordId()).thenReturn("recordId");
+    EmbeddedChannel channel = new EmbeddedChannel(new GetHeadRequestHandler(reader));
+    channel.writeInbound(new GetHeadRequest("clientId"));
+    GetHeadResponse response = (GetHeadResponse) channel.readOutbound();
+    assertEquals("recordId", response.getHeadRecordId());
+    assertEquals("clientId", response.getClientId());
+}

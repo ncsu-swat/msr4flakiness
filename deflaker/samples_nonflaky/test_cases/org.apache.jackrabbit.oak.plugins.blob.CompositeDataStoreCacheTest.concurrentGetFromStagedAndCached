@@ -1,0 +1,48 @@
+/**
+ * Concurrently retrieves 2 different files from cache.
+ * One is staged and other in the download cache.
+ * @throws Exception
+ */
+@Test
+public void concurrentGetFromStagedAndCached() throws Exception {
+    LOG.info("Starting concurrentGetFromStagedAndCached");
+    // Add 1 to backend
+    // Add 2 to upload area
+    // Stop upload execution
+    // Concurrently get 1 & 2
+    // continue upload execution
+    ListeningExecutorService executorService = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(2));
+    closer.register(new ExecutorCloser(executorService, 5, TimeUnit.MILLISECONDS));
+    // Add file to backend
+    File f2 = copyToFile(randomStream(1, 4 * 1024), folder.newFile());
+    loader.write(ID_PREFIX + 1, f2);
+    assertTrue(f2.exists());
+    // stage for upload
+    File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
+    boolean accepted = cache.stage(ID_PREFIX + 0, f);
+    assertTrue(accepted);
+    // Would hit the staging cache
+    CountDownLatch thread1Start = new CountDownLatch(1);
+    SettableFuture<File> future1 = retrieveThread(executorService, ID_PREFIX + 0, cache, thread1Start);
+    // Would hit the download cache and load
+    CountDownLatch thread2Start = new CountDownLatch(1);
+    SettableFuture<File> future2 = retrieveThread(executorService, ID_PREFIX + 1, cache, thread2Start);
+    thread1Start.countDown();
+    thread2Start.countDown();
+    File cached = future1.get();
+    File cached2 = future2.get();
+    LOG.info("Async tasks finished");
+    assertFile(cached, 0, folder);
+    assertTrue(Files.equal(f2, cached2));
+    // start the original upload
+    taskLatch.countDown();
+    callbackLatch.countDown();
+    waitFinish();
+    assertCacheStats(cache.getStagingCacheStats(), 0, 0, 1, 1);
+    assertEquals(2, cache.getStagingCacheStats().getLoadCount());
+    assertEquals(1, cache.getStagingCacheStats().getLoadSuccessCount());
+    assertCacheStats(cache.getCacheStats(), 2, 8 * 1024, 0, 1);
+    assertEquals(1, cache.getCacheStats().getLoadCount());
+    assertEquals(1, cache.getCacheStats().getLoadSuccessCount());
+    LOG.info("Finished concurrentGetFromStagedAndCached");
+}

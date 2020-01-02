@@ -1,0 +1,14 @@
+@Test
+public void contentType() throws IOException {
+    path = fs.getPath("foo.txt");
+    Files.write(path, ImmutableList.of("Hello World"), UTF_8);
+    URL url = path.toUri().toURL();
+    URLConnection conn = url.openConnection();
+    // Should be text/plain, but this is entirely dependent on the installed FileTypeDetectors
+    String detectedContentType = Files.probeContentType(path);
+    if (detectedContentType == null) {
+        assertThat(conn.getContentType()).isEqualTo("application/octet-stream");
+    } else {
+        assertThat(conn.getContentType()).isEqualTo(detectedContentType);
+    }
+}
