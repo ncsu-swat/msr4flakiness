@@ -1,0 +1,21 @@
+/**
+ * Race condition prevent watchdog working using ExecuteStreamHandler.
+ * The test fails because when watchdog.destroyProcess() is invoked the
+ * external process is not bound to the watchdog yet.
+ *
+ * @throws Exception the test failed
+ */
+@Test
+public void testExec34_1() throws Exception {
+    final CommandLine cmdLine = new CommandLine(pingScript);
+    // sleep 10 secs
+    cmdLine.addArgument("10");
+    final ExecuteWatchdog watchdog = new ExecuteWatchdog(Integer.MAX_VALUE);
+    final DefaultExecuteResultHandler handler = new DefaultExecuteResultHandler();
+    exec.setWatchdog(watchdog);
+    exec.execute(cmdLine, handler);
+    assertTrue(watchdog.isWatching());
+    watchdog.destroyProcess();
+    assertTrue("Watchdog should have killed the process", watchdog.killedProcess());
+    assertFalse("Watchdog is no longer watching the process", watchdog.isWatching());
+}

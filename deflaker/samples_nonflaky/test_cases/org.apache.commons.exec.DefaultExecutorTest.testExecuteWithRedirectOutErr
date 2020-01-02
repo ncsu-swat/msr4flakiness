@@ -1,0 +1,22 @@
+/**
+ * Start a process and connect out and err to a file.
+ *
+ * @throws Exception the test failed
+ */
+@Test
+public void testExecuteWithRedirectOutErr() throws Exception {
+    final File outfile = File.createTempFile("EXEC", ".test");
+    outfile.deleteOnExit();
+    final CommandLine cl = new CommandLine(testScript);
+    final FileOutputStream outAndErr = new FileOutputStream(outfile);
+    try {
+        final PumpStreamHandler pumpStreamHandler = new PumpStreamHandler(outAndErr);
+        final DefaultExecutor executor = new DefaultExecutor();
+        executor.setStreamHandler(pumpStreamHandler);
+        final int exitValue = executor.execute(cl);
+        assertFalse(exec.isFailure(exitValue));
+        assertTrue(outfile.exists());
+    } finally {
+        outAndErr.close();
+    }
+}

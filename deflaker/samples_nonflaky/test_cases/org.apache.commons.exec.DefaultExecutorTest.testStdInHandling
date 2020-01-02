@@ -1,0 +1,23 @@
+/**
+ * The test script reads an argument from {@code stdin} and prints
+ * the result to stdout. To make things slightly more interesting
+ * we are using an asynchronous process.
+ *
+ * @throws Exception the test failed
+ */
+@Test
+public void testStdInHandling() throws Exception {
+    // newline not needed; causes problems for VMS
+    final ByteArrayInputStream bais = new ByteArrayInputStream("Foo".getBytes());
+    final CommandLine cl = new CommandLine(this.stdinSript);
+    final PumpStreamHandler pumpStreamHandler = new PumpStreamHandler(this.baos, System.err, bais);
+    final DefaultExecuteResultHandler resultHandler = new DefaultExecuteResultHandler();
+    final Executor executor = new DefaultExecutor();
+    executor.setStreamHandler(pumpStreamHandler);
+    executor.execute(cl, resultHandler);
+    resultHandler.waitFor(WAITFOR_TIMEOUT);
+    assertTrue("ResultHandler received a result", resultHandler.hasResult());
+    assertFalse(exec.isFailure(resultHandler.getExitValue()));
+    final String result = baos.toString();
+    assertTrue("Result '" + result + "' should contain 'Hello Foo!'", result.indexOf("Hello Foo!") >= 0);
+}

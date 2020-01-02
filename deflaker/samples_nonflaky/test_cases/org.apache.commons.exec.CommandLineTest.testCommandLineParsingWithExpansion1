@@ -1,0 +1,35 @@
+/**
+ * Test expanding the command line based on a user-supplied map.
+ */
+@Test
+public void testCommandLineParsingWithExpansion1() {
+    CommandLine cmdl;
+    final HashMap<String, Object> substitutionMap = new HashMap<String, Object>();
+    substitutionMap.put("JAVA_HOME", "/usr/local/java");
+    substitutionMap.put("appMainClass", "foo.bar.Main");
+    substitutionMap.put("file1", new File("./pom.xml"));
+    substitutionMap.put("file2", new File(".\\temp\\READ ME.txt"));
+    final HashMap<String, String> incompleteMap = new HashMap<String, String>();
+    incompleteMap.put("JAVA_HOME", "/usr/local/java");
+    // do not pass substitution map
+    cmdl = CommandLine.parse("${JAVA_HOME}/bin/java ${appMainClass}");
+    assertTrue(cmdl.getExecutable().indexOf("${JAVA_HOME}") == 0);
+    assertArrayEquals(new String[] { "${appMainClass}" }, cmdl.getArguments());
+    // pass arguments with an empty map
+    cmdl = CommandLine.parse("${JAVA_HOME}/bin/java ${appMainClass}", new HashMap<String, Object>());
+    assertTrue(cmdl.getExecutable().indexOf("${JAVA_HOME}") == 0);
+    assertArrayEquals(new String[] { "${appMainClass}" }, cmdl.getArguments());
+    // pass an complete substitution map
+    cmdl = CommandLine.parse("${JAVA_HOME}/bin/java ${appMainClass}", substitutionMap);
+    assertTrue(cmdl.getExecutable().indexOf("${JAVA_HOME}") < 0);
+    assertTrue(cmdl.getExecutable().indexOf("local") > 0);
+    assertArrayEquals(new String[] { "foo.bar.Main" }, cmdl.getArguments());
+    // pass an incomplete substitution map resulting in unresolved variables
+    cmdl = CommandLine.parse("${JAVA_HOME}/bin/java ${appMainClass}", incompleteMap);
+    assertTrue(cmdl.getExecutable().indexOf("${JAVA_HOME}") < 0);
+    assertTrue(cmdl.getExecutable().indexOf("local") > 0);
+    assertArrayEquals(new String[] { "${appMainClass}" }, cmdl.getArguments());
+    // pass a file
+    cmdl = CommandLine.parse("${JAVA_HOME}/bin/java ${appMainClass} ${file1} ${file2}", substitutionMap);
+    assertTrue(cmdl.getExecutable().indexOf("${file}") < 0);
+}

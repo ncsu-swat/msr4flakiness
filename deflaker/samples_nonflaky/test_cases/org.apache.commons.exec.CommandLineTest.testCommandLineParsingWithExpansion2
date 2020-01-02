@@ -1,0 +1,45 @@
+/**
+ * Test expanding the command line based on a user-supplied map. The main
+ * goal of the test is to setup a command line using macros and reuse
+ * it multiple times.
+ */
+@Test
+public void testCommandLineParsingWithExpansion2() {
+    CommandLine cmdl;
+    String[] result;
+    // build the user supplied parameters
+    final HashMap<String, String> substitutionMap = new HashMap<String, String>();
+    substitutionMap.put("JAVA_HOME", "C:\\Programme\\jdk1.5.0_12");
+    substitutionMap.put("appMainClass", "foo.bar.Main");
+    // build the command line
+    cmdl = new CommandLine("${JAVA_HOME}\\bin\\java");
+    cmdl.addArgument("-class");
+    cmdl.addArgument("${appMainClass}");
+    cmdl.addArgument("${file}");
+    // build the first command line
+    substitutionMap.put("file", "C:\\Document And Settings\\documents\\432431.pdf");
+    cmdl.setSubstitutionMap(substitutionMap);
+    result = cmdl.toStrings();
+    // verify the first command line
+    // please note - the executable argument is changed to using platform specific file separator char
+    // whereas all other variable substitution are not touched
+    assertEquals(StringUtils.fixFileSeparatorChar("C:\\Programme\\jdk1.5.0_12\\bin\\java"), result[0]);
+    assertEquals("-class", result[1]);
+    assertEquals("foo.bar.Main", result[2]);
+    assertEquals("\"C:\\Document And Settings\\documents\\432431.pdf\"", result[3]);
+    // verify the first command line again but by
+    // accessing the executable and arguments directly
+    final String executable = cmdl.getExecutable();
+    final String[] arguments = cmdl.getArguments();
+    assertEquals(StringUtils.fixFileSeparatorChar("C:\\Programme\\jdk1.5.0_12\\bin\\java"), executable);
+    assertEquals("-class", arguments[0]);
+    assertEquals("foo.bar.Main", arguments[1]);
+    assertEquals("\"C:\\Document And Settings\\documents\\432431.pdf\"", arguments[2]);
+    // build the second command line with updated parameters resulting in  a different command line
+    substitutionMap.put("file", "C:\\Document And Settings\\documents\\432432.pdf");
+    result = cmdl.toStrings();
+    assertEquals(StringUtils.fixFileSeparatorChar("C:\\Programme\\jdk1.5.0_12\\bin\\java"), result[0]);
+    assertEquals("-class", result[1]);
+    assertEquals("foo.bar.Main", result[2]);
+    assertEquals("\"C:\\Document And Settings\\documents\\432432.pdf\"", result[3]);
+}

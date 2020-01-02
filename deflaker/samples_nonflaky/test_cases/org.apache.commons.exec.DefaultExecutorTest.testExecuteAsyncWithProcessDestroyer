@@ -1,0 +1,34 @@
+/**
+ * Test the proper handling of ProcessDestroyer for an asynchronous process.
+ * Since we do not terminate the process it will be terminated in the
+ * ShutdownHookProcessDestroyer implementation.
+ *
+ * @throws Exception the test failed
+ */
+@Test
+public void testExecuteAsyncWithProcessDestroyer() throws Exception {
+    final CommandLine cl = new CommandLine(foreverTestScript);
+    final DefaultExecuteResultHandler handler = new DefaultExecuteResultHandler();
+    final ShutdownHookProcessDestroyer processDestroyer = new ShutdownHookProcessDestroyer();
+    final ExecuteWatchdog watchdog = new ExecuteWatchdog(Integer.MAX_VALUE);
+    assertTrue(exec.getProcessDestroyer() == null);
+    assertTrue(processDestroyer.size() == 0);
+    assertTrue(processDestroyer.isAddedAsShutdownHook() == false);
+    exec.setWatchdog(watchdog);
+    exec.setProcessDestroyer(processDestroyer);
+    exec.execute(cl, handler);
+    // wait for script to start
+    Thread.sleep(2000);
+    // our process destroyer should be initialized now
+    assertNotNull("Process destroyer should exist", exec.getProcessDestroyer());
+    assertEquals("Process destroyer size should be 1", 1, processDestroyer.size());
+    assertTrue("Process destroyer should exist as shutdown hook", processDestroyer.isAddedAsShutdownHook());
+    // terminate it and the process destroyer is detached
+    watchdog.destroyProcess();
+    assertTrue(watchdog.killedProcess());
+    handler.waitFor(WAITFOR_TIMEOUT);
+    assertTrue("ResultHandler received a result", handler.hasResult());
+    assertNotNull(handler.getException());
+    assertEquals("Processor Destroyer size should be 0", 0, processDestroyer.size());
+    assertFalse("Process destroyer should not exist as shutdown hook", processDestroyer.isAddedAsShutdownHook());
+}

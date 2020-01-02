@@ -1,0 +1,35 @@
+/**
+ * Start a script looping forever (synchronously) and check if the ExecuteWatchdog
+ * kicks in killing the run away process. To make killing a process
+ * more testable the "forever" scripts write each second a '.'
+ * into "./target/forever.txt" (a marker file). After a test run
+ * we should have a few dots in there.
+ *
+ * @throws Exception the test failed
+ */
+@Test
+public void testExecuteWatchdogSync() throws Exception {
+    if (OS.isFamilyOpenVms()) {
+        System.out.println("The test 'testExecuteWatchdogSync' currently hangs on the following OS : " + System.getProperty("os.name"));
+        return;
+    }
+    final long timeout = 10000;
+    final CommandLine cl = new CommandLine(foreverTestScript);
+    final DefaultExecutor executor = new DefaultExecutor();
+    executor.setWorkingDirectory(new File("."));
+    final ExecuteWatchdog watchdog = new ExecuteWatchdog(timeout);
+    executor.setWatchdog(watchdog);
+    try {
+        executor.execute(cl);
+    } catch (final ExecuteException e) {
+        Thread.sleep(timeout);
+        final int nrOfInvocations = getOccurrences(readFile(this.foreverOutputFile), '.');
+        assertTrue(executor.getWatchdog().killedProcess());
+        assertTrue("killing the subprocess did not work : " + nrOfInvocations, nrOfInvocations > 5 && nrOfInvocations <= 11);
+        return;
+    } catch (final Throwable t) {
+        fail(t.getMessage());
+    }
+    assertTrue("Killed process should be true", executor.getWatchdog().killedProcess());
+    fail("Process did not create ExecuteException when killed");
+}
