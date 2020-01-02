@@ -1,0 +1,11 @@
+@Test
+public void shouldInvokeUpdatedFactory() {
+    MutableValidatorFactory mutableFactory = (MutableValidatorFactory) validatorFactory.getConstraintValidatorFactory();
+    ConstraintValidatorFactory mockedFactory = mock(ConstraintValidatorFactory.class, delegatesTo(new ConstraintValidatorFactoryImpl()));
+    // Swap validator factory at runtime
+    mutableFactory.setValidatorFactory(mockedFactory);
+    // Run validation manually
+    Validator validator = validatorFactory.getValidator();
+    validator.validate(new Bean(1));
+    verify(mockedFactory).getInstance(eq(MinValidatorForInteger.class));
+}

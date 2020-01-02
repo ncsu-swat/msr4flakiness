@@ -1,0 +1,11 @@
+@Test
+public void canUseACustomHostnameVerifierWhenTlsConfigurationNotSpecified() throws Exception {
+    final HostnameVerifier customVerifier = (s, sslSession) -> false;
+    final Registry<ConnectionSocketFactory> configuredRegistry;
+    configuredRegistry = builder.using(customVerifier).createConfiguredRegistry();
+    assertThat(configuredRegistry).isNotNull();
+    final SSLConnectionSocketFactory socketFactory = (SSLConnectionSocketFactory) configuredRegistry.lookup("https");
+    assertThat(socketFactory).isNotNull();
+    final Field hostnameVerifierField = FieldUtils.getField(SSLConnectionSocketFactory.class, "hostnameVerifier", true);
+    assertThat(hostnameVerifierField.get(socketFactory)).isSameAs(customVerifier);
+}

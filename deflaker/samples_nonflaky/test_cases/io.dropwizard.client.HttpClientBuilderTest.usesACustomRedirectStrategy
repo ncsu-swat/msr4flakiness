@@ -1,0 +1,19 @@
+@Test
+public void usesACustomRedirectStrategy() throws Exception {
+    RedirectStrategy neverFollowRedirectStrategy = new RedirectStrategy() {
+
+        @Override
+        public boolean isRedirected(HttpRequest httpRequest, HttpResponse httpResponse, HttpContext httpContext) throws ProtocolException {
+            return false;
+        }
+
+        @Override
+        @Nullable
+        public HttpUriRequest getRedirect(HttpRequest httpRequest, HttpResponse httpResponse, HttpContext httpContext) throws ProtocolException {
+            return null;
+        }
+    };
+    ConfiguredCloseableHttpClient client = builder.using(neverFollowRedirectStrategy).createClient(apacheBuilder, connectionManager, "test");
+    assertThat(client).isNotNull();
+    assertThat(spyHttpClientBuilderField("redirectStrategy", apacheBuilder)).isSameAs(neverFollowRedirectStrategy);
+}

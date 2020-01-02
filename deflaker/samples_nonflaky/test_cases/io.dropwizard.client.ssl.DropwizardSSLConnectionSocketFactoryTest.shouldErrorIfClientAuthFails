@@ -1,0 +1,10 @@
+@Test
+void shouldErrorIfClientAuthFails() {
+    tlsConfiguration.setKeyStorePath(new File(ResourceHelpers.resourceFilePath("stores/server/self_sign_keycert.p12")));
+    tlsConfiguration.setKeyStorePassword("password");
+    tlsConfiguration.setKeyStoreType("PKCS12");
+    final Client client = new JerseyClientBuilder(TLS_APP_RULE.getEnvironment()).using(jerseyClientConfiguration).build("client_auth_broken");
+    final Throwable exn = catchThrowable(() -> client.target(String.format("https://localhost:%d", TLS_APP_RULE.getPort(2))).request().get());
+    assertThat(exn).isInstanceOf(ProcessingException.class);
+    assertThat(exn.getCause()).isInstanceOfAny(SocketException.class, SSLHandshakeException.class, SSLException.class);
+}

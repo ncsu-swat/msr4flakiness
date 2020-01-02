@@ -1,0 +1,14 @@
+@Test
+void testRollbackToTag() throws Exception {
+    // Migrate the first DDL change to the database
+    migrateCommand.run(null, new Namespace(Collections.singletonMap("count", 1)), conf);
+    // Tag it
+    final DbTagCommand<TestMigrationConfiguration> tagCommand = new DbTagCommand<>(new TestMigrationDatabaseConfiguration(), TestMigrationConfiguration.class, migrationsFileName);
+    tagCommand.run(null, new Namespace(Collections.singletonMap("tag-name", Collections.singletonList("v1"))), conf);
+    // Migrate the second change
+    migrateCommand.run(null, new Namespace(Collections.emptyMap()), conf);
+    // Rollback to the first change
+    rollbackCommand.run(null, new Namespace(Collections.singletonMap("tag", "v1")), conf);
+    // Verify we can add the second change manually
+    dbi.useHandle(h -> h.execute("alter table persons add column email varchar(128)"));
+}

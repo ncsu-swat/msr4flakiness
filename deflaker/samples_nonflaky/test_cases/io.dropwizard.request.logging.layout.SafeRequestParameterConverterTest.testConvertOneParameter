@@ -1,0 +1,11 @@
+@Test
+public void testConvertOneParameter() throws Exception {
+    Mockito.when(httpServletRequest.getParameterValues("name")).thenReturn(new String[] { "Alice" });
+    Mockito.when(httpServletRequest.getParameterNames()).thenReturn(Collections.enumeration(Collections.singleton("name")));
+    // Invoked by AccessEvent#prepareForDeferredProcessing
+    accessEvent.buildRequestParameterMap();
+    // Jetty recycled the request
+    Mockito.reset(httpServletRequest);
+    String value = safeRequestParameterConverter.convert(accessEvent);
+    assertThat(value).isEqualTo("Alice");
+}

@@ -1,0 +1,15 @@
+@Test
+void testSerialization() throws IOException, ClassNotFoundException {
+    final Size size = Size.megabytes(42L);
+    final byte[] bytes;
+    try (final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        final ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream)) {
+        objectOutputStream.writeObject(size);
+        bytes = outputStream.toByteArray();
+    }
+    try (final ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes);
+        final ObjectInputStream objectInputStream = new ObjectInputStream(inputStream)) {
+        final Object o = objectInputStream.readObject();
+        assertThat(o).isInstanceOf(Size.class).isEqualTo(size);
+    }
+}

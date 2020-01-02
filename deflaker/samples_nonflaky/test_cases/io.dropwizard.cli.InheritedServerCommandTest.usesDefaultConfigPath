@@ -1,0 +1,35 @@
+@Test
+public void usesDefaultConfigPath() throws Exception {
+    class SingletonConfigurationFactory implements ConfigurationFactory<Configuration> {
+
+        @Override
+        public Configuration build(final ConfigurationSourceProvider provider, final String path) throws IOException, ConfigurationException {
+            return configuration;
+        }
+
+        @Override
+        public Configuration build() throws IOException, ConfigurationException {
+            throw new AssertionError("Didn't use the default config path variable");
+        }
+    }
+    when(configuration.getLoggingFactory()).thenReturn(mock(LoggingFactory.class));
+    final Bootstrap<Configuration> bootstrap = new Bootstrap<>(application);
+    bootstrap.setConfigurationFactoryFactory((klass, validator, objectMapper, propertyPrefix) -> new SingletonConfigurationFactory());
+    bootstrap.addCommand(new ConfiguredCommand<Configuration>("test", "a test command") {
+
+        @Override
+        protected void run(final Bootstrap<Configuration> bootstrap, final Namespace namespace, final Configuration configuration) throws Exception {
+            assertThat(namespace.getString("file")).isNotEmpty().isEqualTo("yaml/server.yml");
+        }
+
+        @Override
+        protected Argument addFileArgument(final Subparser subparser) {
+            return super.addFileArgument(subparser).setDefault("yaml/server.yml");
+        }
+    });
+    final JarLocation location = mock(JarLocation.class);
+    when(location.toString()).thenReturn("dw-thing.jar");
+    when(location.getVersion()).thenReturn(Optional.of("1.0.0"));
+    Cli cli = new Cli(location, bootstrap, System.out, System.err);
+    cli.run("test");
+}

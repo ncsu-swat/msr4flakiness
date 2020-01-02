@@ -1,0 +1,10 @@
+@Test
+void testRollbackToDate() throws Exception {
+    // Migrate some DDL changes to the database
+    long migrationDate = System.currentTimeMillis();
+    migrateCommand.run(null, new Namespace(Collections.emptyMap()), conf);
+    // Rollback both changes (they're tearDown the migration date)
+    rollbackCommand.run(null, new Namespace(Collections.singletonMap("date", new Date(migrationDate - 1000))), conf);
+    // Verify we can creat the table
+    dbi.useHandle(h -> h.execute("create table persons(id int, name varchar(255))"));
+}

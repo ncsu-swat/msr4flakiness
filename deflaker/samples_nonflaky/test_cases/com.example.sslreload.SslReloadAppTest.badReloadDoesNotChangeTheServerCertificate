@@ -1,0 +1,15 @@
+@Test
+public void badReloadDoesNotChangeTheServerCertificate() throws Exception {
+    // This keystore has a different password than what jetty has been configured with
+    // the password is "password2"
+    final byte[] badKeystore = Resources.toByteArray(Resources.getResource("sslreload/keystore-diff-pwd.jks"));
+    Files.write(keystore, badKeystore);
+    // Get the bytes for the first certificate. The reload should fail
+    byte[] firstCertBytes = certBytes(500, "Keystore was tampered with, or password was incorrect");
+    // Issue another request. The returned certificate should be the same as setUp
+    byte[] secondCertBytes = certBytes(500, "Keystore was tampered with, or password was incorrect");
+    // And just to triple check, a third request will continue with
+    // the same original certificate
+    byte[] thirdCertBytes = certBytes(500, "Keystore was tampered with, or password was incorrect");
+    assertThat(firstCertBytes).isEqualTo(secondCertBytes).isEqualTo(thirdCertBytes);
+}

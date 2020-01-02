@@ -1,0 +1,21 @@
+@Test
+public void testSetUserAgent() {
+    httpServer.createContext("/test", httpExchange -> {
+        try {
+            assertThat(httpExchange.getRequestHeaders().get(HttpHeaders.USER_AGENT)).containsExactly("Custom user-agent");
+            httpExchange.sendResponseHeaders(200, 0);
+            httpExchange.getResponseBody().write("Hello World!".getBytes(StandardCharsets.UTF_8));
+        } finally {
+            httpExchange.close();
+        }
+    });
+    httpServer.start();
+    JerseyClientConfiguration configuration = new JerseyClientConfiguration();
+    configuration.setUserAgent(Optional.of("Custom user-agent"));
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    Client jersey = new JerseyClientBuilder(new MetricRegistry()).using(executor, JSON_MAPPER).using(configuration).build("jersey-test");
+    String text = jersey.target("http://127.0.0.1:" + httpServer.getAddress().getPort() + "/test").request().buildGet().invoke().readEntity(String.class);
+    assertThat(text).isEqualTo("Hello World!");
+    executor.shutdown();
+    jersey.close();
+}

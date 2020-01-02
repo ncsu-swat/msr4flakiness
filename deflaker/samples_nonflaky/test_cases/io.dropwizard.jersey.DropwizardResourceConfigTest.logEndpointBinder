@@ -1,0 +1,14 @@
+@Test
+void logEndpointBinder() {
+    rc.register(ResourceInterface.class);
+    rc.register(new AbstractBinder() {
+
+        @Override
+        protected void configure() {
+            bind(ImplementingResource.class).to(ResourceInterface.class);
+        }
+    });
+    runJersey();
+    final String expectedLog = String.format("The following paths were found for the configured resources:%n" + "%n" + "    GET     /another (io.dropwizard.jersey.DropwizardResourceConfigTest.ResourceInterface)");
+    assertThat(rc.getEndpointsInfo()).contains(expectedLog);
+}

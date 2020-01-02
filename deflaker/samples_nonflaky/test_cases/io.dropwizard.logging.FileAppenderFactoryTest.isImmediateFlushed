@@ -1,0 +1,15 @@
+@Test
+void isImmediateFlushed() throws Exception {
+    FileAppenderFactory<ILoggingEvent> fileAppenderFactory = new FileAppenderFactory<>();
+    fileAppenderFactory.setArchive(false);
+    Field isImmediateFlushField = OutputStreamAppender.class.getDeclaredField("immediateFlush");
+    isImmediateFlushField.setAccessible(true);
+    fileAppenderFactory.setImmediateFlush(false);
+    AsyncAppender asyncAppender = (AsyncAppender) fileAppenderFactory.build(new LoggerContext(), "test", new DropwizardLayoutFactory(), new NullLevelFilterFactory<>(), new AsyncLoggingEventAppenderFactory());
+    Appender<ILoggingEvent> fileAppender = asyncAppender.getAppender("file-appender");
+    assertThat((Boolean) isImmediateFlushField.get(fileAppender)).isEqualTo(fileAppenderFactory.isImmediateFlush());
+    fileAppenderFactory.setImmediateFlush(true);
+    asyncAppender = (AsyncAppender) fileAppenderFactory.build(new LoggerContext(), "test", new DropwizardLayoutFactory(), new NullLevelFilterFactory<>(), new AsyncLoggingEventAppenderFactory());
+    fileAppender = asyncAppender.getAppender("file-appender");
+    assertThat((Boolean) isImmediateFlushField.get(fileAppender)).isEqualTo(fileAppenderFactory.isImmediateFlush());
+}

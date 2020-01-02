@@ -1,0 +1,33 @@
+@Test
+public void testLogJsonToConsole() throws Exception {
+    ConsoleAppenderFactory<ILoggingEvent> consoleAppenderFactory = getAppenderFactory("yaml/json-log-default.yml");
+    DefaultLoggingFactory defaultLoggingFactory = new DefaultLoggingFactory();
+    defaultLoggingFactory.setAppenders(Collections.singletonList(consoleAppenderFactory));
+    DiscoverableLayoutFactory<?> layout = requireNonNull(consoleAppenderFactory.getLayout());
+    assertThat(layout).isInstanceOf(EventJsonLayoutBaseFactory.class);
+    EventJsonLayoutBaseFactory factory = (EventJsonLayoutBaseFactory) layout;
+    assertThat(factory).isNotNull();
+    assertThat(factory.getIncludes()).contains(EventAttribute.LEVEL, EventAttribute.THREAD_NAME, EventAttribute.MDC, EventAttribute.MARKER, EventAttribute.LOGGER_NAME, EventAttribute.MESSAGE, EventAttribute.EXCEPTION, EventAttribute.TIMESTAMP);
+    assertThat(factory.isFlattenMdc()).isFalse();
+    assertThat(factory.getIncludesMdcKeys()).isEmpty();
+    assertThat(factory.getExceptionFormat()).isNull();
+    PrintStream old = System.out;
+    ByteArrayOutputStream redirectedStream = new ByteArrayOutputStream();
+    try {
+        System.setOut(new PrintStream(redirectedStream));
+        defaultLoggingFactory.configure(new MetricRegistry(), "json-log-test");
+        Marker marker = MarkerFactory.getMarker("marker");
+        LoggerFactory.getLogger("com.example.app").info(marker, "Application log");
+        // Need to wait, because the logger is async
+        Thread.sleep(100);
+        JsonNode jsonNode = objectMapper.readTree(redirectedStream.toString());
+        assertThat(jsonNode).isNotNull();
+        assertThat(jsonNode.get("timestamp").isTextual()).isTrue();
+        assertThat(jsonNode.get("level").asText()).isEqualTo("INFO");
+        assertThat(jsonNode.get("logger").asText()).isEqualTo("com.example.app");
+        assertThat(jsonNode.get("marker").asText()).isEqualTo("marker");
+        assertThat(jsonNode.get("message").asText()).isEqualTo("Application log");
+    } finally {
+        System.setOut(old);
+    }
+}

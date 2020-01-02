@@ -1,0 +1,12 @@
+@Test
+void testCreateThrowableProxyConverter_Default() throws Exception {
+    EventJsonLayoutBaseFactory factory = new EventJsonLayoutBaseFactory();
+    ThrowableHandlingConverter converter = factory.createThrowableProxyConverter(new LoggerContext());
+    converter.start();
+    String conversion = converter.convert(event);
+    int originalSize = getStackTraceAsString(proxy.getThrowable()).split(LINE_SEPARATOR).length;
+    // Verify that the full stack is included
+    assertThat(conversion).hasLineCount(originalSize);
+    // Verify that the root is first
+    assertThat(conversion).containsSubsequence("r00t", "wrapp3d");
+}

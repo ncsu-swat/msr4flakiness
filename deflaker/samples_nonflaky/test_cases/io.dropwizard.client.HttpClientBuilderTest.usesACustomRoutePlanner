@@ -1,0 +1,18 @@
+@Test
+public void usesACustomRoutePlanner() throws Exception {
+    final HttpRoutePlanner routePlanner = new SystemDefaultRoutePlanner(new ProxySelector() {
+
+        @Override
+        public List<Proxy> select(URI uri) {
+            return Collections.singletonList(new Proxy(Proxy.Type.HTTP, new InetSocketAddress("192.168.52.1", 8080)));
+        }
+
+        @Override
+        public void connectFailed(URI uri, SocketAddress sa, IOException ioe) {
+        }
+    });
+    final CloseableHttpClient httpClient = builder.using(configuration).using(routePlanner).createClient(apacheBuilder, connectionManager, "test").getClient();
+    assertThat(httpClient).isNotNull();
+    assertThat(spyHttpClientBuilderField("routePlanner", apacheBuilder)).isSameAs(routePlanner);
+    assertThat(spyHttpClientField("routePlanner", httpClient)).isSameAs(routePlanner);
+}

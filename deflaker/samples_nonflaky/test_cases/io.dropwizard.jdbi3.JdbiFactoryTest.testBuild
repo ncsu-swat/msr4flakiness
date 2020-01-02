@@ -1,0 +1,30 @@
+@Test
+public void testBuild() {
+    final Environment environment = mock(Environment.class);
+    final MetricRegistry metrics = mock(MetricRegistry.class);
+    final LifecycleEnvironment lifecycle = mock(LifecycleEnvironment.class);
+    final HealthCheckRegistry healthChecks = mock(HealthCheckRegistry.class);
+    final PooledDataSourceFactory configuration = mock(PooledDataSourceFactory.class);
+    final String name = UUID.randomUUID().toString();
+    final ManagedDataSource dataSource = mock(ManagedDataSource.class);
+    final String validationQuery = UUID.randomUUID().toString();
+    final Jdbi jdbi = mock(Jdbi.class);
+    final SqlStatements sqlStatements = new SqlStatements();
+    when(environment.metrics()).thenReturn(metrics);
+    when(environment.lifecycle()).thenReturn(lifecycle);
+    when(environment.healthChecks()).thenReturn(healthChecks);
+    when(configuration.build(metrics, name)).thenReturn(dataSource);
+    when(configuration.getValidationQuery()).thenReturn(Optional.of(validationQuery));
+    when(configuration.isAutoCommentsEnabled()).thenReturn(true);
+    when(jdbi.getConfig(SqlStatements.class)).thenReturn(sqlStatements);
+    final JdbiFactory factory = spy(new JdbiFactory());
+    when(factory.newInstance(dataSource)).thenReturn(jdbi);
+    final Jdbi result = factory.build(environment, configuration, name);
+    assertThat(result).isSameAs(jdbi);
+    verify(lifecycle).manage(dataSource);
+    verify(healthChecks).register(eq(name), any(JdbiHealthCheck.class));
+    verify(jdbi).setSqlLogger(any(InstrumentedSqlLogger.class));
+    verify(factory).buildSQLLogger(same(metrics), any(StatementNameStrategy.class));
+    verify(jdbi).setTemplateEngine(any(NamePrependingTemplateEngine.class));
+    verify(factory).configure(jdbi);
+}

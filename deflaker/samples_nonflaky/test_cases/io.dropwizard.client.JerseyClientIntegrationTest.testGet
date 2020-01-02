@@ -1,0 +1,24 @@
+@Test
+public void testGet() {
+    httpServer.createContext("/player", httpExchange -> {
+        try {
+            assertThat(httpExchange.getRequestURI().getQuery()).isEqualTo("id=21");
+            httpExchange.getResponseHeaders().add(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON);
+            httpExchange.sendResponseHeaders(200, 0);
+            httpExchange.getResponseBody().write(JSON_MAPPER.createObjectNode().put("email", "john@doe.me").put("name", "John Doe").toString().getBytes(StandardCharsets.UTF_8));
+        } finally {
+            httpExchange.close();
+        }
+    });
+    httpServer.start();
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    Client jersey = new JerseyClientBuilder(new MetricRegistry()).using(executor, JSON_MAPPER).using(new JerseyClientConfiguration()).build("jersey-test");
+    Response response = jersey.target("http://127.0.0.1:" + httpServer.getAddress().getPort() + "/player?id=21").request().buildGet().invoke();
+    assertThat(response.getHeaderString(HttpHeaders.CONTENT_TYPE)).isEqualTo(APPLICATION_JSON);
+    assertThat(response.getHeaderString(TRANSFER_ENCODING)).isEqualTo(CHUNKED);
+    Person person = response.readEntity(Person.class);
+    assertThat(person.email).isEqualTo("john@doe.me");
+    assertThat(person.name).isEqualTo("John Doe");
+    executor.shutdown();
+    jersey.close();
+}

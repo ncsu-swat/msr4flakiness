@@ -1,0 +1,6 @@
+@Test
+void shouldRejectNonSupportedProtocols() {
+    tlsConfiguration.setSupportedProtocols(Collections.singletonList("TLSv1.2"));
+    final Client client = new JerseyClientBuilder(TLS_APP_RULE.getEnvironment()).using(jerseyClientConfiguration).build("reject_non_supported");
+    assertThatThrownBy(() -> client.target(String.format("https://localhost:%d", TLS_APP_RULE.getPort(4))).request().get()).isInstanceOf(ProcessingException.class).hasRootCauseInstanceOf(IOException.class);
+}

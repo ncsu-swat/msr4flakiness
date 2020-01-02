@@ -1,0 +1,13 @@
+@Test
+void testRun() throws Exception {
+    final String databaseUrl = getDatabaseUrl();
+    final TestMigrationConfiguration conf = createConfiguration(databaseUrl);
+    // Create some data
+    new DbMigrateCommand<>(TestMigrationConfiguration::getDataSource, TestMigrationConfiguration.class, "migrations.xml").run(null, new Namespace(Collections.emptyMap()), conf);
+    // Drop it
+    dropAllCommand.run(null, new Namespace(Collections.emptyMap()), conf);
+    // After we dropped data and schema, we should be able to create the "persons" table again
+    try (Handle handle = Jdbi.create(databaseUrl, "sa", "").open()) {
+        handle.execute("create table persons(id int, name varchar(255))");
+    }
+}

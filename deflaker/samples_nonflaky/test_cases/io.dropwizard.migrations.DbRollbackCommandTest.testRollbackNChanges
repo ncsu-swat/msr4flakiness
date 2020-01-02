@@ -1,0 +1,9 @@
+@Test
+void testRollbackNChanges() throws Exception {
+    // Migrate some DDL changes to the database
+    migrateCommand.run(null, new Namespace(Collections.emptyMap()), conf);
+    // Rollback the last one (the email field)
+    rollbackCommand.run(null, new Namespace(Collections.singletonMap("count", 1)), conf);
+    // Now we can add it
+    dbi.useHandle(h -> h.execute("alter table persons add column email varchar(128)"));
+}

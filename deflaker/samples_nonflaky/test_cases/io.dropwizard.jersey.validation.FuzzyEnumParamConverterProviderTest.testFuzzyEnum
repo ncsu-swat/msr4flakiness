@@ -1,0 +1,13 @@
+@Test
+public void testFuzzyEnum() {
+    final ParamConverter<Fuzzy> converter = getConverter(Fuzzy.class);
+    assertThat(converter.fromString(null)).isNull();
+    assertThat(converter.fromString("A.1")).isSameAs(Fuzzy.A_1);
+    assertThat(converter.fromString("A-1")).isSameAs(Fuzzy.A_1);
+    assertThat(converter.fromString("A_1")).isSameAs(Fuzzy.A_1);
+    assertThat(converter.fromString(" A_1")).isSameAs(Fuzzy.A_1);
+    assertThat(converter.fromString("A_1 ")).isSameAs(Fuzzy.A_1);
+    assertThat(converter.fromString("A_2")).isSameAs(Fuzzy.A_2);
+    final WebApplicationException throwable = catchThrowableOfType(() -> converter.fromString("B"), WebApplicationException.class);
+    assertThat(throwable.getResponse()).extracting(Response::getEntity).matches(e -> ((ErrorMessage) e).getCode() == 400).matches(e -> ((ErrorMessage) e).getMessage().contains("A_1")).matches(e -> ((ErrorMessage) e).getMessage().contains("A_2"));
+}

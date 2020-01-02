@@ -1,0 +1,7 @@
+@Test
+void unhandledExceptionsCustomCommandDebug() throws Exception {
+    doThrow(new BadAppException()).when(command).run(any(), any(Namespace.class), any(Configuration.class));
+    assertThat(cli.run("custom", "--debug")).hasValueSatisfying(t -> assertThat(t).isInstanceOf(RuntimeException.class).hasMessage("I did not expect this!"));
+    assertThat(stdOut.toString()).isEmpty();
+    assertThat(stdErr.toString()).startsWith(String.format("java.lang.RuntimeException: I did not expect this!%n" + "\tat io.dropwizard.cli.CliTest$CustomCommand.run(CliTest.java"));
+}

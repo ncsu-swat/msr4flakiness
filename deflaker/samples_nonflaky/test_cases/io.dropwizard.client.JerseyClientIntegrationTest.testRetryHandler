@@ -1,0 +1,24 @@
+@Test
+public void testRetryHandler() throws Exception {
+    httpServer.createContext("/register", httpExchange -> {
+        try {
+            Headers requestHeaders = httpExchange.getRequestHeaders();
+            assertThat(requestHeaders.get(TRANSFER_ENCODING)).containsExactly(CHUNKED);
+            assertThat(requestHeaders.get(HttpHeaders.CONTENT_LENGTH)).isNull();
+            assertThat(requestHeaders.get(HttpHeaders.CONTENT_ENCODING)).isNull();
+            assertThat(requestHeaders.get(HttpHeaders.ACCEPT_ENCODING)).isNull();
+            checkBody(httpExchange, false);
+            httpExchange.getResponseHeaders().add(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON);
+            httpExchange.sendResponseHeaders(200, 0);
+            httpExchange.getResponseBody().write(JSON_TOKEN.getBytes(StandardCharsets.UTF_8));
+            httpExchange.getResponseBody().close();
+        } finally {
+            httpExchange.close();
+        }
+    });
+    httpServer.start();
+    JerseyClientConfiguration configuration = new JerseyClientConfiguration();
+    configuration.setGzipEnabled(false);
+    configuration.setGzipEnabledForRequests(false);
+    postRequest(configuration);
+}

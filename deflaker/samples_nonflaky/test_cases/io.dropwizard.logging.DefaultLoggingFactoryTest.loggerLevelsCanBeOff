@@ -1,0 +1,21 @@
+@Test
+public void loggerLevelsCanBeOff() throws Exception {
+    DefaultLoggingFactory config = null;
+    try {
+        config = factory.build(new File(Resources.getResource("yaml/logging_level_off.yml").toURI()));
+        config.configure(new MetricRegistry(), "test-logger");
+        final ILoggerFactory loggerContext = LoggerFactory.getILoggerFactory();
+        final Logger rootLogger = ((LoggerContext) loggerContext).getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
+        final Logger appLogger = ((LoggerContext) loggerContext).getLogger("com.example.app");
+        final Logger newAppLogger = ((LoggerContext) loggerContext).getLogger("com.example.newApp");
+        final Logger legacyAppLogger = ((LoggerContext) loggerContext).getLogger("com.example.legacyApp");
+        assertThat(rootLogger.getLevel()).isEqualTo(Level.OFF);
+        assertThat(appLogger.getLevel()).isEqualTo(Level.OFF);
+        assertThat(newAppLogger.getLevel()).isEqualTo(Level.OFF);
+        assertThat(legacyAppLogger.getLevel()).isEqualTo(Level.OFF);
+    } finally {
+        if (config != null) {
+            config.reset();
+        }
+    }
+}

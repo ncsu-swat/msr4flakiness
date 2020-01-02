@@ -1,0 +1,19 @@
+@Test
+public void registersACustomNameOfHealthCheckAndDBPoolMetrics() throws Exception {
+    final HibernateBundle<Configuration> customBundle = new HibernateBundle<Configuration>(entities, factory) {
+
+        @Override
+        public DataSourceFactory getDataSourceFactory(Configuration configuration) {
+            return dbConfig;
+        }
+
+        @Override
+        protected String name() {
+            return "custom-hibernate";
+        }
+    };
+    when(factory.build(eq(customBundle), any(Environment.class), any(DataSourceFactory.class), anyList(), eq("custom-hibernate"))).thenReturn(sessionFactory);
+    customBundle.run(configuration, environment);
+    final ArgumentCaptor<SessionFactoryHealthCheck> captor = ArgumentCaptor.forClass(SessionFactoryHealthCheck.class);
+    verify(healthChecks).register(eq("custom-hibernate"), captor.capture());
+}

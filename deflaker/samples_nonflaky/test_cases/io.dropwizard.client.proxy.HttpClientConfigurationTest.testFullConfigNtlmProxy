@@ -1,0 +1,18 @@
+@Test
+public void testFullConfigNtlmProxy() throws Exception {
+    load("yaml/proxy_ntlm.yml");
+    ProxyConfiguration proxy = requireNonNull(configuration.getProxyConfiguration());
+    assertThat(proxy.getHost()).isEqualTo("192.168.52.11");
+    assertThat(proxy.getPort()).isEqualTo(8080);
+    assertThat(proxy.getScheme()).isEqualTo("https");
+    AuthConfiguration auth = requireNonNull(proxy.getAuth());
+    assertThat(auth.getUsername()).isEqualTo("secret");
+    assertThat(auth.getPassword()).isEqualTo("stuff");
+    assertThat(auth.getAuthScheme()).isEqualTo("NTLM");
+    assertThat(auth.getRealm()).isEqualTo("realm");
+    assertThat(auth.getHostname()).isEqualTo("workstation");
+    assertThat(auth.getDomain()).isEqualTo("HYPERCOMPUGLOBALMEGANET");
+    assertThat(auth.getCredentialType()).isEqualTo("NT");
+    List<String> nonProxyHosts = proxy.getNonProxyHosts();
+    assertThat(nonProxyHosts).contains("localhost", "192.168.52.*", "*.example.com");
+}

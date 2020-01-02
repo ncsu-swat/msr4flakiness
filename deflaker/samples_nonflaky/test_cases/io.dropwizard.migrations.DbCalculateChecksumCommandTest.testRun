@@ -1,0 +1,10 @@
+@Test
+public void testRun() throws Exception {
+    final AtomicBoolean checkSumVerified = new AtomicBoolean();
+    migrateCommand.setCheckSumConsumer(checkSum -> {
+        assertThat(checkSum).isEqualTo(CheckSum.parse("8:0f3683b37321ccfb1694a044986de4d9"));
+        checkSumVerified.set(true);
+    });
+    migrateCommand.run(null, new Namespace(Maps.of("id", Collections.singletonList("2"), "author", Collections.singletonList("db_dev"))), createConfiguration(getDatabaseUrl()));
+    assertThat(checkSumVerified.get()).isTrue();
+}

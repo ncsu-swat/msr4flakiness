@@ -1,0 +1,13 @@
+@Test
+public void testRun() throws Exception {
+    // Migrate some DDL changes
+    final TestMigrationConfiguration conf = createConfiguration(getDatabaseUrl());
+    final DbMigrateCommand<TestMigrationConfiguration> dbMigrateCommand = new DbMigrateCommand<>(new TestMigrationDatabaseConfiguration(), TestMigrationConfiguration.class, migrationsFileName);
+    dbMigrateCommand.run(null, new Namespace(Collections.emptyMap()), conf);
+    // Tag them
+    dbTagCommand.run(null, new Namespace(Collections.singletonMap("tag-name", Collections.singletonList("v1"))), conf);
+    // Verify that the tag exists
+    try (CloseableLiquibase liquibase = dbTagCommand.openLiquibase(conf.getDataSource(), new Namespace(Collections.emptyMap()))) {
+        assertThat(liquibase.tagExists("v1")).isTrue();
+    }
+}

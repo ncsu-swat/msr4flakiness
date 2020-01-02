@@ -1,0 +1,11 @@
+@Test
+void testDecompressRequest() throws Exception {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    try (GZIPOutputStream gz = new GZIPOutputStream(baos)) {
+        Resources.copy(Resources.getResource("assets/new-banner.txt"), gz);
+    }
+    setRequestPostGzipPlainText(baos.toByteArray());
+    HttpTester.Response response = HttpTester.parseResponse(servletTester.getResponses(request.generate()));
+    assertThat(response.getStatus()).isEqualTo(200);
+    assertThat(response.getContent()).isEqualTo("Banner has been updated");
+}

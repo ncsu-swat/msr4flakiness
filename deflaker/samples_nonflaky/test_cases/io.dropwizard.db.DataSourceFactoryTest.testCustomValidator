@@ -1,0 +1,13 @@
+@Test
+public void testCustomValidator() throws Exception {
+    factory.setValidatorClassName(Optional.of(CustomConnectionValidator.class.getName()));
+    try (Connection connection = dataSource().getConnection()) {
+        try (PreparedStatement statement = connection.prepareStatement("select 1")) {
+            try (ResultSet rs = statement.executeQuery()) {
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getInt(1)).isEqualTo(1);
+            }
+        }
+    }
+    assertThat(CustomConnectionValidator.loaded).isTrue();
+}

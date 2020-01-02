@@ -1,0 +1,20 @@
+@Test
+void testRunsTimedTask() throws Exception {
+    final ServletInputStream bodyStream = new TestServletInputStream(new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8)));
+    final Task timedTask = new Task("timed-task") {
+
+        @Override
+        @Timed(name = "vacuum-cleaning")
+        public void execute(Map<String, List<String>> parameters, PrintWriter output) {
+            output.println("Vacuum cleaning");
+        }
+    };
+    servlet.add(timedTask);
+    when(request.getInputStream()).thenReturn(bodyStream);
+    when(request.getParameterNames()).thenReturn(Collections.emptyEnumeration());
+    when(request.getMethod()).thenReturn("POST");
+    when(request.getPathInfo()).thenReturn("/timed-task");
+    when(response.getWriter()).thenReturn(mock(PrintWriter.class));
+    servlet.service(request, response);
+    assertThat(metricRegistry.getTimers()).containsKey(name(timedTask.getClass(), "vacuum-cleaning"));
+}

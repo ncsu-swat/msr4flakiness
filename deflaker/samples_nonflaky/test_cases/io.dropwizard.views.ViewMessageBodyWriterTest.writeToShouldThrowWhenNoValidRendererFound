@@ -1,0 +1,10 @@
+@Test
+public void writeToShouldThrowWhenNoValidRendererFound() {
+    final ViewMessageBodyWriter writer = new ViewMessageBodyWriter(metricRegistry, Collections.emptyList());
+    when(metricRegistry.timer(anyString())).thenReturn(timer);
+    when(timer.time()).thenReturn(timerContext);
+    assertThatExceptionOfType(WebApplicationException.class).isThrownBy(() -> {
+        writer.writeTo(view, Class.class, Class.class, new Annotation[] {}, new MediaType(), new MultivaluedHashMap<>(), stream);
+    }).withCauseExactlyInstanceOf(ViewRenderException.class);
+    verify(timerContext).stop();
+}

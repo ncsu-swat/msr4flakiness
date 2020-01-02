@@ -1,0 +1,11 @@
+@Test
+public void testSqlExceptionIsHandled() throws Exception {
+    final Person person = new Person();
+    person.setName("Jeff");
+    person.setEmail("jeff.hammersmith@targetprocessinc.com");
+    person.setBirthday(new DateTime(1984, 2, 11, 0, 0, DateTimeZone.UTC));
+    final Response response = target("/people/Jeff").request().put(Entity.entity(person, MediaType.APPLICATION_JSON));
+    assertThat(response.getStatusInfo()).isEqualTo(Response.Status.BAD_REQUEST);
+    assertThat(response.getHeaderString(HttpHeaders.CONTENT_TYPE)).isEqualTo(MediaType.APPLICATION_JSON);
+    assertThat(response.readEntity(ErrorMessage.class).getMessage()).isEqualTo("Wrong email");
+}

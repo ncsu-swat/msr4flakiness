@@ -1,0 +1,18 @@
+@Test
+void testDoNotPrintStackTrackWhenDisabled() throws Exception {
+    final TaskConfiguration taskConfiguration = new TaskConfiguration();
+    taskConfiguration.setPrintStackTraceOnError(false);
+    final TaskServlet servlet = new TaskServlet(metricRegistry, taskConfiguration);
+    servlet.add(gc);
+    final ServletInputStream bodyStream = new TestServletInputStream(new ByteArrayInputStream(new byte[0]));
+    when(request.getMethod()).thenReturn("POST");
+    when(request.getPathInfo()).thenReturn("/gc");
+    when(request.getParameterNames()).thenReturn(Collections.emptyEnumeration());
+    when(request.getInputStream()).thenReturn(bodyStream);
+    final StringWriter stringWriter = new StringWriter();
+    final PrintWriter output = new PrintWriter(stringWriter, true);
+    when(response.getWriter()).thenReturn(output);
+    doThrow(new RuntimeException("whoops")).when(gc).execute(any(), any());
+    servlet.service(request, response);
+    assertThat(stringWriter.toString().trim()).isEqualTo("whoops");
+}

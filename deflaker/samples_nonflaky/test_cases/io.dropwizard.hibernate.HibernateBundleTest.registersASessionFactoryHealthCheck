@@ -1,0 +1,9 @@
+@Test
+public void registersASessionFactoryHealthCheck() throws Exception {
+    dbConfig.setValidationQuery("SELECT something");
+    bundle.run(configuration, environment);
+    final ArgumentCaptor<SessionFactoryHealthCheck> captor = ArgumentCaptor.forClass(SessionFactoryHealthCheck.class);
+    verify(healthChecks).register(eq("hibernate"), captor.capture());
+    assertThat(captor.getValue().getSessionFactory()).isEqualTo(sessionFactory);
+    assertThat(captor.getValue().getValidationQuery()).isEqualTo(Optional.of("SELECT something"));
+}

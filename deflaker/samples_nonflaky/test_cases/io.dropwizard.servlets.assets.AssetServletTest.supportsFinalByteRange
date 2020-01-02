@@ -1,0 +1,18 @@
+@Test
+public void supportsFinalByteRange() throws Exception {
+    request.setURI(ROOT_SERVLET + "assets/example.txt");
+    request.setHeader(HttpHeader.RANGE.asString(), "bytes=10-10");
+    response = HttpTester.parseResponse(SERVLET_TESTER.getResponses(request.generate()));
+    assertThat(response.getStatus()).isEqualTo(206);
+    assertThat(response.getContent()).isEqualTo("E");
+    assertThat(response.get(HttpHeader.ACCEPT_RANGES)).isEqualTo("bytes");
+    assertThat(response.get(HttpHeader.CONTENT_RANGE)).isEqualTo("bytes 10-10/11");
+    assertThat(response.get(HttpHeader.CONTENT_LENGTH)).isEqualTo("1");
+    request.setHeader(HttpHeader.RANGE.asString(), "bytes=-1");
+    response = HttpTester.parseResponse(SERVLET_TESTER.getResponses(request.generate()));
+    assertThat(response.getStatus()).isEqualTo(206);
+    assertThat(response.getContent()).isEqualTo("E");
+    assertThat(response.get(HttpHeader.ACCEPT_RANGES)).isEqualTo("bytes");
+    assertThat(response.get(HttpHeader.CONTENT_RANGE)).isEqualTo("bytes 10-10/11");
+    assertThat(response.get(HttpHeader.CONTENT_LENGTH)).isEqualTo("1");
+}

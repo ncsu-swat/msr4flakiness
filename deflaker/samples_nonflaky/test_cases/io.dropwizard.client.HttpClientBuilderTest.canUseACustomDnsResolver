@@ -1,0 +1,10 @@
+@Test
+public void canUseACustomDnsResolver() throws Exception {
+    final DnsResolver resolver = mock(DnsResolver.class);
+    final InstrumentedHttpClientConnectionManager manager = builder.using(resolver).createConnectionManager(registry, "test");
+    // Yes, this is gross. Thanks, Apache!
+    final Field connectionOperatorField = FieldUtils.getField(PoolingHttpClientConnectionManager.class, "connectionOperator", true);
+    final Object connectOperator = connectionOperatorField.get(manager);
+    final Field dnsResolverField = FieldUtils.getField(connectOperator.getClass(), "dnsResolver", true);
+    assertThat(dnsResolverField.get(connectOperator)).isEqualTo(resolver);
+}

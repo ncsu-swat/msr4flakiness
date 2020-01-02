@@ -1,0 +1,14 @@
+@Test
+public void supportsIfRangeMatchRequests() throws Exception {
+    response = HttpTester.parseResponse(SERVLET_TESTER.getResponses(request.generate()));
+    final String correctEtag = response.get(HttpHeader.ETAG);
+    request.setHeader(HttpHeader.RANGE.asString(), "bytes=10-10");
+    request.setHeader(HttpHeader.IF_RANGE.asString(), correctEtag);
+    response = HttpTester.parseResponse(SERVLET_TESTER.getResponses(request.generate()));
+    final int statusWithMatchingEtag = response.getStatus();
+    request.setHeader(HttpHeader.IF_RANGE.asString(), correctEtag + "FOO");
+    response = HttpTester.parseResponse(SERVLET_TESTER.getResponses(request.generate()));
+    final int statusWithNonMatchingEtag = response.getStatus();
+    assertThat(statusWithMatchingEtag).isEqualTo(206);
+    assertThat(statusWithNonMatchingEtag).isEqualTo(200);
+}

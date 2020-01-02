@@ -1,0 +1,10 @@
+@Test
+public void doesNotAddRandomRequestIdHeaderIfItExists() throws Exception {
+    String existedRequestId = "e286b503-aa36-43fe-8312-95ee8773e348";
+    headers.add("X-Request-Id", existedRequestId);
+    when(request.getHeaderString("X-Request-Id")).thenReturn(existedRequestId);
+    requestIdFilter.filter(request, response);
+    String requestId = (String) headers.getFirst("X-Request-Id");
+    assertThat(requestId).isEqualTo(existedRequestId);
+    verify(logger).trace("method={} path={} request_id={} status={} length={}", "GET", "/some/path", requestId, 200, 2048);
+}

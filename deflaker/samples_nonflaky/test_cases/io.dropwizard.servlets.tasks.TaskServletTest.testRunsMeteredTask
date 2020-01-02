@@ -1,0 +1,20 @@
+@Test
+void testRunsMeteredTask() throws Exception {
+    final ServletInputStream bodyStream = new TestServletInputStream(new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8)));
+    final Task meteredTask = new Task("metered-task") {
+
+        @Override
+        @Metered(name = "vacuum-cleaning")
+        public void execute(Map<String, List<String>> parameters, PrintWriter output) throws Exception {
+            output.println("Vacuum cleaning");
+        }
+    };
+    servlet.add(meteredTask);
+    when(request.getMethod()).thenReturn("POST");
+    when(request.getInputStream()).thenReturn(bodyStream);
+    when(request.getParameterNames()).thenReturn(Collections.emptyEnumeration());
+    when(request.getPathInfo()).thenReturn("/metered-task");
+    when(response.getWriter()).thenReturn(mock(PrintWriter.class));
+    servlet.service(request, response);
+    assertThat(metricRegistry.getMeters()).containsKey(name(meteredTask.getClass(), "vacuum-cleaning"));
+}

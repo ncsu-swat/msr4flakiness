@@ -1,0 +1,11 @@
+@Test
+public void testSqlExceptionIsCause() throws Exception {
+    StatementContext statementContext = mock(StatementContext.class);
+    RuntimeException runtimeException = new RuntimeException("DB is down");
+    SQLException sqlException = new SQLException("DB error", runtimeException);
+    JdbiException jdbiException = new NoResultsException("Unable get a result set", sqlException, statementContext);
+    jdbiExceptionMapper.logException(9812, jdbiException);
+    verify(logger).error("Error handling a request: 0000000000002654", sqlException);
+    verify(logger).error("Error handling a request: 0000000000002654", runtimeException);
+    verify(logger, never()).error("Error handling a request: 0000000000002654", jdbiException);
+}

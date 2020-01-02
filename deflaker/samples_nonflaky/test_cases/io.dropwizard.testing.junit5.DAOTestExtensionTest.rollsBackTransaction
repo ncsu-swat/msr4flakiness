@@ -1,0 +1,21 @@
+@Test
+public void rollsBackTransaction() {
+    // given a successfully persisted entity
+    final TestEntity testEntity = new TestEntity("junit 5 description");
+    daoTestExtension.inTransaction(() -> persist(testEntity));
+    // when we prepare an update of that entity
+    testEntity.setDescription("newDescription");
+    try {
+        // ... but cause a constraint violation during the actual update
+        daoTestExtension.inTransaction(() -> {
+            persist(testEntity);
+            persist(new TestEntity(null));
+        });
+        failBecauseExceptionWasNotThrown(ConstraintViolationException.class);
+    } catch (ConstraintViolationException ignoredException) {
+        // keep calm and carry on
+        // ... the entity has the original value
+        final TestEntity sameTestEntity = get(testEntity.getId());
+        assertThat(sameTestEntity.getDescription()).isEqualTo("junit 5 description");
+    }
+}

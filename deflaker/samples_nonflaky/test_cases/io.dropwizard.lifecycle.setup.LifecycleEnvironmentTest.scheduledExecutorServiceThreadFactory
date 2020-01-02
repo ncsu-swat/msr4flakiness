@@ -1,0 +1,9 @@
+@Test
+public void scheduledExecutorServiceThreadFactory() throws ExecutionException, InterruptedException {
+    final String expectedName = "DropWizard ThreadFactory Test";
+    final String expectedNamePattern = expectedName + "-%d";
+    final ThreadFactory tfactory = buildThreadFactory(expectedNamePattern);
+    final ScheduledExecutorService executorService = environment.scheduledExecutorService("DropWizard Service", tfactory).build();
+    final Future<Boolean> isFactoryInUse = executorService.submit(() -> Thread.currentThread().getName().startsWith(expectedName));
+    assertThat(isFactoryInUse.get()).isTrue();
+}

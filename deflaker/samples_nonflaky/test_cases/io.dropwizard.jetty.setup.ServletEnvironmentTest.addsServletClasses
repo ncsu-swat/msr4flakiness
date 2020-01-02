@@ -1,0 +1,10 @@
+@Test
+public void addsServletClasses() throws Exception {
+    final ServletRegistration.Dynamic builder = environment.addServlet("servlet", GenericServlet.class);
+    assertThat(builder).isNotNull();
+    final ArgumentCaptor<ServletHolder> holder = ArgumentCaptor.forClass(ServletHolder.class);
+    verify(servletHandler).addServlet(holder.capture());
+    assertThat(holder.getValue().getName()).isEqualTo("servlet");
+    // this is ugly, but comparing classes sucks with these type bounds
+    assertThat(holder.getValue().getHeldClass().equals(GenericServlet.class)).isTrue();
+}

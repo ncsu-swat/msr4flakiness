@@ -1,0 +1,9 @@
+@Test
+public void addBidirectionalGzipSupportIfEnabled() throws Exception {
+    final JerseyClientConfiguration configuration = new JerseyClientConfiguration();
+    configuration.setGzipEnabled(true);
+    final Client client = builder.using(configuration).using(executorService, objectMapper).build("test");
+    assertThat(client.getConfiguration().getInstances()).anyMatch(element -> element instanceof GZipDecoder);
+    assertThat(client.getConfiguration().getInstances()).anyMatch(element -> element instanceof ConfiguredGZipEncoder);
+    verify(apacheHttpClientBuilder, never()).disableContentCompression(true);
+}

@@ -1,0 +1,19 @@
+@Test
+public void stopsAServerIfThereIsAnErrorStartingIt() throws Exception {
+    this.throwException = true;
+    server.addBean(new AbstractLifeCycle() {
+
+        @Override
+        protected void doStart() throws Exception {
+            throw new IOException("oh crap");
+        }
+    });
+    try {
+        command.run(environment, namespace, configuration);
+        failBecauseExceptionWasNotThrown(IOException.class);
+    } catch (IOException e) {
+        assertThat(e.getMessage()).isEqualTo("oh crap");
+    }
+    assertThat(server.isStarted()).isFalse();
+    this.throwException = false;
+}

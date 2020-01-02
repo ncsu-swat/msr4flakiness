@@ -1,0 +1,14 @@
+@Test
+void testRollbackToTagAsDryRun() throws Exception {
+    // Migrate the first DDL change to the database
+    migrateCommand.run(null, new Namespace(Collections.singletonMap("count", 1)), conf);
+    // Tag it
+    final DbTagCommand<TestMigrationConfiguration> tagCommand = new DbTagCommand<>(new TestMigrationDatabaseConfiguration(), TestMigrationConfiguration.class, migrationsFileName);
+    tagCommand.run(null, new Namespace(Collections.singletonMap("tag-name", Collections.singletonList("v1"))), conf);
+    // Migrate the second change
+    migrateCommand.run(null, new Namespace(Collections.emptyMap()), conf);
+    // Print out the rollback script for the second change
+    rollbackCommand.setOutputStream(new PrintStream(baos, true));
+    rollbackCommand.run(null, new Namespace(Maps.of("tag", "v1", "dry-run", true)), conf);
+    assertThat(baos.toString(UTF_8)).containsIgnoringCase("ALTER TABLE PUBLIC.persons DROP COLUMN email;");
+}

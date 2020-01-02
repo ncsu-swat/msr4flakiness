@@ -1,0 +1,13 @@
+@Test
+public void testCanBeConfiguredWithACustomAspect() {
+    final SessionDao sessionDao = new SessionDao(sessionFactory);
+    final UnitOfWorkAwareProxyFactory unitOfWorkAwareProxyFactory = new UnitOfWorkAwareProxyFactory("default", sessionFactory) {
+
+        @Override
+        public UnitOfWorkAspect newAspect(Map<String, SessionFactory> sessionFactories) {
+            return new CustomAspect(sessionFactories);
+        }
+    };
+    final OAuthAuthenticator oAuthAuthenticator = unitOfWorkAwareProxyFactory.create(OAuthAuthenticator.class, SessionDao.class, sessionDao);
+    assertThat(oAuthAuthenticator.authenticate("gr6f9y0")).isTrue();
+}

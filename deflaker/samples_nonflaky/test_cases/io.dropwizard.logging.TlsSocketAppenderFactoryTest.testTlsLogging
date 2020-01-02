@@ -1,0 +1,12 @@
+@Test
+public void testTlsLogging() throws Exception {
+    DefaultLoggingFactory loggingFactory = yamlConfigurationFactory.build(new SubstitutingSourceProvider(new ResourceConfigurationSourceProvider(), new StringSubstitutor(Maps.of("tls.trust_store.path", resourcePath("stores/tls_client.jks").getAbsolutePath(), "tls.trust_store.pass", "client_pass", "tls.server_port", tcpServer.getPort()))), "yaml/logging-tls.yml");
+    loggingFactory.configure(new MetricRegistry(), "tls-appender-test");
+    Logger logger = LoggerFactory.getLogger("com.example.app");
+    for (int i = 0; i < tcpServer.getMessageCount(); i++) {
+        logger.info("Application log {}", i);
+    }
+    tcpServer.getLatch().await(5, TimeUnit.SECONDS);
+    assertThat(tcpServer.getLatch().getCount()).isEqualTo(0);
+    loggingFactory.reset();
+}

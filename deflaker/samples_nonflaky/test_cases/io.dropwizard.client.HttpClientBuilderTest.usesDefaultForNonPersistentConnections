@@ -1,0 +1,12 @@
+@Test
+public void usesDefaultForNonPersistentConnections() throws Exception {
+    configuration.setKeepAlive(Duration.seconds(1));
+    assertThat(builder.using(configuration).createClient(apacheBuilder, connectionManager, "test")).isNotNull();
+    final Field field = FieldUtils.getField(httpClientBuilderClass, "keepAliveStrategy", true);
+    final DefaultConnectionKeepAliveStrategy strategy = (DefaultConnectionKeepAliveStrategy) field.get(apacheBuilder);
+    final HttpContext context = mock(HttpContext.class);
+    final HttpResponse response = mock(HttpResponse.class);
+    final HeaderIterator iterator = new BasicListHeaderIterator(Collections.singletonList(new BasicHeader(HttpHeaders.CONNECTION, "timeout=50")), HttpHeaders.CONNECTION);
+    when(response.headerIterator(HTTP.CONN_KEEP_ALIVE)).thenReturn(iterator);
+    assertThat(strategy.getKeepAliveDuration(response, context)).isEqualTo(50000);
+}

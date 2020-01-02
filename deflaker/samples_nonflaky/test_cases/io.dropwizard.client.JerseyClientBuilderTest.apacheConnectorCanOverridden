@@ -1,0 +1,16 @@
+@Test
+public void apacheConnectorCanOverridden() {
+    assertThat(new JerseyClientBuilder(new MetricRegistry()) {
+
+        @Override
+        protected DropwizardApacheConnector createDropwizardApacheConnector(ConfiguredCloseableHttpClient configuredClient) {
+            return new DropwizardApacheConnector(configuredClient.getClient(), configuredClient.getDefaultRequestConfig(), true) {
+
+                @Override
+                protected HttpEntity getHttpEntity(ClientRequest jerseyRequest) {
+                    return new GzipCompressingEntity(new ByteArrayEntity((byte[]) jerseyRequest.getEntity()));
+                }
+            };
+        }
+    }.using(environment).build("test")).isNotNull();
+}

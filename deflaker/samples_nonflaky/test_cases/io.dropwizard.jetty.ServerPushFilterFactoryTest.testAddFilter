@@ -1,0 +1,14 @@
+@Test
+public void testAddFilter() {
+    final ServerPushFilterFactory serverPush = new ServerPushFilterFactory();
+    serverPush.setRefererHosts(Arrays.asList("dropwizard.io", "dropwizard.github.io"));
+    serverPush.setRefererPorts(Arrays.asList(8444, 8445));
+    serverPush.setEnabled(true);
+    ServletContextHandler servletContextHandler = mock(ServletContextHandler.class);
+    serverPush.addFilter(servletContextHandler);
+    verify(servletContextHandler).setInitParameter("associatePeriod", "4000");
+    verify(servletContextHandler).setInitParameter("maxAssociations", "16");
+    verify(servletContextHandler).setInitParameter("hosts", "dropwizard.io,dropwizard.github.io");
+    verify(servletContextHandler).setInitParameter("ports", "8444,8445");
+    verify(servletContextHandler).addFilter(PushCacheFilter.class, "/*", EnumSet.of(DispatcherType.REQUEST));
+}
