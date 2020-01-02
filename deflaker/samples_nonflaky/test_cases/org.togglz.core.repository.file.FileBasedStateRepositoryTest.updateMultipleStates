@@ -1,0 +1,28 @@
+@Test
+public void updateMultipleStates() throws IOException {
+    Properties initialProps = new Properties();
+    initialProps.setProperty("FEATURE1", "true");
+    initialProps.setProperty("FEATURE1.strategy", UsernameActivationStrategy.ID);
+    initialProps.setProperty("FEATURE1.param.users", "chkal,tester");
+    initialProps.setProperty("FEATURE2", "false");
+    initialProps.setProperty("FEATURE3", "true");
+    File file = createPropertiesFile(initialProps);
+    try {
+        // modify FEATURE1 and FEATURE2, don't touch FEATURE3
+        FileBasedStateRepository repo = new FileBasedStateRepository(file);
+        repo.setFeatureState(new FeatureState(MyFeature.FEATURE1, false));
+        repo.setFeatureState(new FeatureState(MyFeature.FEATURE2, true).setStrategyId("some-strategy").setParameter("myparam", "myvalue"));
+        Properties newProps = readPropertiesFile(file);
+        assertThat(newProps.size(), is(5));
+        // FEATURE1: disabled without any strategy or properties
+        assertThat(newProps.getProperty("FEATURE1"), is("false"));
+        // FEATURE2: enabled with a strategy and one property
+        assertThat(newProps.getProperty("FEATURE2"), is("true"));
+        assertThat(newProps.getProperty("FEATURE2.strategy"), is("some-strategy"));
+        assertThat(newProps.getProperty("FEATURE2.param.myparam"), is("myvalue"));
+        // FEATURE3: didn't change
+        assertThat(newProps.getProperty("FEATURE3"), is("true"));
+    } finally {
+        file.delete();
+    }
+}

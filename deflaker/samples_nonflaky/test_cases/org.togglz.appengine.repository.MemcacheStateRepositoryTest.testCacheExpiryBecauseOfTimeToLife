@@ -1,0 +1,14 @@
+@Test
+public void testCacheExpiryBecauseOfTimeToLife() throws InterruptedException {
+    int ttl = 5;
+    MemcacheStateRepository repository = new MemcacheStateRepository(delegate, ttl);
+    // do some lookups
+    for (int i = 0; i < 5; i++) {
+        assertTrue(repository.getFeatureState(TestFeature.F1).isEnabled());
+        // wait some minimal amount of time to let the cache expire
+        Thread.sleep(ttl + 10);
+    }
+    // delegate called 5 times
+    Mockito.verify(delegate, Mockito.times(5)).getFeatureState(TestFeature.F1);
+    Mockito.verifyNoMoreInteractions(delegate);
+}

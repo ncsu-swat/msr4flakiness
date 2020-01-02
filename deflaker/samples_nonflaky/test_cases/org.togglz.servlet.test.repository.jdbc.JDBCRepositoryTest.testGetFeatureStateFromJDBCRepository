@@ -1,0 +1,22 @@
+@Test
+public void testGetFeatureStateFromJDBCRepository() throws IOException {
+    FeatureManager featureManager = FeatureContext.getFeatureManager();
+    assertNotNull(featureManager);
+    assertNotNull(dataSource);
+    FeatureState stateNoEntry = featureManager.getFeatureState(JDBCFeatures.F1);
+    assertEquals(false, stateNoEntry.isEnabled());
+    assertEquals(null, stateNoEntry.getStrategyId());
+    assertEquals(0, stateNoEntry.getParameterNames().size());
+    int inserted = executeUpdate("INSERT INTO MYTABLE " + "(FEATURE_NAME, FEATURE_ENABLED, STRATEGY_ID, STRATEGY_PARAMS) " + "VALUES ('F1', 1, 'SomeStrategy', 'param=foobar')");
+    assertEquals(1, inserted);
+    FeatureState stateEnabled = featureManager.getFeatureState(JDBCFeatures.F1);
+    assertEquals(true, stateEnabled.isEnabled());
+    assertEquals("SomeStrategy", stateEnabled.getStrategyId());
+    assertEquals(1, stateEnabled.getParameterNames().size());
+    assertEquals("foobar", stateEnabled.getParameter("param"));
+    executeUpdate("UPDATE MYTABLE " + "SET FEATURE_ENABLED = 0, STRATEGY_ID = NULL, STRATEGY_PARAMS = NULL " + "WHERE FEATURE_NAME = 'F1'");
+    FeatureState stateDisabled = featureManager.getFeatureState(JDBCFeatures.F1);
+    assertEquals(false, stateDisabled.isEnabled());
+    assertEquals(null, stateDisabled.getStrategyId());
+    assertEquals(0, stateDisabled.getParameterNames().size());
+}

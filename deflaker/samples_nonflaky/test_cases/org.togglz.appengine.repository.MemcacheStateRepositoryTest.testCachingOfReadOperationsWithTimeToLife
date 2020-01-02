@@ -1,0 +1,13 @@
+@Test
+public void testCachingOfReadOperationsWithTimeToLife() throws InterruptedException {
+    MemcacheStateRepository repository = new MemcacheStateRepository(delegate);
+    // do some lookups
+    for (int i = 0; i < 10; i++) {
+        assertTrue(repository.getFeatureState(TestFeature.F1).isEnabled());
+        Thread.sleep(10);
+    }
+    // delegate only called once
+    Mockito.verify(delegate).getFeatureState(TestFeature.F1);
+    Mockito.verifyNoMoreInteractions(delegate);
+    assertTrue(ms.contains(repository.key(TestFeature.F1.name())));
+}

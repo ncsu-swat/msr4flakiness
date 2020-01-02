@@ -1,0 +1,20 @@
+@Test
+public void testSetFeatureStateFromJDBCRepository() throws IOException {
+    FeatureManager featureManager = FeatureContext.getFeatureManager();
+    assertNotNull(featureManager);
+    assertNotNull(dataSource);
+    assertEquals(0l, executeQuery("SELECT COUNT(*) FROM MYTABLE WHERE FEATURE_NAME = 'F2'"));
+    FeatureState firstState = new FeatureState(JDBCFeatures.F2, true);
+    firstState.setStrategyId("someId");
+    firstState.setParameter("param", "foo");
+    featureManager.setFeatureState(firstState);
+    assertEquals(1, executeQuery("SELECT FEATURE_ENABLED FROM MYTABLE WHERE FEATURE_NAME = 'F2'"));
+    assertEquals("someId", executeQuery("SELECT STRATEGY_ID FROM MYTABLE WHERE FEATURE_NAME = 'F2'"));
+    assertEquals("param=foo", executeQuery("SELECT STRATEGY_PARAMS FROM MYTABLE WHERE FEATURE_NAME = 'F2'"));
+    FeatureState secondState = new FeatureState(JDBCFeatures.F2, false);
+    secondState.setStrategyId(null);
+    featureManager.setFeatureState(secondState);
+    assertEquals(0, executeQuery("SELECT FEATURE_ENABLED FROM MYTABLE WHERE FEATURE_NAME = 'F2'"));
+    assertEquals(null, executeQuery("SELECT STRATEGY_ID FROM MYTABLE WHERE FEATURE_NAME = 'F2'"));
+    assertEquals(null, executeQuery("SELECT STRATEGY_PARAMS FROM MYTABLE WHERE FEATURE_NAME = 'F2'"));
+}

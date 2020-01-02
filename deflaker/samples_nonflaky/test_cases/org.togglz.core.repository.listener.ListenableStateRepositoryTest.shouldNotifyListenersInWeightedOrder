@@ -1,0 +1,13 @@
+@Test
+public void shouldNotifyListenersInWeightedOrder() {
+    FeatureStateChangedListener higherPrio = mock(FeatureStateChangedListener.class);
+    when(higherPrio.priority()).thenReturn(42);
+    FeatureStateChangedListener lowerPrio = mock(FeatureStateChangedListener.class);
+    when(lowerPrio.priority()).thenReturn(7);
+    InOrder inOrder = inOrder(higherPrio, lowerPrio);
+    final ListenableStateRepository repo = new ListenableStateRepository(delegate, higherPrio, lowerPrio);
+    final FeatureState featureState = new FeatureState(TestFeature.F1, true);
+    repo.setFeatureState(featureState);
+    inOrder.verify(lowerPrio, times(1)).onFeatureStateChanged(null, featureState);
+    inOrder.verify(higherPrio, times(1)).onFeatureStateChanged(null, featureState);
+}

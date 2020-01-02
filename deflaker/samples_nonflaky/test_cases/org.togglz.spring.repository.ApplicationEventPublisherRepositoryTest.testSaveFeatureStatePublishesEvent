@@ -1,0 +1,11 @@
+@Test
+public void testSaveFeatureStatePublishesEvent() {
+    StateRepository repository = new ApplicationEventPublisherRepository(delegate, mockApplicationEventPublisher);
+    FeatureState newFeatureState = new FeatureState(DummyFeature.TEST, false);
+    repository.setFeatureState(newFeatureState);
+    // delegate only called once
+    Mockito.verify(delegate).getFeatureState(DummyFeature.TEST);
+    Mockito.verify(delegate).setFeatureState(newFeatureState);
+    Mockito.verify(mockApplicationEventPublisher).publishEvent(any(FeatureStateChangedEvent.class));
+    Mockito.verifyNoMoreInteractions(delegate);
+}

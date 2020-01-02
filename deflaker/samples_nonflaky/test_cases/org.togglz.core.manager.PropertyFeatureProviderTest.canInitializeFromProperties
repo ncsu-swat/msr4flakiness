@@ -1,0 +1,21 @@
+@Test
+public void canInitializeFromProperties() {
+    Properties properties = new Properties();
+    properties.setProperty("ID_1", "ID 1;true;Group 1,Group Other");
+    properties.setProperty("ID_2", "ID 2;false;Group 2");
+    PropertyFeatureProvider provider = new PropertyFeatureProvider(properties);
+    Set<Feature> features = provider.getFeatures();
+    assertThat(features).hasSize(2).areExactly(1, featureNamed("ID_1")).areExactly(1, featureNamed("ID_2"));
+    FeatureMetaData metadata1 = provider.getMetaData(new NamedFeature("ID_1"));
+    assertThat(metadata1).isNotNull();
+    assertThat(metadata1.getLabel()).isEqualTo("ID 1");
+    FeatureState defaultFeatureState1 = metadata1.getDefaultFeatureState();
+    assertThat(defaultFeatureState1.isEnabled()).isTrue();
+    assertThat(metadata1.getGroups()).hasSize(2).areExactly(1, groupNamed("Group 1")).areExactly(1, groupNamed("Group Other"));
+    FeatureMetaData metadata2 = provider.getMetaData(new NamedFeature("ID_2"));
+    assertThat(metadata2).isNotNull();
+    assertThat(metadata2.getLabel()).isEqualTo("ID 2");
+    FeatureState defaultFeatureState2 = metadata2.getDefaultFeatureState();
+    assertThat(defaultFeatureState2.isEnabled()).isFalse();
+    assertThat(metadata2.getGroups()).hasSize(1).areExactly(1, groupNamed("Group 2"));
+}

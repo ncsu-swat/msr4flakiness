@@ -1,0 +1,14 @@
+@Test
+public void testCacheExpiryBecauseOfTimeToLife() throws InterruptedException {
+    long ttl = 5;
+    StateRepository repository = new CachingStateRepository(delegate, ttl);
+    // do some lookups
+    for (int i = 0; i < 5; i++) {
+        assertTrue(repository.getFeatureState(DummyFeature.TEST).isEnabled());
+        // wait some small amount of time to let the cache expire
+        Thread.sleep(ttl + 30);
+    }
+    // delegate called 5 times
+    Mockito.verify(delegate, Mockito.times(5)).getFeatureState(DummyFeature.TEST);
+    Mockito.verifyNoMoreInteractions(delegate);
+}

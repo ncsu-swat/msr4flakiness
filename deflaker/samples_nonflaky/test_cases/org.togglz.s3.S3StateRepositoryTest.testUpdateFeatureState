@@ -1,0 +1,21 @@
+@SuppressWarnings("serial")
+@Test
+public void testUpdateFeatureState() {
+    FeatureState initState = new FeatureState(TestFeature.FEATURE_1).setEnabled(true).setStrategyId("abc").setParameter("key1", "value1");
+    repository.setFeatureState(initState);
+    FeatureState actualState = repository.getFeatureState(TestFeature.FEATURE_1);
+    assertThat(actualState.getFeature()).isEqualTo(initState.getFeature());
+    FeatureState updatedState = new FeatureState(TestFeature.FEATURE_1).setEnabled(false).setStrategyId("def").setParameter("key2", "value2");
+    repository.setFeatureState(updatedState);
+    actualState = repository.getFeatureState(TestFeature.FEATURE_1);
+    assertThat(actualState.getFeature()).isEqualTo(initState.getFeature());
+    assertThat(actualState.getStrategyId()).isEqualTo("def");
+    assertThat(actualState.isEnabled()).isEqualTo(false);
+    assertThat(actualState.getParameter("key2")).isEqualTo("value2");
+    assertThat(actualState.getParameterNames()).isEqualTo(new HashSet<String>() {
+
+        {
+            add("key2");
+        }
+    });
+}

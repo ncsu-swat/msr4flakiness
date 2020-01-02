@@ -1,0 +1,21 @@
+@Test
+public void enableFeature() throws IOException {
+    Properties initialProps = new Properties();
+    initialProps.setProperty("FEATURE1", "false");
+    initialProps.setProperty("FEATURE1.strategy", "something");
+    initialProps.setProperty("FEATURE1.param.foo", "bar");
+    File file = createPropertiesFile(initialProps);
+    try {
+        FileBasedStateRepository repo = new FileBasedStateRepository(file);
+        FeatureState state = repo.getFeatureState(MyFeature.FEATURE1);
+        state.enable();
+        repo.setFeatureState(state);
+        Properties newProps = readPropertiesFile(file);
+        assertThat(newProps.size(), is(3));
+        assertThat(newProps.getProperty("FEATURE1"), is("true"));
+        assertThat(newProps.getProperty("FEATURE1.strategy"), is("something"));
+        assertThat(newProps.getProperty("FEATURE1.param.foo"), is("bar"));
+    } finally {
+        file.delete();
+    }
+}

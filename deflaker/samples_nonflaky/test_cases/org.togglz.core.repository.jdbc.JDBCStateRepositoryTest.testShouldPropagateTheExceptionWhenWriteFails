@@ -1,0 +1,21 @@
+@Test(expected = IllegalStateException.class)
+public void testShouldPropagateTheExceptionWhenWriteFails() throws SQLException {
+    /*
+		 * GIVEN a feature state to persist
+		 */
+    FeatureState state = new FeatureState(TestFeature.F1).enable();
+    /**
+     * AND the datasource throws an exception when we try to get a
+     * connection
+     */
+    DataSource spyedDataSource = Mockito.spy(dataSource);
+    repository = new JDBCStateRepository(spyedDataSource, "TOGGLZ", true, DefaultMapSerializer.multiline());
+    Mockito.when(spyedDataSource.getConnection()).thenThrow(new SQLException("Failed to get a connection"));
+    /*
+		 * WHEN the feature state is persisted
+		 */
+    repository.setFeatureState(state);
+/*
+		 * THEN an IllegalStateException is thrown
+		 */
+}

@@ -1,0 +1,17 @@
+@Test
+public void testFormatOfExistingFeatureState() {
+    // set contents in Redis directly, without using the RedisStateRepository API
+    final JedisPool jedisPool = new JedisPool();
+    try (final Jedis jedis = jedisPool.getResource()) {
+        final String key = "feature-toggles:A_FEATURE";
+        jedis.hset(key, "enabled", "true");
+        jedis.hset(key, "strategy", "TIT_FOR_TAT");
+        jedis.hset(key, "parameter:MEANING_OF_LIFE", "42");
+    }
+    final Feature feature = new NamedFeature("A_FEATURE");
+    final FeatureState expectedFeatureState = new FeatureState(feature, true);
+    expectedFeatureState.setStrategyId("TIT_FOR_TAT");
+    expectedFeatureState.setParameter("MEANING_OF_LIFE", "42");
+    final FeatureState storedFeatureState = aRedisStateRepository().getFeatureState(feature);
+    assertTrue(EqualsBuilder.reflectionEquals(expectedFeatureState, storedFeatureState, true));
+}

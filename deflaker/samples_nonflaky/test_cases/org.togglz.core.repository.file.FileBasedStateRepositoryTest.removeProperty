@@ -1,0 +1,20 @@
+@Test
+public void removeProperty() throws IOException {
+    Properties initialProps = new Properties();
+    initialProps.setProperty("FEATURE1", "true");
+    initialProps.setProperty("FEATURE1.strategy", "my-strategy");
+    initialProps.setProperty("FEATURE1.param.myparam", "some-value");
+    File file = createPropertiesFile(initialProps);
+    try {
+        FileBasedStateRepository repo = new FileBasedStateRepository(file);
+        FeatureState state = repo.getFeatureState(MyFeature.FEATURE1);
+        state.setParameter("myparam", null);
+        repo.setFeatureState(state);
+        Properties newProps = readPropertiesFile(file);
+        assertThat(newProps.size(), is(2));
+        assertThat(newProps.getProperty("FEATURE1"), is("true"));
+        assertThat(newProps.getProperty("FEATURE1.strategy"), is("my-strategy"));
+    } finally {
+        file.delete();
+    }
+}

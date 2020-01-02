@@ -1,0 +1,13 @@
+@Test
+public void testNullCaching() throws InterruptedException {
+    MemcacheStateRepository repository = new MemcacheStateRepository(delegate);
+    // do some lookups
+    for (int i = 0; i < 10; i++) {
+        assertNull(repository.getFeatureState(TestFeature.F2));
+        Thread.sleep(10);
+    }
+    // delegate only called once
+    Mockito.verify(delegate).getFeatureState(TestFeature.F2);
+    Mockito.verifyNoMoreInteractions(delegate);
+    assertTrue(ms.contains(repository.key(TestFeature.F2.name())));
+}
