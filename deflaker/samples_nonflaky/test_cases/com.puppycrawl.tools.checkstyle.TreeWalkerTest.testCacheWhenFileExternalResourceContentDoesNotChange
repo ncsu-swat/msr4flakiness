@@ -1,0 +1,16 @@
+@Test
+public void testCacheWhenFileExternalResourceContentDoesNotChange() throws Exception {
+    final DefaultConfiguration filterConfig = createModuleConfig(SuppressionXpathFilter.class);
+    filterConfig.addAttribute("file", getPath("InputTreeWalkerSuppressionXpathFilter.xml"));
+    final DefaultConfiguration treeWalkerConfig = createModuleConfig(TreeWalker.class);
+    treeWalkerConfig.addChild(filterConfig);
+    final DefaultConfiguration checkerConfig = createRootConfig(treeWalkerConfig);
+    final File cacheFile = File.createTempFile("junit", null, temporaryFolder);
+    checkerConfig.addAttribute("cacheFile", cacheFile.getPath());
+    final String filePath = File.createTempFile("file", ".java", temporaryFolder).getPath();
+    final String[] expected = CommonUtil.EMPTY_STRING_ARRAY;
+    verify(checkerConfig, filePath, expected);
+    // One more time to use cache.
+    verify(checkerConfig, filePath, expected);
+    assertTrue(new String(Files.readAllBytes(cacheFile.toPath()), StandardCharsets.UTF_8).contains("InputTreeWalkerSuppressionXpathFilter.xml"), "External resource is not present in cache");
+}

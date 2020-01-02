@@ -1,0 +1,27 @@
+/**
+ * This test requires reflection to insert an unsupported option in the check to cover the
+ * exception that gets thrown when a unsupported option is used. The field has a value by
+ * default and the setter for the property will throw it's own exception when an unsupported
+ * option is given, so there is no other way to cover this code.
+ *
+ * @throws Exception if there is an error.
+ */
+@Test
+public void testVisitTokenSwitchReflection() throws Exception {
+    // Create mock ast
+    final DetailAstImpl astImport = mockAST(TokenTypes.IMPORT, "import", "mockfile", 0, 0);
+    final DetailAstImpl astIdent = mockAST(TokenTypes.IDENT, "myTestImport", "mockfile", 0, 0);
+    astImport.addChild(astIdent);
+    final DetailAST astSemi = mockAST(TokenTypes.SEMI, ";", "mockfile", 0, 0);
+    astIdent.addNextSibling(astSemi);
+    // Set unsupported option
+    final ImportOrderCheck mock = new ImportOrderCheck();
+    TestUtil.getClassDeclaredField(ImportOrderCheck.class, "option").set(mock, null);
+    // expecting IllegalStateException
+    try {
+        mock.visitToken(astImport);
+        fail("An exception is expected");
+    } catch (IllegalStateException ex) {
+        assertTrue(ex.getMessage().endsWith(": null"), "invalid exception message");
+    }
+}

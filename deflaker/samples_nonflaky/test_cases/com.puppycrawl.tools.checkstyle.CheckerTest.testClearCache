@@ -1,0 +1,23 @@
+@Test
+public void testClearCache() throws Exception {
+    final DefaultConfiguration violationCheck = createModuleConfig(DummyFileSetViolationCheck.class);
+    final DefaultConfiguration checkerConfig = new DefaultConfiguration("myConfig");
+    checkerConfig.addAttribute("charset", "UTF-8");
+    final File cacheFile = File.createTempFile("junit", null, temporaryFolder);
+    checkerConfig.addAttribute("cacheFile", cacheFile.getPath());
+    checkerConfig.addChild(violationCheck);
+    final Checker checker = new Checker();
+    checker.setModuleClassLoader(Thread.currentThread().getContextClassLoader());
+    checker.configure(checkerConfig);
+    checker.addListener(getBriefUtLogger());
+    checker.process(Collections.singletonList(new File("dummy.java")));
+    checker.clearCache();
+    // invoke destroy to persist cache
+    final PropertyCacheFile cache = Whitebox.getInternalState(checker, "cacheFile");
+    cache.persist();
+    final Properties cacheAfterClear = new Properties();
+    try (BufferedReader reader = Files.newBufferedReader(cacheFile.toPath())) {
+        cacheAfterClear.load(reader);
+    }
+    assertEquals(1, cacheAfterClear.size(), "Cache has unexpected size");
+}

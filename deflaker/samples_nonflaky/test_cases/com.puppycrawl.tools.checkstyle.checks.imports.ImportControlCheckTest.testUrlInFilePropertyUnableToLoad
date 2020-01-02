@@ -1,0 +1,14 @@
+@Test
+public void testUrlInFilePropertyUnableToLoad() throws Exception {
+    final DefaultConfiguration checkConfig = createModuleConfig(ImportControlCheck.class);
+    checkConfig.addAttribute("file", "https://UnableToLoadThisURL");
+    try {
+        final String[] expected = CommonUtil.EMPTY_STRING_ARRAY;
+        verify(checkConfig, getPath("InputImportControl.java"), expected);
+        fail("Test should fail if exception was not thrown");
+    } catch (CheckstyleException ex) {
+        final String message = getCheckstyleExceptionMessage(ex);
+        final String messageStart = "Unable to load ";
+        assertTrue(message.startsWith(message), "Invalid message, should start with: " + messageStart);
+    }
+}

@@ -1,0 +1,15 @@
+@Test
+public void testProcessSequential() throws Exception {
+    final DummyFileSetCheck check = new DummyFileSetCheck();
+    check.configure(new DefaultConfiguration("filesetcheck"));
+    check.setFileExtensions("tmp");
+    final File firstFile = new File("inputAbstractFileSetCheck.tmp");
+    final SortedSet<LocalizedMessage> firstFileMessages = check.process(firstFile, new FileText(firstFile, Collections.emptyList()));
+    assertEquals("File should not be empty.", firstFileMessages.first().getMessage(), "Invalid message");
+    final SortedSet<LocalizedMessage> internalMessages = check.getMessages();
+    assertTrue(internalMessages.isEmpty(), "Internal message should be empty, but was not");
+    final File secondFile = new File("inputAbstractFileSetCheck.txt");
+    final List<String> lines = Arrays.asList("key=value", "ext=tmp");
+    final SortedSet<LocalizedMessage> secondFileMessages = check.process(secondFile, new FileText(secondFile, lines));
+    assertTrue(secondFileMessages.isEmpty(), "Message should be empty, but was not");
+}

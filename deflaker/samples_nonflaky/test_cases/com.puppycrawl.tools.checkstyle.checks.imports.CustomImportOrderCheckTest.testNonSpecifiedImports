@@ -1,0 +1,12 @@
+/**
+ * Checks different combinations for same_package group.
+ */
+@Test
+public void testNonSpecifiedImports() throws Exception {
+    final DefaultConfiguration checkConfig = createModuleConfig(CustomImportOrderCheck.class);
+    checkConfig.addAttribute("thirdPartyPackageRegExp", "org.");
+    checkConfig.addAttribute("customImportOrderRules", "STATIC###STANDARD_JAVA_PACKAGE###THIRD_PARTY_PACKAGE###SAME_PACKAGE(3)");
+    checkConfig.addAttribute("sortImportsInGroupAlphabetically", "true");
+    final String[] expected = { "4: " + getCheckMessage(MSG_LEX, "java.awt.Button.ABORT", "java.io.File.createTempFile"), "5: " + getCheckMessage(MSG_LEX, "java.awt.print.Paper.*", "java.io.File.createTempFile"), "10: " + getCheckMessage(MSG_LEX, "java.awt.Dialog", "java.awt.Frame"), "15: " + getCheckMessage(MSG_LEX, "java.io.File", "javax.swing.JTable"), "16: " + getCheckMessage(MSG_LEX, "java.io.IOException", "javax.swing.JTable"), "17: " + getCheckMessage(MSG_LEX, "java.io.InputStream", "javax.swing.JTable"), "18: " + getCheckMessage(MSG_LEX, "java.io.Reader", "javax.swing.JTable"), "20: " + getCheckMessage(MSG_ORDER, SAME, THIRD, "com.puppycrawl.tools.*"), "22: " + getCheckMessage(MSG_NONGROUP_IMPORT, "com.google.common.collect.*"), "23: " + getCheckMessage(MSG_LINE_SEPARATOR, "org.junit.*") };
+    verify(checkConfig, getPath("InputCustomImportOrderDefault.java"), expected);
+}

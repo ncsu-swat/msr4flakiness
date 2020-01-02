@@ -1,0 +1,15 @@
+/**
+ * We cannot reproduce situation when {@code finishLocalSetup} is called
+ * twice. So, we have to use reflection to be sure that even in such
+ * situation state of the field will be cleared.
+ *
+ * @throws Exception when code tested throws exception
+ */
+@Test
+@SuppressWarnings("unchecked")
+public void testClearState() throws Exception {
+    final LocalizedMessage message = new LocalizedMessage(3, 47, TokenTypes.LCURLY, "messages.properties", null, null, SeverityLevel.ERROR, null, LeftCurlyCheck.class, null);
+    final TreeWalkerAuditEvent event = createTreeWalkerAuditEvent("InputXpathFileGeneratorAstFilter.java", message);
+    final XpathFileGeneratorAstFilter filter = new XpathFileGeneratorAstFilter();
+    assertTrue(TestUtil.isStatefulFieldClearedDuringLocalSetup(filter, event, "MESSAGE_QUERY_MAP", variableStack -> ((Map<LocalizedMessage, String>) variableStack).isEmpty()), "State is not cleared on finishLocalSetup");
+}

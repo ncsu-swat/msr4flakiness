@@ -1,0 +1,16 @@
+@Test
+public void testVisitTokenSwitchReflection() {
+    // unexpected parent for ARRAY_DECLARATOR token
+    final DetailAstImpl astImport = mockAST(TokenTypes.IMPORT, "import", "mockfile");
+    final DetailAstImpl astArrayDeclarator = mockAST(TokenTypes.ARRAY_DECLARATOR, "[", "mockfile");
+    final DetailAstImpl astRightBracket = mockAST(TokenTypes.RBRACK, "[", "mockfile");
+    astImport.addChild(astArrayDeclarator);
+    astArrayDeclarator.addChild(astRightBracket);
+    final NoWhitespaceAfterCheck check = new NoWhitespaceAfterCheck();
+    try {
+        check.visitToken(astArrayDeclarator);
+        fail("no intended exception thrown");
+    } catch (IllegalStateException ex) {
+        assertEquals("unexpected ast syntax import[0x-1]", ex.getMessage(), "Invalid exception message");
+    }
+}

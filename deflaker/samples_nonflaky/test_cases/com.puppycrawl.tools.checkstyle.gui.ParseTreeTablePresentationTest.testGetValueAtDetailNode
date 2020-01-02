@@ -1,0 +1,30 @@
+@Test
+public void testGetValueAtDetailNode() {
+    final DetailAST commentContentNode = tree.getFirstChild().getNextSibling().getFirstChild();
+    assertNotNull(commentContentNode, "Comment node cannot be null");
+    final int nodeType = commentContentNode.getType();
+    assertTrue(TokenUtil.isCommentType(nodeType), "Comment node should be a comment type");
+    assertEquals("/*", commentContentNode.getParent().getText(), "This should be a javadoc comment");
+    final ParseTreeTablePresentation parseTree = new ParseTreeTablePresentation(null);
+    parseTree.setParseMode(ParseMode.JAVA_WITH_JAVADOC_AND_COMMENTS);
+    final Object child = parseTree.getChild(commentContentNode, 0);
+    assertFalse(parseTree.isLeaf(child), "Child has not to be leaf");
+    assertTrue(parseTree.isLeaf(tree.getFirstChild()), "Child has to be leaf");
+    final Object treeModel = parseTree.getValueAt(child, 0);
+    final String type = (String) parseTree.getValueAt(child, 1);
+    final int line = (int) parseTree.getValueAt(child, 2);
+    final int column = (int) parseTree.getValueAt(child, 3);
+    final String text = (String) parseTree.getValueAt(child, 4);
+    final String expectedText = "JAVADOC";
+    assertNull(treeModel, "Tree model must be null");
+    assertEquals("JAVADOC", type, "Invalid type");
+    assertEquals(3, line, "Invalid line");
+    assertEquals(3, column, "Invalid column");
+    assertEquals(expectedText, text, "Invalid text");
+    try {
+        parseTree.getValueAt(child, parseTree.getColumnCount());
+        fail("IllegalStateException expected");
+    } catch (IllegalStateException ex) {
+        assertEquals("Unknown column", ex.getMessage(), "Invalid error message");
+    }
+}

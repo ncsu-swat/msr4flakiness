@@ -1,0 +1,10 @@
+@Test
+public void testQueryElementPrecedingSiblingVariableDef() throws Exception {
+    final String xpath = "//VARIABLE_DEF[./IDENT[@text='array']]/preceding-sibling::" + "VARIABLE_DEF";
+    final RootNode rootNode = getRootNode("InputXpathMapperAst.java");
+    final DetailAST[] actual = convertToArray(getXpathItems(xpath, rootNode));
+    final DetailAST expectedVariableDefNode1 = getSiblingByType(rootNode.getUnderlyingNode(), TokenTypes.CLASS_DEF).findFirstToken(TokenTypes.OBJBLOCK).findFirstToken(TokenTypes.METHOD_DEF).findFirstToken(TokenTypes.SLIST).findFirstToken(TokenTypes.VARIABLE_DEF);
+    final DetailAST expectedVariableDefNode2 = expectedVariableDefNode1.getNextSibling().getNextSibling();
+    final DetailAST[] expected = { expectedVariableDefNode2, expectedVariableDefNode1 };
+    assertThat("Result nodes differ from expected", actual, equalTo(expected));
+}

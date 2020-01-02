@@ -1,0 +1,19 @@
+@Test
+public void testProcessNonJavaFiles() throws Exception {
+    final TreeWalker treeWalker = new TreeWalker();
+    final PackageObjectFactory factory = new PackageObjectFactory(new HashSet<>(), Thread.currentThread().getContextClassLoader());
+    treeWalker.setModuleFactory(factory);
+    treeWalker.configure(new DefaultConfiguration("default config"));
+    final DefaultConfiguration childConfig = createModuleConfig(JavadocParagraphCheck.class);
+    treeWalker.setupChild(childConfig);
+    final File file = new File("input.java");
+    final List<String> lines = new ArrayList<>(Arrays.asList("package com.puppycrawl.tools.checkstyle;", "", "error public class InputTreeWalkerFileWithViolation {}"));
+    final FileText fileText = new FileText(file, lines);
+    treeWalker.setFileContents(new FileContents(fileText));
+    try {
+        treeWalker.processFiltered(file, fileText);
+        fail("Exception expected");
+    } catch (CheckstyleException ex) {
+        assertEquals("MismatchedTokenException occurred while parsing file input.java.", ex.getMessage(), "Invalid exception message");
+    }
+}

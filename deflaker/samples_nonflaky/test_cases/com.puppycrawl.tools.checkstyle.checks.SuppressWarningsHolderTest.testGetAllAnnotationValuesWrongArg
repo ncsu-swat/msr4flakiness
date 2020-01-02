@@ -1,0 +1,23 @@
+@Test
+public void testGetAllAnnotationValuesWrongArg() throws ReflectiveOperationException {
+    final SuppressWarningsHolder holder = new SuppressWarningsHolder();
+    final Method getAllAnnotationValues = holder.getClass().getDeclaredMethod("getAllAnnotationValues", DetailAST.class);
+    getAllAnnotationValues.setAccessible(true);
+    final DetailAstImpl methodDef = new DetailAstImpl();
+    methodDef.setType(TokenTypes.METHOD_DEF);
+    methodDef.setText("Method Def");
+    methodDef.setLineNo(0);
+    methodDef.setColumnNo(0);
+    final DetailAstImpl lparen = new DetailAstImpl();
+    lparen.setType(TokenTypes.LPAREN);
+    final DetailAstImpl parent = new DetailAstImpl();
+    parent.addChild(lparen);
+    parent.addChild(methodDef);
+    try {
+        getAllAnnotationValues.invoke(holder, parent);
+        fail("Exception expected");
+    } catch (InvocationTargetException ex) {
+        assertTrue(ex.getCause() instanceof IllegalArgumentException, "Error type is unexpected");
+        assertEquals("Unexpected AST: Method Def[0x0]", ex.getCause().getMessage(), "Error message is unexpected");
+    }
+}

@@ -1,0 +1,19 @@
+@Test
+public void testProcessWithParserThrowable() throws Exception {
+    final TreeWalker treeWalker = new TreeWalker();
+    treeWalker.configure(createModuleConfig(TypeNameCheck.class));
+    final PackageObjectFactory factory = new PackageObjectFactory(new HashSet<>(), Thread.currentThread().getContextClassLoader());
+    treeWalker.setModuleFactory(factory);
+    treeWalker.setupChild(createModuleConfig(TypeNameCheck.class));
+    final File file = new File(temporaryFolder, "file.java");
+    final List<String> lines = new ArrayList<>();
+    lines.add(" classD a {} ");
+    final FileText fileText = new FileText(file, lines);
+    treeWalker.setFileContents(new FileContents(fileText));
+    try {
+        treeWalker.processFiltered(file, fileText);
+        fail("Exception is expected");
+    } catch (CheckstyleException exception) {
+        assertTrue(exception.getMessage().contains("occurred while parsing file"), "Error message is unexpected");
+    }
+}

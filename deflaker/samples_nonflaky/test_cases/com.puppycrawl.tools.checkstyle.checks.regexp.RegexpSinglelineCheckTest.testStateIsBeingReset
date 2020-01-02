@@ -1,0 +1,15 @@
+/**
+ * Done as a UT cause new instance of Detector is created each time 'verify' executed.
+ * @throws Exception some Exception
+ */
+@Test
+public void testStateIsBeingReset() throws Exception {
+    final String illegal = "System\\.(out)|(err)\\.print(ln)?\\(";
+    final TestLoggingReporter reporter = new TestLoggingReporter();
+    final DetectorOptions detectorOptions = DetectorOptions.newBuilder().reporter(reporter).format(illegal).maximum(1).build();
+    final SinglelineDetector detector = new SinglelineDetector(detectorOptions);
+    final File file = new File(getPath("InputRegexpSinglelineSemantic.java"));
+    detector.processLines(new FileText(file, StandardCharsets.UTF_8.name()));
+    detector.processLines(new FileText(file, StandardCharsets.UTF_8.name()));
+    assertEquals(0, reporter.getLogCount(), "Logged unexpected amount of issues");
+}

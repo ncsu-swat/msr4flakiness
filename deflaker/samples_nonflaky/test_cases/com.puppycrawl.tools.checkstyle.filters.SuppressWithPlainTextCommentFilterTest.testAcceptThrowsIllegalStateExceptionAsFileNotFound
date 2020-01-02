@@ -1,0 +1,16 @@
+@Test
+public void testAcceptThrowsIllegalStateExceptionAsFileNotFound() {
+    final LocalizedMessage message = new LocalizedMessage(1, 1, 1, TokenTypes.CLASS_DEF, "messages.properties", "key", null, SeverityLevel.ERROR, null, getClass(), null);
+    final String fileName = "nonexisting_file";
+    final AuditEvent auditEvent = new AuditEvent(this, fileName, message);
+    final SuppressWithPlainTextCommentFilter filter = new SuppressWithPlainTextCommentFilter();
+    try {
+        filter.accept(auditEvent);
+        fail(IllegalStateException.class.getSimpleName() + " is expected");
+    } catch (IllegalStateException ex) {
+        assertEquals("Cannot read source file: " + fileName, ex.getMessage(), "Invalid exception message");
+        final Throwable cause = ex.getCause();
+        assertTrue(cause instanceof FileNotFoundException, "Exception cause has invalid type");
+        assertEquals(fileName + " (No such file or directory)", cause.getMessage(), "Invalid exception message");
+    }
+}

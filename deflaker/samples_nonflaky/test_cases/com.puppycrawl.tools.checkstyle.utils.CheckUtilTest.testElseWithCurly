@@ -1,0 +1,24 @@
+@Test
+public void testElseWithCurly() {
+    final DetailAstImpl ast = new DetailAstImpl();
+    ast.setType(TokenTypes.ASSIGN);
+    ast.setText("ASSIGN");
+    assertFalse(CheckUtil.isElseIf(ast), "Invalid elseIf check result 'ASSIGN' is not 'else if'");
+    final DetailAstImpl parentAst = new DetailAstImpl();
+    parentAst.setType(TokenTypes.LCURLY);
+    parentAst.setText("LCURLY");
+    final DetailAstImpl ifAst = new DetailAstImpl();
+    ifAst.setType(TokenTypes.LITERAL_IF);
+    ifAst.setText("IF");
+    parentAst.addChild(ifAst);
+    assertFalse(CheckUtil.isElseIf(ifAst), "Invalid elseIf check result: 'IF' is not 'else if'");
+    final DetailAstImpl parentAst2 = new DetailAstImpl();
+    parentAst2.setType(TokenTypes.SLIST);
+    parentAst2.setText("SLIST");
+    parentAst2.addChild(ifAst);
+    assertFalse(CheckUtil.isElseIf(ifAst), "Invalid elseIf check result: 'SLIST' is not 'else if'");
+    final DetailAstImpl elseAst = new DetailAstImpl();
+    elseAst.setType(TokenTypes.LITERAL_ELSE);
+    elseAst.setFirstChild(ifAst);
+    assertTrue(CheckUtil.isElseIf(ifAst), "Invalid elseIf check result");
+}

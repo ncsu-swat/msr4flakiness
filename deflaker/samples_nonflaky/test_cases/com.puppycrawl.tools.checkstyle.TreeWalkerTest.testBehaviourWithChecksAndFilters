@@ -1,0 +1,12 @@
+@Test
+public void testBehaviourWithChecksAndFilters() throws Exception {
+    final DefaultConfiguration filterConfig = createModuleConfig(SuppressionCommentFilter.class);
+    filterConfig.addAttribute("checkCPP", "false");
+    final DefaultConfiguration treeWalkerConfig = createModuleConfig(TreeWalker.class);
+    treeWalkerConfig.addChild(createModuleConfig(MemberNameCheck.class));
+    treeWalkerConfig.addChild(filterConfig);
+    final DefaultConfiguration checkerConfig = createRootConfig(treeWalkerConfig);
+    final File file = new File(getPath("InputTreeWalkerSuppressionCommentFilter.java"));
+    final String[] expected = { "9:17: " + getCheckMessage(MemberNameCheck.class, "name.invalidPattern", "P", "^[a-z][a-zA-Z0-9]*$"), "4:17: " + getCheckMessage(MemberNameCheck.class, "name.invalidPattern", "I", "^[a-z][a-zA-Z0-9]*$") };
+    verify(checkerConfig, file.getPath(), expected);
+}

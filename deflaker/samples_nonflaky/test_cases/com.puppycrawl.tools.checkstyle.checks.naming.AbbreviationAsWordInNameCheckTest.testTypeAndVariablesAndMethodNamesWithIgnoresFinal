@@ -1,0 +1,15 @@
+@Test
+public void testTypeAndVariablesAndMethodNamesWithIgnoresFinal() throws Exception {
+    final DefaultConfiguration checkConfig = createModuleConfig(AbbreviationAsWordInNameCheck.class);
+    checkConfig.addAttribute("allowedAbbreviationLength", "4");
+    checkConfig.addAttribute("allowedAbbreviations", "MARAZMATIC,VARIABLE");
+    checkConfig.addAttribute("ignoreStatic", "false");
+    checkConfig.addAttribute("ignoreFinal", "true");
+    checkConfig.addAttribute("tokens", "CLASS_DEF" + ",VARIABLE_DEF" + ",METHOD_DEF,ENUM_DEF,ENUM_CONSTANT_DEF" + ",PARAMETER_DEF,INTERFACE_DEF,ANNOTATION_DEF");
+    checkConfig.addAttribute("ignoreOverriddenMethods", "true");
+    final int expectedCapitalCount = 5;
+    final String[] expected = { "12: " + getWarningMessage("AbstractCLASSName", expectedCapitalCount), "32: " + getWarningMessage("AbstractINNERRClass", expectedCapitalCount), "37: " + getWarningMessage("WellNamedFACTORY", expectedCapitalCount), "38: " + getWarningMessage("marazmaticMETHODName", expectedCapitalCount), // not in ignore list
+    "58: " + getWarningMessage("serialNUMBER", expectedCapitalCount), "60: " + // no ignore for static
+    getWarningMessage("s2erialNUMBER", expectedCapitalCount) };
+    verify(checkConfig, getPath("InputAbbreviationAsWordInNameType.java"), expected);
+}

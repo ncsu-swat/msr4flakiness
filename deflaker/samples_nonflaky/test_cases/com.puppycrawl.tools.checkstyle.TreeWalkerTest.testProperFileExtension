@@ -1,0 +1,11 @@
+@Test
+public void testProperFileExtension() throws Exception {
+    final DefaultConfiguration checkConfig = createModuleConfig(ConstantNameCheck.class);
+    final File file = new File(temporaryFolder, "file.java");
+    try (Writer writer = Files.newBufferedWriter(file.toPath(), StandardCharsets.UTF_8)) {
+        final String content = "public class Main { public static final int k = 5 + 4; }";
+        writer.write(content);
+    }
+    final String[] expected1 = { "1:45: " + getCheckMessage(ConstantNameCheck.class, MSG_INVALID_PATTERN, "k", "^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$") };
+    verify(checkConfig, file.getPath(), expected1);
+}

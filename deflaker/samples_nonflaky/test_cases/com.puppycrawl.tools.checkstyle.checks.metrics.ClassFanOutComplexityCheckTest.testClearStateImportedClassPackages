@@ -1,0 +1,16 @@
+/**
+ * We cannot reproduce situation when visitToken is called and leaveToken is not.
+ * So, we have to use reflection to be sure that even in such situation
+ * state of the field will be cleared.
+ *
+ * @throws Exception when code tested throws exception
+ */
+@Test
+@SuppressWarnings("unchecked")
+public void testClearStateImportedClassPackages() throws Exception {
+    final ClassFanOutComplexityCheck check = new ClassFanOutComplexityCheck();
+    final DetailAST root = JavaParser.parseFile(new File(getPath("InputClassFanOutComplexity.java")), JavaParser.Options.WITHOUT_COMMENTS);
+    final Optional<DetailAST> importAst = TestUtil.findTokenInAstByPredicate(root, ast -> ast.getType() == TokenTypes.IMPORT);
+    assertTrue(importAst.isPresent(), "Ast should contain IMPORT");
+    assertTrue(TestUtil.isStatefulFieldClearedDuringBeginTree(check, importAst.get(), "importedClassPackages", importedClssPackage -> ((Map<String, String>) importedClssPackage).isEmpty()), "State is not cleared on beginTree");
+}

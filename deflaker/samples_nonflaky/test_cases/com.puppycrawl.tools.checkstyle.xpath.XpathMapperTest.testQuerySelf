@@ -1,0 +1,13 @@
+@Test
+public void testQuerySelf() throws Exception {
+    final String objectXpath = "/CLASS_DEF[./IDENT[@text='InputXpathMapperAst']]//OBJBLOCK";
+    final RootNode rootNode = getRootNode("InputXpathMapperAst.java");
+    final List<NodeInfo> objectNodes = getXpathItems(objectXpath, rootNode);
+    assertThat("Invalid number of nodes", objectNodes.size(), equalTo(1));
+    final AbstractNode objNode = (AbstractNode) objectNodes.get(0);
+    final String methodsXpath = "self::OBJBLOCK";
+    final DetailAST[] actual = convertToArray(getXpathItems(methodsXpath, objNode));
+    final DetailAST expectedObjBlockNode = getSiblingByType(rootNode.getUnderlyingNode(), TokenTypes.CLASS_DEF).findFirstToken(TokenTypes.OBJBLOCK);
+    final DetailAST[] expected = { expectedObjBlockNode };
+    assertThat("Result nodes differ from expected", actual, equalTo(expected));
+}

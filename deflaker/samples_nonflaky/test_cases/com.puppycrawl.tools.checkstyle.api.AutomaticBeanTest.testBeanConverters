@@ -1,0 +1,25 @@
+@Test
+public void testBeanConverters() throws Exception {
+    final ConverterBean bean = new ConverterBean();
+    // methods are not seen as used by reflection
+    bean.setStrings("BAD");
+    bean.setPattern(null);
+    bean.setSeverityLevel(null);
+    bean.setScope(null);
+    bean.setUri(null);
+    bean.setAccessModifiers(AccessModifier.PACKAGE);
+    final DefaultConfiguration config = new DefaultConfiguration("bean");
+    config.addAttribute("strings", "a, b, c");
+    config.addAttribute("pattern", ".*");
+    config.addAttribute("severityLevel", "error");
+    config.addAttribute("scope", "public");
+    config.addAttribute("uri", "http://github.com");
+    config.addAttribute("accessModifiers", "public, private");
+    bean.configure(config);
+    assertArrayEquals(new String[] { "a", "b", "c" }, bean.strings, "invalid result");
+    assertEquals(".*", bean.pattern.pattern(), "invalid result");
+    assertEquals(SeverityLevel.ERROR, bean.severityLevel, "invalid result");
+    assertEquals(Scope.PUBLIC, bean.scope, "invalid result");
+    assertEquals(new URI("http://github.com"), bean.uri, "invalid result");
+    assertArrayEquals(new AccessModifier[] { AccessModifier.PUBLIC, AccessModifier.PRIVATE }, bean.accessModifiers, "invalid result");
+}

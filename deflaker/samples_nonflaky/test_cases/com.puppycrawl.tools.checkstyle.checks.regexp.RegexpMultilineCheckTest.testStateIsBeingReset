@@ -1,0 +1,15 @@
+/**
+ * Done as a UT cause new instance of Detector is created each time 'verify' executed.
+ * @throws Exception some Exception
+ */
+@Test
+public void testStateIsBeingReset() throws Exception {
+    final TestLoggingReporter reporter = new TestLoggingReporter();
+    final DetectorOptions detectorOptions = DetectorOptions.newBuilder().reporter(reporter).format("\\r").maximum(1).build();
+    final MultilineDetector detector = new MultilineDetector(detectorOptions);
+    final File file = File.createTempFile("junit", null, temporaryFolder);
+    Files.write(file.toPath(), "first line \r\n second line \n\r third line".getBytes(StandardCharsets.UTF_8));
+    detector.processLines(new FileText(file, StandardCharsets.UTF_8.name()));
+    detector.processLines(new FileText(file, StandardCharsets.UTF_8.name()));
+    assertEquals(2, reporter.getLogCount(), "Logged unexpected amount of issues");
+}

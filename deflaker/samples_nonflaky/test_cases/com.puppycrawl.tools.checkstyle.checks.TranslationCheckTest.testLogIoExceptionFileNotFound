@@ -1,0 +1,16 @@
+@Test
+public void testLogIoExceptionFileNotFound() throws Exception {
+    // I can't put wrong file here. Checkstyle fails before check started.
+    // I saw some usage of file or handling of wrong file in Checker, or somewhere
+    // in checks running part. So I had to do it with reflection to improve coverage.
+    final TranslationCheck check = new TranslationCheck();
+    final DefaultConfiguration checkConfig = createModuleConfig(TranslationCheck.class);
+    final TestMessageDispatcher dispatcher = new TestMessageDispatcher();
+    check.configure(checkConfig);
+    check.setMessageDispatcher(dispatcher);
+    final Set<String> keys = Whitebox.invokeMethod(check, "getTranslationKeys", new File(".no.such.file"));
+    assertTrue(keys.isEmpty(), "Translation keys should be empty when File is not found");
+    assertEquals(1, dispatcher.savedErrors.size(), "expected number of errors to fire");
+    final LocalizedMessage localizedMessage = new LocalizedMessage(1, Definitions.CHECKSTYLE_BUNDLE, "general.fileNotFound", null, null, getClass(), null);
+    assertEquals(localizedMessage.getMessage(), dispatcher.savedErrors.iterator().next().getMessage(), "Invalid message");
+}

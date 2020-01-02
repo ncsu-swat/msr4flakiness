@@ -1,0 +1,26 @@
+/**
+ * Test contains asserts in callstack, but idea does not see them.
+ * @noinspection JUnitTestMethodWithNoAssertions
+ */
+@Test
+public void testAllCheckSectionJavaDocs() throws Exception {
+    final ModuleFactory moduleFactory = TestUtil.getPackageObjectFactory();
+    for (Path path : XdocUtil.getXdocsConfigFilePaths(XdocUtil.getXdocsFilePaths())) {
+        final File file = path.toFile();
+        final String fileName = file.getName();
+        if ("config_reporting.xml".equals(fileName)) {
+            continue;
+        }
+        final String input = new String(Files.readAllBytes(path), UTF_8);
+        final Document document = XmlUtil.getRawXml(fileName, input, input);
+        final NodeList sources = document.getElementsByTagName("section");
+        for (int position = 0; position < sources.getLength(); position++) {
+            final Node section = sources.item(position);
+            final String sectionName = section.getAttributes().getNamedItem("name").getNodeValue();
+            if ("Content".equals(sectionName) || "Overview".equals(sectionName)) {
+                continue;
+            }
+            examineCheckSection(moduleFactory, fileName, sectionName, section);
+        }
+    }
+}

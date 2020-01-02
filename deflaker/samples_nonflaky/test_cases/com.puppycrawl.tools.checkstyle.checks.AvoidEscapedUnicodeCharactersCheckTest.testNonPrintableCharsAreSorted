@@ -1,0 +1,45 @@
+/**
+ * Testing, that all elements in the constant NON_PRINTABLE_CHARS are sorted.
+ * This is very convenient for the sake of maintainability.
+ *
+ * @throws Exception when code tested throws some exception
+ */
+@Test
+public void testNonPrintableCharsAreSorted() throws Exception {
+    // Getting Field Value via Reflection, because the field is private
+    final Field field = TestUtil.getClassDeclaredField(AvoidEscapedUnicodeCharactersCheck.class, "NON_PRINTABLE_CHARS");
+    field.setAccessible(true);
+    String expression = ((Pattern) field.get(null)).pattern();
+    // Replacing expressions like "\\u000[bB]" with "\\u000B"
+    final String[] charExpressions = { "Aa", "Bb", "Cc", "Dd", "Ee", "Ff" };
+    for (String charExpression : charExpressions) {
+        final String regex = "\\[[" + charExpression + "]{2}]";
+        expression = expression.replaceAll(regex, charExpression.substring(0, 1));
+    }
+    // Replacing duplications like "\\uF{3}9" with "\\uFFF9"
+    for (int i = 4; i > 1; i--) {
+        final String regex = "([A-F])\\{" + i + "}";
+        String replacement = "$1$1{" + (i - 1) + "}";
+        if (i == 2) {
+            replacement = "$1$1";
+        }
+        expression = expression.replaceAll(regex, replacement);
+    }
+    // Verifying character order
+    final String[] expressionParts = expression.split("\\|");
+    final Pattern unicodeCharPattern = Pattern.compile("^\\\\\\\\u[0-9A-F]{4}$");
+    String lastChar = null;
+    for (int i = 0; i < expressionParts.length; i++) {
+        final String currentChar = expressionParts[i];
+        final Matcher matcher = unicodeCharPattern.matcher(currentChar);
+        if (!matcher.matches()) {
+            final String message = "Character '" + currentChar + "' (at position " + i + ") doesn't match the pattern";
+            assertTrue(matcher.matches(), message);
+        }
+        if (lastChar != null) {
+            final String message = "Character '" + lastChar + "' should be after '" + currentChar + "', position: " + i;
+            assertTrue(lastChar.compareTo(currentChar) < 0, message);
+        }
+        lastChar = currentChar;
+    }
+}

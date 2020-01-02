@@ -1,0 +1,14 @@
+@Test
+public void testSamePackageDepthNotInt() throws Exception {
+    final DefaultConfiguration checkConfig = createModuleConfig(CustomImportOrderCheck.class);
+    checkConfig.addAttribute("customImportOrderRules", "SAME_PACKAGE(INT_IS_REQUIRED_HERE)");
+    checkConfig.addAttribute("sortImportsInGroupAlphabetically", "true");
+    try {
+        final String[] expected = CommonUtil.EMPTY_STRING_ARRAY;
+        verify(checkConfig, getPath("InputCustomImportOrderDefault.java"), expected);
+        fail("exception expected");
+    } catch (CheckstyleException ex) {
+        assertEquals("cannot initialize module com.puppycrawl.tools.checkstyle.TreeWalker - " + "cannot initialize module com.puppycrawl.tools.checkstyle.checks" + ".imports.CustomImportOrderCheck - " + "Cannot set property 'customImportOrderRules' to " + "'SAME_PACKAGE(INT_IS_REQUIRED_HERE)'", ex.getMessage(), "Invalid exception message");
+        assertEquals("For input string: \"INT_IS_REQUIRED_HERE\"", ex.getCause().getCause().getCause().getCause().getMessage(), "Invalid exception message");
+    }
+}

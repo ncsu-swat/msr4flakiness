@@ -1,0 +1,15 @@
+@Test
+public void testWrongKeyTypeInProperties() throws Exception {
+    final Class<?> uniquePropertiesClass = Class.forName("com.puppycrawl.tools.checkstyle.checks." + "UniquePropertiesCheck$UniqueProperties");
+    final Constructor<?> constructor = uniquePropertiesClass.getDeclaredConstructor();
+    constructor.setAccessible(true);
+    final Object uniqueProperties = constructor.newInstance();
+    final Method method = uniqueProperties.getClass().getDeclaredMethod("put", Object.class, Object.class);
+    final Object result = method.invoke(uniqueProperties, 1, "value");
+    final Map<Object, Object> table = new HashMap<>();
+    final Object expected = table.put(1, "value");
+    assertEquals(expected, result, "Invalid result of put method");
+    final Object result2 = method.invoke(uniqueProperties, 1, "value");
+    final Object expected2 = table.put(1, "value");
+    assertEquals(expected2, result2, "Value should be substituted");
+}

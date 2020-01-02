@@ -1,0 +1,8 @@
+@Test
+@SuppressWarnings("unchecked")
+public void testClearState() throws Exception {
+    final SuppressWarningsHolder check = new SuppressWarningsHolder();
+    final Optional<DetailAST> annotationDef = TestUtil.findTokenInAstByPredicate(JavaParser.parseFile(new File(getPath("InputSuppressWarningsHolder.java")), JavaParser.Options.WITHOUT_COMMENTS), ast -> ast.getType() == TokenTypes.ANNOTATION);
+    assertTrue(annotationDef.isPresent(), "Ast should contain ANNOTATION");
+    assertTrue(TestUtil.isStatefulFieldClearedDuringBeginTree(check, annotationDef.get(), "ENTRIES", entries -> ((ThreadLocal<List<Object>>) entries).get().isEmpty()), "State is not cleared on beginTree");
+}

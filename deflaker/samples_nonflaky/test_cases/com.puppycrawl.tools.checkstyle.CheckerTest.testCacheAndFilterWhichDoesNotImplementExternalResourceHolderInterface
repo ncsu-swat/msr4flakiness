@@ -1,0 +1,31 @@
+/**
+ * It is OK to have long test method name here as it describes the test purpose.
+ */
+@Test
+public void testCacheAndFilterWhichDoesNotImplementExternalResourceHolderInterface() throws Exception {
+    assertFalse(ExternalResourceHolder.class.isAssignableFrom(DummyFilter.class), "ExternalResourceHolder has changed its parent");
+    final DefaultConfiguration filterConfig = createModuleConfig(DummyFilter.class);
+    final DefaultConfiguration checkerConfig = createRootConfig(filterConfig);
+    final File cacheFile = File.createTempFile("junit", null, temporaryFolder);
+    checkerConfig.addAttribute("cacheFile", cacheFile.getPath());
+    final String[] expected = CommonUtil.EMPTY_STRING_ARRAY;
+    final String pathToEmptyFile = File.createTempFile("file", ".java", temporaryFolder).getPath();
+    verify(checkerConfig, pathToEmptyFile, expected);
+    final Properties cacheAfterFirstRun = new Properties();
+    try (BufferedReader reader = Files.newBufferedReader(cacheFile.toPath())) {
+        cacheAfterFirstRun.load(reader);
+    }
+    // One more time to use cache.
+    verify(checkerConfig, pathToEmptyFile, expected);
+    final Properties cacheAfterSecondRun = new Properties();
+    try (BufferedReader reader = Files.newBufferedReader(cacheFile.toPath())) {
+        cacheAfterSecondRun.load(reader);
+    }
+    final String cacheFilePath = cacheAfterSecondRun.getProperty(pathToEmptyFile);
+    assertEquals(cacheAfterFirstRun.getProperty(pathToEmptyFile), cacheFilePath, "Cache file has changed its path");
+    final String cacheHash = cacheAfterSecondRun.getProperty(PropertyCacheFile.CONFIG_HASH_KEY);
+    assertEquals(cacheAfterFirstRun.getProperty(PropertyCacheFile.CONFIG_HASH_KEY), cacheHash, "Cache has changed its hash");
+    final int expectedNumberOfObjectsInCache = 2;
+    assertEquals(expectedNumberOfObjectsInCache, cacheAfterFirstRun.size(), "Number of items in cache differs from expected");
+    assertEquals(expectedNumberOfObjectsInCache, cacheAfterSecondRun.size(), "Number of items in cache differs from expected");
+}

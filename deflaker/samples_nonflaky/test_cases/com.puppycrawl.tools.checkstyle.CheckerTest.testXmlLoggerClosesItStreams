@@ -1,0 +1,14 @@
+// -@cs[CheckstyleTestMakeup] must use raw class to directly initialize DefaultLogger
+@Test
+public void testXmlLoggerClosesItStreams() throws Exception {
+    final Checker checker = new Checker();
+    try (CloseAndFlushTestByteArrayOutputStream testInfoOutputStream = new CloseAndFlushTestByteArrayOutputStream()) {
+        checker.setModuleClassLoader(Thread.currentThread().getContextClassLoader());
+        checker.addListener(new XMLLogger(testInfoOutputStream, OutputStreamOptions.CLOSE));
+        final File tmpFile = File.createTempFile("file", ".java", temporaryFolder);
+        final String[] expected = CommonUtil.EMPTY_STRING_ARRAY;
+        verify(checker, tmpFile.getPath(), tmpFile.getPath(), expected);
+        assertWithMessage("Output stream close count").that(testInfoOutputStream.getCloseCount()).isEqualTo(1);
+        assertWithMessage("Output stream flush count").that(testInfoOutputStream.getFlushCount()).isEqualTo(TestUtil.adjustFlushCountForOutputStreamClose(0));
+    }
+}

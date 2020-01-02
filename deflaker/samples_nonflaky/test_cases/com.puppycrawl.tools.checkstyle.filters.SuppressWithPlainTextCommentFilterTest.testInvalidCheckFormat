@@ -1,0 +1,18 @@
+@Test
+public void testInvalidCheckFormat() throws Exception {
+    final DefaultConfiguration filterCfg = createModuleConfig(SuppressWithPlainTextCommentFilter.class);
+    filterCfg.addAttribute("checkFormat", "e[l");
+    filterCfg.addAttribute("onCommentFormat", "// cs-on");
+    filterCfg.addAttribute("offCommentFormat", "// cs-off");
+    final DefaultConfiguration checkCfg = createModuleConfig(FileTabCharacterCheck.class);
+    checkCfg.addAttribute("eachLine", "true");
+    final String[] suppressed = CommonUtil.EMPTY_STRING_ARRAY;
+    final String[] violationMessages = { "5:7: " + getCheckMessage(FileTabCharacterCheck.class, MSG_FILE_CONTAINS_TAB), "8:7: " + getCheckMessage(FileTabCharacterCheck.class, MSG_CONTAINS_TAB), "10:1: " + getCheckMessage(FileTabCharacterCheck.class, MSG_CONTAINS_TAB) };
+    try {
+        verifySuppressed("InputSuppressWithPlainTextCommentFilterWithCustomOnAndOffComments.java", removeSuppressed(violationMessages, suppressed), filterCfg, checkCfg);
+        fail("CheckstyleException is expected");
+    } catch (CheckstyleException ex) {
+        final IllegalArgumentException cause = (IllegalArgumentException) ex.getCause();
+        assertEquals("unable to parse expanded comment e[l", cause.getMessage(), "Invalid exception message");
+    }
+}

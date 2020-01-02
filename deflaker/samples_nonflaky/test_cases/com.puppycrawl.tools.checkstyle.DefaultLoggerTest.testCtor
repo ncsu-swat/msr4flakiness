@@ -1,0 +1,12 @@
+@Test
+public void testCtor() throws UnsupportedEncodingException {
+    final OutputStream infoStream = new ByteArrayOutputStream();
+    final ByteArrayOutputStream errorStream = new ByteArrayOutputStream();
+    final DefaultLogger dl = new DefaultLogger(infoStream, OutputStreamOptions.CLOSE, errorStream, OutputStreamOptions.CLOSE);
+    dl.addException(new AuditEvent(5000, "myfile"), new IllegalStateException("upsss"));
+    dl.auditFinished(new AuditEvent(6000, "myfile"));
+    final String output = errorStream.toString(StandardCharsets.UTF_8.name());
+    final LocalizedMessage addExceptionMessage = new LocalizedMessage(1, Definitions.CHECKSTYLE_BUNDLE, DefaultLogger.ADD_EXCEPTION_MESSAGE, new String[] { "myfile" }, null, getClass(), null);
+    assertTrue(output.contains(addExceptionMessage.getMessage()), "Invalid exception");
+    assertTrue(output.contains("java.lang.IllegalStateException: upsss"), "Invalid exception class");
+}

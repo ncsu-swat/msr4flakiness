@@ -1,0 +1,18 @@
+@Test
+public void testSerialData() {
+    final DetailAstImpl ast = new DetailAstImpl();
+    ast.setType(TokenTypes.METHOD_DEF);
+    final DetailAstImpl astChild = new DetailAstImpl();
+    astChild.setType(TokenTypes.IDENT);
+    astChild.setText("writeObject");
+    ast.setFirstChild(astChild);
+    final String[] validNames = { "writeObject", "readObject", "writeExternal", "readExternal", "writeReplace", "readResolve" };
+    for (String name : validNames) {
+        astChild.setText(name);
+        assertTrue(JavadocTagInfo.SERIAL_DATA.isValidOn(ast), "Invalid ast type for current tag: " + ast.getType());
+    }
+    astChild.setText("1111");
+    assertFalse(JavadocTagInfo.SERIAL_DATA.isValidOn(ast), "Should return false when ast type is invalid for current tag");
+    ast.setType(TokenTypes.LAMBDA);
+    assertFalse(JavadocTagInfo.SERIAL_DATA.isValidOn(ast), "Should return false when ast type is invalid for current tag");
+}

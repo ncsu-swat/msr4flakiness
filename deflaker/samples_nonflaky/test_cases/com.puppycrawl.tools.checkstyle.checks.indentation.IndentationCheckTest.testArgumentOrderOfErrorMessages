@@ -1,0 +1,22 @@
+/**
+ * Verifies that the arguments of {@link IndentationCheck#MSG_ERROR},
+ * {@link IndentationCheck#MSG_CHILD_ERROR}, {@link IndentationCheck#MSG_CHILD_ERROR_MULTI},
+ * {@link IndentationCheck#MSG_CHILD_ERROR_MULTI} are in appropriate order.
+ *
+ * <p>In other tests, the argument 0 and text before it are chopped off and only the rest of
+ * messages are verified. Therefore, the argument 0 is required to be the first argument in
+ * the messages above. If we update the messages in the future, it is required to keep the
+ * arguments in appropriate order to ensure other tests will work.</p>
+ *
+ * @see IndentComment#getExpectedMessagePostfix(String)
+ */
+@Test
+public void testArgumentOrderOfErrorMessages() {
+    final Object[] arguments = { "##0##", "##1##", "##2##" };
+    final String[] messages = { getCheckMessage(MSG_ERROR, arguments), getCheckMessage(MSG_CHILD_ERROR, arguments), getCheckMessage(MSG_ERROR_MULTI, arguments), getCheckMessage(MSG_CHILD_ERROR_MULTI, arguments) };
+    final boolean isInOrder = Arrays.stream(messages).allMatch(msg -> {
+        final int indexOfArgumentZero = msg.indexOf((String) arguments[0]);
+        return Arrays.stream(arguments).map(String.class::cast).mapToInt(msg::indexOf).allMatch(index -> index >= indexOfArgumentZero);
+    });
+    assertTrue(isInOrder, "the argument 0 of error messages (indentation.error, indentation.child.error," + " indentation.error.multi, indentation.child.error.multi)" + " is required to be the first argument of them");
+}

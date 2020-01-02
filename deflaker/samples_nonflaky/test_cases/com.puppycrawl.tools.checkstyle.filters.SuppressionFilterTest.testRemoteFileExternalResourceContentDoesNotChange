@@ -1,0 +1,33 @@
+@Test
+public void testRemoteFileExternalResourceContentDoesNotChange() throws Exception {
+    final String[] urlCandidates = { "https://checkstyle.org/files/suppressions_none.xml", "https://raw.githubusercontent.com/checkstyle/checkstyle/master/src/site/resources/" + "files/suppressions_none.xml" };
+    String urlForTest = null;
+    for (String url : urlCandidates) {
+        if (isConnectionAvailableAndStable(url)) {
+            urlForTest = url;
+            break;
+        }
+    }
+    // Run the test only if connection is available and url is reachable.
+    // We must use an if statement over junit's rule or assume because
+    // powermock disrupts the assume exception and turns into a failure
+    // instead of a skip when it doesn't pass
+    if (urlForTest != null) {
+        final DefaultConfiguration firstFilterConfig = createModuleConfig(SuppressionFilter.class);
+        // -@cs[CheckstyleTestMakeup] need to test dynamic property
+        firstFilterConfig.addAttribute("file", urlForTest);
+        final DefaultConfiguration firstCheckerConfig = createRootConfig(firstFilterConfig);
+        final File cacheFile = File.createTempFile("junit", null, temporaryFolder);
+        firstCheckerConfig.addAttribute("cacheFile", cacheFile.getPath());
+        final String pathToEmptyFile = File.createTempFile("file", ".java", temporaryFolder).getPath();
+        final String[] expected = CommonUtil.EMPTY_STRING_ARRAY;
+        verify(firstCheckerConfig, pathToEmptyFile, expected);
+        // One more time to use cache.
+        final DefaultConfiguration secondFilterConfig = createModuleConfig(SuppressionFilter.class);
+        // -@cs[CheckstyleTestMakeup] need to test dynamic property
+        secondFilterConfig.addAttribute("file", urlForTest);
+        final DefaultConfiguration secondCheckerConfig = createRootConfig(secondFilterConfig);
+        secondCheckerConfig.addAttribute("cacheFile", cacheFile.getPath());
+        verify(secondCheckerConfig, pathToEmptyFile, expected);
+    }
+}

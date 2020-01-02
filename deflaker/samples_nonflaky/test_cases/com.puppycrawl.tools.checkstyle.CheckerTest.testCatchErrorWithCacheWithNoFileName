@@ -1,0 +1,46 @@
+/**
+ * Test doesn't need to be serialized.
+ * @noinspection SerializableInnerClassWithNonSerializableOuterClass
+ */
+@Test
+public void testCatchErrorWithCacheWithNoFileName() throws Exception {
+    final File cacheFile = File.createTempFile("junit", null, temporaryFolder);
+    final DefaultConfiguration checkerConfig = new DefaultConfiguration("configuration");
+    checkerConfig.addAttribute("charset", StandardCharsets.UTF_8.name());
+    checkerConfig.addAttribute("cacheFile", cacheFile.getPath());
+    final String errorMessage = "Java Virtual Machine is broken" + " or has run out of resources necessary for it to continue operating.";
+    final Error expectedError = new IOError(new InternalError(errorMessage));
+    final File mock = new File("testFile") {
+
+        private static final long serialVersionUID = 1L;
+
+        /**
+         * Test is checking catch clause when exception is thrown.
+         * @noinspection ProhibitedExceptionThrown
+         */
+        @Override
+        public String getAbsolutePath() {
+            throw expectedError;
+        }
+    };
+    final Checker checker = new Checker();
+    checker.setModuleClassLoader(Thread.currentThread().getContextClassLoader());
+    checker.configure(checkerConfig);
+    final List<File> filesToProcess = new ArrayList<>();
+    filesToProcess.add(mock);
+    try {
+        checker.process(filesToProcess);
+        fail("IOError is expected!");
+    }// -@cs[IllegalCatchExtended] Testing for catch Error is part of 100% coverage.
+     catch (Error error) {
+        assertWithMessage("Error cause differs from IOError").that(error.getCause()).isInstanceOf(IOError.class);
+        assertEquals(errorMessage, error.getCause().getCause().getMessage(), "Error message is not expected");
+        // destroy is called by Main
+        checker.destroy();
+        final Properties cache = new Properties();
+        try (BufferedReader reader = Files.newBufferedReader(cacheFile.toPath())) {
+            cache.load(reader);
+        }
+        assertEquals(1, cache.size(), "Cache has unexpected size");
+    }
+}

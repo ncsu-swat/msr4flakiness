@@ -1,0 +1,17 @@
+/**
+ * Method countMatches is used only inside isOnlyUnicodeValidChars method, and when
+ * pitest mutates 316:13 countMatches++ to countMatches-- it makes no difference for
+ * isOnlyUnicodeValidChars method as it applies countMatches to both cases in comparison.
+ * It is possible to kill mutation in countMatches method by changing code in
+ * isOnlyUnicodeValidChars, but it creates new uncoverable mutations and makes code harder
+ * to understand.
+ *
+ * @throws Exception when code tested throws some exception
+ */
+@Test
+public void testCountMatches() throws Exception {
+    final Method countMatches = Whitebox.getMethod(AvoidEscapedUnicodeCharactersCheck.class, "countMatches", Pattern.class, String.class);
+    final AvoidEscapedUnicodeCharactersCheck check = new AvoidEscapedUnicodeCharactersCheck();
+    final int actual = (int) countMatches.invoke(check, Pattern.compile("\\\\u[a-fA-F0-9]{4}"), "\\u1234");
+    assertEquals(1, actual, "Unexpected matches count");
+}

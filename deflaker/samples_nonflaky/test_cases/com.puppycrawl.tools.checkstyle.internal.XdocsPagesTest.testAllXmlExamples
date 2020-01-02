@@ -1,0 +1,21 @@
+@Test
+public void testAllXmlExamples() throws Exception {
+    for (Path path : XdocUtil.getXdocsFilePaths()) {
+        final String input = new String(Files.readAllBytes(path), UTF_8);
+        final String fileName = path.getFileName().toString();
+        final Document document = XmlUtil.getRawXml(fileName, input, input);
+        final NodeList sources = document.getElementsByTagName("source");
+        for (int position = 0; position < sources.getLength(); position++) {
+            final String unserializedSource = sources.item(position).getTextContent().replace("...", "").trim();
+            if (unserializedSource.length() > 1 && (unserializedSource.charAt(0) != '<' || unserializedSource.charAt(unserializedSource.length() - 1) != '>' || // no dtd testing yet
+            unserializedSource.contains("<!"))) {
+                continue;
+            }
+            final String code = buildXml(unserializedSource);
+            // validate only
+            XmlUtil.getRawXml(fileName, code, unserializedSource);
+            // can't test ant structure, or old and outdated checks
+            assertTrue(fileName.startsWith("anttask") || fileName.startsWith("releasenotes") || isValidCheckstyleXml(fileName, code, unserializedSource), "Xml is invalid, old or has outdated structure");
+        }
+    }
+}

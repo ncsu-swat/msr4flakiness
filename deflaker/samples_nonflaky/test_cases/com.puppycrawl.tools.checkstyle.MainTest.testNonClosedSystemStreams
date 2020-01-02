@@ -1,0 +1,18 @@
+/**
+ * This test method is created only to cover
+ * pitest mutation survival at Main#getOutputStreamOptions.
+ * No ability to test it by out general tests because
+ * Main does not produce any output to System.out after report is generated,
+ * System.out and System.err should be non-closed streams
+ *
+ * @throws Exception if there is an error.
+ * @noinspection UseOfSystemOutOrSystemErr
+ */
+@Test
+public void testNonClosedSystemStreams() throws Exception {
+    Main.main("-c", getPath("InputMainConfig-classname.xml"), "-f", "xml", getPath("InputMain.java"));
+    final Boolean closedOut = (Boolean) TestUtil.getClassDeclaredField(System.out.getClass(), "closing").get(System.out);
+    assertThat("System.out stream should not be closed", closedOut, is(false));
+    final Boolean closedErr = (Boolean) TestUtil.getClassDeclaredField(System.err.getClass(), "closing").get(System.err);
+    assertThat("System.err stream should not be closed", closedErr, is(false));
+}

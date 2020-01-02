@@ -1,0 +1,21 @@
+@Test
+public void testFinishLocalSetupFullyInitialized() throws Exception {
+    final Checker checker = new Checker();
+    final ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+    checker.setModuleClassLoader(contextClassLoader);
+    final PackageObjectFactory factory = new PackageObjectFactory(new HashSet<>(), contextClassLoader);
+    checker.setModuleFactory(factory);
+    checker.setBasedir("testBaseDir");
+    checker.setLocaleLanguage("it");
+    checker.setLocaleCountry("IT");
+    checker.finishLocalSetup();
+    final Context context = Whitebox.getInternalState(checker, "childContext");
+    final String encoding = System.getProperty("file.encoding", StandardCharsets.UTF_8.name());
+    assertEquals(encoding, context.get("charset"), "Charset was different than expected");
+    assertEquals("error", context.get("severity"), "Severity is set to unexpected value");
+    assertEquals("testBaseDir", context.get("basedir"), "Basedir is set to unexpected value");
+    final Field sLocale = LocalizedMessage.class.getDeclaredField("sLocale");
+    sLocale.setAccessible(true);
+    final Locale locale = (Locale) sLocale.get(null);
+    assertEquals(Locale.ITALY, locale, "Locale is set to unexpected value");
+}

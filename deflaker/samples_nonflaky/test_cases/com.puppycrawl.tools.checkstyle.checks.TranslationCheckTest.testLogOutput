@@ -1,0 +1,25 @@
+@Test
+public void testLogOutput() throws Exception {
+    final DefaultConfiguration checkConfig = createModuleConfig(TranslationCheck.class);
+    checkConfig.addAttribute("requiredTranslations", "ja,de");
+    checkConfig.addAttribute("baseName", "^InputTranslation.*$");
+    final Checker checker = createChecker(checkConfig);
+    checker.setBasedir(getPath(""));
+    final ByteArrayOutputStream out = new ByteArrayOutputStream();
+    final XMLLogger logger = new XMLLogger(out, AutomaticBean.OutputStreamOptions.NONE);
+    checker.addListener(logger);
+    final String defaultProps = getPath("InputTranslationCheckFireErrors.properties");
+    final String translationProps = getPath("InputTranslationCheckFireErrors_de.properties");
+    final File[] propertyFiles = { new File(defaultProps), new File(translationProps) };
+    final String line = "1: ";
+    final String firstErrorMessage = getCheckMessage(MSG_KEY_MISSING_TRANSLATION_FILE, "InputTranslationCheckFireErrors_ja.properties");
+    final String secondErrorMessage = getCheckMessage(MSG_KEY, "anotherKey");
+    verify(checker, propertyFiles, ImmutableMap.of(":1", Collections.singletonList(" " + firstErrorMessage), "InputTranslationCheckFireErrors_de.properties", Collections.singletonList(line + secondErrorMessage)));
+    verifyXml(getPath("ExpectedTranslationLog.xml"), out, (expected, actual) -> {
+        // order is not always maintained here for an unknown reason.
+        // File names can appear in different orders depending on the OS and VM.
+        // This ensures we pick up the correct file based on its name and the
+        // number of children it has.
+        return !"file".equals(expected.getNodeName()) || expected.getAttributes().getNamedItem("name").getNodeValue().equals(actual.getAttributes().getNamedItem("name").getNodeValue()) && XmlUtil.getChildrenElements(expected).size() == XmlUtil.getChildrenElements(actual).size();
+    }, firstErrorMessage, secondErrorMessage);
+}

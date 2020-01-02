@@ -1,0 +1,20 @@
+@Test
+public void testExceptionNoSuchAlgorithmException() throws Exception {
+    final Configuration config = new DefaultConfiguration("myName");
+    final String filePath = temporaryFolder.newFile().getPath();
+    final PropertyCacheFile cache = new PropertyCacheFile(config, filePath);
+    cache.put("myFile", 1);
+    mockStatic(MessageDigest.class);
+    when(MessageDigest.getInstance("SHA-1")).thenThrow(NoSuchAlgorithmException.class);
+    final Class<?>[] param = new Class<?>[1];
+    param[0] = Serializable.class;
+    final Method method = PropertyCacheFile.class.getDeclaredMethod("getHashCodeBasedOnObjectContent", param);
+    method.setAccessible(true);
+    try {
+        method.invoke(cache, config);
+        fail("InvocationTargetException is expected");
+    } catch (InvocationTargetException ex) {
+        assertTrue("Invalid exception cause", ex.getCause().getCause() instanceof NoSuchAlgorithmException);
+        assertEquals("Invalid exception message", "Unable to calculate hashcode.", ex.getCause().getMessage());
+    }
+}

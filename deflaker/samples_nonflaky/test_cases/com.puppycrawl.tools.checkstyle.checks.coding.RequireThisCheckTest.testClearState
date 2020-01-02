@@ -1,0 +1,15 @@
+/**
+ * We cannot reproduce situation when visitToken is called and leaveToken is not.
+ * So, we have to use reflection to be sure that even in such situation
+ * state of the field will be cleared.
+ *
+ * @throws Exception when code tested throws exception
+ */
+@Test
+public void testClearState() throws Exception {
+    final RequireThisCheck check = new RequireThisCheck();
+    final DetailAST root = JavaParser.parseFile(new File(getPath("InputRequireThisSimple.java")), JavaParser.Options.WITHOUT_COMMENTS);
+    final Optional<DetailAST> classDef = TestUtil.findTokenInAstByPredicate(root, ast -> ast.getType() == TokenTypes.CLASS_DEF);
+    assertTrue(classDef.isPresent(), "Ast should contain CLASS_DEF");
+    assertTrue(TestUtil.isStatefulFieldClearedDuringBeginTree(check, classDef.get(), "current", current -> ((Collection<?>) current).isEmpty()), "State is not cleared on beginTree");
+}

@@ -1,0 +1,28 @@
+@Test
+public void testAllCheckSections() throws Exception {
+    final ModuleFactory moduleFactory = TestUtil.getPackageObjectFactory();
+    for (Path path : XdocUtil.getXdocsConfigFilePaths(XdocUtil.getXdocsFilePaths())) {
+        final String fileName = path.getFileName().toString();
+        if ("config_reporting.xml".equals(fileName)) {
+            continue;
+        }
+        final String input = new String(Files.readAllBytes(path), UTF_8);
+        final Document document = XmlUtil.getRawXml(fileName, input, input);
+        final NodeList sources = document.getElementsByTagName("section");
+        String lastSectionName = null;
+        for (int position = 0; position < sources.getLength(); position++) {
+            final Node section = sources.item(position);
+            final String sectionName = section.getAttributes().getNamedItem("name").getNodeValue();
+            if ("Content".equals(sectionName) || "Overview".equals(sectionName)) {
+                assertNull(lastSectionName, fileName + " section '" + sectionName + "' should be first");
+                continue;
+            }
+            assertFalse(sectionName.endsWith("Check"), fileName + " section '" + sectionName + "' shouldn't end with 'Check'");
+            if (lastSectionName != null) {
+                assertTrue(sectionName.toLowerCase(Locale.ENGLISH).compareTo(lastSectionName.toLowerCase(Locale.ENGLISH)) >= 0, fileName + " section '" + sectionName + "' is out of order compared to '" + lastSectionName + "'");
+            }
+            validateCheckSection(moduleFactory, fileName, sectionName, section);
+            lastSectionName = sectionName;
+        }
+    }
+}

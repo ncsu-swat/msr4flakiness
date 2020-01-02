@@ -1,0 +1,35 @@
+/**
+ * The path to class name in InputJavadocAttributesAndMethods.java.
+ * <pre>
+ * CLASS_DEF
+ *  - MODIFIERS
+ *  - Comment node
+ *  - LITERAL_CLASS
+ *  - IDENT -> this is the node that holds the class name
+ *  Line number 4 - first three lines are taken by javadoc
+ *  Column 6 - first five columns taken by 'class '
+ *  </pre>
+ */
+@Test
+public void testGetValueAt() {
+    final DetailAST node = tree.getFirstChild().getNextSibling().getNextSibling().getNextSibling();
+    assertNotNull(node, "Expected a non-null identifier node here");
+    assertEquals(TokenTypes.IDENT, node.getType(), "Expected identifier token");
+    final ParseTreeTablePresentation parseTree = new ParseTreeTablePresentation(null);
+    final Object treeModel = parseTree.getValueAt(node, 0);
+    final String type = (String) parseTree.getValueAt(node, 1);
+    final int line = (int) parseTree.getValueAt(node, 2);
+    final int column = (int) parseTree.getValueAt(node, 3);
+    final String text = (String) parseTree.getValueAt(node, 4);
+    assertEquals("IDENT", type, "Node should be an Identifier");
+    assertEquals(6, line, "Class identifier should start on line 6");
+    assertEquals(6, column, "Class name should start from column 6");
+    assertEquals("InputParseTreeTablePresentation", text, "Wrong class name");
+    assertNull(treeModel, "Root node should have null value");
+    try {
+        parseTree.getValueAt(node, parseTree.getColumnCount());
+        fail("IllegalStateException expected");
+    } catch (IllegalStateException ex) {
+        assertEquals("Unknown column", ex.getMessage(), "Invalid error message");
+    }
+}

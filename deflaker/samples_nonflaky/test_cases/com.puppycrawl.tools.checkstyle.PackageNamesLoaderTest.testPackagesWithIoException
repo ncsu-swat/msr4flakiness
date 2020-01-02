@@ -1,0 +1,30 @@
+@Test
+public void testPackagesWithIoException() throws Exception {
+    final URLConnection urlConnection = new URLConnection(null) {
+
+        @Override
+        public void connect() {
+        // no code
+        }
+
+        @Override
+        public InputStream getInputStream() {
+            return null;
+        }
+    };
+    final URL url = new URL("test", null, 0, "", new URLStreamHandler() {
+
+        @Override
+        protected URLConnection openConnection(URL u) {
+            return urlConnection;
+        }
+    });
+    final Enumeration<URL> enumeration = Collections.enumeration(Collections.singleton(url));
+    try {
+        PackageNamesLoader.getPackageNames(new TestUrlsClassLoader(enumeration));
+        fail("CheckstyleException is expected");
+    } catch (CheckstyleException ex) {
+        assertTrue(ex.getCause() instanceof IOException, "Invalid exception cause class");
+        assertNotEquals("unable to get package file resources", ex.getMessage(), "Invalid exception message");
+    }
+}

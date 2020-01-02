@@ -1,0 +1,17 @@
+@Test
+public void testDestroyCheckerWithWrongCacheFileNameLength() throws Exception {
+    final Checker checker = new Checker();
+    final PackageObjectFactory factory = new PackageObjectFactory(new HashSet<>(), Thread.currentThread().getContextClassLoader());
+    checker.setModuleFactory(factory);
+    checker.configure(new DefaultConfiguration("default config"));
+    // We set wrong file name length in order to reproduce IOException on OS Linux, OS Windows.
+    // The maximum file name length which is allowed in most UNIX, Windows file systems is 255.
+    // See https://en.wikipedia.org/wiki/Filename;
+    checker.setCacheFile(String.format(Locale.ENGLISH, "%0300d", 0));
+    try {
+        checker.destroy();
+        fail("Exception did not happen");
+    } catch (IllegalStateException ex) {
+        assertTrue(ex.getCause() instanceof IOException, "Cause of exception differs from IOException");
+    }
+}

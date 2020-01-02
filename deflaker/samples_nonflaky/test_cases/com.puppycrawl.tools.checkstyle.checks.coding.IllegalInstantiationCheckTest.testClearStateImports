@@ -1,0 +1,15 @@
+/**
+ * We cannot reproduce situation when visitToken is called and leaveToken is not.
+ * So, we have to use reflection to be sure that even in such situation
+ * state of the field will be cleared.
+ *
+ * @throws Exception when code tested throws exception
+ */
+@Test
+public void testClearStateImports() throws Exception {
+    final IllegalInstantiationCheck check = new IllegalInstantiationCheck();
+    final DetailAST root = JavaParser.parseFile(new File(getPath("InputIllegalInstantiationSemantic.java")), JavaParser.Options.WITHOUT_COMMENTS);
+    final Optional<DetailAST> importDef = TestUtil.findTokenInAstByPredicate(root, ast -> ast.getType() == TokenTypes.IMPORT);
+    assertTrue(importDef.isPresent(), "Ast should contain IMPORT_DEF");
+    assertTrue(TestUtil.isStatefulFieldClearedDuringBeginTree(check, importDef.get(), "imports", imports -> ((Collection<?>) imports).isEmpty()), "State is not cleared on beginTree");
+}

@@ -1,0 +1,46 @@
+@Test
+public void testAllStyleRules() throws Exception {
+    for (Path path : XdocUtil.getXdocsStyleFilePaths(XdocUtil.getXdocsFilePaths())) {
+        final String fileName = path.getFileName().toString();
+        final String styleName = fileName.substring(0, fileName.lastIndexOf('_'));
+        final String input = new String(Files.readAllBytes(path), UTF_8);
+        final Document document = XmlUtil.getRawXml(fileName, input, input);
+        final NodeList sources = document.getElementsByTagName("tr");
+        final Set<String> styleChecks;
+        switch(styleName) {
+            case "google":
+                styleChecks = new HashSet<>(GOOGLE_MODULES);
+                break;
+            case "sun":
+                styleChecks = new HashSet<>(SUN_MODULES);
+                styleChecks.removeAll(IGNORED_SUN_MODULES);
+                break;
+            default:
+                fail("Missing modules list for style file '" + fileName + "'");
+                styleChecks = null;
+        }
+        String lastRuleName = null;
+        String[] lastRuleNumberParts = null;
+        for (int position = 0; position < sources.getLength(); position++) {
+            final Node row = sources.item(position);
+            final List<Node> columns = new ArrayList<>(XmlUtil.findChildElementsByTag(row, "td"));
+            if (columns.isEmpty()) {
+                continue;
+            }
+            final String ruleName = columns.get(1).getTextContent().trim();
+            lastRuleNumberParts = validateRuleNameOrder(fileName, lastRuleName, lastRuleNumberParts, ruleName);
+            if (!"--".equals(ruleName)) {
+                validateStyleAnchors(XmlUtil.findChildElementsByTag(columns.get(0), "a"), fileName, ruleName);
+            }
+            validateStyleModules(XmlUtil.findChildElementsByTag(columns.get(2), "a"), XmlUtil.findChildElementsByTag(columns.get(3), "a"), styleChecks, styleName, ruleName);
+            lastRuleName = ruleName;
+        }
+        // these modules aren't documented, but are added to the config
+        styleChecks.remove("BeforeExecutionExclusionFileFilter");
+        styleChecks.remove("SuppressionFilter");
+        styleChecks.remove("SuppressionXpathFilter");
+        styleChecks.remove("TreeWalker");
+        styleChecks.remove("Checker");
+        assertTrue(styleChecks.isEmpty(), fileName + " requires the following check(s) to appear: " + styleChecks);
+    }
+}

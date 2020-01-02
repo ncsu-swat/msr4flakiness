@@ -1,0 +1,11 @@
+@Test
+public void testSuppressionCommentsInJavaScriptFile() throws Exception {
+    final DefaultConfiguration filterCfg = createModuleConfig(SuppressWithPlainTextCommentFilter.class);
+    filterCfg.addAttribute("offCommentFormat", "// CS-OFF");
+    filterCfg.addAttribute("onCommentFormat", "// CS-ON");
+    final DefaultConfiguration checkCfg = createModuleConfig(RegexpSinglelineCheck.class);
+    checkCfg.addAttribute("format", ".*===.*");
+    final String[] suppressed = { "2: " + getCheckMessage(RegexpSinglelineCheck.class, MSG_REGEXP_EXCEEDED, ".*===.*") };
+    final String[] violationMessages = { "2: " + getCheckMessage(RegexpSinglelineCheck.class, MSG_REGEXP_EXCEEDED, ".*===.*"), "5: " + getCheckMessage(RegexpSinglelineCheck.class, MSG_REGEXP_EXCEEDED, ".*===.*") };
+    verifySuppressed("InputSuppressWithPlainTextCommentFilter.js", removeSuppressed(violationMessages, suppressed), filterCfg, checkCfg);
+}

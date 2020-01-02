@@ -1,0 +1,16 @@
+@Test
+public void testCreateObjectFromFullModuleNamesWithAmbiguousException() {
+    final String barPackage = BASE_PACKAGE + ".packageobjectfactory.bar";
+    final String fooPackage = BASE_PACKAGE + ".packageobjectfactory.foo";
+    final ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+    final PackageObjectFactory objectFactory = new PackageObjectFactory(new LinkedHashSet<>(Arrays.asList(barPackage, fooPackage)), classLoader);
+    final String name = "FooCheck";
+    try {
+        objectFactory.createModule(name);
+        fail("Exception is expected");
+    } catch (CheckstyleException ex) {
+        final String optionalNames = barPackage + PACKAGE_SEPARATOR + name + STRING_SEPARATOR + fooPackage + PACKAGE_SEPARATOR + name;
+        final LocalizedMessage exceptionMessage = new LocalizedMessage(1, Definitions.CHECKSTYLE_BUNDLE, AMBIGUOUS_MODULE_NAME_EXCEPTION_MESSAGE, new String[] { name, optionalNames }, null, getClass(), null);
+        assertEquals(exceptionMessage.getMessage(), ex.getMessage(), "Invalid exception message");
+    }
+}
