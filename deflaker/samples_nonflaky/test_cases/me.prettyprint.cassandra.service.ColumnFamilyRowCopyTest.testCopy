@@ -1,0 +1,12 @@
+@Test
+public void testCopy() {
+    new ColumnFamilyRowCopy<String, UUID>(keyspace, ss).setColumnFamily(CF).setRowKey(SOURCE_KEY).setDestinationKey(DESTINATION_KEY).setMutateInterval(150).copy();
+    SliceQuery<String, ByteBuffer, String> query = HFactory.createSliceQuery(keyspace, ss, bs, ss).setKey(DESTINATION_KEY).setColumnFamily(CF);
+    ColumnSliceIterator<String, ByteBuffer, String> it = new ColumnSliceIterator<String, ByteBuffer, String>(query, bs.fromBytes(new byte[0]), bs.fromBytes(new byte[0]), false, 100);
+    int total = 0;
+    while (it.hasNext()) {
+        it.next();
+        total++;
+    }
+    assertEquals(columns, total);
+}

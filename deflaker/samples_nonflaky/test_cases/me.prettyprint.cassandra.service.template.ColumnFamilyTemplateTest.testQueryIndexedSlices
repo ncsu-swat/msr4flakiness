@@ -1,0 +1,38 @@
+@Test
+public void testQueryIndexedSlices() {
+    ColumnFamilyTemplate<String, String> template = new ThriftColumnFamilyTemplate<String, String>(keyspace, "Indexed1", se, se);
+    ColumnFamilyUpdater<String, String> updater = template.createUpdater("index_key1");
+    updater.setLong("birthyear", 1974L);
+    updater.setLong("birthmonth", 4L);
+    updater.addKey("index_key2");
+    updater.setLong("birthyear", 1975L);
+    updater.setLong("birthmonth", 4L);
+    updater.addKey("index_key3");
+    updater.setLong("birthyear", 1975L);
+    updater.setLong("birthmonth", 5L);
+    updater.addKey("index_key4");
+    updater.setLong("birthyear", 1975L);
+    updater.setLong("birthmonth", 6L);
+    updater.addKey("index_key5");
+    updater.setLong("birthyear", 1975L);
+    updater.setLong("birthmonth", 7L);
+    updater.addKey("index_key6");
+    updater.setLong("birthyear", 1976L);
+    updater.setLong("birthmonth", 6L);
+    template.update(updater);
+    IndexedSlicesPredicate<String, String, Long> predicate = new IndexedSlicesPredicate<String, String, Long>(se, se, LongSerializer.get());
+    predicate.startKey("");
+    predicate.addExpression("birthyear", IndexOperator.EQ, 1975L);
+    ColumnFamilyResult<String, String> result = template.queryColumns(predicate);
+    int cnt = result.getColumnNames().size();
+    while (result.hasNext()) {
+        cnt += result.next().getColumnNames().size();
+    }
+    assertEquals(8, cnt);
+    result = template.queryColumns(predicate, Arrays.asList(new String[] { "birthmonth" }));
+    cnt = result.getColumnNames().size();
+    while (result.hasNext()) {
+        cnt += result.next().getColumnNames().size();
+    }
+    assertEquals(4, cnt);
+}

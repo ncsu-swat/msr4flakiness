@@ -1,0 +1,32 @@
+@Test
+public void testQueryMultigetSpecificColumns() {
+    ColumnFamilyTemplate<String, String> template = new ThriftColumnFamilyTemplate<String, String>(keyspace, "Standard1", se, se);
+    ColumnFamilyUpdater<String, String> updater = template.createUpdater("mgs_key1");
+    updater.setString("column1", "value1-1");
+    updater.setString("column2", "value2-1");
+    updater.setString("column3", "value3-1");
+    updater.addKey("mgs_key2");
+    updater.setString("column1", "value1-2");
+    updater.setString("column2", "value2-2");
+    updater.setString("column3", "value3-2");
+    updater.addKey("mgs_key3");
+    updater.setString("column1", "value1-3");
+    updater.setString("column2", "value2-3");
+    updater.setString("column3", "value3-3");
+    template.update(updater);
+    template.addColumn("column1", se);
+    template.addColumn("column2", se);
+    template.addColumn("column3", se);
+    ColumnFamilyResult<String, String> wrapper = template.queryColumns(Arrays.asList("mgs_key1", "mgs_key2", "mgs_key3"), Arrays.asList("column1", "column3"));
+    assertEquals("value1-1", wrapper.getString("column1"));
+    assertNull(wrapper.getString("column2"));
+    assertEquals("value3-1", wrapper.getString("column3"));
+    wrapper.next();
+    assertEquals("value1-2", wrapper.getString("column1"));
+    assertNull(wrapper.getString("column2"));
+    assertEquals("value3-2", wrapper.getString("column3"));
+    wrapper.next();
+    assertEquals("value1-3", wrapper.getString("column1"));
+    assertNull(wrapper.getString("column2"));
+    assertEquals("value3-3", wrapper.getString("column3"));
+}

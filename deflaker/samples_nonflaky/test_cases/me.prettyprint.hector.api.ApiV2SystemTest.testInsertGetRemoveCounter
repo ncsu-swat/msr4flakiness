@@ -1,0 +1,27 @@
+@Test
+public void testInsertGetRemoveCounter() {
+    Mutator<String> m = createMutator(ko, se);
+    MutationResult mr = m.insertCounter("testInsertGetRemoveCounter", COUNTER_CF, createCounterColumn("testInsertGetRemoveCounter_name", 25));
+    log.debug("insert execution time: {}", mr.getExecutionTimeMicro());
+    // get value
+    CounterQuery<String, String> q = createCounterColumnQuery(ko, se, se);
+    q.setColumnFamily(COUNTER_CF).setName("testInsertGetRemoveCounter_name").setKey("testInsertGetRemoveCounter");
+    QueryResult<HCounterColumn<String>> r = q.execute();
+    assertNotNull(r);
+    HCounterColumn<String> c = r.get();
+    assertNotNull(c);
+    Long value = c.getValue();
+    assertEquals(25, value.longValue());
+    String name = c.getName();
+    assertEquals("testInsertGetRemoveCounter_name", name);
+    assertEquals(q, r.getQuery());
+    // remove value
+    m = createMutator(ko, se);
+    m.deleteCounter("testInsertGetRemoveCounter", COUNTER_CF, "testInsertGetRemoveCounter_name", se);
+    // get already removed value
+    CounterQuery<String, String> q2 = createCounterColumnQuery(ko, se, se);
+    q2.setName("testInsertGetRemoveCounter_name").setColumnFamily(COUNTER_CF);
+    QueryResult<HCounterColumn<String>> r2 = q2.setKey("testInsertGetRemoveCounter").execute();
+    assertNotNull(r2);
+    assertNull("Value should have been deleted", r2.get());
+}

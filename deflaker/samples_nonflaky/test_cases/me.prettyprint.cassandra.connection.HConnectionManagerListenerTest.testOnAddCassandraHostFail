@@ -1,0 +1,17 @@
+@Test
+public void testOnAddCassandraHostFail() {
+    setupClient();
+    final CassandraHost host = new CassandraHost("127.0.0.1", 9180);
+    final boolean[] eventFired = { false };
+    connectionManager.addListener(listenerName, new ConnectionManagerEmptyListener() {
+
+        @Override
+        public void onAddHost(CassandraHost cassandraHost, boolean added, String errorMessage, Exception e) {
+            assertEquals(cassandraHost, host);
+            assertFalse(added);
+            eventFired[0] = true;
+        }
+    });
+    assertFalse(connectionManager.addCassandraHost(host));
+    assertTrue(eventFired[0]);
+}

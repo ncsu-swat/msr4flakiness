@@ -1,0 +1,18 @@
+@Test
+public void testCreateSelectMultiColumn() {
+    ColumnFamilyTemplate<String, String> template = new ThriftColumnFamilyTemplate<String, String>(keyspace, "Standard1", se, se);
+    ColumnFamilyUpdater<String, String> updater = template.createUpdater("cskey1");
+    updater.setString("stringval", "value1");
+    Date date = new Date();
+    updater.setDate("curdate", date);
+    updater.setLong("longval", 5L);
+    template.update(updater);
+    template.addColumn("stringval", se);
+    template.addColumn("curdate", DateSerializer.get());
+    template.addColumn("longval", LongSerializer.get());
+    ColumnFamilyResult<String, String> wrapper = template.queryColumns("cskey1");
+    assertEquals("value1", wrapper.getString("stringval"));
+    assertEquals(date, wrapper.getDate("curdate"));
+    assertEquals(new Long(5), wrapper.getLong("longval"));
+    assertEquals(3, wrapper.getColumnNames().size());
+}
