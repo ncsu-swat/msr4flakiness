@@ -1,0 +1,40 @@
+public void testActionShareLibWithNonDefaultNamenode() throws Exception {
+    WorkflowAppService wps = Services.get().get(WorkflowAppService.class);
+    Path systemLibPath = getNewSystemLibPath();
+    File jarFile = IOUtils.createJar(new File(getTestCaseDir()), "sourcejar.jar", LauncherMainTester.class);
+    InputStream is = new FileInputStream(jarFile);
+    Path javaShareLibPath = new Path(systemLibPath, "java");
+    getFileSystem().mkdirs(javaShareLibPath);
+    Path jar1Path = new Path(javaShareLibPath, "jar1.jar");
+    OutputStream os1 = getFileSystem().create(jar1Path);
+    IOUtils.copyStream(is, os1);
+    Path jar2Path = new Path(javaShareLibPath, "jar2.jar");
+    OutputStream os2 = getFileSystem().create(jar2Path);
+    // is not resetable
+    is = new FileInputStream(jarFile);
+    IOUtils.copyStream(is, os2);
+    Path launcherPath = new Path(systemLibPath, "oozie");
+    getFileSystem().mkdirs(launcherPath);
+    Path jar3Path = new Path(launcherPath, "jar3.jar");
+    OutputStream os3 = getFileSystem().create(jar3Path);
+    is = new FileInputStream(jarFile);
+    IOUtils.copyStream(is, os3);
+    String actionXml = "<java>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>" + "<name-node>" + getNameNode2Uri() + "</name-node>" + "<job-xml>job.xml</job-xml>" + "<main-class>" + LauncherMainTester.class.getName() + "</main-class>" + "</java>";
+    XConfiguration jConf = new XConfiguration();
+    jConf.set("p", "v");
+    OutputStream os = getFileSystem().create(new Path(getAppPath(), "job.xml"));
+    jConf.writeXml(os);
+    os.close();
+    Context context = createContext(actionXml, null);
+    Services.get().setService(ShareLibService.class);
+    // Test oozie server action sharelib setting
+    WorkflowJobBean workflow = (WorkflowJobBean) context.getWorkflow();
+    XConfiguration wfConf = new XConfiguration();
+    wfConf.set(WorkflowAppService.HADOOP_USER, getTestUser());
+    wfConf.set(OozieClient.APP_PATH, new Path(getAppPath(), "workflow.xml").toString());
+    wfConf.setBoolean(OozieClient.USE_SYSTEM_LIBPATH, true);
+    workflow.setConf(XmlUtils.prettyPrint(wfConf).toString());
+    ConfigurationService.set("oozie.action.sharelib.for.java", "java");
+    final String runningJob = submitAction(context);
+    waitUntilYarnAppDoneAndAssertSuccess(runningJob);
+}

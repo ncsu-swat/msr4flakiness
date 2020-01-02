@@ -1,0 +1,44 @@
+public void testCreateprotoConfWithLibPath() throws Exception {
+    Services services = new Services();
+    try {
+        services.init();
+        Reader reader = IOUtils.getResourceAsReader("wf-schema-valid.xml", -1);
+        Writer writer = new OutputStreamWriter(new FileOutputStream(new File(getTestCaseDir(), "workflow.xml")), StandardCharsets.UTF_8);
+        IOUtils.copyCharStream(reader, writer);
+        createTestCaseSubDir("lib");
+        writer = new OutputStreamWriter(new FileOutputStream(new File(getTestCaseDir(), "lib/maputil.jar")), StandardCharsets.UTF_8);
+        writer.write("bla bla");
+        writer.close();
+        writer = new OutputStreamWriter(new FileOutputStream(new File(getTestCaseDir(), "lib/reduceutil.so")), StandardCharsets.UTF_8);
+        writer.write("bla bla");
+        writer.close();
+        createTestCaseSubDir("libx");
+        writer = new OutputStreamWriter(new FileOutputStream(new File(getTestCaseDir(), "libx/maputilx.jar")), StandardCharsets.UTF_8);
+        writer.write("bla bla");
+        writer.close();
+        WorkflowAppService wps = Services.get().get(WorkflowAppService.class);
+        Configuration jobConf = new XConfiguration();
+        jobConf.set(OozieClient.APP_PATH, getTestCaseFileUri("workflow.xml"));
+        jobConf.set(OozieClient.LIBPATH, getTestCaseFileUri("libx"));
+        jobConf.set(OozieClient.USER_NAME, getTestUser());
+        Configuration protoConf = wps.createProtoActionConf(jobConf, true);
+        assertEquals(getTestUser(), protoConf.get(OozieClient.USER_NAME));
+        assertEquals(3, protoConf.getStrings(WorkflowAppService.APP_LIB_PATH_LIST).length);
+        List<String> found = new ArrayList<String>();
+        found.add(protoConf.getStrings(WorkflowAppService.APP_LIB_PATH_LIST)[0]);
+        found.add(protoConf.getStrings(WorkflowAppService.APP_LIB_PATH_LIST)[1]);
+        found.add(protoConf.getStrings(WorkflowAppService.APP_LIB_PATH_LIST)[2]);
+        List<String> expected = new ArrayList<String>();
+        expected.add(getTestCaseFileUri("lib/reduceutil.so"));
+        expected.add(getTestCaseFileUri("lib/maputil.jar"));
+        expected.add(getTestCaseFileUri("libx/maputilx.jar"));
+        Collections.sort(found);
+        Collections.sort(expected);
+        assertEquals(expected.size(), found.size());
+        for (int i = 0; i < expected.size(); i++) {
+            assert (new URI(expected.get(i)).equals(new URI(found.get(i))));
+        }
+    } finally {
+        services.destroy();
+    }
+}

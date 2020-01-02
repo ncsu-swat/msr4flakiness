@@ -1,0 +1,40 @@
+public void testExecuteBatchUpdateInsertDeleteRollBack() throws Exception {
+    BatchQueryExecutor executor = BatchQueryExecutor.getInstance();
+    WorkflowJobBean job = addRecordToWfJobTable(WorkflowJob.Status.PREP, WorkflowInstance.Status.PREP);
+    WorkflowActionBean action1 = createWorkflowAction(job.getId(), "1", WorkflowAction.Status.PREP);
+    WorkflowActionBean action2 = createWorkflowAction(job.getId(), "2", WorkflowAction.Status.PREP);
+    job.setStatus(WorkflowJob.Status.RUNNING);
+    Collection<JsonBean> insertList = new ArrayList<JsonBean>();
+    insertList.add(action1);
+    insertList.add(action2);
+    List<UpdateEntry> updateList = new ArrayList<UpdateEntry>();
+    // Add two actions to insert list
+    updateList.add(new UpdateEntry<WorkflowJobQuery>(WorkflowJobQuery.UPDATE_WORKFLOW, job));
+    // set fault injection to true, so transaction is roll backed
+    setSystemProperty(FaultInjection.FAULT_INJECTION, "true");
+    setSystemProperty(SkipCommitFaultInjection.ACTION_FAILOVER_FAULT_INJECTION, "true");
+    FaultInjection.activate("org.apache.oozie.command.SkipCommitFaultInjection");
+    try {
+        executor.executeBatchInsertUpdateDelete(insertList, updateList, null);
+        fail("Expected exception due to commit failure but didn't get any");
+    } catch (Exception e) {
+    }
+    FaultInjection.deactivate("org.apache.oozie.command.SkipCommitFaultInjection");
+    // Check whether transactions are rolled back or not
+    WorkflowJobBean wfBean = WorkflowJobQueryExecutor.getInstance().get(WorkflowJobQuery.GET_WORKFLOW, job.getId());
+    // status should not be RUNNING
+    assertEquals("PREP", wfBean.getStatusStr());
+    WorkflowActionBean waBean;
+    try {
+        waBean = WorkflowActionQueryExecutor.getInstance().get(WorkflowActionQuery.GET_ACTION, action1.getId());
+        fail("Expected exception but didnt get any");
+    } catch (JPAExecutorException jpaee) {
+        assertEquals(ErrorCode.E0605, jpaee.getErrorCode());
+    }
+    try {
+        waBean = WorkflowActionQueryExecutor.getInstance().get(WorkflowActionQuery.GET_ACTION, action2.getId());
+        fail("Expected exception but didnt get any");
+    } catch (JPAExecutorException jpaee) {
+        assertEquals(ErrorCode.E0605, jpaee.getErrorCode());
+    }
+}

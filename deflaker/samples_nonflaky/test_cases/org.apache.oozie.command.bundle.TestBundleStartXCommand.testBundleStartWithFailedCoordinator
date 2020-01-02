@@ -1,0 +1,34 @@
+public void testBundleStartWithFailedCoordinator() throws Exception {
+    services.destroy();
+    services = new Services();
+    String[] excludeServices = { "org.apache.oozie.service.UUIDService", "org.apache.oozie.service.StatusTransitService" };
+    Configuration conf = services.getConf();
+    setClassesToBeExcluded(conf, excludeServices);
+    conf.set(Services.CONF_SERVICE_CLASSES, conf.get(Services.CONF_SERVICE_CLASSES) + "," + DummyUUIDService.class.getName());
+    services.init();
+    CoordinatorJobBean coordJob = new CoordinatorJobBean();
+    coordJob.setId("dummy-coord-id");
+    JPAService jpaService = Services.get().get(JPAService.class);
+    CoordJobInsertJPAExecutor coordInsertCmd = new CoordJobInsertJPAExecutor(coordJob);
+    jpaService.execute(coordInsertCmd);
+    BundleJobBean job = addRecordToBundleJobTable(Job.Status.PREP, false);
+    BundleJobGetJPAExecutor bundleJobGetExecutor = new BundleJobGetJPAExecutor(job.getId());
+    job = jpaService.execute(bundleJobGetExecutor);
+    assertEquals(job.getStatus(), Job.Status.PREP);
+    new BundleStartXCommand(job.getId()).call();
+    job = jpaService.execute(bundleJobGetExecutor);
+    assertEquals(job.getStatus(), Job.Status.RUNNING);
+    sleep(2000);
+    List<BundleActionBean> actions = BundleActionQueryExecutor.getInstance().getList(BundleActionQuery.GET_BUNDLE_ACTIONS_STATUS_UNIGNORED_FOR_BUNDLE, job.getId());
+    assertNull(actions.get(0).getCoordId());
+    assertEquals(Job.Status.FAILED, actions.get(0).getStatus());
+    Runnable runnable = new StatusTransitRunnable();
+    // 1st run of StatusTransitionService changes bundle to running
+    runnable.run();
+    sleep(2000);
+    // 2nd run changes bundle to DoneWithError
+    runnable.run();
+    sleep(2000);
+    job = jpaService.execute(bundleJobGetExecutor);
+    assertEquals(job.getStatus(), Job.Status.DONEWITHERROR);
+}

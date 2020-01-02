@@ -1,0 +1,27 @@
+public void testGetList() throws Exception {
+    // GET_WORKFLOWS_PARENT_COORD_RERUN
+    CoordinatorJobBean coordJob = addRecordToCoordJobTable(CoordinatorJob.Status.SUCCEEDED, null, null, false, false, 1);
+    WorkflowJobBean wfJob1 = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED, coordJob.getId() + "@2");
+    CoordinatorActionBean coordAction1 = addRecordToCoordActionTable(coordJob.getId(), 2, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", wfJob1.getId(), "SUCCEEDED", 0);
+    // second wf after rerunning coord action, having same parent id
+    WorkflowJobBean wfJob2 = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED, coordJob.getId() + "@2");
+    final CoordinatorEngine ce = new CoordinatorEngine(getTestUser());
+    List<WorkflowJobBean> wfsForRerun = ce.getReruns(coordAction1.getId());
+    assertEquals(2, wfsForRerun.size());
+    assertEquals(wfJob1.getId(), wfsForRerun.get(0).getId());
+    assertEquals(wfJob2.getId(), wfsForRerun.get(1).getId());
+    // GET_COMPLETED_COORD_WORKFLOWS_OLDER_THAN
+    coordJob = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, null, null, false, false, 1);
+    wfJob1 = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED, coordJob.getId() + "@1");
+    wfJob1.setEndTime(DateUtils.parseDateOozieTZ("2009-12-18T03:00Z"));
+    WorkflowJobQueryExecutor.getInstance().executeUpdate(WorkflowJobQuery.UPDATE_WORKFLOW, wfJob1);
+    wfJob2 = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED, coordJob.getId() + "@2");
+    wfJob2.setEndTime(DateUtils.parseDateOozieTZ("2009-12-18T03:00Z"));
+    WorkflowJobQueryExecutor.getInstance().executeUpdate(WorkflowJobQuery.UPDATE_WORKFLOW, wfJob2);
+    long olderthan = 30;
+    List<WorkflowJobBean> jobBeans = WorkflowJobQueryExecutor.getInstance().getList(WorkflowJobQuery.GET_COMPLETED_COORD_WORKFLOWS_OLDER_THAN, olderthan, 0, 10);
+    HashSet<String> jobIds = new HashSet<String>(Arrays.asList(wfJob1.getId(), wfJob2.getId()));
+    assertEquals(2, jobBeans.size());
+    assertTrue(jobIds.contains(jobBeans.get(0).getId()));
+    assertTrue(jobIds.contains(jobBeans.get(1).getId()));
+}

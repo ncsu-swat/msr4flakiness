@@ -1,0 +1,21 @@
+public void testNestedCondition2() throws Exception {
+    Configuration conf = getConf();
+    // @formatter:off
+    String inputLogic = "<or name=\"${partitionName}\">" + "<and>" + "<data-in dataset=\"A\" />" + "<data-in dataset=\"B\" />" + "<data-in dataset=\"C\" />" + "<data-in dataset=\"D\" />" + "</and>" + "<and>" + "<data-in dataset=\"E\" />" + "<data-in dataset=\"F\" />" + "</and>" + "</or>";
+    // @formatter:on
+    conf.set("partitionName", "test");
+    conf.set("A_done_flag", "done");
+    final String jobId = _testCoordSubmit("coord-inputlogic.xml", conf, inputLogic);
+    String input1 = createTestCaseSubDir("input-data/a/2014/10/08/00/done".split("/"));
+    String input2 = createTestCaseSubDir("input-data/b/2014/10/08/00/_SUCCESS".split("/"));
+    String input3 = createTestCaseSubDir("input-data/c/2014/10/08/00/_SUCCESS".split("/"));
+    String input4 = createTestCaseSubDir("input-data/e/2014/10/08/00/_SUCCESS".split("/"));
+    String input5 = createTestCaseSubDir("input-data/f/2014/10/08/00/_SUCCESS".split("/"));
+    startCoordAction(jobId);
+    CoordinatorActionBean actionBean = CoordActionQueryExecutor.getInstance().get(CoordActionQuery.GET_COORD_ACTION, jobId + "@1");
+    XConfiguration runConf = new XConfiguration(new StringReader(actionBean.getRunConf()));
+    String dataSets = runConf.get("inputLogicData");
+    assertEquals(dataSets.split(",").length, 2);
+    checkDataSets(dataSets, input4, input5);
+    checkDataSetsForFalse(dataSets, input1, input2, input3);
+}

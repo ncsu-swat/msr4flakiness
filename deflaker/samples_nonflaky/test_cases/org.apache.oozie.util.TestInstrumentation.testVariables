@@ -1,0 +1,40 @@
+public void testVariables() throws Exception {
+    Instrumentation inst = new Instrumentation();
+    inst.addVariable("a", "1", new Instrumentation.Variable<Long>() {
+
+        private long counter = 0;
+
+        public Long getValue() {
+            return counter++;
+        }
+    });
+    assertEquals(1, inst.getVariables().size());
+    assertEquals(1, inst.getVariables().get("a").size());
+    inst.addVariable("a", "2", new Instrumentation.Variable<Long>() {
+
+        private long counter = 1;
+
+        public Long getValue() {
+            return counter++;
+        }
+    });
+    assertEquals(1, inst.getVariables().size());
+    assertEquals(2, inst.getVariables().get("a").size());
+    inst.addVariable("b", "1", new Instrumentation.Variable<Long>() {
+
+        private long counter = 2;
+
+        public Long getValue() {
+            return counter++;
+        }
+    });
+    assertEquals(2, inst.getVariables().size());
+    assertEquals(2, inst.getVariables().get("a").size());
+    assertEquals(1, inst.getVariables().get("b").size());
+    assertEquals(new Long(0), ((Instrumentation.Variable) inst.getVariables().get("a").get("1")).getValue());
+    assertEquals(new Long(1), ((Instrumentation.Variable) inst.getVariables().get("a").get("2")).getValue());
+    assertEquals(new Long(2), ((Instrumentation.Variable) inst.getVariables().get("b").get("1")).getValue());
+    assertEquals(new Long(1), ((Instrumentation.Variable) inst.getVariables().get("a").get("1")).getValue());
+    assertEquals(new Long(2), ((Instrumentation.Variable) inst.getVariables().get("a").get("2")).getValue());
+    assertEquals(new Long(3), ((Instrumentation.Variable) inst.getVariables().get("b").get("1")).getValue());
+}

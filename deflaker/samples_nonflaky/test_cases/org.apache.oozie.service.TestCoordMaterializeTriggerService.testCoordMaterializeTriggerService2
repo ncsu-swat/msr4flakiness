@@ -1,0 +1,17 @@
+/**
+ * Test current mode. The job should be picked up for materialization.
+ *
+ * @throws Exception
+ */
+public void testCoordMaterializeTriggerService2() throws Exception {
+    Date start = new Date();
+    Date end = new Date(start.getTime() + 3600 * 48 * 1000);
+    final CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.PREP, start, end, false, false, 0);
+    waitForStatus(30000, job, CoordinatorJob.Status.PREP);
+    Runnable runnable = new CoordMaterializeTriggerRunnable(3600, 300);
+    runnable.run();
+    waitForStatus(10000, job, CoordinatorJob.Status.RUNNING);
+    CoordJobGetJPAExecutor coordGetCmd = new CoordJobGetJPAExecutor(job.getId());
+    CoordinatorJobBean coordJob = jpaService.execute(coordGetCmd);
+    assertEquals(CoordinatorJob.Status.RUNNING, coordJob.getStatus());
+}

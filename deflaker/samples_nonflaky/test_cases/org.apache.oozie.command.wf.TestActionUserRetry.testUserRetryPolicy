@@ -1,0 +1,47 @@
+public void testUserRetryPolicy() throws JPAExecutorException, IOException, CommandException {
+    Configuration conf = new XConfiguration();
+    String workflowUri = getTestCaseFileUri("workflow.xml");
+    // @formatter:off
+    String appXml = "<workflow-app xmlns=\"uri:oozie:workflow:0.5\" name=\"wf-fork\">" + "<start to=\"fork1\"/>" + "<fork name=\"fork1\">" + "<path start=\"action1\"/>" + "<path start=\"action2\"/>" + "</fork>" + "<action name=\"action1\" retry-max=\"2\" retry-interval=\"1\" retry-policy=\"exponential\">" + "<test xmlns=\"uri:test\">" + "<signal-value>${wf:conf('signal-value')}</signal-value>" + "<external-status>${wf:conf('external-status')}</external-status> " + "<error>${wf:conf('error')}</error>" + "<avoid-set-execution-data>${wf:conf('avoid-set-execution-data')}</avoid-set-execution-data>" + "<avoid-set-end-data>${wf:conf('avoid-set-end-data')}</avoid-set-end-data>" + "<running-mode>${wf:conf('running-mode')}</running-mode>" + "</test>" + "<ok to=\"join1\"/>" + "<error to=\"kill\"/>" + "</action>" + "<action name=\"action2\">" + "<fs></fs><ok to=\"join1\"/>" + "<error to=\"kill\"/>" + "</action>" + "<join name=\"join1\" to=\"end\"/>" + "<kill name=\"kill\"><message>killed</message></kill>" + "<end name=\"end\"/>" + "</workflow-app>";
+    // @Formatter:on
+    writeToFile(appXml, workflowUri);
+    conf.set(OozieClient.APP_PATH, workflowUri);
+    conf.set(OozieClient.USER_NAME, getTestUser());
+    conf.set("error", "start.error");
+    conf.set("external-status", "error");
+    conf.set("signal-value", "based_on_action_status");
+    SubmitXCommand sc = new SubmitXCommand(conf);
+    final String jobId = sc.call();
+    new StartXCommand(jobId).call();
+    final WorkflowActionsGetForJobJPAExecutor actionsGetExecutor = new WorkflowActionsGetForJobJPAExecutor(jobId);
+    final JPAService jpaService = Services.get().get(JPAService.class);
+    // set a timeout for exponential retry of action with respect to given
+    // retry-interval and retry-max.
+    // If retry-interval is 1 then, for first retry, delay will be 1 min,
+    // for second retry it will be 2 min, 4, 8, 16 & so on.
+    int timeout = (1 + 2) * 60 * 1000;
+    waitFor(timeout, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            List<WorkflowActionBean> actions = jpaService.execute(actionsGetExecutor);
+            WorkflowActionBean action = null;
+            for (WorkflowActionBean bean : actions) {
+                if (bean.getType().equals("test")) {
+                    action = bean;
+                    break;
+                }
+            }
+            return (action != null && action.getUserRetryCount() == 2);
+        }
+    });
+    List<WorkflowActionBean> actions = jpaService.execute(actionsGetExecutor);
+    WorkflowActionBean action = null;
+    for (WorkflowActionBean bean : actions) {
+        if (bean.getType().equals("test")) {
+            action = bean;
+            break;
+        }
+    }
+    assertNotNull(action);
+    assertEquals(2, action.getUserRetryCount());
+}

@@ -1,0 +1,23 @@
+public void testSLAChangeCommand() throws Exception {
+    setupSLAJobs();
+    String newParams = RestConstants.SLA_SHOULD_END + "=10";
+    String jobIdsStr = bundle.getId();
+    String coords = coord1.getAppName();
+    bundleEngine.changeSLA(jobIdsStr, null, null, coords, newParams);
+    assertEquals(getSLACalcStatus(coord1.getId() + "@1").getExpectedEnd().getTime(), getSLACalcStatus(coord1.getId() + "@1").getNominalTime().getTime() + 10 * timeInSec);
+    assertEquals(getSLACalcStatus(coord1.getId() + "@2").getExpectedEnd().getTime(), getSLACalcStatus(coord1.getId() + "@2").getNominalTime().getTime() + 10 * timeInSec);
+    assertEquals(getSLACalcStatus(coord1.getId() + "@5").getExpectedEnd().getTime(), getSLACalcStatus(coord1.getId() + "@5").getNominalTime().getTime() + 10 * timeInSec);
+    newParams = "non-valid-param=10";
+    try {
+        bundleEngine.changeSLA(jobIdsStr, null, null, coords, newParams);
+        fail("Should throw Exception");
+    } catch (BaseEngineException e) {
+        assertEquals(e.getErrorCode(), ErrorCode.E1027);
+    }
+    try {
+        new CoordinatorEngine().changeSLA(coord1.getId(), null, null, null, newParams);
+        fail("Should throw Exception");
+    } catch (BaseEngineException e) {
+        assertEquals(e.getErrorCode(), ErrorCode.E1027);
+    }
+}

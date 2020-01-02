@@ -1,0 +1,42 @@
+/**
+ * Testcase when changing end-time == nextMaterializedTime
+ * reflects correct job status via StatusTransit
+ *
+ * @throws Exception
+ */
+public void testCoordChangeEndTime1() throws Exception {
+    JPAService jpaService = Services.get().get(JPAService.class);
+    Date startTime = new Date();
+    Date endTime = new Date(startTime.getTime() + (50 * 60 * 1000));
+    CoordinatorJobBean coordJob = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, startTime, endTime, true, true, 1);
+    coordJob.setNextMaterializedTime(new Date(startTime.getTime() + (30 * 60 * 1000)));
+    CoordJobQueryExecutor.getInstance().executeUpdate(CoordJobQuery.UPDATE_COORD_JOB, coordJob);
+    addRecordToCoordActionTable(coordJob.getId(), 1, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    Runnable runnable = new StatusTransitService.StatusTransitRunnable();
+    // dummy run so we get to the interval check following coord job change
+    runnable.run();
+    sleep(1000);
+    // checking before change
+    assertEquals(endTime.getTime(), coordJob.getEndTime().getTime());
+    String newEndTime = convertDateToString(startTime.getTime() + 30 * 60 * 1000);
+    new CoordChangeXCommand(coordJob.getId(), "endtime=" + newEndTime).call();
+    try {
+        checkCoordJobs(coordJob.getId(), DateUtils.parseDateOozieTZ(newEndTime), null, null, false);
+    } catch (Exception ex) {
+        ex.printStackTrace();
+        fail("Invalid date" + ex);
+    }
+    CoordJobGetJPAExecutor coordGetCmd = new CoordJobGetJPAExecutor(coordJob.getId());
+    coordJob = jpaService.execute(coordGetCmd);
+    assertEquals(Job.Status.RUNNING, coordJob.getStatus());
+    // checking after change
+    assertEquals(newEndTime, convertDateToString(coordJob.getEndTime().getTime()));
+    assertTrue(coordJob.isPending());
+    assertTrue(coordJob.isDoneMaterialization());
+    runnable.run();
+    sleep(1000);
+    coordJob = jpaService.execute(coordGetCmd);
+    assertEquals(Job.Status.SUCCEEDED, coordJob.getStatus());
+    assertFalse(coordJob.isPending());
+    assertTrue(coordJob.isDoneMaterialization());
+}

@@ -1,0 +1,104 @@
+public void testActionExecutor() throws Exception {
+    ActionExecutor.enableInit();
+    ActionExecutor.resetInitInfo();
+    ActionExecutor ae = new MyActionExecutor();
+    ae.initActionType();
+    ActionExecutor.disableInit();
+    ae.start(null, null);
+    ae = new MyActionExecutor(1, 2);
+    ae.check(null, null);
+    Exception cause = new IOException();
+    try {
+        throw ae.convertException(cause);
+    } catch (ActionExecutorException ex) {
+        assertEquals(cause, ex.getCause());
+        assertEquals(ActionExecutorException.ErrorType.TRANSIENT, ex.getErrorType());
+        assertEquals("IO", ex.getErrorCode());
+    } catch (Exception ex) {
+        fail();
+    }
+    cause = new RemoteException();
+    try {
+        throw ae.convertException(cause);
+    } catch (ActionExecutorException ex) {
+        assertEquals(cause, ex.getCause());
+        assertEquals(ActionExecutorException.ErrorType.NON_TRANSIENT, ex.getErrorType());
+        assertEquals("RMI", ex.getErrorCode());
+    } catch (Exception ex) {
+        fail();
+    }
+    cause = new RuntimeException();
+    try {
+        throw ae.convertException(cause);
+    } catch (ActionExecutorException ex) {
+        assertEquals(cause, ex.getCause());
+        assertEquals(ActionExecutorException.ErrorType.ERROR, ex.getErrorType());
+        assertEquals("RuntimeException", ex.getErrorCode());
+    } catch (Exception ex) {
+        fail();
+    }
+    cause = new ActionExecutorException(ActionExecutorException.ErrorType.ERROR, "x", "x");
+    try {
+        throw ae.convertException(cause);
+    } catch (ActionExecutorException ex) {
+        assertEquals(cause, ex);
+    } catch (Exception ex) {
+        fail();
+    }
+    // not registered, but subclass of IOException
+    cause = new EOFException();
+    try {
+        throw ae.convertException(cause);
+    } catch (ActionExecutorException ex) {
+        assertEquals(cause, ex.getCause());
+        assertEquals(ActionExecutorException.ErrorType.TRANSIENT, ex.getErrorType());
+        assertEquals("IO", ex.getErrorCode());
+    } catch (Exception ex) {
+        fail();
+    }
+    Exception rootCause = new RemoteException();
+    cause = new RuntimeException(rootCause);
+    try {
+        throw ae.convertException(cause);
+    } catch (ActionExecutorException ex) {
+        assertEquals(rootCause, ex.getCause());
+        assertEquals(ActionExecutorException.ErrorType.NON_TRANSIENT, ex.getErrorType());
+        assertEquals("RMI", ex.getErrorCode());
+    } catch (Exception ex) {
+        fail();
+    }
+    rootCause = new RemoteException();
+    cause = new IOException(rootCause);
+    try {
+        throw ae.convertException(cause);
+    } catch (ActionExecutorException ex) {
+        assertEquals(rootCause, ex.getCause());
+        assertEquals(ActionExecutorException.ErrorType.NON_TRANSIENT, ex.getErrorType());
+        assertEquals("RMI", ex.getErrorCode());
+    } catch (Exception ex) {
+        fail();
+    }
+    rootCause = new IOException();
+    cause = new RemoteException("x", rootCause);
+    try {
+        throw ae.convertException(cause);
+    } catch (ActionExecutorException ex) {
+        assertEquals(rootCause, ex.getCause());
+        assertEquals(ActionExecutorException.ErrorType.TRANSIENT, ex.getErrorType());
+        assertEquals("IO", ex.getErrorCode());
+    } catch (Exception ex) {
+        fail();
+    }
+    // not registered, but subclass of IOException
+    rootCause = new EOFException();
+    cause = new RemoteException("x", rootCause);
+    try {
+        throw ae.convertException(cause);
+    } catch (ActionExecutorException ex) {
+        assertEquals(rootCause, ex.getCause());
+        assertEquals(ActionExecutorException.ErrorType.TRANSIENT, ex.getErrorType());
+        assertEquals("IO", ex.getErrorCode());
+    } catch (Exception ex) {
+        fail();
+    }
+}

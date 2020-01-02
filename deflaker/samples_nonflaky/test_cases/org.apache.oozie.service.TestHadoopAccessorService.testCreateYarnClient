@@ -1,0 +1,22 @@
+public void testCreateYarnClient() throws Exception {
+    HadoopAccessorService has = Services.get().get(HadoopAccessorService.class);
+    Configuration conf = has.createConfiguration(getJobTrackerUri());
+    YarnClient yc = has.createYarnClient(getTestUser(), conf);
+    assertNotNull(yc);
+    yc.getApplications();
+    try {
+        yc = has.createYarnClient("invalid-user", conf);
+        assertNotNull(yc);
+        yc.getApplications();
+        fail("Should have thrown exception because not allowed to impersonate 'invalid-user'");
+    } catch (AuthorizationException ex) {
+    }
+    JobConf conf2 = new JobConf(false);
+    conf2.set("yarn.resourcemanager.address", getJobTrackerUri());
+    try {
+        has.createYarnClient(getTestUser(), conf2);
+        fail("Should have thrown exception because Configuration not created by HadoopAccessorService");
+    } catch (HadoopAccessorException ex) {
+        assertEquals(ErrorCode.E0903, ex.getErrorCode());
+    }
+}

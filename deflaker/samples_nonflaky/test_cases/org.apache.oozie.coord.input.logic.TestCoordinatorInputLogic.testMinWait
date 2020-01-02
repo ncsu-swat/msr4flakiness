@@ -1,0 +1,26 @@
+public void testMinWait() throws Exception {
+    Configuration conf = getConf();
+    Date now = new Date();
+    String inputLogic = // @formatter:off
+    "<combine name=\"test\" min= \"4\" wait=\"1\">" + "<data-in dataset=\"A\" />" + "<data-in dataset=\"B\" />" + "</combine>";
+    // @formatter:on
+    conf.set("start_time", DateUtils.formatDateOozieTZ(now));
+    conf.set("end_time", DateUtils.formatDateOozieTZ(new Date(now.getTime() + 3 * 60 * 60 * 1000)));
+    // 5 hour before
+    conf.set("initial_instance_a", DateUtils.formatDateOozieTZ(new Date(now.getTime() - 5 * 60 * 60 * 1000)));
+    // 5 hour before
+    conf.set("initial_instance_b", DateUtils.formatDateOozieTZ(new Date(now.getTime() - 5 * 60 * 60 * 1000)));
+    String jobId = _testCoordSubmit("coord-inputlogic-range.xml", conf, inputLogic, getInputEventForRange());
+    new CoordMaterializeTransitionXCommand(jobId, 3600).call();
+    List<String> inputDir = createDirWithTime("input-data/b/", now, 0, 1, 2, 3, 4);
+    startCoordActionForWaiting(jobId);
+    // wait for 1 min
+    sleep(60 * 1000);
+    new CoordActionInputCheckXCommand(jobId + "@1", jobId).call();
+    CoordinatorActionBean actionBean = CoordActionQueryExecutor.getInstance().get(CoordActionQuery.GET_COORD_ACTION, jobId + "@1");
+    assertFalse(CoordinatorAction.Status.WAITING.equals(actionBean.getStatus()));
+    XConfiguration runConf = new XConfiguration(new StringReader(actionBean.getRunConf()));
+    String dataSets = runConf.get("inputLogicData");
+    assertEquals(dataSets.split(",").length, 5);
+    checkDataSets(dataSets, inputDir.toArray(new String[inputDir.size()]));
+}

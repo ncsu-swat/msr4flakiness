@@ -1,0 +1,37 @@
+@Test
+public void testQueueElement() throws Exception {
+    Object obj = new Object();
+    try {
+        new TestQueueElement<Object>(null);
+        fail();
+    } catch (IllegalArgumentException | NullPointerException ex) {
+    }
+    try {
+        new TestQueueElement<Object>(null, 0, 0, TimeUnit.MILLISECONDS);
+        fail();
+    } catch (IllegalArgumentException | NullPointerException ex) {
+    }
+    try {
+        new TestQueueElement<Object>(obj, -1, 0, TimeUnit.MILLISECONDS);
+        fail();
+    } catch (IllegalArgumentException | NullPointerException ex) {
+    }
+    try {
+        new TestQueueElement<Object>(obj, 0, -1, TimeUnit.MILLISECONDS);
+        fail();
+    } catch (IllegalArgumentException | NullPointerException ex) {
+    }
+    TestQueueElement<Object> e1 = new TestQueueElement<Object>(obj);
+    assertEquals(obj, e1.getElement().call());
+    assertEquals(0, e1.getPriority());
+    assertTrue(e1.getDelay(TimeUnit.MILLISECONDS) <= 0);
+    e1 = new TestQueueElement<Object>(obj, 1, 200, TimeUnit.MILLISECONDS);
+    assertEquals(obj, e1.getElement().call());
+    assertEquals(1, e1.getPriority());
+    assertTrue(e1.getDelay(TimeUnit.MILLISECONDS) <= 200);
+    assertTrue(e1.getDelay(TimeUnit.MILLISECONDS) >= 100);
+    Thread.sleep(300);
+    assertTrue(e1.getDelay(TimeUnit.MILLISECONDS) <= 0);
+    TestQueueElement<Object> e2 = new TestQueueElement<Object>(obj);
+    assertTrue(e1.compareTo(e2) < 0);
+}

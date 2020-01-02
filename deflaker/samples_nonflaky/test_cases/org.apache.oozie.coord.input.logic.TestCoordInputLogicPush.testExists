@@ -1,0 +1,15 @@
+public void testExists() throws Exception {
+    Configuration conf = getConf();
+    // @formatter:off
+    String inputLogic = "<or name=\"test\">" + "<data-in dataset=\"B\" />" + "<data-in dataset=\"D\" />" + "</or>";
+    // @formatter:on
+    conf.set("partitionName", "test");
+    String jobId = submitCoord("coord-inputlogic-hcat.xml", conf, inputLogic, TEST_TYPE.CURRENT_SINGLE);
+    String input = addPartition("db_b", "table1", "dt=20141008;country=usa");
+    startCoordAction(jobId);
+    CoordinatorActionBean actionBean = CoordActionQueryExecutor.getInstance().get(CoordActionQuery.GET_COORD_ACTION, jobId + "@1");
+    Configuration runConf = getActionConf(actionBean);
+    String dataSets = runConf.get("inputLogicData");
+    assertEquals(dataSets.split(",").length, 1);
+    checkDataSets(dataSets, input);
+}

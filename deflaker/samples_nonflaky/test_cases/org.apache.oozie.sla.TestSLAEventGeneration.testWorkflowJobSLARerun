@@ -1,0 +1,89 @@
+/**
+ * Test for SLA Events generated through wf rerun
+ *
+ * @throws Exception
+ */
+@Test
+public void testWorkflowJobSLARerun() throws Exception {
+    SLAService slas = services.get(SLAService.class);
+    String wfXml = IOUtils.getResourceAsString("wf-job-sla.xml", -1);
+    Path appPath = getFsTestCaseDir();
+    writeToFile(wfXml, appPath, "workflow.xml");
+    Configuration conf = new XConfiguration();
+    conf.set(OozieClient.APP_PATH, appPath.toString());
+    conf.set(OozieClient.USER_NAME, getTestUser());
+    cal.setTime(new Date());
+    // for start_miss
+    cal.add(Calendar.MINUTE, -40);
+    Date nominal = cal.getTime();
+    String nominalTime = DateUtils.formatDateOozieTZ(nominal);
+    conf.set("nominal_time", nominalTime);
+    cal.setTime(nominal);
+    // as per the sla xml
+    cal.add(Calendar.MINUTE, 10);
+    String expectedStart = DateUtils.formatDateOozieTZ(cal.getTime());
+    cal.setTime(nominal);
+    // as per the sla xml
+    cal.add(Calendar.MINUTE, 30);
+    String expectedEnd = DateUtils.formatDateOozieTZ(cal.getTime());
+    // Call SubmitX
+    SubmitXCommand sc = new SubmitXCommand(conf);
+    String jobId = sc.call();
+    SLACalcStatus slaEvent = slas.getSLACalculator().get(jobId);
+    assertEquals(jobId, slaEvent.getId());
+    assertEquals("test-wf-job-sla", slaEvent.getAppName());
+    assertEquals(AppType.WORKFLOW_JOB, slaEvent.getAppType());
+    assertEquals(nominalTime, DateUtils.formatDateOozieTZ(slaEvent.getNominalTime()));
+    assertEquals(expectedStart, DateUtils.formatDateOozieTZ(slaEvent.getExpectedStart()));
+    assertEquals(expectedEnd, DateUtils.formatDateOozieTZ(slaEvent.getExpectedEnd()));
+    slas.runSLAWorker();
+    slaEvent = (SLACalcStatus) ehs.getEventQueue().poll();
+    assertEquals(SLAStatus.NOT_STARTED, slaEvent.getSLAStatus());
+    assertEquals(EventStatus.START_MISS, slaEvent.getEventStatus());
+    slas.getSLACalculator().clear();
+    JPAService jpaService = Services.get().get(JPAService.class);
+    WorkflowJobBean wfBean = jpaService.execute(new WorkflowJobGetJPAExecutor(jobId));
+    // set job status to succeeded, so rerun doesn't fail
+    wfBean.setStatus(WorkflowJob.Status.SUCCEEDED);
+    WorkflowJobQueryExecutor.getInstance().executeUpdate(WorkflowJobQuery.UPDATE_WORKFLOW_STATUS_MODTIME, wfBean);
+    // change conf for rerun
+    cal.setTime(new Date());
+    // for start_miss
+    cal.add(Calendar.MINUTE, -20);
+    nominalTime = DateUtils.formatDateOozieTZ(cal.getTime());
+    conf.set("nominal_time", nominalTime);
+    nominal = cal.getTime();
+    // as per the sla xml
+    cal.add(Calendar.MINUTE, 10);
+    expectedStart = DateUtils.formatDateOozieTZ(cal.getTime());
+    cal.setTime(nominal);
+    // as per the sla xml
+    cal.add(Calendar.MINUTE, 30);
+    expectedEnd = DateUtils.formatDateOozieTZ(cal.getTime());
+    ReRunXCommand rerun = new ReRunXCommand(jobId, conf);
+    rerun.call();
+    slaEvent = slas.getSLACalculator().get(jobId);
+    // assert for new conf
+    assertNotNull(slaEvent);
+    assertEquals(jobId, slaEvent.getId());
+    assertEquals("test-wf-job-sla", slaEvent.getAppName());
+    assertEquals(AppType.WORKFLOW_JOB, slaEvent.getAppType());
+    // assert for new conf
+    assertEquals(nominalTime, DateUtils.formatDateOozieTZ(slaEvent.getNominalTime()));
+    assertEquals(expectedStart, DateUtils.formatDateOozieTZ(slaEvent.getExpectedStart()));
+    assertEquals(expectedEnd, DateUtils.formatDateOozieTZ(slaEvent.getExpectedEnd()));
+    // assert for values in summary bean to be reset
+    SLASummaryBean slaSummary = SLASummaryQueryExecutor.getInstance().get(SLASummaryQuery.GET_SLA_SUMMARY, jobId);
+    assertEquals(0, slaSummary.getEventProcessed());
+    assertEquals(-1, slaSummary.getActualDuration());
+    assertNull(slaSummary.getActualStart());
+    assertNull(slaSummary.getActualEnd());
+    assertEquals("PREP", slaSummary.getJobStatus());
+    assertEquals(SLAStatus.NOT_STARTED, slaSummary.getSLAStatus());
+    assertNull(slaEvent.getEventStatus());
+    ehs.getEventQueue().clear();
+    slas.runSLAWorker();
+    slaEvent = (SLACalcStatus) ehs.getEventQueue().poll();
+    assertEquals(SLAStatus.IN_PROCESS, slaEvent.getSLAStatus());
+    assertEquals(EventStatus.START_MISS, slaEvent.getEventStatus());
+}

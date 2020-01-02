@@ -1,0 +1,20 @@
+public void testQueueUniquenessWithSameKey() throws Exception {
+    EXEC_ORDER = new AtomicLong();
+    final MyCallable callable1 = new MyCallable("QueueUniquenessWithSameKey", "QueueUniquenessWithSameKey", 0, 100);
+    final MyCallable callable2 = new MyCallable("QueueUniquenessWithSameKey", "QueueUniquenessWithSameKey", 0, 100);
+    final MyCallable callable3 = new MyCallable("QueueUniquenessWithSameKey", "QueueUniquenessWithSameKey", 0, 100);
+    List<MyCallable> callables = Arrays.asList(callable1, callable2, callable3);
+    CallableQueueService queueservice = Services.get().get(CallableQueueService.class);
+    for (MyCallable c : callables) {
+        queueservice.queue(c);
+    }
+    waitFor(200, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            return callable1.executed != 0 && callable2.executed == 0 && callable3.executed == 0;
+        }
+    });
+    assertTrue(callable1.executed != 0);
+    assertTrue(callable2.executed == 0);
+    assertTrue(callable3.executed == 0);
+}

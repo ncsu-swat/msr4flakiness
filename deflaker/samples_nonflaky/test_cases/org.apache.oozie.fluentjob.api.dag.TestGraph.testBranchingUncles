@@ -1,0 +1,47 @@
+@Test
+public void testBranchingUncles() {
+    final Node a = MapReduceActionBuilder.create().withName("A").build();
+    final Node b = MapReduceActionBuilder.create().withName("B").withParent(a).build();
+    final Node c = MapReduceActionBuilder.create().withName("C").withParent(a).build();
+    final Node d = MapReduceActionBuilder.create().withName("D").withParent(b).build();
+    final Node e = MapReduceActionBuilder.create().withName("E").withParent(c).build();
+    final Node f = MapReduceActionBuilder.create().withName("F").withParent(d).withParent(e).build();
+    final Node g = MapReduceActionBuilder.create().withName("G").withParent(c).build();
+    MapReduceActionBuilder.create().withName("H").withParent(f).withParent(g).build();
+    final Workflow workflow = new WorkflowBuilder().withName("branching-uncles").withDagContainingNode(a).build();
+    final Graph graph = new Graph(workflow);
+    checkDependencies(workflow.getNodes(), graph);
+    final NodeBase A = new ExplicitNode("A", null);
+    final NodeBase B = new ExplicitNode("B", null);
+    final NodeBase C = new ExplicitNode("C", null);
+    final NodeBase D = new ExplicitNode("D", null);
+    final NodeBase E = new ExplicitNode("E", null);
+    final NodeBase F = new ExplicitNode("F", null);
+    final NodeBase G = new ExplicitNode("G", null);
+    final NodeBase H = new ExplicitNode("H", null);
+    final Start start = new Start("start");
+    final End end = new End("end");
+    final Fork fork1 = new Fork("fork1");
+    final Fork fork2 = new Fork("fork3");
+    final Join join1 = new Join("join1", fork1);
+    final Join join2 = new Join("join3", fork2);
+    end.addParent(H);
+    H.addParent(join2);
+    join2.addParent(F);
+    join2.addParent(G);
+    F.addParent(fork2);
+    G.addParent(fork2);
+    fork2.addParent(join1);
+    join1.addParent(D);
+    join1.addParent(E);
+    D.addParent(B);
+    E.addParent(C);
+    B.addParent(fork1);
+    C.addParent(fork1);
+    fork1.addParent(A);
+    A.addParent(start);
+    final List<NodeBase> nodes = Arrays.asList(start, end, fork1, fork2, join1, join2, A, B, C, D, E, F, G, H);
+    checkEqualStructureByNames(nodes, graph);
+// nodesToPng.withWorkflow(workflow);
+// nodesToPng.withGraph(graph);
+}

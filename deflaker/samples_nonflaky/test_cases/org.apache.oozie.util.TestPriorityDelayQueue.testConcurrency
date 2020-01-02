@@ -1,0 +1,35 @@
+@Test
+public void testConcurrency() throws Exception {
+    final int threads = 5;
+    final AtomicInteger counter = new AtomicInteger(threads);
+    final int priorities = 5;
+    final PriorityDelayQueue<String> queue = new PriorityDelayQueue<String>(priorities, 100, TimeUnit.MILLISECONDS, -1);
+    for (int i = 0; i < threads; i++) {
+        final int count = i;
+        new Thread(new Runnable() {
+
+            public void run() {
+                for (int j = 0; j < 10; j++) {
+                    String msg = count + " - " + j;
+                    try {
+                        queue.offer(new TestQueueElement<String>(msg, (int) (Math.random() * priorities), (int) (Math.random() * 500), TimeUnit.MILLISECONDS));
+                        Thread.sleep((int) (Math.random() * 50));
+                    } catch (Exception ex) {
+                        throw new RuntimeException(ex);
+                    }
+                    counter.decrementAndGet();
+                }
+            }
+        }).start();
+    }
+    while (counter.get() > 0) {
+        while (queue.poll() != null) {
+        }
+        Thread.sleep(10);
+    }
+    while (queue.size() > 0) {
+        while (queue.poll() != null) {
+        }
+        Thread.sleep(10);
+    }
+}

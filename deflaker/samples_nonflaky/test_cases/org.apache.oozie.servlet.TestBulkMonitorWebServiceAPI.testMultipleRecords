@@ -1,0 +1,20 @@
+public void testMultipleRecords() throws Exception {
+    runTest("/v1/jobs", V1JobsServlet.class, false, new Callable<Void>() {
+
+        public Void call() throws Exception {
+            String bulkRequest = "bundle=" + bundleName + ";coordinators=Coord1;" + "actionStatus=FAILED,KILLED;startcreatedtime=2012-07-21T00:00Z";
+            JSONArray array = _requestToServer(bulkRequest);
+            assertEquals(2, array.size());
+            JSONObject jbundle = (JSONObject) ((JSONObject) array.get(0)).get(JsonTags.BULK_RESPONSE_BUNDLE);
+            assertNotNull(jbundle);
+            JSONObject jaction1 = (JSONObject) ((JSONObject) array.get(0)).get(JsonTags.BULK_RESPONSE_ACTION);
+            JSONObject jaction2 = (JSONObject) ((JSONObject) array.get(1)).get(JsonTags.BULK_RESPONSE_ACTION);
+            assertNotNull(jaction1);
+            assertNotNull(jaction2);
+            assertEquals(jbundle.get(JsonTags.BUNDLE_JOB_NAME), bundleName);
+            assertEquals(jaction1.get(JsonTags.COORDINATOR_ACTION_STATUS), "FAILED");
+            assertEquals(jaction2.get(JsonTags.COORDINATOR_ACTION_STATUS), "KILLED");
+            return null;
+        }
+    });
+}

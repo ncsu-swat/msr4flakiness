@@ -1,0 +1,11 @@
+public void testLauncherConfigurationFiltering() {
+    final Configuration sourceConf = SourceConfigurationFactory.createLauncherEntries();
+    sourceConf.set("oozie.launcher." + HADOOP_USER, "should-not-be-present");
+    final Configuration launcherConf = newConfigurationWithoutDefaults();
+    try {
+        new LauncherConfigurationInjector(sourceConf).inject(launcherConf);
+        fail(String.format("configuration entry %s should be filtered out", HADOOP_USER));
+    } catch (final ActionExecutorException e) {
+        assertEquals("error code mismatch", "JA010", e.getErrorCode());
+    }
+}

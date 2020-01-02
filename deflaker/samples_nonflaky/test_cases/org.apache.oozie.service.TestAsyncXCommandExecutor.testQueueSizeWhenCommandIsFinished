@@ -1,0 +1,13 @@
+@Test
+public void testQueueSizeWhenCommandIsFinished() {
+    CallableWrapper<?> delayedCommand = mock(CallableWrapper.class);
+    when(delayedCommand.getInitialDelay()).thenReturn(100L);
+    when(delayedCommand.filterDuplicates()).thenReturn(true);
+    asyncExecutor.queue(callableWrapper, false);
+    asyncExecutor.queue(delayedCommand, false);
+    int sizeAfterQueue = asyncExecutor.getSize();
+    asyncExecutor.commandFinished();
+    asyncExecutor.commandFinished();
+    assertEquals("Size after queue", 2, sizeAfterQueue);
+    assertEquals("Active commands", 0, asyncExecutor.getSize());
+}

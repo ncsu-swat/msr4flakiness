@@ -1,0 +1,26 @@
+/**
+ * Test the working of CoordActionKillXCommand by passing range
+ * as date
+ *
+ * @throws Exception in case of error
+ */
+public void testActionKillCommandDate() throws Exception {
+    JPAService jpaService = services.get(JPAService.class);
+    String[] ids = createDBRecords();
+    System.out.println(DateUtils.parseDateOozieTZ("2009-12-15T01:00Z"));
+    System.out.println(DateUtils.parseDateOozieTZ("2009-12-15T02:00Z"));
+    new CoordActionsKillXCommand(ids[0], "date", "2009-12-15T01:00Z::2009-12-15T02:00Z").call();
+    CoordinatorActionBean action = jpaService.execute(new CoordActionGetForCheckJPAExecutor(ids[1]));
+    System.out.println(action.getNominalTime());
+    assertEquals(CoordinatorAction.Status.KILLED, action.getStatus());
+    action = jpaService.execute(new CoordActionGetForCheckJPAExecutor(ids[2]));
+    System.out.println(action.getNominalTime());
+    assertEquals(CoordinatorAction.Status.KILLED, action.getStatus());
+    waitAndAssertWorkflowJobStatus(ids[3], WorkflowJob.Status.KILLED);
+    CoordinatorJobBean job = jpaService.execute(new CoordJobGetJPAExecutor(ids[0]));
+    assertEquals(CoordinatorJob.Status.RUNNING, job.getStatus());
+    Runnable runnable = new StatusTransitRunnable();
+    runnable.run();
+    job = jpaService.execute(new CoordJobGetJPAExecutor(ids[0]));
+    assertEquals(CoordinatorJob.Status.KILLED, job.getStatus());
+}

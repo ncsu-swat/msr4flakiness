@@ -1,0 +1,38 @@
+/**
+ * Test : all coord actions are running, job pending is reset
+ *
+ * @throws Exception
+ */
+public void testCoordStatusTransitServicePaused() throws Exception {
+    Services.get().destroy();
+    setSystemProperty(StatusTransitService.CONF_BACKWARD_SUPPORT_FOR_STATES_WITHOUT_ERROR, "false");
+    services = new Services();
+    setClassesToBeExcluded(services.getConf(), excludedServices);
+    services.init();
+    String currentDatePlusMonth = XDataTestCase.getCurrentDateafterIncrementingInMonths(1);
+    Date start = DateUtils.parseDateOozieTZ(currentDatePlusMonth);
+    Date end = DateUtils.parseDateOozieTZ(currentDatePlusMonth);
+    CoordinatorJobBean coordJob = createCoordJob(CoordinatorJob.Status.PAUSED, start, end, true, false, 3);
+    // set some pause time explicity to make sure the job is not unpaused
+    coordJob.setPauseTime(DateUtils.parseDateOozieTZ("2009-02-01T01:00Z"));
+    final JPAService jpaService = Services.get().get(JPAService.class);
+    CoordJobInsertJPAExecutor coordInsertCmd = new CoordJobInsertJPAExecutor(coordJob);
+    jpaService.execute(coordInsertCmd);
+    addRecordToCoordActionTable(coordJob.getId(), 1, CoordinatorAction.Status.KILLED, "coord-action-get.xml", 0);
+    addRecordToCoordActionTable(coordJob.getId(), 2, CoordinatorAction.Status.RUNNING, "coord-action-get.xml", 0);
+    addRecordToCoordActionTable(coordJob.getId(), 3, CoordinatorAction.Status.RUNNING, "coord-action-get.xml", 0);
+    final String jobId = coordJob.getId();
+    Runnable runnable = new StatusTransitRunnable();
+    runnable.run();
+    waitFor(5 * 1000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            CoordinatorJobBean coordJob = jpaService.execute(new CoordJobGetJPAExecutor(jobId));
+            return coordJob.isPending() == false;
+        }
+    });
+    CoordJobGetJPAExecutor coordGetCmd = new CoordJobGetJPAExecutor(coordJob.getId());
+    coordJob = jpaService.execute(coordGetCmd);
+    assertFalse(coordJob.isPending());
+    assertEquals(CoordinatorJob.Status.PAUSEDWITHERROR, coordJob.getStatus());
+}

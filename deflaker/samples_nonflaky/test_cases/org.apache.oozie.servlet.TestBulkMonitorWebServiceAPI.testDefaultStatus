@@ -1,0 +1,23 @@
+public void testDefaultStatus() throws Exception {
+    // adding coordinator action #4 to Coord#3
+    CoordinatorActionBean action4 = new CoordinatorActionBean();
+    action4.setId("Coord3@1");
+    action4.setStatus(CoordinatorAction.Status.FAILED);
+    action4.setCreatedTime(DateUtils.parseDateUTC(CREATE_TIME));
+    action4.setJobId("Coord3");
+    Calendar cal = Calendar.getInstance();
+    cal.setTime(DateUtils.parseDateUTC(CREATE_TIME));
+    cal.add(Calendar.DATE, -1);
+    action4.setNominalTime(cal.getTime());
+    CoordActionInsertJPAExecutor actionInsert = new CoordActionInsertJPAExecutor(action4);
+    jpaService.execute(actionInsert);
+    runTest("/v1/jobs", V1JobsServlet.class, false, new Callable<Void>() {
+
+        public Void call() throws Exception {
+            String bulkRequest = "bundle=" + bundleName;
+            JSONArray array = _requestToServer(bulkRequest);
+            assertEquals(4, array.size());
+            return null;
+        }
+    });
+}

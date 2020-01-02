@@ -1,0 +1,11 @@
+public void testDoneWithRunningNodes() throws WorkflowException {
+    LiteWorkflowApp def = new LiteWorkflowApp("wf", "<worklfow-app/>", new StartNodeDef(TestControlNodeHandler.class, "f")).addNode(new ForkNodeDef("f", TestControlNodeHandler.class, Arrays.asList(new String[] { "a", "b" }))).addNode(new NodeDef("a", null, AsynchNodeHandler.class, Arrays.asList(new String[] { "j" }))).addNode(new NodeDef("b", null, AsynchNodeHandler.class, Arrays.asList(new String[] { "end" }))).addNode(new JoinNodeDef("j", TestControlNodeHandler.class, "end")).addNode(new EndNodeDef("end", TestControlNodeHandler.class));
+    LiteWorkflowInstance job = new LiteWorkflowInstance(def, new XConfiguration(), "1");
+    job.start();
+    assertEquals(WorkflowInstance.Status.RUNNING, job.getStatus());
+    job.signal("/b/", "");
+    assertEquals(2, enters.size());
+    assertEquals(1, kills.size());
+    assertEquals(1, exits.size());
+    assertEquals(0, fails.size());
+}

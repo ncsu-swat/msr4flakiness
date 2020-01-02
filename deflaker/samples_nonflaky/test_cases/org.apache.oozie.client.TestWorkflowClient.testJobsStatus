@@ -1,0 +1,23 @@
+public void testJobsStatus() throws Exception {
+    runTest(END_POINTS, SERVLET_CLASSES, IS_SECURITY_ENABLED, new Callable<Void>() {
+
+        public Void call() throws Exception {
+            String oozieUrl = getContextURL();
+            OozieClient wc = new OozieClient(oozieUrl);
+            List<WorkflowJob> list = wc.getJobsInfo(null);
+            assertEquals(MockDagEngineService.INIT_WF_COUNT, list.size());
+            for (int i = 0; i < MockDagEngineService.INIT_WF_COUNT; i++) {
+                assertNotNull(list.get(i).getAppPath());
+                assertEquals(MockDagEngineService.JOB_ID + i + MockDagEngineService.JOB_ID_END, list.get(i).getId());
+            }
+            MockDagEngineService.reset();
+            list = wc.getJobsInfo("name=x", 3, 4);
+            assertEquals(MockDagEngineService.INIT_WF_COUNT, list.size());
+            for (int i = 0; i < MockDagEngineService.INIT_WF_COUNT; i++) {
+                assertNotNull(list.get(i).getAppPath());
+                assertEquals(MockDagEngineService.JOB_ID + i + MockDagEngineService.JOB_ID_END, list.get(i).getId());
+            }
+            return null;
+        }
+    });
+}

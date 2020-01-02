@@ -1,0 +1,85 @@
+@Test
+public void testWorkflowJobSLAStatusOnRestart() throws Exception {
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-mm-dd");
+    SLACalculatorMemory slaCalcMemory = new SLACalculatorMemory();
+    slaCalcMemory.init(Services.get().get(ConfigurationService.class).getConf());
+    SLARegistrationBean slaRegBean1 = _createSLARegistration("job-1-W", AppType.WORKFLOW_JOB);
+    final String jobId1 = slaRegBean1.getId();
+    slaRegBean1.setExpectedEnd(sdf.parse("2013-03-07"));
+    slaRegBean1.setExpectedStart(sdf.parse("2012-03-07"));
+    slaCalcMemory.addRegistration(jobId1, slaRegBean1);
+    SLACalcStatus calc1 = slaCalcMemory.get(jobId1);
+    calc1.setEventProcessed(1);
+    calc1.setSLAStatus(SLAEvent.SLAStatus.IN_PROCESS);
+    calc1.setJobStatus(WorkflowJob.Status.RUNNING.name());
+    calc1.setLastModifiedTime(new Date());
+    SLASummaryBean slaSummaryBean = new SLASummaryBean(calc1);
+    SLASummaryQueryExecutor.getInstance().executeUpdate(SLASummaryQuery.UPDATE_SLA_SUMMARY_ALL, slaSummaryBean);
+    SLASummaryBean slaSummary = SLASummaryQueryExecutor.getInstance().get(SLASummaryQuery.GET_SLA_SUMMARY, jobId1);
+    // Simulate a lost success event
+    WorkflowJobBean wjb = new WorkflowJobBean();
+    wjb.setId(jobId1);
+    wjb.setStatus(WorkflowJob.Status.SUCCEEDED);
+    wjb.setStartTime(sdf.parse("2012-02-07"));
+    wjb.setEndTime(sdf.parse("2013-02-07"));
+    wjb.setLastModifiedTime(new Date());
+    WorkflowJobQueryExecutor.getInstance().insert(wjb);
+    slaCalcMemory = new SLACalculatorMemory();
+    slaCalcMemory.init(Services.get().get(ConfigurationService.class).getConf());
+    slaCalcMemory.updateAllSlaStatus();
+    slaSummary = SLASummaryQueryExecutor.getInstance().get(SLASummaryQuery.GET_SLA_SUMMARY, jobId1);
+    assertEquals("job-1-W", slaSummary.getId());
+    assertEquals(8, slaSummary.getEventProcessed());
+    assertEquals(AppType.WORKFLOW_JOB, slaSummary.getAppType());
+    assertEquals("SUCCEEDED", slaSummary.getJobStatus());
+    assertEquals(SLAEvent.SLAStatus.MET, slaSummary.getSLAStatus());
+    assertEquals(sdf.parse("2012-02-07"), slaSummary.getActualStart());
+    assertEquals(sdf.parse("2013-02-07"), slaSummary.getActualEnd());
+    assertEquals(sdf.parse("2013-02-07").getTime() - sdf.parse("2012-02-07").getTime(), slaSummary.getActualDuration());
+    // Simulate a lost failed event
+    wjb.setStatus(WorkflowJob.Status.FAILED);
+    wjb.setLastModifiedTime(new Date());
+    WorkflowJobQueryExecutor.getInstance().executeUpdate(WorkflowJobQuery.UPDATE_WORKFLOW_STATUS_MODTIME, wjb);
+    // Reset the summary Bean
+    calc1.setEventProcessed(1);
+    calc1.setSLAStatus(SLAEvent.SLAStatus.IN_PROCESS);
+    calc1.setJobStatus(WorkflowJob.Status.RUNNING.name());
+    slaSummaryBean = new SLASummaryBean(calc1);
+    SLASummaryQueryExecutor.getInstance().executeUpdate(SLASummaryQuery.UPDATE_SLA_SUMMARY_ALL, slaSummaryBean);
+    slaCalcMemory = new SLACalculatorMemory();
+    slaCalcMemory.init(Services.get().get(ConfigurationService.class).getConf());
+    slaCalcMemory.updateAllSlaStatus();
+    slaSummary = SLASummaryQueryExecutor.getInstance().get(SLASummaryQuery.GET_SLA_SUMMARY, jobId1);
+    assertEquals("FAILED", slaSummary.getJobStatus());
+    assertEquals(8, slaSummary.getEventProcessed());
+    assertEquals(sdf.parse("2012-02-07"), slaSummary.getActualStart());
+    assertEquals(sdf.parse("2013-02-07"), slaSummary.getActualEnd());
+    assertEquals(SLAEvent.SLAStatus.MISS, slaSummary.getSLAStatus());
+    // Simulate a lost RUNNING event
+    wjb.setStatus(WorkflowJob.Status.RUNNING);
+    wjb.setLastModifiedTime(new Date());
+    WorkflowJobQueryExecutor.getInstance().executeUpdate(WorkflowJobQuery.UPDATE_WORKFLOW_STATUS_MODTIME, wjb);
+    // Reset the summary Bean
+    calc1.setEventProcessed(0);
+    calc1.setSLAStatus(SLAEvent.SLAStatus.NOT_STARTED);
+    calc1.setJobStatus(null);
+    slaSummaryBean = new SLASummaryBean(calc1);
+    SLASummaryQueryExecutor.getInstance().executeUpdate(SLASummaryQuery.UPDATE_SLA_SUMMARY_ALL, slaSummaryBean);
+    SLAService slaService = Services.get().get(SLAService.class);
+    slaService.startSLAWorker();
+    slaService.addStatusEvent(jobId1, "RUNNING", null, null, null);
+    waitFor(60 * 1000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            return SLASummaryQueryExecutor.getInstance().get(SLASummaryQuery.GET_SLA_SUMMARY, jobId1).getEventProcessed() == 7;
+        }
+    });
+    slaSummary = SLASummaryQueryExecutor.getInstance().get(SLASummaryQuery.GET_SLA_SUMMARY, slaSummaryBean.getId());
+    // since job is already running and it's a old job
+    assertEquals(7, slaSummary.getEventProcessed());
+    assertEquals("RUNNING", slaSummary.getJobStatus());
+    assertEquals(sdf.parse("2012-02-07"), slaSummary.getActualStart());
+    assertNull(slaSummary.getActualEnd());
+    assertEquals(-1, slaSummary.getActualDuration());
+    assertEquals(SLAEvent.SLAStatus.MISS, slaSummary.getSLAStatus());
+}

@@ -1,0 +1,26 @@
+@Test
+public void testSLAJobSelectors() throws Exception {
+    JMSSLAEventListener slaListener = new JMSSLAEventListener();
+    slaListener.init(conf);
+    String id = "0000000-000000000000001-oozie-wrkf-C@1";
+    SLACalcStatus startMiss = _createSLACalcStatus(id);
+    SLARegistrationBean startMissBean = startMiss.getSLARegistrationBean();
+    startMiss.setId(id);
+    startMissBean.setAppName("Test-SLA-Start-Miss");
+    startMissBean.setAppType(AppType.COORDINATOR_ACTION);
+    startMissBean.setUser("dummyuser");
+    startMiss.setEventStatus(EventStatus.START_MISS);
+    startMiss.setSLAStatus(SLAStatus.NOT_STARTED);
+    startMiss.setMsgType(MessageType.SLA);
+    ConnectionContext jmsContext = getConnectionContext();
+    Session session = jmsContext.createSession(Session.AUTO_ACKNOWLEDGE);
+    String selector = JMSHeaderConstants.EVENT_STATUS + "='START_MISS'";
+    MessageConsumer consumer = jmsContext.createConsumer(session, slaListener.getTopic(startMiss), selector);
+    slaListener.onStartMiss(startMiss);
+    TextMessage message = (TextMessage) consumer.receive(5000);
+    System.out.println("\n Text " + message.getText());
+    SLAMessage startMissMsg = (SLAMessage) JMSMessagingUtils.getEventMessage(message);
+    assertEquals("dummyuser", startMissMsg.getUser());
+    assertEquals(EventStatus.START_MISS, startMissMsg.getEventStatus());
+    assertEquals(MessageType.SLA, startMissMsg.getMessageType());
+}

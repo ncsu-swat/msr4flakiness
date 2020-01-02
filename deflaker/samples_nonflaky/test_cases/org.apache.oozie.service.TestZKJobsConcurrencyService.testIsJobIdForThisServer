@@ -1,0 +1,54 @@
+public void testIsJobIdForThisServer() throws Exception {
+    ZKJobsConcurrencyService zkjcs = new ZKJobsConcurrencyService();
+    // We'll use some DummyZKXOozies here to pretend to be other Oozie servers that will influence isJobIdForThisServer()
+    // once they are running in that the indecies of the job ids will cause each job id to belong to different Oozie "servers"
+    DummyZKOozie dummyOozie = null;
+    DummyZKOozie dummyOozie2 = null;
+    try {
+        dummyOozie = new DummyZKOozie("a", "http://blah");
+        zkjcs.init(Services.get());
+        assertFalse(zkjcs.isJobIdForThisServer("0000000-130521183438837-oozie-rkan-W"));
+        assertTrue(zkjcs.isJobIdForThisServer("0000001-130521183438837-oozie-rkan-W"));
+        assertFalse(zkjcs.isJobIdForThisServer("0000002-130521183438837-oozie-rkan-W"));
+        assertTrue(zkjcs.isJobIdForThisServer("0000003-130521183438837-oozie-rkan-W"));
+        assertFalse(zkjcs.isJobIdForThisServer("0000004-130521183438837-oozie-rkan-W"));
+        assertTrue(zkjcs.isJobIdForThisServer("0000005-130521183438837-oozie-rkan-W"));
+        assertFalse(zkjcs.isJobIdForThisServer("0000006-130521183438837-oozie-rkan-W"));
+        assertTrue(zkjcs.isJobIdForThisServer("blah"));
+        dummyOozie2 = new DummyZKOozie("b", "http://blah");
+        assertFalse(zkjcs.isJobIdForThisServer("0000000-130521183438837-oozie-rkan-W"));
+        assertTrue(zkjcs.isJobIdForThisServer("0000001-130521183438837-oozie-rkan-W"));
+        assertFalse(zkjcs.isJobIdForThisServer("0000002-130521183438837-oozie-rkan-W"));
+        assertFalse(zkjcs.isJobIdForThisServer("0000003-130521183438837-oozie-rkan-W"));
+        assertTrue(zkjcs.isJobIdForThisServer("0000004-130521183438837-oozie-rkan-W"));
+        assertFalse(zkjcs.isJobIdForThisServer("0000005-130521183438837-oozie-rkan-W"));
+        assertFalse(zkjcs.isJobIdForThisServer("0000006-130521183438837-oozie-rkan-W"));
+        assertTrue(zkjcs.isJobIdForThisServer("blah"));
+        dummyOozie.teardown();
+        assertTrue(zkjcs.isJobIdForThisServer("0000000-130521183438837-oozie-rkan-W"));
+        assertFalse(zkjcs.isJobIdForThisServer("0000001-130521183438837-oozie-rkan-W"));
+        assertTrue(zkjcs.isJobIdForThisServer("0000002-130521183438837-oozie-rkan-W"));
+        assertFalse(zkjcs.isJobIdForThisServer("0000003-130521183438837-oozie-rkan-W"));
+        assertTrue(zkjcs.isJobIdForThisServer("0000004-130521183438837-oozie-rkan-W"));
+        assertFalse(zkjcs.isJobIdForThisServer("0000005-130521183438837-oozie-rkan-W"));
+        assertTrue(zkjcs.isJobIdForThisServer("0000006-130521183438837-oozie-rkan-W"));
+        assertTrue(zkjcs.isJobIdForThisServer("blah"));
+        dummyOozie2.teardown();
+        assertTrue(zkjcs.isJobIdForThisServer("0000000-130521183438837-oozie-rkan-W"));
+        assertTrue(zkjcs.isJobIdForThisServer("0000001-130521183438837-oozie-rkan-W"));
+        assertTrue(zkjcs.isJobIdForThisServer("0000002-130521183438837-oozie-rkan-W"));
+        assertTrue(zkjcs.isJobIdForThisServer("0000003-130521183438837-oozie-rkan-W"));
+        assertTrue(zkjcs.isJobIdForThisServer("0000004-130521183438837-oozie-rkan-W"));
+        assertTrue(zkjcs.isJobIdForThisServer("0000005-130521183438837-oozie-rkan-W"));
+        assertTrue(zkjcs.isJobIdForThisServer("0000006-130521183438837-oozie-rkan-W"));
+        assertTrue(zkjcs.isJobIdForThisServer("blah"));
+    } finally {
+        zkjcs.destroy();
+        if (dummyOozie != null) {
+            dummyOozie.teardown();
+        }
+        if (dummyOozie2 != null) {
+            dummyOozie2.teardown();
+        }
+    }
+}

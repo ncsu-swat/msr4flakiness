@@ -1,0 +1,28 @@
+public void testMultipleInstance() throws Exception {
+    Configuration conf = getConf();
+    Date now = new Date();
+    // @formatter:off
+    String inputLogic = "<and name=\"test\">" + "<data-in dataset=\"A\" min=\"2\"/>" + "<data-in dataset=\"B\"/>" + "</and>";
+    String event = "<data-in name=\"A\" dataset=\"a\">" + "<instance>${coord:current(-5)}</instance>" + "<instance>${coord:latest(-1)}</instance>" + "<instance>${coord:futureRange(0,2,10)}</instance>" + "</data-in>" + "<data-in name=\"B\" dataset=\"b\">" + "<instance>${coord:latest(0)}</instance>" + "<instance>${coord:latestRange(-3,0)}</instance>" + "</data-in>";
+    // @formatter:on
+    conf.set("start_time", DateUtils.formatDateOozieTZ(now));
+    conf.set("end_time", DateUtils.formatDateOozieTZ(new Date(now.getTime() + 3 * 60 * 60 * 1000)));
+    // 5 hour before
+    conf.set("initial_instance_a", DateUtils.formatDateOozieTZ(new Date(now.getTime() - 5 * 60 * 60 * 1000)));
+    // 5 hour before
+    conf.set("initial_instance_b", DateUtils.formatDateOozieTZ(new Date(now.getTime() - 5 * 60 * 60 * 1000)));
+    String jobId = _testCoordSubmit("coord-inputlogic-range.xml", conf, inputLogic, event);
+    List<String> inputDir = createDirWithTime("input-data/a/", now, 3, 5, 0, -1, -2);
+    inputDir.addAll(createDirWithTime("input-data/b/", now, 0, 1));
+    startCoordActionForWaiting(jobId);
+    CoordinatorActionBean actionBean = CoordActionQueryExecutor.getInstance().get(CoordActionQuery.GET_COORD_ACTION, jobId + "@1");
+    assertTrue(CoordinatorAction.Status.WAITING.equals(actionBean.getStatus()));
+    inputDir.addAll(createDirWithTime("input-data/b/", now, 2, 3));
+    new CoordActionInputCheckXCommand(jobId + "@1", jobId).call();
+    actionBean = CoordActionQueryExecutor.getInstance().get(CoordActionQuery.GET_COORD_ACTION, jobId + "@1");
+    assertFalse(CoordinatorAction.Status.WAITING.equals(actionBean.getStatus()));
+    XConfiguration runConf = new XConfiguration(new StringReader(actionBean.getRunConf()));
+    String dataSets = runConf.get("inputLogicData");
+    assertEquals(dataSets.split(",").length, 10);
+    checkDataSets(dataSets, inputDir.toArray(new String[inputDir.size()]));
+}

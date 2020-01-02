@@ -1,0 +1,21 @@
+public void testNestedConditionWithRange() throws Exception {
+    Configuration conf = getConfForCombine();
+    Date now = new Date();
+    conf.set("start_time", DateUtils.formatDateOozieTZ(now));
+    conf.set("end_time", DateUtils.formatDateOozieTZ(new Date(now.getTime() + 10 * TIME_DAYS)));
+    conf.set("initial_instance_a", DateUtils.formatDateOozieTZ(new Date(now.getTime() - 5 * TIME_DAYS)));
+    conf.set("initial_instance_b", DateUtils.formatDateOozieTZ(new Date(now.getTime() - 5 * TIME_DAYS)));
+    // @formatter:off
+    String inputLogic = "<and name=\"test\" min=\"2\" >" + "<or min=\"2\">" + "<data-in dataset=\"A\" />" + "<data-in dataset=\"B\" />" + "</or>" + "<or min=\"2\">" + "<data-in dataset=\"C\" />" + "<data-in dataset=\"D\" />" + "</or>" + "<and min=\"2\">" + "<data-in dataset=\"A\" />" + "<data-in dataset=\"C\" />" + "</and>" + "</and>";
+    // @formatter:on
+    conf.set("partitionName", "test");
+    final String jobId = submitCoord("coord-inputlogic-hcat.xml", conf, inputLogic, TEST_TYPE.CURRENT_RANGE, TEST_TYPE.LATEST_RANGE);
+    List<String> inputPartition = createPartitionWithTime("db_a", now, 0, 1, 2);
+    inputPartition.addAll(createPartitionWithTime("db_c", now, 0, 1, 2));
+    startCoordAction(jobId);
+    CoordinatorActionBean actionBean = CoordActionQueryExecutor.getInstance().get(CoordActionQuery.GET_COORD_ACTION, jobId + "@1");
+    Configuration runConf = getActionConf(actionBean);
+    String dataSets = runConf.get("inputLogicData");
+    assertEquals(dataSets.split(",").length, 12);
+    checkDataSets(dataSets, inputPartition.toArray(new String[inputPartition.size()]));
+}

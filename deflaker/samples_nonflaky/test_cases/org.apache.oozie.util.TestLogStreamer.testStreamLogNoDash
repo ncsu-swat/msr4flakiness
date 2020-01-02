@@ -1,0 +1,49 @@
+public void testStreamLogNoDash() throws IOException, CommandException, ServiceException {
+    setupLog4j();
+    new Services().init();
+    long currTime = System.currentTimeMillis();
+    XLogFilter.reset();
+    XLogFilter.defineParameter("USER");
+    XLogFilter.defineParameter("GROUP");
+    XLogFilter.defineParameter("TOKEN");
+    XLogFilter.defineParameter("APP");
+    XLogFilter.defineParameter("JOB");
+    XLogFilter.defineParameter("ACTION");
+    XLogFilter xf = new XLogFilter();
+    xf.setParameter("JOB", "14-200904160239--example-forkjoinwf");
+    xf.setLogLevel("DEBUG|INFO");
+    // Previously, a dash ("-") was always required somewhere in a line in order for that line to pass the filter; this test
+    // checks that this condition is no longer required
+    Writer fw1 = new OutputStreamWriter(new FileOutputStream(getTestCaseDir() + "/oozie.log"), StandardCharsets.UTF_8);
+    StringBuilder sb1 = new StringBuilder();
+    sb1.append("2009-06-24 02:43:13,958 DEBUG _L1_:323 -" + logStatement + "End workflow state change\n");
+    sb1.append("2009-06-24 02:43:13,958 DEBUG _L2_:323 +" + logStatement + "End workflow state change\n");
+    sb1.append("2009-06-24 02:43:13,958 DEBUG _L3_:323" + logStatement + "End workflow state change\n");
+    sb1.append("2009-06-24 02:43:13,958 DEBUG _L4_:323 ABC" + logStatement + "End workflow state change\n");
+    sb1.append("2009-06-24 02:43:13,958 DEBUG _L5_:323 !@#$%^&*() blah blah" + logStatement + "End workflow state change\n");
+    sb1.append("2009-06-24 02:43:13,958 WARN _L6_:323 -" + logStatement + "End workflow state change\n");
+    sb1.append("2009-06-24 02:43:13,958 WARN _L7_:323 +" + logStatement + "End workflow state change\n");
+    sb1.append("2009-06-24 02:43:13,958 WARN _L8_:323" + logStatement + "End workflow state change\n");
+    sb1.append("2009-06-24 02:43:13,958 WARN _L9_:323 ABC" + logStatement + "End workflow state change\n");
+    sb1.append("2009-06-24 02:43:13,958 WARN _L10_:323 !@#$%^&*() blah blah" + logStatement + "End workflow state change\n");
+    fw1.write(sb1.toString());
+    fw1.close();
+    File f1 = new File(getTestCaseDir() + "/oozie.log");
+    f1.setLastModified(currTime);
+    StringWriter sw = new StringWriter();
+    xf = new XLogFilter();
+    xf.setParameter("JOB", "14-200904160239--example-forkjoinwf");
+    xf.setLogLevel("DEBUG|INFO");
+    XLogStreamer str = new XLogStreamer(xf, getTestCaseDir(), "oozie.log", 1);
+    str.streamLog(sw, null, null);
+    String[] out = sw.toString().split("\n");
+    // Check if the retrieved log content is of length five lines after filtering; we expect the first five lines because the
+    // filtering shouldn't care whether or not there is a dash while the last five lines don't pass the normal filtering
+    assertEquals(5, out.length);
+    // Check if the lines of the log contain the expected strings
+    assertEquals(true, out[0].contains("_L1_"));
+    assertEquals(true, out[1].contains("_L2_"));
+    assertEquals(true, out[2].contains("_L3_"));
+    assertEquals(true, out[3].contains("_L4_"));
+    assertEquals(true, out[4].contains("_L5_"));
+}

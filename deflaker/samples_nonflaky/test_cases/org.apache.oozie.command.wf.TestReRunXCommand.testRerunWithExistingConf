@@ -1,0 +1,37 @@
+// rerun should use existing wf conf
+public void testRerunWithExistingConf() throws IOException, OozieClientException {
+    Reader reader = IOUtils.getResourceAsReader("rerun-wf.xml", -1);
+    Writer writer = new OutputStreamWriter(new FileOutputStream(new File(getTestCaseDir(), "workflow.xml")), StandardCharsets.UTF_8);
+    IOUtils.copyCharStream(reader, writer);
+    Path path = getFsTestCaseDir();
+    getFileSystem().create(new Path(path, "p2"));
+    final OozieClient wfClient = LocalOozie.getClient();
+    final Properties conf = wfClient.createConfiguration();
+    conf.setProperty(OozieClient.APP_PATH, getTestCaseFileUri("workflow.xml"));
+    conf.setProperty(OozieClient.USER_NAME, getTestUser());
+    conf.setProperty("nnbase", path.toString());
+    conf.setProperty("base", path.toUri().getPath());
+    Properties newConf = wfClient.createConfiguration();
+    newConf.setProperty("base", path.toUri().getPath());
+    final String jobId = wfClient.submit(conf);
+    wfClient.start(jobId);
+    waitFor(15 * 1000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            return wfClient.getJobInfo(jobId).getStatus() == WorkflowJob.Status.KILLED;
+        }
+    });
+    assertEquals(WorkflowJob.Status.KILLED, wfClient.getJobInfo(jobId).getStatus());
+    newConf = wfClient.createConfiguration();
+    // Skip a non-executed node
+    getFileSystem().delete(new Path(path, "p2"), true);
+    newConf.setProperty(OozieClient.RERUN_SKIP_NODES, "fs1");
+    wfClient.reRun(jobId, newConf);
+    waitFor(15 * 1000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            return wfClient.getJobInfo(jobId).getStatus() == WorkflowJob.Status.SUCCEEDED;
+        }
+    });
+    assertEquals(WorkflowJob.Status.SUCCEEDED, wfClient.getJobInfo(jobId).getStatus());
+}

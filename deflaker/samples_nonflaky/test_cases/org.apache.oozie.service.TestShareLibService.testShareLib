@@ -1,0 +1,17 @@
+@Test
+public void testShareLib() throws Exception {
+    setShipLauncherInOozieConfig();
+    FileSystem fs = getFileSystem();
+    String dir1 = dt.format(new Date(System.currentTimeMillis() - TimeUnit.MILLISECONDS.convert(1, TimeUnit.DAYS)));
+    String dir2 = dt.format(new Date(System.currentTimeMillis() - TimeUnit.MILLISECONDS.convert(2, TimeUnit.DAYS)));
+    String dir3 = dt.format(new Date(System.currentTimeMillis() - TimeUnit.MILLISECONDS.convert(3, TimeUnit.DAYS)));
+    Path basePath = new Path(getOozieConfig().get(WorkflowAppService.SYSTEM_LIB_PATH));
+    Path path1 = new Path(basePath, ShareLibService.SHARE_LIB_PREFIX + dir1);
+    Path path2 = new Path(basePath, ShareLibService.SHARE_LIB_PREFIX + dir2);
+    Path path3 = new Path(basePath, ShareLibService.SHARE_LIB_PREFIX + dir3);
+    createDirs(fs, path1, path2, path3);
+    createFiles(path1.toString() + Path.SEPARATOR + "pig" + Path.SEPARATOR + "pig.jar");
+    services.init();
+    ShareLibService shareLibService = Services.get().get(ShareLibService.class);
+    assertTrue(shareLibService.getShareLibJars("pig").get(0).getName().endsWith("pig.jar"));
+}

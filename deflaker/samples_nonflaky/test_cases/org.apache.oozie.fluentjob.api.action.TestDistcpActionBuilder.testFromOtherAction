@@ -1,0 +1,14 @@
+@Test
+public void testFromOtherAction() {
+    final ShellAction parent = ShellActionBuilder.create().withName("parent").withExecutable("echo").build();
+    final ShellAction otherAction = ShellActionBuilder.createFromExistingAction(parent).withName("shell").withParent(parent).withNameNode(NAME_NODE).withConfigProperty(MAPRED_JOB_QUEUE_NAME, DEFAULT).withArgument(ARGS[0]).withArgument(ARGS[1]).build();
+    final String newName = "fromExisting_" + NAME;
+    final DistcpAction fromOtherAction = DistcpActionBuilder.createFromExistingAction(otherAction).withName(newName).withoutArg(ARGS[1]).withArg(ARGS[2]).build();
+    assertEquals(newName, fromOtherAction.getName());
+    assertEquals(otherAction.getNameNode(), fromOtherAction.getNameNode());
+    assertEquals(parent, fromOtherAction.getParentsWithoutConditions().get(0));
+    final Map<String, String> expectedConfiguration = new LinkedHashMap<>();
+    expectedConfiguration.put(MAPRED_JOB_QUEUE_NAME, DEFAULT);
+    assertEquals(expectedConfiguration, fromOtherAction.getConfiguration());
+    assertEquals(Arrays.asList(ARGS[0], ARGS[2]), fromOtherAction.getArgs());
+}

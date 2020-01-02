@@ -1,0 +1,42 @@
+// TODO combine support for unresolved
+// public void testLatestWithCombine() throws Exception {
+// Configuration conf = getConf();
+// conf.set("input_check", "combine(\"A\", \"B\")");
+// conf.set("initial_instance_a", "2014-10-07T00:00Z");
+// conf.set("initial_instance_b", "2014-10-07T00:00Z");
+// 
+// String jobId = _testCoordSubmit("coord-inputlogic-range-latest.xml", conf);
+// 
+// new CoordMaterializeTransitionXCommand(jobId, 3600).call();
+// CoordinatorActionBean actionBean = CoordActionQueryExecutor.getInstance().get(
+// CoordActionQuery.GET_COORD_ACTION, jobId + "@1");
+// sleep(2000);
+// 
+// new CoordActionInputCheckXCommand(jobId + "@1", jobId).call();
+// assertEquals(actionBean.getStatus(), CoordinatorAction.Status.WAITING);
+// createTestCaseSubDir("input-data/a/2014/10/08/00/_SUCCESS".split("/"));
+// createTestCaseSubDir("input-data/a/2014/10/07/23/_SUCCESS".split("/"));
+// createTestCaseSubDir("input-data/a/2014/10/07/22/_SUCCESS".split("/"));
+// createTestCaseSubDir("input-data/b/2014/10/07/21/_SUCCESS".split("/"));
+// 
+// new CoordActionInputCheckXCommand(jobId + "@1", jobId).call();
+// 
+// actionBean = CoordActionQueryExecutor.getInstance().get(CoordActionQuery.GET_COORD_ACTION, jobId + "@1");
+// assertEquals(actionBean.getStatus(), CoordinatorAction.Status.WAITING);
+// 
+// createTestCaseSubDir("input-data/b/2014/10/07/20/_SUCCESS".split("/"));
+// new CoordActionInputCheckXCommand(jobId + "@1", jobId).call();
+// 
+// actionBean = CoordActionQueryExecutor.getInstance().get(CoordActionQuery.GET_COORD_ACTION, jobId + "@1");
+// assertFalse(CoordinatorAction.Status.WAITING.equals(actionBean.getStatus()));
+// 
+// }
+public void testCoordWithoutInputCheck() throws Exception {
+    Configuration conf = new XConfiguration();
+    String jobId = setupCoord(conf, "coord-multiple-input-instance3.xml");
+    sleep(1000);
+    new CoordMaterializeTransitionXCommand(jobId, 3600).call();
+    new CoordActionInputCheckXCommand(jobId + "@1", jobId).call();
+    CoordinatorAction actionBean = CoordActionQueryExecutor.getInstance().get(CoordActionQuery.GET_COORD_ACTION, jobId + "@1");
+    assertEquals(actionBean.getMissingDependencies(), "!!${coord:latest(0)}#${coord:latest(-1)}");
+}

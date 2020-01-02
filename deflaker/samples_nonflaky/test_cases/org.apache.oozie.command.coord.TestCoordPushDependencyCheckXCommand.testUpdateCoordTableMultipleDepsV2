@@ -1,0 +1,28 @@
+@Test
+public void testUpdateCoordTableMultipleDepsV2() throws Exception {
+    // Test for two dependencies : one of them is already existing in the
+    // hcat server. Other one is not.
+    // Expected to see both action in WAITING as first one is not available and we only check for first.
+    // Later make the other partition also available. action is expected to
+    // be READY
+    String db = "default";
+    String table = "tablename";
+    String newHCatDependency1 = "hcat://" + server + "/" + db + "/" + table + "/dt=20120430;country=brazil";
+    String newHCatDependency2 = "hcat://" + server + "/" + db + "/" + table + "/dt=20120430;country=usa";
+    String newHCatDependency = newHCatDependency1 + CoordELFunctions.INSTANCE_SEPARATOR + newHCatDependency2;
+    populateTable(db, table);
+    String actionId = addInitRecords(newHCatDependency);
+    checkCoordAction(actionId, newHCatDependency, CoordinatorAction.Status.WAITING);
+    // Checks only for first missing dependency
+    new CoordPushDependencyCheckXCommand(actionId).call();
+    // Checks dependencies in order. So list does not change if first one is not available
+    checkCoordAction(actionId, newHCatDependency, CoordinatorAction.Status.WAITING);
+    // Make first dependency available
+    dropPartition(db, table, "dt=20120430;country=usa");
+    addPartition(db, table, "dt=20120430;country=brazil");
+    new CoordPushDependencyCheckXCommand(actionId).call();
+    checkCoordAction(actionId, newHCatDependency2, CoordinatorAction.Status.WAITING);
+    addPartition(db, table, "dt=20120430;country=usa");
+    new CoordPushDependencyCheckXCommand(actionId).call();
+    checkCoordAction(actionId, "", CoordinatorAction.Status.READY);
+}

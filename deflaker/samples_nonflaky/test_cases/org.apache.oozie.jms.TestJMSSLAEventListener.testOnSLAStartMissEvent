@@ -1,0 +1,38 @@
+@Test
+public void testOnSLAStartMissEvent() throws Exception {
+    JMSSLAEventListener slaListener = new JMSSLAEventListener();
+    slaListener.init(conf);
+    String id = "0000000-000000000000001-oozie-wrkf-C@1";
+    SLACalcStatus startMiss = _createSLACalcStatus(id);
+    SLARegistrationBean startMissBean = startMiss.getSLARegistrationBean();
+    Date startDate = DateUtils.parseDateUTC("2013-01-01T00:00Z");
+    startMiss.setId(id);
+    startMissBean.setParentId("0000000-000000000000001-oozie-wrkf-C");
+    startMissBean.setAppName("Test-SLA-Start-Miss");
+    startMissBean.setUser("dummyuser");
+    startMissBean.setExpectedStart(startDate);
+    startMissBean.setNotificationMsg("notification of start miss");
+    startMissBean.setJobData("random job data");
+    startMiss.setEventStatus(EventStatus.START_MISS);
+    startMiss.setSLAStatus(SLAStatus.NOT_STARTED);
+    startMissBean.setAppType(AppType.COORDINATOR_ACTION);
+    startMiss.setActualStart(DateUtils.parseDateUTC("2013-01-01T01:00Z"));
+    ConnectionContext jmsContext = getConnectionContext();
+    Session session = jmsContext.createSession(Session.AUTO_ACKNOWLEDGE);
+    MessageConsumer consumer = jmsContext.createConsumer(session, slaListener.getTopic(startMiss));
+    slaListener.onStartMiss(startMiss);
+    TextMessage message = (TextMessage) consumer.receive(5000);
+    SLAMessage slaStartMissMsg = (SLAMessage) JMSMessagingUtils.getEventMessage(message);
+    // check msg header
+    assertEquals(EventStatus.START_MISS, slaStartMissMsg.getEventStatus());
+    assertEquals(SLAStatus.NOT_STARTED, slaStartMissMsg.getSLAStatus());
+    assertEquals(AppType.COORDINATOR_ACTION, slaStartMissMsg.getAppType());
+    assertEquals(MessageType.SLA, slaStartMissMsg.getMessageType());
+    assertEquals("Test-SLA-Start-Miss", slaStartMissMsg.getAppName());
+    assertEquals("dummyuser", slaStartMissMsg.getUser());
+    // check msg body
+    assertEquals("0000000-000000000000001-oozie-wrkf-C@1", slaStartMissMsg.getId());
+    assertEquals("0000000-000000000000001-oozie-wrkf-C", slaStartMissMsg.getParentId());
+    assertEquals(startDate, slaStartMissMsg.getExpectedStartTime());
+    assertEquals("notification of start miss", slaStartMissMsg.getNotificationMessage());
+}

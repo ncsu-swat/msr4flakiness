@@ -1,0 +1,26 @@
+public void testInfoThreadLocalPrefix() throws Exception {
+    XLog.Info.defineParameter("JOB");
+    XLog.Info.defineParameter("ACTION");
+    assertEquals("JOB[-] ACTION[-]", XLog.Info.get().createPrefix());
+    String jobId = "XXX-W";
+    LogUtils.setLogInfo(jobId + "@start");
+    assertEquals("JOB[XXX-W] ACTION[XXX-W@start]", XLog.Info.get().createPrefix());
+    final StringBuilder sb1 = new StringBuilder();
+    final StringBuilder sb2 = new StringBuilder();
+    final LogPrinter printer = new LogPrinter();
+    Thread t = new Thread() {
+
+        public void run() {
+            LogUtils.setLogInfo("XXX-W@hive");
+            sb1.append(printer.getLogMsgPrefix());
+            sb2.append(printer.getThreadLocalPrefix());
+        }
+    };
+    t.start();
+    t.join();
+    assertNull(printer.getLogMsgPrefix());
+    assertEquals("JOB[XXX-W] ACTION[XXX-W@start]", printer.getThreadLocalPrefix());
+    assertEquals("JOB[XXX-W] ACTION[XXX-W@start]", printer.getLogPrefix());
+    assertEquals("null", sb1.toString());
+    assertEquals("JOB[XXX-W] ACTION[XXX-W@hive]", sb2.toString());
+}

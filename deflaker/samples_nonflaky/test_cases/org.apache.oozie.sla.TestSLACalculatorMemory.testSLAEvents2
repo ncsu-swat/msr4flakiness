@@ -1,0 +1,56 @@
+@Test
+public void testSLAEvents2() throws Exception {
+    SLACalculatorMemory slaCalcMemory = new SLACalculatorMemory();
+    EventHandlerService ehs = Services.get().get(EventHandlerService.class);
+    slaCalcMemory.init(Services.get().get(ConfigurationService.class).getConf());
+    WorkflowJobBean job1 = addRecordToWfJobTable(WorkflowJob.Status.PREP, WorkflowInstance.Status.PREP);
+    SLARegistrationBean slaRegBean = _createSLARegistration(job1.getId(), AppType.WORKFLOW_JOB);
+    slaRegBean.setExpectedStart(new Date(System.currentTimeMillis() - 1 * 1 * 3600 * 1000));
+    slaRegBean.setExpectedEnd(new Date(System.currentTimeMillis() + 2 * 1 * 3600 * 1000));
+    String jobId = slaRegBean.getId();
+    slaCalcMemory.addRegistration(jobId, slaRegBean);
+    assertEquals(1, slaCalcMemory.size());
+    slaCalcMemory.updateJobSla(jobId);
+    SLASummaryBean slaSummary = SLASummaryQueryExecutor.getInstance().get(SLASummaryQuery.GET_SLA_SUMMARY, jobId);
+    // Duration bit should be processed as expected duration is not set
+    assertEquals(3, slaSummary.getEventProcessed());
+    // check only start event in queue
+    assertEquals(1, ehs.getEventQueue().size());
+    ehs.getEventQueue().clear();
+    // set back to 1, to make duration event not processed
+    slaSummary.setEventProcessed(1);
+    SLASummaryQueryExecutor.getInstance().executeUpdate(SLASummaryQuery.UPDATE_SLA_SUMMARY_ALL, slaSummary);
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+    job1.setStatus(WorkflowJob.Status.SUCCEEDED);
+    job1.setStartTime(sdf.parse("2012-01-01"));
+    job1.setEndTime(sdf.parse("2012-01-02"));
+    WorkflowJobQueryExecutor.getInstance().executeUpdate(WorkflowJobQuery.UPDATE_WORKFLOW_STATUS_INSTANCE_MOD_START_END, job1);
+    slaCalcMemory.addJobStatus(jobId, WorkflowJob.Status.SUCCEEDED.toString(), EventStatus.SUCCESS, sdf.parse("2012-01-01"), sdf.parse("2012-01-02"));
+    slaSummary = SLASummaryQueryExecutor.getInstance().get(SLASummaryQuery.GET_SLA_SUMMARY, jobId);
+    // all should be processed
+    assertEquals(8, slaSummary.getEventProcessed());
+    // check only end event is in queue
+    assertEquals(1, ehs.getEventQueue().size());
+    ehs.getEventQueue().clear();
+    slaSummary.setEventProcessed(1);
+    SLASummaryQueryExecutor.getInstance().executeUpdate(SLASummaryQuery.UPDATE_SLA_SUMMARY_ALL, slaSummary);
+    WorkflowJobBean job2 = addRecordToWfJobTable(WorkflowJob.Status.PREP, WorkflowInstance.Status.PREP);
+    slaRegBean = _createSLARegistration(job2.getId(), AppType.WORKFLOW_JOB);
+    slaRegBean.setExpectedStart(new Date(System.currentTimeMillis() - 1 * 1 * 3600 * 1000));
+    slaRegBean.setExpectedEnd(new Date(System.currentTimeMillis() + 2 * 1 * 3600 * 1000));
+    jobId = slaRegBean.getId();
+    slaCalcMemory.addRegistration(jobId, slaRegBean);
+    assertEquals(1, slaCalcMemory.size());
+    job2.setStatus(WorkflowJob.Status.KILLED);
+    job2.setEndTime(sdf.parse("2012-01-02"));
+    WorkflowJobQueryExecutor.getInstance().executeUpdate(WorkflowJobQuery.UPDATE_WORKFLOW_STATUS_INSTANCE_MOD_START_END, job2);
+    slaCalcMemory.addJobStatus(job2.getId(), WorkflowJob.Status.KILLED.toString(), EventStatus.FAILURE, null, sdf.parse("2012-01-02"));
+    slaSummary = SLASummaryQueryExecutor.getInstance().get(SLASummaryQuery.GET_SLA_SUMMARY, jobId);
+    // Actual start null, so all events processed
+    assertEquals(8, slaSummary.getEventProcessed());
+    assertEquals(1, ehs.getEventQueue().size());
+    assertNull(slaSummary.getActualStart());
+    assertEquals(sdf.parse("2012-01-02"), slaSummary.getActualEnd());
+    assertEquals(SLAStatus.MISS, slaSummary.getSLAStatus());
+    assertEquals(SLAEvent.EventStatus.END_MISS, slaSummary.getEventStatus());
+}

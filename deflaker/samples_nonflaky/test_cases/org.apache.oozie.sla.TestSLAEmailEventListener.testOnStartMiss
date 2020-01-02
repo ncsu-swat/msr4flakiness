@@ -1,0 +1,47 @@
+public void testOnStartMiss() throws Exception {
+    String id = "0000000-000000000000001-oozie-wrkf-C@1";
+    SLACalcStatus event = _createSLACalcStatus(id);
+    SLARegistrationBean eventBean = event.getSLARegistrationBean();
+    Date startDate = DateUtils.parseDateUTC("2013-01-01T00:00Z");
+    Date actualstartDate = DateUtils.parseDateUTC("2013-01-01T01:00Z");
+    event.setEventStatus(EventStatus.START_MISS);
+    event.setJobStatus(JobEvent.EventStatus.STARTED.toString());
+    event.setId(id);
+    eventBean.setParentId("0000000-000000000000001-oozie-wrkf-C");
+    eventBean.setAppName("Test-SLA-Start-Miss");
+    eventBean.setUser("dummyuser");
+    eventBean.setNominalTime(startDate);
+    eventBean.setExpectedStart(startDate);
+    eventBean.setNotificationMsg("Notification of Missing Expected Start Time");
+    eventBean.setAlertContact("alert-receiver@oozie.com");
+    event.setActualStart(actualstartDate);
+    eventBean.setAppType(AppType.COORDINATOR_ACTION);
+    slaEmailListener.onStartMiss(event);
+    MimeMessage[] msgs = greenMail.getReceivedMessages();
+    MimeMessage msg = msgs[0];
+    // check message header
+    assertEquals(msg.getFrom()[0].toString(), "oozie@localhost");
+    assertEquals(msg.getRecipients(RecipientType.TO)[0].toString(), "alert-receiver@oozie.com");
+    assertEquals(msg.getSubject(), "OOZIE - SLA " + EventStatus.START_MISS + " (AppName=Test-SLA-Start-Miss, JobID=0000000-000000000000001-oozie-wrkf-C@1)");
+    // check message body
+    String msgBody = msg.getContent().toString();
+    String headerSep = SLAEmailEventListener.EMAIL_BODY_HEADER_SEPARATER;
+    String sep = SLAEmailEventListener.EMAIL_BODY_FIELD_SEPARATER;
+    String indent = SLAEmailEventListener.EMAIL_BODY_FIELD_INDENT;
+    assertTrue(msgBody.indexOf("Status" + headerSep) > -1);
+    assertTrue(msgBody.indexOf(indent + EmailField.EVENT_STATUS.toString() + sep + EventStatus.START_MISS.toString()) > -1);
+    assertTrue(msgBody.indexOf(indent + EmailField.JOB_STATUS.toString() + sep + JobEvent.EventStatus.STARTED.toString()) > -1);
+    assertTrue(msgBody.indexOf(indent + EmailField.NOTIFICATION_MESSAGE.toString() + sep + "Notification of Missing Expected Start Time") > -1);
+    assertTrue(msgBody.indexOf("Job Details" + headerSep) > -1);
+    assertTrue(msgBody.indexOf(indent + EmailField.APP_TYPE.toString() + sep + AppType.COORDINATOR_ACTION) > -1);
+    assertTrue(msgBody.indexOf(indent + EmailField.APP_NAME.toString() + sep + "Test-SLA-Start-Miss") > -1);
+    assertTrue(msgBody.indexOf(indent + EmailField.USER.toString() + sep + "dummyuser") > -1);
+    assertTrue(msgBody.indexOf(indent + EmailField.JOBID.toString() + sep + "0000000-000000000000001-oozie-wrkf-C@1") > -1);
+    assertTrue(msgBody.indexOf(indent + EmailField.PARENT_JOBID.toString() + sep + "0000000-000000000000001-oozie-wrkf-C") > -1);
+    assertTrue(msgBody.indexOf(indent + EmailField.JOB_URL.toString() + sep + conf.get(SLAEmailEventListener.OOZIE_BASE_URL) + "/?job=" + "0000000-000000000000001-oozie-wrkf-C@1") > -1);
+    assertTrue(msgBody.indexOf(indent + EmailField.PARENT_JOB_URL.toString() + sep + conf.get(SLAEmailEventListener.OOZIE_BASE_URL) + "/?job=" + "0000000-000000000000001-oozie-wrkf-C") > -1);
+    assertTrue(msgBody.indexOf("SLA Details" + headerSep) > -1);
+    assertTrue(msgBody.indexOf(indent + EmailField.NOMINAL_TIME.toString() + sep + startDate) > -1);
+    assertTrue(msgBody.indexOf(indent + EmailField.EXPECTED_START_TIME.toString() + sep + startDate) > -1);
+    assertTrue(msgBody.indexOf(indent + EmailField.ACTUAL_START_TIME.toString() + sep + actualstartDate) > -1);
+}

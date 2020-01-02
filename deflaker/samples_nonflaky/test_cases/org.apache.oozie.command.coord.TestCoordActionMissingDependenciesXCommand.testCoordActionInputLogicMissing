@@ -1,0 +1,25 @@
+public void testCoordActionInputLogicMissing() throws Exception {
+    createTestTables();
+    Configuration conf = TestCoordInputLogicPush.getConfForCombine("file://" + getTestCaseDir(), "hcat://" + getMetastoreAuthority());
+    conf.set("initial_instance_a", "2014-10-07T00:00Z");
+    conf.set("initial_instance_b", "2014-10-07T00:00Z");
+    String inputLogic = // @formatter:off
+    "<and name=\"test\">" + "<data-in dataset=\"A\" />" + "<data-in dataset=\"B\" />" + "</and>";
+    // @formatter:on
+    String jobId = TestCoordInputLogicPush.submitCoord(getTestCaseDir(), "coord-inputlogic-combine.xml", conf, inputLogic, TEST_TYPE.CURRENT_SINGLE, TEST_TYPE.CURRENT_SINGLE, TEST_TYPE.CURRENT_RANGE, TEST_TYPE.LATEST_RANGE);
+    new CoordMaterializeTransitionXCommand(jobId, 3600).call();
+    List<Pair<CoordinatorActionBean, Map<String, ActionDependency>>> data = new CoordActionMissingDependenciesXCommand(jobId + "@1").call();
+    Map<String, ActionDependency> dependencyMap = data.get(0).getSecond();
+    assertEquals(6, dependencyMap.size());
+    assertNull(CoordCommandUtils.getFirstMissingDependency(data.get(0).getFirst()));
+    createTestCaseSubDir("input-data/b/2014/10/08/_SUCCESS".split("/"));
+    addPartition(DB_A, TABLE, "dt=20141008;country=usa");
+    new CoordActionInputCheckXCommand(jobId + "@1", jobId).call();
+    new CoordPushDependencyCheckXCommand(jobId + "@1").call();
+    new CoordActionInputCheckXCommand(jobId + "@1", jobId).call();
+    data = new CoordActionMissingDependenciesXCommand(jobId + "@1").call();
+    dependencyMap = data.get(0).getSecond();
+    assertEquals(4, dependencyMap.size());
+    assertNull(dependencyMap.get("A"));
+    assertNull(dependencyMap.get("B"));
+}

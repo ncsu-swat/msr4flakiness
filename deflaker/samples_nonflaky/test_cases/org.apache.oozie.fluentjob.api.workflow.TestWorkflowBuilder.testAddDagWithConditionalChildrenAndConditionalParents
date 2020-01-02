@@ -1,0 +1,16 @@
+@Test
+public void testAddDagWithConditionalChildrenAndConditionalParents() {
+    final String condition = "condition";
+    final Node mrAction1 = MapReduceActionBuilder.create().withName("mr1").build();
+    final Node mrAction2 = MapReduceActionBuilder.create().withName("mr2").build();
+    final Node mrAction3 = MapReduceActionBuilder.create().withName("mr3").withParentWithCondition(mrAction1, condition).withParent(mrAction2).build();
+    final Node mrAction4 = MapReduceActionBuilder.create().withName("mr4").withParentWithCondition(mrAction3, condition).build();
+    final Node mrAction5 = MapReduceActionBuilder.create().withName("mr5").withParentWithCondition(mrAction3, condition).build();
+    final WorkflowBuilder builder = new WorkflowBuilder();
+    builder.withDagContainingNode(mrAction3);
+    final Workflow workflow = builder.build();
+    final Set<Node> expectedRoots = new HashSet<>(Arrays.asList(mrAction1, mrAction2));
+    assertEquals(expectedRoots, workflow.getRoots());
+    final Set<Node> expectedNodes = new HashSet<>(Arrays.asList(mrAction1, mrAction2, mrAction3, mrAction4, mrAction5));
+    assertEquals(expectedNodes, workflow.getNodes());
+}

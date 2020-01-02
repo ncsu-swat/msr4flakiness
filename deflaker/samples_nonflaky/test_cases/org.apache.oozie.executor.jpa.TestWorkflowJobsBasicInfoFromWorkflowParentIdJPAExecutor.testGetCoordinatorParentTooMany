@@ -1,0 +1,24 @@
+public void testGetCoordinatorParentTooMany() throws Exception {
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    HashMap<String, WorkflowJobBean> wflist = new HashMap<String, WorkflowJobBean>();
+    WorkflowJobBean wfJob = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED);
+    WorkflowJobBean subwfJob1 = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED, wfJob.getId());
+    WorkflowJobBean subwfJob2 = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED, wfJob.getId());
+    WorkflowJobBean subwfJob3 = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED, wfJob.getId());
+    WorkflowJobBean subwfJob4 = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED, wfJob.getId());
+    WorkflowJobBean subwfJob5 = addRecordToWfJobTable(WorkflowJob.Status.SUCCEEDED, WorkflowInstance.Status.SUCCEEDED, wfJob.getId());
+    List<WorkflowJobBean> children = new ArrayList<WorkflowJobBean>();
+    // Get the first 3
+    children.addAll(jpaService.execute(new WorkflowJobsBasicInfoFromWorkflowParentIdJPAExecutor(wfJob.getId(), 3)));
+    assertEquals(3, children.size());
+    // Get the next 3 (though there's only 2 more)
+    children.addAll(jpaService.execute(new WorkflowJobsBasicInfoFromWorkflowParentIdJPAExecutor(wfJob.getId(), 3, 3)));
+    assertEquals(5, children.size());
+    wflist.put(subwfJob1.getId(), subwfJob1);
+    wflist.put(subwfJob2.getId(), subwfJob2);
+    wflist.put(subwfJob3.getId(), subwfJob3);
+    wflist.put(subwfJob4.getId(), subwfJob4);
+    wflist.put(subwfJob5.getId(), subwfJob5);
+    checkChildren(children, wflist);
+}

@@ -1,0 +1,12 @@
+@Test
+public void testPropertiesWrite() throws IOException {
+    File f = new File(tmp.newFolder(), "nonExistentFile");
+    assertFalse(f.exists());
+    try (FileOutputStream fos = LauncherMain.createStreamIfFileNotExists(f)) {
+        Properties p = new Properties();
+        p.setProperty("foo", "bar");
+        p.store(fos, "");
+    }
+    String contents = new String(Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8);
+    assertTrue(contents.contains("foo=bar"));
+}

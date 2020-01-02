@@ -1,0 +1,13 @@
+public void testDelayedQueuing() throws Exception {
+    CallableQueueService queueservice = Services.get().get(CallableQueueService.class);
+    final MyCallable callable = new MyCallable();
+    long scheduled = System.currentTimeMillis();
+    queueservice.queue(callable, 1000);
+    waitFor(3000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            return callable.executed != 0;
+        }
+    });
+    assertTrue(callable.executed >= scheduled + 1000);
+}

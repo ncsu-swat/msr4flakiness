@@ -1,0 +1,21 @@
+public void testWfFailure() throws Exception {
+    Configuration conf = new XConfiguration();
+    String workflowUri = getTestCaseFileUri("workflow.xml");
+    // @formatter:off
+    String appXml = "<workflow-app xmlns=\"uri:oozie:workflow:0.4\" name=\"wf-fork\">" + "<start to=\"fork1\"/>" + "<fork name=\"fork1\">" + "<path start=\"action1\"/>" + "<path start=\"action2\"/>" + "</fork>" + "<action name=\"action1\">" + "<fs></fs>" + "<ok to=\"kill\"/>" + "<error to=\"kill\"/>" + "</action><action name=\"action2\">" + "<fs></fs><ok to=\"join1\"/>" + "<error to=\"kill\"/>" + "</action>" + "<join name=\"join1\" to=\"end\"/>" + "<kill name=\"kill\"><message>killed</message>" + "</kill><" + "end name=\"end\"/>" + "</workflow-app>";
+    // @Formatter:on
+    writeToFile(appXml, workflowUri);
+    conf.set(OozieClient.APP_PATH, workflowUri);
+    conf.set(OozieClient.USER_NAME, getTestUser());
+    SubmitXCommand sc = new SubmitXCommand(conf);
+    final String jobId = sc.call();
+    new StartXCommand(jobId).call();
+    waitFor(200 * 1000, new Predicate() {
+
+        @Override
+        public boolean evaluate() throws Exception {
+            return WorkflowJobQueryExecutor.getInstance().get(WorkflowJobQuery.GET_WORKFLOW, jobId).getStatus() == WorkflowJob.Status.KILLED;
+        }
+    });
+    assertEquals(WorkflowJobQueryExecutor.getInstance().get(WorkflowJobQuery.GET_WORKFLOW, jobId).getStatus(), WorkflowJob.Status.KILLED);
+}

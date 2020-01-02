@@ -1,0 +1,16 @@
+@Test
+public void testPendingCommandsWithSameType() {
+    XCallable<?> callable = mock(XCallable.class);
+    when(callable.getType()).thenReturn(DEFAULT_TYPE);
+    Mockito.<XCallable<?>>when(callableWrapper.getElement()).thenReturn(callable);
+    XCallable<?> secondCallable = mock(XCallable.class);
+    when(secondCallable.getType()).thenReturn(DEFAULT_TYPE);
+    CallableWrapper<?> secondWrapper = mock(CallableWrapper.class);
+    Mockito.<XCallable<?>>when(secondWrapper.getElement()).thenReturn(secondCallable);
+    asyncExecutor.handleConcurrencyExceeded(callableWrapper);
+    asyncExecutor.handleConcurrencyExceeded(secondWrapper);
+    assertEquals("Number of pending commands", 1, pendingCommandsPerType.size());
+    Set<CallableWrapper<?>> pendingCommandsList = pendingCommandsPerType.get(DEFAULT_TYPE);
+    assertNotNull("List of pending commands doesn't exist", pendingCommandsList);
+    assertEquals("List of pending commands", 2, pendingCommandsList.size());
+}

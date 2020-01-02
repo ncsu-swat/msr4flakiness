@@ -1,0 +1,38 @@
+public void testOnSLAEndMetEvent() throws Exception {
+    JMSSLAEventListener slaListener = new JMSSLAEventListener();
+    slaListener.init(conf);
+    String id = "0000000-000000000000001-oozie-wrkf-C@1";
+    SLACalcStatus endMet = _createSLACalcStatus(id);
+    SLARegistrationBean endMetBean = endMet.getSLARegistrationBean();
+    Date expectedEndDate = DateUtils.parseDateUTC("2013-01-01T12:00Z");
+    Date actualEndDate = DateUtils.parseDateUTC("2013-01-01T11:00Z");
+    endMet.setId(id);
+    endMetBean.setParentId("0000000-000000000000001-oozie-wrkf-C");
+    endMetBean.setAppName("Test-SLA-End-Met");
+    endMet.setEventStatus(EventStatus.END_MET);
+    endMet.setSLAStatus(SLAStatus.MET);
+    endMetBean.setAppType(AppType.COORDINATOR_ACTION);
+    endMetBean.setUser("dummyuser");
+    endMetBean.setNotificationMsg("notification of end met");
+    endMetBean.setExpectedEnd(expectedEndDate);
+    endMet.setActualEnd(actualEndDate);
+    ConnectionContext jmsContext = getConnectionContext();
+    Session session = jmsContext.createSession(Session.AUTO_ACKNOWLEDGE);
+    MessageConsumer consumer = jmsContext.createConsumer(session, slaListener.getTopic(endMet));
+    slaListener.onEndMet(endMet);
+    TextMessage message = (TextMessage) consumer.receive(5000);
+    SLAMessage slaEndMissMsg = (SLAMessage) JMSMessagingUtils.getEventMessage(message);
+    // check msg header
+    assertEquals(EventStatus.END_MET, slaEndMissMsg.getEventStatus());
+    assertEquals(SLAStatus.MET, slaEndMissMsg.getSLAStatus());
+    assertEquals(AppType.COORDINATOR_ACTION, slaEndMissMsg.getAppType());
+    assertEquals(MessageType.SLA, slaEndMissMsg.getMessageType());
+    assertEquals("Test-SLA-End-Met", slaEndMissMsg.getAppName());
+    assertEquals("dummyuser", slaEndMissMsg.getUser());
+    // check msg body
+    assertEquals("0000000-000000000000001-oozie-wrkf-C@1", slaEndMissMsg.getId());
+    assertEquals("0000000-000000000000001-oozie-wrkf-C", slaEndMissMsg.getParentId());
+    assertEquals(expectedEndDate, slaEndMissMsg.getExpectedEndTime());
+    assertEquals(actualEndDate, slaEndMissMsg.getActualEndTime());
+    assertEquals("notification of end met", slaEndMissMsg.getNotificationMessage());
+}

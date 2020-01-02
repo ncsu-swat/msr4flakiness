@@ -1,0 +1,65 @@
+public void testShareLibWithHA() throws Exception {
+    ZKJobsConcurrencyService zkjcs = new ZKJobsConcurrencyService();
+    zkjcs.init(Services.get());
+    DummyZKOozie dummyOozie_1 = null;
+    DummyZKOozie dummyOozie_2 = null;
+    try {
+        dummyOozie_1 = new DummyZKOozie("9876", container.getServletURL("/other-oozie-server/*"));
+        String url = container.getServletURL("/v2/admin/*") + "update_sharelib?" + RestConstants.ALL_SERVER_REQUEST + "=true";
+        HttpClient client = new HttpClient();
+        GetMethod method = new GetMethod(url);
+        int statusCode = client.executeMethod(method);
+        assertEquals(HttpURLConnection.HTTP_OK, statusCode);
+        Reader reader = new InputStreamReader(method.getResponseBodyAsStream(), StandardCharsets.UTF_8);
+        JSONArray sharelib = (JSONArray) JSONValue.parse(reader);
+        assertEquals(2, sharelib.size());
+        // 1st server update is successful
+        JSONObject obj = (JSONObject) sharelib.get(0);
+        assertEquals("Successful", ((JSONObject) obj.get(JsonTags.SHARELIB_LIB_UPDATE)).get(JsonTags.SHARELIB_UPDATE_STATUS));
+        // 2nd server update is successful.
+        obj = (JSONObject) sharelib.get(1);
+        assertEquals("Successful", ((JSONObject) obj.get(JsonTags.SHARELIB_LIB_UPDATE)).get(JsonTags.SHARELIB_UPDATE_STATUS));
+        // 3rd server not defined.should throw exception.
+        dummyOozie_2 = new DummyZKOozie("9873", container.getServletURL("/") + "not-defined/");
+        statusCode = client.executeMethod(method);
+        assertEquals(HttpURLConnection.HTTP_OK, statusCode);
+        reader = new InputStreamReader(method.getResponseBodyAsStream(), StandardCharsets.UTF_8);
+        sharelib = (JSONArray) JSONValue.parse(reader);
+        assertEquals(3, sharelib.size());
+        obj = (JSONObject) sharelib.get(0);
+        String status1 = ((JSONObject) obj.get(JsonTags.SHARELIB_LIB_UPDATE)).get(JsonTags.SHARELIB_UPDATE_STATUS).toString();
+        obj = (JSONObject) sharelib.get(1);
+        String status2 = ((JSONObject) obj.get(JsonTags.SHARELIB_LIB_UPDATE)).get(JsonTags.SHARELIB_UPDATE_STATUS).toString();
+        obj = (JSONObject) sharelib.get(2);
+        String status3 = ((JSONObject) obj.get(JsonTags.SHARELIB_LIB_UPDATE)).get(JsonTags.SHARELIB_UPDATE_STATUS).toString();
+        int success = 0;
+        int notSuccess = 0;
+        if (status1.equals("Successful")) {
+            success++;
+        } else {
+            notSuccess++;
+        }
+        if (status2.equals("Successful")) {
+            success++;
+        } else {
+            notSuccess++;
+        }
+        if (status3.equals("Successful")) {
+            success++;
+        } else {
+            notSuccess++;
+        }
+        // 1 fails and other 2 succeed.
+        assertEquals(1, notSuccess);
+        assertEquals(2, success);
+    } finally {
+        if (dummyOozie_1 != null) {
+            dummyOozie_1.teardown();
+        }
+        if (dummyOozie_2 != null) {
+            dummyOozie_2.teardown();
+        }
+        zkjcs.destroy();
+        container.stop();
+    }
+}

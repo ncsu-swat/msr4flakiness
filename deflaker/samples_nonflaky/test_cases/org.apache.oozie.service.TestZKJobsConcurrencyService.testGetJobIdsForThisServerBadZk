@@ -1,0 +1,30 @@
+public void testGetJobIdsForThisServerBadZk() throws Exception {
+    ZKJobsConcurrencyService zkjcs = new ZKJobsConcurrencyService();
+    try {
+        zkjcs.init(Services.get());
+        List<String> ids = new ArrayList<String>();
+        ids.add("0000000-130521183438837-oozie-rkan-W");
+        ids.add("0000001-130521183438837-oozie-rkan-W");
+        ids.add("0000002-130521183438837-oozie-rkan-W");
+        ids.add("0000003-130521183438837-oozie-rkan-W");
+        ids.add("0000004-130521183438837-oozie-rkan-W");
+        ids.add("0000005-130521183438837-oozie-rkan-W");
+        ids.add("0000006-130521183438837-oozie-rkan-W");
+        ids.add("blah");
+        List<String> ids2 = zkjcs.getJobIdsForThisServer(ids);
+        assertEquals(8, ids2.size());
+        assertTrue(ids2.containsAll(ids));
+        // simulating zookeeper problem
+        zkjcs.zk.getClient().close();
+        // Sleep to allow ZKUtils ServiceCache to update
+        sleep(1000);
+        try {
+            zkjcs.getJobIdsForThisServer(ids);
+            fail("Expected ServletException");
+        } catch (ServiceException e) {
+            assertEquals(ErrorCode.E1700, e.getErrorCode());
+        }
+    } finally {
+        zkjcs.destroy();
+    }
+}

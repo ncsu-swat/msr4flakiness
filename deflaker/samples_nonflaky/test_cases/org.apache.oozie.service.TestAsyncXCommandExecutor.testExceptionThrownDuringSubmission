@@ -1,0 +1,13 @@
+@Test
+public void testExceptionThrownDuringSubmission() {
+    doThrow(new RuntimeException()).when(executor).execute(any(Runnable.class));
+    boolean exceptionThrown = false;
+    try {
+        asyncExecutor.queue(callableWrapper, false);
+    } catch (RuntimeException e) {
+        exceptionThrown = true;
+    }
+    assertTrue("Exception was not thrown", exceptionThrown);
+    verify(callableWrapper).removeFromUniqueCallables();
+    verifyZeroInteractions(scheduledExecutor);
+}

@@ -1,0 +1,17 @@
+public void testWFNotificationTimeout() throws Exception {
+    XConfiguration conf = new XConfiguration();
+    conf.set(OozieClient.WORKFLOW_NOTIFICATION_URL, container.getServletURL("/hang/*"));
+    WorkflowInstance wfi = Mockito.mock(WorkflowInstance.class);
+    Mockito.when(wfi.getConf()).thenReturn(conf);
+    WorkflowJobBean workflow = Mockito.mock(WorkflowJobBean.class);
+    Mockito.when(workflow.getId()).thenReturn("1");
+    Mockito.when(workflow.getStatus()).thenReturn(WorkflowJob.Status.SUCCEEDED);
+    Mockito.when(workflow.getWorkflowInstance()).thenReturn(wfi);
+    WorkflowNotificationXCommand command = new WorkflowNotificationXCommand(workflow);
+    command.setRetry(3);
+    long start = System.currentTimeMillis();
+    command.call();
+    long end = System.currentTimeMillis();
+    Assert.assertTrue(end - start >= 50);
+    Assert.assertTrue(end - start < 10000);
+}

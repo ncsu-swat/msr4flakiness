@@ -1,0 +1,25 @@
+public void testCoordStatusTransitWithLock() throws Exception {
+    setSystemProperty(StatusTransitService.CONF_BACKWARD_SUPPORT_FOR_STATES_WITHOUT_ERROR, "false");
+    services = new Services();
+    services.init();
+    final JPAService jpaService = Services.get().get(JPAService.class);
+    String currentDatePlusMonth = XDataTestCase.getCurrentDateafterIncrementingInMonths(1);
+    Date start = DateUtils.parseDateOozieTZ(currentDatePlusMonth);
+    Date end = DateUtils.parseDateOozieTZ(currentDatePlusMonth);
+    CoordinatorJobBean coordJob = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, start, end, true, false, 1);
+    addRecordToCoordActionTable(coordJob.getId(), 1, CoordinatorAction.Status.KILLED, "coord-action-get.xml", null, "KILLED", 0);
+    final CoordJobGetJPAExecutor coordJobGetCmd = new CoordJobGetJPAExecutor(coordJob.getId());
+    LockerCoordinator coordinator = new LockerCoordinator();
+    JobLock lockThread = new JobLock(coordJob.getId(), coordinator);
+    new Thread(lockThread).start();
+    coordinator.awaitLockAcquire();
+    Runnable runnable = new StatusTransitRunnable();
+    runnable.run();
+    coordJob = jpaService.execute(coordJobGetCmd);
+    assertEquals(CoordinatorJob.Status.RUNNING, coordJob.getStatus());
+    coordinator.signalLockerContinue();
+    coordinator.awaitTermination();
+    runnable.run();
+    coordJob = jpaService.execute(coordJobGetCmd);
+    assertEquals(CoordinatorJob.Status.RUNNINGWITHERROR, coordJob.getStatus());
+}

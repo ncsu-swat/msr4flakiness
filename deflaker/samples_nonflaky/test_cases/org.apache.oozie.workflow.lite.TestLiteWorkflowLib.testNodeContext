@@ -1,0 +1,14 @@
+public void testNodeContext() throws WorkflowException {
+    LiteWorkflowApp def = new LiteWorkflowApp("wf", "<worklfow-app/>", new StartNodeDef(TestControlNodeHandler.class, "one")).addNode(new NodeDef("one", null, TestRootContextHandler.class, Arrays.asList(new String[] { "end" }))).addNode(new EndNodeDef("end", TestControlNodeHandler.class));
+    LiteWorkflowInstance job = new LiteWorkflowInstance(def, new XConfiguration(), "1");
+    job.setVar("a", "A");
+    job.setTransientVar("ta", "AA");
+    job.start();
+    assertEquals(WorkflowInstance.Status.SUCCEEDED, job.getStatus());
+    assertEquals("B", job.getVar("b"));
+    assertEquals("BB", job.getTransientVar("tb"));
+    assertEquals(1, enters.size());
+    assertEquals(1, exits.size());
+    assertEquals(0, kills.size());
+    assertEquals(0, fails.size());
+}

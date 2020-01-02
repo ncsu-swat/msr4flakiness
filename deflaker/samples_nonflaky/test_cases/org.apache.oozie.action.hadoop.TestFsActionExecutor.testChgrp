@@ -1,0 +1,45 @@
+public void testChgrp() throws Exception {
+    FsActionExecutor ae = new FsActionExecutor();
+    FileSystem fs = getFileSystem();
+    Path path = new Path(getFsTestCaseDir(), "dir");
+    Path child = new Path(path, "child");
+    Path grandchild = new Path(child, "grandchild");
+    fs.mkdirs(grandchild);
+    String testUser = getTestUser();
+    String testGroup = getTestGroup();
+    String testGroup2 = getTestGroup2();
+    fs.setOwner(path, testUser, testGroup);
+    fs.setOwner(child, testUser, testGroup);
+    fs.setOwner(grandchild, testUser, testGroup);
+    assertEquals(testGroup, fs.getFileStatus(path).getGroup().toString());
+    assertEquals(testGroup, fs.getFileStatus(child).getGroup().toString());
+    assertEquals(testGroup, fs.getFileStatus(grandchild).getGroup().toString());
+    Context context = createContext("<fs/>");
+    // Test case where dir-files=false, recursive=false
+    ae.chgrp(context, null, null, path, testUser, testGroup2, false, false);
+    assertEquals(testGroup2, fs.getFileStatus(path).getGroup().toString());
+    assertEquals(testGroup, fs.getFileStatus(child).getGroup().toString());
+    assertEquals(testGroup, fs.getFileStatus(grandchild).getGroup().toString());
+    // Test case where dir-files=true, recursive=false
+    // revert to testgroup
+    fs.setOwner(path, testUser, testGroup);
+    // revert to testgroup
+    fs.setOwner(child, testUser, testGroup);
+    // revert to testgroup
+    fs.setOwner(grandchild, testUser, testGroup);
+    ae.chgrp(context, null, null, path, testUser, testGroup2, true, false);
+    assertEquals(testGroup2, fs.getFileStatus(path).getGroup().toString());
+    assertEquals(testGroup2, fs.getFileStatus(child).getGroup().toString());
+    assertEquals(testGroup, fs.getFileStatus(grandchild).getGroup().toString());
+    // Test case where dir-files=true, recursive=true
+    // revert to testgroup
+    fs.setOwner(path, testUser, testGroup);
+    // revert to testgroup
+    fs.setOwner(child, testUser, testGroup);
+    // revert to testgroup
+    fs.setOwner(grandchild, testUser, testGroup);
+    ae.chgrp(context, null, null, path, testUser, testGroup2, true, true);
+    assertEquals(testGroup2, fs.getFileStatus(path).getGroup().toString());
+    assertEquals(testGroup2, fs.getFileStatus(child).getGroup().toString());
+    assertEquals(testGroup2, fs.getFileStatus(grandchild).getGroup().toString());
+}

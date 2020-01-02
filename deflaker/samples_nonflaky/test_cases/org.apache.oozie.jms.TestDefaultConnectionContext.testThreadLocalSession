@@ -1,0 +1,22 @@
+@Test
+public void testThreadLocalSession() throws JMSException {
+    String jmsProps = services.getConf().get(JMSJobEventListener.JMS_CONNECTION_PROPERTIES);
+    JMSConnectionInfo connInfo = new JMSConnectionInfo(jmsProps);
+    ConnectionContext jmsContext = Services.get().get(JMSAccessorService.class).createConnectionContext(connInfo);
+    Thread th = new Thread(new SessionThread(jmsContext));
+    th.start();
+    try {
+        th.join();
+    } catch (InterruptedException e) {
+        e.printStackTrace();
+    }
+    assertEquals(session1, session2);
+    Session session3 = jmsContext.createThreadLocalSession(Session.AUTO_ACKNOWLEDGE);
+    Session session4 = jmsContext.createThreadLocalSession(Session.AUTO_ACKNOWLEDGE);
+    // As session3 and session4 are created by same threads, they should be
+    // equal
+    assertTrue(session3.equals(session4));
+    // As session1 and session3 are created by diff threads, they shoudn't
+    // be equal
+    assertFalse(session1.equals(session3));
+}

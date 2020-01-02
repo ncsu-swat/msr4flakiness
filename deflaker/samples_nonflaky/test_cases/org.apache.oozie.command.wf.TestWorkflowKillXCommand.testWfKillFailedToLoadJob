@@ -1,0 +1,25 @@
+/**
+ * Test : kill job failed to load the job.
+ *
+ * @throws Exception
+ */
+public void testWfKillFailedToLoadJob() throws Exception {
+    final String testWfId = "0000001-" + new Date().getTime() + "-testWfKill-W";
+    WorkflowJobBean job = this.addRecordToWfJobTable(WorkflowJob.Status.RUNNING, WorkflowInstance.Status.RUNNING);
+    WorkflowActionBean action = this.addRecordToWfActionTable(job.getId(), "1", WorkflowAction.Status.OK);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    WorkflowJobGetJPAExecutor wfJobGetCmd = new WorkflowJobGetJPAExecutor(job.getId());
+    WorkflowActionGetJPAExecutor wfActionGetCmd = new WorkflowActionGetJPAExecutor(action.getId());
+    job = jpaService.execute(wfJobGetCmd);
+    action = jpaService.execute(wfActionGetCmd);
+    assertEquals(job.getStatus(), WorkflowJob.Status.RUNNING);
+    assertEquals(action.getStatus(), WorkflowAction.Status.OK);
+    WorkflowInstance wfInstance = job.getWorkflowInstance();
+    assertEquals(wfInstance.getStatus(), WorkflowInstance.Status.RUNNING);
+    try {
+        new KillXCommand(testWfId).call();
+        fail("Job doesn't exist. Should fail.");
+    } catch (CommandException ce) {
+    }
+}

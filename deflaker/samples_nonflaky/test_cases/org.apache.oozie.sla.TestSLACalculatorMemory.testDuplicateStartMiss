@@ -1,0 +1,31 @@
+@Test
+public void testDuplicateStartMiss() throws Exception {
+    // test start-miss
+    EventHandlerService ehs = Services.get().get(EventHandlerService.class);
+    SLACalculatorMemory slaCalcMemory = new SLACalculatorMemory();
+    slaCalcMemory.init(Services.get().get(ConfigurationService.class).getConf());
+    WorkflowJobBean job1 = addRecordToWfJobTable(WorkflowJob.Status.PREP, WorkflowInstance.Status.PREP);
+    SLARegistrationBean slaRegBean = _createSLARegistration(job1.getId(), AppType.WORKFLOW_JOB);
+    // 1 hour back
+    Date startTime = new Date(System.currentTimeMillis() - 1 * 1 * 3600 * 1000);
+    slaRegBean.setExpectedStart(startTime);
+    // to avoid duration miss
+    slaRegBean.setExpectedDuration(2 * 3600 * 1000);
+    // 1 hour ahead
+    slaRegBean.setExpectedEnd(new Date(System.currentTimeMillis() + 1 * 1 * 3600 * 1000));
+    String jobId = slaRegBean.getId();
+    slaCalcMemory.addRegistration(slaRegBean.getId(), slaRegBean);
+    slaCalcMemory.updateJobSla(jobId);
+    SLASummaryBean slaSummary = SLASummaryQueryExecutor.getInstance().get(SLASummaryQuery.GET_SLA_SUMMARY, jobId);
+    assertEquals(1, slaSummary.getEventProcessed());
+    assertEquals(SLAStatus.NOT_STARTED, slaSummary.getSLAStatus());
+    job1.setStatus(WorkflowJob.Status.RUNNING);
+    job1.setStartTime(startTime);
+    WorkflowJobQueryExecutor.getInstance().executeUpdate(WorkflowJobQuery.UPDATE_WORKFLOW_STATUS_INSTANCE_MOD_START_END, job1);
+    slaCalcMemory.addJobStatus(jobId, WorkflowJob.Status.RUNNING.toString(), EventStatus.STARTED, new Date(System.currentTimeMillis()), null);
+    slaSummary = SLASummaryQueryExecutor.getInstance().get(SLASummaryQuery.GET_SLA_SUMMARY, jobId);
+    assertEquals(1, slaSummary.getEventProcessed());
+    assertEquals(SLAStatus.IN_PROCESS, slaSummary.getSLAStatus());
+    assertEquals(WorkflowJob.Status.RUNNING.toString(), slaSummary.getJobStatus());
+    assertEquals(1, ehs.getEventQueue().size());
+}

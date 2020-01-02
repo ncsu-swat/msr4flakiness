@@ -1,0 +1,15 @@
+public void testMaterializationLookupMinute() throws Exception {
+    // for current job in min, should not exceed hour windows
+    Date startTime = new Date(new Date().getTime());
+    Date endTime = new Date(startTime.getTime() + TIME_IN_HOURS * 24);
+    CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.PREP, startTime, endTime, false, false, 0);
+    job.setMatThrottling(20);
+    job.setFrequency("5");
+    job.setTimeUnitStr("MINUTE");
+    CoordJobQueryExecutor.getInstance().executeUpdate(CoordJobQuery.UPDATE_COORD_JOB, job);
+    new CoordMaterializeTransitionXCommand(job.getId(), hoursToSeconds(1)).call();
+    job = jpaService.execute(new CoordJobGetJPAExecutor(job.getId()));
+    Date next = new Date(startTime.getTime() + TIME_IN_HOURS);
+    adjustExpectedMaterializationDateForDSTSwitch(next, startTime, job);
+    assertEquals(next, job.getNextMaterializedTime());
+}

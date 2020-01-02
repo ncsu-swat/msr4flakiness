@@ -1,0 +1,24 @@
+@Test
+public void testMappingDecision() {
+    final String name = "decision";
+    final Decision decision = new Decision(name);
+    final NodeBase child1 = new ExplicitNode("child1", null);
+    final NodeBase child2 = new ExplicitNode("child2", null);
+    final NodeBase defaultChild = new ExplicitNode("defaultChild", null);
+    final String condition1String = "condition1";
+    final String condition2String = "condition2";
+    child1.addParentWithCondition(decision, Condition.actualCondition(condition1String));
+    child2.addParentWithCondition(decision, Condition.actualCondition(condition2String));
+    defaultChild.addParentDefaultConditional(decision);
+    final DECISION mappedDecision = DozerBeanMapperSingleton.instance().map(decision, DECISION.class);
+    assertEquals(name, mappedDecision.getName());
+    final SWITCH decisionSwitch = mappedDecision.getSwitch();
+    final List<CASE> cases = decisionSwitch.getCase();
+    assertEquals(2, cases.size());
+    assertEquals(child1.getName(), cases.get(0).getTo());
+    assertEquals(condition1String, cases.get(0).getValue());
+    assertEquals(child2.getName(), cases.get(1).getTo());
+    assertEquals(condition2String, cases.get(1).getValue());
+    final DEFAULT decisionDefault = decisionSwitch.getDefault();
+    assertEquals(defaultChild.getName(), decisionDefault.getTo());
+}

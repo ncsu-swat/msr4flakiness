@@ -1,0 +1,22 @@
+/**
+ * Test HCat dataInPartitionPigFilter EL function (phase 1) which echo back
+ * the EL function itself
+ *
+ * @throws Exception
+ */
+@Test
+public void testdataInPartitionFilterPh1() throws Exception {
+    init("coord-job-submit-data");
+    String expr = "${coord:dataInPartitionFilter('ABC', 'pig')}";
+    // +ve test
+    eval.setVariable("oozie.dataname.ABC", "data-in");
+    assertEquals("${coord:dataInPartitionFilter('ABC', 'pig')}", CoordELFunctions.evalAndWrap(eval, expr));
+    // -ve test
+    expr = "${coord:dataInPartitionFilter('ABCD')}";
+    eval.setVariable("oozie.dataname.ABCD", "data-in");
+    try {
+        assertEquals("${coord:dataInPartitionFilter('ABCD')}", CoordELFunctions.evalAndWrap(eval, expr));
+        fail("should throw exception because dataInPartitionFilter() requires 2 parameters");
+    } catch (Exception ex) {
+    }
+}

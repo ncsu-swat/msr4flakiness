@@ -1,0 +1,40 @@
+@Test
+public void testEmbeddedRetryHandlersWhenInnerHandlerThrowsSQLError() throws Exception {
+    @SuppressWarnings("unchecked")
+    final Callable<String> innerOperation = mock(Callable.class);
+    final MutableInt callCount = new MutableInt(0);
+    // internal operation which will be retried
+    willAnswer(new Answer<Void>() {
+
+        @Override
+        public Void answer(InvocationOnMock invocation) throws Throwable {
+            callCount.increment();
+            throw new RuntimeException();
+        }
+    }).given(innerOperation).call();
+    @SuppressWarnings("unchecked")
+    Callable<String> outerOperation = mock(Callable.class);
+    // the outer operation which calls the inner one and this is not
+    // supposed to be retried
+    willAnswer(new Answer<Void>() {
+
+        @Override
+        public Void answer(InvocationOnMock invocation) throws Throwable {
+            try {
+                retryHandler.executeWithRetry(innerOperation);
+            } catch (Exception e) {
+                throw new RuntimeException();
+            }
+            return null;
+        }
+    }).given(outerOperation).call();
+    boolean exceptionThrown = false;
+    try {
+        retryHandler.executeWithRetry(outerOperation);
+    } catch (Exception e) {
+        exceptionThrown = true;
+    }
+    assertTrue("Exception was not thrown", exceptionThrown);
+    assertCallCount(3, callCount);
+    assertNoRetryAttemptsAreInProgressOrExhausted();
+}

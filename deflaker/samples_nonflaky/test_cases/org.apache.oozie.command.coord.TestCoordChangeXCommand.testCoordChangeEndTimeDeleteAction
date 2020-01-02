@@ -1,0 +1,32 @@
+// Testcase to test deletion of lookahead action in case of end-date change
+public void testCoordChangeEndTimeDeleteAction() throws Exception {
+    Date startTime = DateUtils.parseDateOozieTZ("2013-08-01T00:00Z");
+    Date endTime = DateUtils.parseDateOozieTZ("2013-08-01T05:00Z");
+    Date changeEndTime = DateUtils.parseDateOozieTZ("2013-08-01T02:00Z");
+    String endTimeChangeStr = "endtime=" + DateUtils.formatDateOozieTZ(changeEndTime);
+    final CoordinatorJobBean job = addRecordToCoordJobTableForPauseTimeTest(CoordinatorJob.Status.RUNNING, startTime, endTime, endTime, true, false, 4);
+    addRecordToCoordActionTable(job.getId(), 1, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0, DateUtils.parseDateOozieTZ("2013-08-01T00:00Z"));
+    addRecordToCoordActionTable(job.getId(), 2, CoordinatorAction.Status.RUNNING, "coord-action-get.xml", 0, DateUtils.parseDateOozieTZ("2013-08-01T01:00Z"));
+    addRecordToCoordActionTable(job.getId(), 3, CoordinatorAction.Status.WAITING, "coord-action-get.xml", 0, DateUtils.parseDateOozieTZ("2013-08-01T02:00Z"));
+    addRecordToCoordActionTable(job.getId(), 4, CoordinatorAction.Status.WAITING, "coord-action-get.xml", 0, DateUtils.parseDateOozieTZ("2013-08-01T03:00Z"));
+    JPAService jpaService = Services.get().get(JPAService.class);
+    new CoordChangeXCommand(job.getId(), endTimeChangeStr).call();
+    CoordJobGetJPAExecutor coordGetCmd = new CoordJobGetJPAExecutor(job.getId());
+    CoordinatorJobBean coordJob = jpaService.execute(coordGetCmd);
+    assertEquals(coordJob.getEndTime(), changeEndTime);
+    assertEquals(Job.Status.RUNNING, coordJob.getStatus());
+    assertEquals(2, coordJob.getLastActionNumber());
+    try {
+        jpaService.execute(new CoordJobGetActionByActionNumberJPAExecutor(job.getId(), 2));
+    } catch (JPAExecutorException jpae) {
+        fail(" Action should be there");
+    }
+    try {
+        jpaService.execute(new CoordJobGetActionByActionNumberJPAExecutor(job.getId(), 3));
+        fail("Expected to fail as action 3 should have been deleted");
+    } catch (JPAExecutorException jpae) {
+        assertEquals(ErrorCode.E0603, jpae.getErrorCode());
+    }
+    assertEquals(DateUtils.parseDateOozieTZ("2013-08-01T02:00Z"), coordJob.getNextMaterializedTime());
+    assertEquals(DateUtils.parseDateOozieTZ("2013-08-01T02:00Z"), coordJob.getLastActionTime());
+}

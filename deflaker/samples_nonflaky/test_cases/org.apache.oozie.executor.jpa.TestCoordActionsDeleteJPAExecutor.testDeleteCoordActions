@@ -1,0 +1,31 @@
+public void testDeleteCoordActions() throws Exception {
+    CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, false, false);
+    CoordinatorActionBean action1 = addRecordToCoordActionTable(job.getId(), 1, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    CoordinatorActionBean action2 = addRecordToCoordActionTable(job.getId(), 2, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    CoordinatorActionBean action3 = addRecordToCoordActionTable(job.getId(), 3, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    List<String> deleteList = new ArrayList<String>();
+    deleteList.add(action1.getId());
+    deleteList.add(action2.getId());
+    deleteList.add(action3.getId());
+    jpaService.execute(new CoordActionsDeleteJPAExecutor(deleteList));
+    try {
+        jpaService.execute(new CoordActionGetJPAExecutor(action1.getId()));
+        fail("CoordinatorAction action1 should have been deleted");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0605, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(new CoordActionGetJPAExecutor(action2.getId()));
+        fail("CoordinatorAction action1 should have been deleted");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0605, je.getErrorCode());
+    }
+    try {
+        jpaService.execute(new CoordActionGetJPAExecutor(action3.getId()));
+        fail("CoordinatorAction action1 should have been deleted");
+    } catch (JPAExecutorException je) {
+        assertEquals(ErrorCode.E0605, je.getErrorCode());
+    }
+}

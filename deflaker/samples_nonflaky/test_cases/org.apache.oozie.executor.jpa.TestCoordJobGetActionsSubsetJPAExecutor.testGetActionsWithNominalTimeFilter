@@ -1,0 +1,95 @@
+public void testGetActionsWithNominalTimeFilter() throws Exception {
+    CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, false, false);
+    String[] timeStr = { "2009-02-01T00:00Z", "2009-02-01T05:00Z", "2009-02-01T10:00Z", "2009-02-01T15:00Z" };
+    Date[] ntime = { getSqlTime(timeStr[0]), getSqlTime(timeStr[1]), getSqlTime(timeStr[2]), getSqlTime(timeStr[3]) };
+    List<String> actionIds = new ArrayList<String>(timeStr.length);
+    int startAction = 5;
+    for (Date time : ntime) {
+        CoordinatorActionBean action = addRecordToCoordActionTable(job.getId(), startAction++, Status.WAITING, "coord-action-get.xml", 0, time);
+        actionIds.add(action.getId());
+    }
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    // Filter with nominalTime >=, asc
+    Map<Pair<String, FILTER_COMPARATORS>, List<Object>> filterMap = new HashMap<Pair<String, FILTER_COMPARATORS>, List<Object>>();
+    filterMap.put(Pair.of(OozieClient.FILTER_NOMINAL_TIME, FILTER_COMPARATORS.GREATER_EQUAL), getList(ntime[2]));
+    CoordJobGetActionsSubsetJPAExecutor actionGetCmd = new CoordJobGetActionsSubsetJPAExecutor(job.getId(), filterMap, 1, 10, false);
+    List<CoordinatorActionBean> actions = jpaService.execute(actionGetCmd);
+    Assert.assertEquals(2, actions.size());
+    Assert.assertEquals(actionIds.get(2), actions.get(0).getId());
+    Assert.assertEquals(actionIds.get(3), actions.get(1).getId());
+    // Filter with nominalTime >=, desc
+    actionGetCmd = new CoordJobGetActionsSubsetJPAExecutor(job.getId(), filterMap, 1, 10, true);
+    actions = jpaService.execute(actionGetCmd);
+    Assert.assertEquals(2, actions.size());
+    Assert.assertEquals(actionIds.get(3), actions.get(0).getId());
+    Assert.assertEquals(actionIds.get(2), actions.get(1).getId());
+    // Filter with nominalTime <, asc
+    filterMap.clear();
+    filterMap.put(Pair.of(OozieClient.FILTER_NOMINAL_TIME, FILTER_COMPARATORS.LESSTHAN), getList(ntime[2]));
+    actionGetCmd = new CoordJobGetActionsSubsetJPAExecutor(job.getId(), filterMap, 1, 10, false);
+    actions = jpaService.execute(actionGetCmd);
+    Assert.assertEquals(2, actions.size());
+    Assert.assertEquals(actionIds.get(0), actions.get(0).getId());
+    Assert.assertEquals(actionIds.get(1), actions.get(1).getId());
+    // Filter with nominalTime <, desc
+    actionGetCmd = new CoordJobGetActionsSubsetJPAExecutor(job.getId(), filterMap, 1, 10, true);
+    actions = jpaService.execute(actionGetCmd);
+    Assert.assertEquals(2, actions.size());
+    Assert.assertEquals(actionIds.get(1), actions.get(0).getId());
+    Assert.assertEquals(actionIds.get(0), actions.get(1).getId());
+    // Filter with nominalTime >=, nominalTime <, asc
+    filterMap.put(Pair.of(OozieClient.FILTER_NOMINAL_TIME, FILTER_COMPARATORS.GREATER_EQUAL), getList(ntime[1]));
+    filterMap.put(Pair.of(OozieClient.FILTER_NOMINAL_TIME, FILTER_COMPARATORS.LESSTHAN), getList(ntime[3]));
+    actionGetCmd = new CoordJobGetActionsSubsetJPAExecutor(job.getId(), filterMap, 1, 10, false);
+    actions = jpaService.execute(actionGetCmd);
+    Assert.assertEquals(2, actions.size());
+    Assert.assertEquals(actionIds.get(1), actions.get(0).getId());
+    Assert.assertEquals(actionIds.get(2), actions.get(1).getId());
+    // Filter with nominalTime >=, nominalTime <, desc
+    actionGetCmd = new CoordJobGetActionsSubsetJPAExecutor(job.getId(), filterMap, 1, 10, true);
+    actions = jpaService.execute(actionGetCmd);
+    Assert.assertEquals(2, actions.size());
+    Assert.assertEquals(actionIds.get(2), actions.get(0).getId());
+    Assert.assertEquals(actionIds.get(1), actions.get(1).getId());
+    // Filter with nominalTime >=, nominalTime <, desc, offset
+    actionGetCmd = new CoordJobGetActionsSubsetJPAExecutor(job.getId(), filterMap, 2, 10, true);
+    actions = jpaService.execute(actionGetCmd);
+    Assert.assertEquals(1, actions.size());
+    Assert.assertEquals(actionIds.get(1), actions.get(0).getId());
+    // Filter with nominalTime >=, nominalTime <, asc, offset
+    actionGetCmd = new CoordJobGetActionsSubsetJPAExecutor(job.getId(), filterMap, 2, 10, false);
+    actions = jpaService.execute(actionGetCmd);
+    Assert.assertEquals(1, actions.size());
+    Assert.assertEquals(actionIds.get(2), actions.get(0).getId());
+    // Filter with nominalTime >=, nominalTime <, desc, len
+    actionGetCmd = new CoordJobGetActionsSubsetJPAExecutor(job.getId(), filterMap, 1, 2, true);
+    actions = jpaService.execute(actionGetCmd);
+    Assert.assertEquals(2, actions.size());
+    Assert.assertEquals(actionIds.get(2), actions.get(0).getId());
+    Assert.assertEquals(actionIds.get(1), actions.get(1).getId());
+    // Filter with nominalTime >=, nominalTime <, asc, len
+    actionGetCmd = new CoordJobGetActionsSubsetJPAExecutor(job.getId(), filterMap, 1, 2, false);
+    actions = jpaService.execute(actionGetCmd);
+    Assert.assertEquals(2, actions.size());
+    Assert.assertEquals(actionIds.get(1), actions.get(0).getId());
+    Assert.assertEquals(actionIds.get(2), actions.get(1).getId());
+    // Filter with nominalTime >=, nominalTime <, asc, offset, len
+    filterMap.put(Pair.of(OozieClient.FILTER_NOMINAL_TIME, FILTER_COMPARATORS.LESSTHAN), getList(getSqlTime("2009-02-01T23:00Z")));
+    actionGetCmd = new CoordJobGetActionsSubsetJPAExecutor(job.getId(), filterMap, 2, 2, false);
+    actions = jpaService.execute(actionGetCmd);
+    Assert.assertEquals(2, actions.size());
+    Assert.assertEquals(actionIds.get(2), actions.get(0).getId());
+    Assert.assertEquals(actionIds.get(3), actions.get(1).getId());
+    // Filter with nominalTime >=, nominalTime <, desc, offset, len
+    actionGetCmd = new CoordJobGetActionsSubsetJPAExecutor(job.getId(), filterMap, 2, 2, true);
+    actions = jpaService.execute(actionGetCmd);
+    Assert.assertEquals(2, actions.size());
+    Assert.assertEquals(actionIds.get(2), actions.get(0).getId());
+    Assert.assertEquals(actionIds.get(1), actions.get(1).getId());
+    // Filter with nominalTime and status
+    filterMap.put(Pair.of(OozieClient.FILTER_STATUS, FILTER_COMPARATORS.EQUALS), getList(Status.SUCCEEDED.name()));
+    actionGetCmd = new CoordJobGetActionsSubsetJPAExecutor(job.getId(), filterMap, 1, 10, true);
+    actions = jpaService.execute(actionGetCmd);
+    Assert.assertEquals(0, actions.size());
+}

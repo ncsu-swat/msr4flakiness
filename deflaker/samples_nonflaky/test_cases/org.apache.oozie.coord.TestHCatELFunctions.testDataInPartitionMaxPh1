@@ -1,0 +1,22 @@
+/**
+ * Test HCat dataInPartitionMax EL function (phase 1) which echo back the EL
+ * function itself
+ *
+ * @throws Exception
+ */
+@Test
+public void testDataInPartitionMaxPh1() throws Exception {
+    init("coord-job-submit-data");
+    String expr = "${coord:dataInPartitionMax('ABC', 'mypartition')}";
+    // +ve test
+    eval.setVariable("oozie.dataname.ABC", "data-in");
+    assertEquals("${coord:dataInPartitionMax('ABC', 'mypartition')}", CoordELFunctions.evalAndWrap(eval, expr));
+    // -ve test
+    expr = "${coord:dataInPartitionMax('ABCD')}";
+    eval.setVariable("oozie.dataname.ABCD", "data-in");
+    try {
+        assertEquals("${coord:dataInPartitionMax('ABCD')}", CoordELFunctions.evalAndWrap(eval, expr));
+        fail("should throw exception because EL function requires 2 parameters");
+    } catch (Exception ex) {
+    }
+}

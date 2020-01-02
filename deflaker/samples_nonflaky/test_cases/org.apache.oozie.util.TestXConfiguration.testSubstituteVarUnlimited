@@ -1,0 +1,19 @@
+public void testSubstituteVarUnlimited() throws ServiceException {
+    Services services = new Services();
+    services.get(ConfigurationService.class).getConf().set(XConfiguration.CONFIGURATION_SUBSTITUTE_DEPTH, "-1");
+    services.init();
+    int depth = ConfigurationService.getInt(XConfiguration.CONFIGURATION_SUBSTITUTE_DEPTH);
+    assertEquals(-1, depth);
+    XConfiguration.initalized = false;
+    XConfiguration conf = new XConfiguration();
+    conf.set("key0", "hello");
+    int testMax = 100;
+    for (int i = 1; i < testMax + 5; i++) {
+        // key1, ${key0}
+        conf.set(String.valueOf("key" + i), String.valueOf("${key" + (i - 1) + "}"));
+    }
+    assertEquals("hello", conf.get("key0"));
+    assertEquals("hello", conf.get("key1"));
+    assertEquals("hello", conf.get("key" + (testMax - 1)));
+    services.destroy();
+}

@@ -1,0 +1,17 @@
+public void testDefaultServices() throws Exception {
+    setSystemProperty(ConfigurationService.OOZIE_CONFIG_FILE, "oozie-dummy.xml");
+    setSystemProperty(Services.CONF_SERVICE_CLASSES, "");
+    setSystemProperty(Services.CONF_SERVICE_EXT_CLASSES, "");
+    Services services = new Services();
+    services.init();
+    try {
+        assertNotNull(services.get(XLogService.class));
+        assertNotNull(services.get(ConfigurationService.class));
+        String shouldBe = "oozie-" + System.getProperty("user.name");
+        assertTrue(shouldBe.startsWith(services.getSystemId()));
+        assertNotNull(services.getRuntimeDir());
+        assertTrue(new File(services.getRuntimeDir()).exists());
+    } finally {
+        services.destroy();
+    }
+}

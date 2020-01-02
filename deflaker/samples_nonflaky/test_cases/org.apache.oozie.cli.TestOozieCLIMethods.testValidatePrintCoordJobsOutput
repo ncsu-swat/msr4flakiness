@@ -1,0 +1,32 @@
+/**
+ * Create {@code CoordinatorJob} mock,
+ * call {@code new OozieCLI().printCoordJobs() }
+ * and validate {@code System.out} on match with expected pattern
+ * <p>
+ * Method do pass only if output matched with predefined pattern
+ * </p>
+ */
+@Test
+public void testValidatePrintCoordJobsOutput() throws IOException {
+    final DataObject dtObject1 = new DataObject() {
+
+        {
+            this.deamonName = "testCoordJob1";
+            this.appName = "testCoordinatorJobApp1";
+            this.appPath = "testCoordinatorJobAppPath1";
+        }
+    };
+    final DataObject dtObject2 = new DataObject() {
+
+        {
+            this.deamonName = "testCoordJob2";
+            this.appName = "testCoordinatorJobApp2";
+            this.appPath = "testCoordinatorJobAppPath2";
+        }
+    };
+    final ImmutableList<CoordinatorJob> coordJobs = ImmutableList.of(createCoordinatorJob(dtObject1), createCoordinatorJob(dtObject2));
+    Pattern pattern = Pattern.compile(dtObject1.deamonName + "[\\s]+" + dtObject1.appName + "[\\s]+" + dtObject1.appPath);
+    assertPrintCoordJobsOutput(readCoordJobsOutput(coordJobs, true), pattern);
+    pattern = Pattern.compile(dtObject1.deamonName + "[\\s]+" + dtObject1.appName);
+    assertPrintCoordJobsOutput(readCoordJobsOutput(coordJobs, false), pattern);
+}

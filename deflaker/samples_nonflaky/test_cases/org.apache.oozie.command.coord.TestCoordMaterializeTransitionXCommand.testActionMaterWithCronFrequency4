@@ -1,0 +1,18 @@
+public void testActionMaterWithCronFrequency4() throws Exception {
+    Date startTime = DateUtils.parseDateOozieTZ("2013-07-18T00:00Z");
+    Date endTime = DateUtils.parseDateOozieTZ("2013-07-18T01:00Z");
+    CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, startTime, endTime, null, "0/15 * * 5-7 4,5");
+    new CoordMaterializeTransitionXCommand(job.getId(), hoursToSeconds(1)).call();
+    Date[] nominalTimes = new Date[] { DateUtils.parseDateOozieTZ("2013-07-18T00:00Z"), DateUtils.parseDateOozieTZ("2013-07-18T00:15Z"), DateUtils.parseDateOozieTZ("2013-07-18T00:30Z"), DateUtils.parseDateOozieTZ("2013-07-18T00:45Z") };
+    final int expectedNominalTimeCount = 4;
+    checkCoordActionsNominalTime(job.getId(), expectedNominalTimeCount, nominalTimes);
+    try {
+        job = jpaService.execute(new CoordJobGetJPAExecutor(job.getId()));
+        assertTrue(job.isDoneMaterialization());
+        assertEquals(job.getLastActionNumber(), expectedNominalTimeCount);
+        assertEquals(job.getNextMaterializedTime(), DateUtils.parseDateOozieTZ("2013-07-18T01:00Z"));
+    } catch (JPAExecutorException se) {
+        se.printStackTrace();
+        fail("Job ID " + job.getId() + " was not stored properly in db");
+    }
+}

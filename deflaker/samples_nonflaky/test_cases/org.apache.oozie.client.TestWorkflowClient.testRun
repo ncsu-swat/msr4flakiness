@@ -1,0 +1,18 @@
+public void testRun() throws Exception {
+    runTest(END_POINTS, SERVLET_CLASSES, IS_SECURITY_ENABLED, new Callable<Void>() {
+
+        public Void call() throws Exception {
+            String oozieUrl = getContextURL();
+            int wfCount = MockDagEngineService.INIT_WF_COUNT;
+            OozieClient wc = new OozieClient(oozieUrl);
+            Properties conf = wc.createConfiguration();
+            Path appPath = new Path(getFsTestCaseDir(), "app");
+            getFileSystem().mkdirs(appPath);
+            getFileSystem().create(new Path(appPath, "workflow.xml")).close();
+            conf.setProperty(OozieClient.APP_PATH, appPath.toString());
+            assertEquals(MockDagEngineService.JOB_ID + wfCount + MockDagEngineService.JOB_ID_END, wc.run(conf));
+            assertTrue(MockDagEngineService.started.get(wfCount));
+            return null;
+        }
+    });
+}

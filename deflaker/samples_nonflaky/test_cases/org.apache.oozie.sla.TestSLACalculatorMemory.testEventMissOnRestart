@@ -1,0 +1,57 @@
+@Test
+public void testEventMissOnRestart() throws Exception {
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-mm-dd");
+    SLACalculatorMemory slaCalcMemory = new SLACalculatorMemory();
+    slaCalcMemory.init(Services.get().get(ConfigurationService.class).getConf());
+    CoordinatorActionBean coordAction = new CoordinatorActionBean();
+    coordAction.setId("coordActionId-C@1");
+    coordAction.setStatus(CoordinatorAction.Status.RUNNING);
+    coordAction.setLastModifiedTime(sdf.parse("2013-02-07"));
+    CoordActionInsertJPAExecutor caInsertCmd = new CoordActionInsertJPAExecutor(coordAction);
+    jpaService.execute(caInsertCmd);
+    CoordinatorActionBean coordAction2 = new CoordinatorActionBean();
+    coordAction2.setId("coordActionId-C@2");
+    coordAction2.setStatus(CoordinatorAction.Status.RUNNING);
+    coordAction2.setLastModifiedTime(sdf.parse("2013-02-07"));
+    caInsertCmd = new CoordActionInsertJPAExecutor(coordAction2);
+    jpaService.execute(caInsertCmd);
+    SLARegistrationBean slaRegBean1 = _createSLARegistration("coordActionId-C@1", AppType.COORDINATOR_ACTION);
+    String jobId1 = slaRegBean1.getId();
+    slaRegBean1.setExpectedEnd(sdf.parse("2013-03-07"));
+    slaRegBean1.setExpectedStart(sdf.parse("2012-03-07"));
+    // long duration;
+    slaRegBean1.setExpectedDuration(100000);
+    slaCalcMemory.addRegistration(jobId1, slaRegBean1);
+    slaCalcMemory.updateAllSlaStatus();
+    SLARegistrationBean slaRegBean2 = _createSLARegistration("coordActionId-C@2", AppType.COORDINATOR_ACTION);
+    String jobId2 = slaRegBean2.getId();
+    // 1 hour
+    slaRegBean2.setExpectedStart(new Date(System.currentTimeMillis() + 1 * 1 * 3600 * 1000));
+    // 2 hour
+    slaRegBean2.setExpectedEnd(new Date(System.currentTimeMillis() + 2 * 1 * 3600 * 1000));
+    // long duration;
+    slaRegBean2.setExpectedDuration(100000);
+    slaCalcMemory.addRegistration(jobId2, slaRegBean2);
+    slaCalcMemory.updateAllSlaStatus();
+    assertEquals(2, slaCalcMemory.size());
+    SLASummaryBean slaSummary = SLASummaryQueryExecutor.getInstance().get(SLASummaryQuery.GET_SLA_SUMMARY, jobId1);
+    SLASummaryBean slaSummary2 = SLASummaryQueryExecutor.getInstance().get(SLASummaryQuery.GET_SLA_SUMMARY, jobId2);
+    assertEquals("coordActionId-C@1", slaSummary.getId());
+    assertEquals(5, slaSummary.getEventProcessed());
+    assertEquals(-1, slaSummary.getActualDuration());
+    assertEquals("coordActionId-C@2", slaSummary2.getId());
+    assertEquals(0, slaSummary2.getEventProcessed());
+    assertEquals(-1, slaSummary2.getActualDuration());
+    coordAction.setStatusStr("FAILED");
+    coordAction2.setStatusStr("FAILED");
+    CoordActionQueryExecutor.getInstance().executeUpdate(CoordActionQuery.UPDATE_COORD_ACTION_FOR_START, coordAction);
+    CoordActionQueryExecutor.getInstance().executeUpdate(CoordActionQuery.UPDATE_COORD_ACTION_FOR_START, coordAction2);
+    slaCalcMemory.init(Services.get().get(ConfigurationService.class).getConf());
+    slaCalcMemory.updateAllSlaStatus();
+    slaSummary = SLASummaryQueryExecutor.getInstance().get(SLASummaryQuery.GET_SLA_SUMMARY, jobId1);
+    slaSummary2 = SLASummaryQueryExecutor.getInstance().get(SLASummaryQuery.GET_SLA_SUMMARY, jobId2);
+    assertEquals("coordActionId-C@1", slaSummary.getId());
+    assertEquals(8, slaSummary.getEventProcessed());
+    assertEquals("coordActionId-C@2", slaSummary2.getId());
+    assertEquals(8, slaSummary2.getEventProcessed());
+}

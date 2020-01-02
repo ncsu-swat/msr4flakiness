@@ -1,0 +1,32 @@
+/**
+ * Test : 2 coord actions are running, 1 suspended and 1 succeeded, check job pending is reset
+ * and status changed to RUNNING
+ *
+ * @throws Exception
+ */
+public void testCoordStatusTransitServiceRunning2() throws Exception {
+    String currentDatePlusMonth = XDataTestCase.getCurrentDateafterIncrementingInMonths(1);
+    Date start = DateUtils.parseDateOozieTZ(currentDatePlusMonth);
+    Date end = DateUtils.parseDateOozieTZ(currentDatePlusMonth);
+    CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNINGWITHERROR, start, end, true, false, 4);
+    addRecordToCoordActionTable(job.getId(), 1, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
+    addRecordToCoordActionTable(job.getId(), 2, CoordinatorAction.Status.RUNNING, "coord-action-get.xml", 0);
+    addRecordToCoordActionTable(job.getId(), 3, CoordinatorAction.Status.RUNNING, "coord-action-get.xml", 0);
+    addRecordToCoordActionTable(job.getId(), 4, CoordinatorAction.Status.SUSPENDED, "coord-action-get.xml", 0);
+    final String jobId = job.getId();
+    final JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    Runnable runnable = new StatusTransitRunnable();
+    runnable.run();
+    waitFor(10 * 1000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            CoordinatorJobBean coordJob = jpaService.execute(new CoordJobGetJPAExecutor(jobId));
+            return coordJob.getStatus() == Job.Status.RUNNING;
+        }
+    });
+    CoordJobGetJPAExecutor coordGetCmd = new CoordJobGetJPAExecutor(job.getId());
+    job = jpaService.execute(coordGetCmd);
+    assertFalse(job.isPending());
+    assertEquals(job.getStatus(), Job.Status.RUNNING);
+}

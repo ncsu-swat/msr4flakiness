@@ -1,0 +1,28 @@
+/**
+ * Test : Rerun PAUSEDINERROR bundle job. Status shouldn't change.
+ *
+ * @throws Exception
+ */
+public void testBundleRerunInPausedWithError() throws Exception {
+    Date curr = new Date();
+    Date pauseTime = new Date(curr.getTime() - 1000);
+    Services.get().destroy();
+    setSystemProperty(StatusTransitService.CONF_BACKWARD_SUPPORT_FOR_STATES_WITHOUT_ERROR, "false");
+    services = new Services();
+    services.init();
+    BundleJobBean job = this.addRecordToBundleJobTableWithPausedTime(Job.Status.PAUSEDWITHERROR, false, pauseTime);
+    this.addRecordToBundleActionTable(job.getId(), "action1", 0, Job.Status.FAILED);
+    this.addRecordToBundleActionTable(job.getId(), "action2", 0, Job.Status.PAUSED);
+    addRecordToCoordJobTable("action1", CoordinatorJob.Status.FAILED, false, false);
+    addRecordToCoordJobTable("action2", CoordinatorJob.Status.PAUSED, false, false);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    BundleJobGetJPAExecutor bundleJobGetExecutor = new BundleJobGetJPAExecutor(job.getId());
+    job = jpaService.execute(bundleJobGetExecutor);
+    assertEquals(Job.Status.PAUSEDWITHERROR, job.getStatus());
+    new BundleRerunXCommand(job.getId(), "action2", null, false, true).call();
+    job = jpaService.execute(bundleJobGetExecutor);
+    assertEquals(Job.Status.PAUSEDWITHERROR, job.getStatus());
+    assertNotNull(job.getPauseTime());
+    assertFalse(job.isPending());
+}

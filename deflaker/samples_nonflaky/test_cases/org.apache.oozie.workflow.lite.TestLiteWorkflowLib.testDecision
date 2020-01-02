@@ -1,0 +1,45 @@
+public void testDecision() throws WorkflowException {
+    List<String> decTrans = new ArrayList<String>();
+    decTrans.add("one");
+    decTrans.add("two");
+    decTrans.add("three");
+    LiteWorkflowApp def = new LiteWorkflowApp("testWf", "<worklfow-app/>", new StartNodeDef(TestControlNodeHandler.class, "d")).addNode(new DecisionNodeDef("d", "", TestDecisionNodeHandler.class, decTrans)).addNode(new NodeDef("one", null, SynchNodeHandler.class, Arrays.asList(new String[] { "end" }))).addNode(new NodeDef("two", null, SynchNodeHandler.class, Arrays.asList(new String[] { "end" }))).addNode(new NodeDef("three", null, SynchNodeHandler.class, Arrays.asList(new String[] { "end" }))).addNode(new EndNodeDef("end", TestControlNodeHandler.class));
+    LiteWorkflowInstance job = new LiteWorkflowInstance(def, new XConfiguration(), "abcde");
+    job.start();
+    assertEquals(WorkflowInstance.Status.RUNNING, job.getStatus());
+    job.signal("/", "one");
+    assertEquals(WorkflowInstance.Status.SUCCEEDED, job.getStatus());
+    assertEquals(2, enters.size());
+    assertEquals(2, exits.size());
+    assertTrue(enters.containsKey("one"));
+    assertTrue(!enters.containsKey("two"));
+    assertTrue(!enters.containsKey("three"));
+    enters.clear();
+    job = new LiteWorkflowInstance(def, new XConfiguration(), "abcde");
+    job.start();
+    assertEquals(WorkflowInstance.Status.RUNNING, job.getStatus());
+    job.signal("/", "two");
+    assertEquals(WorkflowInstance.Status.SUCCEEDED, job.getStatus());
+    assertTrue(!enters.containsKey("one"));
+    assertTrue(enters.containsKey("two"));
+    assertTrue(!enters.containsKey("three"));
+    enters.clear();
+    job = new LiteWorkflowInstance(def, new XConfiguration(), "abcde");
+    job.start();
+    assertEquals(WorkflowInstance.Status.RUNNING, job.getStatus());
+    job.signal("/", "three");
+    assertEquals(WorkflowInstance.Status.SUCCEEDED, job.getStatus());
+    assertTrue(!enters.containsKey("one"));
+    assertTrue(!enters.containsKey("two"));
+    assertTrue(enters.containsKey("three"));
+    enters.clear();
+    job = new LiteWorkflowInstance(def, new XConfiguration(), "abcde");
+    job.start();
+    assertEquals(WorkflowInstance.Status.RUNNING, job.getStatus());
+    try {
+        job.signal("/", "bla");
+        fail();
+    } catch (Exception e) {
+    }
+    assertEquals(WorkflowInstance.Status.FAILED, job.getStatus());
+}

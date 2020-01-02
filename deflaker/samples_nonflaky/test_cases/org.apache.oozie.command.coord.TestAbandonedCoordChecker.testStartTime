@@ -1,0 +1,15 @@
+public void testStartTime() throws Exception {
+    Date start = DateUtils.addDays(new Date(), 1);
+    Date end = DateUtils.addDays(new Date(), 6);
+    Date createdTime = new Date();
+    CoordinatorJobBean job1 = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, start, end, createdTime, true, false, 6);
+    addRecordToCoordActionTable(job1.getId(), 6, CoordinatorAction.Status.FAILED);
+    start = DateUtils.addDays(new Date(), -3);
+    createdTime = DateUtils.addDays(new Date(), -4);
+    CoordinatorJobBean job2 = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, start, end, createdTime, true, false, 4);
+    addRecordToCoordActionTable(job2.getId(), 10, CoordinatorAction.Status.FAILED);
+    new AbandonedCoordCheckerRunnable(5, true).run();
+    // job1 should be RUNNING as starttime > 2 days buffer
+    assertEquals(CoordJobQueryExecutor.getInstance().get(CoordJobQuery.GET_COORD_JOB, job1.getId()).getStatus(), CoordinatorJob.Status.RUNNING);
+    assertEquals(CoordJobQueryExecutor.getInstance().get(CoordJobQuery.GET_COORD_JOB, job2.getId()).getStatus(), CoordinatorJob.Status.KILLED);
+}

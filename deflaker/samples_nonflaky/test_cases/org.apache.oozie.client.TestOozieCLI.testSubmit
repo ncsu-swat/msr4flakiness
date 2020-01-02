@@ -1,0 +1,35 @@
+public void testSubmit() throws Exception {
+    runTest(END_POINTS, SERVLET_CLASSES, IS_SECURITY_ENABLED, new Callable<Void>() {
+
+        @Override
+        public Void call() throws Exception {
+            String oozieUrl = getContextURL();
+            int wfCount = MockDagEngineService.INIT_WF_COUNT;
+            Path appPath = new Path(getFsTestCaseDir(), "app");
+            getFileSystem().mkdirs(appPath);
+            getFileSystem().create(new Path(appPath, "workflow.xml")).close();
+            String[] args = new String[] { "job", "-submit", "-oozie", oozieUrl, "-config", createConfigFile(appPath.toString()) };
+            assertEquals(0, new OozieCLI().run(args));
+            assertEquals("submit", MockDagEngineService.did);
+            assertFalse(MockDagEngineService.started.get(wfCount));
+            wfCount++;
+            args = new String[] { "job", "-submit", "-oozie", oozieUrl, "-config", createPropertiesFile(appPath.toString()) };
+            assertEquals(0, new OozieCLI().run(args));
+            assertEquals("submit", MockDagEngineService.did);
+            assertFalse(MockDagEngineService.started.get(wfCount));
+            MockDagEngineService.reset();
+            wfCount = MockDagEngineService.INIT_WF_COUNT;
+            args = new String[] { "job", "-submit", "-oozie", oozieUrl, "-config", createPropertiesFile(appPath.toString()) + "x" };
+            assertEquals(-1, new OozieCLI().run(args));
+            assertEquals(null, MockDagEngineService.did);
+            try {
+                MockDagEngineService.started.get(wfCount);
+                // job was not created, then how did this extra job come after reset? fail!!
+                fail();
+            } catch (Exception e) {
+            // job was not submitted, so its fine
+            }
+            return null;
+        }
+    });
+}

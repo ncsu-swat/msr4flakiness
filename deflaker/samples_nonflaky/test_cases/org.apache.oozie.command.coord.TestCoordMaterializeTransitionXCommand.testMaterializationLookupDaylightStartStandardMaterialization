@@ -1,0 +1,15 @@
+public void testMaterializationLookupDaylightStartStandardMaterialization() throws Exception {
+    Date startTime = getDaylightCalendar().getTime();
+    Date endTime = new Date(startTime.getTime() + TIME_IN_DAY * 3);
+    CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.PREP, startTime, endTime, false, false, 0);
+    job.setNextMaterializedTime(startTime);
+    job.setMatThrottling(10);
+    job.setFrequency("1");
+    job.setTimeUnitStr("DAY");
+    CoordJobQueryExecutor.getInstance().executeUpdate(CoordJobQuery.UPDATE_COORD_JOB, job);
+    new CoordMaterializeTransitionXCommand(job.getId(), hoursToSeconds(1)).call();
+    job = jpaService.execute(new CoordJobGetJPAExecutor(job.getId()));
+    Date next = new Date(startTime.getTime() + TIME_IN_DAY * 3);
+    adjustExpectedMaterializationDateForDSTSwitch(next, startTime, job);
+    assertEquals(next, job.getNextMaterializedTime());
+}

@@ -1,0 +1,20 @@
+@Test
+public void testXFrameOptionAgainstClickjackingAdded() throws Exception {
+    ServletRequest request = Mockito.mock(ServletRequest.class);
+    HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
+    doNothing().when(response).addHeader(any(String.class), any(String.class));
+    final AtomicBoolean invoked = new AtomicBoolean();
+    FilterChain chain = new FilterChain() {
+
+        @Override
+        public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse) {
+            invoked.set(true);
+        }
+    };
+    Filter filter = new HttpResponseHeaderFilter();
+    filter.init(null);
+    filter.doFilter(request, response, chain);
+    verify(response).addHeader(HttpResponseHeaderFilter.X_FRAME_OPTIONS, HttpResponseHeaderFilter.X_FRAME_OPTION_DENY);
+    assertTrue("Filter is not invoked", invoked.get());
+    filter.destroy();
+}

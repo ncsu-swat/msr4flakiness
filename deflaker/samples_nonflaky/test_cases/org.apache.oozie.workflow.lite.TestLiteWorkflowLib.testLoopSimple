@@ -1,0 +1,11 @@
+public void testLoopSimple() throws WorkflowException {
+    LiteWorkflowApp def = new LiteWorkflowApp("wf", "<worklfow-app/>", new StartNodeDef(TestControlNodeHandler.class, "one")).addNode(new NodeDef("one", null, SynchNodeHandler.class, Arrays.asList(new String[] { "two" }))).addNode(new NodeDef("two", null, SynchNodeHandler.class, Arrays.asList(new String[] { "one" }))).addNode(new EndNodeDef("end", TestControlNodeHandler.class));
+    LiteWorkflowInstance job = new LiteWorkflowInstance(def, new XConfiguration(), "1");
+    try {
+        job.start();
+        fail();
+    } catch (WorkflowException ex) {
+        assertEquals(ErrorCode.E0709, ex.getErrorCode());
+    }
+    assertEquals(WorkflowInstance.Status.FAILED, job.getStatus());
+}

@@ -1,0 +1,13 @@
+// Test text search with log level
+public void testsearchText_logLevel() throws Exception {
+    setLogFile();
+    String param = XLogUserFilterParam.SEARCH_TEXT + "=substitution;" + XLogUserFilterParam.LOG_LEVEL + "=DEBUG";
+    Map<String, String[]> paramMap = new HashMap<String, String[]>();
+    paramMap.put(RestConstants.LOG_FILTER_OPTION, new String[] { param });
+    XLogFilter filter = new XLogFilter(new XLogUserFilterParam(paramMap));
+    String out = doStreamLog(filter);
+    String[] lines = out.split(System.getProperty("line.separator"));
+    assertEquals(lines.length, 1);
+    assertTrue(lines[0].contains("2014-02-27 02:06:47,499 DEBUG CoordActionStartXCommand:536 [pool-2-thread-236] - USER[-]"));
+    assertTrue(lines[0].contains("E0803: IO error, Variable substitution depth too large: 20 ${dniInputDir}"));
+}

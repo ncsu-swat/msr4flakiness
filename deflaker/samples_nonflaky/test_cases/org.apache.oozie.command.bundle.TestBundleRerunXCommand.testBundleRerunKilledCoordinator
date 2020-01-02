@@ -1,0 +1,18 @@
+/**
+ * Test : Rerun bundle job with a killed coordinator. Make sure the bundle action pending flag is reset.
+ *
+ * @throws Exception
+ */
+public void testBundleRerunKilledCoordinator() throws Exception {
+    BundleJobBean job = this.addRecordToBundleJobTable(Job.Status.DONEWITHERROR, false);
+    String bundleId = job.getId();
+    addRecordToBundleActionTable(bundleId, "action1", 0, Job.Status.KILLED);
+    addRecordToCoordJobTableWithBundle(bundleId, "action1", CoordinatorJob.Status.KILLED, false, false, 1);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    new BundleRerunXCommand(bundleId, "action1", null, false, true).call();
+    sleep(1000);
+    BundleActionGetJPAExecutor bundleActionJPA = new BundleActionGetJPAExecutor(bundleId, "action1");
+    BundleActionBean ba = jpaService.execute(bundleActionJPA);
+    assertEquals(0, ba.getPending());
+}

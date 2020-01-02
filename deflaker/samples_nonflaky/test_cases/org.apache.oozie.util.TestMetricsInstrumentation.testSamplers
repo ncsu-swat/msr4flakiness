@@ -1,0 +1,41 @@
+public void testSamplers() throws Exception {
+    MetricsInstrumentation inst = new MetricsInstrumentation();
+    ScheduledExecutorService scheduledExecutorService = new ScheduledThreadPoolExecutor(1);
+    try {
+        inst.setScheduler(scheduledExecutorService);
+        inst.addSampler("a", "1", 10, 1, new Instrumentation.Variable<Long>() {
+
+            public Long getValue() {
+                return 1L;
+            }
+        });
+        assertEquals(1, inst.getMetricRegistry().getHistograms().size());
+        inst.addSampler("a", "2", 10, 1, new Instrumentation.Variable<Long>() {
+
+            public Long getValue() {
+                return 2L;
+            }
+        });
+        assertEquals(2, inst.getMetricRegistry().getHistograms().size());
+        inst.addSampler("b", "1", 10, 1, new Instrumentation.Variable<Long>() {
+
+            private long counter = 0;
+
+            public Long getValue() {
+                return counter++ % 10;
+            }
+        });
+        assertEquals(3, inst.getMetricRegistry().getHistograms().size());
+        waitFor(20 * 1000, new Predicate() {
+
+            public boolean evaluate() throws Exception {
+                return false;
+            }
+        });
+        assertEquals(1D, inst.getMetricRegistry().getHistograms().get("a.1.histogram").getSnapshot().getMean(), 0.01D);
+        assertEquals(2D, inst.getMetricRegistry().getHistograms().get("a.2.histogram").getSnapshot().getMean(), 0.02D);
+        assertEquals(4.5D, inst.getMetricRegistry().getHistograms().get("b.1.histogram").getSnapshot().getMean(), 0.5D);
+    } finally {
+        scheduledExecutorService.shutdownNow();
+    }
+}

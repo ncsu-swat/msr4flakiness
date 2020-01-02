@@ -1,0 +1,33 @@
+@Test
+public void testLoadfromDFS() throws Exception {
+    services.init();
+    FileSystem fs = getFileSystem();
+    Date time = new Date(System.currentTimeMillis());
+    Path basePath = new Path(getOozieConfig().get(WorkflowAppService.SYSTEM_LIB_PATH));
+    Path libpath = new Path(basePath, ShareLibService.SHARE_LIB_PREFIX + ShareLibService.dt.get().format(time));
+    fs.mkdirs(libpath);
+    Path pigPath = new Path(libpath.toString() + Path.SEPARATOR + "pig");
+    Path ooziePath = new Path(libpath.toString() + Path.SEPARATOR + "oozie");
+    Path pigPath1 = new Path(libpath.toString() + Path.SEPARATOR + "pig_9");
+    Path pigPath2 = new Path(libpath.toString() + Path.SEPARATOR + "pig_10");
+    fs.mkdirs(pigPath);
+    fs.mkdirs(ooziePath);
+    fs.mkdirs(pigPath1);
+    fs.mkdirs(pigPath2);
+    createFiles(libpath.toString() + Path.SEPARATOR + "pig_10" + Path.SEPARATOR + "pig-10.jar");
+    createFiles(libpath.toString() + Path.SEPARATOR + "oozie" + Path.SEPARATOR + "oozie_luncher.jar");
+    String actionXml = "<pig>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>" + "<name-node>" + getNameNodeUri() + "</name-node>" + "<property><name>oozie.action.sharelib.for.pig</name><value>pig_10</value></property>" + "</pig>";
+    Element eActionXml = XmlUtils.parseXml(actionXml);
+    XConfiguration protoConf = new XConfiguration();
+    protoConf.set(WorkflowAppService.HADOOP_USER, getTestUser());
+    WorkflowJobBean wfj = new WorkflowJobBean();
+    protoConf.setBoolean(OozieClient.USE_SYSTEM_LIBPATH, true);
+    wfj.setProtoActionConf(XmlUtils.prettyPrint(protoConf).toString());
+    wfj.setConf(XmlUtils.prettyPrint(protoConf).toString());
+    Context context = new TestJavaActionExecutor().new Context(wfj, new WorkflowActionBean());
+    PigActionExecutor ae = new PigActionExecutor();
+    Configuration jobConf = ae.createBaseHadoopConf(context, eActionXml);
+    jobConf.set("oozie.action.sharelib.for.pig", "pig_10");
+    ae.setLibFilesArchives(context, eActionXml, new Path("hdfs://dummyAppPath"), jobConf);
+    verifyFilesInDistributedCache(DistributedCache.getCacheFiles(jobConf), "pig-10.jar", "oozie_luncher.jar");
+}

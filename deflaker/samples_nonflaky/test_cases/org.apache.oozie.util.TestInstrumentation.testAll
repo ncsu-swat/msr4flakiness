@@ -1,0 +1,22 @@
+public void testAll() throws Exception {
+    Instrumentation inst = new Instrumentation();
+    inst.addVariable("a", "1", new Instrumentation.Variable<Long>() {
+
+        private long counter = 0;
+
+        public Long getValue() {
+            return counter++;
+        }
+    });
+    inst.incr("a", "1", 1);
+    Instrumentation.Cron cron1 = new Instrumentation.Cron();
+    inst.addCron("a", "1", cron1);
+    assertEquals(4, inst.getAll().size());
+    assertEquals(1, inst.getAll().get("variables").size());
+    assertEquals(1, inst.getAll().get("counters").size());
+    assertEquals(1, inst.getAll().get("timers").size());
+    assertEquals(0, inst.getAll().get("samplers").size());
+    assertEquals(new Long(0), ((Instrumentation.Element) inst.getAll().get("variables").get("a").get("1")).getValue());
+    assertEquals(new Long(1), ((Instrumentation.Element) inst.getAll().get("counters").get("a").get("1")).getValue());
+    assertEquals(cron1.getOwn(), ((Instrumentation.Timer) ((Instrumentation.Element) inst.getAll().get("timers").get("a").get("1")).getValue()).getOwn());
+}

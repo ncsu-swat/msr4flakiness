@@ -1,0 +1,26 @@
+public void testValidateWorkFlowCommand() throws Exception {
+    runTest(END_POINTS, SERVLET_CLASSES, IS_SECURITY_ENABLED, new Callable<Void>() {
+
+        @Override
+        public Void call() throws Exception {
+            String validFileName = "test-workflow-app.xml";
+            String invalidFileName = "test-invalid-workflow-app.xml";
+            String validContent = "<workflow-app xmlns=\"uri:oozie:workflow:0.2\" name=\"no-op-wf\"> " + " <start to=\"end\"/> <end name=\"end\"/> </workflow-app>";
+            String invalidContent = "<workflow-app xmlns=\"uri:oozie:workflow:0.2\" name=\"f\"> " + " <tag=\"end\"/> <tag=\"end\"/> </workflow-app>";
+            File validfile = new File(getTestCaseDir(), validFileName);
+            File invalidfile = new File(getTestCaseDir(), invalidFileName);
+            validfile.delete();
+            invalidfile.delete();
+            String oozieUrl = getContextURL();
+            IOUtils.copyCharStream(new StringReader(validContent), new OutputStreamWriter(new FileOutputStream(validfile), StandardCharsets.UTF_8));
+            String[] args = new String[] { "validate", "-oozie", oozieUrl, validfile.getAbsolutePath() };
+            String out = runOozieCLIAndGetStdout(args);
+            assertTrue(out.contains("Valid"));
+            IOUtils.copyCharStream(new StringReader(invalidContent), new OutputStreamWriter(new FileOutputStream(invalidfile), StandardCharsets.UTF_8));
+            args = new String[] { "validate", "-oozie", oozieUrl, invalidfile.getAbsolutePath() };
+            out = runOozieCLIAndGetStderr(args);
+            assertTrue(out.contains("XML schema error"));
+            return null;
+        }
+    });
+}

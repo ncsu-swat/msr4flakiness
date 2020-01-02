@@ -1,0 +1,38 @@
+public void testFallback() throws Exception {
+    SimpleDateFormat dateFormat = new SimpleDateFormat("yyMMddHHmmssSSS");
+    Services service = Services.get();
+    ZKUUIDServiceWithException uuid = new ZKUUIDServiceWithException();
+    try {
+        setSystemProperty(UUIDService.CONF_GENERATOR, "counter");
+        uuid.init(service);
+        String id = uuid.generateId(ApplicationType.BUNDLE);
+        assertTrue(id.startsWith("0000000-"));
+        id = uuid.generateId(ApplicationType.BUNDLE);
+        assertTrue(id.startsWith("0000001-"));
+        id = uuid.generateId(ApplicationType.BUNDLE);
+        assertTrue(id.startsWith("0000002-"));
+        id = uuid.generateId(ApplicationType.BUNDLE);
+        assertTrue(id.startsWith("0000003-"));
+        id = uuid.generateId(ApplicationType.BUNDLE);
+        assertTrue(id.startsWith("0000004-"));
+        uuid.setThrowException();
+        Date beforeDate = new Date();
+        Thread.sleep(2000);
+        id = uuid.generateId(ApplicationType.BUNDLE);
+        assertTrue(id.startsWith("0000000-"));
+        assertTrue(dateFormat.parse(id.split("-")[1]).after(beforeDate));
+        beforeDate = new Date();
+        Thread.sleep(2000);
+        id = uuid.generateId(ApplicationType.BUNDLE);
+        assertTrue(id.startsWith("0000001-"));
+        assertTrue(dateFormat.parse(id.split("-")[1]).after(beforeDate));
+        uuid.resetThrowException();
+        beforeDate = new Date();
+        Thread.sleep(2000);
+        id = uuid.generateId(ApplicationType.BUNDLE);
+        assertTrue(id.startsWith("0000005-"));
+        assertTrue(dateFormat.parse(id.split("-")[1]).before(beforeDate));
+    } finally {
+        uuid.destroy();
+    }
+}

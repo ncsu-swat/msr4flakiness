@@ -1,0 +1,51 @@
+@Test
+public void testLastOnly() throws Exception {
+    // Job starts 1 hour in the past
+    Date start = new Date(new Date().getTime() - 65 * 60 * 1000);
+    Date end = new Date(start.getTime() + 300 * 60 * 1000);
+    CoordinatorJobBean job = addRecordToCoordJobTableForWaiting("coord-job-for-action-input-check.xml", CoordinatorJob.Status.RUNNING, start, end, false, true, 7);
+    job.setExecutionOrder(CoordinatorJobBean.Execution.LAST_ONLY);
+    job.setFrequency("10");
+    job.setTimeUnit(Timeunit.MINUTE);
+    CoordJobQueryExecutor.getInstance().executeUpdate(CoordJobQueryExecutor.CoordJobQuery.UPDATE_COORD_JOB, job);
+    String missingDeps = "hdfs:///dirx/filex";
+    // @1 is 65 min in the past; means next nominal time is 55 min ago so should become SKIPPED
+    String actionId1 = addInitRecords(missingDeps, null, TZ, job, 1);
+    // 65 min ago
+    Date nomTime = new Date(start.getTime());
+    setCoordActionNominalTime(actionId1, nomTime.getTime());
+    new CoordActionInputCheckXCommand(actionId1, job.getId()).call();
+    checkCoordActionStatus(actionId1, CoordinatorAction.Status.SKIPPED);
+    // @12 is 55 min in the future; means next nominal time is 65 min from now, so nothing should happen
+    String actionId12 = addInitRecords(missingDeps, null, TZ, job, 12);
+    // 55 min from now
+    nomTime = new Date(start.getTime() + 120 * 60 * 1000);
+    setCoordActionNominalTime(actionId12, nomTime.getTime());
+    new CoordActionInputCheckXCommand(actionId12, job.getId()).call();
+    checkCoordActionStatus(actionId12, CoordinatorAction.Status.WAITING);
+    // @7 is 5 min in the past; means next nominal time is 5 min from now, so nothing should happen
+    String actionId7 = addInitRecords(missingDeps, null, TZ, job, 7);
+    // 5 minutes ago
+    nomTime = new Date(start.getTime() + 60 * 60 * 1000);
+    setCoordActionNominalTime(actionId7, nomTime.getTime());
+    new CoordActionInputCheckXCommand(actionId7, job.getId()).call();
+    checkCoordActionStatus(actionId7, CoordinatorAction.Status.WAITING);
+    // @7 is 5 min in the past; means next nominal time is 5 min from now, but the end time is only 3 mins from now (which means
+    // that the next nominal time would be after the end time), so nothing should happen
+    // 3 min from now
+    Date endTime = new Date(start.getTime() + 68 * 60 * 1000);
+    job.setEndTime(endTime);
+    CoordJobQueryExecutor.getInstance().executeUpdate(CoordJobQueryExecutor.CoordJobQuery.UPDATE_COORD_JOB, job);
+    new CoordActionInputCheckXCommand(actionId7, job.getId()).call();
+    checkCoordActionStatus(actionId7, CoordinatorAction.Status.WAITING);
+    // @1 is 65 min in the past; which means next nominal time is 55 min ago, but the end time is 60 min ago (which means that
+    // the next nominal time would be after the end time but still in the past), so nothing should happen even though the action
+    // and the next nominal time are both in the past
+    // 60 min ago
+    endTime = new Date(start.getTime() + 5 * 60 * 1000);
+    job.setEndTime(endTime);
+    CoordJobQueryExecutor.getInstance().executeUpdate(CoordJobQueryExecutor.CoordJobQuery.UPDATE_COORD_JOB, job);
+    setCoordActionStatus(actionId1, CoordinatorAction.Status.WAITING);
+    new CoordActionInputCheckXCommand(actionId1, job.getId()).call();
+    checkCoordActionStatus(actionId1, CoordinatorAction.Status.WAITING);
+}

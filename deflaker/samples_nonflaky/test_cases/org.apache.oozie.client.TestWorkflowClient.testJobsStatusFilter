@@ -1,0 +1,33 @@
+public void testJobsStatusFilter() throws Exception {
+    runTest(END_POINTS, SERVLET_CLASSES, IS_SECURITY_ENABLED, new Callable<Void>() {
+
+        public Void call() throws Exception {
+            String oozieUrl = getContextURL();
+            OozieClient wc = new OozieClient(oozieUrl);
+            wc.getJobsInfo("name=x");
+            wc.getJobsInfo("user=x");
+            wc.getJobsInfo("group=x");
+            wc.getJobsInfo("status=RUNNING");
+            wc.getJobsInfo("name=x;name=y");
+            try {
+                wc.getJobsInfo("name=");
+                fail();
+            } catch (OozieClientException ex) {
+            // nop
+            }
+            try {
+                wc.getJobsInfo("x=x");
+                fail();
+            } catch (OozieClientException ex) {
+            // nop
+            }
+            try {
+                wc.getJobsInfo("status=X");
+                fail();
+            } catch (OozieClientException ex) {
+            // nop
+            }
+            return null;
+        }
+    });
+}

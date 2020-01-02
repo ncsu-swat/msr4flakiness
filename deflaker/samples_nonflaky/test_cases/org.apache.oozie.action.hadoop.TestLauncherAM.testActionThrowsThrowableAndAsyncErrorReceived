@@ -1,0 +1,13 @@
+@Test
+public void testActionThrowsThrowableAndAsyncErrorReceived() throws Exception {
+    setupArgsForMainClass(THROWABLE);
+    ErrorHolder errorHolder = new ErrorHolder();
+    errorHolder.setErrorCode(6);
+    errorHolder.setErrorMessage("dummy error");
+    errorHolder.setErrorCause(new Exception());
+    given(callbackHandlerMock.getError()).willReturn(errorHolder);
+    executeLauncher();
+    // sync problem overrides async problem
+    failureDetails.expectedExceptionMessage(THROWABLE_MESSAGE).expectedErrorCode(EXIT_CODE_0).expectedErrorReason(THROWABLE_MESSAGE).withStackTrace();
+    assertFailedExecution();
+}

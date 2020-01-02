@@ -1,0 +1,19 @@
+/**
+ * Test : Pause a PREP bundle
+ *
+ * @throws Exception
+ */
+public void testBundlePauseUnpause1() throws Exception {
+    BundleJobBean job = this.addRecordToBundleJobTable(Job.Status.PREP, false);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    BundleJobGetJPAExecutor bundleJobGetCmd = new BundleJobGetJPAExecutor(job.getId());
+    job = jpaService.execute(bundleJobGetCmd);
+    assertEquals(job.getStatus(), Job.Status.PREP);
+    new BundlePauseXCommand(job).call();
+    job = jpaService.execute(bundleJobGetCmd);
+    assertEquals(job.getStatus(), Job.Status.PREPPAUSED);
+    new BundleUnpauseXCommand(job).call();
+    job = jpaService.execute(bundleJobGetCmd);
+    assertEquals(job.getStatus(), Job.Status.PREP);
+}

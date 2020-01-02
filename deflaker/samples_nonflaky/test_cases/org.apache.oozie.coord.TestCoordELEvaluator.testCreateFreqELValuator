@@ -1,0 +1,42 @@
+public void testCreateFreqELValuator() throws Exception {
+    // System.out.println("CP :" + System.getProperty("java.class.path"));
+    // Configuration conf = new
+    // XConfiguration(IOUtils.getResourceAsReader("org/apache/oozie/coord/conf.xml",
+    // -1));
+    Configuration conf = new XConfiguration(new StringReader(getConfString()));
+    ELEvaluator eval = CoordELEvaluator.createELEvaluatorForGroup(conf, "coord-job-submit-freq");
+    String expr = "<coordinator-app name=\"mycoordinator-app\" start=\"${start}\" end=\"${end}\"" + " frequency=\"${coord:hours(12)}\"><data-in name=\"A\" dataset=\"a\"></data-in>";
+    String reply = expr.replace("${start}", conf.get("start")).replace("${end}", conf.get("end")).replace("${coord:hours(12)}", "720");
+    assertEquals(reply, CoordELFunctions.evalAndWrap(eval, expr));
+    expr = "<coordinator-app name=\"mycoordinator-app\" start=\"${start}\" end=\"${end}\"" + " frequency=\"${coord:days(7)}\"><data-in name=\"A\" dataset=\"a\"></data-in>";
+    reply = expr.replace("${start}", conf.get("start")).replace("${end}", conf.get("end")).replace("${coord:days(7)}", "7");
+    assertEquals(reply, CoordELFunctions.evalAndWrap(eval, expr));
+    expr = "<coordinator-app name=\"mycoordinator-app\" start=\"${start}\" end=\"${end}\"" + " frequency=\"${coord:months(1)}\"><data-in name=\"A\" dataset=\"a\"></data-in>";
+    reply = expr.replace("${start}", conf.get("start")).replace("${end}", conf.get("end")).replace("${coord:months(1)}", "1");
+    // System.out.println("****testCreateELValuator :"+
+    // CoordELFunctions.evaluateFunction(eval, expr));
+    assertEquals(reply, CoordELFunctions.evalAndWrap(eval, expr));
+    expr = "frequency=${coord:days(2)}";
+    expr = "frequency=60";
+    CoordELFunctions.evalAndWrap(eval, expr);
+    expr = "frequency=${coord:daysInMonth(2)}";
+    try {
+        CoordELFunctions.evalAndWrap(eval, expr);
+        fail();
+    } catch (Exception ex) {
+    }
+    expr = "frequency=${coord:hoursInDay(2)}";
+    try {
+        CoordELFunctions.evalAndWrap(eval, expr);
+        fail();
+    } catch (Exception ex) {
+    }
+    expr = "frequency=${coord:tzOffset()}";
+    try {
+        CoordELFunctions.evalAndWrap(eval, expr);
+        fail();
+    } catch (Exception ex) {
+    }
+    expr = "<frequency=120";
+    assertEquals(expr, CoordELFunctions.evalAndWrap(eval, expr));
+}

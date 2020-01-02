@@ -1,0 +1,19 @@
+public void testInvalidHost() throws Exception {
+    Services services = new Services();
+    Configuration conf = services.getConf();
+    conf.set(Services.CONF_SERVICE_CLASSES, StringUtils.join(",", Arrays.asList(GroupsService.class.getName(), ProxyUserService.class.getName())));
+    conf.set("oozie.service.ProxyUserService.proxyuser.foo.hosts", "localhost");
+    conf.set("oozie.service.ProxyUserService.proxyuser.foo.groups", "*");
+    services.init();
+    try {
+        ProxyUserService proxyUser = services.get(ProxyUserService.class);
+        Assert.assertNotNull(proxyUser);
+        proxyUser.validate("foo", "www.example.com", "bar");
+        fail();
+    } catch (AccessControlException ex) {
+    } catch (Exception ex) {
+        fail(ex.toString());
+    } finally {
+        services.destroy();
+    }
+}

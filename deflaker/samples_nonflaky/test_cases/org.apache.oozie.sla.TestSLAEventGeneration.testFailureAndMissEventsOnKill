@@ -1,0 +1,57 @@
+/**
+ * Test Coord action KILLED from WAITING generates corresponding events Job
+ * - FAILURE and SLA - END_MISS
+ *
+ * @throws Exception
+ */
+public void testFailureAndMissEventsOnKill() throws Exception {
+    assertEquals(0, ehs.getEventQueue().size());
+    // CASE 1: Coord Job status - RUNNING (similar to RunningWithError,Paused and PausedWithError for
+    // this test's purpose)
+    CoordinatorJobBean job = this.addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, false, false);
+    CoordinatorActionBean action = addRecordToCoordActionTable(job.getId(), 1, CoordinatorAction.Status.WAITING, "coord-action-sla1.xml", 0);
+    // reset dummy externalId set by above test method
+    action.setExternalId(null);
+    CoordActionQueryExecutor.getInstance().executeUpdate(CoordActionQuery.UPDATE_COORD_ACTION, action);
+    services.get(SLAService.class).addRegistrationEvent(TestSLAService._createSLARegistration(action.getId(), AppType.COORDINATOR_ACTION));
+    new CoordKillXCommand(job.getId()).call();
+    assertEquals(1, ehs.getEventQueue().size());
+    CoordinatorActionEvent jobEvent = (CoordinatorActionEvent) ehs.getEventQueue().peek();
+    assertEquals(AppType.COORDINATOR_ACTION, jobEvent.getAppType());
+    assertEquals(JobEvent.EventStatus.FAILURE, jobEvent.getEventStatus());
+    assertEquals(action.getId(), jobEvent.getId());
+    ehs.new EventWorker().run();
+    SLACalcStatus slaEvent = (SLACalcStatus) ehs.getEventQueue().poll();
+    assertEquals(EventStatus.END_MISS, slaEvent.getEventStatus());
+    assertEquals(SLAStatus.MISS, slaEvent.getSLAStatus());
+    assertEquals(CoordinatorAction.Status.KILLED.name(), slaEvent.getJobStatus());
+    assertEquals(action.getId(), slaEvent.getId());
+    assertNotNull(slaEvent.getActualEnd());
+    // CASE 2: Coord Job status - PAUSED - Should not create event via CoordKill
+    // but via CoordActionUpdate
+    assertEquals(0, ehs.getEventQueue().size());
+    job = this.addRecordToCoordJobTable(CoordinatorJob.Status.PAUSED, false, false);
+    action = addRecordToCoordActionTable(job.getId(), 1, CoordinatorAction.Status.RUNNING, "coord-action-sla1.xml", 0);
+    services.get(SLAService.class).addRegistrationEvent(TestSLAService._createSLARegistration(action.getId(), AppType.COORDINATOR_ACTION));
+    new CoordKillXCommand(job.getId()).call();
+    assertEquals(0, ehs.getEventQueue().size());
+    WorkflowJobBean wf = new WorkflowJobBean();
+    wf.setId(action.getExternalId());
+    wf.setStatus(WorkflowJob.Status.KILLED);
+    wf.setParentId(action.getId());
+    wf.setEndTime(new Date());
+    jpa.execute(new WorkflowJobInsertJPAExecutor(wf));
+    new CoordActionUpdateXCommand(wf).call();
+    assertEquals(1, ehs.getEventQueue().size());
+    jobEvent = (CoordinatorActionEvent) ehs.getEventQueue().peek();
+    assertEquals(AppType.COORDINATOR_ACTION, jobEvent.getAppType());
+    assertEquals(JobEvent.EventStatus.FAILURE, jobEvent.getEventStatus());
+    assertEquals(action.getId(), jobEvent.getId());
+    ehs.new EventWorker().run();
+    slaEvent = (SLACalcStatus) ehs.getEventQueue().poll();
+    assertEquals(EventStatus.END_MISS, slaEvent.getEventStatus());
+    assertEquals(SLAStatus.MISS, slaEvent.getSLAStatus());
+    assertEquals(CoordinatorAction.Status.KILLED.name(), slaEvent.getJobStatus());
+    assertEquals(action.getId(), slaEvent.getId());
+    assertNotNull(slaEvent.getActualEnd());
+}

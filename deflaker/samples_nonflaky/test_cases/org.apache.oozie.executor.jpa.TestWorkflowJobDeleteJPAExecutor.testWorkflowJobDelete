@@ -1,0 +1,17 @@
+public void testWorkflowJobDelete() throws Exception {
+    WorkflowJobBean job = addRecordToWfJobTable(WorkflowJob.Status.PREP, WorkflowInstance.Status.PREP);
+    JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    WorkflowJobGetJPAExecutor wfGetCmd = new WorkflowJobGetJPAExecutor(job.getId());
+    WorkflowJobBean wfBean = jpaService.execute(wfGetCmd);
+    // first update;
+    wfBean.setStatus(WorkflowJob.Status.SUCCEEDED);
+    WorkflowJobDeleteJPAExecutor wfDeleteCmd1 = new WorkflowJobDeleteJPAExecutor(wfBean.getId());
+    jpaService.execute(wfDeleteCmd1);
+    try {
+        jpaService.execute(wfGetCmd);
+        fail("JPAExecutorException should be thrown because job has been deleted.");
+    } catch (JPAExecutorException je) {
+    // JPAExecutorException expected
+    }
+}

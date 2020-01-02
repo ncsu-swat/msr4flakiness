@@ -1,0 +1,28 @@
+@Test
+public void testParsingALotOfShareLibsParallel() throws ServiceException, IOException {
+    setShipLauncherInOozieConfig();
+    services.init();
+    // destroying, as we dont want the sharelib dirs purge to be scheduled
+    services.get(SchedulerService.class).destroy();
+    final List<FileStatus> fileStatuses = new ArrayList<>();
+    final Path rootDir = Mockito.mock(Path.class);
+    final FileSystem fs = Mockito.mock(FileSystem.class);
+    final int NUMBER_OF_FILESTATUSES = 100;
+    for (int i = 0; i < NUMBER_OF_FILESTATUSES; ++i) {
+        createAndAddMockedFileStatus(fileStatuses, 2018, 8, 1, 0, 0, 1);
+    }
+    final FileStatus[] statuses = fileStatuses.toArray(new FileStatus[1]);
+    Mockito.when(fs.listStatus(Mockito.any(Path.class), Mockito.any(PathFilter.class))).thenReturn(statuses);
+    final ShareLibService shareLibService = services.get(ShareLibService.class);
+    shareLibService.fs = fs;
+    runGivenCallableOnThreads(() -> {
+        try {
+            shareLibService.getLatestLibPath(rootDir, "lib_");
+        } catch (final IOException | NumberFormatException e) {
+            log.error(e.getMessage());
+            Thread.currentThread().interrupt();
+            return false;
+        }
+        return true;
+    }, 10, 10);
+}

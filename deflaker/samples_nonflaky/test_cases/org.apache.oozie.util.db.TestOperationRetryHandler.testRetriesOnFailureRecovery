@@ -1,0 +1,20 @@
+@Test
+public void testRetriesOnFailureRecovery() throws Exception {
+    @SuppressWarnings("unchecked")
+    Callable<String> operation = mock(Callable.class);
+    final MutableInt callCount = new MutableInt(0);
+    willAnswer(new Answer<Void>() {
+
+        @Override
+        public Void answer(InvocationOnMock invocation) throws Throwable {
+            callCount.increment();
+            if (callCount.intValue() < 2) {
+                throw new RuntimeException();
+            }
+            return null;
+        }
+    }).given(operation).call();
+    retryHandler.executeWithRetry(operation);
+    assertCallCount(2, callCount);
+    assertNoRetryAttemptsAreInProgressOrExhausted();
+}

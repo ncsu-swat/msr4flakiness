@@ -1,0 +1,26 @@
+public void testInstrumentationTimer() throws Exception {
+    Instrumentation inst = new Instrumentation();
+    assertEquals(0, inst.getTimers().size());
+    Instrumentation.Cron cron1 = new Instrumentation.Cron();
+    inst.addCron("a", "1", cron1);
+    assertEquals(1, inst.getTimers().size());
+    assertEquals(1, inst.getTimers().get("a").size());
+    Instrumentation.Cron cron2 = new Instrumentation.Cron();
+    cron2.start();
+    Thread.sleep(INTERVAL);
+    cron2.stop();
+    inst.addCron("a", "2", cron2);
+    assertEquals(1, inst.getTimers().size());
+    assertEquals(2, inst.getTimers().get("a").size());
+    Instrumentation.Cron cron3 = new Instrumentation.Cron();
+    cron3.start();
+    Thread.sleep(INTERVAL * 2);
+    cron3.stop();
+    inst.addCron("b", "1", cron3);
+    assertEquals(2, inst.getTimers().size());
+    assertEquals(2, inst.getTimers().get("a").size());
+    assertEquals(1, inst.getTimers().get("b").size());
+    assertEquals(cron1.getOwn(), inst.getTimers().get("a").get("1").getValue().getOwn());
+    assertEquals(cron2.getOwn(), inst.getTimers().get("a").get("2").getValue().getOwn());
+    assertEquals(cron3.getOwn(), inst.getTimers().get("b").get("1").getValue().getOwn());
+}

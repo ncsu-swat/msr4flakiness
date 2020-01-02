@@ -1,0 +1,29 @@
+/**
+ * Test : Check the transition of a bundle job from RUNNING TO SUSPENDEDWITHERROR
+ * @throws Exception
+ */
+public void testBundleStatusTransitServiceSuspendedWithError() throws Exception {
+    Services.get().destroy();
+    setSystemProperty(StatusTransitService.CONF_BACKWARD_SUPPORT_FOR_STATES_WITHOUT_ERROR, "false");
+    services = new Services();
+    setClassesToBeExcluded(services.getConf(), excludedServices);
+    services.init();
+    BundleJobBean bundleJob = this.addRecordToBundleJobTable(Job.Status.RUNNING, true);
+    final JPAService jpaService = Services.get().get(JPAService.class);
+    assertNotNull(jpaService);
+    final String bundleId = bundleJob.getId();
+    addRecordToBundleActionTable(bundleId, "action1", 0, Job.Status.SUSPENDED);
+    addRecordToBundleActionTable(bundleId, "action2", 0, Job.Status.SUSPENDEDWITHERROR);
+    Runnable runnable = new StatusTransitRunnable();
+    runnable.run();
+    waitFor(5 * 1000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            BundleJobBean bundle = jpaService.execute(new BundleJobGetJPAExecutor(bundleId));
+            return bundle.isPending() == false;
+        }
+    });
+    bundleJob = jpaService.execute(new BundleJobGetJPAExecutor(bundleId));
+    assertFalse(bundleJob.isPending());
+    assertEquals(Job.Status.SUSPENDEDWITHERROR, bundleJob.getStatus());
+}

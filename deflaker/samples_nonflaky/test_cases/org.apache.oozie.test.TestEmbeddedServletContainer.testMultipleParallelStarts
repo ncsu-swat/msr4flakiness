@@ -1,0 +1,17 @@
+@Test
+public void testMultipleParallelStarts() throws Exception {
+    final List<EmbeddedServletContainer> containers = new ArrayList<>();
+    PingServlet.FILTER_INIT = false;
+    PingServlet.DO_FILTER = false;
+    for (int i = 0; i < 10; ++i) {
+        final EmbeddedServletContainer c = new EmbeddedServletContainer("path" + i);
+        c.addServletEndpoint("/ping/*", PingServlet.class);
+        c.addFilter("/ping/*", PingServlet.class);
+        containers.add(c);
+    }
+    startAllContainers(containers);
+    for (final EmbeddedServletContainer c : containers) {
+        assertHttpResponse(c);
+    }
+    stopAllContainers(containers);
+}

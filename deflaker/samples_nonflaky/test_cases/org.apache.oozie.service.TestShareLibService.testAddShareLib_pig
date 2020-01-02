@@ -1,0 +1,17 @@
+@Test
+public void testAddShareLib_pig() throws Exception {
+    setShipLauncherInOozieConfig();
+    services.init();
+    String actionXml = "<pig>" + "<job-tracker>" + getJobTrackerUri() + "</job-tracker>" + "<name-node>" + getNameNodeUri() + "</name-node>" + "</pig>";
+    Element eActionXml = XmlUtils.parseXml(actionXml);
+    XConfiguration protoConf = new XConfiguration();
+    protoConf.set(WorkflowAppService.HADOOP_USER, getTestUser());
+    WorkflowJobBean wfj = new WorkflowJobBean();
+    wfj.setProtoActionConf(XmlUtils.prettyPrint(protoConf).toString());
+    wfj.setConf(XmlUtils.prettyPrint(new XConfiguration()).toString());
+    Context context = new TestJavaActionExecutor().new Context(wfj, new WorkflowActionBean());
+    PigActionExecutor ae = new PigActionExecutor();
+    Configuration jobConf = ae.createBaseHadoopConf(context, eActionXml);
+    ae.setLibFilesArchives(context, eActionXml, new Path("hdfs://dummyAppPath"), jobConf);
+    verifyFilesInDistributedCache(DistributedCache.getCacheFiles(jobConf), "MyPig.jar", "MyOozie.jar");
+}

@@ -1,0 +1,25 @@
+public void testSimpleGraphDot() {
+    try {
+        assumeJDKVersion();
+    } catch (final AssumptionViolatedException ave) {
+        // Due to JUnit38ClassRunner we have to check that explicitly instead of relying on junit.framework
+        LOG.warn(ave.getMessage());
+        return;
+    }
+    final WorkflowJobBean jsonWFJob = createSimpleWorkflow();
+    File outputDot = null;
+    try {
+        outputDot = File.createTempFile("graph-output", "graph-workflow-simple.dot");
+        final String content = IOUtils.getResourceAsString("graph-workflow-simple.xml", -1);
+        final GraphGenerator g = new GraphGenerator(content, jsonWFJob, true, new GraphvizRenderer());
+        g.write(new FileOutputStream(outputDot), OutputFormat.DOT);
+        final BufferedReader dotReader = new BufferedReader(new InputStreamReader(new FileInputStream(outputDot), StandardCharsets.UTF_8));
+        Assert.assertTrue("Rendered and written graph output file is not a DOT file", dotReader.readLine().equals("digraph {"));
+    } catch (final Exception e) {
+        Assert.fail("Render and write DOT failed: " + e.getMessage());
+    } finally {
+        if (outputDot != null) {
+            outputDot.delete();
+        }
+    }
+}

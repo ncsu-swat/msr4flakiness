@@ -1,0 +1,15 @@
+// Test text search
+public void testTextSearch() throws Exception {
+    setLogFile();
+    XLogFilter filter = new XLogFilter();
+    String param = XLogUserFilterParam.SEARCH_TEXT + "=substitution;" + XLogUserFilterParam.LIMIT + "=2";
+    Map<String, String[]> paramMap = new HashMap<String, String[]>();
+    paramMap.put(RestConstants.LOG_FILTER_OPTION, new String[] { param });
+    XLogUserFilterParam logUtil = new XLogUserFilterParam(paramMap);
+    filter.setUserLogFilter(logUtil);
+    String out = doStreamLog(filter);
+    String[] lines = out.split(System.getProperty("line.separator"));
+    assertEquals(lines.length, 2);
+    assertTrue(lines[0].contains("E0803: IO error, Variable substitution depth too large: 20 ${dniInputDir}"));
+    assertTrue(lines[1].contains("E0803: IO error, Variable substitution depth too large: 20 ${dniInputDir}"));
+}

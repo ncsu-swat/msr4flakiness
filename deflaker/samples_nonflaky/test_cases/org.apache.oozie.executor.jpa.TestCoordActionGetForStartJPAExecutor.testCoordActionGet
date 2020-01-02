@@ -1,0 +1,19 @@
+public void testCoordActionGet() throws Exception {
+    int actionNum = 1;
+    String errorCode = "000";
+    String errorMessage = "Dummy";
+    String resourceXmlName = "coord-action-get.xml";
+    CoordinatorJobBean job = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, false, false);
+    CoordinatorActionBean action = createCoordAction(job.getId(), actionNum, CoordinatorAction.Status.WAITING, resourceXmlName, 0);
+    // Add extra attributes for action
+    action.setSlaXml(XDataTestCase.slaXml);
+    action.setErrorCode(errorCode);
+    action.setErrorMessage(errorMessage);
+    // Insert the action
+    insertRecordCoordAction(action);
+    Path appPath = new Path(getFsTestCaseDir(), "coord");
+    String actionXml = getCoordActionXml(appPath, resourceXmlName);
+    Configuration conf = getCoordConf(appPath);
+    // Pass the expected values
+    _testGetForStartX(action.getId(), job.getId(), CoordinatorAction.Status.WAITING, 0, action.getId() + "_E", XDataTestCase.slaXml, resourceXmlName, XmlUtils.prettyPrint(conf).toString(), actionXml, errorCode, errorMessage);
+}

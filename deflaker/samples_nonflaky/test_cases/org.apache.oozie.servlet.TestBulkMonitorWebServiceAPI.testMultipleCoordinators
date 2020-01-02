@@ -1,0 +1,20 @@
+public void testMultipleCoordinators() throws Exception {
+    runTest("/v1/jobs", V1JobsServlet.class, false, new Callable<Void>() {
+
+        public Void call() throws Exception {
+            // giving range as 2 of the total 3 coordinators
+            String bulkRequest = "bundle=" + bundleName + ";coordinators=Coord1,Coord2;actionstatus=KILLED";
+            JSONArray array = _requestToServer(bulkRequest);
+            assertEquals(2, array.size());
+            JSONObject jbundle = (JSONObject) ((JSONObject) array.get(0)).get(JsonTags.BULK_RESPONSE_BUNDLE);
+            assertNotNull(jbundle);
+            JSONObject jaction1 = (JSONObject) ((JSONObject) array.get(0)).get(JsonTags.BULK_RESPONSE_ACTION);
+            JSONObject jaction2 = (JSONObject) ((JSONObject) array.get(1)).get(JsonTags.BULK_RESPONSE_ACTION);
+            assertNotNull(jaction1);
+            assertNotNull(jaction2);
+            assertEquals(jaction1.get(JsonTags.COORDINATOR_ACTION_ID), "Coord1@2");
+            assertEquals(jaction2.get(JsonTags.COORDINATOR_ACTION_ID), "Coord2@1");
+            return null;
+        }
+    });
+}

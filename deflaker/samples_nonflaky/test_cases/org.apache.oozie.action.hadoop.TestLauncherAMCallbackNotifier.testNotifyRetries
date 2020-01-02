@@ -1,0 +1,22 @@
+public void testNotifyRetries() throws InterruptedException {
+    Configuration conf = new Configuration(false);
+    conf.set(LauncherAMCallbackNotifier.OOZIE_LAUNCHER_CALLBACK_RETRY_ATTEMPTS, "0");
+    conf.set(LauncherAMCallbackNotifier.OOZIE_LAUNCHER_CALLBACK_MAX_ATTEMPTS, "1");
+    conf.set(LauncherAMCallbackNotifier.OOZIE_LAUNCHER_CALLBACK_URL, "http://nonexistent");
+    conf.set(LauncherAMCallbackNotifier.OOZIE_LAUNCHER_CALLBACK_RETRY_INTERVAL, "5000");
+    LauncherAMCallbackNotifier cnSpy = Mockito.spy(new LauncherAMCallbackNotifier(conf));
+    long start = System.currentTimeMillis();
+    cnSpy.notifyURL(OozieActionResult.SUCCEEDED);
+    long end = System.currentTimeMillis();
+    Mockito.verify(cnSpy, Mockito.times(1)).notifyURLOnce();
+    Assert.assertTrue("Should have taken more than 5 seconds but it only took " + (end - start), end - start >= 5000);
+    conf.set(LauncherAMCallbackNotifier.OOZIE_LAUNCHER_CALLBACK_MAX_ATTEMPTS, "3");
+    conf.set(LauncherAMCallbackNotifier.OOZIE_LAUNCHER_CALLBACK_RETRY_ATTEMPTS, "3");
+    conf.set(LauncherAMCallbackNotifier.OOZIE_LAUNCHER_CALLBACK_RETRY_INTERVAL, "3000");
+    cnSpy = Mockito.spy(new LauncherAMCallbackNotifier(conf));
+    start = System.currentTimeMillis();
+    cnSpy.notifyURL(OozieActionResult.SUCCEEDED);
+    end = System.currentTimeMillis();
+    Mockito.verify(cnSpy, Mockito.times(3)).notifyURLOnce();
+    Assert.assertTrue("Should have taken more than 9 seconds but it only took " + (end - start), end - start >= 9000);
+}

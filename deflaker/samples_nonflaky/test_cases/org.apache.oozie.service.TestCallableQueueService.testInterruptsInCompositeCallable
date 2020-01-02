@@ -1,0 +1,35 @@
+/*
+     * Testing an interrupt commands inside a composite callable Assuring it is
+     * executed before the others
+     */
+public void testInterruptsInCompositeCallable() throws Exception {
+    EXEC_ORDER = new AtomicLong();
+    Services.get().destroy();
+    setSystemProperty(CallableQueueService.CONF_THREADS, "1");
+    setSystemProperty(CallableQueueService.CONF_CALLABLE_INTERRUPT_TYPES, "testKill");
+    new Services().init();
+    CallableQueueService queueservice = Services.get().get(CallableQueueService.class);
+    final ExtendedXCommand initialCallable = new ExtendedXCommand("initialKey", "initialType", 2, 200, "initialLockKey");
+    final List<ExtendedXCommand> callables = new ArrayList<ExtendedXCommand>();
+    for (int i = 0; i < 5; i++) {
+        callables.add(new ExtendedXCommand("key" + i, "type" + i, 1, 100, "lockKey"));
+    }
+    callables.add(new ExtendedXCommand("key" + 5, "testKill", 1, 100, "lockKey"));
+    for (int i = 6; i < 10; i++) {
+        callables.add(new ExtendedXCommand("key" + i, "type" + i, 1, 100, "lockKey"));
+    }
+    queueservice.queue(initialCallable);
+    queueservice.queueSerial((List<? extends XCallable<?>>) (callables), 0);
+    waitFor(3000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            boolean retValue = initialCallable.executed != 0;
+            for (ExtendedXCommand c : callables) {
+                retValue = retValue && c.executed != 0;
+            }
+            return retValue;
+        }
+    });
+    assertTrue(initialCallable.executed > 0);
+    assertTrue(callables.get(1).executed > callables.get(5).executed);
+}

@@ -1,0 +1,13 @@
+public void testBulkBundleKillNegative() throws Exception {
+    BundleJobBean job1 = this.addRecordToBundleJobTable(Job.Status.RUNNING, false);
+    BundleJobBean job2 = this.addRecordToBundleJobTable(Job.Status.RUNNING, false);
+    Map<String, List<String>> map = new HashMap<String, List<String>>();
+    List<String> names = new ArrayList<String>();
+    names.add("BUNDLE");
+    map.put("name", names);
+    new BulkBundleXCommand(map, 1, 50, OperationType.Kill).call();
+    verifyJobStatus(job1.getId(), BundleJob.Status.RUNNING);
+    verifyChildrenStatus(job1.getId(), CoordinatorJob.Status.RUNNING);
+    verifyJobStatus(job2.getId(), BundleJob.Status.RUNNING);
+    verifyChildrenStatus(job2.getId(), CoordinatorJob.Status.RUNNING);
+}

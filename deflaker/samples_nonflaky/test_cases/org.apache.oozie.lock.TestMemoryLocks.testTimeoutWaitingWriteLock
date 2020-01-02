@@ -1,0 +1,14 @@
+public void testTimeoutWaitingWriteLock() throws Exception {
+    StringBuffer sb = new StringBuffer("");
+    Locker l1 = new WriteLocker("a", 1, 0, sb);
+    Locker l2 = new WriteLocker("a", 2, 10000, sb);
+    new Thread(l1).start();
+    l1.awaitLockAcquire();
+    new Thread(l2).start();
+    l2.awaitStart();
+    l1.proceed();
+    l1.awaitTermination();
+    l2.proceed();
+    l2.awaitTermination();
+    assertEquals("a:1-L a:1-U a:2-L a:2-U", sb.toString().trim());
+}

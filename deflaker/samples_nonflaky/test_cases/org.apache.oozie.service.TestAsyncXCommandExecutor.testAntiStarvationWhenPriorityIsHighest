@@ -1,0 +1,10 @@
+@Test
+public void testAntiStarvationWhenPriorityIsHighest() {
+    asyncExecutor = createExecutor(DEFAULT_ENABLE_CONCURRENCY_CHECK, DEFAULT_MAX_ACTIVE_COMMANDS, 500, TEST_PRIORITIES, AWAIT_TERMINATION_TIMEOUT_SECONDS);
+    when(callableWrapper.getDelay(eq(TimeUnit.MILLISECONDS))).thenReturn(-1000L);
+    when(callableWrapper.getPriority()).thenReturn(MAX_PRIORITY);
+    pendingCommandsPerType.put(DEFAULT_TYPE, Sets.newHashSet(callableWrapper));
+    asyncExecutor.checkMaxConcurrency(DEFAULT_TYPE);
+    verify(callableWrapper, never()).setPriority(anyInt());
+    verify(callableWrapper, never()).setDelay(anyLong(), any(TimeUnit.class));
+}

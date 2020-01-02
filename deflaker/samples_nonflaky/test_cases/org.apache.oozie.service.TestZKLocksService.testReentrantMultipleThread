@@ -1,0 +1,17 @@
+public void testReentrantMultipleThread() throws ServiceException, InterruptedException {
+    final String path = UUID.randomUUID().toString();
+    final ZKLocksService zkls = new ZKLocksService();
+    zkls.init(Services.get());
+    try {
+        ThreadLock t1 = new ThreadLock(zkls, path);
+        ThreadLock t2 = new ThreadLock(zkls, path);
+        t1.start();
+        t1.join();
+        checkLockRelease(path, zkls);
+        t2.start();
+        t2.join();
+        checkLockRelease(path, zkls);
+    } finally {
+        zkls.destroy();
+    }
+}

@@ -1,0 +1,26 @@
+/**
+ * Test client's methods getWorkflowActionInfo and getBundleJobInfo
+ */
+public void testJobInformation() throws Exception {
+    runTest(END_POINTS, SERVLET_CLASSES, IS_SECURITY_ENABLED, new Callable<Void>() {
+
+        public Void call() throws Exception {
+            String oozieUrl = getContextURL();
+            OozieClient wc = new OozieClient(oozieUrl);
+            String jobId = MockDagEngineService.JOB_ID + "1" + MockDagEngineService.JOB_ID_END;
+            assertEquals(RestConstants.JOB_SHOW_LOG, wc.getJobLog(jobId));
+            WorkflowAction wfAction = wc.getWorkflowActionInfo(jobId);
+            assertEquals(jobId, wfAction.getId());
+            CoordinatorJob job = wc.getCoordJobInfo(MockCoordinatorEngineService.JOB_ID + "1" + MockCoordinatorEngineService.JOB_ID_END);
+            assertEquals("group", job.getAcl());
+            assertEquals("RUNNING", job.getStatus().toString());
+            assertEquals("user", job.getUser());
+            assertEquals(MockCoordinatorEngineService.offset, new Integer(1));
+            assertEquals(MockCoordinatorEngineService.length, new Integer(1000));
+            BundleJob bundleJob = wc.getBundleJobInfo(jobId);
+            assertEquals("SUCCEEDED", bundleJob.getStatus().toString());
+            assertEquals("user", bundleJob.getUser());
+            return null;
+        }
+    });
+}

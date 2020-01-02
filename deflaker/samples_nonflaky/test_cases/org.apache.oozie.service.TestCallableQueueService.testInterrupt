@@ -1,0 +1,36 @@
+/**
+ * Testing the interrupts by introducing an interrupt command within a set
+ * of 10 commands and assuring it will be executed first
+ */
+public void testInterrupt() throws Exception {
+    EXEC_ORDER = new AtomicLong();
+    Services.get().destroy();
+    setSystemProperty(CallableQueueService.CONF_THREADS, "1");
+    setSystemProperty(CallableQueueService.CONF_CALLABLE_INTERRUPT_TYPES, "testKill");
+    new Services().init();
+    CallableQueueService queueservice = Services.get().get(CallableQueueService.class);
+    final ExtendedXCommand initialCallable = new ExtendedXCommand("initialKey", "initialType", 2, 200, "initialLockKey");
+    final List<ExtendedXCommand> callables = new ArrayList<ExtendedXCommand>();
+    for (int i = 0; i < 10; i++) {
+        callables.add(new ExtendedXCommand("key" + i, "type" + i, 1, 100, "lockKey"));
+    }
+    final ExtendedXCommand intCallable = new ExtendedXCommand("keyInt", "testKill", 0, 200, "lockKey");
+    queueservice.queue(initialCallable);
+    for (int i = 0; i < 10; i++) {
+        queueservice.queue(callables.get(i));
+    }
+    queueservice.queue(intCallable);
+    waitFor(3000, new Predicate() {
+
+        public boolean evaluate() throws Exception {
+            boolean retValue = initialCallable.executed != 0 && intCallable.executed != 0;
+            for (ExtendedXCommand c : callables) {
+                retValue = retValue && c.executed != 0;
+            }
+            return retValue;
+        }
+    });
+    assertTrue(initialCallable.executed > 0);
+    assertTrue(intCallable.executed > 0);
+    assertTrue(intCallable.executed < callables.get(5).executed);
+}

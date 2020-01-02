@@ -1,0 +1,13 @@
+public void testKill() throws Exception {
+    Date start = DateUtils.addMonths(new Date(), -1);
+    // 4 hrs
+    Date end = DateUtils.addHours(new Date(), 4);
+    Date createdTime = start;
+    CoordinatorJobBean job1 = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, start, end, createdTime, true, false, 6);
+    addRecordToCoordActionTable(job1.getId(), 6, CoordinatorAction.Status.FAILED);
+    CoordinatorJobBean job2 = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, start, end, createdTime, true, false, 4);
+    addRecordToCoordActionTable(job2.getId(), 4, CoordinatorAction.Status.FAILED);
+    new AbandonedCoordCheckerRunnable(5, true).run();
+    assertEquals(CoordJobQueryExecutor.getInstance().get(CoordJobQuery.GET_COORD_JOB, job1.getId()).getStatus(), CoordinatorJob.Status.KILLED);
+    assertEquals(CoordJobQueryExecutor.getInstance().get(CoordJobQuery.GET_COORD_JOB, job2.getId()).getStatus(), CoordinatorJob.Status.RUNNING);
+}

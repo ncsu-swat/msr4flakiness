@@ -1,0 +1,18 @@
+@Test
+public void testMultipleLauncherCall() throws Exception {
+    setShipLauncherInOozieConfig();
+    FileSystem fs = getFileSystem();
+    Date time = new Date(System.currentTimeMillis());
+    Path basePath = new Path(getOozieConfig().get(WorkflowAppService.SYSTEM_LIB_PATH));
+    Path libpath = new Path(basePath, ShareLibService.SHARE_LIB_PREFIX + ShareLibService.dt.get().format(time));
+    fs.mkdirs(libpath);
+    Path ooziePath = new Path(libpath.toString() + Path.SEPARATOR + "oozie");
+    fs.mkdirs(ooziePath);
+    createFiles(libpath.toString() + Path.SEPARATOR + "oozie" + Path.SEPARATOR + "oozie_luncher.jar");
+    services.init();
+    ShareLibService shareLibService = Services.get().get(ShareLibService.class);
+    List<Path> launcherPath = shareLibService.getSystemLibJars(JavaActionExecutor.OOZIE_COMMON_LIBDIR);
+    assertEquals(launcherPath.size(), 2);
+    launcherPath = shareLibService.getSystemLibJars(JavaActionExecutor.OOZIE_COMMON_LIBDIR);
+    assertEquals(launcherPath.size(), 2);
+}
