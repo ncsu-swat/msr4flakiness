@@ -1,0 +1,14 @@
+@Test
+public void testMove_toDifferentFileSystem() throws IOException {
+    try (FileSystem fs2 = Jimfs.newFileSystem(Configuration.unix())) {
+        Path foo = fs.getPath("/foo");
+        byte[] bytes = { 0, 1, 2, 3, 4 };
+        Files.write(foo, bytes);
+        Files.getFileAttributeView(foo, BasicFileAttributeView.class).setTimes(FileTime.fromMillis(0), FileTime.fromMillis(1), FileTime.fromMillis(2));
+        Path foo2 = fs2.getPath("/foo");
+        Files.move(foo, foo2);
+        assertThatPath(foo).doesNotExist();
+        assertThatPath(foo2).exists().and().attribute("lastModifiedTime").is(FileTime.fromMillis(0)).and().attribute("lastAccessTime").is(FileTime.fromMillis(1)).and().attribute("creationTime").is(FileTime.fromMillis(2)).and().containsBytes(// do this last; it updates the access time
+        bytes);
+    }
+}

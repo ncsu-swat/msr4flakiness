@@ -1,0 +1,9 @@
+@Test
+public void testCreateFile_withInitialAttributes() throws IOException {
+    Set<PosixFilePermission> permissions = PosixFilePermissions.fromString("rwxrwxrwx");
+    FileAttribute<?> permissionsAttr = PosixFilePermissions.asFileAttribute(permissions);
+    Files.createFile(path("/normal"));
+    Files.createFile(path("/foo"), permissionsAttr);
+    assertThatPath("/normal").attribute("posix:permissions").isNot(permissions);
+    assertThatPath("/foo").attribute("posix:permissions").is(permissions);
+}

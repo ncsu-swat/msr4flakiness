@@ -1,0 +1,9 @@
+@Test
+public void testFileSystemWithCustomWatchServicePollingInterval() throws IOException {
+    FileSystem fs = Jimfs.newFileSystem(Configuration.unix().toBuilder().setWatchServiceConfiguration(polling(10, MILLISECONDS)).build());
+    WatchService watchService = fs.newWatchService();
+    assertThat(watchService).isInstanceOf(PollingWatchService.class);
+    PollingWatchService pollingWatchService = (PollingWatchService) watchService;
+    assertThat(pollingWatchService.interval).isEqualTo(10);
+    assertThat(pollingWatchService.timeUnit).isEqualTo(MILLISECONDS);
+}

@@ -1,0 +1,16 @@
+@Test
+public void testOverflow() throws IOException {
+    AbstractWatchService.Key key = watcher.register(new StubWatchable(), ImmutableSet.of(ENTRY_CREATE));
+    for (int i = 0; i < AbstractWatchService.Key.MAX_QUEUE_SIZE + 10; i++) {
+        key.post(new AbstractWatchService.Event<>(ENTRY_CREATE, 1, null));
+    }
+    key.signal();
+    List<WatchEvent<?>> events = key.pollEvents();
+    assertThat(events).hasSize(AbstractWatchService.Key.MAX_QUEUE_SIZE + 1);
+    for (int i = 0; i < AbstractWatchService.Key.MAX_QUEUE_SIZE; i++) {
+        assertThat(events.get(i).kind()).isEqualTo(ENTRY_CREATE);
+    }
+    WatchEvent<?> lastEvent = events.get(AbstractWatchService.Key.MAX_QUEUE_SIZE);
+    assertThat(lastEvent.kind()).isEqualTo(OVERFLOW);
+    assertThat(lastEvent.count()).isEqualTo(10);
+}

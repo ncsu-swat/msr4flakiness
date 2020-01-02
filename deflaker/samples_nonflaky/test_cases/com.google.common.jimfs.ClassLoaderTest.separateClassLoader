@@ -1,0 +1,35 @@
+@Test
+public void separateClassLoader() throws Exception {
+    ClassLoader contextLoader = Thread.currentThread().getContextClassLoader();
+    ClassLoader systemLoader = ClassLoader.getSystemClassLoader();
+    ClassLoader loader = MoreObjects.firstNonNull(contextLoader, systemLoader);
+    if (loader instanceof URLClassLoader) {
+        // Anything we can do if it isn't a URLClassLoader?
+        URLClassLoader urlLoader = (URLClassLoader) loader;
+        ClassLoader separateLoader = new URLClassLoader(urlLoader.getURLs(), // either null or the boostrap loader
+        systemLoader.getParent());
+        Thread.currentThread().setContextClassLoader(separateLoader);
+        try {
+            Class<?> thisClass = separateLoader.loadClass(getClass().getName());
+            Method createFileSystem = thisClass.getDeclaredMethod("createFileSystem");
+            // First, the call to Jimfs.newFileSystem in createFileSystem needs to succeed
+            Object fs = createFileSystem.invoke(null);
+            // Next, some sanity checks:
+            // The file system is a JimfsFileSystem
+            assertEquals("com.google.common.jimfs.JimfsFileSystem", fs.getClass().getName());
+            // But it is not seen as an instance of JimfsFileSystem here because it was loaded by a
+            // different ClassLoader
+            assertFalse(fs instanceof JimfsFileSystem);
+            // But it should be an instance of FileSystem regardless, which is the important thing.
+            assertTrue(fs instanceof FileSystem);
+            // And normal file operations should work on it despite its provenance from a different
+            // ClassLoader
+            writeAndRead((FileSystem) fs, "bar.txt", "blah blah");
+            // And for the heck of it, test the contents of the file that was created in
+            // createFileSystem too
+            assertEquals("blah", Files.readAllLines(((FileSystem) fs).getPath("foo.txt"), UTF_8).get(0));
+        } finally {
+            Thread.currentThread().setContextClassLoader(contextLoader);
+        }
+    }
+}

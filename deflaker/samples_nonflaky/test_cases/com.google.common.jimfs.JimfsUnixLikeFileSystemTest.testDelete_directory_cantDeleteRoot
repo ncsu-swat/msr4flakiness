@@ -1,0 +1,25 @@
+@Test
+public void testDelete_directory_cantDeleteRoot() throws IOException {
+    // delete working directory so that root is empty
+    // don't want to just be testing the "can't delete when not empty" logic
+    Files.delete(path("/work"));
+    try {
+        Files.delete(path("/"));
+        fail();
+    } catch (IOException expected) {
+        assertThat(expected.getMessage()).contains("root");
+    }
+    Files.createDirectories(path("/foo/bar"));
+    try {
+        Files.delete(path("/foo/bar/../.."));
+        fail();
+    } catch (IOException expected) {
+        assertThat(expected.getMessage()).contains("root");
+    }
+    try {
+        Files.delete(path("/foo/./../foo/bar/./../bar/.././../../.."));
+        fail();
+    } catch (IOException expected) {
+        assertThat(expected.getMessage()).contains("root");
+    }
+}

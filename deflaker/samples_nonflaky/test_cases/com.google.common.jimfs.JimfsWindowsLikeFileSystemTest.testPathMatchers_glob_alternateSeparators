@@ -1,0 +1,25 @@
+@Test
+public void testPathMatchers_glob_alternateSeparators() {
+    // only need to test / in the glob pattern; tests above check that / in a path is changed to
+    // \ automatically
+    assertThatPath("C:\\foo").doesNotMatch("glob:*");
+    assertThatPath("C:\\foo\\bar").doesNotMatch("glob:*");
+    assertThatPath("C:\\foo\\bar").matches("glob:**");
+    assertThatPath("C:\\foo\\bar").matches("glob:C:/**");
+    assertThatPath("foo\\bar").doesNotMatch("glob:C:/**");
+    assertThatPath("C:\\foo\\bar\\baz\\stuff").matches("glob:C:/foo/**");
+    assertThatPath("C:\\foo\\bar\\baz\\stuff").matches("glob:C:/**/stuff");
+    assertThatPath("C:\\foo").matches("glob:C:/[a-z]*");
+    assertThatPath("C:\\Foo").matches("glob:C:/[a-z]*");
+    assertThatPath("C:\\foo").matches("glob:C:/[A-Z]*");
+    assertThatPath("C:\\Foo").matches("glob:C:/[A-Z]*");
+    assertThatPath("C:\\foo\\bar\\baz\\Stuff.java").matches("glob:**/*.java");
+    assertThatPath("C:\\foo\\bar\\baz\\Stuff.java").matches("glob:**/*.{java,class}");
+    assertThatPath("C:\\foo\\bar\\baz\\Stuff.class").matches("glob:**/*.{java,class}");
+    assertThatPath("C:\\foo\\bar\\baz\\Stuff.java").matches("glob:**/*.*");
+    try {
+        fs.getPathMatcher("glob:**/*.{java,class");
+        fail();
+    } catch (PatternSyntaxException expected) {
+    }
+}

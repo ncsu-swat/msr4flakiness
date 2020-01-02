@@ -1,0 +1,14 @@
+@Test
+public void testFileSystemForDefaultWindowsConfiguration() throws IOException {
+    FileSystem fs = Jimfs.newFileSystem(Configuration.windows());
+    assertThat(fs.getRootDirectories()).containsExactlyElementsIn(ImmutableList.of(fs.getPath("C:\\"))).inOrder();
+    assertThatPath(fs.getPath("").toRealPath()).isEqualTo(fs.getPath("C:\\work"));
+    assertThat(Iterables.getOnlyElement(fs.getFileStores()).getTotalSpace()).isEqualTo(4L * 1024 * 1024 * 1024);
+    assertThat(fs.supportedFileAttributeViews()).containsExactly("basic");
+    Files.createFile(fs.getPath("C:\\foo"));
+    try {
+        Files.createFile(fs.getPath("C:\\FOO"));
+        fail();
+    } catch (FileAlreadyExistsException expected) {
+    }
+}

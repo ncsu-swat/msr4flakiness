@@ -1,0 +1,18 @@
+@Test
+public void testIsSameFile() throws IOException {
+    Files.createDirectory(path("/foo"));
+    Files.createSymbolicLink(path("/bar"), path("/foo"));
+    Files.createFile(path("/bar/test"));
+    assertThatPath("/foo").isSameFileAs("/foo");
+    assertThatPath("/bar").isSameFileAs("/bar");
+    assertThatPath("/foo/test").isSameFileAs("/foo/test");
+    assertThatPath("/bar/test").isSameFileAs("/bar/test");
+    assertThatPath("/foo").isNotSameFileAs("test");
+    assertThatPath("/bar").isNotSameFileAs("/test");
+    assertThatPath("/foo").isSameFileAs("/bar");
+    assertThatPath("/foo/test").isSameFileAs("/bar/test");
+    // relative path
+    Files.createSymbolicLink(path("/baz"), path("bar"));
+    assertThatPath("/baz").isSameFileAs("/foo");
+    assertThatPath("/baz/test").isSameFileAs("/foo/test");
+}

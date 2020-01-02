@@ -1,0 +1,15 @@
+@Test
+public void testPostEvent() throws IOException {
+    AbstractWatchService.Key key = watcher.register(new StubWatchable(), ImmutableSet.of(ENTRY_CREATE));
+    AbstractWatchService.Event<Path> event = new AbstractWatchService.Event<>(ENTRY_CREATE, 1, null);
+    key.post(event);
+    key.signal();
+    assertThat(watcher.queuedKeys()).containsExactly(key);
+    WatchKey retrievedKey = watcher.poll();
+    assertThat(retrievedKey).isEqualTo(key);
+    List<WatchEvent<?>> events = retrievedKey.pollEvents();
+    assertThat(events).hasSize(1);
+    assertThat(events.get(0)).isEqualTo(event);
+    // polling should have removed all events
+    assertThat(retrievedKey.pollEvents()).isEmpty();
+}

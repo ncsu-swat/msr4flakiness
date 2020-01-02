@@ -1,0 +1,22 @@
+@Test
+public void testTransferTo() {
+    file.addBlock(new byte[] { 1 });
+    file.addBlock(new byte[] { 1, 2 });
+    file.addBlock(new byte[] { 1, 2, 3 });
+    RegularFile other = createFile();
+    assertThat(file.blockCount()).isEqualTo(3);
+    assertThat(other.blockCount()).isEqualTo(0);
+    file.transferBlocksTo(other, 3);
+    assertThat(file.blockCount()).isEqualTo(0);
+    assertThat(other.blockCount()).isEqualTo(3);
+    assertThat(file.getBlock(0)).isNull();
+    assertThat(Bytes.asList(other.getBlock(0))).isEqualTo(Bytes.asList(new byte[] { 1 }));
+    assertThat(Bytes.asList(other.getBlock(1))).isEqualTo(Bytes.asList(new byte[] { 1, 2 }));
+    assertThat(Bytes.asList(other.getBlock(2))).isEqualTo(Bytes.asList(new byte[] { 1, 2, 3 }));
+    other.transferBlocksTo(file, 1);
+    assertThat(file.blockCount()).isEqualTo(1);
+    assertThat(other.blockCount()).isEqualTo(2);
+    assertThat(other.getBlock(2)).isNull();
+    assertThat(Bytes.asList(file.getBlock(0))).isEqualTo(Bytes.asList(new byte[] { 1, 2, 3 }));
+    assertThat(file.getBlock(1)).isNull();
+}

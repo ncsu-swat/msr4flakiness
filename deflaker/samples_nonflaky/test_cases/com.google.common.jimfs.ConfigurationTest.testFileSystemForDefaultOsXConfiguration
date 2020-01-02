@@ -1,0 +1,14 @@
+@Test
+public void testFileSystemForDefaultOsXConfiguration() throws IOException {
+    FileSystem fs = Jimfs.newFileSystem(Configuration.osX());
+    assertThat(fs.getRootDirectories()).containsExactlyElementsIn(ImmutableList.of(fs.getPath("/"))).inOrder();
+    assertThatPath(fs.getPath("").toRealPath()).isEqualTo(fs.getPath("/work"));
+    assertThat(Iterables.getOnlyElement(fs.getFileStores()).getTotalSpace()).isEqualTo(4L * 1024 * 1024 * 1024);
+    assertThat(fs.supportedFileAttributeViews()).containsExactly("basic");
+    Files.createFile(fs.getPath("/foo"));
+    try {
+        Files.createFile(fs.getPath("/FOO"));
+        fail();
+    } catch (FileAlreadyExistsException expected) {
+    }
+}

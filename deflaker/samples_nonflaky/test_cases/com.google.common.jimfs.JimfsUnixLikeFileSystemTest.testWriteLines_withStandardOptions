@@ -1,0 +1,43 @@
+@Test
+public void testWriteLines_withStandardOptions() throws IOException {
+    Path test = path("/test.txt");
+    ImmutableList<String> lines = ImmutableList.of("hello", "world");
+    try {
+        // CREATE and CREATE_NEW not specified
+        Files.write(test, lines, UTF_8, WRITE);
+        fail();
+    } catch (NoSuchFileException expected) {
+        assertEquals(test.toString(), expected.getMessage());
+    }
+    // succeeds, file does not exist
+    Files.write(test, lines, UTF_8, CREATE_NEW);
+    assertThatPath(test).containsLines(lines);
+    try {
+        // CREATE_NEW requires file not exist
+        Files.write(test, lines, UTF_8, CREATE_NEW);
+        fail();
+    } catch (FileAlreadyExistsException expected) {
+    }
+    // succeeds, ok for file to already exist
+    Files.write(test, ImmutableList.of("foo"), UTF_8, CREATE);
+    // did not truncate or append, so overwrote
+    if (System.getProperty("line.separator").length() == 2) {
+        // on Windows, an extra character is overwritten by the \r\n line separator
+        assertThatPath(test).containsLines("foo", "", "world");
+    } else {
+        assertThatPath(test).containsLines("foo", "o", "world");
+    }
+    // default options
+    Files.write(test, lines, UTF_8, WRITE, CREATE, TRUNCATE_EXISTING);
+    assertThatPath(test).containsLines(lines);
+    Files.write(test, lines, UTF_8, WRITE, APPEND);
+    assertThatPath(test).containsLines("hello", "world", "hello", "world");
+    Files.write(test, lines, UTF_8, WRITE, CREATE, TRUNCATE_EXISTING, APPEND, SPARSE, DSYNC, SYNC);
+    assertThatPath(test).containsLines(lines);
+    try {
+        // READ not allowed
+        Files.write(test, lines, UTF_8, READ, WRITE);
+        fail();
+    } catch (UnsupportedOperationException expected) {
+    }
+}

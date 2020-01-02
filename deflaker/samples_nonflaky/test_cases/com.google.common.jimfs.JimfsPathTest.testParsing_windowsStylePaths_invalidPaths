@@ -1,0 +1,25 @@
+@Test
+public void testParsing_windowsStylePaths_invalidPaths() {
+    PathService windowsPathService = PathServiceTest.fakeWindowsPathService();
+    try {
+        // The actual windows implementation seems to allow "C:" but treat it as a *name*, not a root
+        // despite the fact that a : is illegal except in a root... a : at any position other than
+        // index 1 in the string will produce an exception.
+        // Here, I choose to be more strict
+        windowsPathService.parsePath("C:");
+        fail();
+    } catch (InvalidPathException expected) {
+    }
+    try {
+        // "1:\" isn't a root because 1 isn't a letter
+        windowsPathService.parsePath("1:\\foo");
+        fail();
+    } catch (InvalidPathException expected) {
+    }
+    try {
+        // < and > are reserved characters
+        windowsPathService.parsePath("foo<bar>");
+        fail();
+    } catch (InvalidPathException expected) {
+    }
+}

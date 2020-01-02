@@ -1,0 +1,38 @@
+@Test
+public void testDelete_file_whenOpenReferencesRemain() throws IOException {
+    // the open streams should continue to function normally despite the deletion
+    Path foo = path("/foo");
+    byte[] bytes = preFilledBytes(100);
+    Files.write(foo, bytes);
+    InputStream in = Files.newInputStream(foo);
+    OutputStream out = Files.newOutputStream(foo, APPEND);
+    FileChannel channel = FileChannel.open(foo, READ, WRITE);
+    assertThat(channel.size()).isEqualTo(100L);
+    Files.delete(foo);
+    assertThatPath("/foo").doesNotExist();
+    assertThat(channel.size()).isEqualTo(100L);
+    ByteBuffer buf = ByteBuffer.allocate(100);
+    while (buf.hasRemaining()) {
+        channel.read(buf);
+    }
+    assertArrayEquals(bytes, buf.array());
+    byte[] moreBytes = { 1, 2, 3, 4, 5 };
+    out.write(moreBytes);
+    assertThat(channel.size()).isEqualTo(105L);
+    buf.clear();
+    assertThat(channel.read(buf)).isEqualTo(5);
+    buf.flip();
+    byte[] b = new byte[5];
+    buf.get(b);
+    assertArrayEquals(moreBytes, b);
+    byte[] allBytes = new byte[105];
+    int off = 0;
+    int read;
+    while ((read = in.read(allBytes, off, allBytes.length - off)) != -1) {
+        off += read;
+    }
+    assertArrayEquals(concat(bytes, moreBytes), allBytes);
+    channel.close();
+    out.close();
+    in.close();
+}

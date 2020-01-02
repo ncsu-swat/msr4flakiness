@@ -1,0 +1,109 @@
+/**
+ * Tests that the methods on the default FileChannel that support InterruptibleChannel behavior
+ * also support it on JimfsFileChannel, by just interrupting the thread before calling the method.
+ */
+@Test
+public void testInterruptedThreads() throws IOException {
+    final ByteBuffer buf = ByteBuffer.allocate(10);
+    final ByteBuffer[] bufArray = { buf };
+    assertClosedByInterrupt(new FileChannelMethod() {
+
+        @Override
+        public void call(FileChannel channel) throws IOException {
+            channel.size();
+        }
+    });
+    assertClosedByInterrupt(new FileChannelMethod() {
+
+        @Override
+        public void call(FileChannel channel) throws IOException {
+            channel.position();
+        }
+    });
+    assertClosedByInterrupt(new FileChannelMethod() {
+
+        @Override
+        public void call(FileChannel channel) throws IOException {
+            channel.position(0);
+        }
+    });
+    assertClosedByInterrupt(new FileChannelMethod() {
+
+        @Override
+        public void call(FileChannel channel) throws IOException {
+            channel.write(buf);
+        }
+    });
+    assertClosedByInterrupt(new FileChannelMethod() {
+
+        @Override
+        public void call(FileChannel channel) throws IOException {
+            channel.write(bufArray, 0, 1);
+        }
+    });
+    assertClosedByInterrupt(new FileChannelMethod() {
+
+        @Override
+        public void call(FileChannel channel) throws IOException {
+            channel.read(buf);
+        }
+    });
+    assertClosedByInterrupt(new FileChannelMethod() {
+
+        @Override
+        public void call(FileChannel channel) throws IOException {
+            channel.read(bufArray, 0, 1);
+        }
+    });
+    assertClosedByInterrupt(new FileChannelMethod() {
+
+        @Override
+        public void call(FileChannel channel) throws IOException {
+            channel.write(buf, 0);
+        }
+    });
+    assertClosedByInterrupt(new FileChannelMethod() {
+
+        @Override
+        public void call(FileChannel channel) throws IOException {
+            channel.read(buf, 0);
+        }
+    });
+    assertClosedByInterrupt(new FileChannelMethod() {
+
+        @Override
+        public void call(FileChannel channel) throws IOException {
+            channel.transferTo(0, 1, channel(regularFile(10), READ, WRITE));
+        }
+    });
+    assertClosedByInterrupt(new FileChannelMethod() {
+
+        @Override
+        public void call(FileChannel channel) throws IOException {
+            channel.transferFrom(channel(regularFile(10), READ, WRITE), 0, 1);
+        }
+    });
+    assertClosedByInterrupt(new FileChannelMethod() {
+
+        @Override
+        public void call(FileChannel channel) throws IOException {
+            channel.force(true);
+        }
+    });
+    assertClosedByInterrupt(new FileChannelMethod() {
+
+        @Override
+        public void call(FileChannel channel) throws IOException {
+            channel.truncate(0);
+        }
+    });
+    assertClosedByInterrupt(new FileChannelMethod() {
+
+        @Override
+        public void call(FileChannel channel) throws IOException {
+            channel.lock(0, 1, true);
+        }
+    });
+// tryLock() does not handle interruption
+// map() always throws UOE; it doesn't make sense for it to try to handle interruption
+}

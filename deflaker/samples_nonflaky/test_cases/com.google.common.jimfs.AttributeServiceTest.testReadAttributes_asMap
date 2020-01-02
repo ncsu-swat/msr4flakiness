@@ -1,0 +1,12 @@
+@Test
+public void testReadAttributes_asMap() {
+    File file = Directory.create(0);
+    service.setInitialAttributes(file);
+    ImmutableMap<String, Object> map = service.readAttributes(file, "test:foo,bar,baz");
+    assertThat(map).isEqualTo(ImmutableMap.of("foo", "hello", "bar", 0L, "baz", 1));
+    FileTime time = (FileTime) service.getAttribute(file, "basic:creationTime");
+    map = service.readAttributes(file, "test:*");
+    assertThat(map).isEqualTo(ImmutableMap.<String, Object>builder().put("foo", "hello").put("bar", 0L).put("baz", 1).put("fileKey", 0).put("isDirectory", true).put("isRegularFile", false).put("isSymbolicLink", false).put("isOther", false).put("size", 0L).put("lastModifiedTime", time).put("lastAccessTime", time).put("creationTime", time).build());
+    map = service.readAttributes(file, "basic:*");
+    assertThat(map).isEqualTo(ImmutableMap.<String, Object>builder().put("fileKey", 0).put("isDirectory", true).put("isRegularFile", false).put("isSymbolicLink", false).put("isOther", false).put("size", 0L).put("lastModifiedTime", time).put("lastAccessTime", time).put("creationTime", time).build());
+}

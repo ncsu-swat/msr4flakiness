@@ -1,0 +1,12 @@
+@Test
+public void testView() throws IOException {
+    AclFileAttributeView view = provider.view(fileLookup(), ImmutableMap.<String, FileAttributeView>of("owner", new OwnerAttributeProvider().view(fileLookup(), NO_INHERITED_VIEWS)));
+    assertNotNull(view);
+    assertThat(view.name()).isEqualTo("acl");
+    assertThat(view.getAcl()).isEqualTo(defaultAcl);
+    view.setAcl(ImmutableList.<AclEntry>of());
+    view.setOwner(FOO);
+    assertThat(view.getAcl()).isEqualTo(ImmutableList.<AclEntry>of());
+    assertThat(view.getOwner()).isEqualTo(FOO);
+    assertThat(file.getAttribute("acl", "acl")).isEqualTo(ImmutableList.<AclEntry>of());
+}

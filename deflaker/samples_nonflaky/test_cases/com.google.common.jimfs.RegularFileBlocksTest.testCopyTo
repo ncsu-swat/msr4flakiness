@@ -1,0 +1,20 @@
+@Test
+public void testCopyTo() {
+    file.addBlock(new byte[] { 1 });
+    file.addBlock(new byte[] { 1, 2 });
+    RegularFile other = createFile();
+    assertThat(other.blockCount()).isEqualTo(0);
+    file.copyBlocksTo(other, 2);
+    assertThat(other.blockCount()).isEqualTo(2);
+    assertThat(other.getBlock(0)).isEqualTo(file.getBlock(0));
+    assertThat(other.getBlock(1)).isEqualTo(file.getBlock(1));
+    // should copy the last block
+    file.copyBlocksTo(other, 1);
+    assertThat(other.blockCount()).isEqualTo(3);
+    assertThat(other.getBlock(2)).isEqualTo(file.getBlock(1));
+    other.copyBlocksTo(file, 3);
+    assertThat(file.blockCount()).isEqualTo(5);
+    assertThat(file.getBlock(2)).isEqualTo(other.getBlock(0));
+    assertThat(file.getBlock(3)).isEqualTo(other.getBlock(1));
+    assertThat(file.getBlock(4)).isEqualTo(other.getBlock(2));
+}

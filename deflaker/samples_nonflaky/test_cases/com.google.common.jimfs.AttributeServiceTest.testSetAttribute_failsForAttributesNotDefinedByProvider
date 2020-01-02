@@ -1,0 +1,17 @@
+@Test
+public void testSetAttribute_failsForAttributesNotDefinedByProvider() {
+    File file = Directory.create(0);
+    service.setInitialAttributes(file);
+    try {
+        service.setAttribute(file, "test:blah", "blah", false);
+        fail();
+    } catch (UnsupportedOperationException expected) {
+    }
+    try {
+        // baz is defined by "test", but basic doesn't inherit test
+        service.setAttribute(file, "basic:baz", 5, false);
+        fail();
+    } catch (UnsupportedOperationException expected) {
+    }
+    assertThat(file.getAttribute("test", "baz")).isEqualTo(1);
+}

@@ -1,0 +1,26 @@
+@Test
+public void testKeyStates() throws IOException {
+    AbstractWatchService.Key key = watcher.register(new StubWatchable(), ImmutableSet.of(ENTRY_CREATE));
+    AbstractWatchService.Event<Path> event = new AbstractWatchService.Event<>(ENTRY_CREATE, 1, null);
+    assertThat(key.state()).isEqualTo(READY);
+    key.post(event);
+    key.signal();
+    assertThat(key.state()).isEqualTo(SIGNALLED);
+    AbstractWatchService.Event<Path> event2 = new AbstractWatchService.Event<>(ENTRY_CREATE, 1, null);
+    key.post(event2);
+    assertThat(key.state()).isEqualTo(SIGNALLED);
+    // key was not queued twice
+    assertThat(watcher.queuedKeys()).containsExactly(key);
+    assertThat(watcher.poll().pollEvents()).containsExactly(event, event2);
+    assertThat(watcher.poll()).isNull();
+    key.post(event);
+    // still not added to queue; already signalled
+    assertThat(watcher.poll()).isNull();
+    assertThat(key.pollEvents()).containsExactly(event);
+    key.reset();
+    assertThat(key.state()).isEqualTo(READY);
+    key.post(event2);
+    key.signal();
+    // now that it's reset it can be requeued
+    assertThat(watcher.poll()).isEqualTo(key);
+}

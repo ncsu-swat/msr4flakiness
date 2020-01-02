@@ -1,0 +1,20 @@
+@Test
+public void testAllocateFromCache_partialAllocationFromCache() throws IOException {
+    HeapDisk disk = new HeapDisk(4, 10, 4);
+    disk.allocate(blocks, 10);
+    assertThat(disk.getUnallocatedSpace()).isEqualTo(0);
+    disk.free(blocks);
+    assertThat(blocks.blockCount()).isEqualTo(0);
+    assertThat(disk.blockCache.blockCount()).isEqualTo(4);
+    List<byte[]> cachedBlocks = new ArrayList<>();
+    for (int i = 0; i < 4; i++) {
+        cachedBlocks.add(disk.blockCache.getBlock(i));
+    }
+    disk.allocate(blocks, 6);
+    assertThat(blocks.blockCount()).isEqualTo(6);
+    assertThat(disk.blockCache.blockCount()).isEqualTo(0);
+    // the last 4 arrays in blocks are the 4 arrays that were cached
+    for (int i = 2; i < 6; i++) {
+        assertThat(blocks.getBlock(i)).isEqualTo(cachedBlocks.get(i - 2));
+    }
+}

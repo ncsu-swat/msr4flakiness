@@ -1,0 +1,18 @@
+@Test
+public void testPaths_relativize() {
+    assertThatPath(path("/foo/bar").relativize(path("/foo/bar/baz"))).isRelative().and().hasNameComponents("baz");
+    assertThatPath(path("/foo/bar/baz").relativize(path("/foo/bar"))).isRelative().and().hasNameComponents("..");
+    assertThatPath(path("/foo/bar/baz").relativize(path("/foo/baz/bar"))).isRelative().and().hasNameComponents("..", "..", "baz", "bar");
+    assertThatPath(path("foo/bar").relativize(path("foo"))).isRelative().and().hasNameComponents("..");
+    assertThatPath(path("foo").relativize(path("foo/bar"))).isRelative().and().hasNameComponents("bar");
+    try {
+        Path unused = path("/foo/bar").relativize(path("bar"));
+        fail();
+    } catch (IllegalArgumentException expected) {
+    }
+    try {
+        Path unused = path("bar").relativize(path("/foo/bar"));
+        fail();
+    } catch (IllegalArgumentException expected) {
+    }
+}

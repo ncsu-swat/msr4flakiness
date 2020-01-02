@@ -1,0 +1,39 @@
+@Test
+public void testWriteFile_withStandardOptions() throws IOException {
+    Path test = path("/test");
+    byte[] bytes = { 0, 1, 2, 3 };
+    try {
+        // CREATE and CREATE_NEW not specified
+        Files.write(test, bytes, WRITE);
+        fail();
+    } catch (NoSuchFileException expected) {
+        assertEquals(test.toString(), expected.getMessage());
+    }
+    // succeeds, file does not exist
+    Files.write(test, bytes, CREATE_NEW);
+    assertThatPath("/test").containsBytes(bytes);
+    try {
+        // CREATE_NEW requires file not exist
+        Files.write(test, bytes, CREATE_NEW);
+        fail();
+    } catch (FileAlreadyExistsException expected) {
+        assertEquals(test.toString(), expected.getMessage());
+    }
+    // succeeds, ok for file to already exist
+    Files.write(test, new byte[] { 4, 5 }, CREATE);
+    // did not truncate or append, so overwrote
+    assertThatPath("/test").containsBytes(4, 5, 2, 3);
+    // default options
+    Files.write(test, bytes, WRITE, CREATE, TRUNCATE_EXISTING);
+    assertThatPath("/test").containsBytes(bytes);
+    Files.write(test, bytes, WRITE, APPEND);
+    assertThatPath("/test").containsBytes(0, 1, 2, 3, 0, 1, 2, 3);
+    Files.write(test, bytes, WRITE, CREATE, TRUNCATE_EXISTING, APPEND, SPARSE, DSYNC, SYNC);
+    assertThatPath("/test").containsBytes(bytes);
+    try {
+        // READ not allowed
+        Files.write(test, bytes, READ, WRITE);
+        fail();
+    } catch (UnsupportedOperationException expected) {
+    }
+}

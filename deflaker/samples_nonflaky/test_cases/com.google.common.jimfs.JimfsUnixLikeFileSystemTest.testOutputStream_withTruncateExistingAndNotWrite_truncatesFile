@@ -1,0 +1,11 @@
+@Test
+public void testOutputStream_withTruncateExistingAndNotWrite_truncatesFile() throws IOException {
+    // https://github.com/google/jimfs/pull/77
+    Path path = path("/test");
+    Files.write(path, new byte[] { 1, 2, 3 });
+    assertThatPath(path).containsBytes(1, 2, 3);
+    try (OutputStream out = Files.newOutputStream(path, CREATE, TRUNCATE_EXISTING)) {
+        out.write(new byte[] { 1, 2 });
+    }
+    assertThatPath(path).containsBytes(1, 2);
+}

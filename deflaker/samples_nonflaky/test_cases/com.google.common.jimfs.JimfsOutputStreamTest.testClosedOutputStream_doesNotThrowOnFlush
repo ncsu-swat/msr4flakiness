@@ -1,0 +1,19 @@
+@Test
+public void testClosedOutputStream_doesNotThrowOnFlush() throws IOException {
+    JimfsOutputStream out = newOutputStream(false);
+    out.close();
+    // does nothing
+    out.flush();
+    try (JimfsOutputStream out2 = newOutputStream(false);
+        BufferedOutputStream bout = new BufferedOutputStream(out2);
+        OutputStreamWriter writer = new OutputStreamWriter(bout, UTF_8)) {
+    /*
+       * This specific scenario is why flush() shouldn't throw when the stream is already closed.
+       * Nesting try-with-resources like this will cause close() to be called on the
+       * BufferedOutputStream multiple times. Each time, BufferedOutputStream will first call
+       * out2.flush(), then call out2.close(). If out2.flush() throws when the stream is already
+       * closed, the second flush() will throw an exception. Prior to JDK8, this exception would be
+       * swallowed and ignored completely; in JDK8, the exception is thrown from close().
+       */
+    }
+}

@@ -1,0 +1,10 @@
+@Test(timeout = 2000)
+public void testWatchForOneEventType() throws IOException, InterruptedException {
+    JimfsPath path = createDirectory();
+    watcher.register(path, ImmutableList.of(ENTRY_CREATE));
+    Files.createFile(path.resolve("foo"));
+    assertWatcherHasEvents(new Event<>(ENTRY_CREATE, 1, fs.getPath("foo")));
+    Files.createFile(path.resolve("bar"));
+    Files.createFile(path.resolve("baz"));
+    assertWatcherHasEvents(new Event<>(ENTRY_CREATE, 1, fs.getPath("bar")), new Event<>(ENTRY_CREATE, 1, fs.getPath("baz")));
+}

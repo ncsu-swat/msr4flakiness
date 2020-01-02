@@ -1,0 +1,62 @@
+@Test
+public void testRegularFileAccessAndModifiedTimeUpdates() throws IOException {
+    Path foo = path("foo");
+    Files.createFile(foo);
+    FileTimeTester tester = new FileTimeTester(foo);
+    tester.assertAccessTimeDidNotChange();
+    tester.assertModifiedTimeDidNotChange();
+    Uninterruptibles.sleepUninterruptibly(1, MILLISECONDS);
+    try (FileChannel channel = FileChannel.open(foo, READ)) {
+        // opening READ channel does not change times
+        tester.assertAccessTimeDidNotChange();
+        tester.assertModifiedTimeDidNotChange();
+        Uninterruptibles.sleepUninterruptibly(1, MILLISECONDS);
+        channel.read(ByteBuffer.allocate(100));
+        // read call on channel does
+        tester.assertAccessTimeChanged();
+        tester.assertModifiedTimeDidNotChange();
+        Uninterruptibles.sleepUninterruptibly(1, MILLISECONDS);
+        channel.read(ByteBuffer.allocate(100));
+        tester.assertAccessTimeChanged();
+        tester.assertModifiedTimeDidNotChange();
+        Uninterruptibles.sleepUninterruptibly(1, MILLISECONDS);
+        try {
+            channel.write(ByteBuffer.wrap(new byte[] { 0, 1, 2, 3 }));
+        } catch (NonWritableChannelException ignore) {
+        }
+        // failed write on non-readable channel does not change times
+        tester.assertAccessTimeDidNotChange();
+        tester.assertModifiedTimeDidNotChange();
+        Uninterruptibles.sleepUninterruptibly(1, MILLISECONDS);
+    }
+    // closing channel does not change times
+    tester.assertAccessTimeDidNotChange();
+    tester.assertModifiedTimeDidNotChange();
+    Uninterruptibles.sleepUninterruptibly(1, MILLISECONDS);
+    try (FileChannel channel = FileChannel.open(foo, WRITE)) {
+        // opening WRITE channel does not change times
+        tester.assertAccessTimeDidNotChange();
+        tester.assertModifiedTimeDidNotChange();
+        Uninterruptibles.sleepUninterruptibly(1, MILLISECONDS);
+        channel.write(ByteBuffer.wrap(new byte[] { 0, 1, 2, 3 }));
+        // write call on channel does
+        tester.assertAccessTimeDidNotChange();
+        tester.assertModifiedTimeChanged();
+        Uninterruptibles.sleepUninterruptibly(1, MILLISECONDS);
+        channel.write(ByteBuffer.wrap(new byte[] { 4, 5, 6, 7 }));
+        tester.assertAccessTimeDidNotChange();
+        tester.assertModifiedTimeChanged();
+        Uninterruptibles.sleepUninterruptibly(1, MILLISECONDS);
+        try {
+            channel.read(ByteBuffer.allocate(100));
+        } catch (NonReadableChannelException ignore) {
+        }
+        // failed read on non-readable channel does not change times
+        tester.assertAccessTimeDidNotChange();
+        tester.assertModifiedTimeDidNotChange();
+        Uninterruptibles.sleepUninterruptibly(1, MILLISECONDS);
+    }
+    // closing channel does not change times
+    tester.assertAccessTimeDidNotChange();
+    tester.assertModifiedTimeDidNotChange();
+}

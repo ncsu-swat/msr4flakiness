@@ -1,0 +1,15 @@
+@Test
+public void testCreateLink_relative() throws IOException {
+    Files.createFile(path("test.txt"));
+    Files.createLink(path("link.txt"), path("test.txt"));
+    // don't assert that the link is the same file here, just that it was created
+    // later tests check that linking works correctly
+    assertThatPath("/work/link.txt", NOFOLLOW_LINKS).isRegularFile();
+    assertThatPath("link.txt", NOFOLLOW_LINKS).isRegularFile();
+    assertThatPath("/work").hasChildren("link.txt", "test.txt");
+    Files.createDirectory(path("foo"));
+    Files.createLink(path("foo/link.txt"), path("test.txt"));
+    assertThatPath("/work/foo/link.txt", NOFOLLOW_LINKS).isRegularFile();
+    assertThatPath("foo/link.txt", NOFOLLOW_LINKS).isRegularFile();
+    assertThatPath("foo").hasChildren("link.txt");
+}

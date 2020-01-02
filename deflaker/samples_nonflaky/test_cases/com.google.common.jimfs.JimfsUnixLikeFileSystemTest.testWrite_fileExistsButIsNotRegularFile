@@ -1,0 +1,20 @@
+@Test
+public void testWrite_fileExistsButIsNotRegularFile() throws IOException {
+    Files.createDirectory(path("/foo"));
+    try {
+        // non-CREATE mode
+        Files.write(path("/foo"), preFilledBytes(10), WRITE);
+        fail();
+    } catch (FileSystemException expected) {
+        assertThat(expected.getFile()).isEqualTo("/foo");
+        assertThat(expected.getMessage()).contains("regular file");
+    }
+    try {
+        // CREATE mode
+        Files.write(path("/foo"), preFilledBytes(10));
+        fail();
+    } catch (FileSystemException expected) {
+        assertThat(expected.getFile()).isEqualTo("/foo");
+        assertThat(expected.getMessage()).contains("regular file");
+    }
+}

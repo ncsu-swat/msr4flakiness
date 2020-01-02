@@ -1,0 +1,15 @@
+@Test
+public void testReadAttributes_asObject() {
+    File file = Directory.create(0);
+    service.setInitialAttributes(file);
+    BasicFileAttributes basicAttrs = service.readAttributes(file, BasicFileAttributes.class);
+    assertThat(basicAttrs.fileKey()).isEqualTo(0);
+    assertThat(basicAttrs.isDirectory()).isTrue();
+    assertThat(basicAttrs.isRegularFile()).isFalse();
+    TestAttributes testAttrs = service.readAttributes(file, TestAttributes.class);
+    assertThat(testAttrs.foo()).isEqualTo("hello");
+    assertThat(testAttrs.bar()).isEqualTo(0);
+    assertThat(testAttrs.baz()).isEqualTo(1);
+    file.setAttribute("test", "baz", 100);
+    assertThat(service.readAttributes(file, TestAttributes.class).baz()).isEqualTo(100);
+}

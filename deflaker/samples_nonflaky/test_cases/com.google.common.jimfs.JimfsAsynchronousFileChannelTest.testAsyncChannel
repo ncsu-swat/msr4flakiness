@@ -1,0 +1,23 @@
+/**
+ * Just tests the main read/write methods... the methods all delegate to the non-async channel
+ * anyway.
+ */
+@Test
+public void testAsyncChannel() throws Throwable {
+    RegularFile file = regularFile(15);
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    JimfsAsynchronousFileChannel channel = channel(file, executor, READ, WRITE);
+    try {
+        assertEquals(15, channel.size());
+        assertSame(channel, channel.truncate(5));
+        assertEquals(5, channel.size());
+        file.write(5, new byte[5], 0, 5);
+        checkAsyncRead(channel);
+        checkAsyncWrite(channel);
+        checkAsyncLock(channel);
+        channel.close();
+        assertFalse(channel.isOpen());
+    } finally {
+        executor.shutdown();
+    }
+}

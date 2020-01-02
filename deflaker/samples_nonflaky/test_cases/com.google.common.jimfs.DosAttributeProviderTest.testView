@@ -1,0 +1,25 @@
+@Test
+public void testView() throws IOException {
+    DosFileAttributeView view = provider.view(fileLookup(), ImmutableMap.<String, FileAttributeView>of("basic", new BasicAttributeProvider().view(fileLookup(), NO_INHERITED_VIEWS)));
+    assertNotNull(view);
+    assertThat(view.name()).isEqualTo("dos");
+    DosFileAttributes attrs = view.readAttributes();
+    assertThat(attrs.isHidden()).isFalse();
+    assertThat(attrs.isArchive()).isFalse();
+    assertThat(attrs.isReadOnly()).isFalse();
+    assertThat(attrs.isSystem()).isFalse();
+    view.setArchive(true);
+    view.setReadOnly(true);
+    view.setHidden(true);
+    view.setSystem(false);
+    assertThat(attrs.isHidden()).isFalse();
+    assertThat(attrs.isArchive()).isFalse();
+    assertThat(attrs.isReadOnly()).isFalse();
+    attrs = view.readAttributes();
+    assertThat(attrs.isHidden()).isTrue();
+    assertThat(attrs.isArchive()).isTrue();
+    assertThat(attrs.isReadOnly()).isTrue();
+    assertThat(attrs.isSystem()).isFalse();
+    view.setTimes(FileTime.fromMillis(0L), null, null);
+    assertThat(view.readAttributes().lastModifiedTime()).isEqualTo(FileTime.fromMillis(0L));
+}

@@ -1,0 +1,24 @@
+@Test
+public void testCopy_withCopyAttributes() throws IOException {
+    Path foo = path("/foo");
+    Files.createFile(foo);
+    Files.getFileAttributeView(foo, BasicFileAttributeView.class).setTimes(FileTime.fromMillis(100), FileTime.fromMillis(1000), FileTime.fromMillis(10000));
+    assertThat(Files.getAttribute(foo, "lastModifiedTime")).isEqualTo(FileTime.fromMillis(100));
+    UserPrincipal zero = fs.getUserPrincipalLookupService().lookupPrincipalByName("zero");
+    Files.setAttribute(foo, "owner:owner", zero);
+    Path bar = path("/bar");
+    Files.copy(foo, bar, COPY_ATTRIBUTES);
+    BasicFileAttributes attributes = Files.readAttributes(bar, BasicFileAttributes.class);
+    assertThat(attributes.lastModifiedTime()).isEqualTo(FileTime.fromMillis(100));
+    assertThat(attributes.lastAccessTime()).isEqualTo(FileTime.fromMillis(1000));
+    assertThat(attributes.creationTime()).isEqualTo(FileTime.fromMillis(10000));
+    assertThat(Files.getAttribute(bar, "owner:owner")).isEqualTo(zero);
+    Path baz = path("/baz");
+    Files.copy(foo, baz);
+    // test that attributes are not copied when COPY_ATTRIBUTES is not specified
+    attributes = Files.readAttributes(baz, BasicFileAttributes.class);
+    assertThat(attributes.lastModifiedTime()).isNotEqualTo(FileTime.fromMillis(100));
+    assertThat(attributes.lastAccessTime()).isNotEqualTo(FileTime.fromMillis(1000));
+    assertThat(attributes.creationTime()).isNotEqualTo(FileTime.fromMillis(10000));
+    assertThat(Files.getAttribute(baz, "owner:owner")).isNotEqualTo(zero);
+}

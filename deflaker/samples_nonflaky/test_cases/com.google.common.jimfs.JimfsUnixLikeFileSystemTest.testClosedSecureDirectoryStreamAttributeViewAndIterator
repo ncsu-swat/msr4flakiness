@@ -1,0 +1,41 @@
+@SuppressWarnings("StreamResourceLeak")
+@Test
+public void testClosedSecureDirectoryStreamAttributeViewAndIterator() throws IOException {
+    Files.createDirectory(path("/foo"));
+    Files.createDirectory(path("/foo/bar"));
+    SecureDirectoryStream<Path> stream = (SecureDirectoryStream<Path>) Files.newDirectoryStream(path("/foo"));
+    Iterator<Path> iter = stream.iterator();
+    BasicFileAttributeView view1 = stream.getFileAttributeView(BasicFileAttributeView.class);
+    BasicFileAttributeView view2 = stream.getFileAttributeView(path("bar"), BasicFileAttributeView.class);
+    try {
+        stream.iterator();
+        fail("expected IllegalStateException");
+    } catch (IllegalStateException expected) {
+    }
+    stream.close();
+    try {
+        iter.next();
+        fail("expected ClosedDirectoryStreamException");
+    } catch (ClosedDirectoryStreamException expected) {
+    }
+    try {
+        view1.readAttributes();
+        fail("expected ClosedDirectoryStreamException");
+    } catch (ClosedDirectoryStreamException expected) {
+    }
+    try {
+        view2.readAttributes();
+        fail("expected ClosedDirectoryStreamException");
+    } catch (ClosedDirectoryStreamException expected) {
+    }
+    try {
+        view1.setTimes(null, null, null);
+        fail("expected ClosedDirectoryStreamException");
+    } catch (ClosedDirectoryStreamException expected) {
+    }
+    try {
+        view2.setTimes(null, null, null);
+        fail("expected ClosedDirectoryStreamException");
+    } catch (ClosedDirectoryStreamException expected) {
+    }
+}

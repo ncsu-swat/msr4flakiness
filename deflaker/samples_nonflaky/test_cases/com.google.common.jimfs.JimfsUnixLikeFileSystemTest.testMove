@@ -1,0 +1,17 @@
+@Test
+public void testMove() throws IOException {
+    byte[] bytes = preFilledBytes(100);
+    Files.write(path("/foo"), bytes);
+    Object fooKey = getFileKey("/foo");
+    Files.move(path("/foo"), path("/bar"));
+    assertThatPath("/foo").doesNotExist();
+    assertThatPath("/bar").containsBytes(bytes).and().attribute("fileKey").is(fooKey);
+    Files.createDirectory(path("/foo"));
+    Files.move(path("/bar"), path("/foo/bar"));
+    assertThatPath("/bar").doesNotExist();
+    assertThatPath("/foo/bar").isRegularFile();
+    Files.move(path("/foo"), path("/baz"));
+    assertThatPath("/foo").doesNotExist();
+    assertThatPath("/baz").isDirectory();
+    assertThatPath("/baz/bar").isRegularFile();
+}

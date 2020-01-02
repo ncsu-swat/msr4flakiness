@@ -1,0 +1,39 @@
+@Test
+public void testCopy_withoutReplaceExisting_failsWhenTargetExists() throws IOException {
+    Files.createFile(path("/bar"));
+    Files.createDirectory(path("/foo"));
+    // dir -> file
+    try {
+        Files.copy(path("/foo"), path("/bar"));
+        fail();
+    } catch (FileAlreadyExistsException expected) {
+        assertEquals("/bar", expected.getMessage());
+    }
+    Files.delete(path("/foo"));
+    Files.createFile(path("/foo"));
+    // file -> file
+    try {
+        Files.copy(path("/foo"), path("/bar"));
+        fail();
+    } catch (FileAlreadyExistsException expected) {
+        assertEquals("/bar", expected.getMessage());
+    }
+    Files.delete(path("/bar"));
+    Files.createDirectory(path("/bar"));
+    // file -> dir
+    try {
+        Files.copy(path("/foo"), path("/bar"));
+        fail();
+    } catch (FileAlreadyExistsException expected) {
+        assertEquals("/bar", expected.getMessage());
+    }
+    Files.delete(path("/foo"));
+    Files.createDirectory(path("/foo"));
+    // dir -> dir
+    try {
+        Files.copy(path("/foo"), path("/bar"));
+        fail();
+    } catch (FileAlreadyExistsException expected) {
+        assertEquals("/bar", expected.getMessage());
+    }
+}

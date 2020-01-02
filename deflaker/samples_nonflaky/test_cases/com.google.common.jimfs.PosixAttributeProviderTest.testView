@@ -1,0 +1,22 @@
+@Test
+public void testView() throws IOException {
+    file.setAttribute("owner", "owner", createUserPrincipal("user"));
+    PosixFileAttributeView view = provider.view(fileLookup(), ImmutableMap.of("basic", new BasicAttributeProvider().view(fileLookup(), NO_INHERITED_VIEWS), "owner", new OwnerAttributeProvider().view(fileLookup(), NO_INHERITED_VIEWS)));
+    assertNotNull(view);
+    assertThat(view.name()).isEqualTo("posix");
+    assertThat(view.getOwner()).isEqualTo(createUserPrincipal("user"));
+    PosixFileAttributes attrs = view.readAttributes();
+    assertThat(attrs.fileKey()).isEqualTo(0);
+    assertThat(attrs.owner()).isEqualTo(createUserPrincipal("user"));
+    assertThat(attrs.group()).isEqualTo(createGroupPrincipal("group"));
+    assertThat(attrs.permissions()).isEqualTo(PosixFilePermissions.fromString("rw-r--r--"));
+    view.setOwner(createUserPrincipal("root"));
+    assertThat(view.getOwner()).isEqualTo(createUserPrincipal("root"));
+    assertThat(file.getAttribute("owner", "owner")).isEqualTo(createUserPrincipal("root"));
+    view.setGroup(createGroupPrincipal("root"));
+    assertThat(view.readAttributes().group()).isEqualTo(createGroupPrincipal("root"));
+    assertThat(file.getAttribute("posix", "group")).isEqualTo(createGroupPrincipal("root"));
+    view.setPermissions(PosixFilePermissions.fromString("rwx------"));
+    assertThat(view.readAttributes().permissions()).isEqualTo(PosixFilePermissions.fromString("rwx------"));
+    assertThat(file.getAttribute("posix", "permissions")).isEqualTo(PosixFilePermissions.fromString("rwx------"));
+}
