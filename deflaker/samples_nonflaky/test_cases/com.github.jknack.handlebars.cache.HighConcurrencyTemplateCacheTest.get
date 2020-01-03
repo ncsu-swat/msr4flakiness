@@ -1,0 +1,14 @@
+@Test
+public void get() throws IOException {
+    ConcurrentMap<TemplateSource, Future<Pair<TemplateSource, Template>>> cache = new ConcurrentHashMap<>();
+    TemplateSource source = new URLTemplateSource("/template.hbs", getClass().getResource("/template.hbs"));
+    Template template = createMock(Template.class);
+    Parser parser = createMock(Parser.class);
+    expect(parser.parse(source)).andReturn(template);
+    replay(parser, template);
+    // 1st call, parse must be call it
+    assertEquals(template, new HighConcurrencyTemplateCache(cache).get(source, parser));
+    // 2nd call, should return from cache
+    assertEquals(template, new HighConcurrencyTemplateCache(cache).get(source, parser));
+    verify(parser, template);
+}

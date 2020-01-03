@@ -1,0 +1,21 @@
+@Test(expected = HandlebarsException.class)
+@SuppressWarnings("unchecked")
+public void hbsException() throws IOException, InterruptedException, ExecutionException {
+    TemplateSource source = createMock(TemplateSource.class);
+    expect(source.filename()).andReturn("filename");
+    expect(source.lastModified()).andReturn(615L);
+    Template template = createMock(Template.class);
+    Future<Pair<TemplateSource, Template>> future = createMock(Future.class);
+    expect(future.get()).andThrow(new ExecutionException(new Exception()));
+    Capture<TemplateSource> keyGet = new Capture<>();
+    Capture<TemplateSource> keyRemove = new Capture<>();
+    ConcurrentMap<TemplateSource, Future<Pair<TemplateSource, Template>>> cache = createMock(ConcurrentMap.class);
+    expect(cache.get(capture(keyGet))).andReturn(future);
+    expect(cache.remove(capture(keyRemove), eq(future))).andReturn(true);
+    Parser parser = createMock(Parser.class);
+    Object[] mocks = { cache, source, future, template };
+    replay(mocks);
+    Template result = new HighConcurrencyTemplateCache(cache).get(source, parser);
+    assertEquals(template, result);
+    verify(mocks);
+}

@@ -1,0 +1,22 @@
+@Test
+public void shouldSupportNestedDecorators() throws IOException {
+    shouldCompileTo("{{#helper}}{{#*decorator}}{{#*nested}}suc{{/nested}}cess{{/decorator}}{{/helper}}", $("helpers", $("helper", new Helper<Object>() {
+
+        @Override
+        public Object apply(final Object context, final Options options) throws IOException {
+            return options.data("run");
+        }
+    }), "decorators", $("decorator", new Decorator() {
+
+        @Override
+        public void apply(final Template fn, final Options options) throws IOException {
+            options.data("run", options.data("nested").toString() + options.fn());
+        }
+    }, "nested", new Decorator() {
+
+        @Override
+        public void apply(final Template fn, final Options options) throws IOException {
+            options.data("nested", options.fn());
+        }
+    })), "success");
+}
