@@ -1,0 +1,19 @@
+@Test
+@AjpIgnore
+public void testLotsOfHeadersInRequest_Default_Ok() throws IOException {
+    TestHttpClient client = new TestHttpClient();
+    try {
+        HttpGet get = new HttpGet(DefaultServer.getDefaultServerURL() + "/path");
+        for (int i = 0; i < getDefaultMaxHeaders(); ++i) {
+            get.addHeader(HEADER + i, MESSAGE + i);
+        }
+        HttpResponse result = client.execute(get);
+        Assert.assertEquals(StatusCodes.OK, result.getStatusLine().getStatusCode());
+        for (int i = 0; i < getDefaultMaxHeaders(); ++i) {
+            Header[] header = result.getHeaders(HEADER + i);
+            Assert.assertEquals(MESSAGE + i, header[0].getValue());
+        }
+    } finally {
+        client.getConnectionManager().shutdown();
+    }
+}

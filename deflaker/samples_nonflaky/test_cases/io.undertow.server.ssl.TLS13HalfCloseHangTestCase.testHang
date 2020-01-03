@@ -1,0 +1,20 @@
+@Test
+public void testHang() throws IOException, GeneralSecurityException, InterruptedException {
+    SSLContext clientSslContext = null;
+    try {
+        clientSslContext = DefaultServer.createClientSslContext("TLSv1.3");
+    } catch (Throwable e) {
+        // Don't try to run test if TLS 1.3 is not supported
+        Assume.assumeNoException(e);
+    }
+    Undertow server = Undertow.builder().addHttpsListener(0, "localhost", DefaultServer.getServerSslContext()).setHandler((exchange) -> {
+        exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "text/plain");
+        exchange.getResponseSender().send("Hello World!\n");
+    }).setSocketOption(Options.SSL_ENABLED_PROTOCOLS, Sequence.of("TLSv1.3")).setIoThreads(1).setWorkerThreads(1).build();
+    server.start();
+    InetSocketAddress address = (InetSocketAddress) server.getListenerInfo().get(0).getAddress();
+    String uri = "https://localhost:" + address.getPort() + "/foo";
+    doRequest(clientSslContext, address);
+    doRequest(clientSslContext, address);
+    server.stop();
+}

@@ -1,0 +1,18 @@
+@Test
+public void testSimpleJSONObjectInRequestCookies() {
+    // allowEqualInValue and allowHttpSepartorsV0 needs to be enabled to handle this cookie
+    // Also, commaIsSeperator needs to be set to false
+    Map<String, Cookie> cookies = Cookies.parseRequestCookies(2, true, Arrays.asList("CUSTOMER={\"v1\":1, \"id\":\"some_unique_id\", \"c\":\"http://www.google.com?q=love me\"};" + " $Domain=LOONEY_TUNES; $Version=1; $Path=/; SHIPPING=FEDEX"), false, true);
+    Cookie cookie = cookies.get("CUSTOMER");
+    Assert.assertEquals("CUSTOMER", cookie.getName());
+    Assert.assertEquals("{\"v1\":1, \"id\":\"some_unique_id\", \"c\":\"http://www.google.com?q=love me\"}", cookie.getValue());
+    Assert.assertEquals("LOONEY_TUNES", cookie.getDomain());
+    Assert.assertEquals(1, cookie.getVersion());
+    Assert.assertEquals("/", cookie.getPath());
+    cookie = cookies.get("SHIPPING");
+    Assert.assertEquals("SHIPPING", cookie.getName());
+    Assert.assertEquals("FEDEX", cookie.getValue());
+    Assert.assertEquals("LOONEY_TUNES", cookie.getDomain());
+    Assert.assertEquals(1, cookie.getVersion());
+    Assert.assertEquals("/", cookie.getPath());
+}

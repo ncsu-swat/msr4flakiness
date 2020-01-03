@@ -1,0 +1,24 @@
+@Test
+public void testSyncTransfer() throws Exception {
+    StringBuilder sb = new StringBuilder(TXS);
+    for (int i = 0; i < TXS; ++i) {
+        sb.append("a");
+    }
+    HttpGet get = new HttpGet(DefaultServer.getDefaultServerURL() + "/transfer?blocking=true");
+    TestHttpClient client = new TestHttpClient();
+    try {
+        HttpResponse result = client.execute(get);
+        Assert.assertEquals(StatusCodes.OK, result.getStatusLine().getStatusCode());
+        Path file = Paths.get(SenderTestCase.class.getResource(SenderTestCase.class.getSimpleName() + ".class").toURI());
+        long length = Files.size(file);
+        byte[] data = new byte[(int) length * TXS];
+        for (int i = 0; i < TXS; i++) {
+            try (DataInputStream is = new DataInputStream(Files.newInputStream(file))) {
+                is.readFully(data, (int) (i * length), (int) length);
+            }
+        }
+        Assert.assertArrayEquals(data, HttpClientUtils.readRawResponse(result));
+    } finally {
+        client.getConnectionManager().shutdown();
+    }
+}

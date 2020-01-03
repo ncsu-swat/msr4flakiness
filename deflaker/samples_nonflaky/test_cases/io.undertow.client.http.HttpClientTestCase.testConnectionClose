@@ -1,0 +1,20 @@
+@Test
+public void testConnectionClose() throws Exception {
+    // 
+    final UndertowClient client = createClient();
+    final CountDownLatch latch = new CountDownLatch(1);
+    final ClientConnection connection = client.connect(ADDRESS, worker, DefaultServer.getBufferPool(), OptionMap.EMPTY).get();
+    try {
+        ClientRequest request = new ClientRequest().setPath(MESSAGE).setMethod(Methods.GET);
+        request.getRequestHeaders().put(Headers.HOST, DefaultServer.getHostAddress());
+        final List<ClientResponse> responses = new CopyOnWriteArrayList<>();
+        request.getRequestHeaders().add(Headers.CONNECTION, Headers.CLOSE.toString());
+        connection.sendRequest(request, createClientCallback(responses, latch));
+        latch.await();
+        final ClientResponse response = responses.iterator().next();
+        Assert.assertEquals(message, response.getAttachment(RESPONSE_BODY));
+        Assert.assertEquals(false, connection.isOpen());
+    } finally {
+        IoUtils.safeClose(connection);
+    }
+}

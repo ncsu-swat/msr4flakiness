@@ -1,0 +1,15 @@
+@Test
+public void testETagFunction() throws Exception {
+    final String fileName = "page.html";
+    final Path rootPath = Paths.get(getClass().getResource(fileName).toURI()).getParent();
+    final ResourceManager resourceManager = PathResourceManager.builder().setBase(rootPath).setETagFunction(new PathResourceManager.ETagFunction() {
+
+        @Override
+        public ETag generate(Path path) {
+            return new ETag(true, path.getFileName().toString());
+        }
+    }).build();
+    ETag expected = new ETag(true, fileName);
+    ETag actual = resourceManager.getResource("page.html").getETag();
+    Assert.assertEquals(expected, actual);
+}

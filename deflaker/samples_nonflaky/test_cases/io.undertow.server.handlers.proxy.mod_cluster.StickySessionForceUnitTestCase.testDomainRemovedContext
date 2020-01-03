@@ -1,0 +1,16 @@
+@Test
+public void testDomainRemovedContext() throws IOException {
+    // Test failover in the same domain
+    final NodeTestConfig config1 = server1.clone().setDomain("domain1");
+    final NodeTestConfig config2 = server2.clone().setDomain("domain1");
+    registerNodes(true, config1, config2);
+    modClusterClient.enableApp(server1.getJvmRoute(), SESSION);
+    modClusterClient.enableApp(server2.getJvmRoute(), SESSION);
+    final String response = checkGet("/session", StatusCodes.OK);
+    if (response.startsWith(server1.getJvmRoute())) {
+        modClusterClient.removeApp(server1.getJvmRoute(), SESSION);
+    } else {
+        modClusterClient.removeApp(server2.getJvmRoute(), SESSION);
+    }
+    checkGet("/session", StatusCodes.OK);
+}

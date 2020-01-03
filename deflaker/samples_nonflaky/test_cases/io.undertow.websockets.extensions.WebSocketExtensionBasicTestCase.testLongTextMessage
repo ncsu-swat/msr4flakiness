@@ -1,0 +1,52 @@
+@Test
+public void testLongTextMessage() throws Exception {
+    XnioWorker client;
+    Xnio xnio = Xnio.getInstance(WebSocketExtensionBasicTestCase.class.getClassLoader());
+    client = xnio.createWorker(OptionMap.builder().set(Options.WORKER_IO_THREADS, 2).set(Options.CONNECTION_HIGH_WATER, 1000000).set(Options.CONNECTION_LOW_WATER, 1000000).set(Options.WORKER_TASK_CORE_THREADS, 30).set(Options.WORKER_TASK_MAX_THREADS, 30).set(Options.TCP_NODELAY, true).set(Options.CORK, true).getMap());
+    WebSocketProtocolHandshakeHandler handler = webSocketDebugHandler().addExtension(new PerMessageDeflateHandshake());
+    DebugExtensionsHeaderHandler debug = new DebugExtensionsHeaderHandler(handler);
+    DefaultServer.setRootHandler(path().addPrefixPath("/", debug));
+    final String SEC_WEBSOCKET_EXTENSIONS = "permessage-deflate; client_no_context_takeover; client_max_window_bits";
+    List<WebSocketExtension> extensionsList = WebSocketExtension.parse(SEC_WEBSOCKET_EXTENSIONS);
+    final WebSocketClientNegotiation negotiation = new WebSocketClientNegotiation(null, extensionsList);
+    Set<ExtensionHandshake> extensionHandshakes = new HashSet<>();
+    extensionHandshakes.add(new PerMessageDeflateHandshake(true));
+    final WebSocketChannel clientChannel = WebSocketClient.connect(client, null, DefaultServer.getBufferPool(), OptionMap.EMPTY, new URI(DefaultServer.getDefaultServerURL()), WebSocketVersion.V13, negotiation, extensionHandshakes).get();
+    final CountDownLatch latch = new CountDownLatch(1);
+    final AtomicReference<String> result = new AtomicReference<>();
+    clientChannel.getReceiveSetter().set(new AbstractReceiveListener() {
+
+        @Override
+        protected void onFullTextMessage(WebSocketChannel channel, BufferedTextMessage message) throws IOException {
+            String data = message.getData();
+            // WebSocketLogger.ROOT_LOGGER.info("onFullTextMessage() - Client - Received: " + data.getBytes().length + " bytes.");
+            result.set(data);
+            latch.countDown();
+        }
+
+        @Override
+        protected void onFullCloseMessage(WebSocketChannel channel, BufferedBinaryMessage message) throws IOException {
+            message.getData().close();
+            WebSocketLogger.ROOT_LOGGER.info("onFullCloseMessage");
+        }
+
+        @Override
+        protected void onError(WebSocketChannel channel, Throwable error) {
+            WebSocketLogger.ROOT_LOGGER.info("onError");
+            super.onError(channel, error);
+            error.printStackTrace();
+            latch.countDown();
+        }
+    });
+    clientChannel.resumeReceives();
+    int LONG_MSG = 125 * 1024;
+    StringBuilder longMsg = new StringBuilder(LONG_MSG);
+    for (int i = 0; i < LONG_MSG; i++) {
+        longMsg.append(Integer.toString(i).charAt(0));
+    }
+    WebSockets.sendTextBlocking(longMsg.toString(), clientChannel);
+    latch.await(300, TimeUnit.SECONDS);
+    Assert.assertEquals(longMsg.toString(), result.get());
+    clientChannel.sendClose();
+    client.shutdown();
+}

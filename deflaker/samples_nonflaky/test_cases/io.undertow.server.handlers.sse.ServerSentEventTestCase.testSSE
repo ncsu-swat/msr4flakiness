@@ -1,0 +1,44 @@
+@Test
+public void testSSE() throws IOException {
+    TestHttpClient client = new TestHttpClient();
+    try {
+        DefaultServer.setRootHandler(new ServerSentEventHandler(new ServerSentEventConnectionCallback() {
+
+            @Override
+            public void connected(ServerSentEventConnection connection, String lastEventId) {
+                connection.send("msg 1", new ServerSentEventConnection.EventCallback() {
+
+                    @Override
+                    public void done(ServerSentEventConnection connection, String data, String event, String id) {
+                        connection.send("msg\n2", new ServerSentEventConnection.EventCallback() {
+
+                            @Override
+                            public void done(ServerSentEventConnection connection, String data, String event, String id) {
+                                connection.shutdown();
+                            }
+
+                            @Override
+                            public void failed(ServerSentEventConnection connection, String data, String event, String id, IOException e) {
+                                e.printStackTrace();
+                                IoUtils.safeClose(connection);
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void failed(ServerSentEventConnection connection, String data, String event, String id, IOException e) {
+                        e.printStackTrace();
+                        IoUtils.safeClose(connection);
+                    }
+                });
+            }
+        }));
+        HttpGet get = new HttpGet(DefaultServer.getDefaultServerURL() + "/");
+        HttpResponse result = client.execute(get);
+        Assert.assertEquals(StatusCodes.OK, result.getStatusLine().getStatusCode());
+        final String response = HttpClientUtils.readResponse(result);
+        Assert.assertEquals("data:msg 1\n\ndata:msg\ndata:2\n\n", response);
+    } finally {
+        client.getConnectionManager().shutdown();
+    }
+}

@@ -1,0 +1,11 @@
+@Test
+public void testCloseMayBeInvokedMultipleTimesWhenObjectIsRecycled() {
+    AtomicInteger recycled = new AtomicInteger();
+    AtomicInteger destroyed = new AtomicInteger();
+    SimpleObjectPool<Object> pool = new SimpleObjectPool<>(1, Object::new, obj -> recycled.incrementAndGet(), obj -> destroyed.incrementAndGet());
+    PooledObject<Object> pooled = pool.allocate();
+    pooled.close();
+    pooled.close();
+    assertEquals("Pooled object should only be recycled once", 1, recycled.get());
+    assertEquals("Pooled object should be queued for reuse, not destroyed", 0, destroyed.get());
+}

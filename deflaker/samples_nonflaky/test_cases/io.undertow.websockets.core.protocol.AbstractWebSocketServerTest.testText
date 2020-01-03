@@ -1,0 +1,34 @@
+@Test
+public void testText() throws Exception {
+    if (getVersion() == WebSocketVersion.V00) {
+        // ignore 00 tests for now
+        return;
+    }
+    final AtomicBoolean connected = new AtomicBoolean(false);
+    DefaultServer.setRootHandler(new WebSocketProtocolHandshakeHandler(new WebSocketConnectionCallback() {
+
+        @Override
+        public void onConnect(final WebSocketHttpExchange exchange, final WebSocketChannel channel) {
+            connected.set(true);
+            channel.getReceiveSetter().set(new AbstractReceiveListener() {
+
+                @Override
+                protected void onFullTextMessage(WebSocketChannel channel, BufferedTextMessage message) throws IOException {
+                    String string = message.getData();
+                    if (string.equals("hello")) {
+                        WebSockets.sendText("world", channel, null);
+                    } else {
+                        WebSockets.sendText(string, channel, null);
+                    }
+                }
+            });
+            channel.resumeReceives();
+        }
+    }));
+    final FutureResult<?> latch = new FutureResult();
+    WebSocketTestClient client = new WebSocketTestClient(getVersion(), new URI("ws://" + NetworkUtils.formatPossibleIpv6Address(DefaultServer.getHostAddress("default")) + ":" + DefaultServer.getHostPort("default") + "/"));
+    client.connect();
+    client.send(new TextWebSocketFrame(Unpooled.copiedBuffer("hello", CharsetUtil.US_ASCII)), new FrameChecker(TextWebSocketFrame.class, "world".getBytes(CharsetUtil.US_ASCII), latch));
+    latch.getIoFuture().get();
+    client.destroy();
+}

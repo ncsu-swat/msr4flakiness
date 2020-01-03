@@ -1,0 +1,24 @@
+@Test
+public void testClientCertSuccessWithLargePostBody() throws Exception {
+    PooledByteBuffer buf = DefaultServer.getBufferPool().allocate();
+    int requestSize = buf.getBuffer().limit() - 1;
+    buf.close();
+    final StringBuilder messageBuilder = new StringBuilder(requestSize);
+    for (int i = 0; i < requestSize; ++i) {
+        messageBuilder.append("*");
+    }
+    TestHttpClient client = new TestHttpClient();
+    client.setSSLContext(clientSSLContext);
+    HttpPost post = new HttpPost(DefaultServer.getDefaultServerSSLAddress());
+    post.setEntity(new StringEntity(messageBuilder.toString()));
+    HttpResponse result = client.execute(post);
+    assertEquals(StatusCodes.OK, result.getStatusLine().getStatusCode());
+    Header[] values = result.getHeaders("ProcessedBy");
+    assertEquals("ProcessedBy Headers", 1, values.length);
+    assertEquals("ResponseHandler", values[0].getValue());
+    values = result.getHeaders("AuthenticatedUser");
+    assertEquals("AuthenticatedUser Headers", 1, values.length);
+    assertEquals("CN=Test Client,OU=OU,O=Org,L=City,ST=State,C=GB", values[0].getValue());
+    HttpClientUtils.readResponse(result);
+    assertSingleNotificationType(EventType.AUTHENTICATED);
+}

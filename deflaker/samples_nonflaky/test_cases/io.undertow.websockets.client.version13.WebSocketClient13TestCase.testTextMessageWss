@@ -1,0 +1,32 @@
+@Test
+public void testTextMessageWss() throws Exception {
+    UndertowXnioSsl ssl = new UndertowXnioSsl(Xnio.getInstance(), OptionMap.EMPTY, DefaultServer.getClientSSLContext());
+    final WebSocketClient.ConnectionBuilder connectionBuilder = WebSocketClient.connectionBuilder(worker, DefaultServer.getBufferPool(), new URI("wss://" + DefaultServer.getHostAddress("default") + ":" + DefaultServer.getHostSSLPort("default"))).setSsl(ssl);
+    IoFuture<WebSocketChannel> future = connectionBuilder.connect();
+    future.await(4, TimeUnit.SECONDS);
+    final WebSocketChannel webSocketChannel = future.get();
+    final CountDownLatch latch = new CountDownLatch(1);
+    final AtomicReference<String> result = new AtomicReference<>();
+    webSocketChannel.getReceiveSetter().set(new AbstractReceiveListener() {
+
+        @Override
+        protected void onFullTextMessage(WebSocketChannel channel, BufferedTextMessage message) throws IOException {
+            String data = message.getData();
+            result.set(data);
+            latch.countDown();
+        }
+
+        @Override
+        protected void onError(WebSocketChannel channel, Throwable error) {
+            super.onError(channel, error);
+            error.printStackTrace();
+            latch.countDown();
+        }
+    });
+    webSocketChannel.resumeReceives();
+    StreamSinkFrameChannel sendChannel = webSocketChannel.send(WebSocketFrameType.TEXT);
+    new StringWriteChannelListener("Hello World").setup(sendChannel);
+    latch.await(10, TimeUnit.SECONDS);
+    Assert.assertEquals("Hello World", result.get());
+    webSocketChannel.sendClose();
+}

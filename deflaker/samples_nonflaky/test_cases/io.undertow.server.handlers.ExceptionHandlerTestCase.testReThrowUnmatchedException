@@ -1,0 +1,22 @@
+@Test
+public void testReThrowUnmatchedException() throws IOException {
+    HttpHandler pathHandler = Handlers.path().addExactPath("/", new HttpHandler() {
+
+        @Override
+        public void handleRequest(HttpServerExchange exchange) throws Exception {
+            throw new IllegalArgumentException();
+        }
+    });
+    // intentionally not adding any exception handlers
+    final HttpHandler exceptionHandler = Handlers.exceptionHandler(pathHandler);
+    DefaultServer.setRootHandler(exceptionHandler);
+    TestHttpClient client = new TestHttpClient();
+    try {
+        HttpGet get = new HttpGet(DefaultServer.getDefaultServerURL() + "/");
+        HttpResponse result = client.execute(get);
+        Assert.assertEquals(StatusCodes.INTERNAL_SERVER_ERROR, result.getStatusLine().getStatusCode());
+        HttpClientUtils.readResponse(result);
+    } finally {
+        client.getConnectionManager().shutdown();
+    }
+}

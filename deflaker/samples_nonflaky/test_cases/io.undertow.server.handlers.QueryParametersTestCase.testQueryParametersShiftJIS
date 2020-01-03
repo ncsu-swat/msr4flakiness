@@ -1,0 +1,16 @@
+@Test
+@ProxyIgnore
+public void testQueryParametersShiftJIS() throws IOException {
+    OptionMap old = DefaultServer.getUndertowOptions();
+    try {
+        DefaultServer.setUndertowOptions(OptionMap.create(UndertowOptions.URL_CHARSET, "Shift_JIS"));
+        TestHttpClient client = new TestHttpClient();
+        try {
+            runTest(client, "{unicode=>テスト}", "/path?unicode=%83e%83X%83g");
+        } finally {
+            client.getConnectionManager().shutdown();
+        }
+    } finally {
+        DefaultServer.setUndertowOptions(old);
+    }
+}

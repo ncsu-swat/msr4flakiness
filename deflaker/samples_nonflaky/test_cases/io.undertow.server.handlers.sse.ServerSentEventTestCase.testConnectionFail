@@ -1,0 +1,46 @@
+@Test
+public void testConnectionFail() throws IOException, InterruptedException {
+    final Socket socket = new Socket(DefaultServer.getHostAddress("default"), DefaultServer.getHostPort("default"));
+    final CountDownLatch latch = new CountDownLatch(1);
+    final CountDownLatch connected = new CountDownLatch(1);
+    DefaultServer.setRootHandler(new ServerSentEventHandler(new ServerSentEventConnectionCallback() {
+
+        @Override
+        public void connected(final ServerSentEventConnection connection, final String lastEventId) {
+            final XnioIoThread thread = (XnioIoThread) Thread.currentThread();
+            connected.countDown();
+            thread.execute(new Runnable() {
+
+                @Override
+                public void run() {
+                    connection.send("hello", new ServerSentEventConnection.EventCallback() {
+
+                        @Override
+                        public void done(ServerSentEventConnection connection, String data, String event, String id) {
+                        }
+
+                        @Override
+                        public void failed(ServerSentEventConnection connection, String data, String event, String id, IOException e) {
+                            latch.countDown();
+                        }
+                    });
+                    if (latch.getCount() > 0) {
+                        WorkerUtils.executeAfter(thread, this, 100, TimeUnit.MILLISECONDS);
+                    }
+                }
+            });
+        }
+    }));
+    InputStream in = socket.getInputStream();
+    OutputStream out = socket.getOutputStream();
+    out.write(("GET / HTTP/1.1\r\nHost:" + DefaultServer.getHostAddress() + "\r\n\r\n").getBytes());
+    out.flush();
+    if (!connected.await(10, TimeUnit.SECONDS)) {
+        Assert.fail();
+    }
+    out.close();
+    in.close();
+    if (!latch.await(10, TimeUnit.SECONDS)) {
+        Assert.fail();
+    }
+}

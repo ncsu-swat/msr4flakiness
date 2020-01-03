@@ -1,0 +1,26 @@
+@Test
+public void testModJkLikeRouteParsing() {
+    // Disabled sticky sessions on the load balancer
+    Iterator<CharSequence> ri = new RouteIteratorFactory(NONE, MOD_JK).iterator("mKaJwtWjqgxFbSSlaKZeGly_RMPKCg13JXe-6R_h.node1.domain");
+    Assert.assertFalse(ri.hasNext());
+    // Default behavior
+    ri = new RouteIteratorFactory(SINGLE, MOD_JK).iterator("mKaJwtWjqgxFbSSlaKZeGly_RMPKCg13JXe-6R_h");
+    Assert.assertFalse(ri.hasNext());
+    // No ranked routing support taking as route only between first "." and second "."
+    ri = new RouteIteratorFactory(SINGLE, MOD_JK).iterator("mKaJwtWjqgxFbSSlaKZeGly_RMPKCg13JXe-6R_h.node1.domain1.something");
+    Assert.assertTrue(ri.hasNext());
+    Assert.assertEquals("node1", ri.next().toString());
+    Assert.assertFalse(ri.hasNext());
+    // Ranked routing support but no route given
+    ri = new RouteIteratorFactory(RANKED, MOD_JK, ".").iterator("mKaJwtWjqgxFbSSlaKZeGly_RMPKCg13JXe-6R_h");
+    Assert.assertFalse(ri.hasNext());
+    // Multi-route support with the same character delimiter as sessionID delimiter '.' -- overriding domain support parsing
+    ri = new RouteIteratorFactory(RANKED, MOD_JK, ".").iterator("mKaJwtWjqgxFbSSlaKZeGly_RMPKCg13JXe-6R_h.node1.node2.node3");
+    Assert.assertTrue(ri.hasNext());
+    Assert.assertEquals("node1", ri.next().toString());
+    Assert.assertTrue(ri.hasNext());
+    Assert.assertEquals("node2", ri.next().toString());
+    Assert.assertTrue(ri.hasNext());
+    Assert.assertEquals("node3", ri.next().toString());
+    Assert.assertFalse(ri.hasNext());
+}

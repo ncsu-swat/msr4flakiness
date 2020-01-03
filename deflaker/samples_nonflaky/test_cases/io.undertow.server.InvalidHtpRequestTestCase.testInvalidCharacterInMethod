@@ -1,0 +1,26 @@
+@Test
+public void testInvalidCharacterInMethod() throws IOException {
+    final TestHttpClient client = new TestHttpClient();
+    try {
+        HttpRequestBase method = new HttpRequestBase() {
+
+            @Override
+            public String getMethod() {
+                return "GET;POST";
+            }
+
+            @Override
+            public URI getURI() {
+                try {
+                    return new URI(DefaultServer.getDefaultServerURL());
+                } catch (URISyntaxException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        };
+        HttpResponse result = client.execute(method);
+        Assert.assertEquals(StatusCodes.BAD_REQUEST, result.getStatusLine().getStatusCode());
+    } finally {
+        client.getConnectionManager().shutdown();
+    }
+}

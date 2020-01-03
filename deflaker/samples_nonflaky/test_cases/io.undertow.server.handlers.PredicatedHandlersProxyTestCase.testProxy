@@ -1,0 +1,21 @@
+@Test
+public void testProxy() throws Exception {
+    TestHttpClient client = new TestHttpClient();
+    int port = getHostPort("default");
+    String upstreamUrl = "http://" + NetworkUtils.formatPossibleIpv6Address(getHostAddress("default")) + ":" + (port + 1);
+    DefaultServer.setRootHandler(Handlers.predicates(PredicatedHandlersParser.parse(String.format("path-suffix['.html'] -> reverse-proxy[hosts={'%1$s'}, rewrite-host-header=true]\n" + "path-suffix['.jsp'] -> reverse-proxy[hosts={'%1$s'}]", upstreamUrl), getClass().getClassLoader()), ResponseCodeHandler.HANDLE_404));
+    HttpGet get = new HttpGet(DefaultServer.getDefaultServerURL() + "/foo.html");
+    get.addHeader("Host", "original-host");
+    HttpResponse result = client.execute(get);
+    Assert.assertEquals(StatusCodes.OK, result.getStatusLine().getStatusCode());
+    Header[] header = result.getHeaders("myHost");
+    Assert.assertEquals("upstream-host", header[0].getValue());
+    HttpClientUtils.readResponse(result);
+    get = new HttpGet(DefaultServer.getDefaultServerURL() + "/foo.jsp");
+    get.addHeader("Host", "original-host");
+    result = client.execute(get);
+    Assert.assertEquals(StatusCodes.OK, result.getStatusLine().getStatusCode());
+    header = result.getHeaders("myHost");
+    Assert.assertEquals("original-host", header[0].getValue());
+    HttpClientUtils.readResponse(result);
+}

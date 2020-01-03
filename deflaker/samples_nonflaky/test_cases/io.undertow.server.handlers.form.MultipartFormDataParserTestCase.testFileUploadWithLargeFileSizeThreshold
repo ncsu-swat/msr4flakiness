@@ -1,0 +1,21 @@
+@Test
+public void testFileUploadWithLargeFileSizeThreshold() throws Exception {
+    DefaultServer.setRootHandler(new BlockingHandler(createInMemoryReadingHandler(10_000)));
+    TestHttpClient client = new TestHttpClient();
+    try {
+        HttpPost post = new HttpPost(DefaultServer.getDefaultServerURL() + "/path");
+        MultipartEntity entity = new MultipartEntity(HttpMultipartMode.BROWSER_COMPATIBLE);
+        entity.addPart("formValue", new StringBody("myValue", "text/plain", StandardCharsets.UTF_8));
+        entity.addPart("file", new FileBody(new File(MultipartFormDataParserTestCase.class.getResource("uploadfile.txt").getFile())));
+        post.setEntity(entity);
+        HttpResponse result = client.execute(post);
+        Assert.assertEquals(StatusCodes.OK, result.getStatusLine().getStatusCode());
+        String resp = HttpClientUtils.readResponse(result);
+        Map<String, String> parsedResponse = parse(resp);
+        Assert.assertEquals("true", parsedResponse.get("in_memory"));
+        Assert.assertEquals("uploadfile.txt", parsedResponse.get("file_name"));
+        Assert.assertEquals(DigestUtils.md5Hex(new FileInputStream(new File(MultipartFormDataParserTestCase.class.getResource("uploadfile.txt").getFile()))), parsedResponse.get("hash"));
+    } finally {
+        client.getConnectionManager().shutdown();
+    }
+}

@@ -1,0 +1,19 @@
+@Test
+public void testCreateSymlinks() throws IOException, URISyntaxException {
+    Path rootPath = Paths.get(getClass().getResource("page.html").toURI()).getParent();
+    Path newDir = rootPath.resolve("newDir");
+    Assert.assertFalse(Files.isSymbolicLink(newDir));
+    Path innerDir = newDir.resolve("innerDir");
+    Assert.assertFalse(Files.isSymbolicLink(innerDir));
+    Path newSymlink = rootPath.resolve("newSymlink");
+    Assert.assertTrue(Files.isSymbolicLink(newSymlink));
+    Path innerSymlink = newSymlink.resolve("innerSymlink");
+    Assert.assertTrue(Files.isSymbolicLink(innerSymlink));
+    Path f = innerSymlink.getRoot();
+    for (int i = 0; i < innerSymlink.getNameCount(); i++) {
+        f = f.resolve(innerSymlink.getName(i).toString());
+        System.out.println(f + " " + Files.isSymbolicLink(f));
+    }
+    f = f.resolve(".");
+    System.out.println(f + " " + Files.isSymbolicLink(f));
+}

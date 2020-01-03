@@ -1,0 +1,18 @@
+@Test
+public void testQuotedEscapedStringInRequestCookie() {
+    Map<String, Cookie> cookies = Cookies.parseRequestCookies(3, false, Arrays.asList("Customer=\"WILE_\\\"E_\\\"COYOTE\"; $Version=\"1\"; $Path=\"/acme\";" + " SHIPPING=\"FEDEX\\\\\"; foo=\"\\\""));
+    Cookie cookie = cookies.get("Customer");
+    Assert.assertEquals("Customer", cookie.getName());
+    // backslash escapled double quotes in the value
+    Assert.assertEquals("WILE_\"E_\"COYOTE", cookie.getValue());
+    Assert.assertEquals("/acme", cookie.getPath());
+    Assert.assertEquals(1, cookie.getVersion());
+    cookie = cookies.get("SHIPPING");
+    Assert.assertEquals("SHIPPING", cookie.getName());
+    // backslash escapled backslash in the value
+    Assert.assertEquals("FEDEX\\\\", cookie.getValue());
+    cookie = cookies.get("foo");
+    Assert.assertEquals("foo", cookie.getName());
+    // unescaped backslash exists at the last of the value
+    Assert.assertEquals("\\", cookie.getValue());
+}

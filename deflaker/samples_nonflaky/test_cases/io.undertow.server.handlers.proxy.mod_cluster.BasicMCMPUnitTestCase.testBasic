@@ -1,0 +1,25 @@
+@Test
+public void testBasic() throws IOException {
+    registerNodes(false, server1, server2);
+    modClusterClient.updateLoad("s1", 100);
+    modClusterClient.updateLoad("s2", 1);
+    modClusterClient.enableApp("s1", "/name", "localhost", "localhost:7777");
+    modClusterClient.enableApp("s1", "/session", "localhost", "localhost:7777");
+    modClusterClient.enableApp("s2", "/name", "localhost", "localhost:7777");
+    modClusterClient.enableApp("s2", "/session", "localhost", "localhost:7777");
+    // Ping
+    modClusterClient.updateLoad("s1", -2);
+    modClusterClient.updateLoad("s2", -2);
+    for (int i = 0; i < 10; i++) {
+        HttpGet get = get("/name");
+        HttpResponse result = httpClient.execute(get);
+        Assert.assertEquals(StatusCodes.OK, result.getStatusLine().getStatusCode());
+        HttpClientUtils.readResponse(result);
+    }
+    for (int i = 0; i < 10; i++) {
+        HttpGet get = get("/session");
+        HttpResponse result = httpClient.execute(get);
+        Assert.assertEquals(StatusCodes.OK, result.getStatusLine().getStatusCode());
+        HttpClientUtils.readResponse(result);
+    }
+}

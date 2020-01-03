@@ -1,0 +1,17 @@
+@Test
+public void testHeadRequest() throws IOException, URISyntaxException {
+    TestHttpClient client = new TestHttpClient();
+    Path file = Paths.get(getClass().getResource("page.html").toURI());
+    Path rootPath = file.getParent();
+    try {
+        DefaultServer.setRootHandler(new CanonicalPathHandler().setNext(new PathHandler().addPrefixPath("/path", new ResourceHandler(new PathResourceManager(rootPath, 10485760)).setDirectoryListingEnabled(true))));
+        HttpHead get = new HttpHead(DefaultServer.getDefaultServerURL() + "/path/page.html");
+        HttpResponse result = client.execute(get);
+        Assert.assertEquals(StatusCodes.OK, result.getStatusLine().getStatusCode());
+        Assert.assertEquals(Long.toString(Files.size(file)), result.getHeaders(Headers.CONTENT_LENGTH_STRING)[0].getValue());
+        Header[] headers = result.getHeaders("Content-Type");
+        Assert.assertEquals("text/html", headers[0].getValue());
+    } finally {
+        client.getConnectionManager().shutdown();
+    }
+}

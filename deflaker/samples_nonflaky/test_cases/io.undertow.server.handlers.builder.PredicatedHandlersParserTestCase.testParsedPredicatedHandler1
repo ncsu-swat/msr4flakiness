@@ -1,0 +1,27 @@
+@Test
+public void testParsedPredicatedHandler1() {
+    String value = "contains(value='a', search=b) -> dump-request";
+    List<PredicatedHandler> ret = PredicatedHandlersParser.parse(value, getClass().getClassLoader());
+    Assert.assertEquals(1, ret.size());
+    HttpHandler handler = ret.get(0).getHandler().wrap(ResponseCodeHandler.HANDLE_200);
+    Assert.assertTrue(handler instanceof RequestDumpingHandler);
+    ContainsPredicate predicate = (ContainsPredicate) ret.get(0).getPredicate();
+    Assert.assertEquals("a", predicate.getAttribute().readAttribute(null));
+    Assert.assertArrayEquals(new String[] { "b" }, predicate.getValues());
+    value = "contains(value='a', search={b}) -> dump-request";
+    ret = PredicatedHandlersParser.parse(value, getClass().getClassLoader());
+    Assert.assertEquals(1, ret.size());
+    handler = ret.get(0).getHandler().wrap(ResponseCodeHandler.HANDLE_200);
+    Assert.assertTrue(handler instanceof RequestDumpingHandler);
+    predicate = (ContainsPredicate) ret.get(0).getPredicate();
+    Assert.assertEquals("a", predicate.getAttribute().readAttribute(null));
+    Assert.assertArrayEquals(new String[] { "b" }, predicate.getValues());
+    value = "contains[value='a', search={b, c}] -> dump-request";
+    ret = PredicatedHandlersParser.parse(value, getClass().getClassLoader());
+    Assert.assertEquals(1, ret.size());
+    handler = ret.get(0).getHandler().wrap(ResponseCodeHandler.HANDLE_200);
+    Assert.assertTrue(handler instanceof RequestDumpingHandler);
+    predicate = (ContainsPredicate) ret.get(0).getPredicate();
+    Assert.assertEquals("a", predicate.getAttribute().readAttribute(null));
+    Assert.assertArrayEquals(new String[] { "b", "c" }, predicate.getValues());
+}

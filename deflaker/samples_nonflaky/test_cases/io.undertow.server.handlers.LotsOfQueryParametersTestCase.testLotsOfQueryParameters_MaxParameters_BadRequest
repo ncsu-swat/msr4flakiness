@@ -1,0 +1,25 @@
+@Test
+@AjpIgnore
+public void testLotsOfQueryParameters_MaxParameters_BadRequest() throws IOException {
+    OptionMap existing = DefaultServer.getUndertowOptions();
+    TestHttpClient client = new TestHttpClient();
+    try {
+        StringBuilder qs = new StringBuilder();
+        // add query parameters more than specified MAX_PARAMETERS
+        for (int i = 0; i < (TEST_MAX_PARAMETERS + 1); ++i) {
+            qs.append(QUERY + i);
+            qs.append("=");
+            qs.append(URLEncoder.encode(MESSAGE + i, "UTF-8"));
+            qs.append("&");
+        }
+        // delete last useless '&'
+        qs.deleteCharAt(qs.length() - 1);
+        HttpGet get = new HttpGet(DefaultServer.getDefaultServerURL() + "/path?" + qs.toString());
+        DefaultServer.setUndertowOptions(OptionMap.create(UndertowOptions.MAX_PARAMETERS, TEST_MAX_PARAMETERS));
+        HttpResponse result = client.execute(get);
+        Assert.assertEquals(StatusCodes.BAD_REQUEST, result.getStatusLine().getStatusCode());
+    } finally {
+        DefaultServer.setUndertowOptions(existing);
+        client.getConnectionManager().shutdown();
+    }
+}

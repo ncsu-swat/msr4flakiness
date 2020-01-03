@@ -1,0 +1,16 @@
+@Test
+@ProxyIgnore
+public void testQueryParameterParsingIncorrectlyEncodedURI() throws IOException, ParameterLimitException {
+    StringBuilder out = new StringBuilder();
+    out.append((char) 0xc7);
+    out.append((char) 0xd1);
+    out.append((char) 0x25);
+    out.append((char) 0x32);
+    out.append((char) 0x30);
+    out.append((char) 0xb1);
+    out.append((char) 0xdb);
+    String s = "p=" + out.toString();
+    HttpServerExchange exchange = new HttpServerExchange(null);
+    URLUtils.parseQueryString(s, exchange, "MS949", true, 1000);
+    Assert.assertEquals("한 글", exchange.getQueryParameters().get("p").getFirst());
+}

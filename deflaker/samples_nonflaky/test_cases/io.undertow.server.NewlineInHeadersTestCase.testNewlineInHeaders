@@ -1,0 +1,34 @@
+@Test
+public void testNewlineInHeaders() throws IOException {
+    DefaultServer.setRootHandler(new HttpHandler() {
+
+        @Override
+        public void handleRequest(HttpServerExchange exchange) throws Exception {
+            exchange.getRequestReceiver().receiveFullString(new Receiver.FullStringCallback() {
+
+                @Override
+                public void handle(HttpServerExchange exchange, String message) {
+                    exchange.getResponseHeaders().put(HttpString.tryFromString(ECHO), message);
+                    exchange.getResponseSender().send(RESPONSE);
+                }
+            });
+        }
+    });
+    final TestHttpClient client = new TestHttpClient();
+    try {
+        HttpPost post = new HttpPost(DefaultServer.getDefaultServerURL());
+        post.setEntity(new StringEntity("test"));
+        HttpResponse result = client.execute(post);
+        Assert.assertEquals(StatusCodes.OK, result.getStatusLine().getStatusCode());
+        Assert.assertEquals("test", result.getFirstHeader(ECHO).getValue());
+        Assert.assertEquals(RESPONSE, HttpClientUtils.readResponse(result));
+        post = new HttpPost(DefaultServer.getDefaultServerURL());
+        post.setEntity(new StringEntity("test\nnewline"));
+        result = client.execute(post);
+        Assert.assertEquals(StatusCodes.OK, result.getStatusLine().getStatusCode());
+        Assert.assertEquals("test newline", result.getFirstHeader(ECHO).getValue());
+        Assert.assertEquals(RESPONSE, HttpClientUtils.readResponse(result));
+    } finally {
+        client.getConnectionManager().shutdown();
+    }
+}

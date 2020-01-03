@@ -1,0 +1,36 @@
+@Test
+public void testProgressiveSSEWithCompression() throws IOException {
+    final AtomicReference<ServerSentEventConnection> connectionReference = new AtomicReference<>();
+    DecompressingHttpClient client = new DecompressingHttpClient(new TestHttpClient());
+    try {
+        DefaultServer.setRootHandler(new EncodingHandler(new ContentEncodingRepository().addEncodingHandler("deflate", new DeflateEncodingProvider(), 50)).setNext(new ServerSentEventHandler(new ServerSentEventConnectionCallback() {
+
+            @Override
+            public void connected(ServerSentEventConnection connection, String lastEventId) {
+                connectionReference.set(connection);
+                connection.send("msg 1", new ServerSentEventConnection.EventCallback() {
+
+                    @Override
+                    public void done(ServerSentEventConnection connection, String data, String event, String id) {
+                    }
+
+                    @Override
+                    public void failed(ServerSentEventConnection connection, String data, String event, String id, IOException e) {
+                        e.printStackTrace();
+                        IoUtils.safeClose(connection);
+                    }
+                });
+            }
+        })));
+        HttpGet get = new HttpGet(DefaultServer.getDefaultServerURL() + "/");
+        HttpResponse result = client.execute(get);
+        Assert.assertEquals(StatusCodes.OK, result.getStatusLine().getStatusCode());
+        InputStream stream = result.getEntity().getContent();
+        assertData(stream, "data:msg 1\n\n");
+        connectionReference.get().send("msg 2");
+        assertData(stream, "data:msg 2\n\n");
+        connectionReference.get().close();
+    } finally {
+        client.getConnectionManager().shutdown();
+    }
+}

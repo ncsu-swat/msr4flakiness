@@ -1,0 +1,18 @@
+@Test
+public void testAppCommand() throws IOException {
+    checkGet("/name", StatusCodes.NOT_FOUND);
+    checkGet("/session", StatusCodes.NOT_FOUND);
+    registerNodes(false, server1, server2);
+    checkGet("/name", StatusCodes.NOT_FOUND);
+    checkGet("/session", StatusCodes.NOT_FOUND);
+    modClusterClient.enableApp("s1", "/name", "localhost", "localhost:7777");
+    modClusterClient.enableApp("s1", "/session", "localhost", "localhost:7777");
+    modClusterClient.enableApp("s2", "/name", "localhost", "localhost:7777");
+    modClusterClient.enableApp("s2", "/session", "localhost", "localhost:7777");
+    checkGet("/name", StatusCodes.SERVICE_UNAVAILABLE);
+    checkGet("/session", StatusCodes.SERVICE_UNAVAILABLE);
+    modClusterClient.updateLoad("s1", 100);
+    modClusterClient.updateLoad("s2", 1);
+    checkGet("/name", StatusCodes.OK);
+    checkGet("/session", StatusCodes.OK);
+}

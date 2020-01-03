@@ -1,0 +1,17 @@
+@Test
+public void testProxyProtocolV2Tcp6Negative() throws Exception {
+    String requestHttp = "GET / HTTP/1.0\r\n\r\n";
+    byte[] request;
+    // missing destination port
+    request = createProxyHeaderV2(PROXY, TCPv6, 34, InetAddress.getByName("fe80::56ee:75ff:fe44:85bc"), InetAddress.getByName("fe80::5ec5:d4ff:fede:66d8"), 444, null);
+    proxyProtocolRequestResponseCheck(request, requestHttp, "");
+    // missing destination address
+    request = createProxyHeaderV2(PROXY, TCPv6, 20, InetAddress.getByName("1.2.3.4"), null, 444, 555);
+    proxyProtocolRequestResponseCheck(request, requestHttp, "");
+    // invalid family
+    request = createProxyHeaderV2(PROXY, (byte) 0x42, 36, InetAddress.getByName("fe80::56ee:75ff:fe44:85bc"), InetAddress.getByName("fe80::5ec5:d4ff:fede:66d8"), 444, 555);
+    proxyProtocolRequestResponseCheck(request, requestHttp, "");
+    // len too low
+    request = createProxyHeaderV2(PROXY, TCPv6, 16, InetAddress.getByName("fe80::56ee:75ff:fe44:85bc"), null, null, null);
+    proxyProtocolRequestResponseCheck(request, requestHttp, "");
+}

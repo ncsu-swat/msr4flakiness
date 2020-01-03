@@ -1,0 +1,12 @@
+@Test
+public void testErrorState() throws IOException {
+    registerNodes(false, server1);
+    modClusterClient.enableApp("s1", "/name", "localhost", "localhost:7777");
+    checkGet("/name", StatusCodes.SERVICE_UNAVAILABLE);
+    modClusterClient.updateLoad("s1", 1);
+    checkGet("/name", StatusCodes.OK);
+    modClusterClient.updateLoad("s1", -1);
+    checkGet("/name", StatusCodes.SERVICE_UNAVAILABLE);
+    modClusterClient.updateLoad("s1", -2);
+    checkGet("/name", StatusCodes.SERVICE_UNAVAILABLE);
+}

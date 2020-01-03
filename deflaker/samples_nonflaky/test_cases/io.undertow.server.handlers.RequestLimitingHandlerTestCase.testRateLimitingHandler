@@ -1,0 +1,36 @@
+@Test
+public void testRateLimitingHandler() throws ExecutionException, InterruptedException {
+    latch.countDown();
+    latch = new CountDownLatch(1);
+    ExecutorService executor = Executors.newFixedThreadPool(N_THREADS);
+    try {
+        final List<Future<?>> futures = new ArrayList<>();
+        for (int i = 0; i < N_THREADS; ++i) {
+            futures.add(executor.submit(new Callable<String>() {
+
+                @Override
+                public String call() {
+                    TestHttpClient client = new TestHttpClient();
+                    try {
+                        HttpGet get = new HttpGet(DefaultServer.getDefaultServerURL());
+                        HttpResponse result = client.execute(get);
+                        Assert.assertEquals(StatusCodes.OK, result.getStatusLine().getStatusCode());
+                        return HttpClientUtils.readResponse(result);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    } finally {
+                        client.getConnectionManager().shutdown();
+                    }
+                }
+            }));
+        }
+        Thread.sleep(300);
+        latch.countDown();
+        for (Future<?> future : futures) {
+            String res = (String) future.get();
+            Assert.assertTrue(res, res.equals("1") || res.equals("2"));
+        }
+    } finally {
+        executor.shutdown();
+    }
+}

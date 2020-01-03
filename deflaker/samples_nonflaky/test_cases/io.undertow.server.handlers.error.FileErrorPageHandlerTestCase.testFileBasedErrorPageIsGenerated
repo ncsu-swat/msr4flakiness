@@ -1,0 +1,16 @@
+@Test
+public void testFileBasedErrorPageIsGenerated() throws IOException, URISyntaxException {
+    TestHttpClient client = new TestHttpClient();
+    try {
+        final FileErrorPageHandler handler = new FileErrorPageHandler(Paths.get(getClass().getResource("errorpage.html").toURI()), StatusCodes.NOT_FOUND);
+        DefaultServer.setRootHandler(handler);
+        HttpGet get = new HttpGet(DefaultServer.getDefaultServerURL() + "/path");
+        HttpResponse result = client.execute(get);
+        Assert.assertEquals("text/html", result.getHeaders("Content-Type")[0].getValue());
+        Assert.assertEquals(StatusCodes.NOT_FOUND, result.getStatusLine().getStatusCode());
+        final String response = HttpClientUtils.readResponse(result);
+        Assert.assertTrue(response, response.contains("Custom Error Page"));
+    } finally {
+        client.getConnectionManager().shutdown();
+    }
+}

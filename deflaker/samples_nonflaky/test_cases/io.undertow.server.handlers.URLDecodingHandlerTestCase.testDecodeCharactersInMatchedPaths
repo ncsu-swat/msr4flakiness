@@ -1,0 +1,22 @@
+@Test
+public void testDecodeCharactersInMatchedPaths() throws Exception {
+    // When UndertowOptions.DECODE_URL is disabled, the URLDecodingHandler should decode values.
+    Undertow undertow = Undertow.builder().setServerOption(UndertowOptions.DECODE_URL, false).addHttpListener(PORT, "0.0.0.0").setHandler(new RoutingHandler().get("/api/{pathParam}/tail", new URLDecodingHandler(new HttpHandler() {
+
+        @Override
+        public void handleRequest(HttpServerExchange exchange) throws Exception {
+            String matched = exchange.getAttachment(PathTemplateMatch.ATTACHMENT_KEY).getParameters().get("pathParam");
+            exchange.getResponseSender().send(matched);
+        }
+    }, "UTF-8"))).build();
+    undertow.start();
+    try {
+        TestHttpClient client = new TestHttpClient();
+        // '%253E' decodes to '%3E', which would decode to '>' if decoded twice
+        try (CloseableHttpResponse response = client.execute(new HttpGet("http://localhost:" + PORT + "/api/test%2Ftest+test%2Btest%20test/tail"))) {
+            Assert.assertEquals("test/test+test+test test", getResponseString(response));
+        }
+    } finally {
+        undertow.stop();
+    }
+}

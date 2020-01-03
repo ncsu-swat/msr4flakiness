@@ -1,0 +1,14 @@
+@Test
+public void testNoDomainStoppedContext() throws IOException {
+    // If no domain is configured apps cannot failover
+    registerNodes(true, server1, server2);
+    modClusterClient.enableApp(server1.getJvmRoute(), SESSION);
+    modClusterClient.enableApp(server2.getJvmRoute(), SESSION);
+    final String response = checkGet("/session", StatusCodes.OK);
+    if (response.startsWith(server1.getJvmRoute())) {
+        modClusterClient.stopApp(server1.getJvmRoute(), SESSION);
+    } else {
+        modClusterClient.stopApp(server2.getJvmRoute(), SESSION);
+    }
+    checkGet("/session", StatusCodes.OK);
+}

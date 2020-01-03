@@ -1,0 +1,16 @@
+@Test
+@ProxyIgnore
+public void testSlashDecoded() throws Exception {
+    final TestHttpClient client = new TestHttpClient();
+    OptionMap old = DefaultServer.getUndertowOptions();
+    DefaultServer.setUndertowOptions(OptionMap.create(UndertowOptions.ALLOW_ENCODED_SLASH, true));
+    try {
+        HttpGet get = new HttpGet(DefaultServer.getDefaultServerURL() + "/%2f%5c");
+        HttpResponse result = client.execute(get);
+        Assert.assertEquals(StatusCodes.OK, result.getStatusLine().getStatusCode());
+        Assert.assertEquals("//\\", HttpClientUtils.readResponse(result));
+    } finally {
+        DefaultServer.setUndertowOptions(old);
+        client.getConnectionManager().shutdown();
+    }
+}

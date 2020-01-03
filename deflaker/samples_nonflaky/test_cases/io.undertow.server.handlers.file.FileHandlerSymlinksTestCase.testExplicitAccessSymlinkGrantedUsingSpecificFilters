@@ -1,0 +1,21 @@
+@Test
+public void testExplicitAccessSymlinkGrantedUsingSpecificFilters() throws IOException, URISyntaxException {
+    TestHttpClient client = new TestHttpClient();
+    Path rootPath = Paths.get(getClass().getResource("page.html").toURI()).getParent();
+    Path newSymlink = rootPath.resolve("newSymlink");
+    try {
+        DefaultServer.setRootHandler(new CanonicalPathHandler().setNext(new PathHandler().addPrefixPath("/path", new ResourceHandler(new PathResourceManager(newSymlink, 10485760, true, rootPath.toAbsolutePath().toString().concat("/newDir"))).setDirectoryListingEnabled(false).addWelcomeFiles("page.html"))));
+        /**
+         * This request should return a 200 code as rootPath + "/newDir" is used in the safePaths
+         */
+        HttpGet get = new HttpGet(DefaultServer.getDefaultServerURL() + "/path/innerSymlink/page.html");
+        HttpResponse result = client.execute(get);
+        Assert.assertEquals(StatusCodes.OK, result.getStatusLine().getStatusCode());
+        final String response = HttpClientUtils.readResponse(result);
+        Header[] headers = result.getHeaders("Content-Type");
+        Assert.assertEquals("text/html", headers[0].getValue());
+        Assert.assertTrue(response, response.contains("A web page"));
+    } finally {
+        client.getConnectionManager().shutdown();
+    }
+}

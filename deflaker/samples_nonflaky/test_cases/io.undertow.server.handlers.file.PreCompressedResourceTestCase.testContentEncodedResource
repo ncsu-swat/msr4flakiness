@@ -1,0 +1,19 @@
+@Test
+public void testContentEncodedResource() throws IOException, URISyntaxException {
+    HttpGet get = new HttpGet(DefaultServer.getDefaultServerURL() + "/path/page.html");
+    TestHttpClient client = new TestHttpClient();
+    Path rootPath = Paths.get(getClass().getResource("page.html").toURI()).getParent();
+    try (CloseableHttpClient compClient = HttpClientBuilder.create().build()) {
+        DefaultServer.setRootHandler(new CanonicalPathHandler().setNext(new PathHandler().addPrefixPath("/path", new ResourceHandler(new PreCompressedResourceSupplier(new PathResourceManager(rootPath, 10485760)).addEncoding("gzip", ".gz")).setDirectoryListingEnabled(true))));
+        // assert response without compression
+        final String plainResponse = assertResponse(client.execute(get), false);
+        // assert compressed response, that doesn't exists, so returns plain
+        assertResponse(compClient.execute(get), false, plainResponse);
+        // generate compressed resource with extension .gz
+        generatePreCompressedResource("gz");
+        // assert compressed response that was pre compressed
+        assertResponse(compClient.execute(get), true, plainResponse, "gz");
+    } finally {
+        client.getConnectionManager().shutdown();
+    }
+}

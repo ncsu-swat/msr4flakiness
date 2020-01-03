@@ -1,0 +1,22 @@
+/**
+ * General negative tests for proxy-protocol. We expect that server closes connection sending no data.
+ *
+ * @throws Exception
+ */
+@Test
+public void testProxyProtocolV2Negative() throws Exception {
+    String requestHttp = "GET / HTTP/1.0\r\n\r\n";
+    byte[] request;
+    // wrong version
+    request = createProxyHeaderV2((byte) 0, TCPv4, 12, InetAddress.getByName("1.2.3.4"), InetAddress.getByName("5.6.7.8"), 444, 555);
+    proxyProtocolRequestResponseCheck(request, requestHttp, "");
+    // wrong signature (starting with NAME)
+    request = new byte[] { NAME[0], 0x0, 0x0, 0x0 };
+    proxyProtocolRequestResponseCheck(request, requestHttp, "");
+    // wrong signature (starting with SIG)
+    request = new byte[] { SIG[0], 0x0, 0x0, 0x0 };
+    proxyProtocolRequestResponseCheck(request, requestHttp, "");
+    // wrong signature (starting with 0x0)
+    request = new byte[] { 0x0, 0x0, 0x0, 0x0 };
+    proxyProtocolRequestResponseCheck(request, requestHttp, "");
+}

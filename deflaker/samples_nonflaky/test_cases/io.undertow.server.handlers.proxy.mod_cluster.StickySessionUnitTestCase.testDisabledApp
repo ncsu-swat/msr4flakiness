@@ -1,0 +1,18 @@
+@Test
+public void testDisabledApp() throws IOException {
+    // 
+    registerNodes(true, server1, server2);
+    modClusterClient.enableApp(server1.getJvmRoute(), SESSION);
+    modClusterClient.enableApp(server2.getJvmRoute(), SESSION);
+    final String response = checkGet("/session", StatusCodes.OK);
+    final String jvmRoute;
+    if (response.startsWith(server1.getJvmRoute())) {
+        jvmRoute = server1.getJvmRoute();
+    } else {
+        jvmRoute = server2.getJvmRoute();
+    }
+    modClusterClient.disableApp(jvmRoute, SESSION);
+    for (int i = 0; i < 20; i++) {
+        checkGet("/session", StatusCodes.OK, jvmRoute).startsWith(jvmRoute);
+    }
+}

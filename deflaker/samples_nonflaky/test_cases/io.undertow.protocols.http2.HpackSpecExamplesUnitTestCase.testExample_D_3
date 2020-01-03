@@ -1,0 +1,48 @@
+@Test
+public void testExample_D_3() throws HpackException {
+    // d 3.1
+    byte[] data = { (byte) 0x82, (byte) 0x86, (byte) 0x84, 0x41, 0x0f, 0x77, 0x77, 0x77, 0x2e, 0x65, 0x78, 0x61, 0x6d, 0x70, 0x6c, 0x65, 0x2e, 0x63, 0x6f, 0x6d };
+    HpackDecoder decoder = new HpackDecoder(Hpack.DEFAULT_TABLE_SIZE);
+    HeaderMapEmitter emitter = new HeaderMapEmitter();
+    decoder.setHeaderEmitter(emitter);
+    decoder.decode(ByteBuffer.wrap(data), false);
+    Assert.assertEquals(4, emitter.map.size());
+    Assert.assertEquals("GET", emitter.map.getFirst(new HttpString(":method")));
+    Assert.assertEquals("http", emitter.map.getFirst(new HttpString(":scheme")));
+    Assert.assertEquals("/", emitter.map.getFirst(new HttpString(":path")));
+    Assert.assertEquals("www.example.com", emitter.map.getFirst(new HttpString(":authority")));
+    Assert.assertEquals(1, decoder.getFilledTableSlots());
+    Assert.assertEquals(57, decoder.getCurrentMemorySize());
+    assertTableState(decoder, 1, ":authority", "www.example.com");
+    // d 3.2
+    data = new byte[] { (byte) 0x82, (byte) 0x86, (byte) 0x84, (byte) 0xbe, 0x58, 0x08, 0x6e, 0x6f, 0x2d, 0x63, 0x61, 0x63, 0x68, 0x65 };
+    emitter = new HeaderMapEmitter();
+    decoder.setHeaderEmitter(emitter);
+    decoder.decode(ByteBuffer.wrap(data), false);
+    Assert.assertEquals(5, emitter.map.size());
+    Assert.assertEquals("GET", emitter.map.getFirst(new HttpString(":method")));
+    Assert.assertEquals("http", emitter.map.getFirst(new HttpString(":scheme")));
+    Assert.assertEquals("/", emitter.map.getFirst(new HttpString(":path")));
+    Assert.assertEquals("www.example.com", emitter.map.getFirst(new HttpString(":authority")));
+    Assert.assertEquals("no-cache", emitter.map.getFirst(new HttpString("cache-control")));
+    Assert.assertEquals(2, decoder.getFilledTableSlots());
+    Assert.assertEquals(110, decoder.getCurrentMemorySize());
+    assertTableState(decoder, 1, "cache-control", "no-cache");
+    assertTableState(decoder, 2, ":authority", "www.example.com");
+    // d 3.3
+    data = new byte[] { (byte) 0x82, (byte) 0x87, (byte) 0x85, (byte) 0xbf, 0x40, 0x0a, 0x63, 0x75, 0x73, 0x74, 0x6f, 0x6d, 0x2d, 0x6b, 0x65, 0x79, 0x0c, 0x63, 0x75, 0x73, 0x74, 0x6f, 0x6d, 0x2d, 0x76, 0x61, 0x6c, 0x75, 0x65 };
+    emitter = new HeaderMapEmitter();
+    decoder.setHeaderEmitter(emitter);
+    decoder.decode(ByteBuffer.wrap(data), false);
+    Assert.assertEquals(5, emitter.map.size());
+    Assert.assertEquals("GET", emitter.map.getFirst(new HttpString(":method")));
+    Assert.assertEquals("https", emitter.map.getFirst(new HttpString(":scheme")));
+    Assert.assertEquals("/index.html", emitter.map.getFirst(new HttpString(":path")));
+    Assert.assertEquals("www.example.com", emitter.map.getFirst(new HttpString(":authority")));
+    Assert.assertEquals("custom-value", emitter.map.getFirst(new HttpString("custom-key")));
+    Assert.assertEquals(3, decoder.getFilledTableSlots());
+    Assert.assertEquals(164, decoder.getCurrentMemorySize());
+    assertTableState(decoder, 1, "custom-key", "custom-value");
+    assertTableState(decoder, 2, "cache-control", "no-cache");
+    assertTableState(decoder, 3, ":authority", "www.example.com");
+}

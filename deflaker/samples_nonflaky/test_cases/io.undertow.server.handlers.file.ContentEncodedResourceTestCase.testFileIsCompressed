@@ -1,0 +1,27 @@
+@Test
+public void testFileIsCompressed() throws IOException, InterruptedException {
+    String fileName = "hello.html";
+    Path f = tmpDir.resolve(fileName);
+    Files.write(f, "hello world".getBytes());
+    try (CloseableHttpClient client = HttpClientBuilder.create().build()) {
+        for (int i = 0; i < 3; ++i) {
+            HttpGet get = new HttpGet(DefaultServer.getDefaultServerURL() + "/" + fileName);
+            CloseableHttpResponse result = client.execute(get);
+            Assert.assertEquals(StatusCodes.OK, result.getStatusLine().getStatusCode());
+            String response = HttpClientUtils.readResponse(result);
+            Assert.assertEquals("hello world", response);
+            // no other nice way to be sure we get back gzipped content
+            assert result.getEntity() instanceof DecompressingEntity;
+            result.close();
+        }
+        Files.write(f, "modified file".getBytes());
+        // if it is serving a cached compressed version what is being served will not change
+        HttpGet get = new HttpGet(DefaultServer.getDefaultServerURL() + "/" + fileName);
+        HttpResponse result = client.execute(get);
+        Assert.assertEquals(StatusCodes.OK, result.getStatusLine().getStatusCode());
+        String response = HttpClientUtils.readResponse(result);
+        Assert.assertEquals("hello world", response);
+        // no other nice way to be sure we get back gzipped content
+        assert result.getEntity() instanceof DecompressingEntity;
+    }
+}

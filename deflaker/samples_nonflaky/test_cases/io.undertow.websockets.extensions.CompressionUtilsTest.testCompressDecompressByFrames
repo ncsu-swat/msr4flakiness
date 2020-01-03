@@ -1,0 +1,32 @@
+@Test
+public void testCompressDecompressByFrames() throws Exception {
+    String raw = "Hello, World! This is a long input example data with a lot of content for testing";
+    /*
+            This test shares same buffer, 0-511 for compress, 512-1023 for decompress
+         */
+    int position1 = 0;
+    int position2 = 512;
+    int chunkLength = 10;
+    // Frame 1
+    compress.setInput(raw.getBytes(), position1, chunkLength);
+    int compressed = compress.deflate(buf, 0, 512, Deflater.SYNC_FLUSH);
+    decompress.setInput(buf, 0, compressed);
+    int decompressed = decompress.inflate(buf, position2, buf.length - position2);
+    // Frame 2
+    position1 += chunkLength;
+    position2 += decompressed;
+    compress.setInput(raw.getBytes(), position1, chunkLength);
+    compressed = compress.deflate(buf, 0, 512, Deflater.NO_FLUSH);
+    decompress.setInput(buf, 0, compressed);
+    decompress.finished();
+    decompressed = decompress.inflate(buf, position2, buf.length - position2);
+    // Frame 3
+    position1 += chunkLength;
+    position2 += decompressed;
+    compress.setInput(raw.getBytes(), position1, raw.getBytes().length - position1);
+    compress.finish();
+    compressed = compress.deflate(buf, 0, 512, Deflater.NO_FLUSH);
+    decompress.setInput(buf, 0, compressed);
+    decompressed = decompress.inflate(buf, position2, buf.length - position2);
+    Assert.assertEquals(raw, new String(buf, 512, position2 + decompressed - 512, "UTF-8"));
+}
