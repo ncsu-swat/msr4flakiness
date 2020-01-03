@@ -1,0 +1,14 @@
+@Test
+void getValueShouldUseEnumerableMapping() {
+    Map<String, Object> source = new LinkedHashMap<>();
+    source.put("key1", "value1");
+    source.put("key2", "value2");
+    source.put("key3", "value3");
+    EnumerablePropertySource<?> propertySource = new MapPropertySource("test", source);
+    TestPropertyMapper mapper = new TestPropertyMapper();
+    mapper.addFromPropertySource("key1", "my.missing");
+    mapper.addFromPropertySource("key2", "my.k-e-y");
+    SpringIterableConfigurationPropertySource adapter = new SpringIterableConfigurationPropertySource(propertySource, mapper);
+    ConfigurationPropertyName name = ConfigurationPropertyName.of("my.key");
+    assertThat(adapter.getConfigurationProperty(name).getValue()).isEqualTo("value2");
+}

@@ -1,0 +1,10 @@
+@Test
+void bindToMapShouldTriggerOnSuccess() {
+    this.sources.add(new MockConfigurationPropertySource("foo.bar", "1", "line1"));
+    BindHandler handler = mock(BindHandler.class, Answers.CALLS_REAL_METHODS);
+    Bindable<Map<String, Integer>> target = STRING_INTEGER_MAP;
+    this.binder.bind("foo", target, handler);
+    InOrder ordered = inOrder(handler);
+    ordered.verify(handler).onSuccess(eq(ConfigurationPropertyName.of("foo.bar")), eq(Bindable.of(Integer.class)), any(), eq(1));
+    ordered.verify(handler).onSuccess(eq(ConfigurationPropertyName.of("foo")), eq(target), any(), isA(Map.class));
+}

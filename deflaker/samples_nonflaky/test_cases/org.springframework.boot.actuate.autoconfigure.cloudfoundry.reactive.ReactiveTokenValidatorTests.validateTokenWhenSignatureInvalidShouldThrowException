@@ -1,0 +1,12 @@
+@Test
+void validateTokenWhenSignatureInvalidShouldThrowException() throws Exception {
+    Map<String, String> KEYS = Collections.singletonMap("valid-key", INVALID_KEY);
+    given(this.securityService.fetchTokenKeys()).willReturn(Mono.just(KEYS));
+    given(this.securityService.getUaaUrl()).willReturn(Mono.just("http://localhost:8080/uaa"));
+    String header = "{ \"alg\": \"RS256\",  \"kid\": \"valid-key\",\"typ\": \"JWT\"}";
+    String claims = "{ \"exp\": 2147483647, \"iss\": \"http://localhost:8080/uaa/oauth/token\", \"scope\": [\"actuator.read\"]}";
+    StepVerifier.create(this.tokenValidator.validate(new Token(getSignedToken(header.getBytes(), claims.getBytes())))).consumeErrorWith((ex) -> {
+        assertThat(ex).isExactlyInstanceOf(CloudFoundryAuthorizationException.class);
+        assertThat(((CloudFoundryAuthorizationException) ex).getReason()).isEqualTo(Reason.INVALID_SIGNATURE);
+    }).verify();
+}

@@ -1,0 +1,13 @@
+// gh-18481
+@Test
+void loadWhenBindingToNestedConstructorPropertiesWithDeducedNestedShouldBind() {
+    MutablePropertySources sources = this.context.getEnvironment().getPropertySources();
+    Map<String, Object> source = new HashMap<>();
+    source.put("test.name", "spring");
+    source.put("test.nested.age", "5");
+    sources.addLast(new MapPropertySource("test", source));
+    load(DeducedNestedConstructorPropertiesConfiguration.class);
+    DeducedNestedConstructorProperties bean = this.context.getBean(DeducedNestedConstructorProperties.class);
+    assertThat(bean.getName()).isEqualTo("spring");
+    assertThat(bean.getNested().getAge()).isEqualTo(5);
+}

@@ -1,0 +1,10 @@
+@Test
+void onlyRegisteredOnceWhenThereIsAChildContext() {
+    SpringApplicationBuilder parentBuilder = new SpringApplicationBuilder().web(WebApplicationType.NONE).sources(MultipleMBeanExportersConfiguration.class, SpringApplicationAdminJmxAutoConfiguration.class);
+    SpringApplicationBuilder childBuilder = parentBuilder.child(MultipleMBeanExportersConfiguration.class, SpringApplicationAdminJmxAutoConfiguration.class).web(WebApplicationType.NONE);
+    try (ConfigurableApplicationContext parent = parentBuilder.run("--" + ENABLE_ADMIN_PROP);
+        ConfigurableApplicationContext child = childBuilder.run("--" + ENABLE_ADMIN_PROP)) {
+        BeanFactoryUtils.beanOfType(parent.getBeanFactory(), SpringApplicationAdminMXBeanRegistrar.class);
+        assertThatExceptionOfType(NoSuchBeanDefinitionException.class).isThrownBy(() -> BeanFactoryUtils.beanOfType(child.getBeanFactory(), SpringApplicationAdminMXBeanRegistrar.class));
+    }
+}

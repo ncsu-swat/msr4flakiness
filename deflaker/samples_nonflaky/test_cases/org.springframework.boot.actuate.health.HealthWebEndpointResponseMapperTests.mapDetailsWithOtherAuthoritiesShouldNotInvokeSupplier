@@ -1,0 +1,11 @@
+@Test
+void mapDetailsWithOtherAuthoritiesShouldNotInvokeSupplier() {
+    HealthWebEndpointResponseMapper mapper = createMapper(ShowDetails.WHEN_AUTHORIZED);
+    Supplier<Health> supplier = mockSupplier();
+    given(supplier.get()).willReturn(Health.down().build());
+    SecurityContext securityContext = getSecurityContext("OTHER");
+    WebEndpointResponse<Health> response = mapper.mapDetails(supplier, securityContext);
+    assertThat(response.getStatus()).isEqualTo(HttpStatus.NOT_FOUND.value());
+    assertThat(response.getBody()).isNull();
+    verifyNoInteractions(supplier);
+}

@@ -1,0 +1,17 @@
+@Test
+void applyWhenHasSourceShouldRunWithReplacedSource() {
+    ConfigurableEnvironment environment = new MockEnvironment();
+    Map<String, Object> map = new LinkedHashMap<>();
+    map.put("regular", "regularValue");
+    map.put("filtered", "filteredValue");
+    PropertySource<?> propertySource = new MapPropertySource("test", map);
+    environment.getPropertySources().addFirst(propertySource);
+    TestOperation operation = new TestOperation(() -> {
+        assertThat(environment.containsProperty("regular")).isTrue();
+        assertThat(environment.containsProperty("filtered")).isFalse();
+    });
+    FilteredPropertySource.apply(environment, "test", Collections.singleton("filtered"), operation);
+    assertThat(operation.isCalled()).isTrue();
+    assertThat(operation.getOriginal()).isSameAs(propertySource);
+    assertThat(environment.getPropertySources().get("test")).isSameAs(propertySource);
+}

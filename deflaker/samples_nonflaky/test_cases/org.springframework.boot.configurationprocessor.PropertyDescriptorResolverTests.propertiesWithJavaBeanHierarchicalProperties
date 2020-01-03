@@ -1,0 +1,8 @@
+@Test
+void propertiesWithJavaBeanHierarchicalProperties() throws IOException {
+    process(HierarchicalProperties.class, Arrays.asList(HierarchicalPropertiesParent.class, HierarchicalPropertiesGrandparent.class), (type, metadataEnv) -> {
+        PropertyDescriptorResolver resolver = new PropertyDescriptorResolver(metadataEnv);
+        assertThat(resolver.resolve(type, null).map(PropertyDescriptor::getName)).containsExactly("third", "second", "first");
+        assertThat(resolver.resolve(type, null).map((descriptor) -> descriptor.resolveItemMetadata("test", metadataEnv)).map(ItemMetadata::getDefaultValue)).containsExactly("three", "two", "one");
+    });
+}

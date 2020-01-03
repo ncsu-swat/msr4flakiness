@@ -1,0 +1,10 @@
+@Test
+void shouldNotOverrideCustomClientConnector() {
+    this.contextRunner.withUserConfiguration(CustomClientHttpConnectorConfig.class).run((context) -> {
+        assertThat(context).hasSingleBean(ClientHttpConnector.class).hasBean("customConnector").doesNotHaveBean(ReactorResourceFactory.class);
+        WebClientCustomizer clientCustomizer = context.getBean(WebClientCustomizer.class);
+        WebClient.Builder builder = mock(WebClient.Builder.class);
+        clientCustomizer.customize(builder);
+        verify(builder, times(1)).clientConnector(any(ClientHttpConnector.class));
+    });
+}

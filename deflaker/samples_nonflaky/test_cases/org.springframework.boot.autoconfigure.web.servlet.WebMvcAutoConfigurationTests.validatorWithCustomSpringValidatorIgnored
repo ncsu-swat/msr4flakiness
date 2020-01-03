@@ -1,0 +1,13 @@
+@Test
+void validatorWithCustomSpringValidatorIgnored() {
+    this.contextRunner.withConfiguration(AutoConfigurations.of(ValidationAutoConfiguration.class)).withUserConfiguration(CustomSpringValidator.class).run((context) -> {
+        assertThat(context).getBeanNames(javax.validation.Validator.class).containsOnly("defaultValidator");
+        assertThat(context).getBeanNames(Validator.class).containsOnly("customSpringValidator", "defaultValidator", "mvcValidator");
+        Validator validator = context.getBean("mvcValidator", Validator.class);
+        assertThat(validator).isInstanceOf(ValidatorAdapter.class);
+        Object defaultValidator = context.getBean("defaultValidator");
+        assertThat(((ValidatorAdapter) validator).getTarget()).isSameAs(defaultValidator);
+        // Primary Spring validator is the one used by MVC behind the scenes
+        assertThat(context.getBean(Validator.class)).isEqualTo(defaultValidator);
+    });
+}

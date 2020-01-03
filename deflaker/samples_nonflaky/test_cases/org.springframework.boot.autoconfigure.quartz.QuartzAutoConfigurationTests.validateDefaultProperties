@@ -1,0 +1,12 @@
+@Test
+void validateDefaultProperties() {
+    this.contextRunner.withUserConfiguration(ManualSchedulerConfiguration.class).run((context) -> {
+        assertThat(context).hasSingleBean(SchedulerFactoryBean.class);
+        SchedulerFactoryBean schedulerFactory = context.getBean(SchedulerFactoryBean.class);
+        QuartzProperties properties = new QuartzProperties();
+        assertThat(properties.isAutoStartup()).isEqualTo(schedulerFactory.isAutoStartup());
+        assertThat(schedulerFactory).hasFieldOrPropertyWithValue("startupDelay", (int) properties.getStartupDelay().getSeconds());
+        assertThat(schedulerFactory).hasFieldOrPropertyWithValue("waitForJobsToCompleteOnShutdown", properties.isWaitForJobsToCompleteOnShutdown());
+        assertThat(schedulerFactory).hasFieldOrPropertyWithValue("overwriteExistingJobs", properties.isOverwriteExistingJobs());
+    });
+}

@@ -1,0 +1,7 @@
+@Test
+void jettyServerCustomizerBeanIsAddedToFactory() {
+    new ReactiveWebApplicationContextRunner(AnnotationConfigReactiveWebApplicationContext::new).withConfiguration(AutoConfigurations.of(ReactiveWebServerFactoryAutoConfiguration.class)).withClassLoader(new FilteredClassLoader(Tomcat.class, HttpServer.class)).withUserConfiguration(JettyServerCustomizerConfiguration.class, HttpHandlerConfiguration.class).run((context) -> {
+        JettyReactiveWebServerFactory factory = context.getBean(JettyReactiveWebServerFactory.class);
+        assertThat(factory.getServerCustomizers()).hasSize(1);
+    });
+}

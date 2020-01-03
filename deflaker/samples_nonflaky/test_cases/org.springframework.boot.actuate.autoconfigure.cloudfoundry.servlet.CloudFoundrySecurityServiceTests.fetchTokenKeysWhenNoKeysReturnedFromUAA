@@ -1,0 +1,9 @@
+@Test
+void fetchTokenKeysWhenNoKeysReturnedFromUAA() {
+    this.server.expect(requestTo(CLOUD_CONTROLLER + "/info")).andRespond(withSuccess("{\"token_endpoint\":\"" + UAA_URL + "\"}", MediaType.APPLICATION_JSON));
+    String responseBody = "{\"keys\": []}";
+    this.server.expect(requestTo(UAA_URL + "/token_keys")).andRespond(withSuccess(responseBody, MediaType.APPLICATION_JSON));
+    Map<String, String> tokenKeys = this.securityService.fetchTokenKeys();
+    this.server.verify();
+    assertThat(tokenKeys).hasSize(0);
+}

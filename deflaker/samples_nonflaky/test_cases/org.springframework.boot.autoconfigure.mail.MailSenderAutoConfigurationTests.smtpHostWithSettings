@@ -1,0 +1,14 @@
+@Test
+void smtpHostWithSettings() {
+    String host = "192.168.1.234";
+    this.contextRunner.withPropertyValues("spring.mail.host:" + host, "spring.mail.port:42", "spring.mail.username:john", "spring.mail.password:secret", "spring.mail.default-encoding:US-ASCII", "spring.mail.protocol:smtps").run((context) -> {
+        assertThat(context).hasSingleBean(JavaMailSenderImpl.class);
+        JavaMailSenderImpl mailSender = context.getBean(JavaMailSenderImpl.class);
+        assertThat(mailSender.getHost()).isEqualTo(host);
+        assertThat(mailSender.getPort()).isEqualTo(42);
+        assertThat(mailSender.getUsername()).isEqualTo("john");
+        assertThat(mailSender.getPassword()).isEqualTo("secret");
+        assertThat(mailSender.getDefaultEncoding()).isEqualTo("US-ASCII");
+        assertThat(mailSender.getProtocol()).isEqualTo("smtps");
+    });
+}

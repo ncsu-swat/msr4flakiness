@@ -1,0 +1,7 @@
+@Test
+void testConcurrentKafkaListenerContainerFactoryWithCustomTransactionManager() {
+    this.contextRunner.withUserConfiguration(TransactionManagerConfiguration.class).withPropertyValues("spring.kafka.producer.transaction-id-prefix=test").run((context) -> {
+        ConcurrentKafkaListenerContainerFactory<?, ?> factory = context.getBean(ConcurrentKafkaListenerContainerFactory.class);
+        assertThat(factory.getContainerProperties().getTransactionManager()).isSameAs(context.getBean("chainedTransactionManager"));
+    });
+}

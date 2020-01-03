@@ -1,0 +1,9 @@
+@Test
+void eventListenersAreAutoRegistered() {
+    this.contextRunner.withUserConfiguration(EventListenerConfiguration.class).run((context) -> {
+        Session session = context.getBean(SessionFactory.class).openSession();
+        session.notifyListeners(new PersistenceEvent(null, Event.TYPE.PRE_SAVE));
+        verify(context.getBean("eventListenerOne", EventListener.class)).onPreSave(any(Event.class));
+        verify(context.getBean("eventListenerTwo", EventListener.class)).onPreSave(any(Event.class));
+    });
+}

@@ -1,0 +1,14 @@
+@Test
+@SuppressWarnings({ "unchecked", "rawtypes" })
+void tomcatProtocolHandlerCustomizersShouldBeInvoked() {
+    TomcatServletWebServerFactory factory = getFactory();
+    TomcatProtocolHandlerCustomizer<AbstractHttp11Protocol<?>>[] customizers = new TomcatProtocolHandlerCustomizer[4];
+    Arrays.setAll(customizers, (i) -> mock(TomcatProtocolHandlerCustomizer.class));
+    factory.setTomcatProtocolHandlerCustomizers(Arrays.asList(customizers[0], customizers[1]));
+    factory.addProtocolHandlerCustomizers(customizers[2], customizers[3]);
+    this.webServer = factory.getWebServer();
+    InOrder ordered = inOrder((Object[]) customizers);
+    for (TomcatProtocolHandlerCustomizer customizer : customizers) {
+        ordered.verify(customizer).customize(any(ProtocolHandler.class));
+    }
+}

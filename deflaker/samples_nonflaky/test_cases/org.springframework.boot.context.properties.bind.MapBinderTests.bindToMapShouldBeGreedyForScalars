@@ -1,0 +1,13 @@
+@Test
+void bindToMapShouldBeGreedyForScalars() {
+    MockConfigurationPropertySource source = new MockConfigurationPropertySource();
+    source.put("foo.aaa.bbb.ccc", "foo-bar");
+    source.put("foo.bbb.ccc.ddd", "BAR_BAZ");
+    source.put("foo.ccc.ddd.eee", "bazboo");
+    this.sources.add(source);
+    Map<String, ExampleEnum> result = this.binder.bind("foo", Bindable.mapOf(String.class, ExampleEnum.class)).get();
+    assertThat(result).hasSize(3);
+    assertThat(result).containsEntry("aaa.bbb.ccc", ExampleEnum.FOO_BAR);
+    assertThat(result).containsEntry("bbb.ccc.ddd", ExampleEnum.BAR_BAZ);
+    assertThat(result).containsEntry("ccc.ddd.eee", ExampleEnum.BAZ_BOO);
+}

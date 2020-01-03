@@ -1,0 +1,11 @@
+@Test
+void bindToClassShouldCacheWithGenerics() {
+    // gh-16821
+    MockConfigurationPropertySource source = new MockConfigurationPropertySource();
+    source.put("foo.integers[a].value", "1");
+    source.put("foo.booleans[b].value", "true");
+    this.sources.add(source);
+    ExampleWithGenericMap bean = this.binder.bind("foo", Bindable.of(ExampleWithGenericMap.class)).get();
+    assertThat(bean.getIntegers().get("a").getValue()).isEqualTo(1);
+    assertThat(bean.getBooleans().get("b").getValue()).isEqualTo(true);
+}

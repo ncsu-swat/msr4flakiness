@@ -1,0 +1,13 @@
+@Test
+void bindToListOfMaps() {
+    Bindable<List<Integer>> listBindable = Bindable.listOf(Integer.class);
+    Bindable<Map<String, List<Integer>>> mapBindable = getMapBindable(String.class, listBindable.getType());
+    Bindable<List<Map<String, List<Integer>>>> target = getListBindable(mapBindable.getType());
+    MockConfigurationPropertySource mockSource = new MockConfigurationPropertySource();
+    mockSource.put("foo[0].a", "1,2,3");
+    mockSource.put("foo[1].b", "4,5,6");
+    this.sources.add(mockSource);
+    List<Map<String, List<Integer>>> list = this.binder.bind("foo", target).get();
+    assertThat(list.get(0).get("a")).containsExactly(1, 2, 3);
+    assertThat(list.get(1).get("b")).containsExactly(4, 5, 6);
+}

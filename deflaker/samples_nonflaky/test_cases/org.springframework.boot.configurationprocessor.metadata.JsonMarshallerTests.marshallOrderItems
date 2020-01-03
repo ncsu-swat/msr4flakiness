@@ -1,0 +1,17 @@
+@Test
+void marshallOrderItems() throws IOException {
+    ConfigurationMetadata metadata = new ConfigurationMetadata();
+    metadata.add(ItemHint.newHint("fff"));
+    metadata.add(ItemHint.newHint("eee"));
+    metadata.add(ItemMetadata.newProperty("com.example.bravo", "bbb", null, null, null, null, null, null));
+    metadata.add(ItemMetadata.newProperty("com.example.bravo", "aaa", null, null, null, null, null, null));
+    metadata.add(ItemMetadata.newProperty("com.example.alpha", "ddd", null, null, null, null, null, null));
+    metadata.add(ItemMetadata.newProperty("com.example.alpha", "ccc", null, null, null, null, null, null));
+    metadata.add(ItemMetadata.newGroup("com.acme.bravo", "com.example.AnotherTestProperties", null, null));
+    metadata.add(ItemMetadata.newGroup("com.acme.alpha", "com.example.TestProperties", null, null));
+    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    JsonMarshaller marshaller = new JsonMarshaller();
+    marshaller.write(metadata, outputStream);
+    String json = new String(outputStream.toByteArray());
+    assertThat(json).containsSubsequence("\"groups\"", "\"com.acme.alpha\"", "\"com.acme.bravo\"", "\"properties\"", "\"com.example.alpha.ccc\"", "\"com.example.alpha.ddd\"", "\"com.example.bravo.aaa\"", "\"com.example.bravo.bbb\"", "\"hints\"", "\"eee\"", "\"fff\"");
+}

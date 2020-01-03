@@ -1,0 +1,9 @@
+@Test
+void testConcurrentKafkaListenerContainerFactoryInBatchModeWrapsCustomMessageConverter() {
+    this.contextRunner.withUserConfiguration(MessageConverterConfiguration.class).withPropertyValues("spring.kafka.listener.type=batch").run((context) -> {
+        ConcurrentKafkaListenerContainerFactory<?, ?> kafkaListenerContainerFactory = context.getBean(ConcurrentKafkaListenerContainerFactory.class);
+        Object messageConverter = ReflectionTestUtils.getField(kafkaListenerContainerFactory, "messageConverter");
+        assertThat(messageConverter).isInstanceOf(BatchMessagingMessageConverter.class);
+        assertThat(((BatchMessageConverter) messageConverter).getRecordMessageConverter()).isSameAs(context.getBean("myMessageConverter"));
+    });
+}

@@ -1,0 +1,20 @@
+@Test
+void testCustomizeJettyAccessLog() {
+    Map<String, String> map = new HashMap<>();
+    map.put("server.jetty.accesslog.enabled", "true");
+    map.put("server.jetty.accesslog.filename", "foo.txt");
+    map.put("server.jetty.accesslog.file-date-format", "yyyymmdd");
+    map.put("server.jetty.accesslog.retention-period", "4");
+    map.put("server.jetty.accesslog.append", "true");
+    map.put("server.jetty.accesslog.custom-format", "{client}a - %u %t \"%r\" %s %O");
+    map.put("server.jetty.accesslog.ignore-paths", "/a/path,/b/path");
+    bind(map);
+    ServerProperties.Jetty jetty = this.properties.getJetty();
+    assertThat(jetty.getAccesslog().isEnabled()).isTrue();
+    assertThat(jetty.getAccesslog().getFilename()).isEqualTo("foo.txt");
+    assertThat(jetty.getAccesslog().getFileDateFormat()).isEqualTo("yyyymmdd");
+    assertThat(jetty.getAccesslog().getRetentionPeriod()).isEqualTo(4);
+    assertThat(jetty.getAccesslog().isAppend()).isTrue();
+    assertThat(jetty.getAccesslog().getCustomFormat()).isEqualTo("{client}a - %u %t \"%r\" %s %O");
+    assertThat(jetty.getAccesslog().getIgnorePaths()).containsExactly("/a/path", "/b/path");
+}

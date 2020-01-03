@@ -1,0 +1,20 @@
+@Test
+void exceptionError() throws Exception {
+    this.filter.addErrorPages(new ErrorPage(RuntimeException.class, "/500"));
+    this.chain = new TestFilterChain((request, response, chain) -> {
+        chain.call();
+        throw new RuntimeException("BAD");
+    });
+    this.filter.doFilter(this.request, this.response, this.chain);
+    assertThat(((HttpServletResponseWrapper) this.chain.getResponse()).getStatus()).isEqualTo(500);
+    assertThat(this.request.getAttribute(RequestDispatcher.ERROR_STATUS_CODE)).isEqualTo(500);
+    assertThat(this.request.getAttribute(RequestDispatcher.ERROR_MESSAGE)).isEqualTo("BAD");
+    Map<String, Object> requestAttributes = getAttributesForDispatch("/500");
+    assertThat(requestAttributes.get(RequestDispatcher.ERROR_EXCEPTION_TYPE)).isEqualTo(RuntimeException.class);
+    assertThat(requestAttributes.get(RequestDispatcher.ERROR_EXCEPTION)).isInstanceOf(RuntimeException.class);
+    assertThat(this.request.getAttribute(RequestDispatcher.ERROR_EXCEPTION_TYPE)).isNull();
+    assertThat(this.request.getAttribute(RequestDispatcher.ERROR_EXCEPTION)).isNull();
+    assertThat(this.request.getAttribute(RequestDispatcher.ERROR_REQUEST_URI)).isEqualTo("/test/path");
+    assertThat(this.response.isCommitted()).isTrue();
+    assertThat(this.response.getForwardedUrl()).isEqualTo("/500");
+}

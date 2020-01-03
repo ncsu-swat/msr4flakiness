@@ -1,0 +1,14 @@
+@Test
+void bindWhenUsingNoUnboundElementsHandlerShouldBindIfUnboundCollectionProperties() {
+    MockConfigurationPropertySource source1 = new MockConfigurationPropertySource();
+    source1.put("example.foo[0]", "bar");
+    MockConfigurationPropertySource source2 = new MockConfigurationPropertySource();
+    source2.put("example.foo[0]", "bar");
+    source2.put("example.foo[1]", "baz");
+    this.sources.add(source1);
+    this.sources.add(source2);
+    this.binder = new Binder(this.sources);
+    NoUnboundElementsBindHandler handler = new NoUnboundElementsBindHandler();
+    ExampleWithList bound = this.binder.bind("example", Bindable.of(ExampleWithList.class), handler).get();
+    assertThat(bound.getFoo()).containsExactly("bar");
+}

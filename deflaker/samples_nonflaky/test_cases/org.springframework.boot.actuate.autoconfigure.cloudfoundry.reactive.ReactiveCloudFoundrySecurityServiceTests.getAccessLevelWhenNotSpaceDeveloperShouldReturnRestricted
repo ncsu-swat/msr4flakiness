@@ -1,0 +1,10 @@
+@Test
+void getAccessLevelWhenNotSpaceDeveloperShouldReturnRestricted() throws Exception {
+    String responseBody = "{\"read_sensitive_data\": false,\"read_basic_data\": true}";
+    prepareResponse((response) -> response.setBody(responseBody).setHeader("Content-Type", "application/json"));
+    StepVerifier.create(this.securityService.getAccessLevel("my-access-token", "my-app-id")).consumeNextWith((accessLevel) -> assertThat(accessLevel).isEqualTo(AccessLevel.RESTRICTED)).expectComplete().verify();
+    expectRequest((request) -> {
+        assertThat(request.getHeader(HttpHeaders.AUTHORIZATION)).isEqualTo("bearer my-access-token");
+        assertThat(request.getPath()).isEqualTo(CLOUD_CONTROLLER_PERMISSIONS);
+    });
+}

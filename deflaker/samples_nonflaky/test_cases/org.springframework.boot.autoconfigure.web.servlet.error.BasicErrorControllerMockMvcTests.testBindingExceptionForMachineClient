@@ -1,0 +1,12 @@
+@Test
+void testBindingExceptionForMachineClient() throws Exception {
+    // In a real server the response is carried over into the error dispatcher, but
+    // in the mock a new one is created so we have to assert the status at this
+    // intermediate point
+    MvcResult result = this.mockMvc.perform(get("/bind")).andExpect(status().is4xxClientError()).andReturn();
+    MvcResult response = this.mockMvc.perform(new ErrorDispatcher(result, "/error")).andReturn();
+    // And the rendered status code is always wrong (but would be 400 in a real
+    // system)
+    String content = response.getResponse().getContentAsString();
+    assertThat(content).contains("Error count: 1");
+}

@@ -1,0 +1,8 @@
+@Test
+void getAccessLevelWhenNotSpaceDeveloperShouldReturnRestricted() {
+    String responseBody = "{\"read_sensitive_data\": false,\"read_basic_data\": true}";
+    this.server.expect(requestTo(CLOUD_CONTROLLER_PERMISSIONS)).andExpect(header("Authorization", "bearer my-access-token")).andRespond(withSuccess(responseBody, MediaType.APPLICATION_JSON));
+    AccessLevel accessLevel = this.securityService.getAccessLevel("my-access-token", "my-app-id");
+    this.server.verify();
+    assertThat(accessLevel).isEqualTo(AccessLevel.RESTRICTED);
+}

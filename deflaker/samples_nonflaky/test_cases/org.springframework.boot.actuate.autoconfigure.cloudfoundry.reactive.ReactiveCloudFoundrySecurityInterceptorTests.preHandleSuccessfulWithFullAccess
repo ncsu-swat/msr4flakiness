@@ -1,0 +1,11 @@
+@Test
+void preHandleSuccessfulWithFullAccess() {
+    String accessToken = mockAccessToken();
+    given(this.securityService.getAccessLevel(accessToken, "my-app-id")).willReturn(Mono.just(AccessLevel.FULL));
+    given(this.tokenValidator.validate(any())).willReturn(Mono.empty());
+    MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/a").header(HttpHeaders.AUTHORIZATION, "bearer " + mockAccessToken()).build());
+    StepVerifier.create(this.interceptor.preHandle(exchange, "/a")).consumeNextWith((response) -> {
+        assertThat(response.getStatus()).isEqualTo(HttpStatus.OK);
+        assertThat((AccessLevel) exchange.getAttribute("cloudFoundryAccessLevel")).isEqualTo(AccessLevel.FULL);
+    }).verifyComplete();
+}

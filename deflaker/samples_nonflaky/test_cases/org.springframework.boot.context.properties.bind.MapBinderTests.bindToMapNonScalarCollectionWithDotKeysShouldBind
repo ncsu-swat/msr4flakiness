@@ -1,0 +1,13 @@
+@Test
+void bindToMapNonScalarCollectionWithDotKeysShouldBind() {
+    Bindable<List<JavaBean>> valueType = Bindable.listOf(JavaBean.class);
+    Bindable<Map<String, List<JavaBean>>> target = getMapBindable(String.class, valueType.getType());
+    MockConfigurationPropertySource mockSource = new MockConfigurationPropertySource();
+    mockSource.put("foo.bar.baz[0].value", "a");
+    mockSource.put("foo.bar.baz[1].value", "b");
+    mockSource.put("foo.bar.baz[2].value", "c");
+    this.sources.add(mockSource);
+    Map<String, List<JavaBean>> map = this.binder.bind("foo", target).get();
+    List<String> values = map.get("bar.baz").stream().map(JavaBean::getValue).collect(Collectors.toList());
+    assertThat(values).containsExactly("a", "b", "c");
+}

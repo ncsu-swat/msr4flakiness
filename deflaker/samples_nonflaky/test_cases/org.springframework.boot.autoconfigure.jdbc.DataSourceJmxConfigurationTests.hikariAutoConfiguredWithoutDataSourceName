@@ -1,0 +1,13 @@
+@Test
+void hikariAutoConfiguredWithoutDataSourceName() throws MalformedObjectNameException {
+    MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
+    Set<ObjectInstance> existingInstances = mBeanServer.queryMBeans(new ObjectName("com.zaxxer.hikari:type=*"), null);
+    this.contextRunner.withPropertyValues("spring.datasource.type=" + HikariDataSource.class.getName(), "spring.datasource.hikari.register-mbeans=true").run((context) -> {
+        assertThat(context).hasSingleBean(HikariDataSource.class);
+        assertThat(context.getBean(HikariDataSource.class).isRegisterMbeans()).isTrue();
+        // We can't rely on the number of MBeans so we're checking that the
+        // pool and pool
+        // config MBeans were registered
+        assertThat(mBeanServer.queryMBeans(new ObjectName("com.zaxxer.hikari:type=*"), null).size()).isEqualTo(existingInstances.size() + 2);
+    });
+}

@@ -1,0 +1,11 @@
+@Test
+void websocketTransport() {
+    NettyRSocketServerFactory factory = getFactory();
+    factory.setTransport(RSocketServer.Transport.WEBSOCKET);
+    this.server = factory.create(new EchoRequestResponseAcceptor());
+    this.server.start();
+    this.requester = createRSocketWebSocketClient();
+    String payload = "test payload";
+    String response = this.requester.route("test").data(payload).retrieveMono(String.class).block(TIMEOUT);
+    assertThat(response).isEqualTo(payload);
+}

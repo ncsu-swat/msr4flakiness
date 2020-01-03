@@ -1,0 +1,11 @@
+@Test
+void connectionFactoryCachingCanBeCustomized() {
+    this.contextRunner.withUserConfiguration(EmptyConfiguration.class).withPropertyValues("spring.jms.cache.consumers=true", "spring.jms.cache.producers=false", "spring.jms.cache.session-cache-size=10").run((context) -> {
+        assertThat(context).hasSingleBean(ConnectionFactory.class);
+        assertThat(context).hasSingleBean(CachingConnectionFactory.class);
+        CachingConnectionFactory connectionFactory = context.getBean(CachingConnectionFactory.class);
+        assertThat(connectionFactory.isCacheConsumers()).isTrue();
+        assertThat(connectionFactory.isCacheProducers()).isFalse();
+        assertThat(connectionFactory.getSessionCacheSize()).isEqualTo(10);
+    });
+}

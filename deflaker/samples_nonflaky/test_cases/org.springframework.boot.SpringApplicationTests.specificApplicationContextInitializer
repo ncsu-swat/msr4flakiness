@@ -1,0 +1,11 @@
+@Test
+void specificApplicationContextInitializer() {
+    SpringApplication application = new SpringApplication(ExampleConfig.class);
+    application.setWebApplicationType(WebApplicationType.NONE);
+    final AtomicReference<ApplicationContext> reference = new AtomicReference<>();
+    application.setInitializers(Collections.singletonList((ApplicationContextInitializer<ConfigurableApplicationContext>) reference::set));
+    this.context = application.run("--foo=bar");
+    assertThat(this.context).isSameAs(reference.get());
+    // Custom initializers do not switch off the defaults
+    assertThat(getEnvironment().getProperty("foo")).isEqualTo("bar");
+}

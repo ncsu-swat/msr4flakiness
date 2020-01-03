@@ -1,0 +1,10 @@
+@Test
+void contextIsAddedToHostBeforeCustomizersAreCalled() {
+    TomcatReactiveWebServerFactory factory = getFactory();
+    TomcatContextCustomizer customizer = mock(TomcatContextCustomizer.class);
+    factory.addContextCustomizers(customizer);
+    this.webServer = factory.getWebServer(mock(HttpHandler.class));
+    ArgumentCaptor<Context> contextCaptor = ArgumentCaptor.forClass(Context.class);
+    verify(customizer).customize(contextCaptor.capture());
+    assertThat(contextCaptor.getValue().getParent()).isNotNull();
+}

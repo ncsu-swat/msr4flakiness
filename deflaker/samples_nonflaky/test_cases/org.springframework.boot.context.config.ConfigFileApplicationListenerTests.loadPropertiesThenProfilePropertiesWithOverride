@@ -1,0 +1,14 @@
+@Test
+void loadPropertiesThenProfilePropertiesWithOverride() {
+    this.environment.setActiveProfiles("other");
+    this.initializer.setSearchNames("enableprofile");
+    this.initializer.postProcessEnvironment(this.environment, this.application);
+    String property = this.environment.getProperty("other.property");
+    // The "other" profile is activated before any processing starts
+    assertThat(property).isEqualTo("fromotherpropertiesfile");
+    property = this.environment.getProperty("the.property");
+    // The "myprofile" profile is activated in enableprofile.properties and "other"
+    // was not activated by setting spring.profiles.active so "myprofile" should still
+    // be activated
+    assertThat(property).isEqualTo("fromprofilepropertiesfile");
+}

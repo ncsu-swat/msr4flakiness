@@ -1,0 +1,16 @@
+@Test
+void testDataSourcePropertiesOverridden() throws Exception {
+    this.context.register(TomcatDataSourceConfiguration.class);
+    TestPropertyValues.of(PREFIX + "url:jdbc:h2:mem:testdb", PREFIX + "testWhileIdle:true", PREFIX + "testOnBorrow:true", PREFIX + "testOnReturn:true", PREFIX + "timeBetweenEvictionRunsMillis:10000", PREFIX + "minEvictableIdleTimeMillis:12345", PREFIX + "maxWait:1234", PREFIX + "jdbcInterceptors:SlowQueryReport", PREFIX + "validationInterval:9999").applyTo(this.context);
+    this.context.refresh();
+    org.apache.tomcat.jdbc.pool.DataSource ds = this.context.getBean(org.apache.tomcat.jdbc.pool.DataSource.class);
+    assertThat(ds.getUrl()).isEqualTo("jdbc:h2:mem:testdb");
+    assertThat(ds.isTestWhileIdle()).isTrue();
+    assertThat(ds.isTestOnBorrow()).isTrue();
+    assertThat(ds.isTestOnReturn()).isTrue();
+    assertThat(ds.getTimeBetweenEvictionRunsMillis()).isEqualTo(10000);
+    assertThat(ds.getMinEvictableIdleTimeMillis()).isEqualTo(12345);
+    assertThat(ds.getMaxWait()).isEqualTo(1234);
+    assertThat(ds.getValidationInterval()).isEqualTo(9999L);
+    assertDataSourceHasInterceptors(ds);
+}

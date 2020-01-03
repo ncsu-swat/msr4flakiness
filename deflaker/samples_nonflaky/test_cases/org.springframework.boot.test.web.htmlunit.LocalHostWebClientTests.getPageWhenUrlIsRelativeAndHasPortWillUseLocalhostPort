@@ -1,0 +1,11 @@
+@Test
+void getPageWhenUrlIsRelativeAndHasPortWillUseLocalhostPort() throws Exception {
+    MockEnvironment environment = new MockEnvironment();
+    environment.setProperty("local.server.port", "8181");
+    WebClient client = new LocalHostWebClient(environment);
+    WebConnection connection = mockConnection();
+    client.setWebConnection(connection);
+    client.getPage("/test");
+    verify(connection).getResponse(this.requestCaptor.capture());
+    assertThat(this.requestCaptor.getValue().getUrl()).isEqualTo(new URL("http://localhost:8181/test"));
+}

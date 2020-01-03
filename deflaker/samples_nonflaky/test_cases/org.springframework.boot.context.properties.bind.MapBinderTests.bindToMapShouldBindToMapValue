@@ -1,0 +1,15 @@
+@Test
+void bindToMapShouldBindToMapValue() {
+    ResolvableType type = ResolvableType.forClassWithGenerics(Map.class, ResolvableType.forClass(String.class), STRING_INTEGER_MAP.getType());
+    MockConfigurationPropertySource source = new MockConfigurationPropertySource();
+    source.put("foo.bar.baz", "1");
+    source.put("foo.bar.bin", "2");
+    source.put("foo.far.baz", "3");
+    source.put("foo.far.bin", "4");
+    source.put("faf.far.bin", "x");
+    this.sources.add(source);
+    Map<String, Map<String, Integer>> result = this.binder.bind("foo", Bindable.<Map<String, Map<String, Integer>>>of(type)).get();
+    assertThat(result).hasSize(2);
+    assertThat(result.get("bar")).containsEntry("baz", 1).containsEntry("bin", 2);
+    assertThat(result.get("far")).containsEntry("baz", 3).containsEntry("bin", 4);
+}

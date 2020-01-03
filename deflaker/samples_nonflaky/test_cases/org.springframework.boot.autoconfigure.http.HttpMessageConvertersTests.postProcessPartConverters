@@ -1,0 +1,21 @@
+@Override
+protected List<HttpMessageConverter<?>> postProcessPartConverters(List<HttpMessageConverter<?>> converters) {
+    converters.removeIf(MappingJackson2XmlHttpMessageConverter.class::isInstance);
+    return converters;
+}
+@Test
+void postProcessPartConverters() {
+    HttpMessageConverters converters = new HttpMessageConverters() {
+
+        @Override
+        protected List<HttpMessageConverter<?>> postProcessPartConverters(List<HttpMessageConverter<?>> converters) {
+            converters.removeIf(MappingJackson2XmlHttpMessageConverter.class::isInstance);
+            return converters;
+        }
+    };
+    List<Class<?>> converterClasses = new ArrayList<>();
+    for (HttpMessageConverter<?> converter : extractFormPartConverters(converters.getConverters())) {
+        converterClasses.add(converter.getClass());
+    }
+    assertThat(converterClasses).containsExactly(ByteArrayHttpMessageConverter.class, StringHttpMessageConverter.class, ResourceHttpMessageConverter.class, SourceHttpMessageConverter.class, MappingJackson2HttpMessageConverter.class, MappingJackson2SmileHttpMessageConverter.class);
+}

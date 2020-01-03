@@ -1,0 +1,10 @@
+@Test
+void unwrapServletException() {
+    RuntimeException ex = new RuntimeException("Test");
+    ServletException wrapped = new ServletException(new ServletException(ex));
+    this.request.setAttribute("javax.servlet.error.exception", wrapped);
+    Map<String, Object> attributes = this.errorAttributes.getErrorAttributes(this.webRequest, false);
+    assertThat(this.errorAttributes.getError(this.webRequest)).isSameAs(wrapped);
+    assertThat(attributes.get("exception")).isNull();
+    assertThat(attributes.get("message")).isEqualTo("Test");
+}

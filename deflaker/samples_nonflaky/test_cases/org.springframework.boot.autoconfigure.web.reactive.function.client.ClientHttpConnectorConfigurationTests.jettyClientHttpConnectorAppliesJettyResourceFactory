@@ -1,0 +1,15 @@
+@Test
+void jettyClientHttpConnectorAppliesJettyResourceFactory() {
+    Executor executor = mock(Executor.class);
+    ByteBufferPool byteBufferPool = mock(ByteBufferPool.class);
+    Scheduler scheduler = mock(Scheduler.class);
+    JettyResourceFactory jettyResourceFactory = new JettyResourceFactory();
+    jettyResourceFactory.setExecutor(executor);
+    jettyResourceFactory.setByteBufferPool(byteBufferPool);
+    jettyResourceFactory.setScheduler(scheduler);
+    JettyClientHttpConnector connector = getClientHttpConnector(jettyResourceFactory);
+    HttpClient httpClient = (HttpClient) ReflectionTestUtils.getField(connector, "httpClient");
+    assertThat(httpClient.getExecutor()).isSameAs(executor);
+    assertThat(httpClient.getByteBufferPool()).isSameAs(byteBufferPool);
+    assertThat(httpClient.getScheduler()).isSameAs(scheduler);
+}

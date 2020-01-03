@@ -1,0 +1,12 @@
+@Test
+void statusErrorWithCommittedResponse() throws Exception {
+    this.filter.addErrorPages(new ErrorPage(HttpStatus.BAD_REQUEST, "/400"));
+    this.chain = new TestFilterChain((request, response, chain) -> {
+        response.sendError(400, "BAD");
+        response.flushBuffer();
+    });
+    this.filter.doFilter(this.request, this.response, this.chain);
+    assertThat(((HttpServletResponseWrapper) this.chain.getResponse()).getStatus()).isEqualTo(400);
+    assertThat(this.response.isCommitted()).isTrue();
+    assertThat(this.response.getForwardedUrl()).isNull();
+}

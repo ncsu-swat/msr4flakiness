@@ -1,0 +1,10 @@
+@Test
+void getUaaUrlShouldCallCloudControllerInfoOnlyOnce() {
+    this.server.expect(requestTo(CLOUD_CONTROLLER + "/info")).andRespond(withSuccess("{\"token_endpoint\":\"" + UAA_URL + "\"}", MediaType.APPLICATION_JSON));
+    String uaaUrl = this.securityService.getUaaUrl();
+    this.server.verify();
+    assertThat(uaaUrl).isEqualTo(UAA_URL);
+    // Second call should not need to hit server
+    uaaUrl = this.securityService.getUaaUrl();
+    assertThat(uaaUrl).isEqualTo(UAA_URL);
+}

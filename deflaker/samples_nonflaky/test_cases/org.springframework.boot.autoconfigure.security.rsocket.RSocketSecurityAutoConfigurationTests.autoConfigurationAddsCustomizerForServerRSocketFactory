@@ -1,0 +1,11 @@
+@Test
+void autoConfigurationAddsCustomizerForServerRSocketFactory() {
+    RSocketFactory.ServerRSocketFactory factory = mock(RSocketFactory.ServerRSocketFactory.class);
+    ArgumentCaptor<SecuritySocketAcceptorInterceptor> captor = ArgumentCaptor.forClass(SecuritySocketAcceptorInterceptor.class);
+    this.contextRunner.run((context) -> {
+        ServerRSocketFactoryProcessor customizer = context.getBean(ServerRSocketFactoryProcessor.class);
+        customizer.process(factory);
+        verify(factory).addSocketAcceptorPlugin(captor.capture());
+        assertThat(captor.getValue()).isInstanceOf(SecuritySocketAcceptorInterceptor.class);
+    });
+}

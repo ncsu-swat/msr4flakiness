@@ -1,0 +1,16 @@
+@Test
+@SuppressWarnings("unchecked")
+void testList() {
+    ApplicationContextRunner contextRunner = new ApplicationContextRunner().withUserConfiguration(ListConfig.class).withPropertyValues("foo.list[0]:foo");
+    contextRunner.run((context) -> {
+        ConfigurationPropertiesReportEndpoint endpoint = context.getBean(ConfigurationPropertiesReportEndpoint.class);
+        ApplicationConfigurationProperties applicationProperties = endpoint.configurationProperties();
+        ConfigurationPropertiesBeanDescriptor foo = applicationProperties.getContexts().get(context.getId()).getBeans().get("foo");
+        assertThat(foo).isNotNull();
+        assertThat(foo.getPrefix()).isEqualTo("foo");
+        Map<String, Object> map = foo.getProperties();
+        assertThat(map).isNotNull();
+        assertThat(map).hasSize(3);
+        assertThat(((List<String>) map.get("list")).get(0)).isEqualTo("foo");
+    });
+}

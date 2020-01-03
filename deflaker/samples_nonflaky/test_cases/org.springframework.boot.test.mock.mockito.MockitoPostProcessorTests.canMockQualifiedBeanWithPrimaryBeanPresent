@@ -1,0 +1,11 @@
+@Test
+void canMockQualifiedBeanWithPrimaryBeanPresent() {
+    AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
+    MockitoPostProcessor.register(context);
+    context.register(MockQualifiedBean.class);
+    context.refresh();
+    assertThat(Mockito.mockingDetails(context.getBean(MockQualifiedBean.class).mock).isMock()).isTrue();
+    assertThat(Mockito.mockingDetails(context.getBean(ExampleService.class)).isMock()).isFalse();
+    assertThat(Mockito.mockingDetails(context.getBean("examplePrimary", ExampleService.class)).isMock()).isFalse();
+    assertThat(Mockito.mockingDetails(context.getBean("exampleQualified", ExampleService.class)).isMock()).isTrue();
+}

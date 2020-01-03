@@ -1,0 +1,13 @@
+@Test
+void validationCustomConfigurerTakesPrecedence() {
+    this.contextRunner.withConfiguration(AutoConfigurations.of(ValidationAutoConfiguration.class)).withUserConfiguration(ValidatorWebFluxConfigurer.class).run((context) -> {
+        assertThat(context).getBeans(ValidatorFactory.class).hasSize(1);
+        assertThat(context).getBeans(javax.validation.Validator.class).hasSize(1);
+        assertThat(context).getBeanNames(Validator.class).containsExactlyInAnyOrder("defaultValidator", "webFluxValidator");
+        assertThat(context.getBean("webFluxValidator")).isSameAs(context.getBean(ValidatorWebFluxConfigurer.class).validator);
+        // Primary Spring validator is the auto-configured one as the WebFlux
+        // one has been
+        // customized via a WebFluxConfigurer
+        assertThat(context.getBean(Validator.class)).isEqualTo(context.getBean("defaultValidator"));
+    });
+}

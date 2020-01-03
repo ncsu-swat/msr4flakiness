@@ -1,0 +1,9 @@
+@Test
+void autoConfiguredCacheManagerCanBeSwapped() {
+    this.contextRunner.withUserConfiguration(CacheManagerPostProcessorConfiguration.class).withPropertyValues("spring.cache.type=caffeine").run((context) -> {
+        getCacheManager(context, SimpleCacheManager.class);
+        CacheManagerPostProcessor postProcessor = context.getBean(CacheManagerPostProcessor.class);
+        assertThat(postProcessor.cacheManagers).hasSize(1);
+        assertThat(postProcessor.cacheManagers.get(0)).isInstanceOf(CaffeineCacheManager.class);
+    });
+}

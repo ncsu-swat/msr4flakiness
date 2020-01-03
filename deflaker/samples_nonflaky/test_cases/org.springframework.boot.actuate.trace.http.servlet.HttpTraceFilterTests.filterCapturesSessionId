@@ -1,0 +1,14 @@
+@Test
+void filterCapturesSessionId() throws ServletException, IOException {
+    this.filter.doFilter(new MockHttpServletRequest(), new MockHttpServletResponse(), new MockFilterChain(new HttpServlet() {
+
+        @Override
+        protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+            req.getSession(true);
+        }
+    }));
+    assertThat(this.repository.findAll()).hasSize(1);
+    Session session = this.repository.findAll().get(0).getSession();
+    assertThat(session).isNotNull();
+    assertThat(session.getId()).isNotNull();
+}

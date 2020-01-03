@@ -1,0 +1,15 @@
+@Test
+void webApplicationSwitchedOffInListener() {
+    TestSpringApplication application = new TestSpringApplication(ExampleConfig.class);
+    application.addListeners((ApplicationListener<ApplicationEnvironmentPreparedEvent>) (event) -> {
+        assertThat(event.getEnvironment()).isInstanceOf(StandardServletEnvironment.class);
+        TestPropertySourceUtils.addInlinedPropertiesToEnvironment(event.getEnvironment(), "foo=bar");
+        event.getSpringApplication().setWebApplicationType(WebApplicationType.NONE);
+    });
+    this.context = application.run();
+    assertThat(this.context.getEnvironment()).isNotInstanceOf(StandardServletEnvironment.class);
+    assertThat(this.context.getEnvironment().getProperty("foo")).isEqualTo("bar");
+    Iterator<PropertySource<?>> iterator = this.context.getEnvironment().getPropertySources().iterator();
+    assertThat(iterator.next().getName()).isEqualTo("configurationProperties");
+    assertThat(iterator.next().getName()).isEqualTo(TestPropertySourceUtils.INLINED_PROPERTIES_PROPERTY_SOURCE_NAME);
+}

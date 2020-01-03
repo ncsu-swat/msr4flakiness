@@ -1,0 +1,10 @@
+@Test
+void enableSchedulingWithExistingScheduledExecutorServiceBacksOff() {
+    this.contextRunner.withUserConfiguration(SchedulingConfiguration.class, ScheduledExecutorServiceConfiguration.class).run((context) -> {
+        assertThat(context).doesNotHaveBean(TaskScheduler.class);
+        assertThat(context).hasSingleBean(ScheduledExecutorService.class);
+        TestBean bean = context.getBean(TestBean.class);
+        assertThat(bean.latch.await(30, TimeUnit.SECONDS)).isTrue();
+        assertThat(bean.threadNames).allMatch((name) -> name.contains("pool-"));
+    });
+}

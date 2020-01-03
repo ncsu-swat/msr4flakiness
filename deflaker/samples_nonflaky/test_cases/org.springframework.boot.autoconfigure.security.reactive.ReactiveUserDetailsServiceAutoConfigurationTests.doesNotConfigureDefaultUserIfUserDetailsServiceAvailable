@@ -1,0 +1,9 @@
+@Test
+void doesNotConfigureDefaultUserIfUserDetailsServiceAvailable() {
+    this.contextRunner.withUserConfiguration(UserConfig.class, TestSecurityConfiguration.class).run((context) -> {
+        ReactiveUserDetailsService userDetailsService = context.getBean(ReactiveUserDetailsService.class);
+        assertThat(userDetailsService.findByUsername("user").block(Duration.ofSeconds(30))).isNull();
+        assertThat(userDetailsService.findByUsername("foo").block(Duration.ofSeconds(30))).isNotNull();
+        assertThat(userDetailsService.findByUsername("admin").block(Duration.ofSeconds(30))).isNotNull();
+    });
+}

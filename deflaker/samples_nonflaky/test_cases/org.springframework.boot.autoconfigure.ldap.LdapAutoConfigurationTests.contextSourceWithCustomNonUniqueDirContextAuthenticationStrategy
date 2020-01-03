@@ -1,0 +1,8 @@
+@Test
+void contextSourceWithCustomNonUniqueDirContextAuthenticationStrategy() {
+    this.contextRunner.withUserConfiguration(CustomDirContextAuthenticationStrategy.class, AnotherCustomDirContextAuthenticationStrategy.class).run((context) -> {
+        assertThat(context).hasBean("customDirContextAuthenticationStrategy").hasBean("anotherCustomDirContextAuthenticationStrategy");
+        LdapContextSource contextSource = context.getBean(LdapContextSource.class);
+        assertThat(contextSource).extracting("authenticationStrategy").isNotSameAs(context.getBean("customDirContextAuthenticationStrategy")).isNotSameAs(context.getBean("anotherCustomDirContextAuthenticationStrategy")).isInstanceOf(SimpleDirContextAuthenticationStrategy.class);
+    });
+}

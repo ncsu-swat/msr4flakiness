@@ -1,0 +1,11 @@
+@Test
+void exceptionThrownOnLoadFailureWhenFailCtxIfServletStartFailsIsTrue() {
+    TomcatServletWebServerFactory factory = getFactory();
+    factory.addContextCustomizers((context) -> {
+        if (context instanceof StandardContext) {
+            ((StandardContext) context).setFailCtxIfServletStartFails(true);
+        }
+    });
+    this.webServer = factory.getWebServer((context) -> context.addServlet("failing", FailingServlet.class).setLoadOnStartup(0));
+    assertThatExceptionOfType(WebServerException.class).isThrownBy(this.webServer::start);
+}

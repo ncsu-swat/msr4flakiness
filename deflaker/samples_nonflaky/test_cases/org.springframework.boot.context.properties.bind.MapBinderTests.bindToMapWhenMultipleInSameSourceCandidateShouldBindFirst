@@ -1,0 +1,16 @@
+@Test
+void bindToMapWhenMultipleInSameSourceCandidateShouldBindFirst() {
+    Map<String, Object> map = new HashMap<>();
+    map.put("foo.bar", "1");
+    map.put("foo.b-az", "2");
+    map.put("foo.ba-z", "3");
+    map.put("foo.bin", "4");
+    MapConfigurationPropertySource propertySource = new MapConfigurationPropertySource(map);
+    this.sources.add(propertySource);
+    Map<String, Integer> result = this.binder.bind("foo", STRING_INTEGER_MAP).get();
+    assertThat(result).hasSize(4);
+    assertThat(result).containsEntry("bar", 1);
+    assertThat(result).containsEntry("b-az", 2);
+    assertThat(result).containsEntry("ba-z", 3);
+    assertThat(result).containsEntry("bin", 4);
+}

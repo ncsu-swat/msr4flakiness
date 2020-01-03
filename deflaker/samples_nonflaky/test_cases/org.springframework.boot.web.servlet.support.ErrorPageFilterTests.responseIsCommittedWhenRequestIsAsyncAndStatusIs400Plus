@@ -1,0 +1,13 @@
+@Test
+void responseIsCommittedWhenRequestIsAsyncAndStatusIs400Plus() throws Exception {
+    this.filter.addErrorPages(new ErrorPage("/error"));
+    this.request.setAsyncStarted(true);
+    this.chain = new TestFilterChain((request, response, chain) -> {
+        chain.call();
+        response.sendError(400, "BAD");
+    });
+    this.filter.doFilter(this.request, this.response, this.chain);
+    assertThat(this.chain.getRequest()).isEqualTo(this.request);
+    assertThat(((HttpServletResponseWrapper) this.chain.getResponse()).getResponse()).isEqualTo(this.response);
+    assertThat(this.response.isCommitted()).isTrue();
+}

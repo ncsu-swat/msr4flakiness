@@ -1,0 +1,11 @@
+@Test
+void sslEnabledProtocolsConfiguration() {
+    JettyServletWebServerFactory factory = getFactory();
+    factory.setSsl(getSslSettings("TLSv1.1"));
+    this.webServer = factory.getWebServer();
+    this.webServer.start();
+    JettyWebServer jettyWebServer = (JettyWebServer) this.webServer;
+    ServerConnector connector = (ServerConnector) jettyWebServer.getServer().getConnectors()[0];
+    SslConnectionFactory connectionFactory = connector.getConnectionFactory(SslConnectionFactory.class);
+    assertThat(connectionFactory.getSslContextFactory().getIncludeProtocols()).containsExactly("TLSv1.1");
+}

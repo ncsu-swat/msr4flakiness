@@ -1,0 +1,15 @@
+@Test
+void servletContextInitializerBeansDoesNotSkipServletsAndFilters() throws Exception {
+    addWebServerFactoryBean();
+    ServletContextInitializer initializer = mock(ServletContextInitializer.class);
+    Servlet servlet = mock(Servlet.class);
+    Filter filter = mock(Filter.class);
+    this.context.registerBeanDefinition("initializerBean", beanDefinition(initializer));
+    this.context.registerBeanDefinition("servletBean", beanDefinition(servlet));
+    this.context.registerBeanDefinition("filterBean", beanDefinition(filter));
+    this.context.refresh();
+    ServletContext servletContext = getWebServerFactory().getServletContext();
+    verify(initializer).onStartup(servletContext);
+    verify(servletContext).addServlet(anyString(), any(Servlet.class));
+    verify(servletContext).addFilter(anyString(), any(Filter.class));
+}

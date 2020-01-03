@@ -1,0 +1,14 @@
+@Test
+void clearCacheWithSeveralCacheManagersWithCacheManagerFilter() {
+    Map<String, CacheManager> cacheManagers = new LinkedHashMap<>();
+    Cache a = mockCache("a");
+    Cache b = mockCache("b");
+    cacheManagers.put("test", cacheManager(a, b));
+    Cache anotherA = mockCache("a");
+    cacheManagers.put("another", cacheManager(anotherA));
+    CachesEndpoint endpoint = new CachesEndpoint(cacheManagers);
+    assertThat(endpoint.clearCache("a", "another")).isTrue();
+    verify(a, never()).clear();
+    verify(anotherA).clear();
+    verify(b, never()).clear();
+}

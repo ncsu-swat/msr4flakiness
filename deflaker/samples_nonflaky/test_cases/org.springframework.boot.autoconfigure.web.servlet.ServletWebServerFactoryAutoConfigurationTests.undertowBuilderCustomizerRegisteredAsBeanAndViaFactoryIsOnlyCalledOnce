@@ -1,0 +1,10 @@
+@Test
+void undertowBuilderCustomizerRegisteredAsBeanAndViaFactoryIsOnlyCalledOnce() {
+    WebApplicationContextRunner runner = new WebApplicationContextRunner(AnnotationConfigServletWebServerApplicationContext::new).withClassLoader(new FilteredClassLoader(Tomcat.class, HttpServer.class, Server.class)).withConfiguration(AutoConfigurations.of(ServletWebServerFactoryAutoConfiguration.class)).withUserConfiguration(DoubleRegistrationUndertowBuilderCustomizerConfiguration.class).withPropertyValues("server.port: 0");
+    runner.run((context) -> {
+        UndertowServletWebServerFactory factory = context.getBean(UndertowServletWebServerFactory.class);
+        UndertowBuilderCustomizer customizer = context.getBean("builderCustomizer", UndertowBuilderCustomizer.class);
+        assertThat(factory.getBuilderCustomizers()).contains(customizer);
+        verify(customizer, times(1)).customize(any(Builder.class));
+    });
+}

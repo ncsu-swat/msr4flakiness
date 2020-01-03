@@ -1,0 +1,11 @@
+@Test
+void containsDescendantOfShouldCheckSourceNames() {
+    Map<String, Object> source = new LinkedHashMap<>();
+    source.put("foo.bar", "value");
+    source.put("faf", "value");
+    EnumerablePropertySource<?> propertySource = new OriginCapablePropertySource<>(new MapPropertySource("test", source));
+    SpringIterableConfigurationPropertySource adapter = new SpringIterableConfigurationPropertySource(propertySource, DefaultPropertyMapper.INSTANCE);
+    assertThat(adapter.containsDescendantOf(ConfigurationPropertyName.of("foo"))).isEqualTo(ConfigurationPropertyState.PRESENT);
+    assertThat(adapter.containsDescendantOf(ConfigurationPropertyName.of("faf"))).isEqualTo(ConfigurationPropertyState.ABSENT);
+    assertThat(adapter.containsDescendantOf(ConfigurationPropertyName.of("fof"))).isEqualTo(ConfigurationPropertyState.ABSENT);
+}

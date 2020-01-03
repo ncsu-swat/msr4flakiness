@@ -1,0 +1,26 @@
+@Test
+void customizeSessionProperties() throws Exception {
+    Map<String, String> map = new HashMap<>();
+    map.put("server.servlet.session.timeout", "123");
+    map.put("server.servlet.session.tracking-modes", "cookie,url");
+    map.put("server.servlet.session.cookie.name", "testname");
+    map.put("server.servlet.session.cookie.domain", "testdomain");
+    map.put("server.servlet.session.cookie.path", "/testpath");
+    map.put("server.servlet.session.cookie.comment", "testcomment");
+    map.put("server.servlet.session.cookie.http-only", "true");
+    map.put("server.servlet.session.cookie.secure", "true");
+    map.put("server.servlet.session.cookie.max-age", "60");
+    bindProperties(map);
+    ConfigurableServletWebServerFactory factory = mock(ConfigurableServletWebServerFactory.class);
+    this.customizer.customize(factory);
+    ArgumentCaptor<Session> sessionCaptor = ArgumentCaptor.forClass(Session.class);
+    verify(factory).setSession(sessionCaptor.capture());
+    assertThat(sessionCaptor.getValue().getTimeout()).isEqualTo(Duration.ofSeconds(123));
+    Cookie cookie = sessionCaptor.getValue().getCookie();
+    assertThat(cookie.getName()).isEqualTo("testname");
+    assertThat(cookie.getDomain()).isEqualTo("testdomain");
+    assertThat(cookie.getPath()).isEqualTo("/testpath");
+    assertThat(cookie.getComment()).isEqualTo("testcomment");
+    assertThat(cookie.getHttpOnly()).isTrue();
+    assertThat(cookie.getMaxAge()).isEqualTo(Duration.ofSeconds(60));
+}

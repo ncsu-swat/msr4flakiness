@@ -1,0 +1,11 @@
+@Test
+void requestHeadersCanBeCustomized() {
+    MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+    headers.add("to-remove", "test");
+    headers.add("test", "value");
+    HttpTrace trace = new RequestHeadersFilterHttpExchangeTracer().receivedRequest(createRequest(headers));
+    Request request = trace.getRequest();
+    assertThat(request.getHeaders()).containsOnlyKeys("test", "to-add");
+    assertThat(request.getHeaders().get("test")).containsExactly("value");
+    assertThat(request.getHeaders().get("to-add")).containsExactly("42");
+}

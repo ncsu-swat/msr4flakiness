@@ -1,0 +1,15 @@
+@Test
+void incrementalEndpointBuildChangeGeneralEnabledFlag() throws Exception {
+    TestProject project = new TestProject(this.tempDir, IncrementalEndpoint.class);
+    ConfigurationMetadata metadata = project.fullBuild();
+    assertThat(metadata).has(Metadata.withGroup("management.endpoint.incremental").fromSource(IncrementalEndpoint.class));
+    assertThat(metadata).has(enabledFlag("incremental", true));
+    assertThat(metadata).has(cacheTtl("incremental"));
+    assertThat(metadata.getItems()).hasSize(3);
+    project.replaceText(IncrementalEndpoint.class, "id = \"incremental\"", "id = \"incremental\", enableByDefault = false");
+    metadata = project.incrementalBuild(IncrementalEndpoint.class);
+    assertThat(metadata).has(Metadata.withGroup("management.endpoint.incremental").fromSource(IncrementalEndpoint.class));
+    assertThat(metadata).has(enabledFlag("incremental", false));
+    assertThat(metadata).has(cacheTtl("incremental"));
+    assertThat(metadata.getItems()).hasSize(3);
+}

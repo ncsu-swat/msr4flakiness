@@ -1,0 +1,14 @@
+@Test
+void unauthorizedWithErrorPath() throws Exception {
+    this.filter.addErrorPages(new ErrorPage("/error"));
+    this.chain = new TestFilterChain((request, response, chain) -> response.sendError(401, "UNAUTHORIZED"));
+    this.filter.doFilter(this.request, this.response, this.chain);
+    assertThat(this.chain.getRequest()).isEqualTo(this.request);
+    HttpServletResponseWrapper wrapper = (HttpServletResponseWrapper) this.chain.getResponse();
+    assertThat(wrapper.getResponse()).isEqualTo(this.response);
+    assertThat(this.response.isCommitted()).isTrue();
+    assertThat(wrapper.getStatus()).isEqualTo(401);
+    // The real response has to be 401 as well...
+    assertThat(this.response.getStatus()).isEqualTo(401);
+    assertThat(this.response.getForwardedUrl()).isEqualTo("/error");
+}

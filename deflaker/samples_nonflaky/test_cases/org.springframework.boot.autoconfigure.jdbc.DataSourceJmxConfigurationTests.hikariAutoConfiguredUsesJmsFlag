@@ -1,0 +1,10 @@
+@Test
+void hikariAutoConfiguredUsesJmsFlag() {
+    String poolName = UUID.randomUUID().toString();
+    this.contextRunner.withPropertyValues("spring.datasource.type=" + HikariDataSource.class.getName(), "spring.jmx.enabled=false", "spring.datasource.name=" + poolName, "spring.datasource.hikari.register-mbeans=true").run((context) -> {
+        assertThat(context).hasSingleBean(HikariDataSource.class);
+        assertThat(context.getBean(HikariDataSource.class).isRegisterMbeans()).isTrue();
+        // Hikari can still register mBeans
+        validateHikariMBeansRegistration(ManagementFactory.getPlatformMBeanServer(), poolName, true);
+    });
+}

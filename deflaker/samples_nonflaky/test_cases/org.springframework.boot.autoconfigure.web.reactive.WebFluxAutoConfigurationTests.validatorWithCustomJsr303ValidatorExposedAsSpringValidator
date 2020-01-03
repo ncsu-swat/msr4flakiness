@@ -1,0 +1,12 @@
+@Test
+void validatorWithCustomJsr303ValidatorExposedAsSpringValidator() {
+    this.contextRunner.withUserConfiguration(CustomJsr303Validator.class).run((context) -> {
+        assertThat(context).doesNotHaveBean(ValidatorFactory.class);
+        assertThat(context).getBeanNames(javax.validation.Validator.class).containsExactly("customValidator");
+        assertThat(context).getBeanNames(Validator.class).containsExactly("webFluxValidator");
+        Validator validator = context.getBean(Validator.class);
+        assertThat(validator).isInstanceOf(ValidatorAdapter.class);
+        Validator target = ((ValidatorAdapter) validator).getTarget();
+        assertThat(target).hasFieldOrPropertyWithValue("targetValidator", context.getBean("customValidator"));
+    });
+}

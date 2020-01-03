@@ -1,0 +1,14 @@
+@Test
+void createLayoutFromConfigClass() {
+    this.contextRunner.run((context) -> {
+        ThymeleafView view = (ThymeleafView) context.getBean(ThymeleafViewResolver.class).resolveViewName("view", Locale.UK);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setAttribute(RequestContext.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context);
+        view.render(Collections.singletonMap("foo", "bar"), request, response);
+        String result = response.getContentAsString();
+        assertThat(result).contains("<title>Content</title>");
+        assertThat(result).contains("<span>bar</span>");
+        context.close();
+    });
+}

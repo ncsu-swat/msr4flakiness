@@ -1,0 +1,9 @@
+@Test
+void autoConfiguredCookieSerializerIsUsedBySessionRepositoryFilter() {
+    this.contextRunner.withUserConfiguration(SessionRepositoryConfiguration.class).withPropertyValues("server.port=0").run((context) -> {
+        SessionRepositoryFilter<?> filter = context.getBean(SessionRepositoryFilter.class);
+        CookieHttpSessionIdResolver sessionIdResolver = (CookieHttpSessionIdResolver) ReflectionTestUtils.getField(filter, "httpSessionIdResolver");
+        DefaultCookieSerializer cookieSerializer = (DefaultCookieSerializer) ReflectionTestUtils.getField(sessionIdResolver, "cookieSerializer");
+        assertThat(cookieSerializer).isSameAs(context.getBean(DefaultCookieSerializer.class));
+    });
+}

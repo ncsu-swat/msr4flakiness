@@ -1,0 +1,16 @@
+@Test
+void resolvedLinksContainsALinkForEachWebEndpointOperation() {
+    List<WebOperation> operations = new ArrayList<>();
+    operations.add(operationWithPath("/alpha", "alpha"));
+    operations.add(operationWithPath("/alpha/{name}", "alpha-name"));
+    ExposableWebEndpoint endpoint = mock(ExposableWebEndpoint.class);
+    given(endpoint.getEndpointId()).willReturn(EndpointId.of("alpha"));
+    given(endpoint.isEnableByDefault()).willReturn(true);
+    given(endpoint.getOperations()).willReturn(operations);
+    String requestUrl = "https://api.example.com/actuator";
+    Map<String, Link> links = new EndpointLinksResolver(Collections.singletonList(endpoint)).resolveLinks(requestUrl);
+    assertThat(links).hasSize(3);
+    assertThat(links).hasEntrySatisfying("self", linkWithHref("https://api.example.com/actuator"));
+    assertThat(links).hasEntrySatisfying("alpha", linkWithHref("https://api.example.com/actuator/alpha"));
+    assertThat(links).hasEntrySatisfying("alpha-name", linkWithHref("https://api.example.com/actuator/alpha/{name}"));
+}

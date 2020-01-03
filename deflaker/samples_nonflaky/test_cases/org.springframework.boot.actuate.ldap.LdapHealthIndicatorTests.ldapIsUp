@@ -1,0 +1,11 @@
+@Test
+@SuppressWarnings("unchecked")
+void ldapIsUp() {
+    LdapTemplate ldapTemplate = mock(LdapTemplate.class);
+    given(ldapTemplate.executeReadOnly((ContextExecutor<String>) any())).willReturn("3");
+    LdapHealthIndicator healthIndicator = new LdapHealthIndicator(ldapTemplate);
+    Health health = healthIndicator.health();
+    assertThat(health.getStatus()).isEqualTo(Status.UP);
+    assertThat(health.getDetails().get("version")).isEqualTo("3");
+    verify(ldapTemplate).executeReadOnly((ContextExecutor<String>) any());
+}

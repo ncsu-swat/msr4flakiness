@@ -1,0 +1,12 @@
+@Test
+void dataSourceInitializedWithExplicitSqlScriptEncoding() {
+    this.contextRunner.withPropertyValues("spring.datasource.initialization-mode:always", "spring.datasource.sqlScriptEncoding:UTF-8", "spring.datasource.schema:" + getRelativeLocationFor("encoding-schema.sql"), "spring.datasource.data:" + getRelativeLocationFor("encoding-data.sql")).run((context) -> {
+        DataSource dataSource = context.getBean(DataSource.class);
+        assertThat(dataSource).isInstanceOf(HikariDataSource.class);
+        assertThat(dataSource).isNotNull();
+        JdbcOperations template = new JdbcTemplate(dataSource);
+        assertThat(template.queryForObject("SELECT COUNT(*) from BAR", Integer.class)).isEqualTo(2);
+        assertThat(template.queryForObject("SELECT name from BAR WHERE id=1", String.class)).isEqualTo("bar");
+        assertThat(template.queryForObject("SELECT name from BAR WHERE id=2", String.class)).isEqualTo("ばー");
+    });
+}

@@ -1,0 +1,13 @@
+@Test
+void postProcessWhenServerPortPlaceholderPresentShouldResolvePlaceholder() {
+    addTestPropertySource("0", null);
+    MapPropertySource testPropertySource = (MapPropertySource) this.propertySources.get(TestPropertySourceUtils.INLINED_PROPERTIES_PROPERTY_SOURCE_NAME);
+    testPropertySource.getSource().put("port", "8080");
+    Map<String, Object> source = new HashMap<>();
+    source.put("server.port", "${port}");
+    source.put("management.server.port", "9090");
+    this.propertySources.addLast(new MapPropertySource("other", source));
+    this.postProcessor.postProcessEnvironment(this.environment, null);
+    assertThat(this.environment.getProperty("server.port")).isEqualTo("0");
+    assertThat(this.environment.getProperty("management.server.port")).isEqualTo("0");
+}

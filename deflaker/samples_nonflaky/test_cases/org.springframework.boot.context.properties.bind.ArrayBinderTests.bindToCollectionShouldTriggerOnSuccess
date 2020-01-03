@@ -1,0 +1,9 @@
+@Test
+void bindToCollectionShouldTriggerOnSuccess() {
+    this.sources.add(new MockConfigurationPropertySource("foo[0]", "1", "line1"));
+    BindHandler handler = mock(BindHandler.class, Answers.CALLS_REAL_METHODS);
+    this.binder.bind("foo", INTEGER_LIST, handler);
+    InOrder inOrder = inOrder(handler);
+    inOrder.verify(handler).onSuccess(eq(ConfigurationPropertyName.of("foo[0]")), eq(Bindable.of(Integer.class)), any(), eq(1));
+    inOrder.verify(handler).onSuccess(eq(ConfigurationPropertyName.of("foo")), eq(INTEGER_LIST), any(), isA(List.class));
+}

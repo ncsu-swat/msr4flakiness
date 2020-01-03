@@ -1,0 +1,12 @@
+@Test
+void originTrackedMapPropertySourceKeyAdditionInvalidatesCache() {
+    // gh-13344
+    Map<String, Object> map = new LinkedHashMap<>();
+    map.put("key1", "value1");
+    map.put("key2", "value2");
+    EnumerablePropertySource<?> source = new OriginTrackedMapPropertySource("test", map);
+    SpringIterableConfigurationPropertySource adapter = new SpringIterableConfigurationPropertySource(source, DefaultPropertyMapper.INSTANCE);
+    assertThat(adapter.stream()).hasSize(2);
+    map.put("key3", "value3");
+    assertThat(adapter.stream()).hasSize(3);
+}

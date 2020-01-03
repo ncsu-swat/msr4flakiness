@@ -1,0 +1,13 @@
+@Test
+void failureInReadyEventListenerDoesNotCausePublicationOfFailedEvent() {
+    SpringApplication application = new SpringApplication(ExampleConfig.class);
+    application.setWebApplicationType(WebApplicationType.NONE);
+    @SuppressWarnings("unchecked")
+    ApplicationListener<SpringApplicationEvent> listener = mock(ApplicationListener.class);
+    application.addListeners(listener);
+    RuntimeException failure = new RuntimeException();
+    willThrow(failure).given(listener).onApplicationEvent(isA(ApplicationReadyEvent.class));
+    assertThatExceptionOfType(RuntimeException.class).isThrownBy(application::run).isEqualTo(failure);
+    verify(listener).onApplicationEvent(isA(ApplicationReadyEvent.class));
+    verify(listener, never()).onApplicationEvent(isA(ApplicationFailedEvent.class));
+}

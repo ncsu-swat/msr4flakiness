@@ -1,0 +1,10 @@
+@Test
+void tomcatProtocolHandlerCustomizerBeanIsAddedToFactory() {
+    ReactiveWebApplicationContextRunner runner = new ReactiveWebApplicationContextRunner(AnnotationConfigReactiveWebServerApplicationContext::new).withConfiguration(AutoConfigurations.of(ReactiveWebServerFactoryAutoConfiguration.class)).withUserConfiguration(HttpHandlerConfiguration.class, TomcatProtocolHandlerCustomizerConfiguration.class).withPropertyValues("server.port: 0");
+    runner.run((context) -> {
+        TomcatReactiveWebServerFactory factory = context.getBean(TomcatReactiveWebServerFactory.class);
+        TomcatProtocolHandlerCustomizer<?> customizer = context.getBean("protocolHandlerCustomizer", TomcatProtocolHandlerCustomizer.class);
+        assertThat(factory.getTomcatProtocolHandlerCustomizers()).contains(customizer);
+        verify(customizer, times(1)).customize(any());
+    });
+}

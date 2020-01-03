@@ -1,0 +1,15 @@
+@Test
+void overrideLocale() {
+    this.contextRunner.withPropertyValues("spring.mvc.locale:en_UK", "spring.mvc.locale-resolver=fixed").run((loader) -> {
+        // mock request and set user preferred locale
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addPreferredLocale(StringUtils.parseLocaleString("nl_NL"));
+        request.addHeader(HttpHeaders.ACCEPT_LANGUAGE, "nl_NL");
+        LocaleResolver localeResolver = loader.getBean(LocaleResolver.class);
+        assertThat(localeResolver).isInstanceOf(FixedLocaleResolver.class);
+        Locale locale = localeResolver.resolveLocale(request);
+        // test locale resolver uses fixed locale and not user preferred
+        // locale
+        assertThat(locale.toString()).isEqualTo("en_UK");
+    });
+}

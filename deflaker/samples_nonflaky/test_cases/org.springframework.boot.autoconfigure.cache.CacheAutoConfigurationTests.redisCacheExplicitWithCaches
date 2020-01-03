@@ -1,0 +1,12 @@
+@Test
+void redisCacheExplicitWithCaches() {
+    this.contextRunner.withUserConfiguration(RedisConfiguration.class).withPropertyValues("spring.cache.type=redis", "spring.cache.cacheNames[0]=foo", "spring.cache.cacheNames[1]=bar").run((context) -> {
+        RedisCacheManager cacheManager = getCacheManager(context, RedisCacheManager.class);
+        assertThat(cacheManager.getCacheNames()).containsOnly("foo", "bar");
+        RedisCacheConfiguration redisCacheConfiguration = getDefaultRedisCacheConfiguration(cacheManager);
+        assertThat(redisCacheConfiguration.getTtl()).isEqualTo(java.time.Duration.ofMinutes(0));
+        assertThat(redisCacheConfiguration.getAllowCacheNullValues()).isTrue();
+        assertThat(redisCacheConfiguration.getKeyPrefixFor("test")).isEqualTo("test::");
+        assertThat(redisCacheConfiguration.usePrefix()).isTrue();
+    });
+}

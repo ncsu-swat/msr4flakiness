@@ -1,0 +1,10 @@
+@Test
+void uriIsIgnoredInEmbeddedMode() {
+    MongoProperties properties = new MongoProperties();
+    properties.setUri("mongodb://mongo.example.com:1234/mydb");
+    this.environment.setProperty("local.mongo.port", "4000");
+    MongoClient client = createMongoClient(properties, this.environment);
+    List<ServerAddress> allAddresses = extractServerAddresses(client);
+    assertThat(allAddresses).hasSize(1);
+    assertServerAddress(allAddresses.get(0), "localhost", 4000);
+}

@@ -1,0 +1,11 @@
+@Test
+void testActiveMQOverriddenRemoteHost() {
+    this.contextRunner.withUserConfiguration(TestConfiguration.class).withPropertyValues("spring.activemq.brokerUrl:tcp://remote-host:10000").run((context) -> {
+        assertThat(context).hasSingleBean(JmsTemplate.class);
+        assertThat(context).hasSingleBean(CachingConnectionFactory.class);
+        JmsTemplate jmsTemplate = context.getBean(JmsTemplate.class);
+        ConnectionFactory factory = context.getBean(ConnectionFactory.class);
+        assertThat(factory).isEqualTo(jmsTemplate.getConnectionFactory());
+        assertThat(getBrokerUrl((CachingConnectionFactory) factory)).isEqualTo("tcp://remote-host:10000");
+    });
+}

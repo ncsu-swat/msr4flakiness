@@ -1,0 +1,15 @@
+@Test
+@SuppressWarnings("unchecked")
+void loggersShouldReturnLoggerConfigurationsWithNoLoggerGroups() {
+    given(this.loggingSystem.getLoggerConfigurations()).willReturn(Collections.singletonList(new LoggerConfiguration("ROOT", null, LogLevel.DEBUG)));
+    given(this.loggingSystem.getSupportedLogLevels()).willReturn(EnumSet.allOf(LogLevel.class));
+    Map<String, Object> result = new LoggersEndpoint(this.loggingSystem, new LoggerGroups()).loggers();
+    Map<String, LoggerLevels> loggers = (Map<String, LoggerLevels>) result.get("loggers");
+    Set<LogLevel> levels = (Set<LogLevel>) result.get("levels");
+    SingleLoggerLevels rootLevels = (SingleLoggerLevels) loggers.get("ROOT");
+    assertThat(rootLevels.getConfiguredLevel()).isNull();
+    assertThat(rootLevels.getEffectiveLevel()).isEqualTo("DEBUG");
+    assertThat(levels).containsExactly(LogLevel.OFF, LogLevel.FATAL, LogLevel.ERROR, LogLevel.WARN, LogLevel.INFO, LogLevel.DEBUG, LogLevel.TRACE);
+    Map<String, LoggerGroups> groups = (Map<String, LoggerGroups>) result.get("groups");
+    assertThat(groups).isEmpty();
+}

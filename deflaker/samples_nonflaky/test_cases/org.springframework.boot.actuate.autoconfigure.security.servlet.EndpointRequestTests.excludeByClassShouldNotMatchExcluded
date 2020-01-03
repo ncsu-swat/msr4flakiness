@@ -1,0 +1,13 @@
+@Test
+void excludeByClassShouldNotMatchExcluded() {
+    RequestMatcher matcher = EndpointRequest.toAnyEndpoint().excluding(FooEndpoint.class, BazServletEndpoint.class);
+    List<ExposableEndpoint<?>> endpoints = new ArrayList<>();
+    endpoints.add(mockEndpoint(EndpointId.of("foo"), "foo"));
+    endpoints.add(mockEndpoint(EndpointId.of("bar"), "bar"));
+    endpoints.add(mockEndpoint(EndpointId.of("baz"), "baz"));
+    PathMappedEndpoints pathMappedEndpoints = new PathMappedEndpoints("/actuator", () -> endpoints);
+    assertMatcher(matcher, pathMappedEndpoints).doesNotMatch("/actuator/foo");
+    assertMatcher(matcher, pathMappedEndpoints).doesNotMatch("/actuator/baz");
+    assertMatcher(matcher).matches("/actuator/bar");
+    assertMatcher(matcher).matches("/actuator");
+}

@@ -1,0 +1,11 @@
+@Test
+void caffeineCacheWithExplicitCaches() {
+    this.contextRunner.withUserConfiguration(DefaultCacheConfiguration.class).withPropertyValues("spring.cache.type=caffeine", "spring.cache.cacheNames=foo").run((context) -> {
+        CaffeineCacheManager manager = getCacheManager(context, CaffeineCacheManager.class);
+        assertThat(manager.getCacheNames()).containsOnly("foo");
+        Cache foo = manager.getCache("foo");
+        foo.get("1");
+        // See next tests: no spec given so stats should be disabled
+        assertThat(((CaffeineCache) foo).getNativeCache().stats().missCount()).isEqualTo(0L);
+    });
+}

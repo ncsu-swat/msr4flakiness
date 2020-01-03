@@ -1,0 +1,10 @@
+@Test
+@SuppressWarnings("rawtypes")
+void registerResourceHandlingFilterWithOtherRegistrationBean() {
+    // gh-14897
+    load(FilterRegistrationOtherConfiguration.class, "spring.resources.chain.enabled:true");
+    Map<String, FilterRegistrationBean> beans = this.context.getBeansOfType(FilterRegistrationBean.class);
+    assertThat(beans).hasSize(2);
+    FilterRegistrationBean registration = beans.values().stream().filter((r) -> r.getFilter() instanceof ResourceUrlEncodingFilter).findFirst().get();
+    assertThat(registration).hasFieldOrPropertyWithValue("dispatcherTypes", EnumSet.of(DispatcherType.REQUEST, DispatcherType.ERROR));
+}

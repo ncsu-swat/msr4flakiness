@@ -1,0 +1,7 @@
+@Test
+void readOperationsThatReturnAResourceSupportRangeRequests() {
+    load(ResourceEndpointConfiguration.class, (client) -> {
+        byte[] responseBody = client.get().uri("/resource").header("Range", "bytes=0-3").exchange().expectStatus().isEqualTo(HttpStatus.PARTIAL_CONTENT).expectHeader().contentType(MediaType.APPLICATION_OCTET_STREAM).returnResult(byte[].class).getResponseBodyContent();
+        assertThat(responseBody).containsExactly(0, 1, 2, 3);
+    });
+}

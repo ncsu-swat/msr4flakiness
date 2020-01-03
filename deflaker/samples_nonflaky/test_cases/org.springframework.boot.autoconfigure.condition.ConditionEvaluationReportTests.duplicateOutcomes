@@ -1,0 +1,15 @@
+@Test
+void duplicateOutcomes() {
+    AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(DuplicateConfig.class);
+    ConditionEvaluationReport report = ConditionEvaluationReport.get(context.getBeanFactory());
+    String autoconfigKey = MultipartAutoConfiguration.class.getName();
+    ConditionAndOutcomes outcomes = report.getConditionAndOutcomesBySource().get(autoconfigKey);
+    assertThat(outcomes).isNotNull();
+    assertThat(outcomes).hasSize(2);
+    List<String> messages = new ArrayList<>();
+    for (ConditionAndOutcome outcome : outcomes) {
+        messages.add(outcome.getOutcome().getMessage());
+    }
+    assertThat(messages).anyMatch((message) -> message.contains("@ConditionalOnClass found required classes " + "'javax.servlet.Servlet', 'org.springframework.web.multipart." + "support.StandardServletMultipartResolver', 'javax.servlet.MultipartConfigElement'"));
+    context.close();
+}

@@ -1,0 +1,10 @@
+@Test
+void bindToMapWithPlaceholdersShouldBeGreedyForScalars() {
+    StandardEnvironment environment = new StandardEnvironment();
+    TestPropertySourceUtils.addInlinedPropertiesToEnvironment(environment, "foo=boo");
+    MockConfigurationPropertySource source = new MockConfigurationPropertySource("foo.aaa.bbb.ccc", "baz-${foo}");
+    this.sources.add(source);
+    this.binder = new Binder(this.sources, new PropertySourcesPlaceholdersResolver(environment));
+    Map<String, ExampleEnum> result = this.binder.bind("foo", Bindable.mapOf(String.class, ExampleEnum.class)).get();
+    assertThat(result).containsEntry("aaa.bbb.ccc", ExampleEnum.BAZ_BOO);
+}

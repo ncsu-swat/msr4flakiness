@@ -1,0 +1,8 @@
+@Test
+void noHttpRequestsTimedWhenJerseyInstrumentationMissingFromClasspath() {
+    this.webContextRunner.withClassLoader(new FilteredClassLoader(MetricsApplicationEventListener.class)).run((context) -> {
+        doRequest(context);
+        MeterRegistry registry = context.getBean(MeterRegistry.class);
+        assertThat(registry.find("http.server.requests").timer()).isNull();
+    });
+}

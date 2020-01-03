@@ -1,0 +1,14 @@
+@Test
+void callbacksAreConfiguredAndOrdered() {
+    this.contextRunner.withUserConfiguration(EmbeddedDataSourceConfiguration.class, CallbackConfiguration.class).run((context) -> {
+        assertThat(context).hasSingleBean(Flyway.class);
+        Flyway flyway = context.getBean(Flyway.class);
+        Callback callbackOne = context.getBean("callbackOne", Callback.class);
+        Callback callbackTwo = context.getBean("callbackTwo", Callback.class);
+        assertThat(flyway.getConfiguration().getCallbacks()).hasSize(2);
+        assertThat(flyway.getConfiguration().getCallbacks()).containsExactly(callbackTwo, callbackOne);
+        InOrder orderedCallbacks = inOrder(callbackOne, callbackTwo);
+        orderedCallbacks.verify(callbackTwo).handle(any(Event.class), any(Context.class));
+        orderedCallbacks.verify(callbackOne).handle(any(Event.class), any(Context.class));
+    });
+}

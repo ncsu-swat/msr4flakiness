@@ -1,0 +1,22 @@
+@Test
+void adminProperties() {
+    this.contextRunner.withPropertyValues("spring.kafka.clientId=cid", "spring.kafka.properties.foo.bar.baz=qux.fiz.buz", "spring.kafka.admin.fail-fast=true", "spring.kafka.admin.properties.fiz.buz=fix.fox", "spring.kafka.admin.ssl.key-password=p4", "spring.kafka.admin.ssl.key-store-location=classpath:ksLocP", "spring.kafka.admin.ssl.key-store-password=p5", "spring.kafka.admin.ssl.key-store-type=PKCS12", "spring.kafka.admin.ssl.trust-store-location=classpath:tsLocP", "spring.kafka.admin.ssl.trust-store-password=p6", "spring.kafka.admin.ssl.trust-store-type=PKCS12", "spring.kafka.admin.ssl.protocol=TLSv1.2").run((context) -> {
+        KafkaAdmin admin = context.getBean(KafkaAdmin.class);
+        Map<String, Object> configs = admin.getConfig();
+        // common
+        assertThat(configs.get(AdminClientConfig.CLIENT_ID_CONFIG)).isEqualTo("cid");
+        // admin
+        assertThat(configs.get(SslConfigs.SSL_KEY_PASSWORD_CONFIG)).isEqualTo("p4");
+        assertThat((String) configs.get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG)).endsWith(File.separator + "ksLocP");
+        assertThat(configs.get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG)).isEqualTo("p5");
+        assertThat(configs.get(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG)).isEqualTo("PKCS12");
+        assertThat((String) configs.get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG)).endsWith(File.separator + "tsLocP");
+        assertThat(configs.get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG)).isEqualTo("p6");
+        assertThat(configs.get(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG)).isEqualTo("PKCS12");
+        assertThat(configs.get(SslConfigs.SSL_PROTOCOL_CONFIG)).isEqualTo("TLSv1.2");
+        assertThat(context.getBeansOfType(KafkaJaasLoginModuleInitializer.class)).isEmpty();
+        assertThat(configs.get("foo.bar.baz")).isEqualTo("qux.fiz.buz");
+        assertThat(configs.get("fiz.buz")).isEqualTo("fix.fox");
+        assertThat(admin).hasFieldOrPropertyWithValue("fatalIfBrokerNotAvailable", true);
+    });
+}

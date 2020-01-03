@@ -1,0 +1,9 @@
+@Test
+void disableDataSourceInitializer() {
+    this.contextRunner.withPropertyValues("spring.session.store-type=jdbc", "spring.session.jdbc.initialize-schema=never").run((context) -> {
+        JdbcIndexedSessionRepository repository = validateSessionRepository(context, JdbcIndexedSessionRepository.class);
+        assertThat(repository).hasFieldOrPropertyWithValue("tableName", "SPRING_SESSION");
+        assertThat(context.getBean(JdbcSessionProperties.class).getInitializeSchema()).isEqualTo(DataSourceInitializationMode.NEVER);
+        assertThatExceptionOfType(BadSqlGrammarException.class).isThrownBy(() -> context.getBean(JdbcOperations.class).queryForList("select * from SPRING_SESSION"));
+    });
+}

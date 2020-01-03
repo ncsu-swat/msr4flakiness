@@ -1,0 +1,11 @@
+@Test
+void filterRegistrationBeansSkipsRegisteredFilters() {
+    addWebServerFactoryBean();
+    Filter filter = mock(Filter.class);
+    FilterRegistrationBean<Filter> initializer = new FilterRegistrationBean<>(filter);
+    this.context.registerBeanDefinition("initializerBean", beanDefinition(initializer));
+    this.context.registerBeanDefinition("filterBean", beanDefinition(filter));
+    this.context.refresh();
+    ServletContext servletContext = getWebServerFactory().getServletContext();
+    verify(servletContext, atMost(1)).addFilter(anyString(), any(Filter.class));
+}

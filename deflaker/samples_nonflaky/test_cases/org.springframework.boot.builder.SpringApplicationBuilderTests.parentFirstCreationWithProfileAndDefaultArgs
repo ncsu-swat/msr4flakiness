@@ -1,0 +1,11 @@
+@Test
+void parentFirstCreationWithProfileAndDefaultArgs() {
+    SpringApplicationBuilder application = new SpringApplicationBuilder(ExampleConfig.class).profiles("node").properties("transport=redis").child(ChildConfig.class).web(WebApplicationType.NONE);
+    this.context = application.run();
+    assertThat(this.context.getEnvironment().acceptsProfiles(Profiles.of("node"))).isTrue();
+    assertThat(this.context.getEnvironment().getProperty("transport")).isEqualTo("redis");
+    assertThat(this.context.getParent().getEnvironment().acceptsProfiles(Profiles.of("node"))).isTrue();
+    assertThat(this.context.getParent().getEnvironment().getProperty("transport")).isEqualTo("redis");
+    // only defined in node profile
+    assertThat(this.context.getEnvironment().getProperty("bar")).isEqualTo("spam");
+}

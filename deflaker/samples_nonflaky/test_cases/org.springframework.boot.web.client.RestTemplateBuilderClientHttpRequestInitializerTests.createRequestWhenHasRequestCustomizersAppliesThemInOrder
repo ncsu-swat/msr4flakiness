@@ -1,0 +1,13 @@
+@Test
+@SuppressWarnings("unchecked")
+void createRequestWhenHasRequestCustomizersAppliesThemInOrder() throws IOException {
+    Set<RestTemplateRequestCustomizer<?>> customizers = new LinkedHashSet<>();
+    customizers.add(mock(RestTemplateRequestCustomizer.class));
+    customizers.add(mock(RestTemplateRequestCustomizer.class));
+    customizers.add(mock(RestTemplateRequestCustomizer.class));
+    new RestTemplateBuilderClientHttpRequestInitializer(null, Collections.emptyMap(), customizers).initialize(this.request);
+    InOrder inOrder = inOrder(customizers.toArray());
+    for (RestTemplateRequestCustomizer<?> customizer : customizers) {
+        inOrder.verify((RestTemplateRequestCustomizer<ClientHttpRequest>) customizer).customize(this.request);
+    }
+}

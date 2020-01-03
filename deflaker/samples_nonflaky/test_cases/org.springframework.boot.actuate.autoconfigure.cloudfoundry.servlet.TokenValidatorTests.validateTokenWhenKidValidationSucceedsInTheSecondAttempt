@@ -1,0 +1,10 @@
+@Test
+void validateTokenWhenKidValidationSucceedsInTheSecondAttempt() throws Exception {
+    ReflectionTestUtils.setField(this.tokenValidator, "tokenKeys", INVALID_KEYS);
+    given(this.securityService.fetchTokenKeys()).willReturn(VALID_KEYS);
+    given(this.securityService.getUaaUrl()).willReturn("http://localhost:8080/uaa");
+    String header = "{ \"alg\": \"RS256\",  \"kid\": \"valid-key\",\"typ\": \"JWT\"}";
+    String claims = "{ \"exp\": 2147483647, \"iss\": \"http://localhost:8080/uaa/oauth/token\", \"scope\": [\"actuator.read\"]}";
+    this.tokenValidator.validate(new Token(getSignedToken(header.getBytes(), claims.getBytes())));
+    verify(this.securityService).fetchTokenKeys();
+}

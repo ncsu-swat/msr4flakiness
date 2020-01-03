@@ -1,0 +1,11 @@
+@Test
+void portIsAvailableInParentContext() {
+    try (ConfigurableApplicationContext parent = new AnnotationConfigApplicationContext()) {
+        parent.refresh();
+        this.context = new AnnotationConfigApplicationContext();
+        this.context.setParent(parent);
+        this.context.register(EmbeddedMongoAutoConfiguration.class, MongoClientConfiguration.class);
+        this.context.refresh();
+        assertThat(parent.getEnvironment().getProperty("local.mongo.port")).isNotNull();
+    }
+}

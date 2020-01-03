@@ -1,0 +1,9 @@
+@Test
+void customizerOverridesAutoConfig() {
+    this.contextRunner.withPropertyValues("spring.data.mongodb.uri:mongodb://localhost/test?appname=auto-config").withUserConfiguration(SimpleCustomizerConfig.class).run((context) -> {
+        assertThat(context).hasSingleBean(MongoClient.class);
+        MongoClientSettings settings = getSettings(context);
+        assertThat(settings.getApplicationName()).isEqualTo("overridden-name");
+        assertThat(settings.getStreamFactoryFactory()).isEqualTo(SimpleCustomizerConfig.streamFactoryFactory);
+    });
+}

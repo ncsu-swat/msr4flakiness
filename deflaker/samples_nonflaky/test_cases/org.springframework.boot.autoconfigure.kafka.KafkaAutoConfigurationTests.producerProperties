@@ -1,0 +1,34 @@
+@Test
+void producerProperties() {
+    this.contextRunner.withPropertyValues("spring.kafka.clientId=cid", "spring.kafka.properties.foo.bar.baz=qux.fiz.buz", "spring.kafka.producer.acks=all", // test
+    "spring.kafka.producer.batch-size=2KB", // test
+    "spring.kafka.producer.bootstrap-servers=bar:1234", // override
+    "spring.kafka.producer.buffer-memory=4KB", "spring.kafka.producer.compression-type=gzip", "spring.kafka.producer.key-serializer=org.apache.kafka.common.serialization.LongSerializer", "spring.kafka.producer.retries=2", "spring.kafka.producer.properties.fiz.buz=fix.fox", "spring.kafka.producer.ssl.key-password=p4", "spring.kafka.producer.ssl.key-store-location=classpath:ksLocP", "spring.kafka.producer.ssl.key-store-password=p5", "spring.kafka.producer.ssl.key-store-type=PKCS12", "spring.kafka.producer.ssl.trust-store-location=classpath:tsLocP", "spring.kafka.producer.ssl.trust-store-password=p6", "spring.kafka.producer.ssl.trust-store-type=PKCS12", "spring.kafka.producer.ssl.protocol=TLSv1.2", "spring.kafka.producer.value-serializer=org.apache.kafka.common.serialization.IntegerSerializer").run((context) -> {
+        DefaultKafkaProducerFactory<?, ?> producerFactory = context.getBean(DefaultKafkaProducerFactory.class);
+        Map<String, Object> configs = producerFactory.getConfigurationProperties();
+        // common
+        assertThat(configs.get(ProducerConfig.CLIENT_ID_CONFIG)).isEqualTo("cid");
+        // producer
+        assertThat(configs.get(ProducerConfig.ACKS_CONFIG)).isEqualTo("all");
+        assertThat(configs.get(ProducerConfig.BATCH_SIZE_CONFIG)).isEqualTo(2048);
+        assertThat(configs.get(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG)).isEqualTo(// override
+        Collections.singletonList("bar:1234"));
+        assertThat(configs.get(ProducerConfig.BUFFER_MEMORY_CONFIG)).isEqualTo(4096L);
+        assertThat(configs.get(ProducerConfig.COMPRESSION_TYPE_CONFIG)).isEqualTo("gzip");
+        assertThat(configs.get(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG)).isEqualTo(LongSerializer.class);
+        assertThat(configs.get(SslConfigs.SSL_KEY_PASSWORD_CONFIG)).isEqualTo("p4");
+        assertThat((String) configs.get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG)).endsWith(File.separator + "ksLocP");
+        assertThat(configs.get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG)).isEqualTo("p5");
+        assertThat(configs.get(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG)).isEqualTo("PKCS12");
+        assertThat((String) configs.get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG)).endsWith(File.separator + "tsLocP");
+        assertThat(configs.get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG)).isEqualTo("p6");
+        assertThat(configs.get(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG)).isEqualTo("PKCS12");
+        assertThat(configs.get(SslConfigs.SSL_PROTOCOL_CONFIG)).isEqualTo("TLSv1.2");
+        assertThat(configs.get(ProducerConfig.RETRIES_CONFIG)).isEqualTo(2);
+        assertThat(configs.get(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG)).isEqualTo(IntegerSerializer.class);
+        assertThat(context.getBeansOfType(KafkaJaasLoginModuleInitializer.class)).isEmpty();
+        assertThat(context.getBeansOfType(KafkaTransactionManager.class)).isEmpty();
+        assertThat(configs.get("foo.bar.baz")).isEqualTo("qux.fiz.buz");
+        assertThat(configs.get("fiz.buz")).isEqualTo("fix.fox");
+    });
+}

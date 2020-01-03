@@ -1,0 +1,26 @@
+@Test
+void retryFailedExecutionWithDifferentNonIdentifyingParametersFromPreviousExecution() throws Exception {
+    this.job = this.jobs.get("job").start(this.steps.get("step").tasklet(throwingTasklet()).build()).incrementer(new RunIdIncrementer()).build();
+    JobParameters jobParameters = new JobParametersBuilder().addLong("id", 1L, false).addLong("foo", 2L, false).toJobParameters();
+    this.runner.execute(this.job, jobParameters);
+    assertThat(this.jobExplorer.getJobInstances("job", 0, 100)).hasSize(1);
+    // try to re-run a failed execution with non identifying parameters
+    this.runner.execute(this.job, new JobParametersBuilder().addLong("run.id", 1L).addLong("id", 2L, false).addLong("foo", 3L, false).toJobParameters());
+    assertThat(this.jobExplorer.getJobInstances("job", 0, 100)).hasSize(1);
+    JobInstance jobInstance = this.jobExplorer.getJobInstance(0L);
+    assertThat(this.jobExplorer.getJobExecutions(jobInstance)).hasSize(2);
+    // first execution
+    JobExecution firstJobExecution = this.jobExplorer.getJobExecution(0L);
+    JobParameters parameters = firstJobExecution.getJobParameters();
+    assertThat(parameters.getLong("run.id")).isEqualTo(1L);
+    assertThat(parameters.getLong("id")).isEqualTo(1L);
+    assertThat(parameters.getLong("foo")).isEqualTo(2L);
+    // second execution
+    JobExecution secondJobExecution = this.jobExplorer.getJobExecution(1L);
+    parameters = secondJobExecution.getJobParameters();
+    // identifying parameters should be the same as previous execution
+    assertThat(parameters.getLong("run.id")).isEqualTo(1L);
+    // non-identifying parameters should be the newly specified ones
+    assertThat(parameters.getLong("id")).isEqualTo(2L);
+    assertThat(parameters.getLong("foo")).isEqualTo(3L);
+}

@@ -1,0 +1,13 @@
+@Test
+void timeoutReachedUsesFallback() {
+    Map<String, ReactiveHealthIndicator> indicators = new HashMap<>();
+    indicators.put("slow", new TimeoutHealth(10000, Status.UP));
+    indicators.put("fast", new TimeoutHealth(10, Status.UP));
+    CompositeReactiveHealthIndicator indicator = new CompositeReactiveHealthIndicator(this.healthAggregator, new DefaultReactiveHealthIndicatorRegistry(indicators)).timeoutStrategy(100, UNKNOWN_HEALTH);
+    StepVerifier.create(indicator.health()).consumeNextWith((h) -> {
+        assertThat(h.getStatus()).isEqualTo(Status.UP);
+        assertThat(h.getDetails()).containsOnlyKeys("slow", "fast");
+        assertThat(h.getDetails().get("slow")).isEqualTo(UNKNOWN_HEALTH);
+        assertThat(h.getDetails().get("fast")).isEqualTo(HEALTHY);
+    }).verifyComplete();
+}

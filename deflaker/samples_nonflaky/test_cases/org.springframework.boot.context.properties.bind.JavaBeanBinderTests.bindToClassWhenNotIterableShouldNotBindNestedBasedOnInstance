@@ -1,0 +1,11 @@
+@Test
+void bindToClassWhenNotIterableShouldNotBindNestedBasedOnInstance() {
+    // If we can't tell that binding will happen, we don't want to randomly invoke
+    // getters on the class and cause side effects
+    MockConfigurationPropertySource source = new MockConfigurationPropertySource();
+    source.put("foo.value-bean.int-value", "123");
+    source.put("foo.value-bean.string-value", "foo");
+    this.sources.add(source.nonIterable());
+    BindResult<ExampleNestedBeanWithoutSetterOrType> bean = this.binder.bind("foo", Bindable.of(ExampleNestedBeanWithoutSetterOrType.class));
+    assertThat(bean.isBound()).isFalse();
+}

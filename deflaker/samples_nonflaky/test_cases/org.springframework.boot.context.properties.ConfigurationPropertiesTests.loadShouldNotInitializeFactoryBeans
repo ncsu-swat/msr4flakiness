@@ -1,0 +1,19 @@
+@Test
+void loadShouldNotInitializeFactoryBeans() {
+    WithFactoryBeanConfiguration.factoryBeanInitialized = false;
+    this.context = new AnnotationConfigApplicationContext() {
+
+        @Override
+        protected void onRefresh() throws BeansException {
+            assertThat(WithFactoryBeanConfiguration.factoryBeanInitialized).as("Initialized too early").isFalse();
+            super.onRefresh();
+        }
+    };
+    this.context.register(WithFactoryBeanConfiguration.class);
+    GenericBeanDefinition beanDefinition = new GenericBeanDefinition();
+    beanDefinition.setBeanClass(FactoryBeanTester.class);
+    beanDefinition.setAutowireMode(AbstractBeanDefinition.AUTOWIRE_BY_TYPE);
+    this.context.registerBeanDefinition("test", beanDefinition);
+    this.context.refresh();
+    assertThat(WithFactoryBeanConfiguration.factoryBeanInitialized).as("Not Initialized").isTrue();
+}

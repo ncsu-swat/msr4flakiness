@@ -1,0 +1,12 @@
+@Test
+void resolvedLinksContainsALinkForServletEndpoint() {
+    ExposableServletEndpoint servletEndpoint = mock(ExposableServletEndpoint.class);
+    given(servletEndpoint.getEndpointId()).willReturn(EndpointId.of("alpha"));
+    given(servletEndpoint.isEnableByDefault()).willReturn(true);
+    given(servletEndpoint.getRootPath()).willReturn("alpha");
+    String requestUrl = "https://api.example.com/actuator";
+    Map<String, Link> links = new EndpointLinksResolver(Collections.singletonList(servletEndpoint)).resolveLinks(requestUrl);
+    assertThat(links).hasSize(2);
+    assertThat(links).hasEntrySatisfying("self", linkWithHref("https://api.example.com/actuator"));
+    assertThat(links).hasEntrySatisfying("alpha", linkWithHref("https://api.example.com/actuator/alpha"));
+}

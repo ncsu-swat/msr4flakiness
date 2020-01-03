@@ -1,0 +1,17 @@
+@Test
+void getMBeanShouldMapOperationParameters() {
+    List<JmxOperationParameter> parameters = new ArrayList<>();
+    parameters.add(mockParameter("one", String.class, "myone"));
+    parameters.add(mockParameter("two", Object.class, null));
+    TestJmxOperation operation = new TestJmxOperation(parameters);
+    MBeanInfo info = this.factory.getMBeanInfo(new TestExposableJmxEndpoint(operation));
+    MBeanOperationInfo operationInfo = info.getOperations()[0];
+    MBeanParameterInfo[] signature = operationInfo.getSignature();
+    assertThat(signature).hasSize(2);
+    assertThat(signature[0].getName()).isEqualTo("one");
+    assertThat(signature[0].getType()).isEqualTo(String.class.getName());
+    assertThat(signature[0].getDescription()).isEqualTo("myone");
+    assertThat(signature[1].getName()).isEqualTo("two");
+    assertThat(signature[1].getType()).isEqualTo(Object.class.getName());
+    assertThat(signature[1].getDescription()).isNull();
+}

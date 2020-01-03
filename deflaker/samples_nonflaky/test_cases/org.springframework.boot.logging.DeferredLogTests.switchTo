@@ -1,0 +1,14 @@
+@SuppressWarnings("unchecked")
+@Test
+void switchTo() {
+    List<String> lines = (List<String>) ReflectionTestUtils.getField(this.deferredLog, "lines");
+    assertThat(lines).isEmpty();
+    this.deferredLog.error(this.message, this.throwable);
+    assertThat(lines).hasSize(1);
+    this.deferredLog.switchTo(this.log);
+    assertThat(lines).isEmpty();
+    this.deferredLog.info("Message2");
+    assertThat(lines).isEmpty();
+    verify(this.log).error(this.message, this.throwable);
+    verify(this.log).info("Message2", null);
+}

@@ -1,0 +1,14 @@
+@Test
+void closingChildContextDoesNotCleanUpLoggingSystem() {
+    System.setProperty(LoggingSystem.SYSTEM_PROPERTY, TestCleanupLoggingSystem.class.getName());
+    multicastEvent(new ApplicationStartingEvent(this.springApplication, new String[0]));
+    TestCleanupLoggingSystem loggingSystem = (TestCleanupLoggingSystem) ReflectionTestUtils.getField(this.initializer, "loggingSystem");
+    assertThat(loggingSystem.cleanedUp).isFalse();
+    GenericApplicationContext childContext = new GenericApplicationContext();
+    childContext.setParent(this.context);
+    multicastEvent(new ContextClosedEvent(childContext));
+    assertThat(loggingSystem.cleanedUp).isFalse();
+    multicastEvent(new ContextClosedEvent(this.context));
+    assertThat(loggingSystem.cleanedUp).isTrue();
+    childContext.close();
+}

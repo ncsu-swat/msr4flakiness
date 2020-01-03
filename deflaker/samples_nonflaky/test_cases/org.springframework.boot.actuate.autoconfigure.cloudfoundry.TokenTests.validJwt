@@ -1,0 +1,14 @@
+@Test
+void validJwt() {
+    String header = "{\"alg\": \"RS256\",  \"kid\": \"key-id\", \"typ\": \"JWT\"}";
+    String claims = "{\"exp\": 2147483647, \"iss\": \"http://localhost:8080/uaa/oauth/token\"}";
+    String content = Base64Utils.encodeToString(header.getBytes()) + "." + Base64Utils.encodeToString(claims.getBytes());
+    String signature = Base64Utils.encodeToString("signature".getBytes());
+    Token token = new Token(content + "." + signature);
+    assertThat(token.getExpiry()).isEqualTo(2147483647);
+    assertThat(token.getIssuer()).isEqualTo("http://localhost:8080/uaa/oauth/token");
+    assertThat(token.getSignatureAlgorithm()).isEqualTo("RS256");
+    assertThat(token.getKeyId()).isEqualTo("key-id");
+    assertThat(token.getContent()).isEqualTo(content.getBytes());
+    assertThat(token.getSignature()).isEqualTo(Base64Utils.decodeFromString(signature));
+}

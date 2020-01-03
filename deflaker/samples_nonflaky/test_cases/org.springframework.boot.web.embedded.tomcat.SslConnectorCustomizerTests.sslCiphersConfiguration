@@ -1,0 +1,13 @@
+@Test
+void sslCiphersConfiguration() throws Exception {
+    Ssl ssl = new Ssl();
+    ssl.setKeyStore("test.jks");
+    ssl.setKeyStorePassword("secret");
+    ssl.setCiphers(new String[] { "ALPHA", "BRAVO", "CHARLIE" });
+    SslConnectorCustomizer customizer = new SslConnectorCustomizer(ssl, null);
+    Connector connector = this.tomcat.getConnector();
+    customizer.customize(connector);
+    this.tomcat.start();
+    SSLHostConfig[] sslHostConfigs = connector.getProtocolHandler().findSslHostConfigs();
+    assertThat(sslHostConfigs[0].getCiphers()).isEqualTo("ALPHA:BRAVO:CHARLIE");
+}

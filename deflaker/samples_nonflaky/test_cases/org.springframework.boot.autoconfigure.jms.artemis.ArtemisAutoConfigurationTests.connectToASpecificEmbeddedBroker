@@ -1,0 +1,11 @@
+@Test
+void connectToASpecificEmbeddedBroker() {
+    this.contextRunner.withUserConfiguration(EmptyConfiguration.class).withPropertyValues("spring.artemis.embedded.serverId=93", "spring.artemis.embedded.queues=Queue1").run((first) -> {
+        this.contextRunner.withUserConfiguration(EmptyConfiguration.class).withPropertyValues("spring.artemis.mode=embedded", // Connect to the "main" broker
+        "spring.artemis.embedded.serverId=93", // Do not start a specific one
+        "spring.artemis.embedded.enabled=false").run((secondContext) -> {
+            first.getBean(JmsTemplate.class).convertAndSend("Queue1", "test");
+            assertThat(secondContext.getBean(JmsTemplate.class).receiveAndConvert("Queue1")).isEqualTo("test");
+        });
+    });
+}

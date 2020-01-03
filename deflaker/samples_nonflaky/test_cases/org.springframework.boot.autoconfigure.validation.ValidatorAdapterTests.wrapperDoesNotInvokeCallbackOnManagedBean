@@ -1,0 +1,11 @@
+@Test
+void wrapperDoesNotInvokeCallbackOnManagedBean() {
+    this.contextRunner.withUserConfiguration(ManagedBeanConfig.class).run((context) -> {
+        LocalValidatorFactoryBean validator = context.getBean(ManagedBeanConfig.class).validator;
+        verify(validator, never()).setApplicationContext(any(ApplicationContext.class));
+        verify(validator, never()).afterPropertiesSet();
+        verify(validator, never()).destroy();
+        context.close();
+        verify(validator, never()).destroy();
+    });
+}

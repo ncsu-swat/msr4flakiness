@@ -1,0 +1,7 @@
+@Test
+void retryFailedExecution() throws Exception {
+    this.job = this.jobs.get("job").start(this.steps.get("step").tasklet(throwingTasklet()).build()).incrementer(new RunIdIncrementer()).build();
+    this.runner.execute(this.job, new JobParameters());
+    this.runner.execute(this.job, new JobParametersBuilder().addLong("run.id", 1L).toJobParameters());
+    assertThat(this.jobExplorer.getJobInstances("job", 0, 100)).hasSize(1);
+}

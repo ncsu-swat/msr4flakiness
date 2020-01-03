@@ -1,0 +1,10 @@
+@Test
+void enableSchedulingWithExistingTaskSchedulerBacksOff() {
+    this.contextRunner.withUserConfiguration(SchedulingConfiguration.class, TaskSchedulerConfiguration.class).run((context) -> {
+        assertThat(context).hasSingleBean(TaskScheduler.class);
+        assertThat(context.getBean(TaskScheduler.class)).isInstanceOf(TestTaskScheduler.class);
+        TestBean bean = context.getBean(TestBean.class);
+        assertThat(bean.latch.await(30, TimeUnit.SECONDS)).isTrue();
+        assertThat(bean.threadNames).containsExactly("test-1");
+    });
+}

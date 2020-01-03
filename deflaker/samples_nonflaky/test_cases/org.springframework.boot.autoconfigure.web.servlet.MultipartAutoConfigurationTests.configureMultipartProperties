@@ -1,0 +1,10 @@
+@Test
+void configureMultipartProperties() {
+    this.context = new AnnotationConfigServletWebServerApplicationContext();
+    TestPropertyValues.of("spring.servlet.multipart.max-file-size=2048KB", "spring.servlet.multipart.max-request-size=15MB").applyTo(this.context);
+    this.context.register(WebServerWithNothing.class, BaseConfiguration.class);
+    this.context.refresh();
+    MultipartConfigElement multipartConfigElement = this.context.getBean(MultipartConfigElement.class);
+    assertThat(multipartConfigElement.getMaxFileSize()).isEqualTo(2048 * 1024);
+    assertThat(multipartConfigElement.getMaxRequestSize()).isEqualTo(15 * 1024 * 1024);
+}

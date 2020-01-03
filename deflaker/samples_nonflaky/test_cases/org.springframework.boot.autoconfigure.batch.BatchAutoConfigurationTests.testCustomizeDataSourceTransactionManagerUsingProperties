@@ -1,0 +1,9 @@
+@Test
+void testCustomizeDataSourceTransactionManagerUsingProperties() {
+    this.contextRunner.withUserConfiguration(TestConfiguration.class, EmbeddedDataSourceConfiguration.class).withPropertyValues("spring.transaction.default-timeout:30", "spring.transaction.rollback-on-commit-failure:true").run((context) -> {
+        assertThat(context).hasSingleBean(BatchConfigurer.class);
+        DataSourceTransactionManager transactionManager = DataSourceTransactionManager.class.cast(context.getBean(BatchConfigurer.class).getTransactionManager());
+        assertThat(transactionManager.getDefaultTimeout()).isEqualTo(30);
+        assertThat(transactionManager.isRollbackOnCommitFailure()).isTrue();
+    });
+}

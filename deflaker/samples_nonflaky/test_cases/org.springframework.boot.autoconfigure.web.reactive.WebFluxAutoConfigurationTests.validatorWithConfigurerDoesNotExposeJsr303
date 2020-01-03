@@ -1,0 +1,11 @@
+@Test
+void validatorWithConfigurerDoesNotExposeJsr303() {
+    this.contextRunner.withUserConfiguration(ValidatorJsr303WebFluxConfigurer.class).run((context) -> {
+        assertThat(context).doesNotHaveBean(ValidatorFactory.class);
+        assertThat(context).doesNotHaveBean(javax.validation.Validator.class);
+        assertThat(context).getBeanNames(Validator.class).containsOnly("webFluxValidator");
+        Validator validator = context.getBean("webFluxValidator", Validator.class);
+        assertThat(validator).isInstanceOf(ValidatorAdapter.class);
+        assertThat(((ValidatorAdapter) validator).getTarget()).isSameAs(context.getBean(ValidatorJsr303WebFluxConfigurer.class).validator);
+    });
+}

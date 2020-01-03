@@ -1,0 +1,8 @@
+@Test
+void testDefinesAndLaunchesLocalJob() {
+    this.contextRunner.withUserConfiguration(NamedJobConfigurationWithLocalJob.class, EmbeddedDataSourceConfiguration.class).withPropertyValues("spring.batch.job.names:discreteLocalJob").run((context) -> {
+        assertThat(context).hasSingleBean(JobLauncher.class);
+        context.getBean(JobLauncherApplicationRunner.class).run();
+        assertThat(context.getBean(JobRepository.class).getLastJobExecution("discreteLocalJob", new JobParameters())).isNotNull();
+    });
+}

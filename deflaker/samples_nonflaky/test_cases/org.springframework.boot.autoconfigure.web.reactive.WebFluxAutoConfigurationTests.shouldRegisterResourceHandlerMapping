@@ -1,0 +1,13 @@
+@Test
+void shouldRegisterResourceHandlerMapping() {
+    this.contextRunner.run((context) -> {
+        SimpleUrlHandlerMapping hm = context.getBean("resourceHandlerMapping", SimpleUrlHandlerMapping.class);
+        assertThat(hm.getUrlMap().get("/**")).isInstanceOf(ResourceWebHandler.class);
+        ResourceWebHandler staticHandler = (ResourceWebHandler) hm.getUrlMap().get("/**");
+        assertThat(staticHandler.getLocations()).hasSize(4);
+        assertThat(hm.getUrlMap().get("/webjars/**")).isInstanceOf(ResourceWebHandler.class);
+        ResourceWebHandler webjarsHandler = (ResourceWebHandler) hm.getUrlMap().get("/webjars/**");
+        assertThat(webjarsHandler.getLocations()).hasSize(1);
+        assertThat(webjarsHandler.getLocations().get(0)).isEqualTo(new ClassPathResource("/META-INF/resources/webjars/"));
+    });
+}

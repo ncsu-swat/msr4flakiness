@@ -1,0 +1,14 @@
+@Test
+void autoConfigurationShouldConfigureResourceServerUsingOidcIssuerUri() throws Exception {
+    this.server = new MockWebServer();
+    this.server.start();
+    String path = "test";
+    String issuer = this.server.url(path).toString();
+    String cleanIssuerPath = cleanIssuerPath(issuer);
+    setupMockResponse(cleanIssuerPath);
+    this.contextRunner.withPropertyValues("spring.security.oauth2.resourceserver.jwt.issuer-uri=http://" + this.server.getHostName() + ":" + this.server.getPort() + "/" + path).run((context) -> {
+        assertThat(context).hasSingleBean(JwtDecoder.class);
+        assertThat(context.containsBean("jwtDecoderByIssuerUri")).isTrue();
+    });
+    assertThat(this.server.getRequestCount()).isEqualTo(1);
+}

@@ -1,0 +1,9 @@
+@Test
+void runCreatesReactiveHealthEndpointWebExtension() {
+    this.reactiveContextRunner.run((context) -> {
+        ReactiveHealthEndpointWebExtension webExtension = context.getBean(ReactiveHealthEndpointWebExtension.class);
+        Mono<WebEndpointResponse<? extends HealthComponent>> response = webExtension.health(ApiVersion.V3, SecurityContext.NONE, true, "simple");
+        Health health = (Health) (response.block().getBody());
+        assertThat(health.getDetails()).containsEntry("counter", 42);
+    });
+}

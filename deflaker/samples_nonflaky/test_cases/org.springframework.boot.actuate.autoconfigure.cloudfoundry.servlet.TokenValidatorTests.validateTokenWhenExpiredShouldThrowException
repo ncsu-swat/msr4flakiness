@@ -1,0 +1,8 @@
+@Test
+void validateTokenWhenExpiredShouldThrowException() throws Exception {
+    given(this.securityService.fetchTokenKeys()).willReturn(VALID_KEYS);
+    given(this.securityService.fetchTokenKeys()).willReturn(VALID_KEYS);
+    String header = "{ \"alg\": \"RS256\",  \"kid\": \"valid-key\", \"typ\": \"JWT\"}";
+    String claims = "{ \"jti\": \"0236399c350c47f3ae77e67a75e75e7d\", \"exp\": 1477509977, \"scope\": [\"actuator.read\"]}";
+    assertThatExceptionOfType(CloudFoundryAuthorizationException.class).isThrownBy(() -> this.tokenValidator.validate(new Token(getSignedToken(header.getBytes(), claims.getBytes())))).satisfies(reasonRequirement(Reason.TOKEN_EXPIRED));
+}

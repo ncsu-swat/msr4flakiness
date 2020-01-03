@@ -1,0 +1,10 @@
+@Test
+void componentsAreRegistered() {
+    this.context = new AnnotationConfigServletWebServerApplicationContext();
+    this.context.register(TestConfiguration.class);
+    new ServerPortInfoApplicationContextInitializer().initialize(this.context);
+    this.context.refresh();
+    String port = this.context.getEnvironment().getProperty("local.server.port");
+    String response = new RestTemplate().getForObject("http://localhost:" + port + "/test", String.class);
+    assertThat(response).isEqualTo("alpha bravo");
+}

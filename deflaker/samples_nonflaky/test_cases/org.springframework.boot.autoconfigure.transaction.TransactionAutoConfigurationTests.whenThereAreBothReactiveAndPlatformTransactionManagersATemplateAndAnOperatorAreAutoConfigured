@@ -1,0 +1,11 @@
+@Test
+void whenThereAreBothReactiveAndPlatformTransactionManagersATemplateAndAnOperatorAreAutoConfigured() {
+    this.contextRunner.withConfiguration(AutoConfigurations.of(DataSourceAutoConfiguration.class, DataSourceTransactionManagerAutoConfiguration.class)).withUserConfiguration(SinglePlatformTransactionManagerConfiguration.class, SingleReactiveTransactionManagerConfiguration.class).run((context) -> {
+        PlatformTransactionManager platformTransactionManager = context.getBean(PlatformTransactionManager.class);
+        TransactionTemplate transactionTemplate = context.getBean(TransactionTemplate.class);
+        assertThat(transactionTemplate.getTransactionManager()).isSameAs(platformTransactionManager);
+        ReactiveTransactionManager reactiveTransactionManager = context.getBean(ReactiveTransactionManager.class);
+        TransactionalOperator transactionalOperator = context.getBean(TransactionalOperator.class);
+        assertThat(transactionalOperator).extracting("transactionManager").isSameAs(reactiveTransactionManager);
+    });
+}

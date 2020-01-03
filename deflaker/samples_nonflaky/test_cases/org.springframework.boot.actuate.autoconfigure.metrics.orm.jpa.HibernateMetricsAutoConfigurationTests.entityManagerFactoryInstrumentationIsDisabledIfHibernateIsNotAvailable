@@ -1,0 +1,8 @@
+@Test
+void entityManagerFactoryInstrumentationIsDisabledIfHibernateIsNotAvailable() {
+    this.contextRunner.withClassLoader(new FilteredClassLoader(SessionFactory.class)).withUserConfiguration(NonHibernateEntityManagerFactoryConfiguration.class).run((context) -> {
+        assertThat(context).doesNotHaveBean(HibernateMetricsAutoConfiguration.class);
+        MeterRegistry registry = context.getBean(MeterRegistry.class);
+        assertThat(registry.find("hibernate.statements").meter()).isNull();
+    });
+}

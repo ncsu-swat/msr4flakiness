@@ -1,0 +1,11 @@
+@Test
+void cacheInTtlWithFluxResponse() {
+    FluxOperationInvoker.invocations = 0;
+    FluxOperationInvoker target = new FluxOperationInvoker();
+    InvocationContext context = new InvocationContext(mock(SecurityContext.class), Collections.emptyMap());
+    CachingOperationInvoker invoker = new CachingOperationInvoker(target, CACHE_TTL);
+    Object response = ((Flux<?>) invoker.invoke(context)).blockLast();
+    Object cachedResponse = ((Flux<?>) invoker.invoke(context)).blockLast();
+    assertThat(FluxOperationInvoker.invocations).isEqualTo(1);
+    assertThat(response).isSameAs(cachedResponse);
+}

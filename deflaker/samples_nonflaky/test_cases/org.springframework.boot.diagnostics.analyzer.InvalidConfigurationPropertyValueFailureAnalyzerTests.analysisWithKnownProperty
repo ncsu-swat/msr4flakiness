@@ -1,0 +1,10 @@
+@Test
+void analysisWithKnownProperty() {
+    MapPropertySource source = new MapPropertySource("test", Collections.singletonMap("test.property", "invalid"));
+    this.environment.getPropertySources().addFirst(OriginCapablePropertySource.get(source));
+    InvalidConfigurationPropertyValueException failure = new InvalidConfigurationPropertyValueException("test.property", "invalid", "This is not valid.");
+    FailureAnalysis analysis = performAnalysis(failure);
+    assertCommonParts(failure, analysis);
+    assertThat(analysis.getAction()).contains("Review the value of the property with the provided reason.");
+    assertThat(analysis.getDescription()).contains("Validation failed for the following reason").contains("This is not valid.").doesNotContain("Additionally, this property is also set");
+}

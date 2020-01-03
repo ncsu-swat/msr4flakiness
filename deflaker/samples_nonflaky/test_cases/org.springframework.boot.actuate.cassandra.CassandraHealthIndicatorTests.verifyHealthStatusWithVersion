@@ -1,0 +1,17 @@
+@Test
+void verifyHealthStatusWithVersion() {
+    CassandraOperations cassandraOperations = mock(CassandraOperations.class);
+    CqlOperations cqlOperations = mock(CqlOperations.class);
+    ResultSet resultSet = mock(ResultSet.class);
+    Row row = mock(Row.class);
+    CassandraHealthIndicator healthIndicator = new CassandraHealthIndicator(cassandraOperations);
+    given(cassandraOperations.getCqlOperations()).willReturn(cqlOperations);
+    given(cqlOperations.queryForResultSet(any(Select.class))).willReturn(resultSet);
+    given(resultSet.isExhausted()).willReturn(false);
+    given(resultSet.one()).willReturn(row);
+    String expectedVersion = "1.0.0";
+    given(row.getString(0)).willReturn(expectedVersion);
+    Health health = healthIndicator.health();
+    assertThat(health.getStatus()).isEqualTo(Status.UP);
+    assertThat(health.getDetails().get("version")).isEqualTo(expectedVersion);
+}

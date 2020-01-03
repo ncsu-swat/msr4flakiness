@@ -1,0 +1,11 @@
+@Test
+void certainIndices() {
+    this.indicator = new ElasticsearchHealthIndicator(this.client, 100L, "test-index-1", "test-index-2");
+    PlainActionFuture<ClusterHealthResponse> responseFuture = new PlainActionFuture<>();
+    responseFuture.onResponse(new StubClusterHealthResponse());
+    ArgumentCaptor<ClusterHealthRequest> requestCaptor = ArgumentCaptor.forClass(ClusterHealthRequest.class);
+    given(this.cluster.health(requestCaptor.capture())).willReturn(responseFuture);
+    Health health = this.indicator.health();
+    assertThat(requestCaptor.getValue().indices()).contains("test-index-1", "test-index-2");
+    assertThat(health.getStatus()).isEqualTo(Status.UP);
+}

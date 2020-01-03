@@ -1,0 +1,12 @@
+@Test
+void parseSpyBeanOnClassAndField() {
+    this.parser.parse(SpyBeanOnClassAndField.class);
+    assertThat(getDefinitions()).hasSize(2);
+    SpyDefinition classDefinition = getSpyDefinition(0);
+    assertThat(classDefinition.getQualifier()).isNull();
+    assertThat(classDefinition.getTypeToSpy().resolve()).isEqualTo(RealExampleService.class);
+    SpyDefinition fieldDefinition = getSpyDefinition(1);
+    QualifierDefinition qualifier = QualifierDefinition.forElement(ReflectionUtils.findField(SpyBeanOnClassAndField.class, "caller"));
+    assertThat(fieldDefinition.getQualifier()).isNotNull().isEqualTo(qualifier);
+    assertThat(fieldDefinition.getTypeToSpy().resolve()).isEqualTo(ExampleServiceCaller.class);
+}

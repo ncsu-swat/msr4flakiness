@@ -1,0 +1,11 @@
+@Test
+void testActiveMQOverriddenStandalone() {
+    this.contextRunner.withUserConfiguration(TestConfiguration.class).withPropertyValues("spring.activemq.inMemory:false").run((context) -> {
+        assertThat(context).hasSingleBean(JmsTemplate.class);
+        assertThat(context).hasSingleBean(CachingConnectionFactory.class);
+        JmsTemplate jmsTemplate = context.getBean(JmsTemplate.class);
+        ConnectionFactory factory = context.getBean(ConnectionFactory.class);
+        assertThat(factory).isEqualTo(jmsTemplate.getConnectionFactory());
+        assertThat(getBrokerUrl((CachingConnectionFactory) factory)).isEqualTo(ACTIVEMQ_NETWORK_URL);
+    });
+}

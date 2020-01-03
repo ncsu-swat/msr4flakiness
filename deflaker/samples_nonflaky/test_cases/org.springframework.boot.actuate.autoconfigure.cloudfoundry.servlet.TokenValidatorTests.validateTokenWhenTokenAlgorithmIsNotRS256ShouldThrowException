@@ -1,0 +1,7 @@
+@Test
+void validateTokenWhenTokenAlgorithmIsNotRS256ShouldThrowException() throws Exception {
+    given(this.securityService.fetchTokenKeys()).willReturn(VALID_KEYS);
+    String header = "{ \"alg\": \"HS256\",  \"typ\": \"JWT\"}";
+    String claims = "{ \"exp\": 2147483647, \"iss\": \"http://localhost:8080/uaa/oauth/token\", \"scope\": [\"actuator.read\"]}";
+    assertThatExceptionOfType(CloudFoundryAuthorizationException.class).isThrownBy(() -> this.tokenValidator.validate(new Token(getSignedToken(header.getBytes(), claims.getBytes())))).satisfies(reasonRequirement(Reason.UNSUPPORTED_TOKEN_SIGNING_ALGORITHM));
+}

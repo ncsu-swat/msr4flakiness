@@ -1,0 +1,13 @@
+@Test
+void checkOrderOfInitializer() {
+    SpringApplication application = new SpringApplication(TestConfig.class);
+    application.setWebApplicationType(WebApplicationType.NONE);
+    @SuppressWarnings("unchecked")
+    List<ApplicationContextInitializer<?>> initializers = (List<ApplicationContextInitializer<?>>) ReflectionTestUtils.getField(application, "initializers");
+    // Simulate what would happen if an initializer was added using spring.factories
+    // and happened to be loaded first
+    initializers.add(0, new Initializer());
+    GenericApplicationContext context = (GenericApplicationContext) application.run();
+    BeanDefinition definition = context.getBeanDefinition(SharedMetadataReaderFactoryContextInitializer.BEAN_NAME);
+    assertThat(definition.getAttribute("seen")).isEqualTo(true);
+}

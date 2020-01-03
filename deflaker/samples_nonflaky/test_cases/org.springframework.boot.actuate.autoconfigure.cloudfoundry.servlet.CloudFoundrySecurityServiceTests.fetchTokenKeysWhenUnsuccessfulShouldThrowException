@@ -1,0 +1,6 @@
+@Test
+void fetchTokenKeysWhenUnsuccessfulShouldThrowException() {
+    this.server.expect(requestTo(CLOUD_CONTROLLER + "/info")).andRespond(withSuccess("{\"token_endpoint\":\"" + UAA_URL + "\"}", MediaType.APPLICATION_JSON));
+    this.server.expect(requestTo(UAA_URL + "/token_keys")).andRespond(withServerError());
+    assertThatExceptionOfType(CloudFoundryAuthorizationException.class).isThrownBy(() -> this.securityService.fetchTokenKeys()).satisfies(reasonRequirement(Reason.SERVICE_UNAVAILABLE));
+}

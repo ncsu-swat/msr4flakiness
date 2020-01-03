@@ -1,0 +1,16 @@
+@Test
+void iteratorWhenDelegateContainsCompositeHealthContributorAdaptsDelegate() {
+    HealthIndicator indicator = () -> Health.up().withDetail("spring", "boot").build();
+    CompositeHealthContributor composite = CompositeHealthContributor.fromMap(Collections.singletonMap("test1", indicator));
+    CompositeHealthContributor delegate = CompositeHealthContributor.fromMap(Collections.singletonMap("test2", composite));
+    CompositeHealthContributorReactiveAdapter adapter = new CompositeHealthContributorReactiveAdapter(delegate);
+    Iterator<NamedContributor<ReactiveHealthContributor>> iterator = adapter.iterator();
+    assertThat(iterator.hasNext()).isTrue();
+    NamedContributor<ReactiveHealthContributor> adapted = iterator.next();
+    assertThat(adapted.getName()).isEqualTo("test2");
+    assertThat(adapted.getContributor()).isInstanceOf(CompositeReactiveHealthContributor.class);
+    ReactiveHealthContributor nested = ((CompositeReactiveHealthContributor) adapted.getContributor()).getContributor("test1");
+    Health health = ((ReactiveHealthIndicator) nested).getHealth(true).block();
+    assertThat(health.getStatus()).isEqualTo(Status.UP);
+    assertThat(health.getDetails()).containsEntry("spring", "boot");
+}

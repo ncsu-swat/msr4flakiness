@@ -1,0 +1,15 @@
+@Test
+void postProcessWebServerFactory() {
+    RootBeanDefinition beanDefinition = new RootBeanDefinition(MockServletWebServerFactory.class);
+    MutablePropertyValues pv = new MutablePropertyValues();
+    pv.add("port", "${port}");
+    beanDefinition.setPropertyValues(pv);
+    this.context.registerBeanDefinition("webServerFactory", beanDefinition);
+    PropertySourcesPlaceholderConfigurer propertySupport = new PropertySourcesPlaceholderConfigurer();
+    Properties properties = new Properties();
+    properties.put("port", 8080);
+    propertySupport.setProperties(properties);
+    this.context.registerBeanDefinition("propertySupport", beanDefinition(propertySupport));
+    this.context.refresh();
+    assertThat(getWebServerFactory().getWebServer().getPort()).isEqualTo(8080);
+}

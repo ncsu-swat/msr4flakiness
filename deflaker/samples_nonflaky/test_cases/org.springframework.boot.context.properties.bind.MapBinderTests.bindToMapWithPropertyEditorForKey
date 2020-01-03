@@ -1,0 +1,10 @@
+@Test
+@SuppressWarnings("rawtypes")
+void bindToMapWithPropertyEditorForKey() {
+    // gh-12166
+    MockConfigurationPropertySource source = new MockConfigurationPropertySource();
+    source.put("foo.[java.lang.RuntimeException]", "bar");
+    this.sources.add(source);
+    Map<Class, String> map = this.binder.bind("foo", Bindable.mapOf(Class.class, String.class)).get();
+    assertThat(map).containsExactly(entry(RuntimeException.class, "bar"));
+}

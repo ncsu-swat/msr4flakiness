@@ -1,0 +1,8 @@
+@SuppressWarnings("unchecked")
+@Test
+void elasticsearchIsDownByResponseCode() throws IOException {
+    given(this.jestClient.execute(any(Action.class))).willReturn(createJestResult(500, false, ""));
+    Health health = this.healthIndicator.health();
+    assertThat(health.getStatus()).isEqualTo(Status.DOWN);
+    assertThat(health.getDetails()).contains(entry("statusCode", 500));
+}

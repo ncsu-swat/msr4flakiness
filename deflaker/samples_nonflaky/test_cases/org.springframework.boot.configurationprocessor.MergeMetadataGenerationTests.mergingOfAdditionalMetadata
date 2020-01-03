@@ -1,0 +1,22 @@
+@Test
+void mergingOfAdditionalMetadata() throws Exception {
+    File metaInfFolder = new File(getCompiler().getOutputLocation(), "META-INF");
+    metaInfFolder.mkdirs();
+    File additionalMetadataFile = new File(metaInfFolder, "additional-spring-configuration-metadata.json");
+    additionalMetadataFile.createNewFile();
+    JSONObject property = new JSONObject();
+    property.put("name", "foo");
+    property.put("type", "java.lang.String");
+    property.put("sourceType", AdditionalMetadata.class.getName());
+    JSONArray properties = new JSONArray();
+    properties.put(property);
+    JSONObject additionalMetadata = new JSONObject();
+    additionalMetadata.put("properties", properties);
+    FileWriter writer = new FileWriter(additionalMetadataFile);
+    writer.append(additionalMetadata.toString(2));
+    writer.flush();
+    writer.close();
+    ConfigurationMetadata metadata = compile(SimpleProperties.class);
+    assertThat(metadata).has(Metadata.withProperty("simple.comparator"));
+    assertThat(metadata).has(Metadata.withProperty("foo", String.class).fromSource(AdditionalMetadata.class));
+}

@@ -1,0 +1,12 @@
+@Test
+void testPubSubDomainOverride() {
+    this.contextRunner.withUserConfiguration(TestConfiguration.class).withPropertyValues("spring.jms.pubSubDomain:false").run((context) -> {
+        assertThat(context).hasSingleBean(JmsTemplate.class);
+        assertThat(context).hasSingleBean(ConnectionFactory.class);
+        JmsTemplate jmsTemplate = context.getBean(JmsTemplate.class);
+        ConnectionFactory factory = context.getBean(ConnectionFactory.class);
+        assertThat(jmsTemplate).isNotNull();
+        assertThat(jmsTemplate.isPubSubDomain()).isFalse();
+        assertThat(factory).isNotNull().isEqualTo(jmsTemplate.getConnectionFactory());
+    });
+}

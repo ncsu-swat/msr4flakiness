@@ -1,0 +1,9 @@
+@Test
+void moduleBeansAndWellKnownModulesAreRegisteredWithTheObjectMapperBuilder() {
+    this.contextRunner.withUserConfiguration(ModuleConfig.class).run((context) -> {
+        ObjectMapper objectMapper = context.getBean(Jackson2ObjectMapperBuilder.class).build();
+        assertThat(context.getBean(CustomModule.class).getOwners()).contains((ObjectCodec) objectMapper);
+        assertThat(objectMapper.canSerialize(LocalDateTime.class)).isTrue();
+        assertThat(objectMapper.canSerialize(Baz.class)).isTrue();
+    });
+}

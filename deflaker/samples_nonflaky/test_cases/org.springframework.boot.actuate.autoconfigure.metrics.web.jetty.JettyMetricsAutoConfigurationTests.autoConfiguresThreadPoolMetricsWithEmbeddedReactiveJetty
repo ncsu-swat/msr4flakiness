@@ -1,0 +1,8 @@
+@Test
+void autoConfiguresThreadPoolMetricsWithEmbeddedReactiveJetty() {
+    new ReactiveWebApplicationContextRunner(AnnotationConfigReactiveWebServerApplicationContext::new).withConfiguration(AutoConfigurations.of(JettyMetricsAutoConfiguration.class, ReactiveWebServerFactoryAutoConfiguration.class)).withUserConfiguration(ReactiveWebServerConfiguration.class, MeterRegistryConfiguration.class).run((context) -> {
+        context.publishEvent(new ApplicationStartedEvent(new SpringApplication(), null, context.getSourceApplicationContext()));
+        SimpleMeterRegistry registry = context.getBean(SimpleMeterRegistry.class);
+        assertThat(registry.find("jetty.threads.config.min").meter()).isNotNull();
+    });
+}

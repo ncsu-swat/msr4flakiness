@@ -1,0 +1,18 @@
+@Test
+@SuppressWarnings("unchecked")
+void bindToMapWhenMapValueIsObjectShouldBindNestedMapValue() {
+    MockConfigurationPropertySource source = new MockConfigurationPropertySource();
+    source.put("foo.nested.bar.baz", "1");
+    source.put("foo.nested.bar.bin", "2");
+    source.put("foo.nested.far.baz", "3");
+    source.put("foo.nested.far.bin", "4");
+    source.put("faf.nested.far.bin", "x");
+    this.sources.add(source);
+    Map<String, Object> result = this.binder.bind("foo", Bindable.mapOf(String.class, Object.class)).get();
+    Map<String, Object> nested = (Map<String, Object>) result.get("nested");
+    assertThat(nested).hasSize(2);
+    Map<String, Object> bar = (Map<String, Object>) nested.get("bar");
+    assertThat(bar).containsEntry("baz", "1").containsEntry("bin", "2");
+    Map<String, Object> far = (Map<String, Object>) nested.get("far");
+    assertThat(far).containsEntry("baz", "3").containsEntry("bin", "4");
+}

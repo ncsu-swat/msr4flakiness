@@ -1,0 +1,10 @@
+@Test
+void sanitizeWithCustomPatternUsingCompositeKeys() {
+    this.contextRunner.withUserConfiguration(Gh4415PropertiesConfiguration.class).withPropertyValues("test.keys-to-sanitize=.*\\.secrets\\..*,.*\\.hidden\\..*").run(assertProperties("gh4415", (properties) -> {
+        Map<String, Object> secrets = (Map<String, Object>) properties.get("secrets");
+        Map<String, Object> hidden = (Map<String, Object>) properties.get("hidden");
+        assertThat(secrets.get("mine")).isEqualTo("******");
+        assertThat(secrets.get("yours")).isEqualTo("******");
+        assertThat(hidden.get("mine")).isEqualTo("******");
+    }));
+}

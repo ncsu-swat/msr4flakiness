@@ -1,0 +1,15 @@
+@Test
+void fetchTokenKeysWhenNoKeysReturnedFromUAA() throws Exception {
+    prepareResponse((response) -> {
+        response.setBody("{\"token_endpoint\":\"/my-uaa.com\"}");
+        response.setHeader("Content-Type", "application/json");
+    });
+    String responseBody = "{\"keys\": []}";
+    prepareResponse((response) -> {
+        response.setBody(responseBody);
+        response.setHeader("Content-Type", "application/json");
+    });
+    StepVerifier.create(this.securityService.fetchTokenKeys()).consumeNextWith((tokenKeys) -> assertThat(tokenKeys).hasSize(0)).expectComplete().verify();
+    expectRequest((request) -> assertThat(request.getPath()).isEqualTo("/my-cloud-controller.com/info"));
+    expectRequest((request) -> assertThat(request.getPath()).isEqualTo("/my-uaa.com/token_keys"));
+}

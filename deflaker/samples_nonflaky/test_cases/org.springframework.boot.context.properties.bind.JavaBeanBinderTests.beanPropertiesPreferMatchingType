@@ -1,0 +1,34 @@
+@Test
+void beanPropertiesPreferMatchingType() {
+    // gh-16206
+    ResolvableType type = ResolvableType.forClass(PropertyWithOverloadedSetter.class);
+    Bean<PropertyWithOverloadedSetter> bean = new Bean<PropertyWithOverloadedSetter>(type, type.resolve()) {
+
+        @Override
+        protected void addProperties(Method[] declaredMethods, Field[] declaredFields) {
+            // We override here because we need a specific order of the declared
+            // methods and the JVM doesn't give us one
+            int intSetter = -1;
+            int stringSetter = -1;
+            for (int i = 0; i < declaredMethods.length; i++) {
+                Method method = declaredMethods[i];
+                if (method.getName().equals("setProperty")) {
+                    if (method.getParameters()[0].getType().equals(int.class)) {
+                        intSetter = i;
+                    } else {
+                        stringSetter = i;
+                    }
+                }
+            }
+            if (intSetter > stringSetter) {
+                Method method = declaredMethods[intSetter];
+                declaredMethods[intSetter] = declaredMethods[stringSetter];
+                declaredMethods[stringSetter] = method;
+            }
+            super.addProperties(declaredMethods, declaredFields);
+        }
+    };
+    BeanProperty property = bean.getProperties().get("property");
+    PropertyWithOverloadedSetter target = new PropertyWithOverloadedSetter();
+    property.setValue(() -> target, "some string");
+}

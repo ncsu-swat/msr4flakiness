@@ -1,0 +1,8 @@
+@Test
+void toAnyEndpointWhenServletPathSetShouldMatch() {
+    getContextRunner().withPropertyValues("spring.mvc.servlet.path=/admin", "spring.security.user.password=password").run((context) -> {
+        WebTestClient webTestClient = getWebTestClient(context);
+        webTestClient.get().uri("/admin/actuator/e2").exchange().expectStatus().isUnauthorized();
+        webTestClient.get().uri("/admin/actuator/e2").header("Authorization", getBasicAuth()).exchange().expectStatus().isOk();
+    });
+}

@@ -1,0 +1,8 @@
+@Test
+void entityManagerFactoryInstrumentationCanBeDisabled() {
+    this.contextRunner.withPropertyValues("management.metrics.enable.hibernate=false", "spring.jpa.properties.hibernate.generate_statistics:true").run((context) -> {
+        context.getBean(EntityManagerFactory.class).unwrap(SessionFactory.class);
+        MeterRegistry registry = context.getBean(MeterRegistry.class);
+        assertThat(registry.find("hibernate.statements").meter()).isNull();
+    });
+}

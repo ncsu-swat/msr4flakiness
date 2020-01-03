@@ -1,0 +1,12 @@
+@Test
+void influxDbIsUp() {
+    Pong pong = mock(Pong.class);
+    given(pong.getVersion()).willReturn("0.9");
+    InfluxDB influxDB = mock(InfluxDB.class);
+    given(influxDB.ping()).willReturn(pong);
+    InfluxDbHealthIndicator healthIndicator = new InfluxDbHealthIndicator(influxDB);
+    Health health = healthIndicator.health();
+    assertThat(health.getStatus()).isEqualTo(Status.UP);
+    assertThat(health.getDetails().get("version")).isEqualTo("0.9");
+    verify(influxDB).ping();
+}

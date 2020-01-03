@@ -1,0 +1,16 @@
+@Test
+void testDefaultJmsConfiguration() {
+    this.contextRunner.withUserConfiguration(TestConfiguration.class).run(this::testDefaultJmsConfiguration);
+}
+private void testDefaultJmsConfiguration(AssertableApplicationContext loaded) {
+    assertThat(loaded).hasSingleBean(ConnectionFactory.class);
+    assertThat(loaded).hasSingleBean(CachingConnectionFactory.class);
+    CachingConnectionFactory factory = loaded.getBean(CachingConnectionFactory.class);
+    assertThat(factory.getTargetConnectionFactory()).isInstanceOf(ActiveMQConnectionFactory.class);
+    JmsTemplate jmsTemplate = loaded.getBean(JmsTemplate.class);
+    JmsMessagingTemplate messagingTemplate = loaded.getBean(JmsMessagingTemplate.class);
+    assertThat(factory).isEqualTo(jmsTemplate.getConnectionFactory());
+    assertThat(messagingTemplate.getJmsTemplate()).isEqualTo(jmsTemplate);
+    assertThat(getBrokerUrl(factory)).isEqualTo(ACTIVEMQ_EMBEDDED_URL);
+    assertThat(loaded.containsBean("jmsListenerContainerFactory")).isTrue();
+}

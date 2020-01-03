@@ -1,0 +1,9 @@
+@Test
+void singleIndicator() {
+    CompositeReactiveHealthIndicator indicator = new CompositeReactiveHealthIndicator(this.healthAggregator, new DefaultReactiveHealthIndicatorRegistry(Collections.singletonMap("test", () -> Mono.just(HEALTHY))));
+    StepVerifier.create(indicator.health()).consumeNextWith((h) -> {
+        assertThat(h.getStatus()).isEqualTo(Status.UP);
+        assertThat(h.getDetails()).containsOnlyKeys("test");
+        assertThat(h.getDetails().get("test")).isEqualTo(HEALTHY);
+    }).verifyComplete();
+}

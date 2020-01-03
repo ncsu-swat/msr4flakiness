@@ -1,0 +1,17 @@
+@Test
+void customizersShouldBeAppliedLast() {
+    TaskDecorator taskDecorator = mock(TaskDecorator.class);
+    ThreadPoolTaskExecutor executor = spy(new ThreadPoolTaskExecutor());
+    this.builder.queueCapacity(10).corePoolSize(4).maxPoolSize(8).allowCoreThreadTimeOut(true).keepAlive(Duration.ofMinutes(1)).awaitTermination(true).awaitTerminationPeriod(Duration.ofSeconds(30)).threadNamePrefix("test-").taskDecorator(taskDecorator).additionalCustomizers((taskExecutor) -> {
+        verify(taskExecutor).setQueueCapacity(10);
+        verify(taskExecutor).setCorePoolSize(4);
+        verify(taskExecutor).setMaxPoolSize(8);
+        verify(taskExecutor).setAllowCoreThreadTimeOut(true);
+        verify(taskExecutor).setKeepAliveSeconds(60);
+        verify(taskExecutor).setWaitForTasksToCompleteOnShutdown(true);
+        verify(taskExecutor).setAwaitTerminationSeconds(30);
+        verify(taskExecutor).setThreadNamePrefix("test-");
+        verify(taskExecutor).setTaskDecorator(taskDecorator);
+    });
+    this.builder.configure(executor);
+}

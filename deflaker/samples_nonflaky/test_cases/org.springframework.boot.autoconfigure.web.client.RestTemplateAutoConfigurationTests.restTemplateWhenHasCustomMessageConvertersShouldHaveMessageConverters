@@ -1,0 +1,9 @@
+@Test
+@SuppressWarnings({ "unchecked", "rawtypes" })
+void restTemplateWhenHasCustomMessageConvertersShouldHaveMessageConverters() {
+    this.contextRunner.withConfiguration(AutoConfigurations.of(HttpMessageConvertersAutoConfiguration.class)).withUserConfiguration(CustomHttpMessageConverter.class, RestTemplateConfig.class).run((context) -> {
+        assertThat(context).hasSingleBean(RestTemplate.class);
+        RestTemplate restTemplate = context.getBean(RestTemplate.class);
+        assertThat(restTemplate.getMessageConverters()).extracting(HttpMessageConverter::getClass).contains((Class) CustomHttpMessageConverter.class);
+    });
+}

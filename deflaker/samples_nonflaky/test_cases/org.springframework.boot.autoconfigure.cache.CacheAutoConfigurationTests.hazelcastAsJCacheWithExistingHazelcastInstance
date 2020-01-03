@@ -1,0 +1,14 @@
+@Test
+void hazelcastAsJCacheWithExistingHazelcastInstance() {
+    String cachingProviderFqn = HazelcastCachingProvider.class.getName();
+    this.contextRunner.withConfiguration(AutoConfigurations.of(HazelcastAutoConfiguration.class)).withUserConfiguration(DefaultCacheConfiguration.class).withPropertyValues("spring.cache.type=jcache", "spring.cache.jcache.provider=" + cachingProviderFqn).run((context) -> {
+        JCacheCacheManager cacheManager = getCacheManager(context, JCacheCacheManager.class);
+        javax.cache.CacheManager jCacheManager = cacheManager.getCacheManager();
+        assertThat(jCacheManager).isInstanceOf(com.hazelcast.cache.HazelcastCacheManager.class);
+        assertThat(context).hasSingleBean(HazelcastInstance.class);
+        HazelcastInstance hazelcastInstance = context.getBean(HazelcastInstance.class);
+        assertThat(((com.hazelcast.cache.HazelcastCacheManager) jCacheManager).getHazelcastInstance()).isSameAs(hazelcastInstance);
+        assertThat(hazelcastInstance.getName()).isEqualTo("default-instance");
+        assertThat(Hazelcast.getAllHazelcastInstances()).hasSize(1);
+    });
+}

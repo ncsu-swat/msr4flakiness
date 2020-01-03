@@ -1,0 +1,11 @@
+@Test
+void replaceServiceLocatorBacksOffIfNotPresent() throws IllegalAccessException {
+    SpringApplication application = new SpringApplication(Conf.class);
+    application.setWebApplicationType(WebApplicationType.NONE);
+    DefaultResourceLoader resourceLoader = new DefaultResourceLoader();
+    resourceLoader.setClassLoader(new ClassHidingClassLoader(CustomResolverServiceLocator.class));
+    application.setResourceLoader(resourceLoader);
+    this.context = application.run();
+    Object resolver = getClassResolver();
+    assertThat(resolver).isInstanceOf(DefaultPackageScanClassResolver.class);
+}

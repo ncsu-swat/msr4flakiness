@@ -1,0 +1,8 @@
+@Test
+void enableAsyncUsesAutoConfiguredOneByDefaultEvenThoughSchedulingIsConfigured() {
+    this.contextRunner.withPropertyValues("spring.task.execution.thread-name-prefix=task-test-").withConfiguration(AutoConfigurations.of(TaskSchedulingAutoConfiguration.class)).withUserConfiguration(AsyncConfiguration.class, SchedulingConfiguration.class, TestBean.class).run((context) -> {
+        TestBean bean = context.getBean(TestBean.class);
+        String text = bean.echo("something").get();
+        assertThat(text).contains("task-test-").contains("something");
+    });
+}

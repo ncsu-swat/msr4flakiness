@@ -1,0 +1,11 @@
+@Test
+void defaultConfigurationQueriesAllIndicesWith100msTimeout() {
+    TestActionFuture responseFuture = new TestActionFuture();
+    responseFuture.onResponse(new StubClusterHealthResponse());
+    ArgumentCaptor<ClusterHealthRequest> requestCaptor = ArgumentCaptor.forClass(ClusterHealthRequest.class);
+    given(this.cluster.health(requestCaptor.capture())).willReturn(responseFuture);
+    Health health = this.indicator.health();
+    assertThat(responseFuture.getTimeout).isEqualTo(100L);
+    assertThat(requestCaptor.getValue().indices()).contains("_all");
+    assertThat(health.getStatus()).isEqualTo(Status.UP);
+}

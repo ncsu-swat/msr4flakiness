@@ -1,0 +1,9 @@
+@Test
+void parentFirstWithDifferentProfileAndExplicitEnvironment() {
+    SpringApplicationBuilder application = new SpringApplicationBuilder(ExampleConfig.class).environment(new StandardEnvironment()).profiles("node").properties("transport=redis").child(ChildConfig.class).profiles("admin").web(WebApplicationType.NONE);
+    this.context = application.run();
+    assertThat(this.context.getEnvironment().acceptsProfiles(Profiles.of("node", "admin"))).isTrue();
+    // Now they share an Environment explicitly so there's no way to keep the profiles
+    // separate
+    assertThat(this.context.getParent().getEnvironment().acceptsProfiles(Profiles.of("admin"))).isTrue();
+}

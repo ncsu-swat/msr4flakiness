@@ -1,0 +1,11 @@
+@Test
+void additionalMetadataIsLocatedUsingLocationsOption() throws IOException {
+    File app = new File(this.tempDir, "app");
+    File location = new File(app, "src/main/resources");
+    File metaInf = new File(location, "META-INF");
+    metaInf.mkdirs();
+    File additionalMetadata = new File(metaInf, "additional-spring-configuration-metadata.json");
+    additionalMetadata.createNewFile();
+    given(this.environment.getOptions()).willReturn(Collections.singletonMap(ConfigurationMetadataAnnotationProcessor.ADDITIONAL_METADATA_LOCATIONS_OPTION, location.getAbsolutePath()));
+    assertThat(this.metadataStore.locateAdditionalMetadataFile(new File(app, "foo"))).isEqualTo(additionalMetadata);
+}

@@ -1,0 +1,13 @@
+@Test
+void bindToBeanWithNestedCollectionShouldPopulateCollection() {
+    MockConfigurationPropertySource source = new MockConfigurationPropertySource();
+    source.put("foo.value", "one");
+    source.put("foo.foos[0].value", "two");
+    source.put("foo.foos[1].value", "three");
+    this.sources.add(source);
+    Bindable<BeanWithNestedCollection> target = Bindable.of(BeanWithNestedCollection.class);
+    BeanWithNestedCollection foo = this.binder.bind("foo", target).get();
+    assertThat(foo.getValue()).isEqualTo("one");
+    assertThat(foo.getFoos().get(0).getValue()).isEqualTo("two");
+    assertThat(foo.getFoos().get(1).getValue()).isEqualTo("three");
+}

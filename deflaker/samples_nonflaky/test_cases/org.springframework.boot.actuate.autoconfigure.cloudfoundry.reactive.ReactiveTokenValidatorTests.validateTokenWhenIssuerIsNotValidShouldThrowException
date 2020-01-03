@@ -1,0 +1,11 @@
+@Test
+void validateTokenWhenIssuerIsNotValidShouldThrowException() throws Exception {
+    given(this.securityService.fetchTokenKeys()).willReturn(Mono.just(VALID_KEYS));
+    given(this.securityService.getUaaUrl()).willReturn(Mono.just("https://other-uaa.com"));
+    String header = "{ \"alg\": \"RS256\",  \"kid\": \"valid-key\", \"typ\": \"JWT\", \"scope\": [\"actuator.read\"]}";
+    String claims = "{ \"exp\": 2147483647, \"iss\": \"http://localhost:8080/uaa/oauth/token\", \"scope\": [\"foo.bar\"]}";
+    StepVerifier.create(this.tokenValidator.validate(new Token(getSignedToken(header.getBytes(), claims.getBytes())))).consumeErrorWith((ex) -> {
+        assertThat(ex).isExactlyInstanceOf(CloudFoundryAuthorizationException.class);
+        assertThat(((CloudFoundryAuthorizationException) ex).getReason()).isEqualTo(Reason.INVALID_ISSUER);
+    }).verify();
+}

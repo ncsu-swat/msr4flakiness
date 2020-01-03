@@ -1,0 +1,9 @@
+@Test
+void loadWhenHasUnboundElementsFromSystemEnvironmentShouldNotThrowException() {
+    MutablePropertySources sources = this.context.getEnvironment().getPropertySources();
+    sources.addFirst(new MapPropertySource("test", Collections.singletonMap("com.example.foo", 5)));
+    sources.addLast(new SystemEnvironmentPropertySource(StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME, Collections.singletonMap("COM_EXAMPLE_OTHER", "10")));
+    load(SimplePrefixedProperties.class);
+    SimplePrefixedProperties bean = this.context.getBean(SimplePrefixedProperties.class);
+    assertThat(bean.getFoo()).isEqualTo(5);
+}

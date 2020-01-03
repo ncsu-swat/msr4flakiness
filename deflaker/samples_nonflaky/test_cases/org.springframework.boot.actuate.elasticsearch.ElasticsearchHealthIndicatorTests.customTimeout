@@ -1,0 +1,10 @@
+@Test
+void customTimeout() {
+    this.indicator = new ElasticsearchHealthIndicator(this.client, 1000L);
+    TestActionFuture responseFuture = new TestActionFuture();
+    responseFuture.onResponse(new StubClusterHealthResponse());
+    ArgumentCaptor<ClusterHealthRequest> requestCaptor = ArgumentCaptor.forClass(ClusterHealthRequest.class);
+    given(this.cluster.health(requestCaptor.capture())).willReturn(responseFuture);
+    this.indicator.health();
+    assertThat(responseFuture.getTimeout).isEqualTo(1000L);
+}

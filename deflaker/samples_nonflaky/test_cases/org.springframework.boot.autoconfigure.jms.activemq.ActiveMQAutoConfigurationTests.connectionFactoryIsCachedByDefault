@@ -1,0 +1,12 @@
+@Test
+void connectionFactoryIsCachedByDefault() {
+    this.contextRunner.withUserConfiguration(EmptyConfiguration.class).run((context) -> {
+        assertThat(context).hasSingleBean(ConnectionFactory.class);
+        assertThat(context).hasSingleBean(CachingConnectionFactory.class);
+        CachingConnectionFactory connectionFactory = context.getBean(CachingConnectionFactory.class);
+        assertThat(connectionFactory.getTargetConnectionFactory()).isInstanceOf(ActiveMQConnectionFactory.class);
+        assertThat(connectionFactory.isCacheConsumers()).isFalse();
+        assertThat(connectionFactory.isCacheProducers()).isTrue();
+        assertThat(connectionFactory.getSessionCacheSize()).isEqualTo(1);
+    });
+}

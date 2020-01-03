@@ -1,0 +1,13 @@
+@Test
+void customizePageable() {
+    this.contextRunner.withPropertyValues("spring.data.web.pageable.page-parameter=p", "spring.data.web.pageable.size-parameter=s", "spring.data.web.pageable.default-page-size=10", "spring.data.web.pageable.prefix=abc", "spring.data.web.pageable.qualifier-delimiter=__", "spring.data.web.pageable.max-page-size=100", "spring.data.web.pageable.one-indexed-parameters=true").run((context) -> {
+        PageableHandlerMethodArgumentResolver argumentResolver = context.getBean(PageableHandlerMethodArgumentResolver.class);
+        assertThat(argumentResolver).hasFieldOrPropertyWithValue("pageParameterName", "p");
+        assertThat(argumentResolver).hasFieldOrPropertyWithValue("sizeParameterName", "s");
+        assertThat(argumentResolver).hasFieldOrPropertyWithValue("oneIndexedParameters", true);
+        assertThat(argumentResolver).hasFieldOrPropertyWithValue("prefix", "abc");
+        assertThat(argumentResolver).hasFieldOrPropertyWithValue("qualifierDelimiter", "__");
+        assertThat(argumentResolver).hasFieldOrPropertyWithValue("fallbackPageable", PageRequest.of(0, 10));
+        assertThat(argumentResolver).hasFieldOrPropertyWithValue("maxPageSize", 100);
+    });
+}

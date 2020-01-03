@@ -1,0 +1,10 @@
+@Test
+void bindToClassShouldBindWithGenerics() {
+    // gh-19156
+    ResolvableType type = ResolvableType.forClassWithGenerics(Map.class, String.class, String.class);
+    MockConfigurationPropertySource source = new MockConfigurationPropertySource();
+    source.put("foo.value.bar", "baz");
+    this.sources.add(source);
+    GenericValue<Map<String, String>> bean = this.binder.bind("foo", Bindable.<GenericValue<Map<String, String>>>of(ResolvableType.forClassWithGenerics(GenericValue.class, type))).get();
+    assertThat(bean.getValue().get("bar")).isEqualTo("baz");
+}

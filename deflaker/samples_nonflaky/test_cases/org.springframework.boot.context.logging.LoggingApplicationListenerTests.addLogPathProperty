@@ -1,0 +1,10 @@
+@Test
+void addLogPathProperty() {
+    addPropertiesToEnvironment(this.context, "logging.config=classpath:logback-nondefault.xml", "logging.file.path=" + this.tempDir);
+    this.initializer.initialize(this.context.getEnvironment(), this.context.getClassLoader());
+    Log logger = LogFactory.getLog(LoggingApplicationListenerTests.class);
+    String existingOutput = this.output.toString();
+    logger.info("Hello world");
+    String output = this.output.toString().substring(existingOutput.length()).trim();
+    assertThat(output).startsWith(new File(this.tempDir.toFile(), "spring.log").getAbsolutePath());
+}

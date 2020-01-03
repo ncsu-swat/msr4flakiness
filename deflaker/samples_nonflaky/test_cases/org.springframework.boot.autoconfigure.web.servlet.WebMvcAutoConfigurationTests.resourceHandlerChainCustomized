@@ -1,0 +1,13 @@
+@Test
+void resourceHandlerChainCustomized() {
+    this.contextRunner.withPropertyValues("spring.resources.chain.enabled:true", "spring.resources.chain.cache:false", "spring.resources.chain.strategy.content.enabled:true", "spring.resources.chain.strategy.content.paths:/**,/*.png", "spring.resources.chain.strategy.fixed.enabled:true", "spring.resources.chain.strategy.fixed.version:test", "spring.resources.chain.strategy.fixed.paths:/**/*.js", "spring.resources.chain.html-application-cache:true", "spring.resources.chain.compressed:true").run((context) -> {
+        assertThat(getResourceResolvers(context, "/webjars/**")).hasSize(3);
+        assertThat(getResourceTransformers(context, "/webjars/**")).hasSize(2);
+        assertThat(getResourceResolvers(context, "/**")).extractingResultOf("getClass").containsOnly(EncodedResourceResolver.class, VersionResourceResolver.class, PathResourceResolver.class);
+        assertThat(getResourceTransformers(context, "/**")).extractingResultOf("getClass").containsOnly(CssLinkResourceTransformer.class, AppCacheManifestTransformer.class);
+        VersionResourceResolver resolver = (VersionResourceResolver) getResourceResolvers(context, "/**").get(1);
+        Map<String, VersionStrategy> strategyMap = resolver.getStrategyMap();
+        assertThat(strategyMap.get("/*.png")).isInstanceOf(ContentVersionStrategy.class);
+        assertThat(strategyMap.get("/**/*.js")).isInstanceOf(FixedVersionStrategy.class);
+    });
+}

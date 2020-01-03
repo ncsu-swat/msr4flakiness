@@ -1,0 +1,15 @@
+@Test
+void wrappedHandlers() throws Exception {
+    JettyServletWebServerFactory factory = getFactory();
+    factory.setServerCustomizers(Collections.singletonList((server) -> {
+        Handler handler = server.getHandler();
+        HandlerWrapper wrapper = new HandlerWrapper();
+        wrapper.setHandler(handler);
+        HandlerCollection collection = new HandlerCollection();
+        collection.addHandler(wrapper);
+        server.setHandler(collection);
+    }));
+    this.webServer = factory.getWebServer(exampleServletRegistration());
+    this.webServer.start();
+    assertThat(getResponse(getLocalUrl("/hello"))).isEqualTo("Hello World");
+}

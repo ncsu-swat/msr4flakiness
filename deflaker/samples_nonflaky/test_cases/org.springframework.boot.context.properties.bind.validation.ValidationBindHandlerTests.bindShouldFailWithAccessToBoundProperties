@@ -1,0 +1,11 @@
+@Test
+void bindShouldFailWithAccessToBoundProperties() {
+    MockConfigurationPropertySource source = new MockConfigurationPropertySource();
+    source.put("foo.nested.name", "baz");
+    source.put("foo.nested.age", "4");
+    source.put("faf.bar", "baz");
+    this.sources.add(source);
+    BindValidationException cause = bindAndExpectValidationError(() -> this.binder.bind(ConfigurationPropertyName.of("foo"), Bindable.of(ExampleValidatedWithNestedBean.class), this.handler));
+    Set<ConfigurationProperty> boundProperties = cause.getValidationErrors().getBoundProperties();
+    assertThat(boundProperties).extracting((p) -> p.getName().toString()).contains("foo.nested.age", "foo.nested.name");
+}

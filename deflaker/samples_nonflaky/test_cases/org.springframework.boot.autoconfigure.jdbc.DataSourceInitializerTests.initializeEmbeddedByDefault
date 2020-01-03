@@ -1,0 +1,11 @@
+@Test
+void initializeEmbeddedByDefault() {
+    try (HikariDataSource dataSource = createDataSource()) {
+        DataSourceInitializer initializer = new DataSourceInitializer(dataSource, new DataSourceProperties());
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+        assertThat(initializer.createSchema()).isTrue();
+        assertNumberOfRows(jdbcTemplate, 0);
+        initializer.initSchema();
+        assertNumberOfRows(jdbcTemplate, 1);
+    }
+}

@@ -1,0 +1,17 @@
+@Test
+@SuppressWarnings("unchecked")
+void testInitializedMapAndList() {
+    ApplicationContextRunner contextRunner = new ApplicationContextRunner().withUserConfiguration(InitializedMapAndListPropertiesConfig.class).withPropertyValues("foo.map.entryOne:true", "foo.list[0]:abc");
+    contextRunner.run((context) -> {
+        ConfigurationPropertiesReportEndpoint endpoint = context.getBean(ConfigurationPropertiesReportEndpoint.class);
+        ApplicationConfigurationProperties applicationProperties = endpoint.configurationProperties();
+        ConfigurationPropertiesBeanDescriptor foo = applicationProperties.getContexts().get(context.getId()).getBeans().get("foo");
+        assertThat(foo.getPrefix()).isEqualTo("foo");
+        Map<String, Object> propertiesMap = foo.getProperties();
+        assertThat(propertiesMap).containsOnlyKeys("bar", "name", "map", "list");
+        Map<String, Object> map = (Map<String, Object>) propertiesMap.get("map");
+        assertThat(map).containsOnly(entry("entryOne", true));
+        List<String> list = (List<String>) propertiesMap.get("list");
+        assertThat(list).containsExactly("abc");
+    });
+}

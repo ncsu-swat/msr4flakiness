@@ -1,0 +1,11 @@
+@Test
+void cacheInTtlWithMonoResponse() {
+    MonoOperationInvoker.invocations = 0;
+    MonoOperationInvoker target = new MonoOperationInvoker();
+    InvocationContext context = new InvocationContext(mock(SecurityContext.class), Collections.emptyMap());
+    CachingOperationInvoker invoker = new CachingOperationInvoker(target, CACHE_TTL);
+    Object response = ((Mono<?>) invoker.invoke(context)).block();
+    Object cachedResponse = ((Mono<?>) invoker.invoke(context)).block();
+    assertThat(MonoOperationInvoker.invocations).isEqualTo(1);
+    assertThat(response).isSameAs(cachedResponse);
+}

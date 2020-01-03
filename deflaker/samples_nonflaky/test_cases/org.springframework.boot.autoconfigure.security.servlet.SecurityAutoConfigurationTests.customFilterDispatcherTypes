@@ -1,0 +1,9 @@
+@Test
+void customFilterDispatcherTypes() {
+    this.contextRunner.withPropertyValues("spring.security.filter.dispatcher-types:INCLUDE,ERROR").withConfiguration(AutoConfigurations.of(SecurityFilterAutoConfiguration.class)).run((context) -> {
+        DelegatingFilterProxyRegistrationBean bean = context.getBean("securityFilterChainRegistration", DelegatingFilterProxyRegistrationBean.class);
+        @SuppressWarnings("unchecked")
+        EnumSet<DispatcherType> dispatcherTypes = (EnumSet<DispatcherType>) ReflectionTestUtils.getField(bean, "dispatcherTypes");
+        assertThat(dispatcherTypes).containsOnly(DispatcherType.INCLUDE, DispatcherType.ERROR);
+    });
+}

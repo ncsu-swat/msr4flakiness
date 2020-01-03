@@ -1,0 +1,13 @@
+@Test
+void testCustomBannerInContext() {
+    SpringApplication application = createSpringApplication();
+    Banner banner = mock(Banner.class);
+    application.setBanner(banner);
+    this.context = application.run();
+    Banner printedBanner = (Banner) this.context.getBean("springBootBanner");
+    assertThat(printedBanner).hasFieldOrPropertyWithValue("banner", banner);
+    verify(banner).printBanner(any(Environment.class), this.sourceClassCaptor.capture(), any(PrintStream.class));
+    reset(banner);
+    printedBanner.printBanner(this.context.getEnvironment(), null, System.out);
+    verify(banner).printBanner(any(Environment.class), eq(this.sourceClassCaptor.getValue()), any(PrintStream.class));
+}

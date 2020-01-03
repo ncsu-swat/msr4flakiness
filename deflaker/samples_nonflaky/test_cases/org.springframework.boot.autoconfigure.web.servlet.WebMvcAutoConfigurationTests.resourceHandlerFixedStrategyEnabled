@@ -1,0 +1,11 @@
+@Test
+void resourceHandlerFixedStrategyEnabled() {
+    this.contextRunner.withPropertyValues("spring.resources.chain.strategy.fixed.enabled:true", "spring.resources.chain.strategy.fixed.version:test", "spring.resources.chain.strategy.fixed.paths:/**/*.js").run((context) -> {
+        assertThat(getResourceResolvers(context, "/webjars/**")).hasSize(3);
+        assertThat(getResourceTransformers(context, "/webjars/**")).hasSize(2);
+        assertThat(getResourceResolvers(context, "/**")).extractingResultOf("getClass").containsOnly(CachingResourceResolver.class, VersionResourceResolver.class, PathResourceResolver.class);
+        assertThat(getResourceTransformers(context, "/**")).extractingResultOf("getClass").containsOnly(CachingResourceTransformer.class, CssLinkResourceTransformer.class);
+        VersionResourceResolver resolver = (VersionResourceResolver) getResourceResolvers(context, "/**").get(1);
+        assertThat(resolver.getStrategyMap().get("/**/*.js")).isInstanceOf(FixedVersionStrategy.class);
+    });
+}

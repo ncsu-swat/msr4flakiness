@@ -1,0 +1,17 @@
+@Test
+void initializationIsOnlyPerformedOnceUntilCleanedUp() {
+    LoggerContext loggerContext = (LoggerContext) LogManager.getContext(false);
+    PropertyChangeListener listener = mock(PropertyChangeListener.class);
+    loggerContext.addPropertyChangeListener(listener);
+    this.loggingSystem.beforeInitialize();
+    this.loggingSystem.initialize(null, null, null);
+    this.loggingSystem.beforeInitialize();
+    this.loggingSystem.initialize(null, null, null);
+    this.loggingSystem.beforeInitialize();
+    this.loggingSystem.initialize(null, null, null);
+    verify(listener, times(2)).propertyChange(any(PropertyChangeEvent.class));
+    this.loggingSystem.cleanUp();
+    this.loggingSystem.beforeInitialize();
+    this.loggingSystem.initialize(null, null, null);
+    verify(listener, times(4)).propertyChange(any(PropertyChangeEvent.class));
+}

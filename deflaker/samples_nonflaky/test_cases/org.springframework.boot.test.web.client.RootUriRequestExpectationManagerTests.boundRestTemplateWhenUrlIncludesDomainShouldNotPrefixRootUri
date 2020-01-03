@@ -1,0 +1,7 @@
+@Test
+void boundRestTemplateWhenUrlIncludesDomainShouldNotPrefixRootUri() {
+    RestTemplate restTemplate = new RestTemplateBuilder().rootUri("https://example.com").build();
+    MockRestServiceServer server = RootUriRequestExpectationManager.bindTo(restTemplate);
+    server.expect(requestTo("/hello")).andRespond(withSuccess());
+    assertThatExceptionOfType(AssertionError.class).isThrownBy(() -> restTemplate.getForEntity("https://spring.io/hello", String.class)).withMessageContaining("expected:<https://example.com/hello> but was:<https://spring.io/hello>");
+}

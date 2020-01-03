@@ -1,0 +1,10 @@
+@Test
+void tomcatProtocolHandlerCanBeCustomized() {
+    TomcatServletWebServerFactory factory = getFactory();
+    TomcatProtocolHandlerCustomizer<AbstractHttp11Protocol<?>> customizer = (protocolHandler) -> protocolHandler.setProcessorCache(250);
+    factory.addProtocolHandlerCustomizers(customizer);
+    Tomcat tomcat = getTomcat(factory);
+    Connector connector = ((TomcatWebServer) this.webServer).getServiceConnectors().get(tomcat.getService())[0];
+    AbstractHttp11Protocol<?> protocolHandler = (AbstractHttp11Protocol<?>) connector.getProtocolHandler();
+    assertThat(protocolHandler.getProcessorCache()).isEqualTo(250);
+}

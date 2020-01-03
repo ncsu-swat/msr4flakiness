@@ -1,0 +1,10 @@
+@Test
+void onAutoConfigurationImportEventShouldApplyExclusionsGloballyWhenExclusionIsAlreadyApplied() {
+    AutoConfigurationImportEvent excludeEvent = new AutoConfigurationImportEvent(this, Collections.emptyList(), Collections.singleton("First"));
+    this.listener.onAutoConfigurationImportEvent(excludeEvent);
+    AutoConfigurationImportEvent event = new AutoConfigurationImportEvent(this, Arrays.asList("First", "Second"), Collections.emptySet());
+    this.listener.onAutoConfigurationImportEvent(event);
+    ConditionEvaluationReport report = ConditionEvaluationReport.get(this.beanFactory);
+    assertThat(report.getUnconditionalClasses()).containsExactly("Second");
+    assertThat(report.getExclusions()).containsExactly("First");
+}

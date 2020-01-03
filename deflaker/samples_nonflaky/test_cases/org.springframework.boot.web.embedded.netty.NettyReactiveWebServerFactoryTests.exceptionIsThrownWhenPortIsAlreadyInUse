@@ -1,0 +1,9 @@
+@Test
+void exceptionIsThrownWhenPortIsAlreadyInUse() {
+    AbstractReactiveWebServerFactory factory = getFactory();
+    factory.setPort(0);
+    this.webServer = factory.getWebServer(new EchoHandler());
+    this.webServer.start();
+    factory.setPort(this.webServer.getPort());
+    assertThatExceptionOfType(PortInUseException.class).isThrownBy(factory.getWebServer(new EchoHandler())::start).satisfies(this::portMatchesRequirement);
+}

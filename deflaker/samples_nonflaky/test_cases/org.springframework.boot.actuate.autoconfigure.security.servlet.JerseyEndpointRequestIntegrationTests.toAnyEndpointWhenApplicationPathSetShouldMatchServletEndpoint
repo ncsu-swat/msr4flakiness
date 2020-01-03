@@ -1,0 +1,10 @@
+@Test
+void toAnyEndpointWhenApplicationPathSetShouldMatchServletEndpoint() {
+    getContextRunner().withPropertyValues("spring.jersey.application-path=/admin", "spring.security.user.password=password", "management.endpoints.web.exposure.include=se1").run((context) -> {
+        WebTestClient webTestClient = getWebTestClient(context);
+        webTestClient.get().uri("/admin/actuator/se1").exchange().expectStatus().isUnauthorized();
+        webTestClient.get().uri("/admin/actuator/se1").header("Authorization", getBasicAuth()).exchange().expectStatus().isOk();
+        webTestClient.get().uri("/admin/actuator/se1/list").exchange().expectStatus().isUnauthorized();
+        webTestClient.get().uri("/admin/actuator/se1/list").header("Authorization", getBasicAuth()).exchange().expectStatus().isOk();
+    });
+}

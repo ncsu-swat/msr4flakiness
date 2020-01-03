@@ -1,0 +1,14 @@
+@Test
+void getErrorsShouldAdaptFieldErrorsToBeOriginProviders() {
+    Set<ConfigurationProperty> boundProperties = new LinkedHashSet<>();
+    ConfigurationPropertyName name1 = ConfigurationPropertyName.of("foo.bar");
+    Origin origin1 = MockOrigin.of("line1");
+    boundProperties.add(new ConfigurationProperty(name1, "boot", origin1));
+    ConfigurationPropertyName name2 = ConfigurationPropertyName.of("foo.baz.bar");
+    Origin origin2 = MockOrigin.of("line2");
+    boundProperties.add(new ConfigurationProperty(name2, "boot", origin2));
+    List<ObjectError> allErrors = new ArrayList<>();
+    allErrors.add(new FieldError("objectname", "bar", "message"));
+    ValidationErrors errors = new ValidationErrors(ConfigurationPropertyName.of("foo.baz"), boundProperties, allErrors);
+    assertThat(Origin.from(errors.getAllErrors().get(0))).isEqualTo(origin2);
+}

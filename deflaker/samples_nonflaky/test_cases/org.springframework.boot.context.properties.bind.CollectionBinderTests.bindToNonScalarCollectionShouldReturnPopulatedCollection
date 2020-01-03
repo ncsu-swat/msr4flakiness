@@ -1,0 +1,13 @@
+@Test
+void bindToNonScalarCollectionShouldReturnPopulatedCollection() {
+    MockConfigurationPropertySource source = new MockConfigurationPropertySource();
+    source.put("foo[0].value", "a");
+    source.put("foo[1].value", "b");
+    source.put("foo[2].value", "c");
+    this.sources.add(source);
+    Bindable<List<JavaBean>> target = Bindable.listOf(JavaBean.class);
+    List<JavaBean> result = this.binder.bind("foo", target).get();
+    assertThat(result).hasSize(3);
+    List<String> values = result.stream().map(JavaBean::getValue).collect(Collectors.toList());
+    assertThat(values).containsExactly("a", "b", "c");
+}

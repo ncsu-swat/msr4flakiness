@@ -1,0 +1,9 @@
+@Test
+void enableSchedulingWithNoTaskExecutorAppliesCustomizers() {
+    this.contextRunner.withPropertyValues("spring.task.scheduling.thread-name-prefix=scheduling-test-").withUserConfiguration(SchedulingConfiguration.class, TaskSchedulerCustomizerConfiguration.class).run((context) -> {
+        assertThat(context).hasSingleBean(TaskExecutor.class);
+        TestBean bean = context.getBean(TestBean.class);
+        assertThat(bean.latch.await(30, TimeUnit.SECONDS)).isTrue();
+        assertThat(bean.threadNames).allMatch((name) -> name.contains("customized-scheduler-"));
+    });
+}

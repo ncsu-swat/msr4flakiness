@@ -1,0 +1,14 @@
+@Test
+void tomcatConnectorCustomizersShouldBeInvoked() {
+    TomcatReactiveWebServerFactory factory = getFactory();
+    HttpHandler handler = mock(HttpHandler.class);
+    TomcatConnectorCustomizer[] customizers = new TomcatConnectorCustomizer[4];
+    Arrays.setAll(customizers, (i) -> mock(TomcatConnectorCustomizer.class));
+    factory.setTomcatConnectorCustomizers(Arrays.asList(customizers[0], customizers[1]));
+    factory.addConnectorCustomizers(customizers[2], customizers[3]);
+    this.webServer = factory.getWebServer(handler);
+    InOrder ordered = inOrder((Object[]) customizers);
+    for (TomcatConnectorCustomizer customizer : customizers) {
+        ordered.verify(customizer).customize(any(Connector.class));
+    }
+}

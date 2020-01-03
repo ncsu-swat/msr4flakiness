@@ -1,0 +1,13 @@
+@Test
+void testTotalSizeCapPropertyWithXmlConfiguration() {
+    String expectedSize = "101 MB";
+    MockEnvironment environment = new MockEnvironment();
+    environment.setProperty("logging.file.total-size-cap", expectedSize);
+    LoggingInitializationContext loggingInitializationContext = new LoggingInitializationContext(environment);
+    File file = new File(tmpDir(), "logback-test.log");
+    LogFile logFile = getLogFile(file.getPath(), null);
+    this.loggingSystem.initialize(loggingInitializationContext, "classpath:logback-include-base.xml", logFile);
+    this.logger.info("Hello world");
+    assertThat(getLineWithText(file, "Hello world")).contains("INFO");
+    assertThat(ReflectionTestUtils.getField(getRollingPolicy(), "totalSizeCap").toString()).isEqualTo(expectedSize);
+}

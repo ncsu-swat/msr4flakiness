@@ -1,0 +1,10 @@
+@Test
+void startFailsWhenThreadPoolIsTooSmall() {
+    JettyServletWebServerFactory factory = getFactory();
+    factory.addServerCustomizers((server) -> {
+        QueuedThreadPool threadPool = server.getBean(QueuedThreadPool.class);
+        threadPool.setMaxThreads(2);
+        threadPool.setMinThreads(2);
+    });
+    assertThatExceptionOfType(WebServerException.class).isThrownBy(factory.getWebServer()::start).withCauseInstanceOf(IllegalStateException.class);
+}

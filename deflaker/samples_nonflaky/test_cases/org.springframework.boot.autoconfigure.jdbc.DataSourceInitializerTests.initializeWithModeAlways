@@ -1,0 +1,13 @@
+@Test
+void initializeWithModeAlways() {
+    try (HikariDataSource dataSource = createDataSource()) {
+        DataSourceProperties properties = new DataSourceProperties();
+        properties.setInitializationMode(DataSourceInitializationMode.ALWAYS);
+        DataSourceInitializer initializer = new DataSourceInitializer(dataSource, properties);
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+        assertThat(initializer.createSchema()).isTrue();
+        assertNumberOfRows(jdbcTemplate, 0);
+        initializer.initSchema();
+        assertNumberOfRows(jdbcTemplate, 1);
+    }
+}

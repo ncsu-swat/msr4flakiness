@@ -1,0 +1,12 @@
+@Test
+void embeddedConnectionFactory() {
+    this.contextRunner.withUserConfiguration(EmptyConfiguration.class).withPropertyValues("spring.artemis.mode:embedded").run((context) -> {
+        ArtemisProperties properties = context.getBean(ArtemisProperties.class);
+        assertThat(properties.getMode()).isEqualTo(ArtemisMode.EMBEDDED);
+        assertThat(context).hasSingleBean(EmbeddedActiveMQ.class);
+        org.apache.activemq.artemis.core.config.Configuration configuration = context.getBean(org.apache.activemq.artemis.core.config.Configuration.class);
+        assertThat(configuration.isPersistenceEnabled()).isFalse();
+        assertThat(configuration.isSecurityEnabled()).isFalse();
+        assertInVmConnectionFactory(getActiveMQConnectionFactory(context.getBean(ConnectionFactory.class)));
+    });
+}

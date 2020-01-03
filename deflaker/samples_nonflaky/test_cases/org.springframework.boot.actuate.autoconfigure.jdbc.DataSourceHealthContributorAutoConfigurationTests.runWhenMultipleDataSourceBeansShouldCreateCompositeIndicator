@@ -1,0 +1,9 @@
+@Test
+void runWhenMultipleDataSourceBeansShouldCreateCompositeIndicator() {
+    this.contextRunner.withUserConfiguration(EmbeddedDataSourceConfiguration.class, DataSourceConfig.class).run((context) -> {
+        assertThat(context).hasSingleBean(CompositeHealthContributor.class);
+        CompositeHealthContributor contributor = context.getBean(CompositeHealthContributor.class);
+        String[] names = contributor.stream().map(NamedContributor::getName).toArray(String[]::new);
+        assertThat(names).containsExactlyInAnyOrder("dataSource", "testDataSource");
+    });
+}

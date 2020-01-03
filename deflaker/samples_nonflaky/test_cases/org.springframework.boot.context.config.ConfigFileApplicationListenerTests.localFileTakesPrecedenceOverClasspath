@@ -1,0 +1,17 @@
+@Test
+void localFileTakesPrecedenceOverClasspath() throws Exception {
+    File localFile = new File(new File("."), "application.properties");
+    assertThat(localFile.exists()).isFalse();
+    try {
+        Properties properties = new Properties();
+        properties.put("the.property", "fromlocalfile");
+        try (OutputStream outputStream = new FileOutputStream(localFile)) {
+            properties.store(outputStream, "");
+        }
+        this.initializer.postProcessEnvironment(this.environment, this.application);
+        String property = this.environment.getProperty("the.property");
+        assertThat(property).isEqualTo("fromlocalfile");
+    } finally {
+        localFile.delete();
+    }
+}

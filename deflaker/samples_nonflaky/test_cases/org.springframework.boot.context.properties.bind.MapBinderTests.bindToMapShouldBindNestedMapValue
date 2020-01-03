@@ -1,0 +1,18 @@
+@Test
+void bindToMapShouldBindNestedMapValue() {
+    ResolvableType nestedType = ResolvableType.forClassWithGenerics(Map.class, ResolvableType.forClass(String.class), STRING_INTEGER_MAP.getType());
+    ResolvableType type = ResolvableType.forClassWithGenerics(Map.class, ResolvableType.forClass(String.class), nestedType);
+    MockConfigurationPropertySource source = new MockConfigurationPropertySource();
+    source.put("foo.nested.bar.baz", "1");
+    source.put("foo.nested.bar.bin", "2");
+    source.put("foo.nested.far.baz", "3");
+    source.put("foo.nested.far.bin", "4");
+    source.put("faf.nested.far.bin", "x");
+    this.sources.add(source);
+    Bindable<Map<String, Map<String, Map<String, Integer>>>> target = Bindable.of(type);
+    Map<String, Map<String, Map<String, Integer>>> result = this.binder.bind("foo", target).get();
+    Map<String, Map<String, Integer>> nested = result.get("nested");
+    assertThat(nested).hasSize(2);
+    assertThat(nested.get("bar")).containsEntry("baz", 1).containsEntry("bin", 2);
+    assertThat(nested.get("far")).containsEntry("baz", 3).containsEntry("bin", 4);
+}

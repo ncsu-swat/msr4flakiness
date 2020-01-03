@@ -1,0 +1,12 @@
+@Test
+void verifyHealthStatusWhenExhausted() {
+    CassandraOperations cassandraOperations = mock(CassandraOperations.class);
+    CqlOperations cqlOperations = mock(CqlOperations.class);
+    ResultSet resultSet = mock(ResultSet.class);
+    CassandraHealthIndicator healthIndicator = new CassandraHealthIndicator(cassandraOperations);
+    given(cassandraOperations.getCqlOperations()).willReturn(cqlOperations);
+    given(cqlOperations.queryForResultSet(any(Select.class))).willReturn(resultSet);
+    given(resultSet.isExhausted()).willReturn(true);
+    Health health = healthIndicator.health();
+    assertThat(health.getStatus()).isEqualTo(Status.UP);
+}

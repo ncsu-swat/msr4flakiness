@@ -1,0 +1,9 @@
+@Test
+void namingStrategyDelegatorTakesPrecedence() {
+    this.contextRunner.withPropertyValues("spring.jpa.properties.hibernate.ejb.naming_strategy_delegator:" + "org.hibernate.cfg.naming.ImprovedNamingStrategyDelegator").run((context) -> {
+        JpaProperties jpaProperties = context.getBean(JpaProperties.class);
+        HibernateProperties hibernateProperties = context.getBean(HibernateProperties.class);
+        Map<String, Object> properties = hibernateProperties.determineHibernateProperties(jpaProperties.getProperties(), new HibernateSettings());
+        assertThat(properties.get("hibernate.ejb.naming_strategy")).isNull();
+    });
+}

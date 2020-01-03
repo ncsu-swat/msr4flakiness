@@ -1,0 +1,11 @@
+@Test
+void hikariProxiedCanUseRegisterMBeans() {
+    String poolName = UUID.randomUUID().toString();
+    this.contextRunner.withUserConfiguration(DataSourceProxyConfiguration.class).withPropertyValues("spring.jmx.enabled=true", "spring.datasource.type=" + HikariDataSource.class.getName(), "spring.datasource.name=" + poolName, "spring.datasource.hikari.register-mbeans=true").run((context) -> {
+        assertThat(context).hasSingleBean(javax.sql.DataSource.class);
+        HikariDataSource hikariDataSource = context.getBean(javax.sql.DataSource.class).unwrap(HikariDataSource.class);
+        assertThat(hikariDataSource.isRegisterMbeans()).isTrue();
+        MBeanServer mBeanServer = context.getBean(MBeanServer.class);
+        validateHikariMBeansRegistration(mBeanServer, poolName, true);
+    });
+}

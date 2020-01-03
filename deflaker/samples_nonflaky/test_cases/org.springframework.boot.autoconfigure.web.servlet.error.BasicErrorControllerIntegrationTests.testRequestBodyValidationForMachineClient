@@ -1,0 +1,12 @@
+@Test
+@SuppressWarnings("rawtypes")
+void testRequestBodyValidationForMachineClient() {
+    load("--server.error.include-exception=true");
+    RequestEntity request = RequestEntity.post(URI.create(createUrl("/bodyValidation"))).accept(MediaType.APPLICATION_JSON).contentType(MediaType.APPLICATION_JSON).body("{}");
+    ResponseEntity<Map> entity = new TestRestTemplate().exchange(request, Map.class);
+    String resp = entity.getBody().toString();
+    assertThat(resp).contains("Error count: 1");
+    assertThat(resp).contains("errors=[{");
+    assertThat(resp).contains("codes=[");
+    assertThat(resp).contains(MethodArgumentNotValidException.class.getName());
+}

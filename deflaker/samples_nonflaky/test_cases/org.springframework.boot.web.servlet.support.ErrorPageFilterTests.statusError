@@ -1,0 +1,12 @@
+@Test
+void statusError() throws Exception {
+    this.filter.addErrorPages(new ErrorPage(HttpStatus.BAD_REQUEST, "/400"));
+    this.chain = new TestFilterChain((request, response, chain) -> response.sendError(400, "BAD"));
+    this.filter.doFilter(this.request, this.response, this.chain);
+    assertThat(((HttpServletResponseWrapper) this.chain.getResponse()).getStatus()).isEqualTo(400);
+    assertThat(this.request.getAttribute(RequestDispatcher.ERROR_STATUS_CODE)).isEqualTo(400);
+    assertThat(this.request.getAttribute(RequestDispatcher.ERROR_MESSAGE)).isEqualTo("BAD");
+    assertThat(this.request.getAttribute(RequestDispatcher.ERROR_REQUEST_URI)).isEqualTo("/test/path");
+    assertThat(this.response.isCommitted()).isTrue();
+    assertThat(this.response.getForwardedUrl()).isEqualTo("/400");
+}

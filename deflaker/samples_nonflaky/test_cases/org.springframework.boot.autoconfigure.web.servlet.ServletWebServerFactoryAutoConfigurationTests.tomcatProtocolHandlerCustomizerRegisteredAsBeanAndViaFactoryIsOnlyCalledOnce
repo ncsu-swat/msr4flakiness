@@ -1,0 +1,10 @@
+@Test
+void tomcatProtocolHandlerCustomizerRegisteredAsBeanAndViaFactoryIsOnlyCalledOnce() {
+    WebApplicationContextRunner runner = new WebApplicationContextRunner(AnnotationConfigServletWebServerApplicationContext::new).withConfiguration(AutoConfigurations.of(ServletWebServerFactoryAutoConfiguration.class)).withUserConfiguration(DoubleRegistrationTomcatProtocolHandlerCustomizerConfiguration.class).withPropertyValues("server.port: 0");
+    runner.run((context) -> {
+        TomcatServletWebServerFactory factory = context.getBean(TomcatServletWebServerFactory.class);
+        TomcatProtocolHandlerCustomizer<?> customizer = context.getBean("protocolHandlerCustomizer", TomcatProtocolHandlerCustomizer.class);
+        assertThat(factory.getTomcatProtocolHandlerCustomizers()).contains(customizer);
+        verify(customizer, times(1)).customize(any());
+    });
+}

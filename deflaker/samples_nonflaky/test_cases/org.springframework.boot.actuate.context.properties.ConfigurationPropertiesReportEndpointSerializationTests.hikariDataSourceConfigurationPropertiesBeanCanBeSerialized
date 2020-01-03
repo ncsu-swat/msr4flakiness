@@ -1,0 +1,11 @@
+@Test
+void hikariDataSourceConfigurationPropertiesBeanCanBeSerialized() {
+    ApplicationContextRunner contextRunner = new ApplicationContextRunner().withUserConfiguration(HikariDataSourceConfig.class);
+    contextRunner.run((context) -> {
+        ConfigurationPropertiesReportEndpoint endpoint = context.getBean(ConfigurationPropertiesReportEndpoint.class);
+        ApplicationConfigurationProperties applicationProperties = endpoint.configurationProperties();
+        ConfigurationPropertiesBeanDescriptor hikariDataSource = applicationProperties.getContexts().get(context.getId()).getBeans().get("hikariDataSource");
+        Map<String, Object> nestedProperties = hikariDataSource.getProperties();
+        assertThat(nestedProperties).doesNotContainKey("error");
+    });
+}

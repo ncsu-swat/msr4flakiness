@@ -1,0 +1,9 @@
+@Test
+void cloudFoundryPlatformActiveSetsApplicationId() {
+    this.contextRunner.withPropertyValues("VCAP_APPLICATION:---", "vcap.application.application_id:my-app-id", "vcap.application.cf_api:https://my-cloud-controller.com").run((context) -> {
+        CloudFoundryWebFluxEndpointHandlerMapping handlerMapping = getHandlerMapping(context);
+        Object interceptor = ReflectionTestUtils.getField(handlerMapping, "securityInterceptor");
+        String applicationId = (String) ReflectionTestUtils.getField(interceptor, "applicationId");
+        assertThat(applicationId).isEqualTo("my-app-id");
+    });
+}

@@ -1,0 +1,6 @@
+@Test
+void preHandleWhenApplicationIdIsNullShouldReturnError() {
+    this.interceptor = new CloudFoundrySecurityInterceptor(this.tokenValidator, this.securityService, null);
+    MockServerWebExchange request = MockServerWebExchange.from(MockServerHttpRequest.get("/a").header(HttpHeaders.AUTHORIZATION, "bearer " + mockAccessToken()).build());
+    StepVerifier.create(this.interceptor.preHandle(request, "/a")).consumeErrorWith((ex) -> assertThat(((CloudFoundryAuthorizationException) ex).getReason()).isEqualTo(Reason.SERVICE_UNAVAILABLE)).verify();
+}

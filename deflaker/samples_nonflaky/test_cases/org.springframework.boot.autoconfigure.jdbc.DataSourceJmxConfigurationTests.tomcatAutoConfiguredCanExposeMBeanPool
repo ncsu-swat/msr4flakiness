@@ -1,0 +1,8 @@
+@Test
+void tomcatAutoConfiguredCanExposeMBeanPool() {
+    this.contextRunner.withPropertyValues("spring.datasource.type=" + DataSource.class.getName(), "spring.datasource.tomcat.jmx-enabled=true").run((context) -> {
+        assertThat(context).hasBean("dataSourceMBean");
+        assertThat(context).hasSingleBean(ConnectionPool.class);
+        assertThat(context.getBean(DataSourceProxy.class).createPool().getJmxPool()).isSameAs(context.getBean(ConnectionPool.class));
+    });
+}

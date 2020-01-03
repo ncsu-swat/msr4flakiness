@@ -1,0 +1,12 @@
+@Test
+void bindToMapStringArrayShouldTriggerOnSuccess() {
+    this.sources.add(new MockConfigurationPropertySource("foo.bar", "a,b,c", "line1"));
+    BindHandler handler = mock(BindHandler.class, Answers.CALLS_REAL_METHODS);
+    Bindable<Map<String, String[]>> target = STRING_ARRAY_MAP;
+    this.binder.bind("foo", target, handler);
+    InOrder ordered = inOrder(handler);
+    ArgumentCaptor<String[]> array = ArgumentCaptor.forClass(String[].class);
+    ordered.verify(handler).onSuccess(eq(ConfigurationPropertyName.of("foo.bar")), eq(Bindable.of(String[].class)), any(), array.capture());
+    assertThat(array.getValue()).containsExactly("a", "b", "c");
+    ordered.verify(handler).onSuccess(eq(ConfigurationPropertyName.of("foo")), eq(target), any(), isA(Map.class));
+}

@@ -1,0 +1,10 @@
+@Test
+void tomcatContextCustomizerRegisteredAsBeanAndViaFactoryIsOnlyCalledOnce() {
+    WebApplicationContextRunner runner = new WebApplicationContextRunner(AnnotationConfigServletWebServerApplicationContext::new).withConfiguration(AutoConfigurations.of(ServletWebServerFactoryAutoConfiguration.class)).withUserConfiguration(DoubleRegistrationTomcatContextCustomizerConfiguration.class).withPropertyValues("server.port: 0");
+    runner.run((context) -> {
+        TomcatServletWebServerFactory factory = context.getBean(TomcatServletWebServerFactory.class);
+        TomcatContextCustomizer customizer = context.getBean("contextCustomizer", TomcatContextCustomizer.class);
+        assertThat(factory.getTomcatContextCustomizers()).contains(customizer);
+        verify(customizer, times(1)).customize(any(Context.class));
+    });
+}

@@ -1,0 +1,15 @@
+@Test
+void bindToClassWhenPropertyCannotBeConvertedAndIgnoreErrorsShouldNotSetValue() {
+    MockConfigurationPropertySource source = new MockConfigurationPropertySource();
+    source.put("foo.int-value", "12");
+    source.put("foo.long-value", "bang");
+    source.put("foo.string-value", "foo");
+    source.put("foo.enum-value", "foo-bar");
+    this.sources.add(source);
+    IgnoreErrorsBindHandler handler = new IgnoreErrorsBindHandler();
+    ExampleValueBean bean = this.binder.bind("foo", Bindable.of(ExampleValueBean.class), handler).get();
+    assertThat(bean.getIntValue()).isEqualTo(12);
+    assertThat(bean.getLongValue()).isEqualTo(0);
+    assertThat(bean.getStringValue()).isEqualTo("foo");
+    assertThat(bean.getEnumValue()).isEqualTo(ExampleEnum.FOO_BAR);
+}

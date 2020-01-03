@@ -1,0 +1,10 @@
+@Test
+void failureAnalysisForExcludedAutoConfigurationType() {
+    FatalBeanException failure = createFailure(StringHandler.class);
+    addExclusions(this.analyzer, TestPropertyAutoConfiguration.class);
+    FailureAnalysis analysis = analyzeFailure(failure);
+    assertDescriptionConstructorMissingType(analysis, StringHandler.class, 0, String.class);
+    String configClass = ClassUtils.getShortName(TestPropertyAutoConfiguration.class.getName());
+    assertClassDisabled(analysis, String.format("auto-configuration '%s' was excluded", configClass), "string", ClassUtils.getShortName(TestPropertyAutoConfiguration.class));
+    assertActionMissingType(analysis, String.class);
+}

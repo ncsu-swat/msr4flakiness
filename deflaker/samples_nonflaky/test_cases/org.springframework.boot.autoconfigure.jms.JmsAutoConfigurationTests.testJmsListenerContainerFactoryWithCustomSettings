@@ -1,0 +1,12 @@
+@Test
+void testJmsListenerContainerFactoryWithCustomSettings() {
+    this.contextRunner.withUserConfiguration(EnableJmsConfiguration.class).withPropertyValues("spring.jms.listener.autoStartup=false", "spring.jms.listener.acknowledgeMode=client", "spring.jms.listener.concurrency=2", "spring.jms.listener.receiveTimeout=2s", "spring.jms.listener.maxConcurrency=10").run(this::testJmsListenerContainerFactoryWithCustomSettings);
+}
+private void testJmsListenerContainerFactoryWithCustomSettings(AssertableApplicationContext loaded) {
+    DefaultMessageListenerContainer container = getContainer(loaded, "jmsListenerContainerFactory");
+    assertThat(container.isAutoStartup()).isFalse();
+    assertThat(container.getSessionAcknowledgeMode()).isEqualTo(Session.CLIENT_ACKNOWLEDGE);
+    assertThat(container.getConcurrentConsumers()).isEqualTo(2);
+    assertThat(container.getMaxConcurrentConsumers()).isEqualTo(10);
+    assertThat(container).hasFieldOrPropertyWithValue("receiveTimeout", 2000L);
+}

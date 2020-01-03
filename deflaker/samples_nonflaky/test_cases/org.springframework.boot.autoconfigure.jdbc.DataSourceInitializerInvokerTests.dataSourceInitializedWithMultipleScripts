@@ -1,0 +1,11 @@
+@Test
+void dataSourceInitializedWithMultipleScripts() {
+    this.contextRunner.withPropertyValues("spring.datasource.initialization-mode:always", "spring.datasource.schema:" + getRelativeLocationFor("schema.sql") + "," + getRelativeLocationFor("another.sql"), "spring.datasource.data:" + getRelativeLocationFor("data.sql")).run((context) -> {
+        DataSource dataSource = context.getBean(DataSource.class);
+        assertThat(dataSource).isInstanceOf(HikariDataSource.class);
+        assertThat(dataSource).isNotNull();
+        JdbcOperations template = new JdbcTemplate(dataSource);
+        assertThat(template.queryForObject("SELECT COUNT(*) from FOO", Integer.class)).isEqualTo(1);
+        assertThat(template.queryForObject("SELECT COUNT(*) from SPAM", Integer.class)).isEqualTo(0);
+    });
+}

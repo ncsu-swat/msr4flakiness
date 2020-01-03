@@ -1,0 +1,14 @@
+// gh-18485
+@Test
+void loadWhenBindingToMultiConstructorConfigurationProperties() {
+    MutablePropertySources sources = this.context.getEnvironment().getPropertySources();
+    Map<String, Object> source = new HashMap<>();
+    source.put("test.nested[0].name", "spring");
+    source.put("test.nested[0].age", "5");
+    sources.addLast(new MapPropertySource("test", source));
+    load(MultiConstructorConfigurationPropertiesConfiguration.class);
+    MultiConstructorConfigurationListProperties bean = this.context.getBean(MultiConstructorConfigurationListProperties.class);
+    MultiConstructorConfigurationProperties nested = bean.getNested().get(0);
+    assertThat(nested.getName()).isEqualTo("spring");
+    assertThat(nested.getAge()).isEqualTo(5);
+}
