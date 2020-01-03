@@ -1,0 +1,31 @@
+@Test
+public void testTrivialDiamondDecision() {
+    final String conditionGotoB = "condition_goto_B";
+    final String conditionGotoC = "condition_goto_C";
+    final Node a = MapReduceActionBuilder.create().withName("A").build();
+    final Node b = MapReduceActionBuilder.create().withName("B").withParentWithCondition(a, conditionGotoB).build();
+    final Node c = MapReduceActionBuilder.create().withName("C").withParentWithCondition(a, conditionGotoC).build();
+    MapReduceActionBuilder.create().withName("D").withParent(b).withParent(c).build();
+    final Workflow workflow = new WorkflowBuilder().withName("trivial-decision").withDagContainingNode(a).build();
+    final Graph graph = new Graph(workflow);
+    final NodeBase A = new ExplicitNode("A", null);
+    final NodeBase B = new ExplicitNode("B", null);
+    final NodeBase C = new ExplicitNode("C", null);
+    final NodeBase D = new ExplicitNode("D", null);
+    final Start start = new Start("start");
+    final End end = new End("end");
+    final Decision decision = new Decision("decision1");
+    final DecisionJoin decisionJoin = new DecisionJoin("decisionJoin1", decision);
+    end.addParent(D);
+    D.addParent(decisionJoin);
+    decisionJoin.addParent(B);
+    decisionJoin.addParent(C);
+    B.addParentWithCondition(decision, Condition.actualCondition(conditionGotoB));
+    C.addParentWithCondition(decision, Condition.actualCondition(conditionGotoC));
+    decision.addParent(A);
+    A.addParent(start);
+    final List<NodeBase> nodes = Arrays.asList(start, end, decision, decisionJoin, A, B, C, D);
+    checkEqualStructureByNames(nodes, graph);
+// nodesToPng.withWorkflow(workflow);
+// nodesToPng.withGraph(graph);
+}
