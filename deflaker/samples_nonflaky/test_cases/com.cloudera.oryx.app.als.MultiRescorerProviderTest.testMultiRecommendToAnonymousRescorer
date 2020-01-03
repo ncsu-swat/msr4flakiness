@@ -1,0 +1,17 @@
+@Test
+public void testMultiRecommendToAnonymousRescorer() {
+    RescorerProvider multi = MultiRescorerProvider.of(new SimpleModRescorerProvider(2), new SimpleModRescorerProvider(3));
+    Rescorer provider = multi.getRecommendToAnonymousRescorer(Collections.singletonList("ABCDE"), null);
+    assertNull(provider);
+    Rescorer provider2 = multi.getRecommendToAnonymousRescorer(Collections.singletonList("AB"), null);
+    assertNotNull(provider2);
+    assertFalse(provider2 instanceof MultiRescorer);
+    assertIsFiltered(provider2, "ABC");
+    assertNotFiltered(provider2, "AB");
+    Rescorer provider3 = multi.getRecommendToAnonymousRescorer(Collections.singletonList("ABCDEF"), null);
+    assertNotNull(provider3);
+    assertInstanceOf(provider3, MultiRescorer.class);
+    assertIsFiltered(provider3, "ABC");
+    assertIsFiltered(provider3, "AB");
+    assertNotFiltered(provider3, "ABCDEF");
+}

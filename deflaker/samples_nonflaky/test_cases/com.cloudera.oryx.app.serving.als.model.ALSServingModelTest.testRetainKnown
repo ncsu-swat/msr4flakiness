@@ -1,0 +1,25 @@
+@Test
+public void testRetainKnown() {
+    ALSServingModel model = new ALSServingModel(2, true, 1.0, null);
+    populateKnownItems(model);
+    for (int i = 0; i < 10; i++) {
+        model.setUserVector("U" + i, new float[] { 0.0f, 0.0f });
+        model.setItemVector("I" + i, new float[] { 0.0f, 0.0f });
+    }
+    model.retainRecentAndKnownItems(Arrays.asList("U4", "U5", "U6"), Arrays.asList("I4", "I5", "I6"));
+    assertContains(model.getKnownItems("U3"), "I4");
+    assertContains(model.getKnownItems("U4"), "I4");
+    assertContains(model.getKnownItems("U6"), "I6");
+    assertContains(model.getKnownItems("U6"), "I7");
+    // Protected because of recent user/items
+    assertContains(model.getKnownItems("U2"), "I2");
+    // Clears recent user/items
+    model.retainRecentAndUserIDs(Collections.emptyList());
+    model.retainRecentAndItemIDs(Collections.emptyList());
+    model.retainRecentAndKnownItems(Arrays.asList("U4", "U5", "U6"), Arrays.asList("I4", "I5", "I6"));
+    assertEquals(0, model.getKnownItems("U3").size());
+    assertContains(model.getKnownItems("U4"), "I4");
+    assertContains(model.getKnownItems("U6"), "I6");
+    assertNotContains(model.getKnownItems("U6"), "I7");
+    assertEquals(0, model.getKnownItems("U2").size());
+}

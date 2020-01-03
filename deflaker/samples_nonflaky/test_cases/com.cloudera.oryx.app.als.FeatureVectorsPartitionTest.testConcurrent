@@ -1,0 +1,21 @@
+@Test
+public void testConcurrent() throws Exception {
+    FeatureVectorsPartition fv = new FeatureVectorsPartition();
+    AtomicInteger counter = new AtomicInteger();
+    int numWorkers = 16;
+    int numIterations = 10000;
+    ExecUtils.doInParallel(numWorkers, i -> {
+        for (int j = 0; j < numIterations; j++) {
+            int c = counter.getAndIncrement();
+            fv.setVector(Integer.toString(c), new float[] { c });
+        }
+    });
+    assertEquals((long) numIterations * numWorkers, fv.size());
+    assertEquals((long) numIterations * numWorkers, counter.get());
+    ExecUtils.doInParallel(numWorkers, i -> {
+        for (int j = 0; j < numIterations; j++) {
+            fv.removeVector(Integer.toString(counter.decrementAndGet()));
+        }
+    });
+    assertEquals(0, fv.size());
+}

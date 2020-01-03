@@ -1,0 +1,55 @@
+@Test
+public void testLSHEffect() {
+    RandomGenerator random = RandomManager.getRandom();
+    PoissonDistribution itemPerUserDist = new PoissonDistribution(random, 20, PoissonDistribution.DEFAULT_EPSILON, PoissonDistribution.DEFAULT_MAX_ITERATIONS);
+    int features = 20;
+    ALSServingModel mainModel = new ALSServingModel(features, true, 1.0, null);
+    ALSServingModel lshModel = new ALSServingModel(features, true, 0.5, null);
+    int userItemCount = 20000;
+    for (int user = 0; user < userItemCount; user++) {
+        String userID = "U" + user;
+        float[] vec = VectorMath.randomVectorF(features, random);
+        mainModel.setUserVector(userID, vec);
+        lshModel.setUserVector(userID, vec);
+        int itemsPerUser = itemPerUserDist.sample();
+        Collection<String> knownIDs = new ArrayList<>(itemsPerUser);
+        for (int i = 0; i < itemsPerUser; i++) {
+            knownIDs.add("I" + random.nextInt(userItemCount));
+        }
+        mainModel.addKnownItems(userID, knownIDs);
+        lshModel.addKnownItems(userID, knownIDs);
+    }
+    for (int item = 0; item < userItemCount; item++) {
+        String itemID = "I" + item;
+        float[] vec = VectorMath.randomVectorF(features, random);
+        mainModel.setItemVector(itemID, vec);
+        lshModel.setItemVector(itemID, vec);
+    }
+    int numRecs = 10;
+    Mean meanMatchLength = new Mean();
+    for (int user = 0; user < userItemCount; user++) {
+        String userID = "U" + user;
+        List<Pair<String, Double>> mainRecs = mainModel.topN(new DotsFunction(mainModel.getUserVector(userID)), null, numRecs, null).collect(Collectors.toList());
+        List<Pair<String, Double>> lshRecs = lshModel.topN(new DotsFunction(lshModel.getUserVector(userID)), null, numRecs, null).collect(Collectors.toList());
+        int i = 0;
+        while (i < lshRecs.size() && i < mainRecs.size() && lshRecs.get(i).equals(mainRecs.get(i))) {
+            i++;
+        }
+        meanMatchLength.increment(i);
+    }
+    log.info("Mean matching prefix: {}", meanMatchLength.getResult());
+    assertGreaterOrEqual(meanMatchLength.getResult(), 4.0);
+    meanMatchLength.clear();
+    for (int item = 0; item < userItemCount; item++) {
+        String itemID = "I" + item;
+        List<Pair<String, Double>> mainRecs = mainModel.topN(new CosineAverageFunction(mainModel.getItemVector(itemID)), null, numRecs, null).collect(Collectors.toList());
+        List<Pair<String, Double>> lshRecs = lshModel.topN(new CosineAverageFunction(lshModel.getItemVector(itemID)), null, numRecs, null).collect(Collectors.toList());
+        int i = 0;
+        while (i < lshRecs.size() && i < mainRecs.size() && lshRecs.get(i).equals(mainRecs.get(i))) {
+            i++;
+        }
+        meanMatchLength.increment(i);
+    }
+    log.info("Mean matching prefix: {}", meanMatchLength.getResult());
+    assertGreaterOrEqual(meanMatchLength.getResult(), 5.0);
+}

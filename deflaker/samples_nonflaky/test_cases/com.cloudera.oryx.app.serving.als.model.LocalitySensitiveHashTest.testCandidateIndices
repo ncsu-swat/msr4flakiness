@@ -1,0 +1,21 @@
+@Test
+public void testCandidateIndices() {
+    int features = 10;
+    LocalitySensitiveHash lsh = new LocalitySensitiveHash(0.5, features, 32);
+    assertEquals(3, lsh.getMaxBitsDiffering());
+    assertEquals(7, lsh.getNumHashes());
+    float[] oneVec = new float[features];
+    Arrays.fill(oneVec, 1.0f);
+    int[] candidates = lsh.getCandidateIndices(oneVec);
+    // 1 + 7 + 21 + 35
+    assertEquals(64, candidates.length);
+    for (int i = 1; i < 8; i++) {
+        assertEquals(1, Integer.bitCount(candidates[0] ^ candidates[i]));
+    }
+    for (int i = 8; i < 29; i++) {
+        assertEquals(2, Integer.bitCount(candidates[0] ^ candidates[i]));
+    }
+    for (int i = 29; i < 64; i++) {
+        assertEquals(3, Integer.bitCount(candidates[0] ^ candidates[i]));
+    }
+}

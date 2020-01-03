@@ -1,0 +1,12 @@
+@Test
+public void testExtensionContent() throws Exception {
+    PMML model = buildDummyModel();
+    assertNull(AppPMMLUtils.getExtensionContent(model, "foo"));
+    AppPMMLUtils.addExtensionContent(model, "foo1", Arrays.asList("bar", "baz"));
+    AppPMMLUtils.addExtensionContent(model, "foo2", Collections.emptyList());
+    AppPMMLUtils.addExtensionContent(model, "foo3", Arrays.asList(" c\" d \"e ", " c\" d \"e "));
+    PMML reserializedModel = PMMLUtils.fromString(PMMLUtils.toString(model));
+    assertEquals(Arrays.asList("bar", "baz"), AppPMMLUtils.getExtensionContent(reserializedModel, "foo1"));
+    assertNull(AppPMMLUtils.getExtensionContent(reserializedModel, "foo2"));
+    assertEquals(Arrays.asList(" c\" d \"e ", " c\" d \"e "), AppPMMLUtils.getExtensionContent(reserializedModel, "foo3"));
+}
