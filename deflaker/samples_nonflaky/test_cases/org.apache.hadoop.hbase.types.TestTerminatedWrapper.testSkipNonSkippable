@@ -1,0 +1,16 @@
+@Test
+public void testSkipNonSkippable() {
+    PositionedByteRange buff = new SimplePositionedMutableByteRange(12);
+    for (Order ord : new Order[] { Order.ASCENDING, Order.DESCENDING }) {
+        for (byte[] term : TERMINATORS) {
+            for (byte[] val : VALUES_BYTES) {
+                buff.setPosition(0);
+                DataType<byte[]> type = new TerminatedWrapper<>(new RawBytes(ord), term);
+                int expected = type.encode(buff, val);
+                buff.setPosition(0);
+                assertEquals(expected, type.skip(buff));
+                assertEquals(expected, buff.getPosition());
+            }
+        }
+    }
+}

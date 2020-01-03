@@ -1,0 +1,94 @@
+@Test
+public void testAllocateByteBuffToReadInto() {
+    int maxBuffersInPool = 10;
+    int bufSize = 6 * 1024;
+    ByteBuffAllocator alloc = new ByteBuffAllocator(true, maxBuffersInPool, bufSize, bufSize / 6);
+    assertEquals(0, alloc.getUsedBufferCount());
+    ByteBuff buff = alloc.allocate(10 * bufSize);
+    assertEquals(61440, alloc.getPoolAllocationBytes());
+    assertEquals(0, alloc.getHeapAllocationBytes());
+    assertEquals(10, alloc.getUsedBufferCount());
+    buff.release();
+    // When the request size is less than 1/6th of the pool buffer size. We should use on demand
+    // created on heap Buffer
+    buff = alloc.allocate(200);
+    assertTrue(buff.hasArray());
+    assertEquals(maxBuffersInPool, alloc.getFreeBufferCount());
+    assertEquals(maxBuffersInPool, alloc.getTotalBufferCount());
+    assertEquals(61440, alloc.getPoolAllocationBytes());
+    assertEquals(200, alloc.getHeapAllocationBytes());
+    assertEquals(10, alloc.getUsedBufferCount());
+    buff.release();
+    // When the request size is > 1/6th of the pool buffer size.
+    buff = alloc.allocate(1024);
+    assertFalse(buff.hasArray());
+    assertEquals(maxBuffersInPool - 1, alloc.getFreeBufferCount());
+    assertEquals(67584, alloc.getPoolAllocationBytes());
+    assertEquals(200, alloc.getHeapAllocationBytes());
+    assertEquals(10, alloc.getUsedBufferCount());
+    // ByteBuff Recycler#free should put back the BB to pool.
+    buff.release();
+    assertEquals(maxBuffersInPool, alloc.getFreeBufferCount());
+    // Request size> pool buffer size
+    buff = alloc.allocate(7 * 1024);
+    assertFalse(buff.hasArray());
+    assertTrue(buff instanceof MultiByteBuff);
+    ByteBuffer[] bbs = buff.nioByteBuffers();
+    assertEquals(2, bbs.length);
+    assertTrue(bbs[0].isDirect());
+    assertTrue(bbs[1].isDirect());
+    assertEquals(6 * 1024, bbs[0].limit());
+    assertEquals(1024, bbs[1].limit());
+    assertEquals(maxBuffersInPool - 2, alloc.getFreeBufferCount());
+    assertEquals(79872, alloc.getPoolAllocationBytes());
+    assertEquals(200, alloc.getHeapAllocationBytes());
+    assertEquals(10, alloc.getUsedBufferCount());
+    buff.release();
+    assertEquals(maxBuffersInPool, alloc.getFreeBufferCount());
+    buff = alloc.allocate(6 * 1024 + 200);
+    assertFalse(buff.hasArray());
+    assertTrue(buff instanceof MultiByteBuff);
+    bbs = buff.nioByteBuffers();
+    assertEquals(2, bbs.length);
+    assertTrue(bbs[0].isDirect());
+    assertFalse(bbs[1].isDirect());
+    assertEquals(6 * 1024, bbs[0].limit());
+    assertEquals(200, bbs[1].limit());
+    assertEquals(maxBuffersInPool - 1, alloc.getFreeBufferCount());
+    assertEquals(86016, alloc.getPoolAllocationBytes());
+    assertEquals(400, alloc.getHeapAllocationBytes());
+    assertEquals(10, alloc.getUsedBufferCount());
+    buff.release();
+    assertEquals(maxBuffersInPool, alloc.getFreeBufferCount());
+    alloc.allocate(bufSize * (maxBuffersInPool - 1));
+    assertEquals(141312, alloc.getPoolAllocationBytes());
+    assertEquals(400, alloc.getHeapAllocationBytes());
+    assertEquals(10, alloc.getUsedBufferCount());
+    buff = alloc.allocate(20 * 1024);
+    assertFalse(buff.hasArray());
+    assertTrue(buff instanceof MultiByteBuff);
+    bbs = buff.nioByteBuffers();
+    assertEquals(2, bbs.length);
+    assertTrue(bbs[0].isDirect());
+    assertFalse(bbs[1].isDirect());
+    assertEquals(6 * 1024, bbs[0].limit());
+    assertEquals(14 * 1024, bbs[1].limit());
+    assertEquals(0, alloc.getFreeBufferCount());
+    assertEquals(147456, alloc.getPoolAllocationBytes());
+    assertEquals(14736, alloc.getHeapAllocationBytes());
+    assertEquals(10, alloc.getUsedBufferCount());
+    buff.release();
+    assertEquals(1, alloc.getFreeBufferCount());
+    alloc.allocateOneBuffer();
+    assertEquals(153600, alloc.getPoolAllocationBytes());
+    assertEquals(14736, alloc.getHeapAllocationBytes());
+    assertEquals(10, alloc.getUsedBufferCount());
+    buff = alloc.allocate(7 * 1024);
+    assertTrue(buff.hasArray());
+    assertTrue(buff instanceof SingleByteBuff);
+    assertEquals(7 * 1024, buff.nioByteBuffers()[0].limit());
+    assertEquals(153600, alloc.getPoolAllocationBytes());
+    assertEquals(21904, alloc.getHeapAllocationBytes());
+    assertEquals(10, alloc.getUsedBufferCount());
+    buff.release();
+}

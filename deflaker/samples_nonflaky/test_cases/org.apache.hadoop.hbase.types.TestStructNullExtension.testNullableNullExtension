@@ -1,0 +1,70 @@
+/**
+ * Positive cases for null extension.
+ */
+@Test
+public void testNullableNullExtension() {
+    // the following field members are used because they're all nullable
+    final StructBuilder builder = new StructBuilder().add(new OrderedNumeric(Order.ASCENDING)).add(new OrderedString(Order.ASCENDING));
+    Struct shorter = builder.toStruct();
+    final Struct longer = builder.add(new TerminatedWrapper<>(new OrderedString(Order.ASCENDING), "/")).add(new OrderedNumeric(Order.ASCENDING)).toStruct();
+    PositionedByteRange buf1 = new SimplePositionedMutableByteRange(7);
+    // => 2 bytes + 5 bytes
+    Object[] val1 = new Object[] { BigDecimal.ONE, "foo" };
+    assertEquals("Encoding shorter value wrote a surprising number of bytes.", buf1.getLength(), shorter.encode(buf1, val1));
+    int shortLen = buf1.getLength();
+    // test iterator
+    buf1.setPosition(0);
+    StructIterator it = longer.iterator(buf1);
+    it.skip();
+    it.skip();
+    assertEquals("Position should be at end. Broken test.", buf1.getLength(), buf1.getPosition());
+    assertEquals("Failed to skip null element with extended struct.", 0, it.skip());
+    assertEquals("Failed to skip null element with extended struct.", 0, it.skip());
+    buf1.setPosition(0);
+    it = longer.iterator(buf1);
+    assertEquals(BigDecimal.ONE, it.next());
+    assertEquals("foo", it.next());
+    assertEquals("Position should be at end. Broken test.", buf1.getLength(), buf1.getPosition());
+    assertNull("Failed to skip null element with extended struct.", it.next());
+    assertNull("Failed to skip null element with extended struct.", it.next());
+    // test Struct
+    buf1.setPosition(0);
+    assertArrayEquals("Simple struct decoding is broken.", val1, shorter.decode(buf1));
+    buf1.setPosition(0);
+    assertArrayEquals("Decoding short value with extended struct should append null elements.", Arrays.copyOf(val1, 4), longer.decode(buf1));
+    // test omission of trailing members
+    PositionedByteRange buf2 = new SimplePositionedMutableByteRange(7);
+    buf1.setPosition(0);
+    assertEquals("Encoding a short value with extended struct should have same result as using short struct.", shortLen, longer.encode(buf2, val1));
+    assertArrayEquals("Encoding a short value with extended struct should have same result as using short struct", buf1.getBytes(), buf2.getBytes());
+    // test null trailing members
+    // all fields are nullable, so nothing should hit the buffer.
+    // => 0 bytes
+    val1 = new Object[] { null, null, null, null };
+    buf1.set(0);
+    buf2.set(0);
+    assertEquals("Encoding null-truncated value wrote a surprising number of bytes.", buf1.getLength(), longer.encode(buf1, new Object[0]));
+    assertEquals("Encoding null-extended value wrote a surprising number of bytes.", buf1.getLength(), longer.encode(buf1, val1));
+    assertArrayEquals("Encoded unexpected result.", buf1.getBytes(), buf2.getBytes());
+    assertArrayEquals("Decoded unexpected result.", val1, longer.decode(buf2));
+    // all fields are nullable, so only 1 should hit the buffer.
+    // => 2 bytes
+    Object[] val2 = new Object[] { BigDecimal.ONE, null, null, null };
+    buf1.set(2);
+    buf2.set(2);
+    assertEquals("Encoding null-truncated value wrote a surprising number of bytes.", buf1.getLength(), longer.encode(buf1, Arrays.copyOf(val2, 1)));
+    assertEquals("Encoding null-extended value wrote a surprising number of bytes.", buf2.getLength(), longer.encode(buf2, val2));
+    assertArrayEquals("Encoded unexpected result.", buf1.getBytes(), buf2.getBytes());
+    buf2.setPosition(0);
+    assertArrayEquals("Decoded unexpected result.", val2, longer.decode(buf2));
+    // all fields are nullable, so only 1, null, "foo" should hit the buffer.
+    // => 2 bytes + 1 byte + 6 bytes
+    Object[] val3 = new Object[] { BigDecimal.ONE, null, "foo", null };
+    buf1.set(9);
+    buf2.set(9);
+    assertEquals("Encoding null-truncated value wrote a surprising number of bytes.", buf1.getLength(), longer.encode(buf1, Arrays.copyOf(val3, 3)));
+    assertEquals("Encoding null-extended value wrote a surprising number of bytes.", buf2.getLength(), longer.encode(buf2, val3));
+    assertArrayEquals("Encoded unexpected result.", buf1.getBytes(), buf2.getBytes());
+    buf2.setPosition(0);
+    assertArrayEquals("Decoded unexpected result.", val3, longer.decode(buf2));
+}

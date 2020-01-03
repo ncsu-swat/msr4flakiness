@@ -1,0 +1,38 @@
+@Test
+public void testWithIbwMap() {
+    Map<Bytes, Bytes> map = new HashMap<>();
+    map.put(strToIb("B"), strToIb("2b"));
+    map.put(strToIb("C"), strToIb("33"));
+    map.put(strToIb("D"), strToIb("4"));
+    // unlike config, note that IBW Maps can accept null values
+    map.put(strToIb("G"), null);
+    CompoundConfiguration compoundConf = new CompoundConfiguration().add(baseConf).addBytesMap(map);
+    assertEquals("1", compoundConf.get("A"));
+    assertEquals("2b", compoundConf.get("B"));
+    assertEquals(33, compoundConf.getInt("C", 0));
+    assertEquals("4", compoundConf.get("D"));
+    assertEquals(4, compoundConf.getInt("D", 0));
+    assertNull(compoundConf.get("E"));
+    assertEquals(6, compoundConf.getInt("F", 6));
+    assertNull(compoundConf.get("G"));
+    int cnt = 0;
+    for (Map.Entry<String, String> entry : compoundConf) {
+        cnt++;
+        if (entry.getKey().equals("B")) {
+            assertEquals("2b", entry.getValue());
+        } else if (entry.getKey().equals("G")) {
+            assertNull(entry.getValue());
+        }
+    }
+    // verify that entries from ImmutableConfigMap's are merged in the iterator's view
+    assertEquals(baseConfSize + 2, cnt);
+    // Verify that adding map after compound configuration is modified overrides properly
+    CompoundConfiguration conf2 = new CompoundConfiguration();
+    conf2.set("X", "modification");
+    conf2.set("D", "not4");
+    assertEquals("modification", conf2.get("X"));
+    assertEquals("not4", conf2.get("D"));
+    conf2.addBytesMap(map);
+    // map overrides
+    assertEquals("4", conf2.get("D"));
+}

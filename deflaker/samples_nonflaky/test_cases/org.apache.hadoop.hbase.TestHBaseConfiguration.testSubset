@@ -1,0 +1,20 @@
+@Test
+public void testSubset() {
+    Configuration conf = HBaseConfiguration.create();
+    // subset is used in TableMapReduceUtil#initCredentials to support different security
+    // configurations between source and destination clusters, so we'll use that as an example
+    String prefix = "hbase.mapred.output.";
+    conf.set("hbase.security.authentication", "kerberos");
+    conf.set("hbase.regionserver.kerberos.principal", "hbasesource");
+    HBaseConfiguration.setWithPrefix(conf, prefix, ImmutableMap.of("hbase.regionserver.kerberos.principal", "hbasedest", "", "shouldbemissing").entrySet());
+    Configuration subsetConf = HBaseConfiguration.subset(conf, prefix);
+    assertNull(subsetConf.get(prefix + "hbase.regionserver.kerberos.principal"));
+    assertEquals("hbasedest", subsetConf.get("hbase.regionserver.kerberos.principal"));
+    assertNull(subsetConf.get("hbase.security.authentication"));
+    assertNull(subsetConf.get(""));
+    Configuration mergedConf = HBaseConfiguration.create(conf);
+    HBaseConfiguration.merge(mergedConf, subsetConf);
+    assertEquals("hbasedest", mergedConf.get("hbase.regionserver.kerberos.principal"));
+    assertEquals("kerberos", mergedConf.get("hbase.security.authentication"));
+    assertEquals("shouldbemissing", mergedConf.get(prefix));
+}

@@ -1,0 +1,55 @@
+/**
+ * Test float32 encoding.
+ */
+@Test
+public void testFloat32() {
+    Float[] vals = { Float.MIN_VALUE, Float.MIN_VALUE + 1.0f, 0.0f, Float.MAX_VALUE / 2.0f, Float.MAX_VALUE };
+    /*
+     * assert encoded values match decoded values. encode into target buffer
+     * starting at an offset to detect over/underflow conditions.
+     */
+    for (Order ord : new Order[] { Order.ASCENDING, Order.DESCENDING }) {
+        for (Float val : vals) {
+            // allocate a buffer 3-bytes larger than necessary to detect over/underflow
+            byte[] a = new byte[5 + 3];
+            PositionedByteRange buf1 = new SimplePositionedMutableByteRange(a, 1, 5 + 1);
+            buf1.setPosition(1);
+            // verify encode
+            assertEquals("Surprising return value.", 5, OrderedBytes.encodeFloat32(buf1, val, ord));
+            assertEquals("Broken test: serialization did not consume entire buffer.", buf1.getLength(), buf1.getPosition());
+            assertEquals("Surprising serialized length.", 5, buf1.getPosition() - 1);
+            assertEquals("Buffer underflow.", 0, a[0]);
+            assertEquals("Buffer underflow.", 0, a[1]);
+            assertEquals("Buffer overflow.", 0, a[a.length - 1]);
+            // verify skip
+            buf1.setPosition(1);
+            assertEquals("Surprising return value.", 5, OrderedBytes.skip(buf1));
+            assertEquals("Did not skip enough bytes.", 5, buf1.getPosition() - 1);
+            // verify decode
+            buf1.setPosition(1);
+            assertEquals("Deserialization failed.", Float.floatToIntBits(val), Float.floatToIntBits(OrderedBytes.decodeFloat32(buf1)));
+            assertEquals("Did not consume enough bytes.", 5, buf1.getPosition() - 1);
+        }
+    }
+    /*
+     * assert natural sort order is preserved by the codec.
+     */
+    for (Order ord : new Order[] { Order.ASCENDING, Order.DESCENDING }) {
+        byte[][] encoded = new byte[vals.length][5];
+        PositionedByteRange pbr = new SimplePositionedMutableByteRange();
+        for (int i = 0; i < vals.length; i++) {
+            OrderedBytes.encodeFloat32(pbr.set(encoded[i]), vals[i], ord);
+        }
+        Arrays.sort(encoded, Bytes.BYTES_COMPARATOR);
+        Float[] sortedVals = Arrays.copyOf(vals, vals.length);
+        if (ord == Order.ASCENDING) {
+            Arrays.sort(sortedVals);
+        } else {
+            Arrays.sort(sortedVals, Collections.reverseOrder());
+        }
+        for (int i = 0; i < sortedVals.length; i++) {
+            float decoded = OrderedBytes.decodeFloat32(pbr.set(encoded[i]));
+            assertEquals(String.format("Encoded representations do not preserve natural order: <%s>, <%s>, %s", sortedVals[i], decoded, ord), Float.floatToIntBits(sortedVals[i]), Float.floatToIntBits(decoded));
+        }
+    }
+}

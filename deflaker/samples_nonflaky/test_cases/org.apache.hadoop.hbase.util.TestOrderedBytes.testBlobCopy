@@ -1,0 +1,68 @@
+/**
+ * Test BlobCopy encoding.
+ */
+@Test
+public void testBlobCopy() {
+    byte[][] vals = { Bytes.toBytes(""), Bytes.toBytes("foo"), Bytes.toBytes("foobarbazbub"), { (byte) 0xaa, (byte) 0xaa, (byte) 0xaa, (byte) 0xaa, (byte) 0xaa, (byte) 0xaa, (byte) 0xaa, (byte) 0xaa, (byte) 0xaa, (byte) 0xaa, (byte) 0xaa, (byte) 0xaa }, { (byte) 0x55, (byte) 0x55, (byte) 0x55, (byte) 0x55, (byte) 0x55, (byte) 0x55, (byte) 0x55, (byte) 0x55, (byte) 0x55, (byte) 0x55, (byte) 0x55, (byte) 0x55 } };
+    /*
+     * assert encoded values match decoded values. encode into target buffer
+     * starting at an offset to detect over/underflow conditions.
+     */
+    for (Order ord : new Order[] { Order.ASCENDING, Order.DESCENDING }) {
+        for (byte[] val : vals) {
+            // allocate a buffer 3-bytes larger than necessary to detect over/underflow
+            int expectedLen = val.length + (Order.ASCENDING == ord ? 1 : 2);
+            byte[] a = new byte[expectedLen + 3];
+            PositionedByteRange buf1 = new SimplePositionedMutableByteRange(a, 1, expectedLen + 1);
+            buf1.setPosition(1);
+            // verify encode
+            assertEquals("Surprising return value.", expectedLen, OrderedBytes.encodeBlobCopy(buf1, val, ord));
+            assertEquals("Broken test: serialization did not consume entire buffer.", buf1.getLength(), buf1.getPosition());
+            assertEquals("Surprising serialized length.", expectedLen, buf1.getPosition() - 1);
+            assertEquals("Buffer underflow.", 0, a[0]);
+            assertEquals("Buffer underflow.", 0, a[1]);
+            assertEquals("Buffer overflow.", 0, a[a.length - 1]);
+            // verify skip
+            buf1.setPosition(1);
+            assertEquals("Surprising return value.", expectedLen, OrderedBytes.skip(buf1));
+            assertEquals("Did not skip enough bytes.", expectedLen, buf1.getPosition() - 1);
+            // verify decode
+            buf1.setPosition(1);
+            assertArrayEquals("Deserialization failed.", val, OrderedBytes.decodeBlobCopy(buf1));
+            assertEquals("Did not consume enough bytes.", expectedLen, buf1.getPosition() - 1);
+        }
+    }
+    /*
+     * assert natural sort order is preserved by the codec.
+     */
+    for (Order ord : new Order[] { Order.ASCENDING, Order.DESCENDING }) {
+        byte[][] encoded = new byte[vals.length][];
+        PositionedByteRange pbr = new SimplePositionedMutableByteRange();
+        for (int i = 0; i < vals.length; i++) {
+            encoded[i] = new byte[vals[i].length + (Order.ASCENDING == ord ? 1 : 2)];
+            OrderedBytes.encodeBlobCopy(pbr.set(encoded[i]), vals[i], ord);
+        }
+        Arrays.sort(encoded, Bytes.BYTES_COMPARATOR);
+        byte[][] sortedVals = Arrays.copyOf(vals, vals.length);
+        if (ord == Order.ASCENDING) {
+            Arrays.sort(sortedVals, Bytes.BYTES_COMPARATOR);
+        } else {
+            Arrays.sort(sortedVals, Collections.reverseOrder(Bytes.BYTES_COMPARATOR));
+        }
+        for (int i = 0; i < sortedVals.length; i++) {
+            pbr.set(encoded[i]);
+            byte[] decoded = OrderedBytes.decodeBlobCopy(pbr);
+            assertArrayEquals(String.format("Encoded representations do not preserve natural order: <%s>, <%s>, %s", Arrays.toString(sortedVals[i]), Arrays.toString(decoded), ord), sortedVals[i], decoded);
+        }
+    }
+    /*
+     * assert byte[] segments are serialized correctly.
+     */
+    for (Order ord : new Order[] { Order.ASCENDING, Order.DESCENDING }) {
+        byte[] a = new byte[3 + (Order.ASCENDING == ord ? 1 : 2) + 2];
+        PositionedByteRange buf = new SimplePositionedMutableByteRange(a, 1, 3 + (Order.ASCENDING == ord ? 1 : 2));
+        OrderedBytes.encodeBlobCopy(buf, Bytes.toBytes("foobarbaz"), 3, 3, ord);
+        buf.setPosition(0);
+        assertArrayEquals(Bytes.toBytes("bar"), OrderedBytes.decodeBlobCopy(buf));
+    }
+}

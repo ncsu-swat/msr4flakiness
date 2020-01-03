@@ -1,0 +1,27 @@
+@Test
+public void testAllocateOneBuffer() {
+    // Allocate from on-heap
+    ByteBuffAllocator allocator = HEAP;
+    ByteBuff buf = allocator.allocateOneBuffer();
+    assertTrue(buf.hasArray());
+    assertEquals(ByteBuffAllocator.DEFAULT_BUFFER_SIZE, buf.remaining());
+    buf.release();
+    // Allocate from off-heap
+    int bufSize = 10;
+    allocator = new ByteBuffAllocator(true, 1, 10, 3);
+    buf = allocator.allocateOneBuffer();
+    assertFalse(buf.hasArray());
+    assertEquals(buf.remaining(), bufSize);
+    // The another one will be allocated from on-heap because the pool has only one ByteBuffer,
+    // and still not be cleaned.
+    ByteBuff buf2 = allocator.allocateOneBuffer();
+    assertTrue(buf2.hasArray());
+    assertEquals(buf2.remaining(), bufSize);
+    // free the first one
+    buf.release();
+    // The next one will be off-heap again.
+    buf = allocator.allocateOneBuffer();
+    assertFalse(buf.hasArray());
+    assertEquals(buf.remaining(), bufSize);
+    buf.release();
+}

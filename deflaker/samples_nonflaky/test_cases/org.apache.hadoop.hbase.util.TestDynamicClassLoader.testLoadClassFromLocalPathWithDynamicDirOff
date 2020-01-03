@@ -1,0 +1,16 @@
+@Test
+public void testLoadClassFromLocalPathWithDynamicDirOff() throws Exception {
+    conf.setBoolean("hbase.use.dynamic.jars", false);
+    ClassLoader parent = TestDynamicClassLoader.class.getClassLoader();
+    DynamicClassLoader classLoader = new DynamicClassLoader(conf, parent);
+    String className = "TestLoadClassFromLocalPath";
+    deleteClass(className);
+    try {
+        String folder = TEST_UTIL.getDataTestDir().toString();
+        ClassLoaderTestHelper.buildJar(folder, className, null, ClassLoaderTestHelper.localDirPath(conf));
+        classLoader.loadClass(className);
+        fail("Should not be able to load class " + className);
+    } catch (ClassNotFoundException cnfe) {
+    // expected, move on
+    }
+}

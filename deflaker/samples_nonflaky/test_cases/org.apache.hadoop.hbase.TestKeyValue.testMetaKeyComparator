@@ -1,0 +1,35 @@
+@Test
+public void testMetaKeyComparator() {
+    CellComparator c = CellComparatorImpl.META_COMPARATOR;
+    long now = System.currentTimeMillis();
+    KeyValue a = new KeyValue(Bytes.toBytes("table1"), now);
+    KeyValue b = new KeyValue(Bytes.toBytes("table2"), now);
+    assertTrue(c.compare(a, b) < 0);
+    a = new KeyValue(Bytes.toBytes("table1,111"), now);
+    b = new KeyValue(Bytes.toBytes("table2"), now);
+    assertTrue(c.compare(a, b) < 0);
+    a = new KeyValue(Bytes.toBytes("table1"), now);
+    b = new KeyValue(Bytes.toBytes("table2,111"), now);
+    assertTrue(c.compare(a, b) < 0);
+    a = new KeyValue(Bytes.toBytes("table,111"), now);
+    b = new KeyValue(Bytes.toBytes("table,2222"), now);
+    assertTrue(c.compare(a, b) < 0);
+    a = new KeyValue(Bytes.toBytes("table,111,aaaa"), now);
+    b = new KeyValue(Bytes.toBytes("table,2222"), now);
+    assertTrue(c.compare(a, b) < 0);
+    a = new KeyValue(Bytes.toBytes("table,111"), now);
+    b = new KeyValue(Bytes.toBytes("table,2222.bbb"), now);
+    assertTrue(c.compare(a, b) < 0);
+    a = new KeyValue(Bytes.toBytes("table,,aaaa"), now);
+    b = new KeyValue(Bytes.toBytes("table,111,bbb"), now);
+    assertTrue(c.compare(a, b) < 0);
+    a = new KeyValue(Bytes.toBytes("table,111,aaaa"), now);
+    b = new KeyValue(Bytes.toBytes("table,111,bbb"), now);
+    assertTrue(c.compare(a, b) < 0);
+    a = new KeyValue(Bytes.toBytes("table,111,xxxx"), now);
+    b = new KeyValue(Bytes.toBytes("table,111,222,bbb"), now);
+    assertTrue(c.compare(a, b) < 0);
+    a = new KeyValue(Bytes.toBytes("table,111,11,xxx"), now);
+    b = new KeyValue(Bytes.toBytes("table,111,222,bbb"), now);
+    assertTrue(c.compare(a, b) < 0);
+}

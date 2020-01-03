@@ -1,0 +1,20 @@
+/**
+ * Assert CellUtil makes Cell toStrings same way we do KeyValue toStrings.
+ */
+@Test
+public void testToString() {
+    byte[] row = Bytes.toBytes("row");
+    long ts = 123L;
+    // Make a KeyValue and a Cell and see if same toString result.
+    KeyValue kv = new KeyValue(row, HConstants.EMPTY_BYTE_ARRAY, HConstants.EMPTY_BYTE_ARRAY, ts, KeyValue.Type.Minimum, HConstants.EMPTY_BYTE_ARRAY);
+    Cell cell = ExtendedCellBuilderFactory.create(CellBuilderType.DEEP_COPY).setRow(row).setFamily(HConstants.EMPTY_BYTE_ARRAY).setQualifier(HConstants.EMPTY_BYTE_ARRAY).setTimestamp(ts).setType(KeyValue.Type.Minimum.getCode()).setValue(HConstants.EMPTY_BYTE_ARRAY).build();
+    String cellToString = CellUtil.getCellKeyAsString(cell);
+    assertEquals(kv.toString(), cellToString);
+    // Do another w/ non-null family.
+    byte[] f = new byte[] { 'f' };
+    byte[] q = new byte[] { 'q' };
+    kv = new KeyValue(row, f, q, ts, KeyValue.Type.Minimum, HConstants.EMPTY_BYTE_ARRAY);
+    cell = ExtendedCellBuilderFactory.create(CellBuilderType.DEEP_COPY).setRow(row).setFamily(f).setQualifier(q).setTimestamp(ts).setType(KeyValue.Type.Minimum.getCode()).setValue(HConstants.EMPTY_BYTE_ARRAY).build();
+    cellToString = CellUtil.getCellKeyAsString(cell);
+    assertEquals(kv.toString(), cellToString);
+}

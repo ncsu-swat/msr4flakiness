@@ -1,0 +1,22 @@
+@Test
+public void testCloneCellFieldsFromByteBufferedCell() {
+    byte[] r = Bytes.toBytes("row1");
+    byte[] f = Bytes.toBytes("cf1");
+    byte[] q = Bytes.toBytes("qual1");
+    byte[] v = Bytes.toBytes("val1");
+    byte[] tags = Bytes.toBytes("tag1");
+    KeyValue kv = new KeyValue(r, f, q, 0, q.length, 1234L, KeyValue.Type.Put, v, 0, v.length, tags);
+    ByteBuffer buffer = ByteBuffer.wrap(kv.getBuffer());
+    Cell bbCell = new ByteBufferKeyValue(buffer, 0, buffer.remaining());
+    byte[] rDest = CellUtil.cloneRow(bbCell);
+    assertTrue(Bytes.equals(r, rDest));
+    byte[] fDest = CellUtil.cloneFamily(bbCell);
+    assertTrue(Bytes.equals(f, fDest));
+    byte[] qDest = CellUtil.cloneQualifier(bbCell);
+    assertTrue(Bytes.equals(q, qDest));
+    byte[] vDest = CellUtil.cloneValue(bbCell);
+    assertTrue(Bytes.equals(v, vDest));
+    byte[] tDest = new byte[tags.length];
+    PrivateCellUtil.copyTagsTo(bbCell, tDest, 0);
+    assertTrue(Bytes.equals(tags, tDest));
+}

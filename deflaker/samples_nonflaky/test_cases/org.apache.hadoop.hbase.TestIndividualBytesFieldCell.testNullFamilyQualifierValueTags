@@ -1,0 +1,33 @@
+/**
+ * Verify getXXXArray() and getXXXLength() when family/qualifier/value/tags are null.
+ * Should have the same behaviors as {@link KeyValue}.
+ */
+@Test
+public void testNullFamilyQualifierValueTags() {
+    byte[] row = Bytes.toBytes("row1");
+    long timestamp = 5000L;
+    long seqId = 0L;
+    KeyValue.Type type = KeyValue.Type.Put;
+    // Test when following fields are null.
+    byte[] family = null;
+    byte[] qualifier = null;
+    byte[] value = null;
+    byte[] tags = null;
+    Cell ic1 = new IndividualBytesFieldCell(row, family, qualifier, timestamp, type, seqId, value, tags);
+    Cell kv1 = new KeyValue(row, family, qualifier, timestamp, type, value, tags);
+    byte[] familyArrayInKV = Bytes.copy(kv1.getFamilyArray(), kv1.getFamilyOffset(), kv1.getFamilyLength());
+    byte[] qualifierArrayInKV = Bytes.copy(kv1.getQualifierArray(), kv1.getQualifierOffset(), kv1.getQualifierLength());
+    byte[] valueArrayInKV = Bytes.copy(kv1.getValueArray(), kv1.getValueOffset(), kv1.getValueLength());
+    byte[] tagsArrayInKV = Bytes.copy(kv1.getTagsArray(), kv1.getTagsOffset(), kv1.getTagsLength());
+    // getXXXArray() for family, qualifier, value and tags are supposed to return empty byte array,
+    // rather than null.
+    assertArrayEquals(familyArrayInKV, ic1.getFamilyArray());
+    assertArrayEquals(qualifierArrayInKV, ic1.getQualifierArray());
+    assertArrayEquals(valueArrayInKV, ic1.getValueArray());
+    assertArrayEquals(tagsArrayInKV, ic1.getTagsArray());
+    // getXXXLength() for family, qualifier, value and tags are supposed to return 0.
+    assertEquals(kv1.getFamilyLength(), ic1.getFamilyLength());
+    assertEquals(kv1.getQualifierLength(), ic1.getQualifierLength());
+    assertEquals(kv1.getValueLength(), ic1.getValueLength());
+    assertEquals(kv1.getTagsLength(), ic1.getTagsLength());
+}

@@ -1,0 +1,23 @@
+@Test
+public void testInitialChorePrecedence() throws InterruptedException {
+    ChoreService service = new ChoreService("testInitialChorePrecedence");
+    final int period = 100;
+    final int failureThreshold = 5;
+    try {
+        ScheduledChore chore = new FailInitialChore("chore", period, failureThreshold);
+        service.scheduleChore(chore);
+        int loopCount = 0;
+        boolean brokeOutOfLoop = false;
+        while (!chore.isInitialChoreComplete() && chore.isScheduled()) {
+            Thread.sleep(failureThreshold * period);
+            loopCount++;
+            if (loopCount > 3) {
+                brokeOutOfLoop = true;
+                break;
+            }
+        }
+        assertFalse(brokeOutOfLoop);
+    } finally {
+        shutdownService(service);
+    }
+}

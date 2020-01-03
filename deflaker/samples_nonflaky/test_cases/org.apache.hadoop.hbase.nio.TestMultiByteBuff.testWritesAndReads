@@ -1,0 +1,58 @@
+@Test
+public void testWritesAndReads() {
+    // Absolute reads
+    ByteBuffer bb1 = ByteBuffer.allocate(15);
+    ByteBuffer bb2 = ByteBuffer.allocate(15);
+    int i1 = 4;
+    bb1.putInt(i1);
+    long l1 = 45L, l2 = 100L, l3 = 12345L;
+    bb1.putLong(l1);
+    short s1 = 2;
+    bb1.putShort(s1);
+    byte[] b = Bytes.toBytes(l2);
+    bb1.put(b, 0, 1);
+    bb2.put(b, 1, 7);
+    bb2.putLong(l3);
+    MultiByteBuff mbb = new MultiByteBuff(bb1, bb2);
+    assertEquals(l1, mbb.getLong(4));
+    assertEquals(l2, mbb.getLong(14));
+    assertEquals(l3, mbb.getLong(22));
+    assertEquals(i1, mbb.getInt(0));
+    assertEquals(s1, mbb.getShort(12));
+    // Relative reads
+    assertEquals(i1, mbb.getInt());
+    assertEquals(l1, mbb.getLong());
+    assertEquals(s1, mbb.getShort());
+    assertEquals(l2, mbb.getLong());
+    assertEquals(l3, mbb.getLong());
+    // Absolute writes
+    bb1 = ByteBuffer.allocate(15);
+    bb2 = ByteBuffer.allocate(15);
+    mbb = new MultiByteBuff(bb1, bb2);
+    byte b1 = 5, b2 = 31;
+    mbb.put(b1);
+    mbb.putLong(l1);
+    mbb.putInt(i1);
+    mbb.putLong(l2);
+    mbb.put(b2);
+    mbb.position(mbb.position() + 2);
+    try {
+        mbb.putLong(l3);
+        fail("'Should have thrown BufferOverflowException");
+    } catch (BufferOverflowException e) {
+    }
+    mbb.position(mbb.position() - 2);
+    mbb.putLong(l3);
+    mbb.rewind();
+    assertEquals(b1, mbb.get());
+    assertEquals(l1, mbb.getLong());
+    assertEquals(i1, mbb.getInt());
+    assertEquals(l2, mbb.getLong());
+    assertEquals(b2, mbb.get());
+    assertEquals(l3, mbb.getLong());
+    mbb.put(21, b1);
+    mbb.position(21);
+    assertEquals(b1, mbb.get());
+    mbb.put(b);
+    assertEquals(l2, mbb.getLong(22));
+}

@@ -1,0 +1,24 @@
+@Test
+public void testShutdownWorksWhileChoresAreExecuting() throws InterruptedException {
+    final int period = 100;
+    final int sleep = 5 * period;
+    ChoreService service = new ChoreService("testShutdownWorksWhileChoresAreExecuting");
+    ScheduledChore slowChore1 = new SleepingChore("sc1", period, sleep);
+    ScheduledChore slowChore2 = new SleepingChore("sc2", period, sleep);
+    ScheduledChore slowChore3 = new SleepingChore("sc3", period, sleep);
+    try {
+        assertTrue(service.scheduleChore(slowChore1));
+        assertTrue(service.scheduleChore(slowChore2));
+        assertTrue(service.scheduleChore(slowChore3));
+        Thread.sleep(sleep / 2);
+        shutdownService(service);
+        assertFalse(slowChore1.isScheduled());
+        assertFalse(slowChore2.isScheduled());
+        assertFalse(slowChore3.isScheduled());
+        assertTrue(service.isShutdown());
+        Thread.sleep(5);
+        assertTrue(service.isTerminated());
+    } finally {
+        shutdownService(service);
+    }
+}

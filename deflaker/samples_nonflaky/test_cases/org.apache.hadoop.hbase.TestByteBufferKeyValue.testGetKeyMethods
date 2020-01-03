@@ -1,0 +1,12 @@
+@Test
+public void testGetKeyMethods() throws Exception {
+    KeyValue kvCell = new KeyValue(row1, fam1, qual1, 0L, Type.Put, row1, tags);
+    ByteBuffer buf = ByteBuffer.allocateDirect(kvCell.getKeyLength());
+    ByteBufferUtils.copyFromArrayToBuffer(buf, kvCell.getBuffer(), kvCell.getKeyOffset(), kvCell.getKeyLength());
+    ByteBufferExtendedCell offheapKeyOnlyKV = new ByteBufferKeyOnlyKeyValue(buf, 0, buf.capacity());
+    assertEquals(ROW1, ByteBufferUtils.toStringBinary(offheapKeyOnlyKV.getRowByteBuffer(), offheapKeyOnlyKV.getRowPosition(), offheapKeyOnlyKV.getRowLength()));
+    assertEquals(FAM1, ByteBufferUtils.toStringBinary(offheapKeyOnlyKV.getFamilyByteBuffer(), offheapKeyOnlyKV.getFamilyPosition(), offheapKeyOnlyKV.getFamilyLength()));
+    assertEquals(QUAL1, ByteBufferUtils.toStringBinary(offheapKeyOnlyKV.getQualifierByteBuffer(), offheapKeyOnlyKV.getQualifierPosition(), offheapKeyOnlyKV.getQualifierLength()));
+    assertEquals(0L, offheapKeyOnlyKV.getTimestamp());
+    assertEquals(Type.Put.getCode(), offheapKeyOnlyKV.getTypeByte());
+}

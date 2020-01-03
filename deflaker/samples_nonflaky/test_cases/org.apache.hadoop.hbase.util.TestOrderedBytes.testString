@@ -1,0 +1,58 @@
+/**
+ * Test string encoding.
+ */
+@Test
+public void testString() {
+    String[] vals = { "foo", "baaaar", "bazz" };
+    int[] expectedLengths = { 5, 8, 6 };
+    /*
+     * assert encoded values match decoded values. encode into target buffer
+     * starting at an offset to detect over/underflow conditions.
+     */
+    for (Order ord : new Order[] { Order.ASCENDING, Order.DESCENDING }) {
+        for (int i = 0; i < vals.length; i++) {
+            // allocate a buffer 3-bytes larger than necessary to detect over/underflow
+            byte[] a = new byte[expectedLengths[i] + 3];
+            PositionedByteRange buf1 = new SimplePositionedMutableByteRange(a, 1, expectedLengths[i] + 1);
+            buf1.setPosition(1);
+            // verify encode
+            assertEquals("Surprising return value.", expectedLengths[i], OrderedBytes.encodeString(buf1, vals[i], ord));
+            assertEquals("Broken test: serialization did not consume entire buffer.", buf1.getLength(), buf1.getPosition());
+            assertEquals("Surprising serialized length.", expectedLengths[i], buf1.getPosition() - 1);
+            assertEquals("Buffer underflow.", 0, a[0]);
+            assertEquals("Buffer underflow.", 0, a[1]);
+            assertEquals("Buffer overflow.", 0, a[a.length - 1]);
+            // verify skip
+            buf1.setPosition(1);
+            assertEquals("Surprising return value.", expectedLengths[i], OrderedBytes.skip(buf1));
+            assertEquals("Did not skip enough bytes.", expectedLengths[i], buf1.getPosition() - 1);
+            // verify decode
+            buf1.setPosition(1);
+            assertEquals("Deserialization failed.", vals[i], OrderedBytes.decodeString(buf1));
+            assertEquals("Did not consume enough bytes.", expectedLengths[i], buf1.getPosition() - 1);
+        }
+    }
+    /*
+     * assert natural sort order is preserved by the codec.
+     */
+    for (Order ord : new Order[] { Order.ASCENDING, Order.DESCENDING }) {
+        byte[][] encoded = new byte[vals.length][];
+        PositionedByteRange pbr = new SimplePositionedMutableByteRange();
+        for (int i = 0; i < vals.length; i++) {
+            encoded[i] = new byte[expectedLengths[i]];
+            OrderedBytes.encodeString(pbr.set(encoded[i]), vals[i], ord);
+        }
+        Arrays.sort(encoded, Bytes.BYTES_COMPARATOR);
+        String[] sortedVals = Arrays.copyOf(vals, vals.length);
+        if (ord == Order.ASCENDING) {
+            Arrays.sort(sortedVals);
+        } else {
+            Arrays.sort(sortedVals, Collections.reverseOrder());
+        }
+        for (int i = 0; i < sortedVals.length; i++) {
+            pbr.set(encoded[i]);
+            String decoded = OrderedBytes.decodeString(pbr);
+            assertEquals(String.format("Encoded representations do not preserve natural order: <%s>, <%s>, %s", sortedVals[i], decoded, ord), sortedVals[i], decoded);
+        }
+    }
+}

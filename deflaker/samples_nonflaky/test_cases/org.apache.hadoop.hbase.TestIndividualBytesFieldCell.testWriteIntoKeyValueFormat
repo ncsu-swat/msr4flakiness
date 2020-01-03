@@ -1,0 +1,23 @@
+/**
+ * Verify KeyValue format related functions: write() and getSerializedSize().
+ * Should have the same behaviors as {@link KeyValue}.
+ */
+@Test
+public void testWriteIntoKeyValueFormat() throws IOException {
+    // Verify getSerializedSize().
+    // with tags
+    assertEquals(kv0.getSerializedSize(true), ic0.getSerializedSize(true));
+    // without tags
+    assertEquals(kv0.getSerializedSize(false), ic0.getSerializedSize(false));
+    // Verify writing into ByteBuffer.
+    ByteBuffer bbufIC = ByteBuffer.allocate(ic0.getSerializedSize(true));
+    ic0.write(bbufIC, 0);
+    ByteBuffer bbufKV = ByteBuffer.allocate(kv0.getSerializedSize(true));
+    kv0.write(bbufKV, 0);
+    assertTrue(bbufIC.equals(bbufKV));
+    // Verify writing into OutputStream.
+    // with tags
+    testWriteIntoOutputStream(ic0, kv0, true);
+    // without tags
+    testWriteIntoOutputStream(ic0, kv0, false);
+}

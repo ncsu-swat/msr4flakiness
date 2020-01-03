@@ -1,0 +1,48 @@
+@Test
+public void testStopperForScheduledChores() throws InterruptedException {
+    ChoreService service = new ChoreService("testStopperForScheduledChores");
+    Stoppable stopperForGroup1 = new SampleStopper();
+    Stoppable stopperForGroup2 = new SampleStopper();
+    final int period = 100;
+    final int delta = period / 10;
+    try {
+        ScheduledChore chore1_group1 = new DoNothingChore("c1g1", stopperForGroup1, period);
+        ScheduledChore chore2_group1 = new DoNothingChore("c2g1", stopperForGroup1, period);
+        ScheduledChore chore3_group1 = new DoNothingChore("c3g1", stopperForGroup1, period);
+        ScheduledChore chore1_group2 = new DoNothingChore("c1g2", stopperForGroup2, period);
+        ScheduledChore chore2_group2 = new DoNothingChore("c2g2", stopperForGroup2, period);
+        ScheduledChore chore3_group2 = new DoNothingChore("c3g2", stopperForGroup2, period);
+        service.scheduleChore(chore1_group1);
+        service.scheduleChore(chore2_group1);
+        service.scheduleChore(chore3_group1);
+        service.scheduleChore(chore1_group2);
+        service.scheduleChore(chore2_group2);
+        service.scheduleChore(chore3_group2);
+        Thread.sleep(delta);
+        Thread.sleep(10 * period);
+        assertTrue(chore1_group1.isScheduled());
+        assertTrue(chore2_group1.isScheduled());
+        assertTrue(chore3_group1.isScheduled());
+        assertTrue(chore1_group2.isScheduled());
+        assertTrue(chore2_group2.isScheduled());
+        assertTrue(chore3_group2.isScheduled());
+        stopperForGroup1.stop("test stopping group 1");
+        Thread.sleep(period);
+        assertFalse(chore1_group1.isScheduled());
+        assertFalse(chore2_group1.isScheduled());
+        assertFalse(chore3_group1.isScheduled());
+        assertTrue(chore1_group2.isScheduled());
+        assertTrue(chore2_group2.isScheduled());
+        assertTrue(chore3_group2.isScheduled());
+        stopperForGroup2.stop("test stopping group 2");
+        Thread.sleep(period);
+        assertFalse(chore1_group1.isScheduled());
+        assertFalse(chore2_group1.isScheduled());
+        assertFalse(chore3_group1.isScheduled());
+        assertFalse(chore1_group2.isScheduled());
+        assertFalse(chore2_group2.isScheduled());
+        assertFalse(chore3_group2.isScheduled());
+    } finally {
+        shutdownService(service);
+    }
+}

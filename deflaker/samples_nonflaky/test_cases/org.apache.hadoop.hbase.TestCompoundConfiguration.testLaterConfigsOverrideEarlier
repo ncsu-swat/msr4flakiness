@@ -1,0 +1,28 @@
+@Test
+public void testLaterConfigsOverrideEarlier() {
+    Map<String, String> map1 = new HashMap<>();
+    map1.put("A", "2");
+    map1.put("D", "5");
+    Map<String, String> map2 = new HashMap<>();
+    String newValueForA = "3", newValueForB = "4";
+    map2.put("A", newValueForA);
+    map2.put("B", newValueForB);
+    CompoundConfiguration compoundConf = new CompoundConfiguration().addStringMap(map1).add(baseConf);
+    assertEquals("1", compoundConf.get("A"));
+    assertEquals("5", compoundConf.get("D"));
+    compoundConf.addStringMap(map2);
+    assertEquals(newValueForA, compoundConf.get("A"));
+    assertEquals(newValueForB, compoundConf.get("B"));
+    assertEquals("5", compoundConf.get("D"));
+    int cnt = 0;
+    for (Map.Entry<String, String> entry : compoundConf) {
+        cnt++;
+        if (entry.getKey().equals("A")) {
+            assertEquals(newValueForA, entry.getValue());
+        } else if (entry.getKey().equals("B")) {
+            assertEquals(newValueForB, entry.getValue());
+        }
+    }
+    // verify that entries from ImmutableConfigMap's are merged in the iterator's view
+    assertEquals(baseConfSize + 1, cnt);
+}

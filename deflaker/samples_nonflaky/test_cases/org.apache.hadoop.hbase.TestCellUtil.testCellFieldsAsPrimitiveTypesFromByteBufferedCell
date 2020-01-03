@@ -1,0 +1,26 @@
+@Test
+public void testCellFieldsAsPrimitiveTypesFromByteBufferedCell() {
+    int ri = 123;
+    byte[] r = Bytes.toBytes(ri);
+    byte[] f = Bytes.toBytes("cf1");
+    byte[] q = Bytes.toBytes("qual1");
+    long vl = 10981L;
+    byte[] v = Bytes.toBytes(vl);
+    KeyValue kv = new KeyValue(r, f, q, v);
+    ByteBuffer buffer = ByteBuffer.wrap(kv.getBuffer());
+    Cell bbCell = new ByteBufferKeyValue(buffer, 0, buffer.remaining());
+    assertEquals(ri, PrivateCellUtil.getRowAsInt(bbCell));
+    assertEquals(vl, PrivateCellUtil.getValueAsLong(bbCell));
+    double vd = 3005.5;
+    v = Bytes.toBytes(vd);
+    kv = new KeyValue(r, f, q, v);
+    buffer = ByteBuffer.wrap(kv.getBuffer());
+    bbCell = new ByteBufferKeyValue(buffer, 0, buffer.remaining());
+    assertEquals(vd, PrivateCellUtil.getValueAsDouble(bbCell), 0.0);
+    BigDecimal bd = new BigDecimal(9999);
+    v = Bytes.toBytes(bd);
+    kv = new KeyValue(r, f, q, v);
+    buffer = ByteBuffer.wrap(kv.getBuffer());
+    bbCell = new ByteBufferKeyValue(buffer, 0, buffer.remaining());
+    assertEquals(bd, PrivateCellUtil.getValueAsBigDecimal(bbCell));
+}

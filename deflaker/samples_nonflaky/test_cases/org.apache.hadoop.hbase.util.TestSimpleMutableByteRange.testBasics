@@ -1,0 +1,27 @@
+@Test
+public void testBasics() {
+    ByteRange r = new SimpleMutableByteRange(new byte[] { 1, 3, 2 });
+    Assert.assertFalse(SimpleMutableByteRange.isEmpty(r));
+    // should be empty byte[], but could change this behavior
+    Assert.assertNotNull(r.getBytes());
+    Assert.assertEquals(3, r.getBytes().length);
+    Assert.assertEquals(0, r.getOffset());
+    Assert.assertEquals(3, r.getLength());
+    // cloning (deep copying)
+    Assert.assertTrue(Bytes.equals(new byte[] { 1, 3, 2 }, r.deepCopyToNewArray()));
+    Assert.assertNotSame(r.getBytes(), r.deepCopyToNewArray());
+    // hash code
+    Assert.assertTrue(r.hashCode() > 0);
+    Assert.assertEquals(r.hashCode(), r.deepCopy().hashCode());
+    // copying to arrays
+    // junk
+    byte[] destination = new byte[] { -59 };
+    r.deepCopySubRangeTo(2, 1, destination, 0);
+    Assert.assertTrue(Bytes.equals(new byte[] { 2 }, destination));
+    // set length
+    r.setLength(1);
+    Assert.assertTrue(Bytes.equals(new byte[] { 1 }, r.deepCopyToNewArray()));
+    // verify we retained the 2nd byte, but dangerous in real code
+    r.setLength(2);
+    Assert.assertTrue(Bytes.equals(new byte[] { 1, 3 }, r.deepCopyToNewArray()));
+}

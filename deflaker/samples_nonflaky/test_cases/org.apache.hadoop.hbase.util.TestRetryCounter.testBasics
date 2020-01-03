@@ -1,0 +1,11 @@
+@Test
+public void testBasics() throws InterruptedException {
+    int maxAttempts = 10;
+    RetryCounterFactory factory = new RetryCounterFactory(maxAttempts, 10, 1000);
+    RetryCounter retryCounter = factory.create();
+    while (retryCounter.shouldRetry()) {
+        LOG.info("Attempt={}, backoffTime={}", retryCounter.getAttemptTimes(), retryCounter.getBackoffTime());
+        retryCounter.sleepUntilNextRetry();
+    }
+    assertTrue(retryCounter.getAttemptTimes() == maxAttempts);
+}

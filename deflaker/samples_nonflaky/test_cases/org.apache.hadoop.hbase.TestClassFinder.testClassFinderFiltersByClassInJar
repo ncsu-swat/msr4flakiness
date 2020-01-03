@@ -1,0 +1,12 @@
+@Test
+public void testClassFinderFiltersByClassInJar() throws Exception {
+    final long counter = testCounter.incrementAndGet();
+    final String classNamePrefix = name.getMethodName();
+    LOG.info("Created jar " + createAndLoadJar("", classNamePrefix, counter));
+    final ClassFinder.ClassFilter notExcClassFilter = c -> !c.getSimpleName().startsWith(PREFIX);
+    ClassFinder incClassesFinder = new ClassFinder(null, null, notExcClassFilter, classLoader);
+    Set<Class<?>> incClasses = incClassesFinder.findClasses(makePackageName("", counter), false);
+    assertEquals(1, incClasses.size());
+    Class<?> incClass = makeClass("", classNamePrefix, counter);
+    assertTrue(incClasses.contains(incClass));
+}

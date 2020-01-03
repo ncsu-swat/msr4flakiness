@@ -1,0 +1,16 @@
+@Test
+public void testReadWriteNonSkippable() {
+    PositionedByteRange buff = new SimplePositionedMutableByteRange(12);
+    for (Order ord : new Order[] { Order.ASCENDING, Order.DESCENDING }) {
+        for (byte[] term : TERMINATORS) {
+            for (byte[] val : VALUES_BYTES) {
+                buff.setPosition(0);
+                DataType<byte[]> type = new TerminatedWrapper<>(new RawBytes(ord), term);
+                assertEquals(val.length + term.length, type.encode(buff, val));
+                buff.setPosition(0);
+                assertArrayEquals(val, type.decode(buff));
+                assertEquals(val.length + term.length, buff.getPosition());
+            }
+        }
+    }
+}

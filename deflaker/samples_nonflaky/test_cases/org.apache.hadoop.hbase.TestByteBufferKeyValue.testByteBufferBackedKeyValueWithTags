@@ -1,0 +1,24 @@
+@Test
+public void testByteBufferBackedKeyValueWithTags() throws Exception {
+    KeyValue kvCell = new KeyValue(row1, fam1, qual1, 0L, Type.Put, row1, tags);
+    ByteBuffer buf = ByteBuffer.allocateDirect(kvCell.getBuffer().length);
+    ByteBufferUtils.copyFromArrayToBuffer(buf, kvCell.getBuffer(), 0, kvCell.getBuffer().length);
+    ByteBufferKeyValue offheapKV = new ByteBufferKeyValue(buf, 0, buf.capacity(), 0L);
+    assertEquals(ROW1, ByteBufferUtils.toStringBinary(offheapKV.getRowByteBuffer(), offheapKV.getRowPosition(), offheapKV.getRowLength()));
+    assertEquals(FAM1, ByteBufferUtils.toStringBinary(offheapKV.getFamilyByteBuffer(), offheapKV.getFamilyPosition(), offheapKV.getFamilyLength()));
+    assertEquals(QUAL1, ByteBufferUtils.toStringBinary(offheapKV.getQualifierByteBuffer(), offheapKV.getQualifierPosition(), offheapKV.getQualifierLength()));
+    assertEquals(ROW1, ByteBufferUtils.toStringBinary(offheapKV.getValueByteBuffer(), offheapKV.getValuePosition(), offheapKV.getValueLength()));
+    assertEquals(0L, offheapKV.getTimestamp());
+    assertEquals(Type.Put.getCode(), offheapKV.getTypeByte());
+    // change tags to handle both onheap and offheap stuff
+    List<Tag> resTags = PrivateCellUtil.getTags(offheapKV);
+    Tag tag1 = resTags.get(0);
+    assertEquals(t1.getType(), tag1.getType());
+    assertEquals(Tag.getValueAsString(t1), Tag.getValueAsString(tag1));
+    Tag tag2 = resTags.get(1);
+    assertEquals(tag2.getType(), tag2.getType());
+    assertEquals(Tag.getValueAsString(t2), Tag.getValueAsString(tag2));
+    Tag res = PrivateCellUtil.getTag(offheapKV, (byte) 2).get();
+    assertEquals(Tag.getValueAsString(t2), Tag.getValueAsString(tag2));
+    assertFalse(PrivateCellUtil.getTag(offheapKV, (byte) 3).isPresent());
+}

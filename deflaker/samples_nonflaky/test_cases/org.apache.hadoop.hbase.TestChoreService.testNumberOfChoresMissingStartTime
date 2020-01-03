@@ -1,0 +1,35 @@
+@Test
+public void testNumberOfChoresMissingStartTime() throws InterruptedException {
+    ChoreService service = new ChoreService("testNumberOfChoresMissingStartTime");
+    final int period = 100;
+    final int sleepTime = 5 * period;
+    try {
+        // Slow chores sleep for a length of time LONGER than their period. Thus, SlowChores
+        // ALWAYS miss their start time since their execution takes longer than their period
+        SlowChore sc1 = new SlowChore("sc1", period);
+        SlowChore sc2 = new SlowChore("sc2", period);
+        SlowChore sc3 = new SlowChore("sc3", period);
+        SlowChore sc4 = new SlowChore("sc4", period);
+        SlowChore sc5 = new SlowChore("sc5", period);
+        service.scheduleChore(sc1);
+        service.scheduleChore(sc2);
+        service.scheduleChore(sc3);
+        service.scheduleChore(sc4);
+        service.scheduleChore(sc5);
+        Thread.sleep(sleepTime);
+        assertEquals(5, service.getNumberOfChoresMissingStartTime());
+        sc1.cancel();
+        Thread.sleep(sleepTime);
+        assertEquals(4, service.getNumberOfChoresMissingStartTime());
+        sc2.cancel();
+        sc3.cancel();
+        sc4.cancel();
+        Thread.sleep(sleepTime);
+        assertEquals(1, service.getNumberOfChoresMissingStartTime());
+        sc5.cancel();
+        Thread.sleep(sleepTime);
+        assertEquals(0, service.getNumberOfChoresMissingStartTime());
+    } finally {
+        shutdownService(service);
+    }
+}

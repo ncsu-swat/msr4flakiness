@@ -1,0 +1,24 @@
+// HBASE-14548
+@Test
+public void testDirectoryAndWildcard() throws Exception {
+    String testClassName = "TestClass";
+    String dataTestDir = TEST_UTIL.getDataTestDir().toString();
+    System.out.println(dataTestDir);
+    String localDirContainingJar = ClassLoaderTestHelper.localDirPath(conf);
+    ClassLoaderTestHelper.buildJar(dataTestDir, testClassName, null, localDirContainingJar);
+    ClassLoader parent = TestCoprocessorClassLoader.class.getClassLoader();
+    // So that clean up can be triggered
+    CoprocessorClassLoader.parentDirLockSet.clear();
+    // Directory
+    Path testPath = new Path(localDirContainingJar);
+    CoprocessorClassLoader coprocessorClassLoader = CoprocessorClassLoader.getClassLoader(testPath, parent, "113_1", conf);
+    verifyCoprocessorClassLoader(coprocessorClassLoader, testClassName);
+    // Wildcard - *.jar
+    testPath = new Path(localDirContainingJar, "*.jar");
+    coprocessorClassLoader = CoprocessorClassLoader.getClassLoader(testPath, parent, "113_2", conf);
+    verifyCoprocessorClassLoader(coprocessorClassLoader, testClassName);
+    // Wildcard - *.j*
+    testPath = new Path(localDirContainingJar, "*.j*");
+    coprocessorClassLoader = CoprocessorClassLoader.getClassLoader(testPath, parent, "113_3", conf);
+    verifyCoprocessorClassLoader(coprocessorClassLoader, testClassName);
+}

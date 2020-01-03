@@ -1,0 +1,18 @@
+@Test
+public void testToString1() {
+    String row = "test.row";
+    String family = "test.family";
+    String qualifier = "test.qualifier";
+    long timestamp = 42;
+    KeyValue.Type type = KeyValue.Type.Put;
+    String value = "test.value";
+    long seqId = 1042;
+    Cell cell = ExtendedCellBuilderFactory.create(CellBuilderType.DEEP_COPY).setRow(Bytes.toBytes(row)).setFamily(Bytes.toBytes(family)).setQualifier(Bytes.toBytes(qualifier)).setTimestamp(timestamp).setType(type.getCode()).setValue(Bytes.toBytes(value)).setSequenceId(seqId).build();
+    String nonVerbose = CellUtil.toString(cell, false);
+    String verbose = CellUtil.toString(cell, true);
+    System.out.println("nonVerbose=" + nonVerbose);
+    System.out.println("verbose=" + verbose);
+    Assert.assertEquals(String.format("%s/%s:%s/%d/%s/vlen=%s/seqid=%s", row, family, qualifier, timestamp, type.toString(), Bytes.toBytes(value).length, seqId), nonVerbose);
+    Assert.assertEquals(String.format("%s/%s:%s/%d/%s/vlen=%s/seqid=%s/%s", row, family, qualifier, timestamp, type.toString(), Bytes.toBytes(value).length, seqId, value), verbose);
+// TODO: test with tags
+}

@@ -1,0 +1,17 @@
+@Test
+public void testSkipSkippable() {
+    final PositionedByteRange buff = new SimplePositionedMutableByteRange(14);
+    for (final OrderedString t : new OrderedString[] { new OrderedString(Order.ASCENDING), new OrderedString(Order.DESCENDING) }) {
+        for (final byte[] term : TERMINATORS) {
+            for (final String val : VALUES_STRINGS) {
+                buff.setPosition(0);
+                final DataType<String> type = new TerminatedWrapper<>(t, term);
+                final int expected = val.length() + 2 + term.length;
+                assertEquals(expected, type.encode(buff, val));
+                buff.setPosition(0);
+                assertEquals(expected, type.skip(buff));
+                assertEquals(expected, buff.getPosition());
+            }
+        }
+    }
+}

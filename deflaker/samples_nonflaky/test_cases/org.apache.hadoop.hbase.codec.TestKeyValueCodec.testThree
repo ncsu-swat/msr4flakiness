@@ -1,0 +1,34 @@
+@Test
+public void testThree() throws IOException {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    CountingOutputStream cos = new CountingOutputStream(baos);
+    DataOutputStream dos = new DataOutputStream(cos);
+    KeyValueCodec kvc = new KeyValueCodec();
+    Codec.Encoder encoder = kvc.getEncoder(dos);
+    final KeyValue kv1 = new KeyValue(Bytes.toBytes("r"), Bytes.toBytes("f"), Bytes.toBytes("1"), Bytes.toBytes("1"));
+    final KeyValue kv2 = new KeyValue(Bytes.toBytes("r"), Bytes.toBytes("f"), Bytes.toBytes("2"), Bytes.toBytes("2"));
+    final KeyValue kv3 = new KeyValue(Bytes.toBytes("r"), Bytes.toBytes("f"), Bytes.toBytes("3"), Bytes.toBytes("3"));
+    final int length = kv1.getLength() + Bytes.SIZEOF_INT;
+    encoder.write(kv1);
+    encoder.write(kv2);
+    encoder.write(kv3);
+    encoder.flush();
+    dos.close();
+    long offset = cos.getCount();
+    assertEquals(length * 3, offset);
+    CountingInputStream cis = new CountingInputStream(new ByteArrayInputStream(baos.toByteArray()));
+    DataInputStream dis = new DataInputStream(cis);
+    Codec.Decoder decoder = kvc.getDecoder(dis);
+    assertTrue(decoder.advance());
+    KeyValue kv = (KeyValue) decoder.current();
+    assertTrue(kv1.equals(kv));
+    assertTrue(decoder.advance());
+    kv = (KeyValue) decoder.current();
+    assertTrue(kv2.equals(kv));
+    assertTrue(decoder.advance());
+    kv = (KeyValue) decoder.current();
+    assertTrue(kv3.equals(kv));
+    assertFalse(decoder.advance());
+    dis.close();
+    assertEquals((length * 3), cis.getCount());
+}

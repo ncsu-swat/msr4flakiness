@@ -1,0 +1,19 @@
+@Test
+public void testClassFinderHandlesNestedPackages() throws Exception {
+    final String NESTED = ".nested";
+    final String CLASSNAME1 = name.getMethodName() + "1";
+    final String CLASSNAME2 = name.getMethodName() + "2";
+    long counter = testCounter.incrementAndGet();
+    FileAndPath c1 = compileTestClass(counter, "", "c1");
+    FileAndPath c2 = compileTestClass(counter, NESTED, CLASSNAME1);
+    FileAndPath c3 = compileTestClass(counter, NESTED, CLASSNAME2);
+    packageAndLoadJar(c1, c2);
+    packageAndLoadJar(c3);
+    ClassFinder allClassesFinder = new ClassFinder(classLoader);
+    Set<Class<?>> nestedClasses = allClassesFinder.findClasses(makePackageName(NESTED, counter), false);
+    assertEquals(2, nestedClasses.size());
+    Class<?> nestedClass1 = makeClass(NESTED, CLASSNAME1, counter);
+    assertTrue(nestedClasses.contains(nestedClass1));
+    Class<?> nestedClass2 = makeClass(NESTED, CLASSNAME2, counter);
+    assertTrue(nestedClasses.contains(nestedClass2));
+}

@@ -1,0 +1,15 @@
+@Test
+public void testReverseRef() {
+    int bufSize = 64;
+    ByteBuffAllocator alloc = new ByteBuffAllocator(true, 1, bufSize, 3);
+    ByteBuff buf1 = alloc.allocate(bufSize);
+    ByteBuff dup1 = buf1.duplicate();
+    assertEquals(1, buf1.refCnt());
+    assertEquals(1, dup1.refCnt());
+    buf1.release();
+    assertEquals(0, buf1.refCnt());
+    assertEquals(0, dup1.refCnt());
+    assertEquals(1, alloc.getFreeBufferCount());
+    assertException(buf1::position);
+    assertException(dup1::position);
+}

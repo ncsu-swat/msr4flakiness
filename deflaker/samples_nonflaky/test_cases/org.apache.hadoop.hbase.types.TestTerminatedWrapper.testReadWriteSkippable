@@ -1,0 +1,16 @@
+@Test
+public void testReadWriteSkippable() {
+    final PositionedByteRange buff = new SimplePositionedMutableByteRange(14);
+    for (final OrderedString t : new OrderedString[] { new OrderedString(Order.ASCENDING), new OrderedString(Order.DESCENDING) }) {
+        for (final byte[] term : TERMINATORS) {
+            for (final String val : VALUES_STRINGS) {
+                buff.setPosition(0);
+                final DataType<String> type = new TerminatedWrapper<>(t, term);
+                assertEquals(val.length() + 2 + term.length, type.encode(buff, val));
+                buff.setPosition(0);
+                assertEquals(val, type.decode(buff));
+                assertEquals(val.length() + 2 + term.length, buff.getPosition());
+            }
+        }
+    }
+}

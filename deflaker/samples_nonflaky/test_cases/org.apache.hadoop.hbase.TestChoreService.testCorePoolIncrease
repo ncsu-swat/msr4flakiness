@@ -1,0 +1,27 @@
+@Test
+public void testCorePoolIncrease() throws InterruptedException {
+    final int initialCorePoolSize = 3;
+    ChoreService service = new ChoreService("testCorePoolIncrease", initialCorePoolSize, false);
+    try {
+        assertEquals("Setting core pool size gave unexpected results.", initialCorePoolSize, service.getCorePoolSize());
+        final int slowChorePeriod = 100;
+        SlowChore slowChore1 = new SlowChore("slowChore1", slowChorePeriod);
+        SlowChore slowChore2 = new SlowChore("slowChore2", slowChorePeriod);
+        SlowChore slowChore3 = new SlowChore("slowChore3", slowChorePeriod);
+        service.scheduleChore(slowChore1);
+        service.scheduleChore(slowChore2);
+        service.scheduleChore(slowChore3);
+        Thread.sleep(slowChorePeriod * 10);
+        assertEquals("Should not create more pools than scheduled chores", 3, service.getCorePoolSize());
+        SlowChore slowChore4 = new SlowChore("slowChore4", slowChorePeriod);
+        service.scheduleChore(slowChore4);
+        Thread.sleep(slowChorePeriod * 10);
+        assertEquals("Chores are missing their start time. Should expand core pool size", 4, service.getCorePoolSize());
+        SlowChore slowChore5 = new SlowChore("slowChore5", slowChorePeriod);
+        service.scheduleChore(slowChore5);
+        Thread.sleep(slowChorePeriod * 10);
+        assertEquals("Chores are missing their start time. Should expand core pool size", 5, service.getCorePoolSize());
+    } finally {
+        shutdownService(service);
+    }
+}

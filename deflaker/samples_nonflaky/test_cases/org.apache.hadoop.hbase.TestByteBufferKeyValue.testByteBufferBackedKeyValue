@@ -1,0 +1,37 @@
+@Test
+public void testByteBufferBackedKeyValue() throws Exception {
+    KeyValue kvCell = new KeyValue(row1, fam1, qual1, 0L, Type.Put, row1);
+    ByteBuffer buf = ByteBuffer.allocateDirect(kvCell.getBuffer().length);
+    ByteBufferUtils.copyFromArrayToBuffer(buf, kvCell.getBuffer(), 0, kvCell.getBuffer().length);
+    ByteBufferExtendedCell offheapKV = new ByteBufferKeyValue(buf, 0, buf.capacity(), 0L);
+    assertEquals(ROW1, ByteBufferUtils.toStringBinary(offheapKV.getRowByteBuffer(), offheapKV.getRowPosition(), offheapKV.getRowLength()));
+    assertEquals(FAM1, ByteBufferUtils.toStringBinary(offheapKV.getFamilyByteBuffer(), offheapKV.getFamilyPosition(), offheapKV.getFamilyLength()));
+    assertEquals(QUAL1, ByteBufferUtils.toStringBinary(offheapKV.getQualifierByteBuffer(), offheapKV.getQualifierPosition(), offheapKV.getQualifierLength()));
+    assertEquals(ROW1, ByteBufferUtils.toStringBinary(offheapKV.getValueByteBuffer(), offheapKV.getValuePosition(), offheapKV.getValueLength()));
+    assertEquals(0L, offheapKV.getTimestamp());
+    assertEquals(Type.Put.getCode(), offheapKV.getTypeByte());
+    // Use the array() APIs
+    assertEquals(ROW1, Bytes.toStringBinary(offheapKV.getRowArray(), offheapKV.getRowOffset(), offheapKV.getRowLength()));
+    assertEquals(FAM1, Bytes.toStringBinary(offheapKV.getFamilyArray(), offheapKV.getFamilyOffset(), offheapKV.getFamilyLength()));
+    assertEquals(QUAL1, Bytes.toStringBinary(offheapKV.getQualifierArray(), offheapKV.getQualifierOffset(), offheapKV.getQualifierLength()));
+    assertEquals(ROW1, Bytes.toStringBinary(offheapKV.getValueArray(), offheapKV.getValueOffset(), offheapKV.getValueLength()));
+    assertEquals(0L, offheapKV.getTimestamp());
+    assertEquals(Type.Put.getCode(), offheapKV.getTypeByte());
+    kvCell = new KeyValue(row1, fam2, qual2, 0L, Type.Put, row1);
+    buf = ByteBuffer.allocateDirect(kvCell.getBuffer().length);
+    ByteBufferUtils.copyFromArrayToBuffer(buf, kvCell.getBuffer(), 0, kvCell.getBuffer().length);
+    offheapKV = new ByteBufferKeyValue(buf, 0, buf.capacity(), 0L);
+    assertEquals(FAM2, ByteBufferUtils.toStringBinary(offheapKV.getFamilyByteBuffer(), offheapKV.getFamilyPosition(), offheapKV.getFamilyLength()));
+    assertEquals(QUAL2, ByteBufferUtils.toStringBinary(offheapKV.getQualifierByteBuffer(), offheapKV.getQualifierPosition(), offheapKV.getQualifierLength()));
+    byte[] nullQualifier = new byte[0];
+    kvCell = new KeyValue(row1, fam1, nullQualifier, 0L, Type.Put, row1);
+    buf = ByteBuffer.allocateDirect(kvCell.getBuffer().length);
+    ByteBufferUtils.copyFromArrayToBuffer(buf, kvCell.getBuffer(), 0, kvCell.getBuffer().length);
+    offheapKV = new ByteBufferKeyValue(buf, 0, buf.capacity(), 0L);
+    assertEquals(ROW1, ByteBufferUtils.toStringBinary(offheapKV.getRowByteBuffer(), offheapKV.getRowPosition(), offheapKV.getRowLength()));
+    assertEquals(FAM1, ByteBufferUtils.toStringBinary(offheapKV.getFamilyByteBuffer(), offheapKV.getFamilyPosition(), offheapKV.getFamilyLength()));
+    assertEquals("", ByteBufferUtils.toStringBinary(offheapKV.getQualifierByteBuffer(), offheapKV.getQualifierPosition(), offheapKV.getQualifierLength()));
+    assertEquals(ROW1, ByteBufferUtils.toStringBinary(offheapKV.getValueByteBuffer(), offheapKV.getValuePosition(), offheapKV.getValueLength()));
+    assertEquals(0L, offheapKV.getTimestamp());
+    assertEquals(Type.Put.getCode(), offheapKV.getTypeByte());
+}
