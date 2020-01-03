@@ -1,0 +1,20 @@
+@Test
+public void testCreateKeyOnly() throws Exception {
+    long ts = 1;
+    byte[] value = Bytes.toBytes("a real value");
+    // empty value
+    byte[] evalue = new byte[0];
+    for (byte[] val : new byte[][] { value, evalue }) {
+        for (boolean useLen : new boolean[] { false, true }) {
+            KeyValue kv1 = new KeyValue(rowA, family, qualA, ts, val);
+            KeyValue kv1ko = kv1.createKeyOnly(useLen);
+            // keys are still the same
+            assertTrue(kv1.equals(kv1ko));
+            // but values are not
+            assertTrue(kv1ko.getValueLength() == (useLen ? Bytes.SIZEOF_INT : 0));
+            if (useLen) {
+                assertEquals(kv1.getValueLength(), Bytes.toInt(kv1ko.getValueArray(), kv1ko.getValueOffset(), kv1ko.getValueLength()));
+            }
+        }
+    }
+}

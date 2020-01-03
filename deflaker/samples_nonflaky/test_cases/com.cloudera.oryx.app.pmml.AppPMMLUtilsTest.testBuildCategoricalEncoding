@@ -1,0 +1,16 @@
+@Test
+public void testBuildCategoricalEncoding() {
+    List<DataField> dataFields = new ArrayList<>();
+    dataFields.add(new DataField(FieldName.create("foo"), OpType.CONTINUOUS, DataType.DOUBLE));
+    DataField barField = new DataField(FieldName.create("bar"), OpType.CATEGORICAL, DataType.STRING);
+    barField.addValues(new Value("b"), new Value("a"));
+    dataFields.add(barField);
+    DataDictionary dictionary = new DataDictionary(dataFields).setNumberOfFields(dataFields.size());
+    CategoricalValueEncodings encodings = AppPMMLUtils.buildCategoricalValueEncodings(dictionary);
+    assertEquals(2, encodings.getValueCount(1));
+    assertEquals(0, encodings.getValueEncodingMap(1).get("b").intValue());
+    assertEquals(1, encodings.getValueEncodingMap(1).get("a").intValue());
+    assertEquals("b", encodings.getEncodingValueMap(1).get(0));
+    assertEquals("a", encodings.getEncodingValueMap(1).get(1));
+    assertEquals(Collections.singletonMap(1, 2), encodings.getCategoryCounts());
+}

@@ -1,0 +1,16 @@
+@Test
+void descriptorWithValueObjectBindMethodHandleNestedType() {
+    this.contextRunner.withPropertyValues("immutablenested.nested.name=nested", "immutablenested.nested.counter=42").withUserConfiguration(ImmutableNestedPropertiesConfiguration.class).run(assertProperties("immutablenested", (properties) -> {
+        assertThat(properties).containsOnlyKeys("name", "nested");
+        Map<String, Object> nested = (Map<String, Object>) properties.get("nested");
+        assertThat(nested).containsOnly(entry("name", "nested"), entry("counter", 42));
+    }, (inputs) -> {
+        Map<String, Object> nested = (Map<String, Object>) inputs.get("nested");
+        Map<String, Object> name = (Map<String, Object>) nested.get("name");
+        Map<String, Object> counter = (Map<String, Object>) nested.get("counter");
+        assertThat(name.get("value")).isEqualTo("nested");
+        assertThat(name.get("origin")).isEqualTo("\"immutablenested.nested.name\" from property source \"test\"");
+        assertThat(counter.get("origin")).isEqualTo("\"immutablenested.nested.counter\" from property source \"test\"");
+        assertThat(counter.get("value")).isEqualTo("42");
+    }));
+}

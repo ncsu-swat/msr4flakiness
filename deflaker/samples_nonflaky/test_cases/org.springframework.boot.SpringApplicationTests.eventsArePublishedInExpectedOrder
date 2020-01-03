@@ -1,0 +1,18 @@
+@Test
+@SuppressWarnings("unchecked")
+void eventsArePublishedInExpectedOrder() {
+    SpringApplication application = new SpringApplication(ExampleConfig.class);
+    application.setWebApplicationType(WebApplicationType.NONE);
+    ApplicationListener<ApplicationEvent> listener = mock(ApplicationListener.class);
+    application.addListeners(listener);
+    this.context = application.run();
+    InOrder inOrder = Mockito.inOrder(listener);
+    inOrder.verify(listener).onApplicationEvent(isA(ApplicationStartingEvent.class));
+    inOrder.verify(listener).onApplicationEvent(isA(ApplicationEnvironmentPreparedEvent.class));
+    inOrder.verify(listener).onApplicationEvent(isA(ApplicationContextInitializedEvent.class));
+    inOrder.verify(listener).onApplicationEvent(isA(ApplicationPreparedEvent.class));
+    inOrder.verify(listener).onApplicationEvent(isA(ContextRefreshedEvent.class));
+    inOrder.verify(listener).onApplicationEvent(isA(ApplicationStartedEvent.class));
+    inOrder.verify(listener).onApplicationEvent(isA(ApplicationReadyEvent.class));
+    inOrder.verifyNoMoreInteractions();
+}

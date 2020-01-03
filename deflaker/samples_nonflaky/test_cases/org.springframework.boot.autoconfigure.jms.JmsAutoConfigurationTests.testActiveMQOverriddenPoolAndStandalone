@@ -1,0 +1,12 @@
+@Test
+void testActiveMQOverriddenPoolAndStandalone() {
+    this.contextRunner.withUserConfiguration(TestConfiguration.class).withPropertyValues("spring.activemq.pool.enabled:true", "spring.activemq.inMemory:false").run((context) -> {
+        JmsTemplate jmsTemplate = context.getBean(JmsTemplate.class);
+        JmsPoolConnectionFactory pool = context.getBean(JmsPoolConnectionFactory.class);
+        assertThat(jmsTemplate).isNotNull();
+        assertThat(pool).isNotNull();
+        assertThat(pool).isEqualTo(jmsTemplate.getConnectionFactory());
+        ActiveMQConnectionFactory factory = (ActiveMQConnectionFactory) pool.getConnectionFactory();
+        assertThat(factory.getBrokerURL()).isEqualTo(ACTIVEMQ_NETWORK_URL);
+    });
+}

@@ -1,0 +1,17 @@
+@Test
+void multipartConfigIsHonoured() {
+    this.context = new AnnotationConfigServletWebServerApplicationContext();
+    this.context.register(TestConfiguration.class);
+    new ServerPortInfoApplicationContextInitializer().initialize(this.context);
+    this.context.refresh();
+    @SuppressWarnings("rawtypes")
+    Map<String, ServletRegistrationBean> beans = this.context.getBeansOfType(ServletRegistrationBean.class);
+    ServletRegistrationBean<?> servletRegistrationBean = beans.get(TestMultipartServlet.class.getName());
+    assertThat(servletRegistrationBean).isNotNull();
+    MultipartConfigElement multipartConfig = servletRegistrationBean.getMultipartConfig();
+    assertThat(multipartConfig).isNotNull();
+    assertThat(multipartConfig.getLocation()).isEqualTo("test");
+    assertThat(multipartConfig.getMaxRequestSize()).isEqualTo(2048);
+    assertThat(multipartConfig.getMaxFileSize()).isEqualTo(1024);
+    assertThat(multipartConfig.getFileSizeThreshold()).isEqualTo(512);
+}

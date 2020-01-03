@@ -1,0 +1,9 @@
+@Test
+void redisIsDown() {
+    RedisConnection redisConnection = mock(RedisConnection.class);
+    given(redisConnection.info()).willThrow(new RedisConnectionFailureException("Connection failed"));
+    RedisHealthIndicator healthIndicator = createHealthIndicator(redisConnection);
+    Health health = healthIndicator.health();
+    assertThat(health.getStatus()).isEqualTo(Status.DOWN);
+    assertThat((String) health.getDetails().get("error")).contains("Connection failed");
+}

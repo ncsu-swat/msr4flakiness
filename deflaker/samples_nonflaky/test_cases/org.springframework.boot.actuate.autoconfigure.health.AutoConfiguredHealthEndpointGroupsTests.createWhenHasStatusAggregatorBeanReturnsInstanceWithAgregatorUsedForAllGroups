@@ -1,0 +1,10 @@
+@Test
+void createWhenHasStatusAggregatorBeanReturnsInstanceWithAgregatorUsedForAllGroups() {
+    this.contextRunner.withUserConfiguration(CustomStatusAggregatorConfiguration.class).withPropertyValues("management.endpoint.health.status.order=up,down", "management.endpoint.health.group.a.include=*").run((context) -> {
+        HealthEndpointGroups groups = context.getBean(HealthEndpointGroups.class);
+        HealthEndpointGroup primary = groups.getPrimary();
+        HealthEndpointGroup groupA = groups.get("a");
+        assertThat(primary.getStatusAggregator().getAggregateStatus(Status.UP, Status.DOWN, Status.UNKNOWN)).isEqualTo(Status.UNKNOWN);
+        assertThat(groupA.getStatusAggregator().getAggregateStatus(Status.UP, Status.DOWN, Status.UNKNOWN)).isEqualTo(Status.UNKNOWN);
+    });
+}

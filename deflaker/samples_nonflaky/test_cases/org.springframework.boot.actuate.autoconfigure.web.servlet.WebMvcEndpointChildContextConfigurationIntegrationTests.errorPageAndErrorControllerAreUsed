@@ -1,0 +1,10 @@
+// gh-17938
+@Test
+void errorPageAndErrorControllerAreUsed() {
+    new WebApplicationContextRunner(AnnotationConfigServletWebServerApplicationContext::new).withConfiguration(AutoConfigurations.of(ManagementContextAutoConfiguration.class, ServletWebServerFactoryAutoConfiguration.class, ServletManagementContextAutoConfiguration.class, WebEndpointAutoConfiguration.class, EndpointAutoConfiguration.class, DispatcherServletAutoConfiguration.class, ErrorMvcAutoConfiguration.class)).withUserConfiguration(FailingEndpoint.class).withInitializer(new ServerPortInfoApplicationContextInitializer()).withPropertyValues("server.port=0", "management.server.port=0", "management.endpoints.web.exposure.include=*").run((context) -> {
+        String port = context.getEnvironment().getProperty("local.management.port");
+        WebClient client = WebClient.create("http://localhost:" + port);
+        ClientResponse response = client.get().uri("actuator/fail").accept(MediaType.APPLICATION_JSON).exchange().block();
+        assertThat(response.bodyToMono(String.class).block()).contains("message\":\"Epic Fail");
+    });
+}

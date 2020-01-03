@@ -1,0 +1,19 @@
+@Test
+public void testCharsetHandling() throws Exception {
+    ByteBuffer data = createAjpRequest("/hi".getBytes(StandardCharsets.UTF_8), "param=value".getBytes(StandardCharsets.UTF_8));
+    HttpServerExchange result = new HttpServerExchange(null);
+    AjpRequestParseState state = new AjpRequestParseState();
+    AJP_REQUEST_PARSER.parse(data, state, result);
+    Assert.assertFalse(state.badRequest);
+    Assert.assertEquals("/hi", result.getRequestPath());
+    Assert.assertEquals("/hi", result.getRequestURI());
+    Assert.assertEquals("param=value", result.getQueryString());
+    data = createAjpRequest("/한글이름".getBytes(StandardCharsets.UTF_8), "param=한글이름".getBytes(StandardCharsets.UTF_8));
+    result = new HttpServerExchange(null);
+    state = new AjpRequestParseState();
+    AJP_REQUEST_PARSER.parse(data, state, result);
+    Assert.assertFalse(state.badRequest);
+    Assert.assertEquals("/한글이름", result.getRequestPath());
+    Assert.assertEquals("/한글이름", result.getRequestURI());
+    Assert.assertEquals("param=한글이름", result.getQueryString());
+}

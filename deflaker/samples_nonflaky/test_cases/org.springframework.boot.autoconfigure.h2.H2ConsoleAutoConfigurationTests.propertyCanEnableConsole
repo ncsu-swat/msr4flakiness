@@ -1,0 +1,11 @@
+@Test
+void propertyCanEnableConsole() {
+    this.context.register(H2ConsoleAutoConfiguration.class);
+    TestPropertyValues.of("spring.h2.console.enabled:true").applyTo(this.context);
+    this.context.refresh();
+    assertThat(this.context.getBeansOfType(ServletRegistrationBean.class)).hasSize(1);
+    ServletRegistrationBean<?> registrationBean = this.context.getBean(ServletRegistrationBean.class);
+    assertThat(registrationBean.getUrlMappings()).contains("/h2-console/*");
+    assertThat(registrationBean.getInitParameters()).doesNotContainKey("trace");
+    assertThat(registrationBean.getInitParameters()).doesNotContainKey("webAllowOthers");
+}

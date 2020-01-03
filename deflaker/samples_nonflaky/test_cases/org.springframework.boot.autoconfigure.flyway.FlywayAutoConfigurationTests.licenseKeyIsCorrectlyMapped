@@ -1,0 +1,9 @@
+@Test
+void licenseKeyIsCorrectlyMapped() {
+    this.contextRunner.withUserConfiguration(EmbeddedDataSourceConfiguration.class).withPropertyValues("spring.flyway.license-key=<<secret>>").run((context) -> {
+        assertThat(context).hasFailed();
+        Throwable failure = context.getStartupFailure();
+        assertThat(failure).hasRootCauseInstanceOf(FlywayProUpgradeRequiredException.class);
+        assertThat(failure).hasMessageContaining(" licenseKey ");
+    });
+}

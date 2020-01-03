@@ -1,0 +1,9 @@
+@Test
+void clientRegistrationRepositoryBeanShouldBeCreatedWhenPropertiesPresent() {
+    this.contextRunner.withPropertyValues(REGISTRATION_PREFIX + ".foo.client-id=abcd", REGISTRATION_PREFIX + ".foo.client-secret=secret", REGISTRATION_PREFIX + ".foo.provider=github").run((context) -> {
+        ReactiveClientRegistrationRepository repository = context.getBean(ReactiveClientRegistrationRepository.class);
+        ClientRegistration registration = repository.findByRegistrationId("foo").block(Duration.ofSeconds(30));
+        assertThat(registration).isNotNull();
+        assertThat(registration.getClientSecret()).isEqualTo("secret");
+    });
+}

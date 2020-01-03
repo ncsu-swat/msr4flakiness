@@ -1,0 +1,10 @@
+@Test
+void restTemplateWhenMessageConvertersDefinedShouldHaveMessageConverters() {
+    this.contextRunner.withConfiguration(AutoConfigurations.of(HttpMessageConvertersAutoConfiguration.class)).withUserConfiguration(RestTemplateConfig.class).run((context) -> {
+        assertThat(context).hasSingleBean(RestTemplate.class);
+        RestTemplate restTemplate = context.getBean(RestTemplate.class);
+        List<HttpMessageConverter<?>> converters = context.getBean(HttpMessageConverters.class).getConverters();
+        assertThat(restTemplate.getMessageConverters()).containsExactlyElementsOf(converters);
+        assertThat(restTemplate.getRequestFactory()).isInstanceOf(HttpComponentsClientHttpRequestFactory.class);
+    });
+}

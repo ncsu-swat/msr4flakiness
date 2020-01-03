@@ -1,0 +1,11 @@
+@Test
+void propertySourceAnnotationInProfile() {
+    SpringApplication application = new SpringApplication(WithPropertySourceInProfile.class);
+    application.setWebApplicationType(WebApplicationType.NONE);
+    ConfigurableApplicationContext context = application.run("--spring.profiles.active=myprofile");
+    String property = context.getEnvironment().getProperty("the.property");
+    assertThat(property).isEqualTo("frompropertiesfile");
+    assertThat(context.getEnvironment()).has(matchingPropertySource("class path resource [enableprofile.properties]"));
+    assertThat(context.getEnvironment()).doesNotHave(matchingPropertySource("classpath:/enableprofile-myprofile.properties"));
+    context.close();
+}

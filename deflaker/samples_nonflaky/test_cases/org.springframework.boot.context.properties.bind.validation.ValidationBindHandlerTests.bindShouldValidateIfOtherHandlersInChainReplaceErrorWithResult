@@ -1,0 +1,10 @@
+@Test
+void bindShouldValidateIfOtherHandlersInChainReplaceErrorWithResult() {
+    TestHandler testHandler = new TestHandler(new ExampleValidatedBeanSubclass());
+    this.handler = new ValidationBindHandler(testHandler, this.validator);
+    this.sources.add(new MockConfigurationPropertySource("foo", "hello"));
+    this.sources.add(new MockConfigurationPropertySource("foo.age", "bad"));
+    this.sources.add(new MockConfigurationPropertySource("foo.years", "99"));
+    ExampleValidatedBean bean = new ExampleValidatedBean();
+    assertThatExceptionOfType(BindException.class).isThrownBy(() -> this.binder.bind("foo", Bindable.of(ExampleValidatedBean.class).withExistingValue(bean), this.handler)).withCauseInstanceOf(BindValidationException.class).satisfies((ex) -> assertThat(ex.getCause()).hasMessageContaining("years"));
+}

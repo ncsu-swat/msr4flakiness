@@ -1,0 +1,10 @@
+@Test
+void resourceHandlerChainEnabled() {
+    this.contextRunner.withPropertyValues("spring.resources.chain.enabled:true").run((context) -> {
+        SimpleUrlHandlerMapping hm = context.getBean("resourceHandlerMapping", SimpleUrlHandlerMapping.class);
+        assertThat(hm.getUrlMap().get("/**")).isInstanceOf(ResourceWebHandler.class);
+        ResourceWebHandler staticHandler = (ResourceWebHandler) hm.getUrlMap().get("/**");
+        assertThat(staticHandler.getResourceResolvers()).extractingResultOf("getClass").containsOnly(CachingResourceResolver.class, PathResourceResolver.class);
+        assertThat(staticHandler.getResourceTransformers()).extractingResultOf("getClass").containsOnly(CachingResourceTransformer.class);
+    });
+}

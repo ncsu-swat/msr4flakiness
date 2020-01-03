@@ -1,0 +1,10 @@
+@Test
+void tomcatContextCustomizerRegisteredAsBeanAndViaFactoryIsOnlyCalledOnce() {
+    ReactiveWebApplicationContextRunner runner = new ReactiveWebApplicationContextRunner(AnnotationConfigReactiveWebServerApplicationContext::new).withConfiguration(AutoConfigurations.of(ReactiveWebServerFactoryAutoConfiguration.class)).withUserConfiguration(HttpHandlerConfiguration.class, DoubleRegistrationTomcatContextCustomizerConfiguration.class).withPropertyValues("server.port: 0");
+    runner.run((context) -> {
+        TomcatReactiveWebServerFactory factory = context.getBean(TomcatReactiveWebServerFactory.class);
+        TomcatContextCustomizer customizer = context.getBean("contextCustomizer", TomcatContextCustomizer.class);
+        assertThat(factory.getTomcatContextCustomizers()).contains(customizer);
+        verify(customizer, times(1)).customize(any(Context.class));
+    });
+}

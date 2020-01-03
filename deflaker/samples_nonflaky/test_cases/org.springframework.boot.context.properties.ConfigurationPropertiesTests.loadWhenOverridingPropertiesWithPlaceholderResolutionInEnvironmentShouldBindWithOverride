@@ -1,0 +1,12 @@
+@Test
+void loadWhenOverridingPropertiesWithPlaceholderResolutionInEnvironmentShouldBindWithOverride() {
+    MutablePropertySources sources = this.context.getEnvironment().getPropertySources();
+    sources.addFirst(new SystemEnvironmentPropertySource("system", Collections.singletonMap("COM_EXAMPLE_BAR", "10")));
+    Map<String, Object> source = new HashMap<>();
+    source.put("com.example.bar", 5);
+    source.put("com.example.foo", "${com.example.bar}");
+    sources.addLast(new MapPropertySource("test", source));
+    load(SimplePrefixedProperties.class);
+    SimplePrefixedProperties bean = this.context.getBean(SimplePrefixedProperties.class);
+    assertThat(bean.getFoo()).isEqualTo(10);
+}

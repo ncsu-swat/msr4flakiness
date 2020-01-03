@@ -1,0 +1,11 @@
+@Test
+void couchbaseCacheExplicitWithCaches() {
+    this.contextRunner.withUserConfiguration(CouchbaseCacheConfiguration.class).withPropertyValues("spring.cache.type=couchbase", "spring.cache.cacheNames[0]=foo", "spring.cache.cacheNames[1]=bar").run((context) -> {
+        CouchbaseCacheManager cacheManager = getCacheManager(context, CouchbaseCacheManager.class);
+        assertThat(cacheManager.getCacheNames()).containsOnly("foo", "bar");
+        Cache cache = cacheManager.getCache("foo");
+        assertThat(cache).isInstanceOf(CouchbaseCache.class);
+        assertThat(((CouchbaseCache) cache).getTtl()).isEqualTo(0);
+        assertThat(((CouchbaseCache) cache).getNativeCache()).isEqualTo(context.getBean("bucket"));
+    });
+}

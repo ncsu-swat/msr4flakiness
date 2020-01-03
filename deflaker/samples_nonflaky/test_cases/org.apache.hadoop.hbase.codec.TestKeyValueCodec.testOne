@@ -1,0 +1,24 @@
+@Test
+public void testOne() throws IOException {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    CountingOutputStream cos = new CountingOutputStream(baos);
+    DataOutputStream dos = new DataOutputStream(cos);
+    KeyValueCodec kvc = new KeyValueCodec();
+    Codec.Encoder encoder = kvc.getEncoder(dos);
+    final KeyValue kv = new KeyValue(Bytes.toBytes("r"), Bytes.toBytes("f"), Bytes.toBytes("q"), Bytes.toBytes("v"));
+    final int length = kv.getLength() + Bytes.SIZEOF_INT;
+    encoder.write(kv);
+    encoder.flush();
+    dos.close();
+    long offset = cos.getCount();
+    assertEquals(length, offset);
+    CountingInputStream cis = new CountingInputStream(new ByteArrayInputStream(baos.toByteArray()));
+    DataInputStream dis = new DataInputStream(cis);
+    Codec.Decoder decoder = kvc.getDecoder(dis);
+    // First read should pull in the KV
+    assertTrue(decoder.advance());
+    // Second read should trip over the end-of-stream  marker and return false
+    assertFalse(decoder.advance());
+    dis.close();
+    assertEquals(length, cis.getCount());
+}

@@ -1,0 +1,21 @@
+@Test
+public void testMultiRecommendRescorer() {
+    RescorerProvider multi = MultiRescorerProvider.of(new SimpleModRescorerProvider(2), new SimpleModRescorerProvider(3));
+    Rescorer provider = multi.getRecommendRescorer(Collections.singletonList("ABCDE"), null);
+    assertNull(provider);
+    Rescorer provider2 = multi.getRecommendRescorer(Collections.singletonList("AB"), null);
+    assertNotNull(provider2);
+    assertFalse(provider2 instanceof MultiRescorer);
+    assertIsFiltered(provider2, "ABC");
+    assertNotFiltered(provider2, "AB");
+    assertNaN(provider2.rescore("ABC", 1.0));
+    assertEquals(1.0, provider2.rescore("AB", 1.0));
+    Rescorer provider3 = multi.getRecommendRescorer(Collections.singletonList("ABCDEF"), null);
+    assertNotNull(provider3);
+    assertInstanceOf(provider3, MultiRescorer.class);
+    assertIsFiltered(provider3, "ABC");
+    assertIsFiltered(provider3, "AB");
+    assertNotFiltered(provider3, "ABCDEFABCDEF");
+    assertNaN(provider3.rescore("ABC", 1.0));
+    assertEquals(1.0, provider3.rescore("ABCDEFABCDEF", 1.0));
+}

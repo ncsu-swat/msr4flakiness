@@ -1,0 +1,9 @@
+@Test
+void bindWhenUsingNoUnboundElementsHandlerThrowException() {
+    MockConfigurationPropertySource source = new MockConfigurationPropertySource();
+    source.put("example.foo", "bar");
+    source.put("example.baz", "bar");
+    this.sources.add(source);
+    this.binder = new Binder(this.sources);
+    assertThatExceptionOfType(BindException.class).isThrownBy(() -> this.binder.bind("example", Bindable.of(Example.class), new NoUnboundElementsBindHandler())).satisfies((ex) -> assertThat(ex.getCause().getMessage()).contains("The elements [example.baz] were left unbound"));
+}

@@ -1,0 +1,8 @@
+@Test
+void overrideUserAndFallbackToEmbeddedProperties() {
+    this.contextRunner.withUserConfiguration(EmbeddedDataSourceConfiguration.class).withPropertyValues("spring.liquibase.user:sa").run(assertLiquibase((liquibase) -> {
+        DataSource dataSource = liquibase.getDataSource();
+        assertThat(((HikariDataSource) dataSource).isClosed()).isTrue();
+        assertThat(((HikariDataSource) dataSource).getJdbcUrl()).startsWith("jdbc:h2:mem:");
+    }));
+}

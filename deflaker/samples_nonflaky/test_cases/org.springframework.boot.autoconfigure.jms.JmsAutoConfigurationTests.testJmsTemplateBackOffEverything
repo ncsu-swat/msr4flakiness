@@ -1,0 +1,12 @@
+@Test
+void testJmsTemplateBackOffEverything() {
+    this.contextRunner.withUserConfiguration(TestConfiguration2.class, TestConfiguration3.class, TestConfiguration5.class).run(this::testJmsTemplateBackOffEverything);
+}
+private void testJmsTemplateBackOffEverything(AssertableApplicationContext loaded) {
+    JmsTemplate jmsTemplate = loaded.getBean(JmsTemplate.class);
+    assertThat(jmsTemplate.getPriority()).isEqualTo(999);
+    assertThat(loaded.getBean(ActiveMQConnectionFactory.class).getBrokerURL()).isEqualTo("foobar");
+    JmsMessagingTemplate messagingTemplate = loaded.getBean(JmsMessagingTemplate.class);
+    assertThat(messagingTemplate.getDefaultDestinationName()).isEqualTo("fooBar");
+    assertThat(messagingTemplate.getJmsTemplate()).isEqualTo(jmsTemplate);
+}

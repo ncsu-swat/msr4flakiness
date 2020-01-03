@@ -1,0 +1,25 @@
+@Test
+@AjpIgnore
+public void testLotsOfQueryParameters_Default_Ok() throws IOException {
+    TestHttpClient client = new TestHttpClient();
+    try {
+        StringBuilder qs = new StringBuilder();
+        for (int i = 0; i < DEFAULT_MAX_PARAMETERS; ++i) {
+            qs.append(QUERY + i);
+            qs.append("=");
+            qs.append(URLEncoder.encode(MESSAGE + i, "UTF-8"));
+            qs.append("&");
+        }
+        // delete last useless '&'
+        qs.deleteCharAt(qs.length() - 1);
+        HttpGet get = new HttpGet(DefaultServer.getDefaultServerURL() + "/path?" + qs.toString());
+        HttpResponse result = client.execute(get);
+        Assert.assertEquals(StatusCodes.OK, result.getStatusLine().getStatusCode());
+        for (int i = 0; i < DEFAULT_MAX_PARAMETERS; ++i) {
+            Header[] header = result.getHeaders(QUERY + i);
+            Assert.assertEquals(MESSAGE + i, header[0].getValue());
+        }
+    } finally {
+        client.getConnectionManager().shutdown();
+    }
+}

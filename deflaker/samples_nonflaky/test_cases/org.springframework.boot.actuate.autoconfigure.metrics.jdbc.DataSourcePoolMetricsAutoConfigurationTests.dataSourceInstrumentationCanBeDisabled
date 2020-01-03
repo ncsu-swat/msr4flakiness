@@ -1,0 +1,8 @@
+@Test
+void dataSourceInstrumentationCanBeDisabled() {
+    this.contextRunner.withConfiguration(AutoConfigurations.of(DataSourceAutoConfiguration.class)).withPropertyValues("management.metrics.enable.jdbc=false").run((context) -> {
+        context.getBean(DataSource.class).getConnection().getMetaData();
+        MeterRegistry registry = context.getBean(MeterRegistry.class);
+        assertThat(registry.find("jdbc.connections.max").tags("name", "dataSource").meter()).isNull();
+    });
+}

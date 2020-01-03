@@ -1,0 +1,16 @@
+@Test
+public void testDifferentDomainNodeInError() throws IOException {
+    // Test failover in a different domain
+    final NodeTestConfig config1 = server1.clone().setDomain("domain1");
+    final NodeTestConfig config2 = server2.clone().setDomain("domain2");
+    registerNodes(true, config1, config2);
+    modClusterClient.enableApp(server1.getJvmRoute(), SESSION);
+    modClusterClient.enableApp(server2.getJvmRoute(), SESSION);
+    final String response = checkGet("/session", StatusCodes.OK);
+    if (response.startsWith(server1.getJvmRoute())) {
+        modClusterClient.updateLoad(server1.getJvmRoute(), -1);
+    } else {
+        modClusterClient.updateLoad(server2.getJvmRoute(), -1);
+    }
+    checkGet("/session", StatusCodes.SERVICE_UNAVAILABLE);
+}

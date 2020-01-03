@@ -1,0 +1,8 @@
+@Test
+void jettyServerCustomizerBeanIsAddedToFactory() {
+    WebApplicationContextRunner runner = new WebApplicationContextRunner(AnnotationConfigServletWebServerApplicationContext::new).withClassLoader(new FilteredClassLoader(Tomcat.class, HttpServer.class)).withConfiguration(AutoConfigurations.of(ServletWebServerFactoryAutoConfiguration.class)).withUserConfiguration(JettyServerCustomizerConfiguration.class).withPropertyValues("server.port:0");
+    runner.run((context) -> {
+        JettyServletWebServerFactory factory = context.getBean(JettyServletWebServerFactory.class);
+        assertThat(factory.getServerCustomizers()).hasSize(1);
+    });
+}

@@ -1,0 +1,8 @@
+@Test
+void testMultiBaseDn() {
+    this.contextRunner.withPropertyValues("spring.ldap.embedded.ldif:classpath:schema-multi-basedn.ldif", "spring.ldap.embedded.base-dn[0]:dc=spring,dc=org", "spring.ldap.embedded.base-dn[1]:dc=pivotal,dc=io").run((context) -> {
+        InMemoryDirectoryServer server = context.getBean(InMemoryDirectoryServer.class);
+        assertThat(server.countEntriesBelow("ou=company1,c=Sweden,dc=spring,dc=org")).isEqualTo(5);
+        assertThat(server.countEntriesBelow("c=Sweden,dc=pivotal,dc=io")).isEqualTo(2);
+    });
+}

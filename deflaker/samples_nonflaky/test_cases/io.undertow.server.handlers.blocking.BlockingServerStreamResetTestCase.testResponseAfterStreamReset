@@ -1,0 +1,26 @@
+@Test
+public void testResponseAfterStreamReset() throws IOException {
+    final BlockingHandler blockingHandler = new BlockingHandler();
+    DefaultServer.setRootHandler(blockingHandler);
+    blockingHandler.setRootHandler(new HttpHandler() {
+
+        @Override
+        public void handleRequest(final HttpServerExchange exchange) throws Exception {
+            UndertowOutputStream stream = (UndertowOutputStream) exchange.getOutputStream();
+            stream.write(1);
+            Assert.assertEquals(1, stream.getBytesWritten());
+            stream.resetBuffer();
+            Assert.assertEquals(0, stream.getBytesWritten());
+            exchange.getOutputStream().write("Hello, World".getBytes());
+        }
+    });
+    TestHttpClient client = new TestHttpClient();
+    try {
+        HttpGet get = new HttpGet(DefaultServer.getDefaultServerURL());
+        HttpResponse result = client.execute(get);
+        Assert.assertEquals(StatusCodes.OK, result.getStatusLine().getStatusCode());
+        Assert.assertEquals("Hello, World", HttpClientUtils.readResponse(result));
+    } finally {
+        client.getConnectionManager().shutdown();
+    }
+}

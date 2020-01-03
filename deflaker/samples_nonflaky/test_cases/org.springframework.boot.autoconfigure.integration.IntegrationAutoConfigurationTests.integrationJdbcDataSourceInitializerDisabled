@@ -1,0 +1,9 @@
+@Test
+void integrationJdbcDataSourceInitializerDisabled() {
+    this.contextRunner.withUserConfiguration(EmbeddedDataSourceConfiguration.class).withConfiguration(AutoConfigurations.of(DataSourceTransactionManagerAutoConfiguration.class, JdbcTemplateAutoConfiguration.class, IntegrationAutoConfiguration.class)).withPropertyValues("spring.datasource.generate-unique-name=true", "spring.integration.jdbc.initialize-schema=never").run((context) -> {
+        IntegrationProperties properties = context.getBean(IntegrationProperties.class);
+        assertThat(properties.getJdbc().getInitializeSchema()).isEqualTo(DataSourceInitializationMode.NEVER);
+        JdbcOperations jdbc = context.getBean(JdbcOperations.class);
+        assertThatExceptionOfType(BadSqlGrammarException.class).isThrownBy(() -> jdbc.queryForList("select * from INT_MESSAGE"));
+    });
+}

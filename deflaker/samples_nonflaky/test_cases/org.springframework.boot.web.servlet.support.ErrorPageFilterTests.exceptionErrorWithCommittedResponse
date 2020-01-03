@@ -1,0 +1,11 @@
+@Test
+void exceptionErrorWithCommittedResponse() throws Exception {
+    this.filter.addErrorPages(new ErrorPage(RuntimeException.class, "/500"));
+    this.chain = new TestFilterChain((request, response, chain) -> {
+        chain.call();
+        response.flushBuffer();
+        throw new RuntimeException("BAD");
+    });
+    this.filter.doFilter(this.request, this.response, this.chain);
+    assertThat(this.response.getForwardedUrl()).isNull();
+}

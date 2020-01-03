@@ -1,0 +1,10 @@
+@Test
+void tomcatConnectorCustomizerBeanIsAddedToFactory() {
+    ReactiveWebApplicationContextRunner runner = new ReactiveWebApplicationContextRunner(AnnotationConfigReactiveWebServerApplicationContext::new).withConfiguration(AutoConfigurations.of(ReactiveWebServerFactoryAutoConfiguration.class)).withUserConfiguration(HttpHandlerConfiguration.class, TomcatConnectorCustomizerConfiguration.class).withPropertyValues("server.port: 0");
+    runner.run((context) -> {
+        TomcatReactiveWebServerFactory factory = context.getBean(TomcatReactiveWebServerFactory.class);
+        TomcatConnectorCustomizer customizer = context.getBean("connectorCustomizer", TomcatConnectorCustomizer.class);
+        assertThat(factory.getTomcatConnectorCustomizers()).contains(customizer);
+        verify(customizer, times(1)).customize(any(Connector.class));
+    });
+}

@@ -1,0 +1,9 @@
+@Test
+void testRandomPortWithValueAnnotation() {
+    AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
+    TestPropertyValues.of("spring.ldap.embedded.base-dn:dc=spring,dc=org").applyTo(context);
+    context.register(EmbeddedLdapAutoConfiguration.class, LdapClientConfiguration.class, PropertyPlaceholderAutoConfiguration.class);
+    context.refresh();
+    LDAPConnection connection = context.getBean(LDAPConnection.class);
+    assertThat(connection.getConnectedPort()).isEqualTo(context.getEnvironment().getProperty("local.ldap.port", Integer.class));
+}

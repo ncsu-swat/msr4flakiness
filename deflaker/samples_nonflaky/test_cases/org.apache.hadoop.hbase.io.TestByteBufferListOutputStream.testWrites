@@ -1,0 +1,49 @@
+@Test
+public void testWrites() throws Exception {
+    ByteBuffAllocator alloc = new ByteBuffAllocator(true, 3, 10, 10 / 6);
+    ByteBufferListOutputStream bbos = new ByteBufferListOutputStream(alloc);
+    // Write a byte
+    bbos.write(2);
+    // Write an int
+    bbos.writeInt(100);
+    // 6 bytes
+    byte[] b = Bytes.toBytes("row123");
+    bbos.write(b);
+    assertEquals(2, bbos.allBufs.size());
+    // Just use the 3rd BB from pool so that pabos, on request, wont get one
+    ByteBuff bb1 = alloc.allocateOneBuffer();
+    // 13 bytes
+    ByteBuffer bb = ByteBuffer.wrap(Bytes.toBytes("row123_cf1_q1"));
+    bbos.write(bb, 0, bb.capacity());
+    bb1.release();
+    bbos.writeInt(123);
+    bbos.writeInt(124);
+    assertEquals(0, alloc.getFreeBufferCount());
+    List<ByteBuffer> allBufs = bbos.getByteBuffers();
+    assertEquals(4, allBufs.size());
+    assertEquals(4, bbos.allBufs.size());
+    ByteBuffer b1 = allBufs.get(0);
+    assertEquals(10, b1.remaining());
+    assertEquals(2, b1.get());
+    assertEquals(100, b1.getInt());
+    byte[] bActual = new byte[b.length];
+    // 5 bytes in 1st BB
+    b1.get(bActual, 0, 5);
+    ByteBuffer b2 = allBufs.get(1);
+    assertEquals(10, b2.remaining());
+    // Remaining 1 byte in 2nd BB
+    b2.get(bActual, 5, 1);
+    assertTrue(Bytes.equals(b, bActual));
+    bActual = new byte[bb.capacity()];
+    b2.get(bActual, 0, 9);
+    ByteBuffer b3 = allBufs.get(2);
+    assertEquals(8, b3.remaining());
+    b3.get(bActual, 9, 4);
+    assertTrue(ByteBufferUtils.equals(bb, 0, bb.capacity(), bActual, 0, bActual.length));
+    assertEquals(123, b3.getInt());
+    ByteBuffer b4 = allBufs.get(3);
+    assertEquals(4, b4.remaining());
+    assertEquals(124, b4.getInt());
+    bbos.releaseResources();
+    assertEquals(3, alloc.getFreeBufferCount());
+}

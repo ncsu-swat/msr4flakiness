@@ -1,0 +1,16 @@
+@Test
+void testDefaultDomainConfiguredOnMBeanExport() {
+    MockEnvironment env = new MockEnvironment();
+    env.setProperty("spring.jmx.enabled", "true");
+    env.setProperty("spring.jmx.default-domain", "my-test-domain");
+    env.setProperty("spring.jmx.unique-names", "true");
+    this.context = new AnnotationConfigApplicationContext();
+    this.context.setEnvironment(env);
+    this.context.register(TestConfiguration.class, JmxAutoConfiguration.class);
+    this.context.refresh();
+    MBeanExporter mBeanExporter = this.context.getBean(MBeanExporter.class);
+    assertThat(mBeanExporter).isNotNull();
+    MetadataNamingStrategy naming = (MetadataNamingStrategy) ReflectionTestUtils.getField(mBeanExporter, "namingStrategy");
+    assertThat(naming).hasFieldOrPropertyWithValue("defaultDomain", "my-test-domain");
+    assertThat(naming).hasFieldOrPropertyWithValue("ensureUniqueRuntimeObjectNames", true);
+}

@@ -1,0 +1,11 @@
+@Test
+void validatorWithConfigurerDoesNotExposeJsr303() {
+    this.contextRunner.withUserConfiguration(MvcJsr303Validator.class).run((context) -> {
+        assertThat(context).doesNotHaveBean(ValidatorFactory.class);
+        assertThat(context).doesNotHaveBean(javax.validation.Validator.class);
+        assertThat(context).getBeanNames(Validator.class).containsOnly("mvcValidator");
+        Validator validator = context.getBean("mvcValidator", Validator.class);
+        assertThat(validator).isInstanceOf(ValidatorAdapter.class);
+        assertThat(((ValidatorAdapter) validator).getTarget()).isSameAs(context.getBean(MvcJsr303Validator.class).validator);
+    });
+}

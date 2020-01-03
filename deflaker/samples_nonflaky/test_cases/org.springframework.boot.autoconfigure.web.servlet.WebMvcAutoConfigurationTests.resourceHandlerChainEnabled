@@ -1,0 +1,9 @@
+@Test
+void resourceHandlerChainEnabled() {
+    this.contextRunner.withPropertyValues("spring.resources.chain.enabled:true").run((context) -> {
+        assertThat(getResourceResolvers(context, "/webjars/**")).hasSize(2);
+        assertThat(getResourceTransformers(context, "/webjars/**")).hasSize(1);
+        assertThat(getResourceResolvers(context, "/**")).extractingResultOf("getClass").containsOnly(CachingResourceResolver.class, PathResourceResolver.class);
+        assertThat(getResourceTransformers(context, "/**")).extractingResultOf("getClass").containsOnly(CachingResourceTransformer.class);
+    });
+}

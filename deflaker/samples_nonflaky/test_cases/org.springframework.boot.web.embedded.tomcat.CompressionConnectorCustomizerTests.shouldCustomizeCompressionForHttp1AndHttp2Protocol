@@ -1,0 +1,11 @@
+@Test
+void shouldCustomizeCompressionForHttp1AndHttp2Protocol() {
+    CompressionConnectorCustomizer compressionConnectorCustomizer = new CompressionConnectorCustomizer(this.compression);
+    Connector connector = new Connector("org.apache.coyote.http11.Http11NioProtocol");
+    connector.addUpgradeProtocol(new Http2Protocol());
+    compressionConnectorCustomizer.customize(connector);
+    AbstractHttp11Protocol<?> abstractHttp11Protocol = (AbstractHttp11Protocol<?>) connector.getProtocolHandler();
+    verifyHttp1(abstractHttp11Protocol);
+    Http2Protocol http2Protocol = (Http2Protocol) connector.findUpgradeProtocols()[0];
+    verifyHttp2Upgrade(http2Protocol);
+}

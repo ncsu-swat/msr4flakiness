@@ -1,0 +1,13 @@
+@Test
+void bindToMapStringCollectionWithDotKeysShouldPreserveDot() {
+    Bindable<List<String>> valueType = Bindable.listOf(String.class);
+    Bindable<Map<String, List<String>>> target = getMapBindable(String.class, valueType.getType());
+    MockConfigurationPropertySource mockSource = new MockConfigurationPropertySource();
+    mockSource.put("foo.bar.baz[0]", "a");
+    mockSource.put("foo.bar.baz[1]", "b");
+    mockSource.put("foo.bar.baz[2]", "c");
+    this.sources.add(mockSource);
+    Map<String, List<String>> map = this.binder.bind("foo", target).get();
+    List<String> values = map.get("bar.baz");
+    assertThat(values).containsExactly("a", "b", "c");
+}

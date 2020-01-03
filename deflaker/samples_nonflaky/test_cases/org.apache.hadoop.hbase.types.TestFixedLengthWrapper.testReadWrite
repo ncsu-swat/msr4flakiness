@@ -1,0 +1,18 @@
+@Test
+public void testReadWrite() {
+    for (int limit : limits) {
+        PositionedByteRange buff = new SimplePositionedMutableByteRange(limit);
+        for (Order ord : new Order[] { Order.ASCENDING, Order.DESCENDING }) {
+            for (byte[] val : VALUES) {
+                buff.setPosition(0);
+                DataType<byte[]> type = new FixedLengthWrapper<>(new RawBytes(ord), limit);
+                assertEquals(limit, type.encode(buff, val));
+                buff.setPosition(0);
+                byte[] actual = type.decode(buff);
+                assertTrue("Decoding output differs from expected", Bytes.equals(val, 0, val.length, actual, 0, val.length));
+                buff.setPosition(0);
+                assertEquals(limit, type.skip(buff));
+            }
+        }
+    }
+}

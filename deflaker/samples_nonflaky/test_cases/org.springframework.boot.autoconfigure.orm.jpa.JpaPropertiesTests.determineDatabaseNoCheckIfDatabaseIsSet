@@ -1,0 +1,15 @@
+@Test
+@Deprecated
+@SuppressWarnings("deprecation")
+void determineDatabaseNoCheckIfDatabaseIsSet() {
+    this.contextRunner.withPropertyValues("spring.jpa.database=postgresql").run(assertJpaProperties((properties) -> {
+        DataSource dataSource = mockStandaloneDataSource();
+        Database database = properties.determineDatabase(dataSource);
+        assertThat(database).isEqualTo(Database.POSTGRESQL);
+        try {
+            verify(dataSource, never()).getConnection();
+        } catch (SQLException ex) {
+            throw new IllegalStateException("Should not happen", ex);
+        }
+    }));
+}

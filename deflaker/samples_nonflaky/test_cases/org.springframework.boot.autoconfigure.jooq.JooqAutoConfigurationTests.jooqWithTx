@@ -1,0 +1,14 @@
+@Test
+void jooqWithTx() {
+    this.contextRunner.withUserConfiguration(JooqDataSourceConfiguration.class, TxManagerConfiguration.class).run((context) -> {
+        assertThat(context).hasSingleBean(PlatformTransactionManager.class);
+        DSLContext dsl = context.getBean(DSLContext.class);
+        assertThat(dsl.configuration().dialect()).isEqualTo(SQLDialect.HSQLDB);
+        dsl.execute("create table jooqtest_tx (name varchar(255) primary key);");
+        dsl.transaction(new AssertFetch(dsl, "select count(*) as total from jooqtest_tx;", "0"));
+        dsl.transaction(new ExecuteSql(dsl, "insert into jooqtest_tx (name) values ('foo');"));
+        dsl.transaction(new AssertFetch(dsl, "select count(*) as total from jooqtest_tx;", "1"));
+        assertThatExceptionOfType(DataIntegrityViolationException.class).isThrownBy(() -> dsl.transaction(new ExecuteSql(dsl, "insert into jooqtest (name) values ('bar');", "insert into jooqtest (name) values ('foo');")));
+        dsl.transaction(new AssertFetch(dsl, "select count(*) as total from jooqtest_tx;", "1"));
+    });
+}

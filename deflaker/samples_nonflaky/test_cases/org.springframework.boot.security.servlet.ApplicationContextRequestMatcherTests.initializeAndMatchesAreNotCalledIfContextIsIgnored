@@ -1,0 +1,23 @@
+@Test
+void initializeAndMatchesAreNotCalledIfContextIsIgnored() {
+    StaticWebApplicationContext context = createWebApplicationContext();
+    TestApplicationContextRequestMatcher<ApplicationContext> matcher = new TestApplicationContextRequestMatcher<ApplicationContext>(ApplicationContext.class) {
+
+        @Override
+        protected boolean ignoreApplicationContext(WebApplicationContext webApplicationContext) {
+            return true;
+        }
+
+        @Override
+        protected void initialized(Supplier<ApplicationContext> context) {
+            throw new IllegalStateException();
+        }
+
+        @Override
+        protected boolean matches(HttpServletRequest request, Supplier<ApplicationContext> context) {
+            throw new IllegalStateException();
+        }
+    };
+    MockHttpServletRequest request = new MockHttpServletRequest(context.getServletContext());
+    assertThat(matcher.matches(request)).isFalse();
+}

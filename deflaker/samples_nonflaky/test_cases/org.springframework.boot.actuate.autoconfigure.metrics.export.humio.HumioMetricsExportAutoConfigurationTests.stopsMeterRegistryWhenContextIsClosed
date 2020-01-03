@@ -1,0 +1,10 @@
+@Test
+void stopsMeterRegistryWhenContextIsClosed() {
+    this.contextRunner.withUserConfiguration(BaseConfiguration.class).run((context) -> {
+        HumioMeterRegistry registry = context.getBean(HumioMeterRegistry.class);
+        new JvmMemoryMetrics().bindTo(registry);
+        assertThat(registry.isClosed()).isFalse();
+        context.close();
+        assertThat(registry.isClosed()).isTrue();
+    });
+}

@@ -1,0 +1,9 @@
+@Test
+void stopsMeterRegistryWhenContextIsClosed() {
+    this.contextRunner.withUserConfiguration(BaseConfiguration.class).withPropertyValues("management.metrics.export.wavefront.api-token=abcde").run((context) -> {
+        WavefrontMeterRegistry registry = context.getBean(WavefrontMeterRegistry.class);
+        assertThat(registry.isClosed()).isFalse();
+        context.close();
+        assertThat(registry.isClosed()).isTrue();
+    });
+}

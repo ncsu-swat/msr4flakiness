@@ -1,0 +1,26 @@
+@Test
+public void testWithConfig() {
+    Configuration conf = new Configuration();
+    conf.set("B", "2b");
+    conf.set("C", "33");
+    conf.set("D", "4");
+    CompoundConfiguration compoundConf = new CompoundConfiguration().add(baseConf).add(conf);
+    assertEquals("1", compoundConf.get("A"));
+    assertEquals("2b", compoundConf.get("B"));
+    assertEquals(33, compoundConf.getInt("C", 0));
+    assertEquals("4", compoundConf.get("D"));
+    assertEquals(4, compoundConf.getInt("D", 0));
+    assertNull(compoundConf.get("E"));
+    assertEquals(6, compoundConf.getInt("F", 6));
+    int cnt = 0;
+    for (Map.Entry<String, String> entry : compoundConf) {
+        cnt++;
+        if (entry.getKey().equals("B")) {
+            assertEquals("2b", entry.getValue());
+        } else if (entry.getKey().equals("G")) {
+            assertNull(entry.getValue());
+        }
+    }
+    // verify that entries from ImmutableConfigMap's are merged in the iterator's view
+    assertEquals(baseConfSize + 1, cnt);
+}

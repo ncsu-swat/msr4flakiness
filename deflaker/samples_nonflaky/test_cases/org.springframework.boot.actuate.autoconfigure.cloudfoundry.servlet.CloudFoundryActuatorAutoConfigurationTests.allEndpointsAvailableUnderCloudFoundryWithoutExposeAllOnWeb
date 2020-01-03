@@ -1,0 +1,8 @@
+@Test
+void allEndpointsAvailableUnderCloudFoundryWithoutExposeAllOnWeb() {
+    this.contextRunner.withBean(TestEndpoint.class, TestEndpoint::new).withPropertyValues("VCAP_APPLICATION:---", "vcap.application.application_id:my-app-id", "vcap.application.cf_api:https://my-cloud-controller.com").run((context) -> {
+        CloudFoundryWebEndpointServletHandlerMapping handlerMapping = getHandlerMapping(context);
+        Collection<ExposableWebEndpoint> endpoints = handlerMapping.getEndpoints();
+        assertThat(endpoints.stream().filter((candidate) -> EndpointId.of("test").equals(candidate.getEndpointId())).findFirst()).isNotEmpty();
+    });
+}

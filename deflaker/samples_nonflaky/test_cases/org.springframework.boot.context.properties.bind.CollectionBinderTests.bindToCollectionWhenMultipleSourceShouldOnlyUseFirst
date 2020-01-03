@@ -1,0 +1,17 @@
+@Test
+void bindToCollectionWhenMultipleSourceShouldOnlyUseFirst() {
+    MockConfigurationPropertySource source1 = new MockConfigurationPropertySource();
+    source1.put("bar", "baz");
+    this.sources.add(source1);
+    MockConfigurationPropertySource source2 = new MockConfigurationPropertySource();
+    source2.put("foo[0]", "1");
+    source2.put("foo[1]", "2");
+    this.sources.add(source2);
+    MockConfigurationPropertySource source3 = new MockConfigurationPropertySource();
+    source3.put("foo[0]", "7");
+    source3.put("foo[1]", "8");
+    source3.put("foo[2]", "9");
+    this.sources.add(source3);
+    List<Integer> result = this.binder.bind("foo", INTEGER_LIST).get();
+    assertThat(result).containsExactly(1, 2);
+}

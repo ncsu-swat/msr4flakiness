@@ -1,0 +1,9 @@
+@Test
+void autoConfiguresThreadPoolMetricsWithEmbeddedServletJetty() {
+    new WebApplicationContextRunner(AnnotationConfigServletWebServerApplicationContext::new).withConfiguration(AutoConfigurations.of(JettyMetricsAutoConfiguration.class, ServletWebServerFactoryAutoConfiguration.class)).withUserConfiguration(ServletWebServerConfiguration.class, MeterRegistryConfiguration.class).run((context) -> {
+        context.publishEvent(new ApplicationStartedEvent(new SpringApplication(), null, context.getSourceApplicationContext()));
+        assertThat(context).hasSingleBean(JettyServerThreadPoolMetricsBinder.class);
+        SimpleMeterRegistry registry = context.getBean(SimpleMeterRegistry.class);
+        assertThat(registry.find("jetty.threads.config.min").meter()).isNotNull();
+    });
+}

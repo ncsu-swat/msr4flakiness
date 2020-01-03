@@ -1,0 +1,10 @@
+@Test
+void jndiSessionTakesPrecedenceOverProperties() {
+    Session session = configureJndiSession("foo");
+    this.contextRunner.withPropertyValues("spring.mail.jndi-name:foo", "spring.mail.host:localhost").run((context) -> {
+        assertThat(context).hasSingleBean(Session.class);
+        Session sessionBean = context.getBean(Session.class);
+        assertThat(sessionBean).isEqualTo(session);
+        assertThat(context.getBean(JavaMailSenderImpl.class).getSession()).isEqualTo(sessionBean);
+    });
+}

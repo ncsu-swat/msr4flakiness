@@ -1,0 +1,52 @@
+@Test
+public void testCheckKeyValueBytesFailureCase() throws Exception {
+    byte[][] inputs = new byte[][] { // case.0
+    HConstants.EMPTY_BYTE_ARRAY, // case.1
+    Bytes.toBytesBinary("a"), // case.2
+    Bytes.toBytesBinary("\\x00\\x00\\x00\\x01"), // case.3
+    Bytes.toBytesBinary("\\x00\\x00\\x00\\x01\\x00"), // case.4
+    Bytes.toBytesBinary("\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x01"), // case.5
+    Bytes.toBytesBinary("\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x01\\x00"), // case.6
+    Bytes.toBytesBinary("\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x01\\x00\\x01"), // case.7
+    Bytes.toBytesBinary("\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x01\\x00\\x03ROW"), // case.8
+    Bytes.toBytesBinary("\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x01\\x00\\x03ROW\\x01"), Bytes.toBytesBinary("\\x00\\x00\\x00\\x11\\x00\\x00\\x00\\x01\\x00\\x03ROW\\x01FQ\\xFF" + // case.9
+    "\\xFF\\xFF\\xFF\\xFF\\xFF\\xFF\\xFF\\x03"), Bytes.toBytesBinary("\\x00\\x00\\x00\\x11\\x00\\x00\\x00\\x01\\x00\\x03ROW\\x01FQ\\x00" + // case.10
+    "\\x00\\x00\\x00\\x00\\x00\\x00\\x01\\x03"), Bytes.toBytesBinary("\\x00\\x00\\x00\\x11\\x00\\x00\\x00\\x01\\x00\\x03ROW\\x01FQ\\x00" + // case.11
+    "\\x00\\x00\\x00\\x00\\x00\\x00\\x01\\x04"), Bytes.toBytesBinary("\\x00\\x00\\x00\\x11\\x00\\x00\\x00\\x01\\x00\\x03ROW\\x01FQ\\x00" + // case.12
+    "\\x00\\x00\\x00\\x00\\x00\\x00\\x01\\x04VALUE") };
+    String[] outputs = new String[] { "Overflow when reading key length at position=0", "Overflow when reading key length at position=0", "Invalid key length in KeyValue. keyLength=1", "Overflow when reading value length at position=4", "Invalid value length in KeyValue, valueLength=1", "Overflow when reading row length at position=8", "Invalid row length in KeyValue, rowLength=1", "Overflow when reading family length at position=13", "Invalid family length in KeyValue, familyLength=1", "Timestamp cannot be negative, ts=-1", "Invalid type in KeyValue, type=3", "Overflow when reading value part at position=25", "Invalid tags length in KeyValue at position=26" };
+    byte[][] withTagsInputs = new byte[][] { Bytes.toBytesBinary("\\x00\\x00\\x00\\x11\\x00\\x00\\x00\\x01\\x00\\x03ROW\\x01FQ\\x00" + // case.13
+    "\\x00\\x00\\x00\\x00\\x00\\x00\\x01\\x04V\\x01"), Bytes.toBytesBinary("\\x00\\x00\\x00\\x11\\x00\\x00\\x00\\x01\\x00\\x03ROW\\x01FQ\\x00" + // case.14
+    "\\x00\\x00\\x00\\x00\\x00\\x00\\x01\\x04V\\x00\\x01"), Bytes.toBytesBinary("\\x00\\x00\\x00\\x11\\x00\\x00\\x00\\x01\\x00\\x03ROW\\x01FQ\\x00" + // case.15
+    "\\x00\\x00\\x00\\x00\\x00\\x00\\x01\\x04V\\x00\\x04\\x00\\x03\\x00A"), // case.16
+    Bytes.toBytesBinary("\\x00\\x00\\x00\\x11\\x00\\x00\\x00\\x01\\x00\\x03ROW\\x01FQ\\x00" + "\\x00\\x00\\x00\\x00\\x00\\x00\\x01\\x04V\\x00\\x0A\\x00\\x04\\x00TAG\\x00\\x04" + "\\xFFT"), Bytes.toBytesBinary("\\x00\\x00\\x00\\x11\\x00\\x00\\x00\\x01\\x00\\x03ROW\\x01FQ\\x00" + "\\x00\\x00\\x00\\x00\\x00\\x00\\x01\\x04V\\x00\\x0C\\x00\\x04\\x00TAG\\x00\\x05" + // case.17
+    "\\xF0COME\\x00"), Bytes.toBytesBinary("\\x00\\x00\\x00\\x11\\x00\\x00\\x00\\x01\\x00\\x03ROW\\x01FQ\\x00" + "\\x00\\x00\\x00\\x00\\x00\\x00\\x01\\x04V\\x00\\x0C\\x00\\x04\\x00TAG\\x00\\x05" + // case.18
+    "\\xF0COME"), Bytes.toBytesBinary("\\x00\\x00\\x00\\x11\\x00\\x00\\x00\\x01\\x00\\x03ROW\\x01FQ\\x00" + // case.19
+    "\\x00\\x00\\x00\\x00\\x00\\x00\\x01\\x04V\\x00\\x00"), Bytes.toBytesBinary("\\x00\\x00\\x00\\x11\\x00\\x00\\x00\\x01\\x00\\x03ROW\\x01FQ\\x00" + "\\x00\\x00\\x00\\x00\\x00\\x00\\x01\\x04V\\x00\\x1B\\x00\\x05\\x01TAG1\\x00\\x05" + // case.20
+    "\\x02TAG2\\x00\\x05\\x03TAG3\\x00\\x05\\x04TAG4") };
+    String[] withTagsOutputs = new String[] { "Overflow when reading tags length at position=26", "Invalid tags length in KeyValue at position=26", "Invalid tag length at position=28, tagLength=3", "Invalid tag length at position=34, tagLength=4", "Some redundant bytes in KeyValue's buffer, startOffset=41, endOffset=42", null, null, null };
+    assertEquals(inputs.length, outputs.length);
+    assertEquals(withTagsInputs.length, withTagsOutputs.length);
+    FailureCase[] cases = new FailureCase[inputs.length + withTagsInputs.length];
+    for (int i = 0; i < inputs.length; i++) {
+        cases[i] = new FailureCase(inputs[i], 0, inputs[i].length, false, outputs[i]);
+    }
+    for (int i = 0; i < withTagsInputs.length; i++) {
+        cases[inputs.length + i] = new FailureCase(withTagsInputs[i], 0, withTagsInputs[i].length, true, withTagsOutputs[i]);
+    }
+    for (int i = 0; i < cases.length; i++) {
+        FailureCase c = cases[i];
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream os = new DataOutputStream(baos);
+        ByteBufferUtils.putInt(os, c.length);
+        os.write(c.buf, c.offset, c.length);
+        try {
+            KeyValueUtil.createKeyValueFromInputStream(new DataInputStream(new ByteArrayInputStream(baos.toByteArray())), c.withTags);
+            if (c.expectedMessage != null) {
+                fail("Should fail when parse key value from an invalid bytes for case#" + i + ". " + c);
+            }
+        } catch (IllegalArgumentException e) {
+            assertEquals("Case#" + i + " failed," + c, c.getExpectedMessage(), e.getMessage());
+        }
+    }
+}

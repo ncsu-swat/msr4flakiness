@@ -1,0 +1,24 @@
+@Test
+public void TestLRUPolicy() {
+    // start by filling the dictionary up with byte arrays
+    for (int i = 0; i < Short.MAX_VALUE; i++) {
+        testee.findEntry((BigInteger.valueOf(i)).toByteArray(), 0, (BigInteger.valueOf(i)).toByteArray().length);
+    }
+    // check we have the first element added
+    assertTrue(testee.findEntry(BigInteger.ZERO.toByteArray(), 0, BigInteger.ZERO.toByteArray().length) != -1);
+    // check for an element we know isn't there
+    assertTrue(testee.findEntry(BigInteger.valueOf(Integer.MAX_VALUE).toByteArray(), 0, BigInteger.valueOf(Integer.MAX_VALUE).toByteArray().length) == -1);
+    // since we just checked for this element, it should be there now.
+    assertTrue(testee.findEntry(BigInteger.valueOf(Integer.MAX_VALUE).toByteArray(), 0, BigInteger.valueOf(Integer.MAX_VALUE).toByteArray().length) != -1);
+    // test eviction, that the least recently added or looked at element is
+    // evicted.  We looked at ZERO so it should be in the dictionary still.
+    assertTrue(testee.findEntry(BigInteger.ZERO.toByteArray(), 0, BigInteger.ZERO.toByteArray().length) != -1);
+    // Now go from beyond 1 to the end.
+    for (int i = 1; i < Short.MAX_VALUE; i++) {
+        assertTrue(testee.findEntry(BigInteger.valueOf(i).toByteArray(), 0, BigInteger.valueOf(i).toByteArray().length) == -1);
+    }
+    // check we can find all of these.
+    for (int i = 0; i < Short.MAX_VALUE; i++) {
+        assertTrue(testee.findEntry(BigInteger.valueOf(i).toByteArray(), 0, BigInteger.valueOf(i).toByteArray().length) != -1);
+    }
+}

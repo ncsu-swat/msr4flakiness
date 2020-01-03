@@ -1,0 +1,12 @@
+@Test
+void responseCommitted() throws Exception {
+    this.filter.addErrorPages(new ErrorPage("/error"));
+    this.response.setCommitted(true);
+    this.chain = new TestFilterChain((request, response, chain) -> response.sendError(400, "BAD"));
+    this.filter.doFilter(this.request, this.response, this.chain);
+    assertThat(this.chain.getRequest()).isEqualTo(this.request);
+    assertThat(((HttpServletResponseWrapper) this.chain.getResponse()).getResponse()).isEqualTo(this.response);
+    assertThat(((HttpServletResponseWrapper) this.chain.getResponse()).getStatus()).isEqualTo(400);
+    assertThat(this.response.getForwardedUrl()).isNull();
+    assertThat(this.response.isCommitted()).isTrue();
+}

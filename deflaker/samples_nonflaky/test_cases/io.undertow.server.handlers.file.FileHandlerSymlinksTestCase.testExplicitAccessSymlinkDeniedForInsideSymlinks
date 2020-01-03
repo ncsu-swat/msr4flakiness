@@ -1,0 +1,27 @@
+@Test
+public void testExplicitAccessSymlinkDeniedForInsideSymlinks() throws IOException, URISyntaxException {
+    TestHttpClient client = new TestHttpClient();
+    Path rootPath = Paths.get(getClass().getResource("page.html").toURI()).getParent();
+    Path newSymlink = rootPath.resolve("newDir");
+    try {
+        DefaultServer.setRootHandler(new CanonicalPathHandler().setNext(new PathHandler().addPrefixPath("/path", new ResourceHandler(new PathResourceManager(newSymlink, 10485760, true, "")).setDirectoryListingEnabled(false).addWelcomeFiles("page.html"))));
+        /**
+         * This request should return a 200 code as not symbolic links on path
+         */
+        HttpGet get = new HttpGet(DefaultServer.getDefaultServerURL() + "/path/innerDir/page.html");
+        HttpResponse result = client.execute(get);
+        Assert.assertEquals(StatusCodes.OK, result.getStatusLine().getStatusCode());
+        final String response = HttpClientUtils.readResponse(result);
+        Header[] headers = result.getHeaders("Content-Type");
+        Assert.assertEquals("text/html", headers[0].getValue());
+        Assert.assertTrue(response, response.contains("A web page"));
+        /**
+         * This request should return a 404 error, followLinks is true, but empty "" safePaths forbids all symbolics paths
+         */
+        get = new HttpGet(DefaultServer.getDefaultServerURL() + "/path/innerSymlink/page.html");
+        result = client.execute(get);
+        Assert.assertEquals(StatusCodes.NOT_FOUND, result.getStatusLine().getStatusCode());
+    } finally {
+        client.getConnectionManager().shutdown();
+    }
+}

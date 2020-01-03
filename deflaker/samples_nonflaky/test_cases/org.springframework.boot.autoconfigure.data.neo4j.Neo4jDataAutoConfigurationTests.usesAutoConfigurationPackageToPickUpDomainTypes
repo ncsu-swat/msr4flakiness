@@ -1,0 +1,14 @@
+@Test
+void usesAutoConfigurationPackageToPickUpDomainTypes() {
+    AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
+    context.setClassLoader(new FilteredClassLoader(EmbeddedDriver.class));
+    String cityPackage = City.class.getPackage().getName();
+    AutoConfigurationPackages.register(context, cityPackage);
+    context.register(Neo4jDataAutoConfiguration.class, Neo4jRepositoriesAutoConfiguration.class);
+    try {
+        context.refresh();
+        assertDomainTypesDiscovered(context.getBean(Neo4jMappingContext.class), City.class);
+    } finally {
+        context.close();
+    }
+}

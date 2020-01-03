@@ -1,0 +1,51 @@
+@Test
+void jettyMaxHttpFormPostSizeMatchesDefault() throws Exception {
+    JettyServletWebServerFactory jettyFactory = new JettyServletWebServerFactory(0);
+    JettyWebServer jetty = (JettyWebServer) jettyFactory.getWebServer((ServletContextInitializer) (servletContext) -> servletContext.addServlet("formPost", new HttpServlet() {
+
+        @Override
+        protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+            req.getParameterMap();
+        }
+    }).addMapping("/form"));
+    jetty.start();
+    org.eclipse.jetty.server.Connector connector = jetty.getServer().getConnectors()[0];
+    final AtomicReference<Throwable> failure = new AtomicReference<>();
+    connector.addBean(new HttpChannel.Listener() {
+
+        @Override
+        public void onDispatchFailure(Request request, Throwable ex) {
+            failure.set(ex);
+        }
+    });
+    try {
+        RestTemplate template = new RestTemplate();
+        template.setErrorHandler(new ResponseErrorHandler() {
+
+            @Override
+            public boolean hasError(ClientHttpResponse response) throws IOException {
+                return false;
+            }
+
+            @Override
+            public void handleError(ClientHttpResponse response) throws IOException {
+            }
+        });
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        StringBuilder data = new StringBuilder();
+        for (int i = 0; i < 250000; i++) {
+            data.append("a");
+        }
+        body.add("data", data.toString());
+        HttpEntity<MultiValueMap<String, Object>> entity = new HttpEntity<>(body, headers);
+        template.postForEntity(URI.create("http://localhost:" + jetty.getPort() + "/form"), entity, Void.class);
+        assertThat(failure.get()).isNotNull();
+        String message = failure.get().getCause().getMessage();
+        int defaultMaxPostSize = Integer.valueOf(message.substring(message.lastIndexOf(' ')).trim());
+        assertThat(this.properties.getJetty().getMaxHttpFormPostSize().toBytes()).isEqualTo(defaultMaxPostSize);
+    } finally {
+        jetty.stop();
+    }
+}

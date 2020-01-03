@@ -1,0 +1,12 @@
+@Test
+void validatorWithCustomJsr303ValidatorExposedAsSpringValidator() {
+    this.contextRunner.withConfiguration(AutoConfigurations.of(ValidationAutoConfiguration.class)).withUserConfiguration(CustomJsr303Validator.class).run((context) -> {
+        assertThat(context).doesNotHaveBean(ValidatorFactory.class);
+        assertThat(context).getBeanNames(javax.validation.Validator.class).containsOnly("customJsr303Validator");
+        assertThat(context).getBeanNames(Validator.class).containsOnly("mvcValidator");
+        Validator validator = context.getBean(Validator.class);
+        assertThat(validator).isInstanceOf(ValidatorAdapter.class);
+        Validator target = ((ValidatorAdapter) validator).getTarget();
+        assertThat(ReflectionTestUtils.getField(target, "targetValidator")).isSameAs(context.getBean("customJsr303Validator"));
+    });
+}

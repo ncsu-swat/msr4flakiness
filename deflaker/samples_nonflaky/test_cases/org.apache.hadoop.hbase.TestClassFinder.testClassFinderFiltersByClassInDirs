@@ -1,0 +1,19 @@
+@Test
+public void testClassFinderFiltersByClassInDirs() throws Exception {
+    // Make some classes for us to find.  Class naming and packaging is kinda cryptic.
+    // TODO: Fix.
+    final long counter = testCounter.incrementAndGet();
+    final String classNamePrefix = name.getMethodName();
+    String pkgNameSuffix = name.getMethodName();
+    LOG.info("Created jar " + createAndLoadJar(pkgNameSuffix, classNamePrefix, counter));
+    final Class<?> clazz = makeClass(pkgNameSuffix, classNamePrefix, counter);
+    final ClassFinder.ClassFilter notThisFilter = c -> c != clazz;
+    String pkgName = makePackageName(pkgNameSuffix, counter);
+    ClassFinder allClassesFinder = new ClassFinder(classLoader);
+    Set<Class<?>> allClasses = allClassesFinder.findClasses(pkgName, false);
+    assertTrue("Classes in " + pkgName, allClasses.size() > 0);
+    ClassFinder notThisClassFinder = new ClassFinder(null, null, notThisFilter, classLoader);
+    Set<Class<?>> notAllClasses = notThisClassFinder.findClasses(pkgName, false);
+    assertFalse(contains(notAllClasses, clazz.getSimpleName()));
+    assertEquals(allClasses.size() - 1, notAllClasses.size());
+}

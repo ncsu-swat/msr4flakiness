@@ -1,0 +1,9 @@
+@Test
+void testRedisConfigurationWithCluster() {
+    List<String> clusterNodes = Arrays.asList("127.0.0.1:27379", "127.0.0.1:27380");
+    this.contextRunner.withPropertyValues("spring.redis.cluster.nodes[0]:" + clusterNodes.get(0), "spring.redis.cluster.nodes[1]:" + clusterNodes.get(1)).run((context) -> {
+        RedisClusterConfiguration clusterConfiguration = context.getBean(LettuceConnectionFactory.class).getClusterConfiguration();
+        assertThat(clusterConfiguration.getClusterNodes()).hasSize(2);
+        assertThat(clusterConfiguration.getClusterNodes()).extracting((node) -> node.getHost() + ":" + node.getPort()).containsExactlyInAnyOrder("127.0.0.1:27379", "127.0.0.1:27380");
+    });
+}

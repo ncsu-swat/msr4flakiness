@@ -1,0 +1,12 @@
+@Test
+void defaultRollingFileNamePattern() throws JoranException {
+    JoranConfigurator configurator = new JoranConfigurator();
+    LoggerContext context = new LoggerContext();
+    configurator.setContext(context);
+    configurator.doConfigure(new File("src/test/resources/custom-file-log-pattern.xml"));
+    Appender<ILoggingEvent> appender = context.getLogger("ROOT").getAppender("FILE");
+    assertThat(appender).isInstanceOf(RollingFileAppender.class);
+    RollingPolicy rollingPolicy = ((RollingFileAppender<?>) appender).getRollingPolicy();
+    String fileNamePattern = ((SizeAndTimeBasedRollingPolicy) rollingPolicy).getFileNamePattern();
+    assertThat(fileNamePattern).endsWith("spring.log.%d{yyyy-MM-dd}.%i.gz");
+}

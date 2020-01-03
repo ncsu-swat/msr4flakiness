@@ -1,0 +1,11 @@
+@Test
+public void shouldTakePrecedenceOverContextValues() throws IOException {
+    shouldCompileTo("{{#goodbyes as |value|}}{{value}}{{/goodbyes}}{{value}}", $("value", "foo"), $("goodbyes", new Helper<Object>() {
+
+        @Override
+        public Object apply(final Object context, final Options options) throws IOException {
+            assertEquals(1, options.blockParams.size());
+            return options.apply(options.fn, $("value", "bar"), Arrays.<Object>asList(1, 2));
+        }
+    }), "1foo");
+}

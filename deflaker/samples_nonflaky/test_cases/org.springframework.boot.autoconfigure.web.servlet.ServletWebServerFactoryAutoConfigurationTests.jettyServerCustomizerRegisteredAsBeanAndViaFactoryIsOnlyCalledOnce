@@ -1,0 +1,10 @@
+@Test
+void jettyServerCustomizerRegisteredAsBeanAndViaFactoryIsOnlyCalledOnce() {
+    WebApplicationContextRunner runner = new WebApplicationContextRunner(AnnotationConfigServletWebServerApplicationContext::new).withClassLoader(new FilteredClassLoader(Tomcat.class, HttpServer.class)).withConfiguration(AutoConfigurations.of(ServletWebServerFactoryAutoConfiguration.class)).withUserConfiguration(DoubleRegistrationJettyServerCustomizerConfiguration.class).withPropertyValues("server.port: 0");
+    runner.run((context) -> {
+        JettyServletWebServerFactory factory = context.getBean(JettyServletWebServerFactory.class);
+        JettyServerCustomizer customizer = context.getBean("serverCustomizer", JettyServerCustomizer.class);
+        assertThat(factory.getServerCustomizers()).contains(customizer);
+        verify(customizer, times(1)).customize(any(Server.class));
+    });
+}

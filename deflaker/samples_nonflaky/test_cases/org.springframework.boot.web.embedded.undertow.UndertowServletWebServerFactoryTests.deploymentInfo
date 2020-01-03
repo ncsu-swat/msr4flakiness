@@ -1,0 +1,13 @@
+@Test
+void deploymentInfo() {
+    UndertowServletWebServerFactory factory = getFactory();
+    UndertowDeploymentInfoCustomizer[] customizers = new UndertowDeploymentInfoCustomizer[4];
+    Arrays.setAll(customizers, (i) -> mock(UndertowDeploymentInfoCustomizer.class));
+    factory.setDeploymentInfoCustomizers(Arrays.asList(customizers[0], customizers[1]));
+    factory.addDeploymentInfoCustomizers(customizers[2], customizers[3]);
+    this.webServer = factory.getWebServer();
+    InOrder ordered = inOrder((Object[]) customizers);
+    for (UndertowDeploymentInfoCustomizer customizer : customizers) {
+        ordered.verify(customizer).customize(any(DeploymentInfo.class));
+    }
+}

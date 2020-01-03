@@ -1,0 +1,13 @@
+@Test
+void autoConfigurationWhenKeyLocationAndIssuerUriPresentShouldUseIssuerUri() throws Exception {
+    this.server = new MockWebServer();
+    this.server.start();
+    String issuer = this.server.url("").toString();
+    String cleanIssuerPath = cleanIssuerPath(issuer);
+    setupMockResponse(cleanIssuerPath);
+    this.contextRunner.withPropertyValues("spring.security.oauth2.resourceserver.jwt.issuer-uri=http://" + this.server.getHostName() + ":" + this.server.getPort(), "spring.security.oauth2.resourceserver.jwt.public-key-location=classpath:public-key-location").run((context) -> {
+        assertThat(context).hasSingleBean(NimbusReactiveJwtDecoder.class);
+        assertFilterConfiguredWithJwtAuthenticationManager(context);
+        assertThat(context.containsBean("jwtDecoderByIssuerUri")).isTrue();
+    });
+}

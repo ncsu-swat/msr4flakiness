@@ -1,0 +1,20 @@
+@Test
+@SuppressWarnings("unchecked")
+void callbacksInvokeWhenMultipleShouldInvokeSuitable() {
+    List<GenericFactory<?>> callbackInstances = new ArrayList<>();
+    GenericFactory<String> callback1 = (s) -> 1;
+    GenericFactory<CharSequence> callback2 = (s) -> 2;
+    GenericFactory<StringBuilder> callback3 = (s) -> 3;
+    StringFactory callback4 = mock(StringFactory.class);
+    given(callback4.handle(any(String.class))).willReturn(4);
+    StringBuilderFactory callback5 = mock(StringBuilderFactory.class);
+    given(callback5.handle(any(StringBuilder.class))).willReturn(5);
+    callbackInstances.add(callback1);
+    callbackInstances.add(callback2);
+    callbackInstances.add(callback3);
+    callbackInstances.add(callback4);
+    callbackInstances.add(callback5);
+    String argument = "foo";
+    Stream<Integer> result = LambdaSafe.callbacks(GenericFactory.class, callbackInstances, argument).invokeAnd((c) -> c.handle(argument));
+    assertThat(result).containsExactly(1, 2, 4);
+}

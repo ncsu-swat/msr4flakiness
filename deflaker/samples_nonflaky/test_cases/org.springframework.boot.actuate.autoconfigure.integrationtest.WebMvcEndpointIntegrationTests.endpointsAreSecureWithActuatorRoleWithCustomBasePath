@@ -1,0 +1,9 @@
+@Test
+void endpointsAreSecureWithActuatorRoleWithCustomBasePath() throws Exception {
+    TestSecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken("user", "N/A", "ROLE_ACTUATOR"));
+    this.context = new AnnotationConfigServletWebApplicationContext();
+    this.context.register(SecureConfiguration.class);
+    TestPropertyValues.of("management.endpoints.web.base-path:/management", "management.endpoints.web.exposure.include=*").applyTo(this.context);
+    MockMvc mockMvc = createSecureMockMvc();
+    mockMvc.perform(get("/management/beans")).andExpect(status().isOk());
+}

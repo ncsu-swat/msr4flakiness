@@ -1,0 +1,12 @@
+@Test
+void reactiveWebMappings() {
+    new ReactiveWebApplicationContextRunner().withUserConfiguration(EndpointConfiguration.class, ReactiveWebConfiguration.class).run((context) -> {
+        ContextMappings contextMappings = contextMappings(context);
+        assertThat(contextMappings.getParentId()).isNull();
+        assertThat(contextMappings.getMappings()).containsOnlyKeys("dispatcherHandlers");
+        Map<String, List<DispatcherHandlerMappingDescription>> dispatcherHandlers = mappings(contextMappings, "dispatcherHandlers");
+        assertThat(dispatcherHandlers).containsOnlyKeys("webHandler");
+        List<DispatcherHandlerMappingDescription> handlerMappings = dispatcherHandlers.get("webHandler");
+        assertThat(handlerMappings).hasSize(3);
+    });
+}

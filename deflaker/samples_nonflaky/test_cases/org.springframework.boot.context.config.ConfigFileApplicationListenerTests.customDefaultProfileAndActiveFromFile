@@ -1,0 +1,12 @@
+@Test
+void customDefaultProfileAndActiveFromFile() {
+    // gh-5998
+    SpringApplication application = new SpringApplication(Config.class);
+    application.setWebApplicationType(WebApplicationType.NONE);
+    this.context = application.run("--spring.config.name=customprofile", "--spring.profiles.default=customdefault");
+    ConfigurableEnvironment environment = this.context.getEnvironment();
+    assertThat(environment.containsProperty("customprofile")).isTrue();
+    assertThat(environment.containsProperty("customprofile-specific")).isTrue();
+    assertThat(environment.containsProperty("customprofile-customdefault")).isTrue();
+    assertThat(environment.acceptsProfiles(Profiles.of("customdefault"))).isTrue();
+}

@@ -1,0 +1,27 @@
+@Test
+public void testAvlTreeIterSeekTo() {
+    final int MIN_KEY = 1;
+    final int MAX_KEY = 50;
+    TestAvlNode root = null;
+    for (int i = MIN_KEY; i < MAX_KEY; i += 2) {
+        root = AvlTree.insert(root, new TestAvlNode(i));
+    }
+    for (int i = MIN_KEY - 1; i < MAX_KEY + 1; ++i) {
+        AvlTreeIterator<TestAvlNode> iter = new AvlTreeIterator<>(root, i, KEY_COMPARATOR);
+        if (i < MAX_KEY) {
+            assertTrue(iter.hasNext());
+        } else {
+            // searching for something greater than the last node
+            assertFalse(iter.hasNext());
+            break;
+        }
+        TestAvlNode node = iter.next();
+        assertEquals((i % 2 == 0) ? i + 1 : i, node.getKey());
+        long prevKey = node.getKey();
+        while (iter.hasNext()) {
+            node = iter.next();
+            assertTrue(node.getKey() > prevKey);
+            prevKey = node.getKey();
+        }
+    }
+}

@@ -1,0 +1,11 @@
+@Test
+void validateTokenWhenExpiredShouldThrowException() throws Exception {
+    given(this.securityService.fetchTokenKeys()).willReturn(Mono.just(VALID_KEYS));
+    given(this.securityService.getUaaUrl()).willReturn(Mono.just("http://localhost:8080/uaa"));
+    String header = "{ \"alg\": \"RS256\",  \"kid\": \"valid-key\", \"typ\": \"JWT\"}";
+    String claims = "{ \"jti\": \"0236399c350c47f3ae77e67a75e75e7d\", \"exp\": 1477509977, \"scope\": [\"actuator.read\"]}";
+    StepVerifier.create(this.tokenValidator.validate(new Token(getSignedToken(header.getBytes(), claims.getBytes())))).consumeErrorWith((ex) -> {
+        assertThat(ex).isExactlyInstanceOf(CloudFoundryAuthorizationException.class);
+        assertThat(((CloudFoundryAuthorizationException) ex).getReason()).isEqualTo(Reason.TOKEN_EXPIRED);
+    }).verify();
+}

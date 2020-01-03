@@ -1,0 +1,25 @@
+@Test
+public void testBasic() {
+    Random rand = new Random();
+    byte[] testBytes = new byte[10];
+    rand.nextBytes(testBytes);
+    // Verify that our randomly generated array doesn't exist in the dictionary
+    assertEquals(-1, testee.findEntry(testBytes, 0, testBytes.length));
+    // now since we looked up an entry, we should have added it to the
+    // dictionary, so it isn't empty
+    assertFalse(isDictionaryEmpty(testee));
+    // Check if we can find it using findEntry
+    short t = testee.findEntry(testBytes, 0, testBytes.length);
+    // Making sure we do find what we're looking for
+    assertTrue(t != -1);
+    byte[] testBytesCopy = new byte[20];
+    Bytes.putBytes(testBytesCopy, 10, testBytes, 0, testBytes.length);
+    // copy byte arrays, make sure that we check that equal byte arrays are
+    // equal without just checking the reference
+    assertEquals(testee.findEntry(testBytesCopy, 10, testBytes.length), t);
+    // make sure the entry retrieved is the same as the one put in
+    assertTrue(Arrays.equals(testBytes, testee.getEntry(t)));
+    testee.clear();
+    // making sure clear clears the dictionary
+    assertTrue(isDictionaryEmpty(testee));
+}

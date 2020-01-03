@@ -1,0 +1,11 @@
+@Test
+void shutdownHookCanBeRegistered() throws Exception {
+    TestLoggingApplicationListener listener = new TestLoggingApplicationListener();
+    System.setProperty(LoggingSystem.class.getName(), TestShutdownHandlerLoggingSystem.class.getName());
+    addPropertiesToEnvironment(this.context, "logging.register_shutdown_hook=true");
+    multicastEvent(listener, new ApplicationStartingEvent(new SpringApplication(), NO_ARGS));
+    listener.initialize(this.context.getEnvironment(), this.context.getClassLoader());
+    assertThat(listener.shutdownHook).isNotNull();
+    listener.shutdownHook.start();
+    assertThat(TestShutdownHandlerLoggingSystem.shutdownLatch.await(30, TimeUnit.SECONDS)).isTrue();
+}

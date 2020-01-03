@@ -1,0 +1,34 @@
+@Test
+public void testArrayBasedMethods() {
+    byte[] b = new byte[15];
+    ByteBuffer bb1 = ByteBuffer.wrap(b, 1, 10).slice();
+    ByteBuffer bb2 = ByteBuffer.allocate(15);
+    ByteBuff mbb1 = new MultiByteBuff(bb1, bb2);
+    assertFalse(mbb1.hasArray());
+    try {
+        mbb1.array();
+        fail();
+    } catch (UnsupportedOperationException e) {
+    }
+    try {
+        mbb1.arrayOffset();
+        fail();
+    } catch (UnsupportedOperationException e) {
+    }
+    mbb1 = new SingleByteBuff(bb1);
+    assertTrue(mbb1.hasArray());
+    assertEquals(1, mbb1.arrayOffset());
+    assertEquals(b, mbb1.array());
+    mbb1 = new SingleByteBuff(ByteBuffer.allocateDirect(10));
+    assertFalse(mbb1.hasArray());
+    try {
+        mbb1.array();
+        fail();
+    } catch (UnsupportedOperationException e) {
+    }
+    try {
+        mbb1.arrayOffset();
+        fail();
+    } catch (UnsupportedOperationException e) {
+    }
+}

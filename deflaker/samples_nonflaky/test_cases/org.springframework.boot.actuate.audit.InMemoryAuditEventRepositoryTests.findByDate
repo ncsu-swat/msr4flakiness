@@ -1,0 +1,18 @@
+@Test
+void findByDate() {
+    Instant instant = Instant.now();
+    Map<String, Object> data = new HashMap<>();
+    InMemoryAuditEventRepository repository = new InMemoryAuditEventRepository();
+    repository.add(new AuditEvent(instant, "dave", "a", data));
+    repository.add(new AuditEvent(instant.plus(1, ChronoUnit.DAYS), "phil", "b", data));
+    repository.add(new AuditEvent(instant.plus(2, ChronoUnit.DAYS), "dave", "c", data));
+    repository.add(new AuditEvent(instant.plus(3, ChronoUnit.DAYS), "phil", "d", data));
+    Instant after = instant.plus(1, ChronoUnit.DAYS);
+    List<AuditEvent> events = repository.find(null, after, null);
+    assertThat(events.size()).isEqualTo(2);
+    assertThat(events.get(0).getType()).isEqualTo("c");
+    assertThat(events.get(1).getType()).isEqualTo("d");
+    events = repository.find("dave", after, null);
+    assertThat(events.size()).isEqualTo(1);
+    assertThat(events.get(0).getType()).isEqualTo("c");
+}

@@ -1,0 +1,16 @@
+@Test
+void sessionIdGeneratorIsConfiguredWithAttributesFromTheManager() {
+    System.setProperty("jvmRoute", "test");
+    try {
+        TomcatServletWebServerFactory factory = getFactory();
+        this.webServer = factory.getWebServer();
+        this.webServer.start();
+    } finally {
+        System.clearProperty("jvmRoute");
+    }
+    Tomcat tomcat = ((TomcatWebServer) this.webServer).getTomcat();
+    Context context = (Context) tomcat.getHost().findChildren()[0];
+    SessionIdGenerator sessionIdGenerator = context.getManager().getSessionIdGenerator();
+    assertThat(sessionIdGenerator).isInstanceOf(LazySessionIdGenerator.class);
+    assertThat(sessionIdGenerator.getJvmRoute()).isEqualTo("test");
+}

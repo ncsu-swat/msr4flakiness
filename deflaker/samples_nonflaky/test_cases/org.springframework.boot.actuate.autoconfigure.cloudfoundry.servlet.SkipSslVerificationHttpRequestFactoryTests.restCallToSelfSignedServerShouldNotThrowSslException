@@ -1,0 +1,10 @@
+@Test
+void restCallToSelfSignedServerShouldNotThrowSslException() {
+    String httpsUrl = getHttpsUrl();
+    SkipSslVerificationHttpRequestFactory requestFactory = new SkipSslVerificationHttpRequestFactory();
+    RestTemplate restTemplate = new RestTemplate(requestFactory);
+    RestTemplate otherRestTemplate = new RestTemplate();
+    ResponseEntity<String> responseEntity = restTemplate.getForEntity(httpsUrl, String.class);
+    assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThatExceptionOfType(ResourceAccessException.class).isThrownBy(() -> otherRestTemplate.getForEntity(httpsUrl, String.class)).withCauseInstanceOf(SSLHandshakeException.class);
+}

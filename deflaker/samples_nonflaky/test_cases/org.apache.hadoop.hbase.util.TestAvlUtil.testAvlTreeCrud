@@ -1,0 +1,38 @@
+@Test
+public void testAvlTreeCrud() {
+    final int MAX_KEY = 99999999;
+    final int NELEM = 10000;
+    final TreeMap<Integer, Object> treeMap = new TreeMap<>();
+    TestAvlNode root = null;
+    final Random rand = new Random();
+    for (int i = 0; i < NELEM; ++i) {
+        int key = rand.nextInt(MAX_KEY);
+        if (AvlTree.get(root, key, KEY_COMPARATOR) != null) {
+            i--;
+            continue;
+        }
+        root = AvlTree.insert(root, new TestAvlNode(key));
+        treeMap.put(key, null);
+        for (Integer keyX : treeMap.keySet()) {
+            TestAvlNode node = AvlTree.get(root, keyX, KEY_COMPARATOR);
+            assertNotNull(node);
+            assertEquals(keyX.intValue(), node.getKey());
+        }
+    }
+    for (int i = 0; i < NELEM; ++i) {
+        int key = rand.nextInt(MAX_KEY);
+        TestAvlNode node = AvlTree.get(root, key, KEY_COMPARATOR);
+        if (!treeMap.containsKey(key)) {
+            assert node == null;
+            continue;
+        }
+        treeMap.remove(key);
+        assertEquals(key, node.getKey());
+        root = AvlTree.remove(root, key, KEY_COMPARATOR);
+        for (Integer keyX : treeMap.keySet()) {
+            node = AvlTree.get(root, keyX, KEY_COMPARATOR);
+            assertNotNull(node);
+            assertEquals(keyX.intValue(), node.getKey());
+        }
+    }
+}

@@ -1,0 +1,12 @@
+@Test
+void bindToMapWithNumberKeyAndCommaSeparated() {
+    Bindable<List<String>> listBindable = Bindable.listOf(String.class);
+    Bindable<Map<Integer, List<String>>> target = getMapBindable(Integer.class, listBindable.getType());
+    MockConfigurationPropertySource mockSource = new MockConfigurationPropertySource();
+    mockSource.put("foo[0]", "a,b,c");
+    mockSource.put("foo[1]", "e,f,g");
+    this.sources.add(mockSource);
+    Map<Integer, List<String>> map = this.binder.bind("foo", target).get();
+    assertThat(map.get(0)).containsExactly("a", "b", "c");
+    assertThat(map.get(1)).containsExactly("e", "f", "g");
+}

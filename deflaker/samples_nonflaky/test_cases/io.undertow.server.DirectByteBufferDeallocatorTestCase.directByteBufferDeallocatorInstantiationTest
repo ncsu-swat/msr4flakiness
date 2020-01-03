@@ -1,0 +1,25 @@
+@Test
+public void directByteBufferDeallocatorInstantiationTest() {
+    Exception exception = null;
+    Policy.setPolicy(new Policy() {
+
+        @Override
+        public boolean implies(ProtectionDomain pd, Permission perm) {
+            return true;
+        }
+    });
+    System.setSecurityManager(new SecurityManager());
+    try {
+        DirectByteBufferDeallocator.free(null);
+    } catch (Exception e) {
+        exception = e;
+    }
+    Assert.assertNull("An exception was thrown with security manager enabled", exception);
+    System.setSecurityManager(null);
+    try {
+        DirectByteBufferDeallocator.free(null);
+    } catch (Exception e) {
+        exception = e;
+    }
+    Assert.assertNull("An exception was thrown without security manager enabled", exception);
+}

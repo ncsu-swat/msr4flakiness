@@ -1,0 +1,16 @@
+@Test
+void bindToInstanceShouldBindToInstance() {
+    MockConfigurationPropertySource source = new MockConfigurationPropertySource();
+    source.put("foo.int-value", "12");
+    source.put("foo.long-value", "34");
+    source.put("foo.string-value", "foo");
+    source.put("foo.enum-value", "foo-bar");
+    this.sources.add(source);
+    ExampleValueBean bean = new ExampleValueBean();
+    ExampleValueBean boundBean = this.binder.bind("foo", Bindable.of(ExampleValueBean.class).withExistingValue(bean)).get();
+    assertThat(boundBean).isSameAs(bean);
+    assertThat(bean.getIntValue()).isEqualTo(12);
+    assertThat(bean.getLongValue()).isEqualTo(34);
+    assertThat(bean.getStringValue()).isEqualTo("foo");
+    assertThat(bean.getEnumValue()).isEqualTo(ExampleEnum.FOO_BAR);
+}

@@ -1,0 +1,8 @@
+@Test
+void validateTokenWhenSignatureInvalidShouldThrowException() throws Exception {
+    ReflectionTestUtils.setField(this.tokenValidator, "tokenKeys", Collections.singletonMap("valid-key", INVALID_KEY));
+    given(this.securityService.getUaaUrl()).willReturn("http://localhost:8080/uaa");
+    String header = "{ \"alg\": \"RS256\",  \"kid\": \"valid-key\",\"typ\": \"JWT\"}";
+    String claims = "{ \"exp\": 2147483647, \"iss\": \"http://localhost:8080/uaa/oauth/token\", \"scope\": [\"actuator.read\"]}";
+    assertThatExceptionOfType(CloudFoundryAuthorizationException.class).isThrownBy(() -> this.tokenValidator.validate(new Token(getSignedToken(header.getBytes(), claims.getBytes())))).satisfies(reasonRequirement(Reason.INVALID_SIGNATURE));
+}

@@ -1,0 +1,37 @@
+@Test
+public void testCongestion() throws Exception {
+    final int THREAD_COUNT = 100;
+    final AtomicBoolean assertionFailed = new AtomicBoolean();
+    final AtomicReference<Object> expectedObjRef = new AtomicReference<>();
+    final CountDownLatch prepareLatch = new CountDownLatch(THREAD_COUNT);
+    final CountDownLatch startLatch = new CountDownLatch(1);
+    final CountDownLatch endLatch = new CountDownLatch(THREAD_COUNT);
+    for (int i = 0; i < THREAD_COUNT; i++) {
+        new Thread() {
+
+            @Override
+            public void run() {
+                prepareLatch.countDown();
+                try {
+                    startLatch.await();
+                    Object obj = pool.get("a");
+                    if (!expectedObjRef.compareAndSet(null, obj)) {
+                        if (expectedObjRef.get() != obj) {
+                            assertionFailed.set(true);
+                        }
+                    }
+                } catch (Exception e) {
+                    assertionFailed.set(true);
+                } finally {
+                    endLatch.countDown();
+                }
+            }
+        }.start();
+    }
+    prepareLatch.await();
+    startLatch.countDown();
+    endLatch.await();
+    if (assertionFailed.get()) {
+        Assert.fail();
+    }
+}

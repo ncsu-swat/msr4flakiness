@@ -1,0 +1,44 @@
+@Test
+public void testReads() throws Exception {
+    ByteArrayOutputStream bos = new ByteArrayOutputStream(100);
+    DataOutputStream dos = new DataOutputStream(bos);
+    String s = "test";
+    int i = 128;
+    dos.write(1);
+    dos.writeInt(i);
+    dos.writeBytes(s);
+    dos.writeLong(12345L);
+    dos.writeShort(2);
+    dos.flush();
+    ByteBuffer bb = ByteBuffer.wrap(bos.toByteArray());
+    // bbis contains 19 bytes
+    // 1 byte, 4 bytes int, 4 bytes string, 8 bytes long and 2 bytes short
+    ByteBuffInputStream bbis = new ByteBuffInputStream(new MultiByteBuff(bb));
+    assertEquals(15 + s.length(), bbis.available());
+    assertEquals(1, bbis.read());
+    byte[] ib = new byte[4];
+    bbis.read(ib);
+    assertEquals(i, Bytes.toInt(ib));
+    byte[] sb = new byte[s.length()];
+    bbis.read(sb);
+    assertEquals(s, Bytes.toString(sb));
+    byte[] lb = new byte[8];
+    bbis.read(lb);
+    assertEquals(12345, Bytes.toLong(lb));
+    assertEquals(2, bbis.available());
+    ib = new byte[4];
+    int read = bbis.read(ib, 0, ib.length);
+    // We dont have 4 bytes remainig but only 2. So onlt those should be returned back
+    assertEquals(2, read);
+    assertEquals(2, Bytes.toShort(ib));
+    assertEquals(0, bbis.available());
+    // At end. The read() should return -1
+    assertEquals(-1, bbis.read());
+    bbis.close();
+    bb = ByteBuffer.wrap(bos.toByteArray());
+    bbis = new ByteBuffInputStream(new MultiByteBuff(bb));
+    DataInputStream dis = new DataInputStream(bbis);
+    dis.read();
+    assertEquals(i, dis.readInt());
+    dis.close();
+}

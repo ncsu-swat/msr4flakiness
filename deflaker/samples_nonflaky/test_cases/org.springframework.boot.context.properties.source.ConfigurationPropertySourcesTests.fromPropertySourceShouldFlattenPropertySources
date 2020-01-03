@@ -1,0 +1,17 @@
+@Test
+void fromPropertySourceShouldFlattenPropertySources() {
+    StandardEnvironment environment = new StandardEnvironment();
+    environment.getPropertySources().addFirst(new MapPropertySource("foo", Collections.singletonMap("foo", "bar")));
+    environment.getPropertySources().addFirst(new MapPropertySource("far", Collections.singletonMap("far", "far")));
+    MutablePropertySources sources = new MutablePropertySources();
+    sources.addFirst(new PropertySource<Environment>("env", environment) {
+
+        @Override
+        public String getProperty(String key) {
+            return this.source.getProperty(key);
+        }
+    });
+    sources.addLast(new MapPropertySource("baz", Collections.singletonMap("baz", "barf")));
+    Iterable<ConfigurationPropertySource> configurationSources = ConfigurationPropertySources.from(sources);
+    assertThat(configurationSources.iterator()).toIterable().hasSize(5);
+}

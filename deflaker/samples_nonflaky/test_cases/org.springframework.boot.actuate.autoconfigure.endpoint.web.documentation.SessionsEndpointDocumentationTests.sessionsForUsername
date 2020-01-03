@@ -1,0 +1,9 @@
+@Test
+void sessionsForUsername() throws Exception {
+    Map<String, Session> sessions = new HashMap<>();
+    sessions.put(sessionOne.getId(), sessionOne);
+    sessions.put(sessionTwo.getId(), sessionTwo);
+    sessions.put(sessionThree.getId(), sessionThree);
+    given(this.sessionRepository.findByPrincipalName("alice")).willReturn(sessions);
+    this.mockMvc.perform(get("/actuator/sessions").param("username", "alice")).andExpect(status().isOk()).andDo(document("sessions/username", responseFields(fieldWithPath("sessions").description("Sessions for the given username.")).andWithPrefix("sessions.[].", sessionFields), requestParameters(parameterWithName("username").description("Name of the user."))));
+}

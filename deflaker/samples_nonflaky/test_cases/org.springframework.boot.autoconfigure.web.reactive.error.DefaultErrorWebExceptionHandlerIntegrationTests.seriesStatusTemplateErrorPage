@@ -1,0 +1,8 @@
+@Test
+void seriesStatusTemplateErrorPage() {
+    this.contextRunner.withPropertyValues("server.error.whitelabel.enabled=false", "spring.mustache.prefix=" + getErrorTemplatesLocation()).run((context) -> {
+        WebTestClient client = getWebClient(context);
+        String body = client.get().uri("/badRequest").accept(MediaType.TEXT_HTML).exchange().expectStatus().isBadRequest().expectBody(String.class).returnResult().getResponseBody();
+        assertThat(body).contains("4xx page");
+    });
+}

@@ -1,0 +1,48 @@
+@Test
+public void testMetrics() throws IOException, InterruptedException {
+    MetricsHandler metricsHandler;
+    CompletionLatchHandler latchHandler;
+    DefaultServer.setRootHandler(latchHandler = new CompletionLatchHandler(metricsHandler = new MetricsHandler(new HttpHandler() {
+
+        @Override
+        public void handleRequest(HttpServerExchange exchange) throws Exception {
+            Thread.sleep(100);
+            if (exchange.getQueryString().contains("error")) {
+                throw new RuntimeException();
+            }
+            exchange.getResponseSender().send("Hello");
+        }
+    })));
+    HttpGet get = new HttpGet(DefaultServer.getDefaultServerURL() + "/path");
+    TestHttpClient client = new TestHttpClient();
+    try {
+        HttpResponse result = client.execute(get);
+        Assert.assertEquals(StatusCodes.OK, result.getStatusLine().getStatusCode());
+        Assert.assertEquals("Hello", HttpClientUtils.readResponse(result));
+        latchHandler.await();
+        latchHandler.reset();
+        MetricsHandler.MetricResult metrics = metricsHandler.getMetrics();
+        Assert.assertEquals(1, metrics.getTotalRequests());
+        Assert.assertTrue(metrics.getMaxRequestTime() > 0);
+        Assert.assertEquals(metrics.getMinRequestTime(), metrics.getMaxRequestTime());
+        Assert.assertEquals(metrics.getMaxRequestTime(), metrics.getTotalRequestTime());
+        result = client.execute(get);
+        Assert.assertEquals(StatusCodes.OK, result.getStatusLine().getStatusCode());
+        Assert.assertEquals("Hello", HttpClientUtils.readResponse(result));
+        latchHandler.await();
+        latchHandler.reset();
+        metrics = metricsHandler.getMetrics();
+        Assert.assertEquals(2, metrics.getTotalRequests());
+        Assert.assertEquals(0, metrics.getTotalErrors());
+        result = client.execute(new HttpGet(DefaultServer.getDefaultServerURL() + "/path?error=true"));
+        Assert.assertEquals(StatusCodes.INTERNAL_SERVER_ERROR, result.getStatusLine().getStatusCode());
+        HttpClientUtils.readResponse(result);
+        latchHandler.await();
+        latchHandler.reset();
+        metrics = metricsHandler.getMetrics();
+        Assert.assertEquals(3, metrics.getTotalRequests());
+        Assert.assertEquals(1, metrics.getTotalErrors());
+    } finally {
+        client.getConnectionManager().shutdown();
+    }
+}

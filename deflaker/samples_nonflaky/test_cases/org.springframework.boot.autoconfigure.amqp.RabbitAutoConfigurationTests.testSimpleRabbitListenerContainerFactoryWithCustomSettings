@@ -1,0 +1,11 @@
+@Test
+void testSimpleRabbitListenerContainerFactoryWithCustomSettings() {
+    this.contextRunner.withUserConfiguration(MessageConvertersConfiguration.class, MessageRecoverersConfiguration.class).withPropertyValues("spring.rabbitmq.listener.simple.retry.enabled:true", "spring.rabbitmq.listener.simple.retry.maxAttempts:4", "spring.rabbitmq.listener.simple.retry.initialInterval:2000", "spring.rabbitmq.listener.simple.retry.multiplier:1.5", "spring.rabbitmq.listener.simple.retry.maxInterval:5000", "spring.rabbitmq.listener.simple.autoStartup:false", "spring.rabbitmq.listener.simple.acknowledgeMode:manual", "spring.rabbitmq.listener.simple.concurrency:5", "spring.rabbitmq.listener.simple.maxConcurrency:10", "spring.rabbitmq.listener.simple.prefetch:40", "spring.rabbitmq.listener.simple.defaultRequeueRejected:false", "spring.rabbitmq.listener.simple.idleEventInterval:5", "spring.rabbitmq.listener.simple.batchSize:20", "spring.rabbitmq.listener.simple.missingQueuesFatal:false").run((context) -> {
+        SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory = context.getBean("rabbitListenerContainerFactory", SimpleRabbitListenerContainerFactory.class);
+        assertThat(rabbitListenerContainerFactory).hasFieldOrPropertyWithValue("concurrentConsumers", 5);
+        assertThat(rabbitListenerContainerFactory).hasFieldOrPropertyWithValue("maxConcurrentConsumers", 10);
+        assertThat(rabbitListenerContainerFactory).hasFieldOrPropertyWithValue("batchSize", 20);
+        assertThat(rabbitListenerContainerFactory).hasFieldOrPropertyWithValue("missingQueuesFatal", false);
+        checkCommonProps(context, rabbitListenerContainerFactory);
+    });
+}

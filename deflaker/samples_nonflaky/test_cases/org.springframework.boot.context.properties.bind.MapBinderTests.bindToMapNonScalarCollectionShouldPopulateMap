@@ -1,0 +1,13 @@
+@Test
+void bindToMapNonScalarCollectionShouldPopulateMap() {
+    Bindable<List<JavaBean>> valueType = Bindable.listOf(JavaBean.class);
+    Bindable<Map<String, List<JavaBean>>> target = getMapBindable(String.class, valueType.getType());
+    MockConfigurationPropertySource source = new MockConfigurationPropertySource();
+    source.put("foo.bar[0].value", "a");
+    source.put("foo.bar[1].value", "b");
+    source.put("foo.bar[2].value", "c");
+    this.sources.add(source);
+    Map<String, List<JavaBean>> map = this.binder.bind("foo", target).get();
+    List<String> values = map.get("bar").stream().map(JavaBean::getValue).collect(Collectors.toList());
+    assertThat(values).containsExactly("a", "b", "c");
+}

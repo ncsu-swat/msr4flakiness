@@ -1,0 +1,12 @@
+// gh-18354
+@Test
+void runCreatesLegacyHealthAggregator() {
+    this.contextRunner.run((context) -> {
+        HealthAggregator aggregator = context.getBean(HealthAggregator.class);
+        Map<String, Health> healths = new LinkedHashMap<>();
+        healths.put("one", Health.up().build());
+        healths.put("two", Health.down().build());
+        Health result = aggregator.aggregate(healths);
+        assertThat(result.getStatus()).isEqualTo(Status.DOWN);
+    });
+}

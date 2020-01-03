@@ -1,0 +1,14 @@
+@Test
+void incrementalBuildTypeRenamed() throws Exception {
+    TestProject project = new TestProject(this.tempDir, FooProperties.class, BarProperties.class);
+    ConfigurationMetadata metadata = project.fullBuild();
+    assertThat(metadata).has(Metadata.withProperty("foo.counter").fromSource(FooProperties.class).withDefaultValue(0));
+    assertThat(metadata).has(Metadata.withProperty("bar.counter").fromSource(BarProperties.class).withDefaultValue(0));
+    assertThat(metadata).doesNotHave(Metadata.withProperty("bar.counter").fromSource(RenamedBarProperties.class));
+    project.delete(BarProperties.class);
+    project.add(RenamedBarProperties.class);
+    metadata = project.incrementalBuild(RenamedBarProperties.class);
+    assertThat(metadata).has(Metadata.withProperty("foo.counter").fromSource(FooProperties.class).withDefaultValue(0));
+    assertThat(metadata).doesNotHave(Metadata.withProperty("bar.counter").fromSource(BarProperties.class).withDefaultValue(0));
+    assertThat(metadata).has(Metadata.withProperty("bar.counter").withDefaultValue(0).fromSource(RenamedBarProperties.class));
+}

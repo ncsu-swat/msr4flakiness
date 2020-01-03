@@ -1,0 +1,15 @@
+@Test
+void customizerShouldBeAppliedAtTheEnd() {
+    ResponseErrorHandler errorHandler = mock(ResponseErrorHandler.class);
+    ClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory();
+    this.builder.interceptors(this.interceptor).messageConverters(this.messageConverter).rootUri("http://localhost:8080").errorHandler(errorHandler).basicAuthentication("spring", "boot").requestFactory(() -> requestFactory).customizers((restTemplate) -> {
+        assertThat(restTemplate.getInterceptors()).hasSize(1);
+        assertThat(restTemplate.getMessageConverters()).contains(this.messageConverter);
+        assertThat(restTemplate.getUriTemplateHandler()).isInstanceOf(RootUriTemplateHandler.class);
+        assertThat(restTemplate.getErrorHandler()).isEqualTo(errorHandler);
+        ClientHttpRequestFactory actualRequestFactory = restTemplate.getRequestFactory();
+        assertThat(actualRequestFactory).isInstanceOf(InterceptingClientHttpRequestFactory.class);
+        ClientHttpRequestInitializer initializer = restTemplate.getClientHttpRequestInitializers().get(0);
+        assertThat(initializer).isInstanceOf(RestTemplateBuilderClientHttpRequestInitializer.class);
+    }).build();
+}

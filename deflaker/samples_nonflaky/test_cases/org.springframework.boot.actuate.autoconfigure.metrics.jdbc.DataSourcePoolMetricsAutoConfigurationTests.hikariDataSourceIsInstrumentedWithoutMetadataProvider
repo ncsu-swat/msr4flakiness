@@ -1,0 +1,9 @@
+@Test
+void hikariDataSourceIsInstrumentedWithoutMetadataProvider() {
+    this.contextRunner.withUserConfiguration(OneHikariDataSourceConfiguration.class).run((context) -> {
+        assertThat(context).doesNotHaveBean(DataSourcePoolMetadataProvider.class);
+        context.getBean("hikariDataSource", DataSource.class).getConnection();
+        MeterRegistry registry = context.getBean(MeterRegistry.class);
+        assertThat(registry.get("hikaricp.connections").meter().getId().getTags()).containsExactly(Tag.of("pool", "hikariDataSource"));
+    });
+}

@@ -1,0 +1,11 @@
+@Test
+void yamlSetsProfiles() {
+    this.initializer.setSearchNames("testsetprofiles");
+    this.initializer.postProcessEnvironment(this.environment, this.application);
+    assertThat(this.environment.getActiveProfiles()).containsExactly("dev");
+    String property = this.environment.getProperty("my.property");
+    assertThat(this.environment.getActiveProfiles()).contains("dev");
+    assertThat(property).isEqualTo("fromdevprofile");
+    List<String> names = StreamSupport.stream(this.environment.getPropertySources().spliterator(), false).map(org.springframework.core.env.PropertySource::getName).collect(Collectors.toList());
+    assertThat(names).contains("applicationConfig: [classpath:/testsetprofiles.yml] (document #0)", "applicationConfig: [classpath:/testsetprofiles.yml] (document #1)");
+}

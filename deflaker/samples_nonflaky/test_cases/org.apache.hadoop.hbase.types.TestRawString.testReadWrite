@@ -1,0 +1,18 @@
+@Test
+public void testReadWrite() {
+    for (final Order ord : new Order[] { Order.ASCENDING, Order.DESCENDING }) {
+        final RawString type = Order.ASCENDING == ord ? new RawString(Order.ASCENDING) : new RawString(Order.DESCENDING);
+        for (final String val : VALUES) {
+            final PositionedByteRange buff = new SimplePositionedMutableByteRange(Bytes.toBytes(val).length);
+            assertEquals(buff.getLength(), type.encode(buff, val));
+            final byte[] expected = Bytes.toBytes(val);
+            ord.apply(expected);
+            assertArrayEquals(expected, buff.getBytes());
+            buff.setPosition(0);
+            assertEquals(val, type.decode(buff));
+            buff.setPosition(0);
+            assertEquals(buff.getLength(), type.skip(buff));
+            assertEquals(buff.getLength(), buff.getPosition());
+        }
+    }
+}

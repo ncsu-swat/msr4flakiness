@@ -1,0 +1,12 @@
+@Test
+void flywayDataSource() {
+    this.contextRunner.withUserConfiguration(FlywayDataSourceConfiguration.class, EmbeddedDataSourceConfiguration.class).run((context) -> {
+        assertThat(context).hasSingleBean(Flyway.class);
+        assertThat(context.getBean(Flyway.class).getConfiguration().getDataSource()).isEqualTo(context.getBean("flywayDataSource"));
+    });
+}
+@FlywayDataSource
+@Bean
+DataSource flywayDataSource() {
+    return DataSourceBuilder.create().url("jdbc:hsqldb:mem:flywaytest").username("sa").build();
+}

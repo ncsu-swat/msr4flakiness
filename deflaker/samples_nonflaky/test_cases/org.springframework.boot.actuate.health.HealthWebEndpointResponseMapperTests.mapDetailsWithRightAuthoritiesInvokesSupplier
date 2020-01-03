@@ -1,0 +1,11 @@
+@Test
+void mapDetailsWithRightAuthoritiesInvokesSupplier() {
+    HealthWebEndpointResponseMapper mapper = createMapper(ShowDetails.WHEN_AUTHORIZED);
+    Supplier<Health> supplier = mockSupplier();
+    given(supplier.get()).willReturn(Health.down().build());
+    SecurityContext securityContext = getSecurityContext("ACTUATOR");
+    WebEndpointResponse<Health> response = mapper.mapDetails(supplier, securityContext);
+    assertThat(response.getStatus()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE.value());
+    assertThat(response.getBody().getStatus()).isEqualTo(Status.DOWN);
+    verify(supplier).get();
+}

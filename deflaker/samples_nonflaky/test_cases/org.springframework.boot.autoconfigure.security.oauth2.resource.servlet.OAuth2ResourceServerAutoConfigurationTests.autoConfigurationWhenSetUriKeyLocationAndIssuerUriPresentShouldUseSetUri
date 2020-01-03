@@ -1,0 +1,9 @@
+@Test
+void autoConfigurationWhenSetUriKeyLocationAndIssuerUriPresentShouldUseSetUri() {
+    this.contextRunner.withPropertyValues("spring.security.oauth2.resourceserver.jwt.issuer-uri=https://issuer-uri.com", "spring.security.oauth2.resourceserver.jwt.public-key-location=classpath:public-key-location", "spring.security.oauth2.resourceserver.jwt.jwk-set-uri=https://jwk-set-uri.com").run((context) -> {
+        assertThat(context).hasSingleBean(JwtDecoder.class);
+        assertThat(getBearerTokenFilter(context)).isNotNull();
+        assertThat(context.containsBean("jwtDecoderByJwkKeySetUri")).isTrue();
+        assertThat(context.containsBean("jwtDecoderByIssuerUri")).isFalse();
+    });
+}

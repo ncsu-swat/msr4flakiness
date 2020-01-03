@@ -1,0 +1,27 @@
+@Test
+public void testPlainCompare() throws Exception {
+    final byte[] a = Bytes.toBytes("aaa");
+    final byte[] b = Bytes.toBytes("bbb");
+    final byte[] fam = Bytes.toBytes("col");
+    final byte[] qf = Bytes.toBytes("umn");
+    KeyValue aaa = new KeyValue(a, fam, qf, a);
+    KeyValue bbb = new KeyValue(b, fam, qf, b);
+    assertTrue(CellComparatorImpl.COMPARATOR.compare(aaa, bbb) < 0);
+    assertTrue(CellComparatorImpl.COMPARATOR.compare(bbb, aaa) > 0);
+    // Compare breaks if passed same ByteBuffer as both left and right arguments.
+    assertTrue(CellComparatorImpl.COMPARATOR.compare(bbb, bbb) == 0);
+    assertTrue(CellComparatorImpl.COMPARATOR.compare(aaa, aaa) == 0);
+    // Do compare with different timestamps.
+    aaa = new KeyValue(a, fam, qf, 1, a);
+    bbb = new KeyValue(a, fam, qf, 2, a);
+    assertTrue(CellComparatorImpl.COMPARATOR.compare(aaa, bbb) > 0);
+    assertTrue(CellComparatorImpl.COMPARATOR.compare(bbb, aaa) < 0);
+    assertTrue(CellComparatorImpl.COMPARATOR.compare(aaa, aaa) == 0);
+    // Do compare with different types.  Higher numbered types -- Delete
+    // should sort ahead of lower numbers; i.e. Put
+    aaa = new KeyValue(a, fam, qf, 1, KeyValue.Type.Delete, a);
+    bbb = new KeyValue(a, fam, qf, 1, a);
+    assertTrue(CellComparatorImpl.COMPARATOR.compare(aaa, bbb) < 0);
+    assertTrue(CellComparatorImpl.COMPARATOR.compare(bbb, aaa) > 0);
+    assertTrue(CellComparatorImpl.COMPARATOR.compare(aaa, aaa) == 0);
+}

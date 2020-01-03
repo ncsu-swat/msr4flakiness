@@ -1,0 +1,17 @@
+@Test
+public void testFrequencyOfChores() throws InterruptedException {
+    final int period = 100;
+    // Small delta that acts as time buffer (allowing chores to complete if running slowly)
+    final int delta = period / 5;
+    ChoreService service = new ChoreService("testFrequencyOfChores");
+    CountingChore chore = new CountingChore("countingChore", period);
+    try {
+        service.scheduleChore(chore);
+        Thread.sleep(10 * period + delta);
+        assertEquals("10 periods have elapsed.", 11, chore.getCountOfChoreCalls());
+        Thread.sleep(10 * period + delta);
+        assertEquals("20 periods have elapsed.", 21, chore.getCountOfChoreCalls());
+    } finally {
+        shutdownService(service);
+    }
+}

@@ -1,0 +1,14 @@
+@Test
+void multipleScriptsAppliedInLexicalOrder() {
+    new ApplicationContextRunner(() -> {
+        AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
+        context.setResourceLoader(new ReverseOrderResourceLoader(new DefaultResourceLoader()));
+        return context;
+    }).withConfiguration(AutoConfigurations.of(DataSourceAutoConfiguration.class)).withPropertyValues("spring.datasource.initialization-mode=always", "spring.datasource.url:jdbc:hsqldb:mem:testdb-" + new Random().nextInt(), "spring.datasource.schema:classpath*:" + getRelativeLocationFor("lexical-schema-*.sql"), "spring.datasource.data:classpath*:" + getRelativeLocationFor("data.sql")).run((context) -> {
+        DataSource dataSource = context.getBean(DataSource.class);
+        assertThat(dataSource).isInstanceOf(HikariDataSource.class);
+        assertThat(dataSource).isNotNull();
+        JdbcOperations template = new JdbcTemplate(dataSource);
+        assertThat(template.queryForObject("SELECT COUNT(*) from FOO", Integer.class)).isEqualTo(1);
+    });
+}

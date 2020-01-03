@@ -1,0 +1,22 @@
+@Test
+void servletAndFilterBeans() {
+    addWebServerFactoryBean();
+    Servlet servlet = mock(Servlet.class);
+    Filter filter1 = mock(Filter.class, withSettings().extraInterfaces(Ordered.class));
+    given(((Ordered) filter1).getOrder()).willReturn(1);
+    Filter filter2 = mock(Filter.class, withSettings().extraInterfaces(Ordered.class));
+    given(((Ordered) filter2).getOrder()).willReturn(2);
+    this.context.registerBeanDefinition("servletBean", beanDefinition(servlet));
+    this.context.registerBeanDefinition("filterBean2", beanDefinition(filter2));
+    this.context.registerBeanDefinition("filterBean1", beanDefinition(filter1));
+    this.context.refresh();
+    MockServletWebServerFactory factory = getWebServerFactory();
+    ServletContext servletContext = factory.getServletContext();
+    InOrder ordered = inOrder(servletContext);
+    verify(factory.getServletContext()).addServlet("servletBean", servlet);
+    verify(factory.getRegisteredServlet(0).getRegistration()).addMapping("/");
+    ordered.verify(factory.getServletContext()).addFilter("filterBean1", filter1);
+    ordered.verify(factory.getServletContext()).addFilter("filterBean2", filter2);
+    verify(factory.getRegisteredFilter(0).getRegistration()).addMappingForUrlPatterns(EnumSet.of(DispatcherType.REQUEST), false, "/*");
+    verify(factory.getRegisteredFilter(1).getRegistration()).addMappingForUrlPatterns(EnumSet.of(DispatcherType.REQUEST), false, "/*");
+}

@@ -1,0 +1,8 @@
+@Test
+void autoConfiguredNonSupportedCacheManagerIsIgnored() {
+    this.contextRunner.withPropertyValues("spring.cache.type=simple", "spring.cache.cache-names=cache1,cache2").run((context) -> {
+        MeterRegistry registry = context.getBean(MeterRegistry.class);
+        assertThat(registry.find("cache.gets").tags("name", "cache1").tags("cacheManager", "cacheManager").meter()).isNull();
+        assertThat(registry.find("cache.gets").tags("name", "cache2").tags("cacheManager", "cacheManager").meter()).isNull();
+    });
+}

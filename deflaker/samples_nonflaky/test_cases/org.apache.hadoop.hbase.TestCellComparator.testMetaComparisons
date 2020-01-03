@@ -1,0 +1,18 @@
+/**
+ * Test meta comparisons using our new ByteBufferKeyValue Cell type, the type we use everywhere
+ * in 2.0.
+ */
+@Test
+public void testMetaComparisons() throws Exception {
+    long now = System.currentTimeMillis();
+    // Meta compares
+    Cell aaa = createByteBufferKeyValueFromKeyValue(new KeyValue(Bytes.toBytes("TestScanMultipleVersions,row_0500,1236020145502"), now));
+    Cell bbb = createByteBufferKeyValueFromKeyValue(new KeyValue(Bytes.toBytes("TestScanMultipleVersions,,99999999999999"), now));
+    CellComparator c = CellComparatorImpl.META_COMPARATOR;
+    assertTrue(c.compare(bbb, aaa) < 0);
+    Cell ccc = createByteBufferKeyValueFromKeyValue(new KeyValue(Bytes.toBytes("TestScanMultipleVersions,,1236023996656"), Bytes.toBytes("info"), Bytes.toBytes("regioninfo"), 1236024396271L, (byte[]) null));
+    assertTrue(c.compare(ccc, bbb) < 0);
+    Cell x = createByteBufferKeyValueFromKeyValue(new KeyValue(Bytes.toBytes("TestScanMultipleVersions,row_0500,1236034574162"), Bytes.toBytes("info"), Bytes.toBytes(""), 9223372036854775807L, (byte[]) null));
+    Cell y = createByteBufferKeyValueFromKeyValue(new KeyValue(Bytes.toBytes("TestScanMultipleVersions,row_0500,1236034574162"), Bytes.toBytes("info"), Bytes.toBytes("regioninfo"), 1236034574912L, (byte[]) null));
+    assertTrue(c.compare(x, y) < 0);
+}

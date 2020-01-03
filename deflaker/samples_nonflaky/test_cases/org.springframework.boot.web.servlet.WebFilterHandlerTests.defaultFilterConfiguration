@@ -1,0 +1,15 @@
+@SuppressWarnings("unchecked")
+@Test
+void defaultFilterConfiguration() throws IOException {
+    AnnotatedBeanDefinition definition = createBeanDefinition(DefaultConfigurationFilter.class);
+    this.handler.handle(definition, this.registry);
+    BeanDefinition filterRegistrationBean = this.registry.getBeanDefinition(DefaultConfigurationFilter.class.getName());
+    MutablePropertyValues propertyValues = filterRegistrationBean.getPropertyValues();
+    assertThat(propertyValues.get("asyncSupported")).isEqualTo(false);
+    assertThat((EnumSet<DispatcherType>) propertyValues.get("dispatcherTypes")).containsExactly(DispatcherType.REQUEST);
+    assertThat(((Map<String, String>) propertyValues.get("initParameters"))).isEmpty();
+    assertThat((String[]) propertyValues.get("servletNames")).isEmpty();
+    assertThat((String[]) propertyValues.get("urlPatterns")).isEmpty();
+    assertThat(propertyValues.get("name")).isEqualTo(DefaultConfigurationFilter.class.getName());
+    assertThat(propertyValues.get("filter")).isEqualTo(definition);
+}

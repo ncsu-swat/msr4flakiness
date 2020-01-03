@@ -1,0 +1,23 @@
+@Test
+public void testCompressByFramesDecompressWhole() throws Exception {
+    String raw = "Hello, World! This is a long input example data with a lot of content for testing";
+    byte[] compressed = new byte[raw.length() + 64];
+    byte[] decompressed = new byte[raw.length()];
+    int n = 0, total = 0;
+    // Compress Frame1
+    compress.setInput(raw.getBytes(), 0, 10);
+    n = compress.deflate(compressed, 0, compressed.length, Deflater.SYNC_FLUSH);
+    total += n;
+    // Compress Frame2
+    compress.setInput(raw.getBytes(), 10, 10);
+    n = compress.deflate(compressed, total, compressed.length - total, Deflater.SYNC_FLUSH);
+    total += n;
+    // Compress Frame3
+    compress.setInput(raw.getBytes(), 20, raw.getBytes().length - 20);
+    n = compress.deflate(compressed, total, compressed.length - total, Deflater.SYNC_FLUSH);
+    total += n;
+    // Uncompress
+    decompress.setInput(compressed, 0, total);
+    n = decompress.inflate(decompressed, 0, decompressed.length);
+    Assert.assertEquals(raw, new String(decompressed, 0, n, "UTF-8"));
+}

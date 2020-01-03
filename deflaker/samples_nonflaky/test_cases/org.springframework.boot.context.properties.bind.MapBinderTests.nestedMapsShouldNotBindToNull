@@ -1,0 +1,12 @@
+@Test
+void nestedMapsShouldNotBindToNull() {
+    MockConfigurationPropertySource source = new MockConfigurationPropertySource();
+    source.put("foo.value", "one");
+    source.put("foo.foos.foo1.value", "two");
+    source.put("foo.foos.foo2.value", "three");
+    this.sources.add(source);
+    BindResult<NestableFoo> foo = this.binder.bind("foo", NestableFoo.class);
+    assertThat(foo.get().getValue()).isNotNull();
+    assertThat(foo.get().getFoos().get("foo1").getValue()).isEqualTo("two");
+    assertThat(foo.get().getFoos().get("foo2").getValue()).isEqualTo("three");
+}

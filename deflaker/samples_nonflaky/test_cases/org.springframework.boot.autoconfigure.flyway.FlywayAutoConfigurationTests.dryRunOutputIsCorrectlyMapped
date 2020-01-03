@@ -1,0 +1,9 @@
+@Test
+void dryRunOutputIsCorrectlyMapped() {
+    this.contextRunner.withUserConfiguration(EmbeddedDataSourceConfiguration.class).withPropertyValues("spring.flyway.dryRunOutput=dryrun.sql").run((context) -> {
+        assertThat(context).hasFailed();
+        Throwable failure = context.getStartupFailure();
+        assertThat(failure).hasRootCauseInstanceOf(FlywayProUpgradeRequiredException.class);
+        assertThat(failure).hasMessageContaining(" dryRunOutput ");
+    });
+}

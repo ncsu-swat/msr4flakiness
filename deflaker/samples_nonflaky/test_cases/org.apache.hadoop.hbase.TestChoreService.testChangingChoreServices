@@ -1,0 +1,34 @@
+@Test
+public void testChangingChoreServices() throws InterruptedException {
+    final int period = 100;
+    final int sleepTime = 10;
+    ChoreService service1 = new ChoreService("testChangingChoreServices_1");
+    ChoreService service2 = new ChoreService("testChangingChoreServices_2");
+    ScheduledChore chore = new DoNothingChore("sample", period);
+    try {
+        assertFalse(chore.isScheduled());
+        assertFalse(service1.isChoreScheduled(chore));
+        assertFalse(service2.isChoreScheduled(chore));
+        assertTrue(chore.getChoreServicer() == null);
+        service1.scheduleChore(chore);
+        Thread.sleep(sleepTime);
+        assertTrue(chore.isScheduled());
+        assertTrue(service1.isChoreScheduled(chore));
+        assertFalse(service2.isChoreScheduled(chore));
+        assertFalse(chore.getChoreServicer() == null);
+        service2.scheduleChore(chore);
+        Thread.sleep(sleepTime);
+        assertTrue(chore.isScheduled());
+        assertFalse(service1.isChoreScheduled(chore));
+        assertTrue(service2.isChoreScheduled(chore));
+        assertFalse(chore.getChoreServicer() == null);
+        chore.cancel();
+        assertFalse(chore.isScheduled());
+        assertFalse(service1.isChoreScheduled(chore));
+        assertFalse(service2.isChoreScheduled(chore));
+        assertTrue(chore.getChoreServicer() == null);
+    } finally {
+        shutdownService(service1);
+        shutdownService(service2);
+    }
+}

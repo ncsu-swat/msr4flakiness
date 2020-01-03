@@ -1,0 +1,11 @@
+@Test
+void endpointPathCustomizationIsNotApplied() {
+    this.contextRunner.withBean(TestEndpoint.class, TestEndpoint::new).withPropertyValues("VCAP_APPLICATION:---", "vcap.application.application_id:my-app-id", "vcap.application.cf_api:https://my-cloud-controller.com").run((context) -> {
+        CloudFoundryWebFluxEndpointHandlerMapping handlerMapping = getHandlerMapping(context);
+        Collection<ExposableWebEndpoint> endpoints = handlerMapping.getEndpoints();
+        ExposableWebEndpoint endpoint = endpoints.stream().filter((candidate) -> EndpointId.of("test").equals(candidate.getEndpointId())).findFirst().get();
+        assertThat(endpoint.getOperations()).hasSize(1);
+        WebOperation operation = endpoint.getOperations().iterator().next();
+        assertThat(operation.getRequestPredicate().getPath()).isEqualTo("test");
+    });
+}

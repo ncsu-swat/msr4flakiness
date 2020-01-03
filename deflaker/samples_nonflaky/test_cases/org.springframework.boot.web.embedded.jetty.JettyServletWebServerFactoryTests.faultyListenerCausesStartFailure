@@ -1,0 +1,27 @@
+@Test
+void faultyListenerCausesStartFailure() throws Exception {
+    JettyServletWebServerFactory factory = getFactory();
+    factory.addServerCustomizers((JettyServerCustomizer) (server) -> {
+        Collection<WebAppContext> contexts = server.getBeans(WebAppContext.class);
+        contexts.iterator().next().addEventListener(new ServletContextListener() {
+
+            @Override
+            public void contextInitialized(ServletContextEvent event) {
+                throw new RuntimeException();
+            }
+
+            @Override
+            public void contextDestroyed(ServletContextEvent event) {
+            }
+        });
+    });
+    assertThatExceptionOfType(WebServerException.class).isThrownBy(() -> {
+        JettyWebServer jettyWebServer = (JettyWebServer) factory.getWebServer();
+        try {
+            jettyWebServer.start();
+        } finally {
+            QueuedThreadPool threadPool = (QueuedThreadPool) jettyWebServer.getServer().getThreadPool();
+            assertThat(threadPool.isRunning()).isFalse();
+        }
+    });
+}

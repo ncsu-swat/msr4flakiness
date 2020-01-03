@@ -1,0 +1,11 @@
+@Test
+public void testClassFinderHandlesConflicts() throws Exception {
+    long counter = testCounter.incrementAndGet();
+    FileAndPath c1 = compileTestClass(counter, "", "c1");
+    FileAndPath c2 = compileTestClass(counter, "", "c2");
+    packageAndLoadJar(c1, c2);
+    packageAndLoadJar(c1);
+    ClassFinder allClassesFinder = new ClassFinder(classLoader);
+    Set<Class<?>> allClasses = allClassesFinder.findClasses(makePackageName("", counter), false);
+    assertEquals(2, allClasses.size());
+}

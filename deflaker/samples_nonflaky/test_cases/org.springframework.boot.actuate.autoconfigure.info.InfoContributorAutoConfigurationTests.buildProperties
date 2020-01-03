@@ -1,0 +1,21 @@
+@SuppressWarnings("unchecked")
+@Test
+void buildProperties() {
+    load(BuildPropertiesConfiguration.class);
+    Map<String, InfoContributor> beans = this.context.getBeansOfType(InfoContributor.class);
+    assertThat(beans).containsKeys("buildInfoContributor");
+    Map<String, Object> content = invokeContributor(this.context.getBean("buildInfoContributor", InfoContributor.class));
+    Object build = content.get("build");
+    assertThat(build).isInstanceOf(Map.class);
+    Map<String, Object> buildInfo = (Map<String, Object>) build;
+    assertThat(buildInfo).containsOnlyKeys("group", "artifact", "foo");
+    assertThat(buildInfo.get("foo")).isEqualTo("bar");
+}
+@Bean
+BuildProperties buildProperties() {
+    Properties properties = new Properties();
+    properties.put("group", "com.example");
+    properties.put("artifact", "demo");
+    properties.put("foo", "bar");
+    return new BuildProperties(properties);
+}

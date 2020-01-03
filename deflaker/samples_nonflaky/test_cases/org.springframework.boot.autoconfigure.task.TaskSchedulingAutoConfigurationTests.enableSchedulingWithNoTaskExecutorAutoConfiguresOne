@@ -1,0 +1,12 @@
+@Test
+void enableSchedulingWithNoTaskExecutorAutoConfiguresOne() {
+    this.contextRunner.withPropertyValues("spring.task.scheduling.shutdown.await-termination=true", "spring.task.scheduling.shutdown.await-termination-period=30s", "spring.task.scheduling.thread-name-prefix=scheduling-test-").withUserConfiguration(SchedulingConfiguration.class).run((context) -> {
+        assertThat(context).hasSingleBean(TaskExecutor.class);
+        TaskExecutor taskExecutor = context.getBean(TaskExecutor.class);
+        TestBean bean = context.getBean(TestBean.class);
+        assertThat(bean.latch.await(30, TimeUnit.SECONDS)).isTrue();
+        assertThat(taskExecutor).hasFieldOrPropertyWithValue("waitForTasksToCompleteOnShutdown", true);
+        assertThat(taskExecutor).hasFieldOrPropertyWithValue("awaitTerminationSeconds", 30);
+        assertThat(bean.threadNames).allMatch((name) -> name.contains("scheduling-test-"));
+    });
+}

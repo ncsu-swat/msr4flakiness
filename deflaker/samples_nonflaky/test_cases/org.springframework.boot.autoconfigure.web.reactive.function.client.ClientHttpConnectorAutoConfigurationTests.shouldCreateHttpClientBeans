@@ -1,0 +1,11 @@
+@Test
+void shouldCreateHttpClientBeans() {
+    this.contextRunner.run((context) -> {
+        assertThat(context).hasSingleBean(ReactorResourceFactory.class);
+        assertThat(context).hasSingleBean(ReactorClientHttpConnector.class);
+        WebClientCustomizer clientCustomizer = context.getBean(WebClientCustomizer.class);
+        WebClient.Builder builder = mock(WebClient.Builder.class);
+        clientCustomizer.customize(builder);
+        verify(builder, times(1)).clientConnector(any(ReactorClientHttpConnector.class));
+    });
+}

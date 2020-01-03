@@ -1,0 +1,9 @@
+@Test
+void testDefaultContext() {
+    this.contextRunner.withUserConfiguration(TestConfiguration.class, EmbeddedDataSourceConfiguration.class).run((context) -> {
+        assertThat(context).hasSingleBean(JobLauncher.class);
+        assertThat(context).hasSingleBean(JobExplorer.class);
+        assertThat(context.getBean(BatchProperties.class).getInitializeSchema()).isEqualTo(DataSourceInitializationMode.EMBEDDED);
+        assertThat(new JdbcTemplate(context.getBean(DataSource.class)).queryForList("select * from BATCH_JOB_EXECUTION")).isEmpty();
+    });
+}

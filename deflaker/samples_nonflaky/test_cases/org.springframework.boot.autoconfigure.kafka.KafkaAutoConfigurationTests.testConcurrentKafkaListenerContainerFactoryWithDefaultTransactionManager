@@ -1,0 +1,8 @@
+@Test
+void testConcurrentKafkaListenerContainerFactoryWithDefaultTransactionManager() {
+    this.contextRunner.withPropertyValues("spring.kafka.producer.transaction-id-prefix=test").run((context) -> {
+        assertThat(context).hasSingleBean(KafkaAwareTransactionManager.class);
+        ConcurrentKafkaListenerContainerFactory<?, ?> factory = context.getBean(ConcurrentKafkaListenerContainerFactory.class);
+        assertThat(factory.getContainerProperties().getTransactionManager()).isSameAs(context.getBean(KafkaAwareTransactionManager.class));
+    });
+}

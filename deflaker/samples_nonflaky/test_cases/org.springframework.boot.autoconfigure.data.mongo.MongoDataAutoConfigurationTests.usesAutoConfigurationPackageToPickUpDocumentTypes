@@ -1,0 +1,13 @@
+@Test
+void usesAutoConfigurationPackageToPickUpDocumentTypes() {
+    AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
+    String cityPackage = City.class.getPackage().getName();
+    AutoConfigurationPackages.register(context, cityPackage);
+    context.register(MongoAutoConfiguration.class, MongoDataAutoConfiguration.class);
+    try {
+        context.refresh();
+        assertDomainTypesDiscovered(context.getBean(MongoMappingContext.class), City.class);
+    } finally {
+        context.close();
+    }
+}

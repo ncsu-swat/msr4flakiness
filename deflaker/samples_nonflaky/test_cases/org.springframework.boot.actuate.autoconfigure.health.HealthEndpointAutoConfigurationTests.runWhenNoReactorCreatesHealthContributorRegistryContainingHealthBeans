@@ -1,0 +1,9 @@
+@Test
+void runWhenNoReactorCreatesHealthContributorRegistryContainingHealthBeans() {
+    ClassLoader classLoader = new FilteredClassLoader(Mono.class, Flux.class);
+    this.contextRunner.withClassLoader(classLoader).run((context) -> {
+        HealthContributorRegistry registry = context.getBean(HealthContributorRegistry.class);
+        Object[] names = registry.stream().map(NamedContributor::getName).toArray();
+        assertThat(names).containsExactlyInAnyOrder("simple", "additional", "ping");
+    });
+}

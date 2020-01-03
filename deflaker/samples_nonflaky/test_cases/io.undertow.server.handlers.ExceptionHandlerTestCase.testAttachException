@@ -1,0 +1,37 @@
+@Test
+public void testAttachException() throws IOException {
+    HttpHandler pathHandler = Handlers.path().addExactPath("/", new HttpHandler() {
+
+        @Override
+        public void handleRequest(HttpServerExchange exchange) throws Exception {
+            throw new IllegalArgumentException();
+        }
+    });
+    final HttpHandler exceptionHandler = Handlers.exceptionHandler(pathHandler).addExceptionHandler(IllegalArgumentException.class, new HttpHandler() {
+
+        @Override
+        public void handleRequest(HttpServerExchange exchange) throws Exception {
+            exchange.getResponseSender().send("exception handled");
+        }
+    });
+    DefaultServer.setRootHandler(new HttpHandler() {
+
+        @Override
+        public void handleRequest(HttpServerExchange exchange) throws Exception {
+            Throwable throwable = exchange.getAttachment(ExceptionHandler.THROWABLE);
+            Assert.assertNull(throwable);
+            exceptionHandler.handleRequest(exchange);
+            throwable = exchange.getAttachment(ExceptionHandler.THROWABLE);
+            Assert.assertTrue(throwable instanceof IllegalArgumentException);
+        }
+    });
+    TestHttpClient client = new TestHttpClient();
+    try {
+        HttpGet get = new HttpGet(DefaultServer.getDefaultServerURL() + "/");
+        HttpResponse result = client.execute(get);
+        Assert.assertEquals(StatusCodes.OK, result.getStatusLine().getStatusCode());
+        Assert.assertEquals("exception handled", HttpClientUtils.readResponse(result));
+    } finally {
+        client.getConnectionManager().shutdown();
+    }
+}

@@ -1,0 +1,13 @@
+@Test
+void builderCustomizers() {
+    UndertowServletWebServerFactory factory = getFactory();
+    UndertowBuilderCustomizer[] customizers = new UndertowBuilderCustomizer[4];
+    Arrays.setAll(customizers, (i) -> mock(UndertowBuilderCustomizer.class));
+    factory.setBuilderCustomizers(Arrays.asList(customizers[0], customizers[1]));
+    factory.addBuilderCustomizers(customizers[2], customizers[3]);
+    this.webServer = factory.getWebServer();
+    InOrder ordered = inOrder((Object[]) customizers);
+    for (UndertowBuilderCustomizer customizer : customizers) {
+        ordered.verify(customizer).customize(any(Builder.class));
+    }
+}

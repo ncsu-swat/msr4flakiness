@@ -1,0 +1,16 @@
+@Test
+public void nullContextWithDefault() throws IOException {
+    Set<Helper<Object>> helpers = new LinkedHashSet<Helper<Object>>(Arrays.asList(StringHelpers.values()));
+    helpers.remove(StringHelpers.join);
+    helpers.remove(StringHelpers.yesno);
+    helpers.remove(StringHelpers.defaultIfEmpty);
+    String nothing = "nothing";
+    Options options = createMock(Options.class);
+    expect(options.isFalsy(anyObject())).andReturn(true).times(helpers.size() - 1);
+    expect(options.param(0, null)).andReturn(nothing).times(helpers.size());
+    replay(options);
+    for (Helper<Object> helper : helpers) {
+        assertEquals(nothing, helper.apply($, options));
+    }
+    verify(options);
+}

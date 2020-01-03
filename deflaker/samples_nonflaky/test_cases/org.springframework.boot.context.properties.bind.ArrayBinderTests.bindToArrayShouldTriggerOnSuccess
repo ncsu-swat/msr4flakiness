@@ -1,0 +1,10 @@
+@Test
+void bindToArrayShouldTriggerOnSuccess() {
+    this.sources.add(new MockConfigurationPropertySource("foo[0]", "1", "line1"));
+    BindHandler handler = mock(BindHandler.class, Answers.CALLS_REAL_METHODS);
+    Bindable<Integer[]> target = INTEGER_ARRAY;
+    this.binder.bind("foo", target, handler);
+    InOrder inOrder = inOrder(handler);
+    inOrder.verify(handler).onSuccess(eq(ConfigurationPropertyName.of("foo[0]")), eq(Bindable.of(Integer.class)), any(), eq(1));
+    inOrder.verify(handler).onSuccess(eq(ConfigurationPropertyName.of("foo")), eq(target), any(), isA(Integer[].class));
+}

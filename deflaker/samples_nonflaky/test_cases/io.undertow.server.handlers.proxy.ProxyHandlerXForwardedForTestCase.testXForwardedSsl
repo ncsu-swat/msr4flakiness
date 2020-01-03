@@ -1,0 +1,17 @@
+@Test
+public void testXForwardedSsl() throws Exception {
+    setProxyHandler(false, false);
+    TestHttpClient client = new TestHttpClient();
+    try {
+        client.setSSLContext(DefaultServer.getClientSSLContext());
+        HttpGet get = new HttpGet(DefaultServer.getDefaultServerSSLAddress() + "/x-forwarded");
+        HttpResponse result = client.execute(get);
+        Assert.assertEquals(StatusCodes.OK, result.getStatusLine().getStatusCode());
+        Assert.assertEquals(sslPort, Integer.parseInt(result.getFirstHeader(Headers.X_FORWARDED_PORT.toString()).getValue()));
+        Assert.assertEquals("https", result.getFirstHeader(Headers.X_FORWARDED_PROTO.toString()).getValue());
+        Assert.assertEquals("localhost", result.getFirstHeader(Headers.X_FORWARDED_HOST.toString()).getValue());
+        Assert.assertEquals(DefaultServer.getDefaultServerAddress().getAddress().getHostAddress(), result.getFirstHeader(Headers.X_FORWARDED_FOR.toString()).getValue());
+    } finally {
+        client.getConnectionManager().shutdown();
+    }
+}

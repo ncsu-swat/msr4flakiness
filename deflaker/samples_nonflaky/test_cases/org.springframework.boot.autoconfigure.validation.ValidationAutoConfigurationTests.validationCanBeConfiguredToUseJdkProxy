@@ -1,0 +1,9 @@
+@Test
+void validationCanBeConfiguredToUseJdkProxy() {
+    load(AnotherSampleServiceConfiguration.class, "spring.aop.proxy-target-class=false");
+    assertThat(this.context.getBeansOfType(Validator.class)).hasSize(1);
+    assertThat(this.context.getBeansOfType(DefaultAnotherSampleService.class)).isEmpty();
+    AnotherSampleService service = this.context.getBean(AnotherSampleService.class);
+    service.doSomething(42);
+    assertThatExceptionOfType(ConstraintViolationException.class).isThrownBy(() -> service.doSomething(2));
+}

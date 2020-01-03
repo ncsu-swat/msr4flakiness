@@ -1,0 +1,8 @@
+@Test
+void exactStatusTemplateErrorPage() {
+    this.contextRunner.withPropertyValues("server.error.whitelabel.enabled=false", "spring.mustache.prefix=" + getErrorTemplatesLocation()).run((context) -> {
+        WebTestClient client = getWebClient(context);
+        String body = client.get().uri("/notfound").accept(MediaType.TEXT_HTML).exchange().expectStatus().isNotFound().expectBody(String.class).returnResult().getResponseBody();
+        assertThat(body).contains("404 page");
+    });
+}

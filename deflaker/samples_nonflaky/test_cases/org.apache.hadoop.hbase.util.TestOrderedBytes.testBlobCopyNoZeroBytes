@@ -1,0 +1,15 @@
+/**
+ * Assert invalid input byte[] are rejected by BlobCopy
+ */
+@Test(expected = IllegalArgumentException.class)
+public void testBlobCopyNoZeroBytes() {
+    byte[] val = { 0x01, 0x02, 0x00, 0x03 };
+    // TODO: implementation detail leaked here.
+    byte[] ascExpected = { 0x38, 0x01, 0x02, 0x00, 0x03 };
+    PositionedByteRange buf = new SimplePositionedMutableByteRange(val.length + 1);
+    OrderedBytes.encodeBlobCopy(buf, val, Order.ASCENDING);
+    assertArrayEquals(ascExpected, buf.getBytes());
+    buf.set(val.length + 2);
+    OrderedBytes.encodeBlobCopy(buf, val, Order.DESCENDING);
+    fail("test should never get here.");
+}

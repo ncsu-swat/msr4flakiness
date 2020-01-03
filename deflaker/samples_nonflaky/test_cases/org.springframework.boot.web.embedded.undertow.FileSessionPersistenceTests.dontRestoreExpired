@@ -1,0 +1,13 @@
+@Test
+void dontRestoreExpired() {
+    Date expired = new Date(System.currentTimeMillis() - 1000);
+    Map<String, PersistentSession> sessionData = new LinkedHashMap<>();
+    Map<String, Object> data = new LinkedHashMap<>();
+    data.put("spring", "boot");
+    PersistentSession session = new PersistentSession(expired, data);
+    sessionData.put("abc", session);
+    this.persistence.persistSessions("test", sessionData);
+    Map<String, PersistentSession> restored = this.persistence.loadSessionAttributes("test", this.classLoader);
+    assertThat(restored).isNotNull();
+    assertThat(restored.containsKey("abc")).isFalse();
+}

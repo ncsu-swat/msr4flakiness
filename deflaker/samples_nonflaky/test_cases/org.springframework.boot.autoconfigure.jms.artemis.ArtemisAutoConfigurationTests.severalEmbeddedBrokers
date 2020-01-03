@@ -1,0 +1,16 @@
+@Test
+void severalEmbeddedBrokers() {
+    this.contextRunner.withUserConfiguration(EmptyConfiguration.class).withPropertyValues("spring.artemis.embedded.queues=Queue1").run((first) -> {
+        this.contextRunner.withPropertyValues("spring.artemis.embedded.queues=Queue2").run((second) -> {
+            ArtemisProperties firstProperties = first.getBean(ArtemisProperties.class);
+            ArtemisProperties secondProperties = second.getBean(ArtemisProperties.class);
+            assertThat(firstProperties.getEmbedded().getServerId()).isLessThan(secondProperties.getEmbedded().getServerId());
+            DestinationChecker firstChecker = new DestinationChecker(first);
+            firstChecker.checkQueue("Queue1", true);
+            firstChecker.checkQueue("Queue2", false);
+            DestinationChecker secondChecker = new DestinationChecker(second);
+            secondChecker.checkQueue("Queue1", false);
+            secondChecker.checkQueue("Queue2", true);
+        });
+    });
+}

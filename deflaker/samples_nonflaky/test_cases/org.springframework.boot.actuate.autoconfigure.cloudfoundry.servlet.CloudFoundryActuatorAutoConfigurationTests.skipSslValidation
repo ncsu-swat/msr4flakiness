@@ -1,0 +1,10 @@
+@Test
+void skipSslValidation() {
+    this.contextRunner.withPropertyValues("VCAP_APPLICATION:---", "vcap.application.application_id:my-app-id", "vcap.application.cf_api:https://my-cloud-controller.com", "management.cloudfoundry.skip-ssl-validation:true").run((context) -> {
+        CloudFoundryWebEndpointServletHandlerMapping handlerMapping = getHandlerMapping(context);
+        Object interceptor = ReflectionTestUtils.getField(handlerMapping, "securityInterceptor");
+        Object interceptorSecurityService = ReflectionTestUtils.getField(interceptor, "cloudFoundrySecurityService");
+        RestTemplate restTemplate = (RestTemplate) ReflectionTestUtils.getField(interceptorSecurityService, "restTemplate");
+        assertThat(restTemplate.getRequestFactory()).isInstanceOf(SkipSslVerificationHttpRequestFactory.class);
+    });
+}

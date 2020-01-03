@@ -1,0 +1,13 @@
+@Test
+@SuppressWarnings("unchecked")
+void testConnectionFactoryWithOverrides() {
+    this.contextRunner.withUserConfiguration(TestConfiguration.class).withPropertyValues("spring.rabbitmq.host:remote-server", "spring.rabbitmq.port:9000", "spring.rabbitmq.username:alice", "spring.rabbitmq.password:secret", "spring.rabbitmq.virtual_host:/vhost", "spring.rabbitmq.connection-timeout:123").run((context) -> {
+        CachingConnectionFactory connectionFactory = context.getBean(CachingConnectionFactory.class);
+        assertThat(connectionFactory.getHost()).isEqualTo("remote-server");
+        assertThat(connectionFactory.getPort()).isEqualTo(9000);
+        assertThat(connectionFactory.getVirtualHost()).isEqualTo("/vhost");
+        com.rabbitmq.client.ConnectionFactory rcf = connectionFactory.getRabbitConnectionFactory();
+        assertThat(rcf.getConnectionTimeout()).isEqualTo(123);
+        assertThat((List<Address>) ReflectionTestUtils.getField(connectionFactory, "addresses")).hasSize(1);
+    });
+}

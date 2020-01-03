@@ -1,0 +1,9 @@
+@Test
+void infinispanAsJCacheWithConfig() {
+    String cachingProviderClassName = JCachingProvider.class.getName();
+    String configLocation = "infinispan.xml";
+    this.contextRunner.withUserConfiguration(DefaultCacheConfiguration.class).withPropertyValues("spring.cache.type=jcache", "spring.cache.jcache.provider=" + cachingProviderClassName, "spring.cache.jcache.config=" + configLocation).run((context) -> {
+        Resource configResource = new ClassPathResource(configLocation);
+        assertThat(getCacheManager(context, JCacheCacheManager.class).getCacheManager().getURI()).isEqualTo(configResource.getURI());
+    });
+}

@@ -1,0 +1,44 @@
+@Test
+public void testBasicConfig() {
+    Map<String, Object> overlayConfig = new HashMap<>();
+    overlayConfig.put("oryx.input-schema.num-features", 2);
+    overlayConfig.put("oryx.input-schema.numeric-features", "[]");
+    Config config = ConfigUtils.overlayOn(overlayConfig, ConfigUtils.getDefault());
+    InputSchema schema = new InputSchema(config);
+    assertEquals(2, schema.getNumFeatures());
+    assertEquals(2, schema.getNumPredictors());
+    assertTrue(schema.getFeatureNames().containsAll(Arrays.asList("0", "1")));
+    for (int i = 0; i < 2; i++) {
+        assertFalse(schema.isID(i));
+        assertFalse(schema.isID(schema.getFeatureNames().get(i)));
+    }
+    for (int i = 0; i < 2; i++) {
+        assertTrue(schema.isActive(i));
+        assertTrue(schema.isActive(schema.getFeatureNames().get(i)));
+    }
+    for (int i = 0; i < 2; i++) {
+        assertFalse(schema.isNumeric(i));
+        assertFalse(schema.isNumeric(schema.getFeatureNames().get(i)));
+    }
+    for (int i = 0; i < 2; i++) {
+        assertTrue(schema.isCategorical(i));
+        assertTrue(schema.isCategorical(schema.getFeatureNames().get(i)));
+    }
+    for (int i = 0; i < 2; i++) {
+        assertFalse(schema.isTarget(i));
+        assertFalse(schema.isTarget(schema.getFeatureNames().get(i)));
+    }
+    assertFalse(schema.hasTarget());
+    try {
+        schema.getTargetFeature();
+        fail();
+    } catch (IllegalStateException ise) {
+    // good
+    }
+    try {
+        schema.getTargetFeatureIndex();
+        fail();
+    } catch (IllegalStateException ise) {
+    // good
+    }
+}

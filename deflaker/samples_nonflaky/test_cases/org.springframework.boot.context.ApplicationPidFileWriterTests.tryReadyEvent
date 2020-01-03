@@ -1,0 +1,12 @@
+@Test
+void tryReadyEvent() throws Exception {
+    File file = new File(this.tempDir, "pid");
+    file.createNewFile();
+    SpringApplicationEvent event = createReadyEvent("spring.pid.file", file.getAbsolutePath());
+    ApplicationPidFileWriter listener = new ApplicationPidFileWriter();
+    listener.onApplicationEvent(event);
+    assertThat(contentOf(file)).isEmpty();
+    listener.setTriggerEventType(ApplicationReadyEvent.class);
+    listener.onApplicationEvent(event);
+    assertThat(contentOf(file)).isNotEmpty();
+}

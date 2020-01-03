@@ -1,0 +1,17 @@
+@Test
+public void sendHttpRequest() throws IOException {
+    HttpGet get = new HttpGet(DefaultServer.getDefaultServerURL() + "/path");
+    TestHttpClient client = new TestHttpClient();
+    try {
+        generateMessage(1);
+        HttpResponse result = client.execute(get);
+        Assert.assertEquals(StatusCodes.OK, result.getStatusLine().getStatusCode());
+        Assert.assertEquals(message, HttpClientUtils.readResponse(result));
+        generateMessage(1000);
+        result = client.execute(get);
+        Assert.assertEquals(StatusCodes.OK, result.getStatusLine().getStatusCode());
+        Assert.assertEquals(message, HttpClientUtils.readResponse(result));
+    } finally {
+        client.getConnectionManager().shutdown();
+    }
+}

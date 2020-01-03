@@ -1,0 +1,15 @@
+@SuppressWarnings({ "unchecked", "rawtypes" })
+@Test
+void testEndToEnd() throws Exception {
+    load(KafkaConfig.class, "spring.kafka.bootstrap-servers:" + getEmbeddedKafkaBrokersAsString(), "spring.kafka.consumer.group-id=testGroup", "spring.kafka.consumer.auto-offset-reset=earliest");
+    KafkaTemplate<String, String> template = this.context.getBean(KafkaTemplate.class);
+    template.send(TEST_TOPIC, "foo", "bar");
+    Listener listener = this.context.getBean(Listener.class);
+    assertThat(listener.latch.await(30, TimeUnit.SECONDS)).isTrue();
+    assertThat(listener.key).isEqualTo("foo");
+    assertThat(listener.received).isEqualTo("bar");
+    DefaultKafkaProducerFactory producerFactory = this.context.getBean(DefaultKafkaProducerFactory.class);
+    Producer producer = producerFactory.createProducer();
+    assertThat(producer.partitionsFor(ADMIN_CREATED_TOPIC).size()).isEqualTo(10);
+    producer.close();
+}

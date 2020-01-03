@@ -1,0 +1,17 @@
+@Test
+void loadWhenConfigurationPropertiesContainsMapWithPositiveAndNegativeIntegerKeys() {
+    // gh-14136
+    MutablePropertySources sources = this.context.getEnvironment().getPropertySources();
+    Map<String, Object> source = new HashMap<>();
+    source.put("test.map.x.[-1].a", "baz");
+    source.put("test.map.x.1.a", "bar");
+    source.put("test.map.x.1.b", 1);
+    sources.addLast(new MapPropertySource("test", source));
+    load(WithIntegerMapProperties.class);
+    WithIntegerMapProperties bean = this.context.getBean(WithIntegerMapProperties.class);
+    Map<Integer, Foo> x = bean.getMap().get("x");
+    assertThat(x.get(-1).getA()).isEqualTo("baz");
+    assertThat(x.get(-1).getB()).isEqualTo(0);
+    assertThat(x.get(1).getA()).isEqualTo("bar");
+    assertThat(x.get(1).getB()).isEqualTo(1);
+}

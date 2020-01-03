@@ -1,0 +1,27 @@
+@Test
+public void testConnectViaProxy() throws Exception {
+    final HttpHost proxy = new HttpHost(DefaultServer.getHostAddress("default"), DefaultServer.getHostPort("default") + 1, "http");
+    final HttpHost target = new HttpHost(DefaultServer.getHostAddress("default"), DefaultServer.getHostPort("default"), "http");
+    ProxyClient proxyClient = new ProxyClient();
+    Socket socket = proxyClient.tunnel(proxy, target, new UsernamePasswordCredentials("a", "b"));
+    try {
+        Writer out = new OutputStreamWriter(socket.getOutputStream(), HTTP.DEF_CONTENT_CHARSET);
+        out.write("GET / HTTP/1.1\r\n");
+        out.write("Host: " + target.toHostString() + "\r\n");
+        out.write("Connection: close\r\n");
+        out.write("\r\n");
+        out.flush();
+        BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream(), HTTP.DEF_CONTENT_CHARSET));
+        String line = null;
+        boolean found = false;
+        while ((line = in.readLine()) != null) {
+            System.out.println(line);
+            if (line.equals("MyHeader: MyValue")) {
+                found = true;
+            }
+        }
+        Assert.assertTrue(found);
+    } finally {
+        socket.close();
+    }
+}

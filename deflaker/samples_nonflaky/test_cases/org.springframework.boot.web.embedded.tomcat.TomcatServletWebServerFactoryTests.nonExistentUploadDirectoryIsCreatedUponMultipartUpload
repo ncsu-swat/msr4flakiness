@@ -1,0 +1,29 @@
+@Test
+void nonExistentUploadDirectoryIsCreatedUponMultipartUpload() throws IOException, URISyntaxException {
+    TomcatServletWebServerFactory factory = new TomcatServletWebServerFactory(0);
+    AtomicReference<ServletContext> servletContextReference = new AtomicReference<>();
+    factory.addInitializers((servletContext) -> {
+        servletContextReference.set(servletContext);
+        Dynamic servlet = servletContext.addServlet("upload", new HttpServlet() {
+
+            @Override
+            protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+                req.getParts();
+            }
+        });
+        servlet.addMapping("/upload");
+        servlet.setMultipartConfig(new MultipartConfigElement((String) null));
+    });
+    this.webServer = factory.getWebServer();
+    this.webServer.start();
+    File temp = (File) servletContextReference.get().getAttribute(ServletContext.TEMPDIR);
+    FileSystemUtils.deleteRecursively(temp);
+    RestTemplate restTemplate = new RestTemplate();
+    HttpHeaders headers = new HttpHeaders();
+    MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+    body.add("file", new ByteArrayResource(new byte[1024 * 1024]));
+    headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+    HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+    ResponseEntity<String> response = restTemplate.postForEntity(getLocalUrl("/upload"), requestEntity, String.class);
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+}

@@ -1,0 +1,18 @@
+@Test
+public void testKeyValueSerialization() throws Exception {
+    KeyValue[] keyValues = new KeyValue[] { new KeyValue(Bytes.toBytes("key"), Bytes.toBytes("cf"), Bytes.toBytes("qualA"), Bytes.toBytes("1")), new KeyValue(Bytes.toBytes("key"), Bytes.toBytes("cf"), Bytes.toBytes("qualA"), Bytes.toBytes("2")), new KeyValue(Bytes.toBytes("key"), Bytes.toBytes("cf"), Bytes.toBytes("qualA"), System.currentTimeMillis(), Bytes.toBytes("2"), new Tag[] { new ArrayBackedTag((byte) 120, "tagA"), new ArrayBackedTag((byte) 121, Bytes.toBytes("tagB")) }), new KeyValue(Bytes.toBytes("key"), Bytes.toBytes("cf"), Bytes.toBytes("qualA"), System.currentTimeMillis(), Bytes.toBytes("2"), new Tag[] { new ArrayBackedTag((byte) 0, "tagA") }), new KeyValue(Bytes.toBytes("key"), Bytes.toBytes("cf"), Bytes.toBytes(""), Bytes.toBytes("1")) };
+    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+    for (KeyValue kv : keyValues) {
+        DataOutputStream os = new DataOutputStream(byteArrayOutputStream);
+        ByteBufferUtils.putInt(os, KeyValueUtil.getSerializedSize(kv, true));
+        KeyValueUtil.oswrite(kv, os, true);
+    }
+    DataInputStream is = new DataInputStream(new ByteArrayInputStream(byteArrayOutputStream.toByteArray()));
+    for (int i = 0; i < keyValues.length; i++) {
+        LOG.info("Case#" + i + ": deserialize the kv: " + keyValues[i]);
+        KeyValue destKv = KeyValueUtil.createKeyValueFromInputStream(is, true);
+        assertEquals(keyValues[i], destKv);
+        assertArrayEquals(CellUtil.cloneValue(keyValues[i]), CellUtil.cloneValue(destKv));
+        assertArrayEquals(PrivateCellUtil.cloneTags(keyValues[i]), PrivateCellUtil.cloneTags(destKv));
+    }
+}

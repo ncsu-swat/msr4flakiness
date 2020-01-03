@@ -1,0 +1,9 @@
+red
+transform
+[31min[0;39m
+setOptionList
+singletonList
+Collections
+assertThat
+isEqualTo
+out

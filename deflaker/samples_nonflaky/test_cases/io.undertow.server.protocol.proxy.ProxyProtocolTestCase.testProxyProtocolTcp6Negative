@@ -1,0 +1,52 @@
+@Test
+public void testProxyProtocolTcp6Negative() throws Exception {
+    // wrong number of spaces in requests
+    String request = "PROXY  TCP6 fe80::56ee:75ff:fe44:85bc fe80::5ec5:d4ff:fede:66d8 444 555\r\nGET / " + "HTTP/1.0\r\n\r\n";
+    proxyProtocolRequestResponseCheck(request, "");
+    request = "PROXY TCP6  fe80::56ee:75ff:fe44:85bc fe80::5ec5:d4ff:fede:66d8 444 555\r\nGET / " + "HTTP/1.0\r\n\r\n";
+    proxyProtocolRequestResponseCheck(request, "");
+    request = "PROXY TCP6 fe80::56ee:75ff:fe44:85bc  fe80::5ec5:d4ff:fede:66d8 444 555\r\nGET / " + "HTTP/1.0\r\n\r\n";
+    proxyProtocolRequestResponseCheck(request, "");
+    request = "PROXY TCP6 fe80::56ee:75ff:fe44:85bc fe80::5ec5:d4ff:fede:66d8  444 555\r\nGET / " + "HTTP/1.0\r\n\r\n";
+    proxyProtocolRequestResponseCheck(request, "");
+    request = "PROXY TCP6 fe80::56ee:75ff:fe44:85bc fe80::5ec5:d4ff:fede:66d8 444  555\r\nGET / " + "HTTP/1.0\r\n\r\n";
+    proxyProtocolRequestResponseCheck(request, "");
+    // missing destination port
+    request = "PROXY TCP6 fe80::56ee:75ff:fe44:85bc fe80::5ec5:d4ff:fede:66d8 444\r\nGET / " + "HTTP/1.0\r\n\r\n";
+    proxyProtocolRequestResponseCheck(request, "");
+    // missing destination address
+    request = "PROXY TCP6 fe80::56ee:75ff:fe44:85bc 444 555\r\nGET / " + "HTTP/1.0\r\n\r\n";
+    proxyProtocolRequestResponseCheck(request, "");
+    // missing \n on the first line of the request
+    request = "PROXY TCP6 fe80::56ee:75ff:fe44:85bc fe80::5ec5:d4ff:fede:66d8 444 555\rGET / " + "HTTP/1.0\r\n\r\n";
+    proxyProtocolRequestResponseCheck(request, "");
+    // missing \r on the first line of the request
+    request = "PROXY TCP6 fe80::56ee:75ff:fe44:85bc fe80::5ec5:d4ff:fede:66d8 444 555\nGET / " + "HTTP/1.0\r\n\r\n";
+    proxyProtocolRequestResponseCheck(request, "");
+    // src address contains invalid characters
+    request = "PROXY TCP6 fz80::56ee:75ff:fe44:85bc fe80::5ec5:d4ff:fede:66d8 444 555\r\nGET / " + "HTTP/1.0\r\n\r\n";
+    proxyProtocolRequestResponseCheck(request, "");
+    // dst address contains invalid characters
+    request = "PROXY TCP6 fe80::56ee:75ff:fe44:85bc fe80::5zc5:d4ff:fede:66d8 444 555\r\nGET / " + "HTTP/1.0\r\n\r\n";
+    proxyProtocolRequestResponseCheck(request, "");
+    // src/dst ports out of range
+    request = "PROXY TCP6 fe80::56ee:75ff:fe44:85bc fe80::5ec5:d4ff:fede:66d8 111444 555\r\nGET / " + "HTTP/1.0\r\n\r\n";
+    proxyProtocolRequestResponseCheck(request, "");
+    request = "PROXY TCP6 fe80::56ee:75ff:fe44:85bc fe80::5ec5:d4ff:fede:66d8 444 111555\r\nGET / " + "HTTP/1.0\r\n\r\n";
+    proxyProtocolRequestResponseCheck(request, "");
+    request = "PROXY TCP6 fe80::56ee:75ff:fe44:85bc fe80::5ec5:d4ff:fede:66d8 -444 555\r\nGET / " + "HTTP/1.0\r\n\r\n";
+    proxyProtocolRequestResponseCheck(request, "");
+    request = "PROXY TCP6 fe80::56ee:75ff:fe44:85bc fe80::5ec5:d4ff:fede:66d8 444 -555\r\nGET / " + "HTTP/1.0\r\n\r\n";
+    proxyProtocolRequestResponseCheck(request, "");
+    // src/dst ports contains '0' characters at the beginning
+    request = "PROXY TCP6 fe80::56ee:75ff:fe44:85bc fe80::5ec5:d4ff:fede:66d8 0444 555\r\nGET / " + "HTTP/1.0\r\n\r\n";
+    proxyProtocolRequestResponseCheck(request, "");
+    request = "PROXY TCP6 fe80::56ee:75ff:fe44:85bc fe80::5ec5:d4ff:fede:66d8 444 0555\r\nGET / " + "HTTP/1.0\r\n\r\n";
+    proxyProtocolRequestResponseCheck(request, "");
+    // unallowed character after PROXY string
+    request = "PROXY, TCP6 fe80::56ee:75ff:fe44:85bc fe80::5ec5:d4ff:fede:66d8 444 555\r\nGET / " + "HTTP/1.0\r\n\r\n";
+    proxyProtocolRequestResponseCheck(request, "");
+    // IPv6 address when TCP4 is used
+    request = "PROXY TCP6 1.2.3.4 5.6.7.8 444 555\r\nGET / HTTP/1.0\r\n\r\n";
+    proxyProtocolRequestResponseCheck(request, "");
+}

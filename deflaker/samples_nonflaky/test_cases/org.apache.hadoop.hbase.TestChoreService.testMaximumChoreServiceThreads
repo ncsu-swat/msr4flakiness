@@ -1,0 +1,44 @@
+/**
+ * ChoreServices should never have a core pool size that exceeds the number of chores that have
+ * been scheduled with the service. For example, if 4 ScheduledChores are scheduled with a
+ * ChoreService, the number of threads in the ChoreService's core pool should never exceed 4
+ */
+@Test
+public void testMaximumChoreServiceThreads() throws InterruptedException {
+    ChoreService service = new ChoreService("testMaximumChoreServiceThreads");
+    final int period = 100;
+    final int sleepTime = 5 * period;
+    try {
+        // Slow chores sleep for a length of time LONGER than their period. Thus, SlowChores
+        // ALWAYS miss their start time since their execution takes longer than their period.
+        // Chores that miss their start time will trigger the onChoreMissedStartTime callback
+        // in the ChoreService. This callback will try to increase the number of core pool
+        // threads.
+        SlowChore sc1 = new SlowChore("sc1", period);
+        SlowChore sc2 = new SlowChore("sc2", period);
+        SlowChore sc3 = new SlowChore("sc3", period);
+        SlowChore sc4 = new SlowChore("sc4", period);
+        SlowChore sc5 = new SlowChore("sc5", period);
+        service.scheduleChore(sc1);
+        service.scheduleChore(sc2);
+        service.scheduleChore(sc3);
+        service.scheduleChore(sc4);
+        service.scheduleChore(sc5);
+        Thread.sleep(sleepTime);
+        assertTrue(service.getCorePoolSize() <= service.getNumberOfScheduledChores());
+        SlowChore sc6 = new SlowChore("sc6", period);
+        SlowChore sc7 = new SlowChore("sc7", period);
+        SlowChore sc8 = new SlowChore("sc8", period);
+        SlowChore sc9 = new SlowChore("sc9", period);
+        SlowChore sc10 = new SlowChore("sc10", period);
+        service.scheduleChore(sc6);
+        service.scheduleChore(sc7);
+        service.scheduleChore(sc8);
+        service.scheduleChore(sc9);
+        service.scheduleChore(sc10);
+        Thread.sleep(sleepTime);
+        assertTrue(service.getCorePoolSize() <= service.getNumberOfScheduledChores());
+    } finally {
+        shutdownService(service);
+    }
+}

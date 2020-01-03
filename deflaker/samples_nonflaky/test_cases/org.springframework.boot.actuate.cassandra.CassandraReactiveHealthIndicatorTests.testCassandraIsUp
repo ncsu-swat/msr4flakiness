@@ -1,0 +1,14 @@
+@Test
+void testCassandraIsUp() {
+    ReactiveCqlOperations reactiveCqlOperations = mock(ReactiveCqlOperations.class);
+    given(reactiveCqlOperations.queryForObject(any(Select.class), eq(String.class))).willReturn(Mono.just("6.0.0"));
+    ReactiveCassandraOperations reactiveCassandraOperations = mock(ReactiveCassandraOperations.class);
+    given(reactiveCassandraOperations.getReactiveCqlOperations()).willReturn(reactiveCqlOperations);
+    CassandraReactiveHealthIndicator cassandraReactiveHealthIndicator = new CassandraReactiveHealthIndicator(reactiveCassandraOperations);
+    Mono<Health> health = cassandraReactiveHealthIndicator.health();
+    StepVerifier.create(health).consumeNextWith((h) -> {
+        assertThat(h.getStatus()).isEqualTo(Status.UP);
+        assertThat(h.getDetails()).containsOnlyKeys("version");
+        assertThat(h.getDetails().get("version")).isEqualTo("6.0.0");
+    }).verifyComplete();
+}

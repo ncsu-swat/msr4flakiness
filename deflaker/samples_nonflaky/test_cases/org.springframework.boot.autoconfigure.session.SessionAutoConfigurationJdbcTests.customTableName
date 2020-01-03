@@ -1,0 +1,9 @@
+@Test
+void customTableName() {
+    this.contextRunner.withPropertyValues("spring.session.store-type=jdbc", "spring.session.jdbc.table-name=FOO_BAR", "spring.session.jdbc.schema=classpath:session/custom-schema-h2.sql").run((context) -> {
+        JdbcIndexedSessionRepository repository = validateSessionRepository(context, JdbcIndexedSessionRepository.class);
+        assertThat(repository).hasFieldOrPropertyWithValue("tableName", "FOO_BAR");
+        assertThat(context.getBean(JdbcSessionProperties.class).getInitializeSchema()).isEqualTo(DataSourceInitializationMode.EMBEDDED);
+        assertThat(context.getBean(JdbcOperations.class).queryForList("select * from FOO_BAR")).isEmpty();
+    });
+}

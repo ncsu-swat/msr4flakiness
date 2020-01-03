@@ -1,0 +1,13 @@
+@Test
+public void testCustomProvider() {
+    Configuration conf = HBaseConfiguration.create();
+    conf.set(HConstants.CRYPTO_CIPHERPROVIDER_CONF_KEY, MyCipherProvider.class.getName());
+    CipherProvider provider = Encryption.getCipherProvider(conf);
+    assertTrue(provider instanceof MyCipherProvider);
+    assertTrue(Arrays.asList(provider.getSupportedCiphers()).contains("TEST"));
+    Cipher a = Encryption.getCipher(conf, "TEST");
+    assertNotNull(a);
+    assertTrue(a.getProvider() instanceof MyCipherProvider);
+    assertEquals("TEST", a.getName());
+    assertEquals(0, a.getKeyLength());
+}

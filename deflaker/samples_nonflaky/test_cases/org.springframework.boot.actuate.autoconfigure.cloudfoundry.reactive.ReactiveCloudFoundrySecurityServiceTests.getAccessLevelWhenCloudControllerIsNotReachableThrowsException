@@ -1,0 +1,12 @@
+@Test
+void getAccessLevelWhenCloudControllerIsNotReachableThrowsException() throws Exception {
+    prepareResponse((response) -> response.setResponseCode(500));
+    StepVerifier.create(this.securityService.getAccessLevel("my-access-token", "my-app-id")).consumeErrorWith((throwable) -> {
+        assertThat(throwable).isInstanceOf(CloudFoundryAuthorizationException.class);
+        assertThat(((CloudFoundryAuthorizationException) throwable).getReason()).isEqualTo(Reason.SERVICE_UNAVAILABLE);
+    }).verify();
+    expectRequest((request) -> {
+        assertThat(request.getHeader(HttpHeaders.AUTHORIZATION)).isEqualTo("bearer my-access-token");
+        assertThat(request.getPath()).isEqualTo(CLOUD_CONTROLLER_PERMISSIONS);
+    });
+}

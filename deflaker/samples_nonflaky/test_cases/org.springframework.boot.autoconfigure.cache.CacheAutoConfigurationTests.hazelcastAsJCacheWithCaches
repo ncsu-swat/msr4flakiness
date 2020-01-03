@@ -1,0 +1,13 @@
+@Test
+void hazelcastAsJCacheWithCaches() {
+    String cachingProviderFqn = HazelcastCachingProvider.class.getName();
+    try {
+        this.contextRunner.withUserConfiguration(DefaultCacheConfiguration.class).withPropertyValues("spring.cache.type=jcache", "spring.cache.jcache.provider=" + cachingProviderFqn, "spring.cache.cacheNames[0]=foo", "spring.cache.cacheNames[1]=bar").run((context) -> {
+            JCacheCacheManager cacheManager = getCacheManager(context, JCacheCacheManager.class);
+            assertThat(cacheManager.getCacheNames()).containsOnly("foo", "bar");
+            assertThat(Hazelcast.getAllHazelcastInstances()).hasSize(1);
+        });
+    } finally {
+        Caching.getCachingProvider(cachingProviderFqn).close();
+    }
+}

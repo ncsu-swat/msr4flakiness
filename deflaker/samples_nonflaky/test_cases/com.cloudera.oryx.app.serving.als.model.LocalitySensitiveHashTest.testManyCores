@@ -1,0 +1,17 @@
+@Test
+public void testManyCores() {
+    // But 3 cores should allow 1 bit difference if 3/4 is to be evaluated
+    doTestHashesBits(0.75, 3, 2, 1);
+    // 2 cores, evaluate half: 2 hashes split in 1/4, but can only keep 1 core busy at 0 bits differing
+    // Allow 1 bit differing even though means evaluating 3 partitions, but then that evaluates 3/4 = 0.75 of
+    // candidates which is too much. Ends up needing 3 hashes.
+    doTestHashesBits(0.5, 3, 3, 1);
+    // Ends up needing 7 hashes, 1 bit differing (1+7=8 partitions to try) to achieve 8 / 2^7 <= 0.1 sampling
+    doTestHashesBits(0.1, 8, 7, 1);
+    doTestHashesBits(0.01, 8, 11, 1);
+    doTestHashesBits(0.001, 8, 14, 1);
+    // Near max hashes:
+    doTestHashesBits(0.0001, 8, 16, 1);
+    // Maxes out at 16 hashes
+    doTestHashesBits(0.00001, 8, LocalitySensitiveHash.MAX_HASHES, 1);
+}

@@ -1,0 +1,9 @@
+@SuppressWarnings("unchecked")
+@Test
+void shouldRegisterCustomHandlerMethodArgumentResolver() {
+    this.contextRunner.withUserConfiguration(CustomArgumentResolvers.class).run((context) -> {
+        RequestMappingHandlerAdapter adapter = context.getBean(RequestMappingHandlerAdapter.class);
+        List<HandlerMethodArgumentResolver> customResolvers = (List<HandlerMethodArgumentResolver>) ReflectionTestUtils.getField(adapter.getArgumentResolverConfigurer(), "customResolvers");
+        assertThat(customResolvers).contains(context.getBean("firstResolver", HandlerMethodArgumentResolver.class), context.getBean("secondResolver", HandlerMethodArgumentResolver.class));
+    });
+}

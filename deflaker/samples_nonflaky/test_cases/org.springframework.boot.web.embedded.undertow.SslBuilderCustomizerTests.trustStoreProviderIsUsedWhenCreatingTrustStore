@@ -1,0 +1,9 @@
+@Test
+void trustStoreProviderIsUsedWhenCreatingTrustStore() throws Exception {
+    Ssl ssl = new Ssl();
+    ssl.setTrustStorePassword("password");
+    ssl.setTrustStore("src/test/resources/test.jks");
+    ssl.setTrustStoreProvider("com.example.TrustStoreProvider");
+    SslBuilderCustomizer customizer = new SslBuilderCustomizer(8080, InetAddress.getLocalHost(), ssl, null);
+    assertThatIllegalStateException().isThrownBy(() -> ReflectionTestUtils.invokeMethod(customizer, "getTrustManagers", ssl, null)).withCauseInstanceOf(NoSuchProviderException.class).withMessageContaining("com.example.TrustStoreProvider");
+}

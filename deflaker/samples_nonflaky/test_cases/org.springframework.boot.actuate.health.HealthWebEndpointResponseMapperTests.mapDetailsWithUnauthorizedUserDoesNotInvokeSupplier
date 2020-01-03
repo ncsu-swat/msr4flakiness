@@ -1,0 +1,11 @@
+@Test
+void mapDetailsWithUnauthorizedUserDoesNotInvokeSupplier() {
+    HealthWebEndpointResponseMapper mapper = createMapper(ShowDetails.WHEN_AUTHORIZED);
+    Supplier<Health> supplier = mockSupplier();
+    SecurityContext securityContext = mockSecurityContext("USER");
+    WebEndpointResponse<Health> response = mapper.mapDetails(supplier, securityContext);
+    assertThat(response.getStatus()).isEqualTo(HttpStatus.NOT_FOUND.value());
+    assertThat(response.getBody()).isNull();
+    verifyNoInteractions(supplier);
+    verify(securityContext).isUserInRole("ACTUATOR");
+}

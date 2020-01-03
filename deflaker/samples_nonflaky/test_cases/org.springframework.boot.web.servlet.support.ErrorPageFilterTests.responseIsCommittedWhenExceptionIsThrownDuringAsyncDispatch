@@ -1,0 +1,13 @@
+@Test
+void responseIsCommittedWhenExceptionIsThrownDuringAsyncDispatch() throws Exception {
+    this.filter.addErrorPages(new ErrorPage("/error"));
+    setUpAsyncDispatch();
+    this.chain = new TestFilterChain((request, response, chain) -> {
+        chain.call();
+        throw new RuntimeException("BAD");
+    });
+    this.filter.doFilter(this.request, this.response, this.chain);
+    assertThat(this.chain.getRequest()).isEqualTo(this.request);
+    assertThat(((HttpServletResponseWrapper) this.chain.getResponse()).getResponse()).isEqualTo(this.response);
+    assertThat(this.response.isCommitted()).isTrue();
+}

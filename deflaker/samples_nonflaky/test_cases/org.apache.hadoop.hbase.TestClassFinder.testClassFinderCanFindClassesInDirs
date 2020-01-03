@@ -1,0 +1,15 @@
+@Test
+public void testClassFinderCanFindClassesInDirs() throws Exception {
+    // Make some classes for us to find.  Class naming and packaging is kinda cryptic.
+    // TODO: Fix.
+    final long counter = testCounter.incrementAndGet();
+    final String classNamePrefix = name.getMethodName();
+    String pkgNameSuffix = name.getMethodName();
+    LOG.info("Created jar " + createAndLoadJar(pkgNameSuffix, classNamePrefix, counter));
+    ClassFinder allClassesFinder = new ClassFinder(classLoader);
+    String pkgName = makePackageName(pkgNameSuffix, counter);
+    Set<Class<?>> allClasses = allClassesFinder.findClasses(pkgName, false);
+    assertTrue("Classes in " + pkgName, allClasses.size() > 0);
+    String classNameToFind = classNamePrefix + counter;
+    assertTrue(contains(allClasses, classNameToFind));
+}

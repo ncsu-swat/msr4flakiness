@@ -1,0 +1,13 @@
+@Test
+public void shouldFailWhenAccessingVariablesFromRoot() throws Exception {
+    final AtomicInteger count = new AtomicInteger(0);
+    shouldCompileTo("{{*decorator foo}}", $("hash", $("foo", "fail"), "decorators", $("decorator", new Decorator() {
+
+        @Override
+        public void apply(final Template fn, final Options options) throws IOException {
+            assertEquals(null, options.param(0));
+            count.incrementAndGet();
+        }
+    })), "");
+    assertEquals(1, count.get());
+}

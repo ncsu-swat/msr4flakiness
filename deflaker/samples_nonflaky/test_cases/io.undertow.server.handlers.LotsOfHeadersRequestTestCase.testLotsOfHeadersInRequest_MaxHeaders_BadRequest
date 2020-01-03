@@ -1,0 +1,18 @@
+@Test
+public void testLotsOfHeadersInRequest_MaxHeaders_BadRequest() throws IOException {
+    OptionMap existing = DefaultServer.getUndertowOptions();
+    TestHttpClient client = new TestHttpClient();
+    try {
+        HttpGet get = new HttpGet(DefaultServer.getDefaultServerURL() + "/path");
+        // add request headers more than MAX_HEADERS
+        for (int i = 0; i < (getTestMaxHeaders() + 1); ++i) {
+            get.addHeader(HEADER + i, MESSAGE + i);
+        }
+        DefaultServer.setUndertowOptions(OptionMap.create(UndertowOptions.MAX_HEADERS, TEST_MAX_HEADERS));
+        HttpResponse result = client.execute(get);
+        Assert.assertEquals(DefaultServer.isH2() ? StatusCodes.SERVICE_UNAVAILABLE : StatusCodes.BAD_REQUEST, result.getStatusLine().getStatusCode());
+    } finally {
+        DefaultServer.setUndertowOptions(existing);
+        client.getConnectionManager().shutdown();
+    }
+}

@@ -1,0 +1,10 @@
+@Test
+void undertowDeploymentInfoCustomizerRegisteredAsBeanAndViaFactoryIsOnlyCalledOnce() {
+    WebApplicationContextRunner runner = new WebApplicationContextRunner(AnnotationConfigServletWebServerApplicationContext::new).withClassLoader(new FilteredClassLoader(Tomcat.class, HttpServer.class, Server.class)).withConfiguration(AutoConfigurations.of(ServletWebServerFactoryAutoConfiguration.class)).withUserConfiguration(DoubleRegistrationUndertowDeploymentInfoCustomizerConfiguration.class).withPropertyValues("server.port: 0");
+    runner.run((context) -> {
+        UndertowServletWebServerFactory factory = context.getBean(UndertowServletWebServerFactory.class);
+        UndertowDeploymentInfoCustomizer customizer = context.getBean("deploymentInfoCustomizer", UndertowDeploymentInfoCustomizer.class);
+        assertThat(factory.getDeploymentInfoCustomizers()).contains(customizer);
+        verify(customizer, times(1)).customize(any(DeploymentInfo.class));
+    });
+}

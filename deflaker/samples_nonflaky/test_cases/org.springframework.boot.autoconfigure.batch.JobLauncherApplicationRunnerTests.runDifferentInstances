@@ -1,0 +1,12 @@
+@Test
+void runDifferentInstances() throws Exception {
+    this.job = this.jobs.get("job").start(this.steps.get("step").tasklet(throwingTasklet()).build()).build();
+    // start a job instance
+    JobParameters jobParameters = new JobParametersBuilder().addString("name", "foo").toJobParameters();
+    this.runner.execute(this.job, jobParameters);
+    assertThat(this.jobExplorer.getJobInstances("job", 0, 100)).hasSize(1);
+    // start a different job instance
+    JobParameters otherJobParameters = new JobParametersBuilder().addString("name", "bar").toJobParameters();
+    this.runner.execute(this.job, otherJobParameters);
+    assertThat(this.jobExplorer.getJobInstances("job", 0, 100)).hasSize(2);
+}

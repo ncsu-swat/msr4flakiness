@@ -1,0 +1,11 @@
+@Test
+void validatorWithConfigurerAloneShouldUseSpringValidator() {
+    this.contextRunner.withUserConfiguration(MvcValidator.class).run((context) -> {
+        assertThat(context).doesNotHaveBean(ValidatorFactory.class);
+        assertThat(context).doesNotHaveBean(javax.validation.Validator.class);
+        assertThat(context).getBeanNames(Validator.class).containsOnly("mvcValidator");
+        Validator expectedValidator = context.getBean(MvcValidator.class).validator;
+        assertThat(context.getBean("mvcValidator")).isSameAs(expectedValidator);
+        assertThat(context.getBean(RequestMappingHandlerAdapter.class).getWebBindingInitializer()).hasFieldOrPropertyWithValue("validator", expectedValidator);
+    });
+}

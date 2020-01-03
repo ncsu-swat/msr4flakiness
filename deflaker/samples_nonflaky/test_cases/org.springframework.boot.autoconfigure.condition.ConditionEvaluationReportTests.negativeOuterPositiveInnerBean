@@ -1,0 +1,18 @@
+@Test
+void negativeOuterPositiveInnerBean() {
+    AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
+    TestPropertyValues.of("test.present=true").applyTo(context);
+    context.register(NegativeOuterConfig.class);
+    context.refresh();
+    ConditionEvaluationReport report = ConditionEvaluationReport.get(context.getBeanFactory());
+    Map<String, ConditionAndOutcomes> sourceOutcomes = report.getConditionAndOutcomesBySource();
+    assertThat(context.containsBean("negativeOuterPositiveInnerBean")).isFalse();
+    String negativeConfig = NegativeOuterConfig.class.getName();
+    assertThat(sourceOutcomes.get(negativeConfig).isFullMatch()).isFalse();
+    String positiveConfig = NegativeOuterConfig.PositiveInnerConfig.class.getName();
+    assertThat(sourceOutcomes.get(positiveConfig).isFullMatch()).isFalse();
+}
+@Bean
+String negativeOuterPositiveInnerBean() {
+    return "negativeOuterPositiveInnerBean";
+}

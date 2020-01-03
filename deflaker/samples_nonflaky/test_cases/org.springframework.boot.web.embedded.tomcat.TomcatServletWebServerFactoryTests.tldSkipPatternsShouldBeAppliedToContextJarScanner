@@ -1,0 +1,13 @@
+@Test
+void tldSkipPatternsShouldBeAppliedToContextJarScanner() {
+    TomcatServletWebServerFactory factory = getFactory();
+    factory.addTldSkipPatterns("foo.jar", "bar.jar");
+    this.webServer = factory.getWebServer();
+    this.webServer.start();
+    Tomcat tomcat = ((TomcatWebServer) this.webServer).getTomcat();
+    Context context = (Context) tomcat.getHost().findChildren()[0];
+    JarScanFilter jarScanFilter = context.getJarScanner().getJarScanFilter();
+    assertThat(jarScanFilter.check(JarScanType.TLD, "foo.jar")).isFalse();
+    assertThat(jarScanFilter.check(JarScanType.TLD, "bar.jar")).isFalse();
+    assertThat(jarScanFilter.check(JarScanType.TLD, "test.jar")).isTrue();
+}

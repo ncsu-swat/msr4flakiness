@@ -1,0 +1,9 @@
+@Test
+@SuppressWarnings({ "rawtypes", "unchecked" })
+void metricsFilterRegisteredForAsyncDispatches() {
+    Map<String, FilterRegistrationBean> filterRegistrations = this.context.getBeansOfType(FilterRegistrationBean.class);
+    assertThat(filterRegistrations).containsKey("webMvcMetricsFilter");
+    FilterRegistrationBean registration = filterRegistrations.get("webMvcMetricsFilter");
+    assertThat(registration.getFilter()).isInstanceOf(WebMvcMetricsFilter.class);
+    assertThat((Set<DispatcherType>) ReflectionTestUtils.getField(registration, "dispatcherTypes")).containsExactlyInAnyOrder(DispatcherType.REQUEST, DispatcherType.ASYNC);
+}

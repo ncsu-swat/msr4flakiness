@@ -1,0 +1,79 @@
+@Test
+public void testExceptionMappers() throws IOException {
+    HttpHandler pathHandler = Handlers.path().addExactPath("/", new HttpHandler() {
+
+        @Override
+        public void handleRequest(HttpServerExchange exchange) throws Exception {
+            exchange.getResponseSender().send("expected");
+        }
+    }).addExactPath("/exceptionParent", new HttpHandler() {
+
+        @Override
+        public void handleRequest(HttpServerExchange exchange) throws Exception {
+            throw new ParentException();
+        }
+    }).addExactPath("/exceptionChild", new HttpHandler() {
+
+        @Override
+        public void handleRequest(HttpServerExchange exchange) throws Exception {
+            throw new ChildException();
+        }
+    }).addExactPath("/exceptionAnotherChild", new HttpHandler() {
+
+        @Override
+        public void handleRequest(HttpServerExchange exchange) throws Exception {
+            throw new AnotherChildException();
+        }
+    }).addExactPath("/illegalArgumentException", new HttpHandler() {
+
+        @Override
+        public void handleRequest(HttpServerExchange exchange) throws Exception {
+            throw new IllegalArgumentException();
+        }
+    });
+    HttpHandler exceptionHandler = Handlers.exceptionHandler(pathHandler).addExceptionHandler(ChildException.class, new HttpHandler() {
+
+        @Override
+        public void handleRequest(HttpServerExchange exchange) throws Exception {
+            exchange.getResponseSender().send("child exception handled");
+        }
+    }).addExceptionHandler(ParentException.class, new HttpHandler() {
+
+        @Override
+        public void handleRequest(HttpServerExchange exchange) throws Exception {
+            exchange.getResponseSender().send("parent exception handled");
+        }
+    }).addExceptionHandler(Throwable.class, new HttpHandler() {
+
+        @Override
+        public void handleRequest(HttpServerExchange exchange) throws Exception {
+            exchange.getResponseSender().send("catch all throwables");
+        }
+    });
+    DefaultServer.setRootHandler(exceptionHandler);
+    TestHttpClient client = new TestHttpClient();
+    try {
+        HttpGet get = new HttpGet(DefaultServer.getDefaultServerURL() + "/");
+        HttpResponse result = client.execute(get);
+        Assert.assertEquals(StatusCodes.OK, result.getStatusLine().getStatusCode());
+        Assert.assertEquals("expected", HttpClientUtils.readResponse(result));
+        get = new HttpGet(DefaultServer.getDefaultServerURL() + "/exceptionParent");
+        result = client.execute(get);
+        Assert.assertEquals(StatusCodes.OK, result.getStatusLine().getStatusCode());
+        Assert.assertEquals("parent exception handled", HttpClientUtils.readResponse(result));
+        get = new HttpGet(DefaultServer.getDefaultServerURL() + "/exceptionChild");
+        result = client.execute(get);
+        Assert.assertEquals(StatusCodes.OK, result.getStatusLine().getStatusCode());
+        Assert.assertEquals("child exception handled", HttpClientUtils.readResponse(result));
+        get = new HttpGet(DefaultServer.getDefaultServerURL() + "/exceptionAnotherChild");
+        result = client.execute(get);
+        Assert.assertEquals(StatusCodes.OK, result.getStatusLine().getStatusCode());
+        Assert.assertEquals("parent exception handled", HttpClientUtils.readResponse(result));
+        get = new HttpGet(DefaultServer.getDefaultServerURL() + "/illegalArgumentException");
+        result = client.execute(get);
+        Assert.assertEquals(StatusCodes.OK, result.getStatusLine().getStatusCode());
+        Assert.assertEquals("catch all throwables", HttpClientUtils.readResponse(result));
+    } finally {
+        client.getConnectionManager().shutdown();
+    }
+}

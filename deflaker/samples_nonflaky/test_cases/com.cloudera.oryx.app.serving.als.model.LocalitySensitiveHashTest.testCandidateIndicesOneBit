@@ -1,0 +1,19 @@
+@Test
+public void testCandidateIndicesOneBit() {
+    int features = 10;
+    LocalitySensitiveHash lsh = new LocalitySensitiveHash(0.1, features, 8);
+    assertEquals(1, lsh.getMaxBitsDiffering());
+    float[] zeroVec = new float[features];
+    int[] zeroCandidates = lsh.getCandidateIndices(zeroVec);
+    assertEquals(1 + lsh.getNumHashes(), zeroCandidates.length);
+    assertEquals(0, zeroCandidates[0]);
+    for (int i = 1; i < zeroCandidates.length; i++) {
+        assertEquals(1L << (i - 1), zeroCandidates[i]);
+    }
+    float[] oneVec = new float[features];
+    Arrays.fill(oneVec, 1.0f);
+    int[] oneCandidates = lsh.getCandidateIndices(oneVec);
+    for (int i = 1; i < oneCandidates.length; i++) {
+        assertEquals(oneCandidates[0] ^ (1L << (i - 1)), oneCandidates[i]);
+    }
+}

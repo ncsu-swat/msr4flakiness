@@ -1,0 +1,14 @@
+@Test
+public void testExample_D_2_1() throws HpackException {
+    // custom-key: custom-header
+    byte[] data = { 0x40, 0x0a, 0x63, 0x75, 0x73, 0x74, 0x6f, 0x6d, 0x2d, 0x6b, 0x65, 0x79, 0x0d, 0x63, 0x75, 0x73, 0x74, 0x6f, 0x6d, 0x2d, 0x68, 0x65, 0x61, 0x64, 0x65, 0x72 };
+    HpackDecoder decoder = new HpackDecoder(Hpack.DEFAULT_TABLE_SIZE);
+    HeaderMapEmitter emitter = new HeaderMapEmitter();
+    decoder.setHeaderEmitter(emitter);
+    decoder.decode(ByteBuffer.wrap(data), false);
+    Assert.assertEquals(1, emitter.map.size());
+    Assert.assertEquals("custom-header", emitter.map.getFirst(new HttpString("custom-key")));
+    Assert.assertEquals(1, decoder.getFilledTableSlots());
+    Assert.assertEquals(55, decoder.getCurrentMemorySize());
+    assertTableState(decoder, 1, "custom-key", "custom-header");
+}

@@ -1,0 +1,22 @@
+@Test
+void incrementalBuild() throws Exception {
+    TestProject project = new TestProject(this.tempDir, FooProperties.class, BarProperties.class);
+    assertThat(project.getOutputFile(MetadataStore.METADATA_PATH).exists()).isFalse();
+    ConfigurationMetadata metadata = project.fullBuild();
+    assertThat(project.getOutputFile(MetadataStore.METADATA_PATH).exists()).isTrue();
+    assertThat(metadata).has(Metadata.withProperty("foo.counter").fromSource(FooProperties.class).withDefaultValue(0));
+    assertThat(metadata).has(Metadata.withProperty("bar.counter").fromSource(BarProperties.class).withDefaultValue(0));
+    metadata = project.incrementalBuild(BarProperties.class);
+    assertThat(metadata).has(Metadata.withProperty("foo.counter").fromSource(FooProperties.class).withDefaultValue(0));
+    assertThat(metadata).has(Metadata.withProperty("bar.counter").fromSource(BarProperties.class).withDefaultValue(0));
+    project.addSourceCode(BarProperties.class, BarProperties.class.getResourceAsStream("BarProperties.snippet"));
+    metadata = project.incrementalBuild(BarProperties.class);
+    assertThat(metadata).has(Metadata.withProperty("bar.extra"));
+    assertThat(metadata).has(Metadata.withProperty("foo.counter").withDefaultValue(0));
+    assertThat(metadata).has(Metadata.withProperty("bar.counter").withDefaultValue(0));
+    project.revert(BarProperties.class);
+    metadata = project.incrementalBuild(BarProperties.class);
+    assertThat(metadata).isNotEqualTo(Metadata.withProperty("bar.extra"));
+    assertThat(metadata).has(Metadata.withProperty("foo.counter").withDefaultValue(0));
+    assertThat(metadata).has(Metadata.withProperty("bar.counter").withDefaultValue(0));
+}

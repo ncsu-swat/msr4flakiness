@@ -1,0 +1,16 @@
+@Test
+void bindToNonScalarCollectionWhenNonSequentialShouldThrowException() {
+    MockConfigurationPropertySource source = new MockConfigurationPropertySource();
+    source.put("foo[0].value", "1");
+    source.put("foo[1].value", "2");
+    source.put("foo[4].value", "4");
+    this.sources.add(source);
+    Bindable<List<JavaBean>> target = Bindable.listOf(JavaBean.class);
+    assertThatExceptionOfType(BindException.class).isThrownBy(() -> this.binder.bind("foo", target)).satisfies((ex) -> {
+        Set<ConfigurationProperty> unbound = ((UnboundConfigurationPropertiesException) ex.getCause()).getUnboundProperties();
+        assertThat(unbound).hasSize(1);
+        ConfigurationProperty property = unbound.iterator().next();
+        assertThat(property.getName().toString()).isEqualTo("foo[4].value");
+        assertThat(property.getValue()).isEqualTo("4");
+    });
+}

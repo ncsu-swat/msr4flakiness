@@ -1,0 +1,12 @@
+@Test
+void initializeOnlyEmbeddedByDefault() throws SQLException {
+    DatabaseMetaData metadata = mock(DatabaseMetaData.class);
+    given(metadata.getDatabaseProductName()).willReturn("MySQL");
+    Connection connection = mock(Connection.class);
+    given(connection.getMetaData()).willReturn(metadata);
+    DataSource dataSource = mock(DataSource.class);
+    given(dataSource.getConnection()).willReturn(connection);
+    DataSourceInitializer initializer = new DataSourceInitializer(dataSource, new DataSourceProperties());
+    assertThat(initializer.createSchema()).isFalse();
+    verify(dataSource).getConnection();
+}

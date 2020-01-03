@@ -1,0 +1,8 @@
+@Test
+void showComponentsWhenShowComponentsIsWhenAuthorizedAndUserDoesNotHaveRightAuthoritiesReturnsFalse() {
+    AutoConfiguredHealthEndpointGroup group = new AutoConfiguredHealthEndpointGroup((name) -> true, this.statusAggregator, this.httpCodeStatusMapper, Show.WHEN_AUTHORIZED, Show.NEVER, Arrays.asList("admin", "rot", "bossmode"));
+    Authentication principal = mock(Authentication.class);
+    given(principal.getAuthorities()).willAnswer((invocation) -> Collections.singleton(new SimpleGrantedAuthority("other")));
+    given(this.securityContext.getPrincipal()).willReturn(principal);
+    assertThat(group.showComponents(this.securityContext)).isFalse();
+}

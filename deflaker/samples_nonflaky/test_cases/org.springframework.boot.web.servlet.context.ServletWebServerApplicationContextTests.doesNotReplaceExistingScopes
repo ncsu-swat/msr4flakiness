@@ -1,0 +1,12 @@
+@Test
+void doesNotReplaceExistingScopes() {
+    // gh-2082
+    Scope scope = mock(Scope.class);
+    ConfigurableListableBeanFactory factory = this.context.getBeanFactory();
+    factory.registerScope(WebApplicationContext.SCOPE_REQUEST, scope);
+    factory.registerScope(WebApplicationContext.SCOPE_SESSION, scope);
+    addWebServerFactoryBean();
+    this.context.refresh();
+    assertThat(factory.getRegisteredScope(WebApplicationContext.SCOPE_REQUEST)).isSameAs(scope);
+    assertThat(factory.getRegisteredScope(WebApplicationContext.SCOPE_SESSION)).isSameAs(scope);
+}

@@ -1,0 +1,18 @@
+@Test
+public void testEmptyWorks() throws IOException {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    CountingOutputStream cos = new CountingOutputStream(baos);
+    DataOutputStream dos = new DataOutputStream(cos);
+    KeyValueCodec kvc = new KeyValueCodec();
+    Codec.Encoder encoder = kvc.getEncoder(dos);
+    encoder.flush();
+    dos.close();
+    long offset = cos.getCount();
+    assertEquals(0, offset);
+    CountingInputStream cis = new CountingInputStream(new ByteArrayInputStream(baos.toByteArray()));
+    DataInputStream dis = new DataInputStream(cis);
+    Codec.Decoder decoder = kvc.getDecoder(dis);
+    assertFalse(decoder.advance());
+    dis.close();
+    assertEquals(0, cis.getCount());
+}

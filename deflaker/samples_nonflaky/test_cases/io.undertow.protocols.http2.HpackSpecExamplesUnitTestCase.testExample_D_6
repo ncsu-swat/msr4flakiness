@@ -1,0 +1,52 @@
+@Test
+public void testExample_D_6() throws HpackException {
+    byte[] data = { 0x48, (byte) 0x82, 0x64, 0x02, 0x58, (byte) 0x85, (byte) 0xae, (byte) 0xc3, 0x77, 0x1a, 0x4b, 0x61, (byte) 0x96, (byte) 0xd0, 0x7a, (byte) 0xbe, (byte) 0x94, 0x10, 0x54, (byte) 0xd4, 0x44, (byte) 0xa8, 0x20, 0x05, (byte) 0x95, 0x04, 0x0b, (byte) 0x81, 0x66, (byte) 0xe0, (byte) 0x82, (byte) 0xa6, 0x2d, 0x1b, (byte) 0xff, 0x6e, (byte) 0x91, (byte) 0x9d, 0x29, (byte) 0xad, 0x17, 0x18, 0x63, (byte) 0xc7, (byte) 0x8f, 0x0b, (byte) 0x97, (byte) 0xc8, (byte) 0xe9, (byte) 0xae, (byte) 0x82, (byte) 0xae, 0x43, (byte) 0xd3 };
+    HpackDecoder decoder = new HpackDecoder(256);
+    // d 5.1
+    HeaderMapEmitter emitter = new HeaderMapEmitter();
+    decoder.setHeaderEmitter(emitter);
+    decoder.decode(ByteBuffer.wrap(data), false);
+    Assert.assertEquals(4, emitter.map.size());
+    Assert.assertEquals("302", emitter.map.getFirst(new HttpString(":status")));
+    Assert.assertEquals("private", emitter.map.getFirst(new HttpString("cache-control")));
+    Assert.assertEquals("Mon, 21 Oct 2013 20:13:21 GMT", emitter.map.getFirst(new HttpString("date")));
+    Assert.assertEquals("https://www.example.com", emitter.map.getFirst(new HttpString("location")));
+    Assert.assertEquals(4, decoder.getFilledTableSlots());
+    Assert.assertEquals(222, decoder.getCurrentMemorySize());
+    assertTableState(decoder, 1, "location", "https://www.example.com");
+    assertTableState(decoder, 2, "date", "Mon, 21 Oct 2013 20:13:21 GMT");
+    assertTableState(decoder, 3, "cache-control", "private");
+    assertTableState(decoder, 4, ":status", "302");
+    // d 5.2
+    data = new byte[] { (byte) 0x48, (byte) 0x83, 0x64, 0x0e, (byte) 0xff, (byte) 0xc1, (byte) 0xc0, (byte) 0xbf };
+    emitter = new HeaderMapEmitter();
+    decoder.setHeaderEmitter(emitter);
+    decoder.decode(ByteBuffer.wrap(data), false);
+    Assert.assertEquals(4, emitter.map.size());
+    Assert.assertEquals("307", emitter.map.getFirst(new HttpString(":status")));
+    Assert.assertEquals("private", emitter.map.getFirst(new HttpString("cache-control")));
+    Assert.assertEquals("Mon, 21 Oct 2013 20:13:21 GMT", emitter.map.getFirst(new HttpString("date")));
+    Assert.assertEquals("https://www.example.com", emitter.map.getFirst(new HttpString("location")));
+    Assert.assertEquals(4, decoder.getFilledTableSlots());
+    Assert.assertEquals(222, decoder.getCurrentMemorySize());
+    assertTableState(decoder, 1, ":status", "307");
+    assertTableState(decoder, 2, "location", "https://www.example.com");
+    assertTableState(decoder, 3, "date", "Mon, 21 Oct 2013 20:13:21 GMT");
+    assertTableState(decoder, 4, "cache-control", "private");
+    data = new byte[] { (byte) 0x88, (byte) 0xc1, 0x61, (byte) 0x96, (byte) 0xd0, 0x7a, (byte) 0xbe, (byte) 0x94, 0x10, 0x54, (byte) 0xd4, 0x44, (byte) 0xa8, 0x20, 0x05, (byte) 0x95, 0x04, 0x0b, (byte) 0x81, 0x66, (byte) 0xe0, (byte) 0x84, (byte) 0xa6, 0x2d, 0x1b, (byte) 0xff, (byte) 0xc0, 0x5a, (byte) 0x83, (byte) 0x9b, (byte) 0xd9, (byte) 0xab, 0x77, (byte) 0xad, (byte) 0x94, (byte) 0xe7, (byte) 0x82, 0x1d, (byte) 0xd7, (byte) 0xf2, (byte) 0xe6, (byte) 0xc7, (byte) 0xb3, 0x35, (byte) 0xdf, (byte) 0xdf, (byte) 0xcd, 0x5b, 0x39, 0x60, (byte) 0xd5, (byte) 0xaf, 0x27, 0x08, 0x7f, 0x36, 0x72, (byte) 0xc1, (byte) 0xab, 0x27, 0x0f, (byte) 0xb5, 0x29, 0x1f, (byte) 0x95, (byte) 0x87, 0x31, 0x60, 0x65, (byte) 0xc0, 0x03, (byte) 0xed, 0x4e, (byte) 0xe5, (byte) 0xb1, 0x06, 0x3d, 0x50, 0x07 };
+    emitter = new HeaderMapEmitter();
+    decoder.setHeaderEmitter(emitter);
+    decoder.decode(ByteBuffer.wrap(data), false);
+    Assert.assertEquals(6, emitter.map.size());
+    Assert.assertEquals("200", emitter.map.getFirst(new HttpString(":status")));
+    Assert.assertEquals("private", emitter.map.getFirst(new HttpString("cache-control")));
+    Assert.assertEquals("Mon, 21 Oct 2013 20:13:22 GMT", emitter.map.getFirst(new HttpString("date")));
+    Assert.assertEquals("https://www.example.com", emitter.map.getFirst(new HttpString("location")));
+    Assert.assertEquals("foo=ASDJKHQKBZXOQWEOPIUAXQWEOIU; max-age=3600; version=1", emitter.map.getFirst(new HttpString("set-cookie")));
+    Assert.assertEquals("gzip", emitter.map.getFirst(new HttpString("content-encoding")));
+    Assert.assertEquals(3, decoder.getFilledTableSlots());
+    Assert.assertEquals(215, decoder.getCurrentMemorySize());
+    assertTableState(decoder, 1, "set-cookie", "foo=ASDJKHQKBZXOQWEOPIUAXQWEOIU; max-age=3600; version=1");
+    assertTableState(decoder, 2, "content-encoding", "gzip");
+    assertTableState(decoder, 3, "date", "Mon, 21 Oct 2013 20:13:22 GMT");
+}

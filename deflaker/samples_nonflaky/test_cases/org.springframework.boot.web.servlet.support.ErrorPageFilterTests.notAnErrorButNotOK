@@ -1,0 +1,12 @@
+@Test
+void notAnErrorButNotOK() throws Exception {
+    this.chain = new TestFilterChain((request, response, chain) -> {
+        response.setStatus(201);
+        chain.call();
+        response.flushBuffer();
+    });
+    this.filter.doFilter(this.request, this.response, this.chain);
+    assertThat(((HttpServletResponse) this.chain.getResponse()).getStatus()).isEqualTo(201);
+    assertThat(((HttpServletResponse) ((HttpServletResponseWrapper) this.chain.getResponse()).getResponse()).getStatus()).isEqualTo(201);
+    assertThat(this.response.isCommitted()).isTrue();
+}

@@ -1,0 +1,17 @@
+@Test
+void sslCiphersConfiguration() {
+    Ssl ssl = new Ssl();
+    ssl.setKeyStore("src/test/resources/test.jks");
+    ssl.setKeyStorePassword("secret");
+    ssl.setKeyPassword("password");
+    ssl.setCiphers(new String[] { "ALPHA", "BRAVO", "CHARLIE" });
+    JettyServletWebServerFactory factory = getFactory();
+    factory.setSsl(ssl);
+    this.webServer = factory.getWebServer();
+    this.webServer.start();
+    JettyWebServer jettyWebServer = (JettyWebServer) this.webServer;
+    ServerConnector connector = (ServerConnector) jettyWebServer.getServer().getConnectors()[0];
+    SslConnectionFactory connectionFactory = connector.getConnectionFactory(SslConnectionFactory.class);
+    assertThat(connectionFactory.getSslContextFactory().getIncludeCipherSuites()).containsExactly("ALPHA", "BRAVO", "CHARLIE");
+    assertThat(connectionFactory.getSslContextFactory().getExcludeCipherSuites()).isEmpty();
+}

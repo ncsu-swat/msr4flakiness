@@ -1,0 +1,15 @@
+@Test
+void defaultPoolConnectionFactoryIsApplied() {
+    this.contextRunner.withUserConfiguration(EmptyConfiguration.class).withPropertyValues("spring.activemq.pool.enabled=true").run((context) -> {
+        assertThat(context.getBeansOfType(JmsPoolConnectionFactory.class)).hasSize(1);
+        JmsPoolConnectionFactory connectionFactory = context.getBean(JmsPoolConnectionFactory.class);
+        JmsPoolConnectionFactory defaultFactory = new JmsPoolConnectionFactory();
+        assertThat(connectionFactory.isBlockIfSessionPoolIsFull()).isEqualTo(defaultFactory.isBlockIfSessionPoolIsFull());
+        assertThat(connectionFactory.getBlockIfSessionPoolIsFullTimeout()).isEqualTo(defaultFactory.getBlockIfSessionPoolIsFullTimeout());
+        assertThat(connectionFactory.getConnectionIdleTimeout()).isEqualTo(defaultFactory.getConnectionIdleTimeout());
+        assertThat(connectionFactory.getMaxConnections()).isEqualTo(defaultFactory.getMaxConnections());
+        assertThat(connectionFactory.getMaxSessionsPerConnection()).isEqualTo(defaultFactory.getMaxSessionsPerConnection());
+        assertThat(connectionFactory.getConnectionCheckInterval()).isEqualTo(defaultFactory.getConnectionCheckInterval());
+        assertThat(connectionFactory.isUseAnonymousProducers()).isEqualTo(defaultFactory.isUseAnonymousProducers());
+    });
+}

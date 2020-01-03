@@ -1,0 +1,10 @@
+@Test
+void parentContextCreationThatIsBuiltThenRun() {
+    SpringApplicationBuilder application = new SpringApplicationBuilder(ChildConfig.class).contextClass(SpyApplicationContext.class);
+    application.parent(ExampleConfig.class);
+    this.context = application.build("a=alpha").run("b=bravo");
+    verify(((SpyApplicationContext) this.context).getApplicationContext()).setParent(any(ApplicationContext.class));
+    assertThat(((SpyApplicationContext) this.context).getRegisteredShutdownHook()).isFalse();
+    assertThat(this.context.getParent().getBean(ApplicationArguments.class).getNonOptionArgs()).contains("a=alpha");
+    assertThat(this.context.getBean(ApplicationArguments.class).getNonOptionArgs()).contains("b=bravo");
+}

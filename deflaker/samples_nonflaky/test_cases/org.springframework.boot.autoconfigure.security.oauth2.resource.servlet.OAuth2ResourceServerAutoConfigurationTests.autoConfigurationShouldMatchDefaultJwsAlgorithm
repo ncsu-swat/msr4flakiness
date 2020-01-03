@@ -1,0 +1,9 @@
+@Test
+void autoConfigurationShouldMatchDefaultJwsAlgorithm() {
+    this.contextRunner.withPropertyValues("spring.security.oauth2.resourceserver.jwt.jwk-set-uri=https://jwk-set-uri.com").run((context) -> {
+        JwtDecoder jwtDecoder = context.getBean(JwtDecoder.class);
+        Object processor = ReflectionTestUtils.getField(jwtDecoder, "jwtProcessor");
+        Object keySelector = ReflectionTestUtils.getField(processor, "jwsKeySelector");
+        assertThat(keySelector).hasFieldOrPropertyWithValue("jwsAlg", JWSAlgorithm.RS256);
+    });
+}

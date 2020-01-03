@@ -1,0 +1,10 @@
+@Test
+void hikariAutoConfiguredCanUseRegisterMBeans() {
+    String poolName = UUID.randomUUID().toString();
+    this.contextRunner.withPropertyValues("spring.jmx.enabled=true", "spring.datasource.type=" + HikariDataSource.class.getName(), "spring.datasource.name=" + poolName, "spring.datasource.hikari.register-mbeans=true").run((context) -> {
+        assertThat(context).hasSingleBean(HikariDataSource.class);
+        assertThat(context.getBean(HikariDataSource.class).isRegisterMbeans()).isTrue();
+        MBeanServer mBeanServer = context.getBean(MBeanServer.class);
+        validateHikariMBeansRegistration(mBeanServer, poolName, true);
+    });
+}

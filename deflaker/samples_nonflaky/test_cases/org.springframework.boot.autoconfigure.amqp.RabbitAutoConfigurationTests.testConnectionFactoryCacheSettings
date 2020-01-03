@@ -1,0 +1,10 @@
+@Test
+void testConnectionFactoryCacheSettings() {
+    this.contextRunner.withUserConfiguration(TestConfiguration.class).withPropertyValues("spring.rabbitmq.cache.channel.size=23", "spring.rabbitmq.cache.channel.checkoutTimeout=1000", "spring.rabbitmq.cache.connection.mode=CONNECTION", "spring.rabbitmq.cache.connection.size=2").run((context) -> {
+        CachingConnectionFactory connectionFactory = context.getBean(CachingConnectionFactory.class);
+        assertThat(connectionFactory.getChannelCacheSize()).isEqualTo(23);
+        assertThat(connectionFactory.getCacheMode()).isEqualTo(CacheMode.CONNECTION);
+        assertThat(connectionFactory.getConnectionCacheSize()).isEqualTo(2);
+        assertThat(connectionFactory).hasFieldOrPropertyWithValue("channelCheckoutTimeout", 1000L);
+    });
+}

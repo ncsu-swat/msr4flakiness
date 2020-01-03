@@ -1,0 +1,30 @@
+@Test
+public void testForceTrigger() throws InterruptedException {
+    final int period = 100;
+    final int delta = period / 10;
+    ChoreService service = new ChoreService("testForceTrigger");
+    final CountingChore chore = new CountingChore("countingChore", period);
+    try {
+        service.scheduleChore(chore);
+        Thread.sleep(10 * period + delta);
+        assertEquals("10 periods have elapsed.", 11, chore.getCountOfChoreCalls());
+        // Force five runs of the chore to occur, sleeping between triggers to ensure the
+        // chore has time to run
+        chore.triggerNow();
+        Thread.sleep(delta);
+        chore.triggerNow();
+        Thread.sleep(delta);
+        chore.triggerNow();
+        Thread.sleep(delta);
+        chore.triggerNow();
+        Thread.sleep(delta);
+        chore.triggerNow();
+        Thread.sleep(delta);
+        assertEquals("Trigger was called 5 times after 10 periods.", 16, chore.getCountOfChoreCalls());
+        Thread.sleep(10 * period + delta);
+        // Be loosey-goosey. It used to be '26' but it was a big flakey relying on timing.
+        assertTrue("Expected at least 16 invocations, instead got " + chore.getCountOfChoreCalls(), chore.getCountOfChoreCalls() > 16);
+    } finally {
+        shutdownService(service);
+    }
+}

@@ -1,0 +1,21 @@
+@Test
+public void testShutdownCancelsScheduledChores() throws InterruptedException {
+    final int period = 100;
+    ChoreService service = new ChoreService("testShutdownCancelsScheduledChores");
+    ScheduledChore successChore1 = new DoNothingChore("sc1", period);
+    ScheduledChore successChore2 = new DoNothingChore("sc2", period);
+    ScheduledChore successChore3 = new DoNothingChore("sc3", period);
+    try {
+        assertTrue(service.scheduleChore(successChore1));
+        assertTrue(successChore1.isScheduled());
+        assertTrue(service.scheduleChore(successChore2));
+        assertTrue(successChore2.isScheduled());
+        assertTrue(service.scheduleChore(successChore3));
+        assertTrue(successChore3.isScheduled());
+    } finally {
+        shutdownService(service);
+    }
+    assertFalse(successChore1.isScheduled());
+    assertFalse(successChore2.isScheduled());
+    assertFalse(successChore3.isScheduled());
+}

@@ -1,0 +1,15 @@
+@Test
+void serverProcessors() {
+    NettyRSocketServerFactory factory = getFactory();
+    ServerRSocketFactoryProcessor[] processors = new ServerRSocketFactoryProcessor[2];
+    for (int i = 0; i < processors.length; i++) {
+        processors[i] = mock(ServerRSocketFactoryProcessor.class);
+        given(processors[i].process(any(RSocketFactory.ServerRSocketFactory.class))).will((invocation) -> invocation.getArgument(0));
+    }
+    factory.setSocketFactoryProcessors(Arrays.asList(processors));
+    this.server = factory.create(new EchoRequestResponseAcceptor());
+    InOrder ordered = inOrder((Object[]) processors);
+    for (ServerRSocketFactoryProcessor processor : processors) {
+        ordered.verify(processor).process(any(RSocketFactory.ServerRSocketFactory.class));
+    }
+}

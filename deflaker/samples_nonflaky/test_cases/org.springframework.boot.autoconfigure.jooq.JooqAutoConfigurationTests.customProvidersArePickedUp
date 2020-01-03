@@ -1,0 +1,16 @@
+@Test
+void customProvidersArePickedUp() {
+    this.contextRunner.withUserConfiguration(JooqDataSourceConfiguration.class, TxManagerConfiguration.class, TestRecordMapperProvider.class, TestRecordUnmapperProvider.class, TestRecordListenerProvider.class, TestExecuteListenerProvider.class, TestVisitListenerProvider.class, TestTransactionListenerProvider.class, TestExecutorProvider.class).run((context) -> {
+        DSLContext dsl = context.getBean(DSLContext.class);
+        assertThat(dsl.configuration().recordMapperProvider().getClass()).isEqualTo(TestRecordMapperProvider.class);
+        assertThat(dsl.configuration().recordUnmapperProvider().getClass()).isEqualTo(TestRecordUnmapperProvider.class);
+        assertThat(dsl.configuration().executorProvider().getClass()).isEqualTo(TestExecutorProvider.class);
+        assertThat(dsl.configuration().recordListenerProviders()).hasSize(1);
+        ExecuteListenerProvider[] executeListenerProviders = dsl.configuration().executeListenerProviders();
+        assertThat(executeListenerProviders).hasSize(2);
+        assertThat(executeListenerProviders[0]).isInstanceOf(DefaultExecuteListenerProvider.class);
+        assertThat(executeListenerProviders[1]).isInstanceOf(TestExecuteListenerProvider.class);
+        assertThat(dsl.configuration().visitListenerProviders()).hasSize(1);
+        assertThat(dsl.configuration().transactionListenerProviders()).hasSize(1);
+    });
+}

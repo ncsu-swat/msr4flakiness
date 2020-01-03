@@ -1,0 +1,71 @@
+getClass
+readResponse
+css
+param1=a&param2=b
+StatusCodes
+type
+regex('(.*).css') -> set[attribute='%{o,css}', value='true'] else set[attribute='%{o,css}', value='false']; 
+HttpClientUtils
+DefaultServer
+Assert
+/skipallrules
+regex('(.*).redirect$') -> redirect['${1}.redirected']
+
+
+
+
+
+always
+testRewrite
+/foo/a/b.xcss
+chained
+regex('(.*).css') -> {rewrite['${1}.xcss'];set(attribute='%{o,chained}', value=true)} 
+
+execute
+predicates
+/foo/a/b.redirect
+true
+exchange
+getRelativePath
+send
+shutdown
+PredicatedHandlersParser
+template
+/restart
+getResponseSender
+getClassLoader
+result
+set[attribute='%{o,someHeader}', value=always]
+
+path(/restart) -> {rewrite(/foo/a/b); restart; }
+
+get
+someHeader
+client
+regex('^/path/([^/]+)/(.*)/?$') -> rewrite('/newpath'); set(attribute='%{o,result}', value='param1=$1&param2=$2'); done()
+a
+getHeaders
+path(/skipallrules) and true -> done
+
+setRootHandler
+path-template('/bar->foo') -> redirect(/);
+false
+getDefaultServerURL
+/newpath
+path-template('/foo/{bar}/{f}') -> set[attribute='%{o,template}', value='${bar}']
+
+assertEquals
+method(GET) -> set(attribute='%{o,type}', value=get) 
+
+parse
+/path/a/b
+/foo/a/b.redirected
+Handlers
+getValue
+/foo/a/b.css
+/foo/a/b
+getStatusCode
+getConnectionManager
+response
+getStatusLine
+handleRequest

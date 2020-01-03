@@ -1,0 +1,9 @@
+@Test
+// Make sure that we at least attempt to load the store
+void enableSslWithNonExistingTrustStoreShouldFail() {
+    this.contextRunner.withUserConfiguration(TestConfiguration.class).withPropertyValues("spring.rabbitmq.ssl.enabled:true", "spring.rabbitmq.ssl.trustStore=bar", "spring.rabbitmq.ssl.trustStorePassword=secret").run((context) -> {
+        assertThat(context).hasFailed();
+        assertThat(context).getFailure().hasMessageContaining("bar");
+        assertThat(context).getFailure().hasMessageContaining("does not exist");
+    });
+}

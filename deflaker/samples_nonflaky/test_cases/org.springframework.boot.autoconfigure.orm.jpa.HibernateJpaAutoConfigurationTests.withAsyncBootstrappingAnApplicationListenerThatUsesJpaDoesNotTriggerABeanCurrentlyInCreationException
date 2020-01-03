@@ -1,0 +1,8 @@
+@Test
+void withAsyncBootstrappingAnApplicationListenerThatUsesJpaDoesNotTriggerABeanCurrentlyInCreationException() {
+    contextRunner().withUserConfiguration(AsyncBootstrappingConfiguration.class, JpaUsingApplicationListenerConfiguration.class).withPropertyValues("spring.datasource.initialization-mode=never").run((context) -> {
+        assertThat(context).hasNotFailed();
+        EventCapturingApplicationListener listener = context.getBean(EventCapturingApplicationListener.class);
+        Awaitility.waitAtMost(Duration.ofSeconds(30)).until(() -> dataSourceSchemaCreatedEventsReceivedBy(listener), hasSize(1));
+    });
+}

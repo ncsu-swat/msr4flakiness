@@ -1,0 +1,18 @@
+@Test
+public void testBuildDataDictionary() {
+    Map<Integer, Collection<String>> distinctValues = new HashMap<>();
+    distinctValues.put(1, Arrays.asList("one", "two", "three", "four", "five"));
+    CategoricalValueEncodings categoricalValueEncodings = new CategoricalValueEncodings(distinctValues);
+    DataDictionary dictionary = AppPMMLUtils.buildDataDictionary(buildTestSchema(), categoricalValueEncodings);
+    assertEquals(4, dictionary.getNumberOfFields().intValue());
+    checkDataField(dictionary.getDataFields().get(0), "foo", null);
+    checkDataField(dictionary.getDataFields().get(1), "bar", true);
+    checkDataField(dictionary.getDataFields().get(2), "baz", null);
+    checkDataField(dictionary.getDataFields().get(3), "bing", false);
+    List<Value> dfValues = dictionary.getDataFields().get(1).getValues();
+    assertEquals(5, dfValues.size());
+    String[] categoricalValues = { "one", "two", "three", "four", "five" };
+    for (int i = 0; i < categoricalValues.length; i++) {
+        assertEquals(categoricalValues[i], dfValues.get(i).getValue());
+    }
+}

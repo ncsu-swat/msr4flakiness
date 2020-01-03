@@ -1,0 +1,23 @@
+@Test
+void expectedPropertiesAreManaged() {
+    Map<String, PropertyDescriptor> properties = indexProperties(PropertyAccessorFactory.forBeanPropertyAccess(new FlywayProperties()));
+    Map<String, PropertyDescriptor> configuration = indexProperties(PropertyAccessorFactory.forBeanPropertyAccess(new ClassicConfiguration()));
+    // Properties specific settings
+    ignoreProperties(properties, "url", "user", "password", "enabled", "checkLocation", "createDataSource");
+    // High level object we can't set with properties
+    ignoreProperties(configuration, "callbacks", "classLoader", "dataSource", "javaMigrations", "resolvers");
+    // Properties we don't want to expose
+    ignoreProperties(configuration, "resolversAsClassNames", "callbacksAsClassNames");
+    // Handled by the conversion service
+    ignoreProperties(configuration, "baselineVersionAsString", "encodingAsString", "locationsAsStrings", "targetAsString");
+    // Handled as initSql array
+    ignoreProperties(configuration, "initSql");
+    ignoreProperties(properties, "initSqls");
+    // Handled as dryRunOutput
+    ignoreProperties(configuration, "dryRunOutputAsFile", "dryRunOutputAsFileName");
+    List<String> configurationKeys = new ArrayList<>(configuration.keySet());
+    Collections.sort(configurationKeys);
+    List<String> propertiesKeys = new ArrayList<>(properties.keySet());
+    Collections.sort(propertiesKeys);
+    assertThat(configurationKeys).isEqualTo(propertiesKeys);
+}

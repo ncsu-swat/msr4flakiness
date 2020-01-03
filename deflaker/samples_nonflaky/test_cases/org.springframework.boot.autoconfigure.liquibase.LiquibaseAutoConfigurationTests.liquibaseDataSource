@@ -1,0 +1,12 @@
+@Test
+void liquibaseDataSource() {
+    this.contextRunner.withUserConfiguration(LiquibaseDataSourceConfiguration.class, EmbeddedDataSourceConfiguration.class).run((context) -> {
+        SpringLiquibase liquibase = context.getBean(SpringLiquibase.class);
+        assertThat(liquibase.getDataSource()).isEqualTo(context.getBean("liquibaseDataSource"));
+    });
+}
+@LiquibaseDataSource
+@Bean
+DataSource liquibaseDataSource() {
+    return DataSourceBuilder.create().url("jdbc:hsqldb:mem:liquibasetest").username("sa").build();
+}

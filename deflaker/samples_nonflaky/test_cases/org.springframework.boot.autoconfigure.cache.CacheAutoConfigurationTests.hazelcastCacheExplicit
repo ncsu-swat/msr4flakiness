@@ -1,0 +1,11 @@
+@Test
+void hazelcastCacheExplicit() {
+    this.contextRunner.withConfiguration(AutoConfigurations.of(HazelcastAutoConfiguration.class)).withUserConfiguration(DefaultCacheConfiguration.class).withPropertyValues("spring.cache.type=hazelcast").run((context) -> {
+        HazelcastCacheManager cacheManager = getCacheManager(context, HazelcastCacheManager.class);
+        // NOTE: the hazelcast implementation knows about a cache in a lazy
+        // manner.
+        cacheManager.getCache("defaultCache");
+        assertThat(cacheManager.getCacheNames()).containsOnly("defaultCache");
+        assertThat(context.getBean(HazelcastInstance.class)).isEqualTo(cacheManager.getHazelcastInstance());
+    });
+}

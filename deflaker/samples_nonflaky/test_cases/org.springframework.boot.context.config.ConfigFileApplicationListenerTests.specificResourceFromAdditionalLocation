@@ -1,0 +1,12 @@
+@Test
+void specificResourceFromAdditionalLocation() {
+    String additionalLocation = "classpath:specificlocation.properties";
+    TestPropertySourceUtils.addInlinedPropertiesToEnvironment(this.environment, "spring.config.additional-location=" + additionalLocation);
+    this.initializer.postProcessEnvironment(this.environment, this.application);
+    String property = this.environment.getProperty("the.property");
+    assertThat(property).isEqualTo("fromspecificlocation");
+    assertThat(this.environment).has(matchingPropertySource("applicationConfig: [classpath:specificlocation.properties]"));
+    // The default property source is still there
+    assertThat(this.environment).has(matchingPropertySource("applicationConfig: [classpath:/application.properties]"));
+    assertThat(this.environment.getProperty("foo")).isEqualTo("bucket");
+}

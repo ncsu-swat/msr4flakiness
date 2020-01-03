@@ -1,0 +1,8 @@
+@Test
+void testExceptionWithNullMessage() {
+    this.contextRunner.withPropertyValues("spring.mustache.prefix=classpath:/unknown/").run((context) -> {
+        WebTestClient client = getWebClient(context);
+        String body = client.get().uri("/notfound").accept(MediaType.TEXT_HTML).exchange().expectStatus().isNotFound().expectHeader().contentType(TEXT_HTML_UTF8).expectBody(String.class).returnResult().getResponseBody();
+        assertThat(body).contains("Whitelabel Error Page").contains(this.logIdFilter.getLogId()).contains("type=Not Found, status=404");
+    });
+}

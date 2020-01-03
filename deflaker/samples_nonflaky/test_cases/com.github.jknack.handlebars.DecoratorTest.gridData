@@ -1,0 +1,33 @@
+@Test
+public void gridData() throws Exception {
+    shouldCompileTo("{{#grid people}}\n" + "  {{#*column \"First Name\"}}{{firstName}}{{/column}}\n" + "  {{#*column \"Last Name\"}}{{lastName}}{{/column}}\n" + "{{/grid}}", $("helpers", $("grid", new Helper<List<Hash>>() {
+
+        @Override
+        public Object apply(final List<Hash> people, final Options options) throws IOException {
+            List<Hash> columns = options.data("columns");
+            String headers = "";
+            for (Hash c : columns) {
+                headers += c.get("key") + ", ";
+            }
+            String output = headers + "\n";
+            for (Hash person : people) {
+                for (Hash c : columns) {
+                    output += ((Template) c.get("body")).apply(person) + ", ";
+                }
+                output += "\n";
+            }
+            return output;
+        }
+    }), "decorators", $("column", new Decorator() {
+
+        @Override
+        public void apply(final Template fn, final Options options) throws IOException {
+            List<Hash> columns = options.data("columns");
+            if (columns == null) {
+                columns = new ArrayList<>();
+                options.data("columns", columns);
+            }
+            columns.add($("key", options.param(0), "body", options.fn));
+        }
+    }), "hash", $("people", Arrays.asList($("firstName", "Pedro", "lastName", "PicaPiedra"), $("firstName", "Pablo", "lastName", "Marmol")))), "First Name, Last Name, \n" + "Pedro, PicaPiedra, \n" + "Pablo, Marmol, \n" + "");
+}

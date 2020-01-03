@@ -1,0 +1,39 @@
+@Test
+public void testCompressByFramesDecompressWholeLongMessage() throws Exception {
+    int LONG_MSG = 75 * 1024;
+    StringBuilder longMsg = new StringBuilder(LONG_MSG);
+    byte[] longbuf = new byte[LONG_MSG + 64];
+    byte[] output = new byte[LONG_MSG];
+    for (int i = 0; i < LONG_MSG; i++) {
+        longMsg.append(new Integer(i).toString().charAt(0));
+    }
+    String msg = longMsg.toString();
+    byte[] input = msg.getBytes();
+    /*
+            Compress in chunks of 1024 bytes
+         */
+    boolean finished = false;
+    int start = 0;
+    int end;
+    int compressed;
+    int total = 0;
+    while (!finished) {
+        end = (start + 1024) < input.length ? 1024 : input.length - start;
+        compress.setInput(input, start, end);
+        start += 1024;
+        finished = start >= input.length;
+        if (finished) {
+            compress.finish();
+        }
+        compressed = compress.deflate(longbuf, total, longbuf.length - total, Deflater.SYNC_FLUSH);
+        total += compressed;
+    }
+    /*
+            Decompress whole message
+         */
+    int decompressed = 0;
+    decompress.setInput(longbuf, 0, total);
+    decompress.finished();
+    decompressed = decompress.inflate(output, 0, output.length);
+    Assert.assertEquals(longMsg.toString(), new String(output, 0, decompressed, "UTF-8"));
+}

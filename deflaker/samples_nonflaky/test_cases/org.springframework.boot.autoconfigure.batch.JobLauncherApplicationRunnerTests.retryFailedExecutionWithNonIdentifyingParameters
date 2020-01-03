@@ -1,0 +1,10 @@
+@Test
+void retryFailedExecutionWithNonIdentifyingParameters() throws Exception {
+    this.job = this.jobs.get("job").start(this.steps.get("step").tasklet(throwingTasklet()).build()).incrementer(new RunIdIncrementer()).build();
+    JobParameters jobParameters = new JobParametersBuilder().addLong("id", 1L, false).addLong("foo", 2L, false).toJobParameters();
+    this.runner.execute(this.job, jobParameters);
+    assertThat(this.jobExplorer.getJobInstances("job", 0, 100)).hasSize(1);
+    // try to re-run a failed execution with non identifying parameters
+    this.runner.execute(this.job, new JobParametersBuilder(jobParameters).addLong("run.id", 1L).toJobParameters());
+    assertThat(this.jobExplorer.getJobInstances("job", 0, 100)).hasSize(1);
+}

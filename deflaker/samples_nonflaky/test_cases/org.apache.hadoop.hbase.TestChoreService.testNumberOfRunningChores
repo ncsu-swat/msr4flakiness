@@ -1,0 +1,33 @@
+@Test
+public void testNumberOfRunningChores() throws InterruptedException {
+    ChoreService service = new ChoreService("testNumberOfRunningChores");
+    final int period = 100;
+    final int sleepTime = 5;
+    try {
+        DoNothingChore dn1 = new DoNothingChore("dn1", period);
+        DoNothingChore dn2 = new DoNothingChore("dn2", period);
+        DoNothingChore dn3 = new DoNothingChore("dn3", period);
+        DoNothingChore dn4 = new DoNothingChore("dn4", period);
+        DoNothingChore dn5 = new DoNothingChore("dn5", period);
+        service.scheduleChore(dn1);
+        service.scheduleChore(dn2);
+        service.scheduleChore(dn3);
+        service.scheduleChore(dn4);
+        service.scheduleChore(dn5);
+        Thread.sleep(sleepTime);
+        assertEquals("Scheduled chore mismatch", 5, service.getNumberOfScheduledChores());
+        dn1.cancel();
+        Thread.sleep(sleepTime);
+        assertEquals("Scheduled chore mismatch", 4, service.getNumberOfScheduledChores());
+        dn2.cancel();
+        dn3.cancel();
+        dn4.cancel();
+        Thread.sleep(sleepTime);
+        assertEquals("Scheduled chore mismatch", 1, service.getNumberOfScheduledChores());
+        dn5.cancel();
+        Thread.sleep(sleepTime);
+        assertEquals("Scheduled chore mismatch", 0, service.getNumberOfScheduledChores());
+    } finally {
+        shutdownService(service);
+    }
+}

@@ -1,0 +1,27 @@
+/**
+ * Verify Real and Int encodings are compatible.
+ */
+@Test
+public void testNumericIntRealCompatibility() {
+    for (Order ord : new Order[] { Order.ASCENDING, Order.DESCENDING }) {
+        for (int i = 0; i < I_VALS.length; i++) {
+            // verify primitives
+            PositionedByteRange pbri = new SimplePositionedMutableByteRange(I_LENGTHS[i]);
+            PositionedByteRange pbrr = new SimplePositionedMutableByteRange(I_LENGTHS[i]);
+            OrderedBytes.encodeNumeric(pbri, I_VALS[i], ord);
+            OrderedBytes.encodeNumeric(pbrr, I_VALS[i], ord);
+            assertArrayEquals("Integer and real encodings differ.", pbri.getBytes(), pbrr.getBytes());
+            pbri.setPosition(0);
+            pbrr.setPosition(0);
+            assertEquals((long) I_VALS[i], OrderedBytes.decodeNumericAsLong(pbri));
+            assertEquals((long) I_VALS[i], (long) OrderedBytes.decodeNumericAsDouble(pbrr));
+            // verify BigDecimal for Real encoding
+            BigDecimal bd = BigDecimal.valueOf(I_VALS[i]);
+            PositionedByteRange pbrbd = new SimplePositionedMutableByteRange(I_LENGTHS[i]);
+            OrderedBytes.encodeNumeric(pbrbd, bd, ord);
+            assertArrayEquals("Integer and BigDecimal encodings differ.", pbri.getBytes(), pbrbd.getBytes());
+            pbri.setPosition(0);
+            assertEquals("Value not preserved when decoding as Long", 0, bd.compareTo(BigDecimal.valueOf(OrderedBytes.decodeNumericAsLong(pbri))));
+        }
+    }
+}

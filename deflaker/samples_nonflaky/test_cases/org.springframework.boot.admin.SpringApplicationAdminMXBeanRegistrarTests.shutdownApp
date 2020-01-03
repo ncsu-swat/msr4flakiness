@@ -1,0 +1,12 @@
+@Test
+void shutdownApp() throws InstanceNotFoundException {
+    final ObjectName objectName = createObjectName(OBJECT_NAME);
+    SpringApplication application = new SpringApplication(Config.class);
+    application.setWebApplicationType(WebApplicationType.NONE);
+    this.context = application.run();
+    assertThat(this.context.isRunning()).isTrue();
+    invokeShutdown(objectName);
+    assertThat(this.context.isRunning()).isFalse();
+    // JMX cleanup
+    assertThatExceptionOfType(InstanceNotFoundException.class).isThrownBy(() -> this.mBeanServer.getObjectInstance(objectName));
+}

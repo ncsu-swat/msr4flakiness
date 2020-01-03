@@ -1,0 +1,13 @@
+@Test
+void bindToMapWhenHasExistingMapShouldReplaceOnlyNewContents() {
+    this.sources.add(new MockConfigurationPropertySource("foo.bar", "1"));
+    Map<String, Integer> existing = new HashMap<>();
+    existing.put("bar", 1000);
+    existing.put("baz", 1001);
+    Bindable<Map<String, Integer>> target = STRING_INTEGER_MAP.withExistingValue(existing);
+    Map<String, Integer> result = this.binder.bind("foo", target).get();
+    assertThat(result).isExactlyInstanceOf(HashMap.class);
+    assertThat(result).hasSize(2);
+    assertThat(result).containsEntry("bar", 1);
+    assertThat(result).containsEntry("baz", 1001);
+}

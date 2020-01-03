@@ -1,0 +1,12 @@
+@Test
+public void testClassFinderCanFindClassesInJars() throws Exception {
+    long counter = testCounter.incrementAndGet();
+    FileAndPath c1 = compileTestClass(counter, "", "c1");
+    FileAndPath c2 = compileTestClass(counter, ".nested", "c2");
+    FileAndPath c3 = compileTestClass(counter, "", "c3");
+    packageAndLoadJar(c1, c3);
+    packageAndLoadJar(c2);
+    ClassFinder allClassesFinder = new ClassFinder(classLoader);
+    Set<Class<?>> allClasses = allClassesFinder.findClasses(makePackageName("", counter), false);
+    assertEquals(3, allClasses.size());
+}

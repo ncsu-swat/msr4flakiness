@@ -1,0 +1,12 @@
+@Test
+void nonStandardErrorStatusCodeShouldNotFail() {
+    ErrorAttributes errorAttributes = mock(ErrorAttributes.class);
+    ResourceProperties resourceProperties = new ResourceProperties();
+    ErrorProperties errorProperties = new ErrorProperties();
+    ApplicationContext context = new AnnotationConfigReactiveWebApplicationContext();
+    given(errorAttributes.getErrorAttributes(any(), anyBoolean())).willReturn(getErrorAttributes());
+    DefaultErrorWebExceptionHandler exceptionHandler = new DefaultErrorWebExceptionHandler(errorAttributes, resourceProperties, errorProperties, context);
+    setupViewResolver(exceptionHandler);
+    ServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/some-other-path").accept(MediaType.TEXT_HTML));
+    exceptionHandler.handle(exchange, new RuntimeException()).block();
+}

@@ -1,0 +1,9 @@
+@Test
+void healthIndicatorIsAdapted() {
+    ReactiveHealthIndicatorRegistry registry = this.factory.createReactiveHealthIndicatorRegistry(Collections.singletonMap("test", () -> Mono.just(UP)), Collections.singletonMap("regular", () -> DOWN));
+    assertThat(registry.getAll()).containsOnlyKeys("test", "regular");
+    StepVerifier.create(registry.get("regular").health()).consumeNextWith((h) -> {
+        assertThat(h.getStatus()).isEqualTo(Status.DOWN);
+        assertThat(h.getDetails()).isEmpty();
+    }).verifyComplete();
+}

@@ -1,0 +1,19 @@
+@Test
+public void testToExample() {
+    Map<String, Object> overlayConfig = new HashMap<>();
+    overlayConfig.put("oryx.input-schema.num-features", 5);
+    overlayConfig.put("oryx.input-schema.categorical-features", "[\"4\"]");
+    overlayConfig.put("oryx.input-schema.id-features", "[\"0\"]");
+    overlayConfig.put("oryx.input-schema.target-feature", "\"4\"");
+    Config config = ConfigUtils.overlayOn(overlayConfig, ConfigUtils.getDefault());
+    InputSchema schema = new InputSchema(config);
+    CategoricalValueEncodings encodings = new CategoricalValueEncodings(Collections.singletonMap(4, Arrays.asList("A", "B", "C")));
+    Example example = ExampleUtils.dataToExample(new String[] { "foo", "1", "2.5", "-3.2", "B" }, schema, encodings);
+    assertEquals(CategoricalFeature.forEncoding(1), example.getTarget());
+    assertNull(example.getFeature(0));
+    assertEquals(NumericFeature.forValue(1.0), example.getFeature(1));
+    assertEquals(NumericFeature.forValue(2.5), example.getFeature(2));
+    assertEquals(NumericFeature.forValue(-3.2), example.getFeature(3));
+    assertNull(example.getFeature(4));
+    assertTrue(example.toString().contains("2.5"));
+}

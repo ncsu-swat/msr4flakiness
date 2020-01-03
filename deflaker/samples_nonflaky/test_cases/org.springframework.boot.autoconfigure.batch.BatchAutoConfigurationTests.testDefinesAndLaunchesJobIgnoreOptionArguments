@@ -1,0 +1,9 @@
+@Test
+void testDefinesAndLaunchesJobIgnoreOptionArguments() {
+    this.contextRunner.withUserConfiguration(JobConfiguration.class, EmbeddedDataSourceConfiguration.class).run((context) -> {
+        assertThat(context).hasSingleBean(JobLauncher.class);
+        context.getBean(JobLauncherApplicationRunner.class).run(new DefaultApplicationArguments("--spring.property=value", "jobParam=test"));
+        JobParameters jobParameters = new JobParametersBuilder().addString("jobParam", "test").toJobParameters();
+        assertThat(context.getBean(JobRepository.class).getLastJobExecution("job", jobParameters)).isNotNull();
+    });
+}

@@ -1,0 +1,9 @@
+@Test
+void createDataSourceWithUserAndFallbackToEmbeddedProperties() {
+    this.contextRunner.withUserConfiguration(EmbeddedDataSourceConfiguration.class).withPropertyValues("spring.flyway.user:sa").run((context) -> {
+        assertThat(context).hasSingleBean(Flyway.class);
+        DataSource dataSource = context.getBean(Flyway.class).getConfiguration().getDataSource();
+        assertThat(dataSource).isNotNull();
+        assertThat(dataSource).extracting("url").asString().startsWith("jdbc:h2:mem:");
+    });
+}

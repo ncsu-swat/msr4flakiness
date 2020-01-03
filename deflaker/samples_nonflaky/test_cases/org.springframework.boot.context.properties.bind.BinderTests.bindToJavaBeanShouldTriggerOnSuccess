@@ -1,0 +1,10 @@
+@Test
+void bindToJavaBeanShouldTriggerOnSuccess() {
+    this.sources.add(new MockConfigurationPropertySource("foo.value", "bar", "line1"));
+    BindHandler handler = mock(BindHandler.class, Answers.CALLS_REAL_METHODS);
+    Bindable<JavaBean> target = Bindable.of(JavaBean.class);
+    this.binder.bind("foo", target, handler);
+    InOrder inOrder = inOrder(handler);
+    inOrder.verify(handler).onSuccess(eq(ConfigurationPropertyName.of("foo.value")), eq(Bindable.of(String.class)), any(), eq("bar"));
+    inOrder.verify(handler).onSuccess(eq(ConfigurationPropertyName.of("foo")), eq(target), any(), isA(JavaBean.class));
+}

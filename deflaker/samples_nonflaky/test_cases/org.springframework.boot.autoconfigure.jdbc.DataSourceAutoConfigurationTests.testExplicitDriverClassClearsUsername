@@ -1,0 +1,9 @@
+@Test
+void testExplicitDriverClassClearsUsername() {
+    this.contextRunner.withPropertyValues("spring.datasource.driverClassName:" + DatabaseTestDriver.class.getName(), "spring.datasource.url:jdbc:foo://localhost").run((context) -> {
+        assertThat(context).hasSingleBean(DataSource.class);
+        HikariDataSource dataSource = context.getBean(HikariDataSource.class);
+        assertThat(dataSource.getDriverClassName()).isEqualTo(DatabaseTestDriver.class.getName());
+        assertThat(dataSource.getUsername()).isNull();
+    });
+}

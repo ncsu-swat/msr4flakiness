@@ -1,0 +1,13 @@
+@Test
+void startRegistrations() {
+    addWebServerFactoryBean();
+    this.context.refresh();
+    MockServletWebServerFactory factory = getWebServerFactory();
+    // Ensure that the context has been setup
+    assertThat(this.context.getServletContext()).isEqualTo(factory.getServletContext());
+    verify(factory.getServletContext()).setAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE, this.context);
+    // Ensure WebApplicationContextUtils.registerWebApplicationScopes was called
+    assertThat(this.context.getBeanFactory().getRegisteredScope(WebApplicationContext.SCOPE_SESSION)).isInstanceOf(SessionScope.class);
+    // Ensure WebApplicationContextUtils.registerEnvironmentBeans was called
+    assertThat(this.context.containsBean(WebApplicationContext.SERVLET_CONTEXT_BEAN_NAME)).isTrue();
+}

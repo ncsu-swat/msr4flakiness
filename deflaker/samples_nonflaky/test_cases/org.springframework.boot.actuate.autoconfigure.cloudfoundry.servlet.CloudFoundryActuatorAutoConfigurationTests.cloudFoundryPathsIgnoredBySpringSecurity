@@ -1,0 +1,13 @@
+@Test
+void cloudFoundryPathsIgnoredBySpringSecurity() {
+    this.contextRunner.withPropertyValues("VCAP_APPLICATION:---", "vcap.application.application_id:my-app-id").run((context) -> {
+        FilterChainProxy securityFilterChain = (FilterChainProxy) context.getBean(BeanIds.SPRING_SECURITY_FILTER_CHAIN);
+        SecurityFilterChain chain = securityFilterChain.getFilterChains().get(0);
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setServletPath("/cloudfoundryapplication/my-path");
+        assertThat(chain.getFilters()).isEmpty();
+        assertThat(chain.matches(request)).isTrue();
+        request.setServletPath("/some-other-path");
+        assertThat(chain.matches(request)).isFalse();
+    });
+}

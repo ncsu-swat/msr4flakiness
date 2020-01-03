@@ -1,0 +1,11 @@
+@Test
+void testRabbitTemplateRetryWithCustomizer() {
+    this.contextRunner.withUserConfiguration(RabbitRetryTemplateCustomizerConfiguration.class).withPropertyValues("spring.rabbitmq.template.retry.enabled:true", "spring.rabbitmq.template.retry.initialInterval:2000").run((context) -> {
+        RabbitTemplate rabbitTemplate = context.getBean(RabbitTemplate.class);
+        RetryTemplate retryTemplate = (RetryTemplate) ReflectionTestUtils.getField(rabbitTemplate, "retryTemplate");
+        assertThat(retryTemplate).isNotNull();
+        ExponentialBackOffPolicy backOffPolicy = (ExponentialBackOffPolicy) ReflectionTestUtils.getField(retryTemplate, "backOffPolicy");
+        assertThat(backOffPolicy).isSameAs(context.getBean(RabbitRetryTemplateCustomizerConfiguration.class).backOffPolicy);
+        assertThat(backOffPolicy.getInitialInterval()).isEqualTo(100);
+    });
+}

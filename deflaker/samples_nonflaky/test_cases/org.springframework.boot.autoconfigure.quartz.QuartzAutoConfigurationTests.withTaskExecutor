@@ -1,0 +1,10 @@
+@Test
+void withTaskExecutor() {
+    this.contextRunner.withUserConfiguration(MockExecutorConfiguration.class).withPropertyValues("spring.quartz.properties.org.quartz.threadPool.threadCount=50").run((context) -> {
+        assertThat(context).hasSingleBean(Scheduler.class);
+        Scheduler scheduler = context.getBean(Scheduler.class);
+        assertThat(scheduler.getMetaData().getThreadPoolSize()).isEqualTo(50);
+        Executor executor = context.getBean(Executor.class);
+        verifyNoInteractions(executor);
+    });
+}

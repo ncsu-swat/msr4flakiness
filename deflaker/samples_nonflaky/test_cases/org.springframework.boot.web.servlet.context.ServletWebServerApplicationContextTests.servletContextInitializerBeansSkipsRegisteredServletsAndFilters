@@ -1,0 +1,14 @@
+@Test
+void servletContextInitializerBeansSkipsRegisteredServletsAndFilters() {
+    addWebServerFactoryBean();
+    Servlet servlet = mock(Servlet.class);
+    Filter filter = mock(Filter.class);
+    ServletRegistrationBean<Servlet> initializer = new ServletRegistrationBean<>(servlet, "/foo");
+    this.context.registerBeanDefinition("initializerBean", beanDefinition(initializer));
+    this.context.registerBeanDefinition("servletBean", beanDefinition(servlet));
+    this.context.registerBeanDefinition("filterBean", beanDefinition(filter));
+    this.context.refresh();
+    ServletContext servletContext = getWebServerFactory().getServletContext();
+    verify(servletContext, atMost(1)).addServlet(anyString(), any(Servlet.class));
+    verify(servletContext, atMost(1)).addFilter(anyString(), any(Filter.class));
+}

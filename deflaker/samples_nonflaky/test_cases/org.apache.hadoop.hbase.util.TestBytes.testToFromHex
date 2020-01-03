@@ -1,0 +1,24 @@
+public void testToFromHex() {
+    List<String> testStrings = new ArrayList<>(8);
+    testStrings.addAll(Arrays.asList("", "00", "A0", "ff", "FFffFFFFFFFFFF", "12", "0123456789abcdef", "283462839463924623984692834692346ABCDFEDDCA0"));
+    for (String testString : testStrings) {
+        byte[] byteData = Bytes.fromHex(testString);
+        Assert.assertEquals(testString.length() / 2, byteData.length);
+        String result = Bytes.toHex(byteData);
+        Assert.assertTrue(testString.equalsIgnoreCase(result));
+    }
+    List<byte[]> testByteData = new ArrayList<>(5);
+    testByteData.addAll(Arrays.asList(new byte[0], new byte[1], new byte[10], new byte[] { 1, 2, 3, 4, 5 }, new byte[] { (byte) 0xFF }));
+    Random r = new Random();
+    for (int i = 0; i < 20; i++) {
+        byte[] bytes = new byte[r.nextInt(100)];
+        r.nextBytes(bytes);
+        testByteData.add(bytes);
+    }
+    for (byte[] testData : testByteData) {
+        String hexString = Bytes.toHex(testData);
+        Assert.assertEquals(testData.length * 2, hexString.length());
+        byte[] result = Bytes.fromHex(hexString);
+        assertArrayEquals(testData, result);
+    }
+}

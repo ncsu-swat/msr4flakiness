@@ -1,0 +1,9 @@
+@Test
+void nettyServerCustomizerRegisteredAsBeanAndViaFactoryIsOnlyCalledOnce() {
+    new ReactiveWebApplicationContextRunner(AnnotationConfigReactiveWebServerApplicationContext::new).withConfiguration(AutoConfigurations.of(ReactiveWebServerFactoryAutoConfiguration.class)).withClassLoader(new FilteredClassLoader(Tomcat.class, Server.class, Undertow.class)).withUserConfiguration(DoubleRegistrationNettyServerCustomizerConfiguration.class, HttpHandlerConfiguration.class).withPropertyValues("server.port: 0").run((context) -> {
+        NettyReactiveWebServerFactory factory = context.getBean(NettyReactiveWebServerFactory.class);
+        NettyServerCustomizer customizer = context.getBean("serverCustomizer", NettyServerCustomizer.class);
+        assertThat(factory.getServerCustomizers()).contains(customizer);
+        verify(customizer, times(1)).apply(any(HttpServer.class));
+    });
+}

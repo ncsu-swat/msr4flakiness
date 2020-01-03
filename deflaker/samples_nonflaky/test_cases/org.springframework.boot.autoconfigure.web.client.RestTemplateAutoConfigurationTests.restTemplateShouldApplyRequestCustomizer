@@ -1,0 +1,13 @@
+@Test
+void restTemplateShouldApplyRequestCustomizer() {
+    this.contextRunner.withUserConfiguration(RestTemplateRequestCustomizerConfig.class).run((context) -> {
+        RestTemplateBuilder builder = context.getBean(RestTemplateBuilder.class);
+        ClientHttpRequestFactory requestFactory = mock(ClientHttpRequestFactory.class);
+        MockClientHttpRequest request = new MockClientHttpRequest();
+        request.setResponse(new MockClientHttpResponse(new byte[0], HttpStatus.OK));
+        given(requestFactory.createRequest(any(), any())).willReturn(request);
+        RestTemplate restTemplate = builder.requestFactory(() -> requestFactory).build();
+        restTemplate.getForEntity("http://localhost:8080/test", String.class);
+        assertThat(request.getHeaders()).containsEntry("spring", Collections.singletonList("boot"));
+    });
+}

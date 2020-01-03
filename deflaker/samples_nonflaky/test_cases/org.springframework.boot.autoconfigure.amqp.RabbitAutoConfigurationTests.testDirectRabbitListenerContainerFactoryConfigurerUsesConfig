@@ -1,0 +1,10 @@
+@Test
+void testDirectRabbitListenerContainerFactoryConfigurerUsesConfig() {
+    this.contextRunner.withUserConfiguration(TestConfiguration.class).withPropertyValues("spring.rabbitmq.listener.type:simple", "spring.rabbitmq.listener.direct.consumers-per-queue:5", "spring.rabbitmq.listener.direct.prefetch:40").run((context) -> {
+        DirectRabbitListenerContainerFactoryConfigurer configurer = context.getBean(DirectRabbitListenerContainerFactoryConfigurer.class);
+        DirectRabbitListenerContainerFactory factory = mock(DirectRabbitListenerContainerFactory.class);
+        configurer.configure(factory, mock(ConnectionFactory.class));
+        verify(factory).setConsumersPerQueue(5);
+        verify(factory).setPrefetchCount(40);
+    });
+}

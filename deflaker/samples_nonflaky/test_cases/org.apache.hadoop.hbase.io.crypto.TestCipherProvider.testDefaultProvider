@@ -1,0 +1,13 @@
+@Test
+public void testDefaultProvider() {
+    Configuration conf = HBaseConfiguration.create();
+    CipherProvider provider = Encryption.getCipherProvider(conf);
+    assertTrue(provider instanceof DefaultCipherProvider);
+    String algorithm = conf.get(HConstants.CRYPTO_KEY_ALGORITHM_CONF_KEY, HConstants.CIPHER_AES);
+    assertTrue(Arrays.asList(provider.getSupportedCiphers()).contains(algorithm));
+    Cipher a = Encryption.getCipher(conf, algorithm);
+    assertNotNull(a);
+    assertTrue(a.getProvider() instanceof DefaultCipherProvider);
+    assertEquals(a.getName(), algorithm);
+    assertEquals(AES.KEY_LENGTH, a.getKeyLength());
+}

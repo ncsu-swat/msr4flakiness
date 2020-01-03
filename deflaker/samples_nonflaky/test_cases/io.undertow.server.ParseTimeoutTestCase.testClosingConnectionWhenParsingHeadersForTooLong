@@ -1,0 +1,18 @@
+@Test(timeout = 10000)
+public void testClosingConnectionWhenParsingHeadersForTooLong() throws Exception {
+    // given
+    DefaultServer.setRootHandler(new HttpHandler() {
+
+        @Override
+        public void handleRequest(final HttpServerExchange exchange) {
+            fail("Parser should never end its job, since we are streaming headers.");
+        }
+    });
+    String request = "GET / HTTP/1.1\r\nHost:localhost";
+    // when
+    clientOutputStream.write(request.getBytes());
+    clientOutputStream.flush();
+    Thread.sleep(100);
+    // then
+    assertEquals(-1, clientInputStream.read());
+}

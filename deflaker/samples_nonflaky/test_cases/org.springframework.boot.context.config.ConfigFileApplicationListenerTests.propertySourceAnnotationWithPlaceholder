@@ -1,0 +1,12 @@
+@Test
+void propertySourceAnnotationWithPlaceholder() {
+    TestPropertySourceUtils.addInlinedPropertiesToEnvironment(this.environment, "source.location=specificlocation");
+    SpringApplication application = new SpringApplication(WithPropertySourcePlaceholders.class);
+    application.setEnvironment(this.environment);
+    application.setWebApplicationType(WebApplicationType.NONE);
+    ConfigurableApplicationContext context = application.run();
+    String property = context.getEnvironment().getProperty("the.property");
+    assertThat(property).isEqualTo("fromspecificlocation");
+    assertThat(context.getEnvironment()).has(matchingPropertySource("class path resource [specificlocation.properties]"));
+    context.close();
+}

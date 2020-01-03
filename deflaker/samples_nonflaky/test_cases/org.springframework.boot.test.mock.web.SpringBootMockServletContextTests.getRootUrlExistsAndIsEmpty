@@ -1,0 +1,19 @@
+// gh-2654
+@Test
+void getRootUrlExistsAndIsEmpty() throws Exception {
+    SpringBootMockServletContext context = new SpringBootMockServletContext("src/test/doesntexist") {
+
+        @Override
+        protected String getResourceLocation(String path) {
+            // Don't include the Spring Boot defaults for this test
+            return getResourceBasePathLocation(path);
+        }
+    };
+    URL resource = context.getResource("/");
+    assertThat(resource).isNotNull();
+    File file = new File(URLDecoder.decode(resource.getPath(), "UTF-8"));
+    assertThat(file).exists().isDirectory();
+    String[] contents = file.list((dir, name) -> !(".".equals(name) || "..".equals(name)));
+    assertThat(contents).isNotNull();
+    assertThat(contents).isEmpty();
+}

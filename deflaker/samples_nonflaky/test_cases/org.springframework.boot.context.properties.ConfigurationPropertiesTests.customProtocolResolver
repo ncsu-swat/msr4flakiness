@@ -1,0 +1,13 @@
+@Test
+void customProtocolResolver() {
+    this.context = new AnnotationConfigApplicationContext();
+    TestPropertySourceUtils.addInlinedPropertiesToEnvironment(this.context, "test.resource=test:/application.properties");
+    this.context.addProtocolResolver(new TestProtocolResolver());
+    this.context.register(PropertiesWithResource.class);
+    this.context.refresh();
+    Resource resource = this.context.getBean(PropertiesWithResource.class).getResource();
+    assertThat(resource).isNotNull();
+    assertThat(resource).isInstanceOf(ClassPathResource.class);
+    assertThat(resource.exists()).isTrue();
+    assertThat(((ClassPathResource) resource).getPath()).isEqualTo("application.properties");
+}

@@ -1,0 +1,13 @@
+@Test
+void errorPageFilterRegistrationCanBeDisabled() {
+    WebServer webServer = new UndertowServletWebServerFactory(0).getWebServer((servletContext) -> {
+        try (AbstractApplicationContext context = (AbstractApplicationContext) new WithErrorPageFilterNotRegistered().createRootApplicationContext(servletContext)) {
+            assertThat(context.getBeansOfType(ErrorPageFilter.class)).hasSize(0);
+        }
+    });
+    try {
+        webServer.start();
+    } finally {
+        webServer.stop();
+    }
+}

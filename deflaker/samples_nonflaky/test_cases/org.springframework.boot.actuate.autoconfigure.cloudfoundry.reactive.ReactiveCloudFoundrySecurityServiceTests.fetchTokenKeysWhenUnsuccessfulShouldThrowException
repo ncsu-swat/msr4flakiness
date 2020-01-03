@@ -1,0 +1,11 @@
+@Test
+void fetchTokenKeysWhenUnsuccessfulShouldThrowException() throws Exception {
+    prepareResponse((response) -> {
+        response.setBody("{\"token_endpoint\":\"/my-uaa.com\"}");
+        response.setHeader("Content-Type", "application/json");
+    });
+    prepareResponse((response) -> response.setResponseCode(500));
+    StepVerifier.create(this.securityService.fetchTokenKeys()).consumeErrorWith((throwable) -> assertThat(((CloudFoundryAuthorizationException) throwable).getReason()).isEqualTo(Reason.SERVICE_UNAVAILABLE)).verify();
+    expectRequest((request) -> assertThat(request.getPath()).isEqualTo("/my-cloud-controller.com/info"));
+    expectRequest((request) -> assertThat(request.getPath()).isEqualTo("/my-uaa.com/token_keys"));
+}

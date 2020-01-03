@@ -1,0 +1,49 @@
+/**
+ * Tests the variable uint64 encoding.
+ * <p>
+ * Building sqlite4 with -DVARINT_TOOL provides this reference:<br />
+ * <code>$ ./varint_tool 240 2287 67823 16777215 4294967295 1099511627775
+ *   281474976710655 72057594037927935 18446744073709551615<br />
+ * 240 = f0<br />
+ * 2287 = f8ff<br />
+ * 67823 = f9ffff<br />
+ * 16777215 = faffffff<br />
+ * 4294967295 = fbffffffff<br />
+ * 1099511627775 = fcffffffffff<br />
+ * 281474976710655 = fdffffffffffff<br />
+ * 72057594037927935 = feffffffffffffff<br />
+ * 9223372036854775807 = ff7fffffffffffffff (Long.MAX_VAL)<br />
+ * 9223372036854775808 = ff8000000000000000 (Long.MIN_VAL)<br />
+ * 18446744073709551615 = ffffffffffffffffff<br /></code>
+ * </p>
+ */
+@Test
+public void testVaruint64Boundaries() {
+    long[] vals = { 239L, 240L, 2286L, 2287L, 67822L, 67823L, 16777214L, 16777215L, 4294967294L, 4294967295L, 1099511627774L, 1099511627775L, 281474976710654L, 281474976710655L, 72057594037927934L, 72057594037927935L, Long.MAX_VALUE - 1, Long.MAX_VALUE, Long.MIN_VALUE + 1, Long.MIN_VALUE, -2L, -1L };
+    int[] lens = { 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 9, 9, 9, 9 };
+    assertEquals("Broken test!", vals.length, lens.length);
+    /*
+     * assert encoded values match decoded values. encode into target buffer
+     * starting at an offset to detect over/underflow conditions.
+     */
+    for (boolean comp : new boolean[] { true, false }) {
+        for (int i = 0; i < vals.length; i++) {
+            // allocate a buffer 2-bytes larger than necessary and place our range over the center.
+            byte[] a = new byte[lens[i] + 2];
+            PositionedByteRange buf = new SimplePositionedMutableByteRange(a, 1, lens[i]);
+            // verify encode
+            assertEquals("Surprising return value.", lens[i], OrderedBytes.putVaruint64(buf, vals[i], comp));
+            assertEquals("Surprising serialized length.", lens[i], buf.getPosition());
+            assertEquals("Buffer underflow.", 0, a[0]);
+            assertEquals("Buffer overflow.", 0, a[a.length - 1]);
+            // verify skip
+            buf.setPosition(0);
+            assertEquals("Surprising return value.", lens[i], OrderedBytes.skipVaruint64(buf, comp));
+            assertEquals("Did not skip enough bytes.", lens[i], buf.getPosition());
+            // verify decode
+            buf.setPosition(0);
+            assertEquals("Deserialization failed.", vals[i], OrderedBytes.getVaruint64(buf, comp));
+            assertEquals("Did not consume enough bytes.", lens[i], buf.getPosition());
+        }
+    }
+}

@@ -1,0 +1,11 @@
+@Test
+@SuppressWarnings("unchecked")
+void callbackInvokeAndWhenHasResolvableGenericMatchShouldReturnResult() {
+    StringBuilderFactory callbackInstance = mock(StringBuilderFactory.class);
+    StringBuilder argument = new StringBuilder("foo");
+    given(callbackInstance.handle(any(StringBuilder.class))).willReturn(123);
+    InvocationResult<Integer> result = LambdaSafe.callback(GenericFactory.class, callbackInstance, argument).invokeAnd((c) -> c.handle(argument));
+    verify(callbackInstance).handle(argument);
+    assertThat(result.hasResult()).isTrue();
+    assertThat(result.get()).isEqualTo(123);
+}

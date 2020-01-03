@@ -1,0 +1,18 @@
+@Test(expected = Error.class)
+@SuppressWarnings("unchecked")
+public void errorException() throws IOException, InterruptedException, ExecutionException {
+    TemplateSource source = createMock(TemplateSource.class);
+    expect(source.lastModified()).andReturn(615L).times(3);
+    Template template = createMock(Template.class);
+    Future<Pair<TemplateSource, Template>> future = createMock(Future.class);
+    expect(future.get()).andThrow(new ExecutionException(new Error()));
+    Capture<TemplateSource> keyGet = new Capture<>();
+    ConcurrentMap<TemplateSource, Future<Pair<TemplateSource, Template>>> cache = createMock(ConcurrentMap.class);
+    expect(cache.get(capture(keyGet))).andReturn(future);
+    Parser parser = createMock(Parser.class);
+    Object[] mocks = { cache, source, future, template };
+    replay(mocks);
+    Template result = new HighConcurrencyTemplateCache(cache).get(source, parser);
+    assertEquals(template, result);
+    verify(mocks);
+}

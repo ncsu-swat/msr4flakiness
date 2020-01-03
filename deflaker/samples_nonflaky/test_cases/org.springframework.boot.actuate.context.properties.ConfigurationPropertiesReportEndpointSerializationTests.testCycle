@@ -1,0 +1,14 @@
+@Test
+void testCycle() {
+    ApplicationContextRunner contextRunner = new ApplicationContextRunner().withUserConfiguration(CycleConfig.class);
+    contextRunner.run((context) -> {
+        ConfigurationPropertiesReportEndpoint endpoint = context.getBean(ConfigurationPropertiesReportEndpoint.class);
+        ApplicationConfigurationProperties applicationProperties = endpoint.configurationProperties();
+        ConfigurationPropertiesBeanDescriptor cycle = applicationProperties.getContexts().get(context.getId()).getBeans().get("cycle");
+        assertThat(cycle.getPrefix()).isEqualTo("cycle");
+        Map<String, Object> map = cycle.getProperties();
+        assertThat(map).isNotNull();
+        assertThat(map).containsOnlyKeys("error");
+        assertThat(map).containsEntry("error", "Cannot serialize 'cycle'");
+    });
+}

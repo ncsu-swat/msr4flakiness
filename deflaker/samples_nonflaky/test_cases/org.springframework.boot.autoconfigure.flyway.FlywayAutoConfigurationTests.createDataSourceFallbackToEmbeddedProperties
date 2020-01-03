@@ -1,0 +1,10 @@
+@Test
+void createDataSourceFallbackToEmbeddedProperties() {
+    this.contextRunner.withUserConfiguration(EmbeddedDataSourceConfiguration.class).withPropertyValues("spring.flyway.url:jdbc:hsqldb:mem:flywaytest").run((context) -> {
+        assertThat(context).hasSingleBean(Flyway.class);
+        DataSource dataSource = context.getBean(Flyway.class).getConfiguration().getDataSource();
+        assertThat(dataSource).isNotNull();
+        assertThat(dataSource).hasFieldOrPropertyWithValue("user", "sa");
+        assertThat(dataSource).hasFieldOrPropertyWithValue("password", "");
+    });
+}

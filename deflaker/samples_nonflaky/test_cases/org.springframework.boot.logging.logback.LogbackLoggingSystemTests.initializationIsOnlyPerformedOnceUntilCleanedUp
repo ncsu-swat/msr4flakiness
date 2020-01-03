@@ -1,0 +1,16 @@
+@Test
+void initializationIsOnlyPerformedOnceUntilCleanedUp() {
+    LoggerContext loggerContext = (LoggerContext) StaticLoggerBinder.getSingleton().getLoggerFactory();
+    LoggerContextListener listener = mock(LoggerContextListener.class);
+    loggerContext.addListener(listener);
+    this.loggingSystem.beforeInitialize();
+    this.loggingSystem.initialize(this.initializationContext, null, null);
+    this.loggingSystem.beforeInitialize();
+    this.loggingSystem.initialize(this.initializationContext, null, null);
+    verify(listener, times(1)).onReset(loggerContext);
+    this.loggingSystem.cleanUp();
+    loggerContext.addListener(listener);
+    this.loggingSystem.beforeInitialize();
+    this.loggingSystem.initialize(this.initializationContext, null, null);
+    verify(listener, times(2)).onReset(loggerContext);
+}

@@ -1,0 +1,7 @@
+@Test
+void nettyServerCustomizerBeanIsAddedToFactory() {
+    new ReactiveWebApplicationContextRunner(AnnotationConfigReactiveWebApplicationContext::new).withConfiguration(AutoConfigurations.of(ReactiveWebServerFactoryAutoConfiguration.class)).withClassLoader(new FilteredClassLoader(Tomcat.class, Server.class, Undertow.class)).withUserConfiguration(NettyServerCustomizerConfiguration.class, HttpHandlerConfiguration.class).run((context) -> {
+        NettyReactiveWebServerFactory factory = context.getBean(NettyReactiveWebServerFactory.class);
+        assertThat(factory.getServerCustomizers()).hasSize(1);
+    });
+}

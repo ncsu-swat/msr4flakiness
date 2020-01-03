@@ -1,0 +1,12 @@
+@Test
+void testMaxHistoryProperty() {
+    MockEnvironment environment = new MockEnvironment();
+    environment.setProperty("logging.file.max-history", "30");
+    LoggingInitializationContext loggingInitializationContext = new LoggingInitializationContext(environment);
+    File file = new File(tmpDir(), "logback-test.log");
+    LogFile logFile = getLogFile(file.getPath(), null);
+    this.loggingSystem.initialize(loggingInitializationContext, null, logFile);
+    this.logger.info("Hello world");
+    assertThat(getLineWithText(file, "Hello world")).contains("INFO");
+    assertThat(getRollingPolicy().getMaxHistory()).isEqualTo(30);
+}

@@ -1,0 +1,7 @@
+@Test
+void statusException() {
+    this.contextRunner.withPropertyValues("server.error.include-exception=true").run((context) -> {
+        WebTestClient client = getWebClient(context);
+        client.get().uri("/badRequest").exchange().expectStatus().isBadRequest().expectBody().jsonPath("status").isEqualTo("400").jsonPath("error").isEqualTo(HttpStatus.BAD_REQUEST.getReasonPhrase()).jsonPath("exception").isEqualTo(ResponseStatusException.class.getName()).jsonPath("requestId").isEqualTo(this.logIdFilter.getLogId());
+    });
+}

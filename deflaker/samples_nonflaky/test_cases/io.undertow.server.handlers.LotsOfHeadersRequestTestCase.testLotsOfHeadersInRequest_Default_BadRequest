@@ -1,0 +1,16 @@
+@Test
+public void testLotsOfHeadersInRequest_Default_BadRequest() throws IOException {
+    TestHttpClient client = new TestHttpClient();
+    try {
+        HttpGet get = new HttpGet(DefaultServer.getDefaultServerURL() + "/path");
+        // add request headers more than MAX_HEADERS
+        for (int i = 0; i < (getDefaultMaxHeaders() + 1); ++i) {
+            get.addHeader(HEADER + i, MESSAGE + i);
+        }
+        HttpResponse result = client.execute(get);
+        // this is not great, but the HTTP/2 impl sends a stream error which is translated to a 503. Should not be a big deal in practice
+        Assert.assertEquals(DefaultServer.isH2() ? StatusCodes.SERVICE_UNAVAILABLE : StatusCodes.BAD_REQUEST, result.getStatusLine().getStatusCode());
+    } finally {
+        client.getConnectionManager().shutdown();
+    }
+}

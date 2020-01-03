@@ -1,0 +1,22 @@
+@Test
+public void testTopN() {
+    int howMany = 5;
+    TopNConsumer consumer = new TopNConsumer(howMany, value -> value[0], null, null);
+    List<Integer> values = new ArrayList<>();
+    int numValues = 100;
+    for (int i = 0; i < numValues; i++) {
+        values.add(i);
+    }
+    Collections.shuffle(values);
+    for (int value : values) {
+        consumer.accept(Integer.toString(value), new float[] { value });
+    }
+    List<Pair<String, Double>> topList = consumer.getTopN().sorted(Pairs.orderBySecond(Pairs.SortOrder.DESCENDING)).collect(Collectors.toList());
+    assertEquals(howMany, topList.size());
+    int expected = numValues - 1;
+    for (Pair<String, Double> p : topList) {
+        assertEquals(Integer.toString(expected), p.getFirst());
+        assertEquals(expected, (double) p.getSecond());
+        expected--;
+    }
+}

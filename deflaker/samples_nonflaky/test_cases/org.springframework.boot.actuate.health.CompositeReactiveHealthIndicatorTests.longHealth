@@ -1,0 +1,12 @@
+@Test
+void longHealth() {
+    Map<String, ReactiveHealthIndicator> indicators = new HashMap<>();
+    for (int i = 0; i < 50; i++) {
+        indicators.put("test" + i, new TimeoutHealth(10000, Status.UP));
+    }
+    CompositeReactiveHealthIndicator indicator = new CompositeReactiveHealthIndicator(this.healthAggregator, new DefaultReactiveHealthIndicatorRegistry(indicators));
+    StepVerifier.withVirtualTime(indicator::health).expectSubscription().thenAwait(Duration.ofMillis(10000)).consumeNextWith((h) -> {
+        assertThat(h.getStatus()).isEqualTo(Status.UP);
+        assertThat(h.getDetails()).hasSize(50);
+    }).verifyComplete();
+}

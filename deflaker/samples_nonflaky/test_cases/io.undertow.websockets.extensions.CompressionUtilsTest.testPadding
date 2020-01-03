@@ -1,0 +1,21 @@
+@Test
+public void testPadding() throws Exception {
+    String original = "This is a long message - This is a long message - This is a long message";
+    byte[] compressed = new byte[1024];
+    int nCompressed;
+    compress.setInput(original.getBytes());
+    nCompressed = compress.deflate(compressed, 0, compressed.length, Deflater.SYNC_FLUSH);
+    /*
+            Padding
+         */
+    byte[] padding = { 0, 0, 0, (byte) 0xff, (byte) 0xff, 0, 0, 0, (byte) 0xff, (byte) 0xff, 0, 0, 0, (byte) 0xff, (byte) 0xff };
+    int nPadding = padding.length;
+    for (int i = 0; i < padding.length; i++) {
+        compressed[nCompressed + i] = padding[i];
+    }
+    byte[] uncompressed = new byte[1024];
+    int nUncompressed;
+    decompress.setInput(compressed, 0, nCompressed + nPadding);
+    nUncompressed = decompress.inflate(uncompressed);
+    Assert.assertEquals(original, new String(uncompressed, 0, nUncompressed, "UTF-8"));
+}

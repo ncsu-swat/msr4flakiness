@@ -1,0 +1,15 @@
+@Test
+public void testCombos() {
+    List<HyperParamValues<?>> hyperParams = new ArrayList<>();
+    hyperParams.add(HyperParams.fixed(1.0));
+    hyperParams.add(HyperParams.range(2, 10));
+    hyperParams.add(HyperParams.around(5.0, 0.5));
+    List<List<?>> combos = RandomSearch.chooseHyperParameterCombos(hyperParams, 4);
+    assertEquals(4, combos.size());
+    for (List<?> combo : combos) {
+        assertEquals(1.0, combo.get(0));
+        assertTrue((Integer) combo.get(1) >= 2 && (Integer) combo.get(1) <= 10);
+        // within 5 stdevs
+        assertTrue(Math.abs(((Double) combo.get(2)) - 5.0) <= 5.0 * 0.5);
+    }
+}

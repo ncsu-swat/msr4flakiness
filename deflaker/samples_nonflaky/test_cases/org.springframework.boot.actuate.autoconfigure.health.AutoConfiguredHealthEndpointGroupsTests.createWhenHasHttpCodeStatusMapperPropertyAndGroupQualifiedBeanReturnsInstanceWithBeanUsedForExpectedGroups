@@ -1,0 +1,12 @@
+@Test
+void createWhenHasHttpCodeStatusMapperPropertyAndGroupQualifiedBeanReturnsInstanceWithBeanUsedForExpectedGroups() {
+    this.contextRunner.withUserConfiguration(CustomHttpCodeStatusMapperGroupAConfiguration.class).withPropertyValues("management.endpoint.health.status.http-mapping.down=201", "management.endpoint.health.group.a.include=*", "management.endpoint.health.group.a.status.http-mapping.down=201", "management.endpoint.health.group.b.include=*").run((context) -> {
+        HealthEndpointGroups groups = context.getBean(HealthEndpointGroups.class);
+        HealthEndpointGroup primary = groups.getPrimary();
+        HealthEndpointGroup groupA = groups.get("a");
+        HealthEndpointGroup groupB = groups.get("b");
+        assertThat(primary.getHttpCodeStatusMapper().getStatusCode(Status.DOWN)).isEqualTo(201);
+        assertThat(groupA.getHttpCodeStatusMapper().getStatusCode(Status.DOWN)).isEqualTo(200);
+        assertThat(groupB.getHttpCodeStatusMapper().getStatusCode(Status.DOWN)).isEqualTo(201);
+    });
+}

@@ -1,0 +1,15 @@
+@Test
+void javaBeanSimplePropertyWithOnlyGetterShouldNotBeExposed() throws IOException {
+    process(SimpleProperties.class, (roundEnv, metadataEnv) -> {
+        TypeElement ownerElement = roundEnv.getRootElement(SimpleProperties.class);
+        ExecutableElement getter = getMethod(ownerElement, "getSize");
+        VariableElement field = getField(ownerElement, "size");
+        JavaBeanPropertyDescriptor property = new JavaBeanPropertyDescriptor(ownerElement, getter, getter, "size", field.asType(), field, null);
+        assertThat(property.getName()).isEqualTo("size");
+        assertThat(property.getSource()).isSameAs(property.getGetter());
+        assertThat(property.getGetter().getSimpleName()).hasToString("getSize");
+        assertThat(property.getSetter()).isNull();
+        assertThat(property.isProperty(metadataEnv)).isFalse();
+        assertThat(property.isNested(metadataEnv)).isFalse();
+    });
+}

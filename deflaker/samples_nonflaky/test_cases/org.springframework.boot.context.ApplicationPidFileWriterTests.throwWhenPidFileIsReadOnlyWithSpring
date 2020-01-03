@@ -1,0 +1,8 @@
+@Test
+void throwWhenPidFileIsReadOnlyWithSpring() throws Exception {
+    withReadOnlyPidFile((file) -> {
+        SpringApplicationEvent event = createPreparedEvent("spring.pid.fail-on-write-error", "true");
+        ApplicationPidFileWriter listener = new ApplicationPidFileWriter(file);
+        assertThatIllegalStateException().isThrownBy(() -> listener.onApplicationEvent(event)).withMessageContaining("Cannot create pid file");
+    });
+}

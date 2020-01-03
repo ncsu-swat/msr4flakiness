@@ -1,0 +1,42 @@
+@Test
+public void testBinary() throws Exception {
+    if (getVersion() == WebSocketVersion.V00) {
+        // ignore 00 tests for now
+        return;
+    }
+    final AtomicBoolean connected = new AtomicBoolean(false);
+    DefaultServer.setRootHandler(new WebSocketProtocolHandshakeHandler(new WebSocketConnectionCallback() {
+
+        @Override
+        public void onConnect(final WebSocketHttpExchange exchange, final WebSocketChannel channel) {
+            connected.set(true);
+            channel.getReceiveSetter().set(new AbstractReceiveListener() {
+
+                @Override
+                protected void onFullBinaryMessage(WebSocketChannel channel, BufferedBinaryMessage message) throws IOException {
+                    final Pooled<ByteBuffer[]> data = message.getData();
+                    WebSockets.sendBinary(data.getResource(), channel, new WebSocketCallback<Void>() {
+
+                        @Override
+                        public void complete(WebSocketChannel channel, Void context) {
+                            data.close();
+                        }
+
+                        @Override
+                        public void onError(WebSocketChannel channel, Void context, Throwable throwable) {
+                            data.close();
+                        }
+                    });
+                }
+            });
+            channel.resumeReceives();
+        }
+    }));
+    final FutureResult latch = new FutureResult();
+    final byte[] payload = "payload".getBytes();
+    WebSocketTestClient client = new WebSocketTestClient(getVersion(), new URI("ws://" + NetworkUtils.formatPossibleIpv6Address(DefaultServer.getHostAddress("default")) + ":" + DefaultServer.getHostPort("default") + "/"));
+    client.connect();
+    client.send(new BinaryWebSocketFrame(Unpooled.wrappedBuffer(payload)), new FrameChecker(BinaryWebSocketFrame.class, payload, latch));
+    latch.getIoFuture().get();
+    client.destroy();
+}

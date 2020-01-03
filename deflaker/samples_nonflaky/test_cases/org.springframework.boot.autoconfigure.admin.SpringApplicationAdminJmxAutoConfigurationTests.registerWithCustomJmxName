@@ -1,0 +1,12 @@
+@Test
+void registerWithCustomJmxName() {
+    String customJmxName = "org.acme:name=FooBar";
+    this.contextRunner.withSystemProperties("spring.application.admin.jmx-name=" + customJmxName).withPropertyValues(ENABLE_ADMIN_PROP).run((context) -> {
+        try {
+            this.server.getObjectInstance(createObjectName(customJmxName));
+        } catch (InstanceNotFoundException ex) {
+            fail("Admin MBean should have been exposed with custom name");
+        }
+        assertThatExceptionOfType(InstanceNotFoundException.class).isThrownBy(() -> this.server.getObjectInstance(createDefaultObjectName()));
+    });
+}

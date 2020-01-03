@@ -1,0 +1,11 @@
+@Test
+void incrementalBuildAnnotationRemoved() throws Exception {
+    TestProject project = new TestProject(this.tempDir, FooProperties.class, BarProperties.class);
+    ConfigurationMetadata metadata = project.fullBuild();
+    assertThat(metadata).has(Metadata.withProperty("foo.counter").withDefaultValue(0));
+    assertThat(metadata).has(Metadata.withProperty("bar.counter").withDefaultValue(0));
+    project.replaceText(BarProperties.class, "@ConfigurationProperties", "//@ConfigurationProperties");
+    metadata = project.incrementalBuild(BarProperties.class);
+    assertThat(metadata).has(Metadata.withProperty("foo.counter").withDefaultValue(0));
+    assertThat(metadata).isNotEqualTo(Metadata.withProperty("bar.counter"));
+}

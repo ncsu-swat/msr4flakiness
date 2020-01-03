@@ -1,0 +1,10 @@
+@Test
+void resolveTypeDescriptorOnConcreteClass() throws IOException {
+    process(SimpleGenericProperties.class, (roundEnv, typeUtils) -> {
+        TypeDescriptor typeDescriptor = typeUtils.resolveTypeDescriptor(roundEnv.getRootElement(SimpleGenericProperties.class));
+        assertThat(typeDescriptor.getGenerics().keySet().stream().map(Object::toString)).containsOnly("A", "B", "C");
+        assertThat(typeDescriptor.resolveGeneric("A")).hasToString(String.class.getName());
+        assertThat(typeDescriptor.resolveGeneric("B")).hasToString(Integer.class.getName());
+        assertThat(typeDescriptor.resolveGeneric("C")).hasToString(Duration.class.getName());
+    });
+}

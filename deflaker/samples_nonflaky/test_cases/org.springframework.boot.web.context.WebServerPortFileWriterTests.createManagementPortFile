@@ -1,0 +1,14 @@
+@Test
+void createManagementPortFile() throws Exception {
+    File file = new File(this.tempDir, "port.file");
+    WebServerPortFileWriter listener = new WebServerPortFileWriter(file);
+    listener.onApplicationEvent(mockEvent("", 8080));
+    listener.onApplicationEvent(mockEvent("management", 9090));
+    assertThat(contentOf(file)).isEqualTo("8080");
+    String managementFile = file.getName();
+    managementFile = managementFile.substring(0, managementFile.length() - StringUtils.getFilenameExtension(managementFile).length() - 1);
+    managementFile = managementFile + "-management." + StringUtils.getFilenameExtension(file.getName());
+    String content = contentOf(new File(file.getParentFile(), managementFile));
+    assertThat(content).isEqualTo("9090");
+    assertThat(collectFileNames(file.getParentFile())).contains(managementFile);
+}

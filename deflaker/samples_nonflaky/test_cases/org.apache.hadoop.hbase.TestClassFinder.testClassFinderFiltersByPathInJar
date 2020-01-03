@@ -1,0 +1,20 @@
+@Test
+public void testClassFinderFiltersByPathInJar() throws Exception {
+    final String CLASSNAME = name.getMethodName();
+    long counter = testCounter.incrementAndGet();
+    FileAndPath c1 = compileTestClass(counter, "", CLASSNAME);
+    FileAndPath c2 = compileTestClass(counter, "", "c2");
+    packageAndLoadJar(c1);
+    final String excludedJar = packageAndLoadJar(c2);
+    /* ResourcePathFilter will pass us the resourcePath as a path of a
+     * URL from the classloader. For Windows, the ablosute path and the
+     * one from the URL have different file separators.
+     */
+    final String excludedJarResource = new File(excludedJar).toURI().getRawSchemeSpecificPart();
+    final ClassFinder.ResourcePathFilter notExcJarFilter = (resourcePath, isJar) -> !isJar || !resourcePath.equals(excludedJarResource);
+    ClassFinder incClassesFinder = new ClassFinder(notExcJarFilter, null, null, classLoader);
+    Set<Class<?>> incClasses = incClassesFinder.findClasses(makePackageName("", counter), false);
+    assertEquals(1, incClasses.size());
+    Class<?> incClass = makeClass("", CLASSNAME, counter);
+    assertTrue(incClasses.contains(incClass));
+}

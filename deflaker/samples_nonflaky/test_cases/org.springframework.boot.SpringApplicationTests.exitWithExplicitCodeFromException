@@ -1,0 +1,17 @@
+@Test
+void exitWithExplicitCodeFromException() {
+    final SpringBootExceptionHandler handler = mock(SpringBootExceptionHandler.class);
+    SpringApplication application = new SpringApplication(ExitCodeCommandLineRunConfig.class) {
+
+        @Override
+        SpringBootExceptionHandler getSpringBootExceptionHandler() {
+            return handler;
+        }
+    };
+    ExitCodeListener listener = new ExitCodeListener();
+    application.addListeners(listener);
+    application.setWebApplicationType(WebApplicationType.NONE);
+    assertThatIllegalStateException().isThrownBy(application::run);
+    verify(handler).registerExitCode(11);
+    assertThat(listener.getExitCode()).isEqualTo(11);
+}

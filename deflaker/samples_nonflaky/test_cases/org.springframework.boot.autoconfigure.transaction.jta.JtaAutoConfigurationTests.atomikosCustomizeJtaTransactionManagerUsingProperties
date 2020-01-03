@@ -1,0 +1,10 @@
+@Test
+void atomikosCustomizeJtaTransactionManagerUsingProperties() {
+    this.context = new AnnotationConfigApplicationContext();
+    TestPropertyValues.of("spring.transaction.default-timeout:30", "spring.transaction.rollback-on-commit-failure:true").applyTo(this.context);
+    this.context.register(AtomikosJtaConfiguration.class, TransactionAutoConfiguration.class);
+    this.context.refresh();
+    JtaTransactionManager transactionManager = this.context.getBean(JtaTransactionManager.class);
+    assertThat(transactionManager.getDefaultTimeout()).isEqualTo(30);
+    assertThat(transactionManager.isRollbackOnCommitFailure()).isTrue();
+}

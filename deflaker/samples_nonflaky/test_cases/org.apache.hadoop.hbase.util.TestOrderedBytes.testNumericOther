@@ -1,0 +1,38 @@
+/**
+ * Fill gaps in Numeric encoding testing.
+ */
+@Test
+public void testNumericOther() {
+    /*
+     * assert encoded values match decoded values. encode into target buffer
+     * starting at an offset to detect over/underflow conditions.
+     */
+    for (Order ord : new Order[] { Order.ASCENDING, Order.DESCENDING }) {
+        for (int i = 0; i < BD_VALS.length; i++) {
+            // allocate a buffer 3-bytes larger than necessary to detect over/underflow
+            byte[] a = new byte[BD_LENGTHS[i] + 3];
+            PositionedByteRange buf1 = new SimplePositionedMutableByteRange(a, 1, BD_LENGTHS[i] + 1);
+            buf1.setPosition(1);
+            // verify encode
+            assertEquals("Surprising return value.", BD_LENGTHS[i], OrderedBytes.encodeNumeric(buf1, BD_VALS[i], ord));
+            assertEquals("Broken test: serialization did not consume entire buffer.", buf1.getLength(), buf1.getPosition());
+            assertEquals("Surprising serialized length.", BD_LENGTHS[i], buf1.getPosition() - 1);
+            assertEquals("Buffer underflow.", 0, a[0]);
+            assertEquals("Buffer underflow.", 0, a[1]);
+            assertEquals("Buffer overflow.", 0, a[a.length - 1]);
+            // verify skip
+            buf1.setPosition(1);
+            assertEquals("Surprising return value.", BD_LENGTHS[i], OrderedBytes.skip(buf1));
+            assertEquals("Did not skip enough bytes.", BD_LENGTHS[i], buf1.getPosition() - 1);
+            // verify decode
+            buf1.setPosition(1);
+            BigDecimal decoded = OrderedBytes.decodeNumericAsBigDecimal(buf1);
+            if (null == BD_VALS[i]) {
+                assertEquals(BD_VALS[i], decoded);
+            } else {
+                assertEquals("Deserialization failed.", 0, BD_VALS[i].compareTo(decoded));
+            }
+            assertEquals("Did not consume enough bytes.", BD_LENGTHS[i], buf1.getPosition() - 1);
+        }
+    }
+}

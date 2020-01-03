@@ -1,0 +1,23 @@
+@Test
+public void testSliceDuplicateMethods() throws Exception {
+    ByteBuffer bb1 = ByteBuffer.allocateDirect(10);
+    ByteBuffer bb2 = ByteBuffer.allocateDirect(15);
+    MultiByteBuff multi = new MultiByteBuff(bb1, bb2);
+    long l1 = 1234L, l2 = 100L;
+    multi.put((byte) 2);
+    multi.putLong(l1);
+    multi.putLong(l2);
+    multi.putInt(45);
+    multi.position(1);
+    multi.limit(multi.position() + (2 * Bytes.SIZEOF_LONG));
+    ByteBuff sliced = multi.slice();
+    assertEquals(0, sliced.position());
+    assertEquals((2 * Bytes.SIZEOF_LONG), sliced.limit());
+    assertEquals(l1, sliced.getLong());
+    assertEquals(l2, sliced.getLong());
+    ByteBuff dup = multi.duplicate();
+    assertEquals(1, dup.position());
+    assertEquals(dup.position() + (2 * Bytes.SIZEOF_LONG), dup.limit());
+    assertEquals(l1, dup.getLong());
+    assertEquals(l2, dup.getLong());
+}

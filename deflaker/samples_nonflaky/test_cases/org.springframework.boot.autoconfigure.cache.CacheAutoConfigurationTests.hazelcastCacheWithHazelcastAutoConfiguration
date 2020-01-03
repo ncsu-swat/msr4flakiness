@@ -1,0 +1,12 @@
+@Test
+void hazelcastCacheWithHazelcastAutoConfiguration() {
+    String hazelcastConfig = "org/springframework/boot/autoconfigure/hazelcast/hazelcast-specific.xml";
+    this.contextRunner.withConfiguration(AutoConfigurations.of(HazelcastAutoConfiguration.class)).withUserConfiguration(DefaultCacheConfiguration.class).withPropertyValues("spring.cache.type=hazelcast", "spring.hazelcast.config=" + hazelcastConfig).run((context) -> {
+        HazelcastCacheManager cacheManager = getCacheManager(context, HazelcastCacheManager.class);
+        HazelcastInstance hazelcastInstance = context.getBean(HazelcastInstance.class);
+        assertThat(cacheManager.getHazelcastInstance()).isSameAs(hazelcastInstance);
+        assertThat(hazelcastInstance.getConfig().getConfigurationFile()).isEqualTo(new ClassPathResource(hazelcastConfig).getFile());
+        assertThat(cacheManager.getCache("foobar")).isNotNull();
+        assertThat(cacheManager.getCacheNames()).containsOnly("foobar");
+    });
+}

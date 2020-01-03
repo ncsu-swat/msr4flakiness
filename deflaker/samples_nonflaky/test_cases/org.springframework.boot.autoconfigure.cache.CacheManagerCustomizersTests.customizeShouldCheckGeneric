@@ -1,0 +1,16 @@
+@Test
+void customizeShouldCheckGeneric() {
+    List<TestCustomizer<?>> list = new ArrayList<>();
+    list.add(new TestCustomizer<>());
+    list.add(new TestConcurrentMapCacheManagerCustomizer());
+    CacheManagerCustomizers customizers = new CacheManagerCustomizers(list);
+    customizers.customize(mock(CacheManager.class));
+    assertThat(list.get(0).getCount()).isEqualTo(1);
+    assertThat(list.get(1).getCount()).isEqualTo(0);
+    customizers.customize(mock(ConcurrentMapCacheManager.class));
+    assertThat(list.get(0).getCount()).isEqualTo(2);
+    assertThat(list.get(1).getCount()).isEqualTo(1);
+    customizers.customize(mock(CaffeineCacheManager.class));
+    assertThat(list.get(0).getCount()).isEqualTo(3);
+    assertThat(list.get(1).getCount()).isEqualTo(1);
+}

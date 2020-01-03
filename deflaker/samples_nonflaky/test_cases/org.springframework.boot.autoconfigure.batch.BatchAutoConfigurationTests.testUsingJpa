@@ -1,0 +1,13 @@
+@Test
+void testUsingJpa() {
+    this.contextRunner.withUserConfiguration(TestConfiguration.class, EmbeddedDataSourceConfiguration.class, HibernateJpaAutoConfiguration.class).run((context) -> {
+        PlatformTransactionManager transactionManager = context.getBean(PlatformTransactionManager.class);
+        // It's a lazy proxy, but it does render its target if you ask for
+        // toString():
+        assertThat(transactionManager.toString().contains("JpaTransactionManager")).isTrue();
+        assertThat(context).hasSingleBean(EntityManagerFactory.class);
+        // Ensure the JobRepository can be used (no problem with isolation
+        // level)
+        assertThat(context.getBean(JobRepository.class).getLastJobExecution("job", new JobParameters())).isNull();
+    });
+}

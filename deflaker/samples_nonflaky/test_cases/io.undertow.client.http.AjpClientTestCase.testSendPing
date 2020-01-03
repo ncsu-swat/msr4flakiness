@@ -1,0 +1,75 @@
+@Test
+public void testSendPing() throws Exception {
+    // 
+    final UndertowClient client = createClient();
+    final List<ClientResponse> responses = new CopyOnWriteArrayList<>();
+    final FutureResult<Boolean> result = new FutureResult<>();
+    final CountDownLatch latch = new CountDownLatch(3);
+    final ClientConnection connection = client.connect(ADDRESS, worker, DefaultServer.getBufferPool(), OptionMap.EMPTY).get();
+    Assert.assertTrue(connection.isPingSupported());
+    try {
+        connection.getIoThread().execute(new Runnable() {
+
+            @Override
+            public void run() {
+                final ClientRequest request = new ClientRequest().setMethod(Methods.GET).setPath(MESSAGE);
+                request.getRequestHeaders().put(Headers.HOST, DefaultServer.getHostAddress());
+                connection.sendRequest(request, createClientCallback(responses, latch));
+                connection.sendPing(new ClientConnection.PingListener() {
+
+                    @Override
+                    public void acknowledged() {
+                        result.setResult(true);
+                        latch.countDown();
+                    }
+
+                    @Override
+                    public void failed(IOException e) {
+                        result.setException(e);
+                        latch.countDown();
+                    }
+                }, 5, TimeUnit.SECONDS);
+                connection.sendRequest(request, createClientCallback(responses, latch));
+            }
+        });
+        latch.await(10, TimeUnit.SECONDS);
+        Assert.assertEquals(2, responses.size());
+        Assert.assertTrue(result.getIoFuture().get());
+        for (final ClientResponse response : responses) {
+            Assert.assertEquals(message, response.getAttachment(RESPONSE_BODY));
+        }
+        // now try a failed ping
+        try {
+            undertow.stop();
+            final FutureResult<Boolean> failResult = new FutureResult<>();
+            connection.getIoThread().execute(new Runnable() {
+
+                @Override
+                public void run() {
+                    connection.sendPing(new ClientConnection.PingListener() {
+
+                        @Override
+                        public void acknowledged() {
+                            failResult.setResult(true);
+                        }
+
+                        @Override
+                        public void failed(IOException e) {
+                            failResult.setException(e);
+                        }
+                    }, 4, TimeUnit.SECONDS);
+                }
+            });
+            try {
+                failResult.getIoFuture().get();
+                Assert.fail("ping should have failed");
+            } catch (IOException e) {
+            // ignored
+            }
+        } finally {
+            undertow.start();
+        }
+    } finally {
+        IoUtils.safeClose(connection);
+    }
+}

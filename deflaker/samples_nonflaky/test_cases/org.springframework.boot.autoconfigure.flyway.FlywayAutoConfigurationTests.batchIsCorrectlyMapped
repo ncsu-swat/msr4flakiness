@@ -1,0 +1,9 @@
+@Test
+void batchIsCorrectlyMapped() {
+    this.contextRunner.withUserConfiguration(EmbeddedDataSourceConfiguration.class).withPropertyValues("spring.flyway.batch=true").run((context) -> {
+        assertThat(context).hasFailed();
+        Throwable failure = context.getStartupFailure();
+        assertThat(failure).hasRootCauseInstanceOf(FlywayProUpgradeRequiredException.class);
+        assertThat(failure).hasMessageContaining(" batch ");
+    });
+}

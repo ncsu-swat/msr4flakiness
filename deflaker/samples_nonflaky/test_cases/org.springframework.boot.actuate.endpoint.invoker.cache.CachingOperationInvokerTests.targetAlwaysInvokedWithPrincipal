@@ -1,0 +1,14 @@
+@Test
+void targetAlwaysInvokedWithPrincipal() {
+    OperationInvoker target = mock(OperationInvoker.class);
+    Map<String, Object> parameters = new HashMap<>();
+    SecurityContext securityContext = mock(SecurityContext.class);
+    given(securityContext.getPrincipal()).willReturn(mock(Principal.class));
+    InvocationContext context = new InvocationContext(securityContext, parameters);
+    given(target.invoke(context)).willReturn(new Object());
+    CachingOperationInvoker invoker = new CachingOperationInvoker(target, CACHE_TTL);
+    invoker.invoke(context);
+    invoker.invoke(context);
+    invoker.invoke(context);
+    verify(target, times(3)).invoke(context);
+}

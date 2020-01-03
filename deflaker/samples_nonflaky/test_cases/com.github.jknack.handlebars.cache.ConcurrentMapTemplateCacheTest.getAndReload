@@ -1,0 +1,25 @@
+@Test
+public void getAndReload() throws IOException, InterruptedException {
+    ConcurrentMap<TemplateSource, Pair<TemplateSource, Template>> cache = new ConcurrentHashMap<>();
+    TemplateSource source = source("/template.hbs");
+    Template template = createMock(Template.class);
+    Template reloadTemplate = createMock(Template.class);
+    Parser parser = createMock(Parser.class);
+    expect(parser.parse(source)).andReturn(template);
+    TemplateSource reloadSource = new ForwardingTemplateSource(source) {
+
+        @Override
+        public long lastModified() {
+            return System.currentTimeMillis() * 7;
+        }
+    };
+    expect(parser.parse(reloadSource)).andReturn(reloadTemplate);
+    replay(parser, template, reloadTemplate);
+    // 1st call, parse must be call it
+    assertEquals(template, new ConcurrentMapTemplateCache(cache).setReload(true).get(source, parser));
+    // 2nd call, should return from cache
+    assertEquals(template, new ConcurrentMapTemplateCache(cache).setReload(true).get(source, parser));
+    // 3th call, parse must be call it
+    assertEquals(reloadTemplate, new ConcurrentMapTemplateCache(cache).setReload(true).get(reloadSource, parser));
+    verify(parser, template, reloadTemplate);
+}

@@ -1,0 +1,12 @@
+@Test
+void testMaxFileSizePropertyWithXmlConfiguration() {
+    MockEnvironment environment = new MockEnvironment();
+    environment.setProperty("logging.file.max-size", "100MB");
+    LoggingInitializationContext loggingInitializationContext = new LoggingInitializationContext(environment);
+    File file = new File(tmpDir(), "logback-test.log");
+    LogFile logFile = getLogFile(file.getPath(), null);
+    this.loggingSystem.initialize(loggingInitializationContext, "classpath:logback-include-base.xml", logFile);
+    this.logger.info("Hello world");
+    assertThat(getLineWithText(file, "Hello world")).contains("INFO");
+    assertThat(ReflectionTestUtils.getField(getRollingPolicy(), "maxFileSize").toString()).isEqualTo("100 MB");
+}

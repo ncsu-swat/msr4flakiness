@@ -1,0 +1,10 @@
+@Test
+void getEndpointsWhenHasCustomPathShouldReturnCustomPath() {
+    load((id) -> null, (id) -> "custom/" + id, AdditionalOperationWebEndpointConfiguration.class, (discoverer) -> {
+        Map<EndpointId, ExposableWebEndpoint> endpoints = mapEndpoints(discoverer.getEndpoints());
+        assertThat(endpoints).containsOnlyKeys(EndpointId.of("test"));
+        ExposableWebEndpoint endpoint = endpoints.get(EndpointId.of("test"));
+        Condition<List<? extends WebOperationRequestPredicate>> expected = requestPredicates(path("custom/test").httpMethod(WebEndpointHttpMethod.GET).consumes().produces("application/json"), path("custom/test/{id}").httpMethod(WebEndpointHttpMethod.GET).consumes().produces("application/json"));
+        assertThat(requestPredicates(endpoint)).has(expected);
+    });
+}

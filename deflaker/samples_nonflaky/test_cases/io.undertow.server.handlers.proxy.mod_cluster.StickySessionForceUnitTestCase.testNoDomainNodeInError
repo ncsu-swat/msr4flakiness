@@ -1,0 +1,14 @@
+@Test
+public void testNoDomainNodeInError() throws IOException {
+    // If no domain is configured apps cannot failover
+    registerNodes(true, server1, server2);
+    modClusterClient.enableApp(server1.getJvmRoute(), SESSION);
+    modClusterClient.enableApp(server2.getJvmRoute(), SESSION);
+    final String response = checkGet("/session", StatusCodes.OK);
+    if (response.startsWith(server1.getJvmRoute())) {
+        modClusterClient.updateLoad(server1.getJvmRoute(), -1);
+    } else {
+        modClusterClient.updateLoad(server2.getJvmRoute(), -1);
+    }
+    checkGet("/session", StatusCodes.OK);
+}

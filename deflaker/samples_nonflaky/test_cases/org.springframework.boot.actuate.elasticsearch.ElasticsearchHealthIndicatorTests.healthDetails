@@ -1,0 +1,17 @@
+@Test
+void healthDetails() {
+    PlainActionFuture<ClusterHealthResponse> responseFuture = new PlainActionFuture<>();
+    responseFuture.onResponse(new StubClusterHealthResponse());
+    given(this.cluster.health(any(ClusterHealthRequest.class))).willReturn(responseFuture);
+    Health health = this.indicator.health();
+    assertThat(health.getStatus()).isEqualTo(Status.UP);
+    Map<String, Object> details = health.getDetails();
+    assertDetail(details, "clusterName", "test-cluster");
+    assertDetail(details, "activeShards", 1);
+    assertDetail(details, "relocatingShards", 2);
+    assertDetail(details, "activePrimaryShards", 3);
+    assertDetail(details, "initializingShards", 4);
+    assertDetail(details, "unassignedShards", 5);
+    assertDetail(details, "numberOfNodes", 6);
+    assertDetail(details, "numberOfDataNodes", 7);
+}

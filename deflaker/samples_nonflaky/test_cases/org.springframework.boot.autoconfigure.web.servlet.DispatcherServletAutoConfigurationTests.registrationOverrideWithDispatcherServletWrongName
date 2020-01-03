@@ -1,0 +1,11 @@
+// If a DispatcherServlet instance is registered with a name different
+// from the default one, we're registering one anyway
+@Test
+void registrationOverrideWithDispatcherServletWrongName() {
+    this.contextRunner.withUserConfiguration(CustomDispatcherServletDifferentName.class, CustomDispatcherServletPath.class).run((context) -> {
+        ServletRegistrationBean<?> registration = context.getBean(ServletRegistrationBean.class);
+        assertThat(registration.getUrlMappings()).containsExactly("/");
+        assertThat(registration.getServletName()).isEqualTo("dispatcherServlet");
+        assertThat(context).getBeanNames(DispatcherServlet.class).hasSize(2);
+    });
+}

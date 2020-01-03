@@ -1,0 +1,28 @@
+@Test
+public void testEmptyFrames() throws Exception {
+    decompress.reset();
+    byte[] compressedFrame1 = { (byte) 0xf2, (byte) 0x48, (byte) 0xcd };
+    byte[] compressedFrame2 = { (byte) 0xc9, (byte) 0xc9, (byte) 0x07, (byte) 0x00 };
+    byte[] compressedFrame3 = { (byte) 0x00, (byte) 0x00, (byte) 0xff, (byte) 0xff };
+    byte[] output = new byte[1024];
+    int decompressed = 0;
+    decompress.setInput(compressedFrame1);
+    decompressed = decompress.inflate(output, 0, output.length);
+    Assert.assertEquals(2, decompressed);
+    Assert.assertEquals("He", new String(output, 0, decompressed, "UTF-8"));
+    decompress.setInput(compressedFrame2);
+    decompressed = decompress.inflate(output, 0, output.length);
+    Assert.assertEquals(3, decompressed);
+    Assert.assertEquals("llo", new String(output, 0, decompressed, "UTF-8"));
+    decompress.setInput(compressedFrame3);
+    decompressed = decompress.inflate(output, 0, output.length);
+    Assert.assertEquals(0, decompressed);
+    decompress.setInput(compressedFrame1);
+    decompressed = decompress.inflate(output, 0, output.length);
+    Assert.assertEquals(2, decompressed);
+    Assert.assertEquals("He", new String(output, 0, decompressed, "UTF-8"));
+    decompress.setInput(compressedFrame2);
+    decompressed = decompress.inflate(output, 0, output.length);
+    Assert.assertEquals(3, decompressed);
+    Assert.assertEquals("llo", new String(output, 0, decompressed, "UTF-8"));
+}

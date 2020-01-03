@@ -1,0 +1,27 @@
+@Test
+public void testPositionalReads() {
+    // Off heap buffer
+    testPositionalReads(ByteBuffer.allocateDirect(15));
+    // On heap buffer
+    testPositionalReads(ByteBuffer.allocate(15));
+}
+private void testPositionalReads(ByteBuffer bb) {
+    int i = 9;
+    short s = 5;
+    byte b = 2;
+    long l = 1234L;
+    bb.putInt(i);
+    bb.putLong(l);
+    bb.put(b);
+    bb.putShort(s);
+    SingleByteBuff sbb = new SingleByteBuff(bb);
+    assertEquals(i, sbb.getInt(0));
+    assertEquals(l, sbb.getLong(4));
+    assertEquals(b, sbb.get(12));
+    assertEquals(s, sbb.getShort(13));
+    sbb.rewind();
+    assertEquals(i, sbb.getIntAfterPosition(0));
+    assertEquals(l, sbb.getLongAfterPosition(4));
+    assertEquals(b, sbb.getByteAfterPosition(12));
+    assertEquals(s, sbb.getShortAfterPosition(13));
+}

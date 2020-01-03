@@ -1,0 +1,15 @@
+@Test
+void hazelcastAsJCacheWithConfig() {
+    String cachingProviderFqn = HazelcastCachingProvider.class.getName();
+    try {
+        String configLocation = "org/springframework/boot/autoconfigure/hazelcast/hazelcast-specific.xml";
+        this.contextRunner.withUserConfiguration(DefaultCacheConfiguration.class).withPropertyValues("spring.cache.type=jcache", "spring.cache.jcache.provider=" + cachingProviderFqn, "spring.cache.jcache.config=" + configLocation).run((context) -> {
+            JCacheCacheManager cacheManager = getCacheManager(context, JCacheCacheManager.class);
+            Resource configResource = new ClassPathResource(configLocation);
+            assertThat(cacheManager.getCacheManager().getURI()).isEqualTo(configResource.getURI());
+            assertThat(Hazelcast.getAllHazelcastInstances()).hasSize(1);
+        });
+    } finally {
+        Caching.getCachingProvider(cachingProviderFqn).close();
+    }
+}

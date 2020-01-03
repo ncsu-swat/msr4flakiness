@@ -1,0 +1,12 @@
+@Test
+void cloudFoundryPlatformActive() {
+    this.contextRunner.withPropertyValues("VCAP_APPLICATION:---", "vcap.application.application_id:my-app-id", "vcap.application.cf_api:https://my-cloud-controller.com").run((context) -> {
+        CloudFoundryWebEndpointServletHandlerMapping handlerMapping = getHandlerMapping(context);
+        EndpointMapping endpointMapping = (EndpointMapping) ReflectionTestUtils.getField(handlerMapping, "endpointMapping");
+        assertThat(endpointMapping.getPath()).isEqualTo("/cloudfoundryapplication");
+        CorsConfiguration corsConfiguration = (CorsConfiguration) ReflectionTestUtils.getField(handlerMapping, "corsConfiguration");
+        assertThat(corsConfiguration.getAllowedOrigins()).contains("*");
+        assertThat(corsConfiguration.getAllowedMethods()).containsAll(Arrays.asList(HttpMethod.GET.name(), HttpMethod.POST.name()));
+        assertThat(corsConfiguration.getAllowedHeaders()).containsAll(Arrays.asList("Authorization", "X-Cf-App-Instance", "Content-Type"));
+    });
+}

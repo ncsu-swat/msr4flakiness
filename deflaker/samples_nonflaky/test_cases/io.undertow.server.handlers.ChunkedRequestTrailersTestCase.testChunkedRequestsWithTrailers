@@ -1,0 +1,61 @@
+/**
+ * We send our request manually, as apache HTTP client does not support this.
+ *
+ * @throws IOException
+ */
+@Test
+public void testChunkedRequestsWithTrailers() throws IOException {
+    connection = null;
+    String request = "POST / HTTP/1.1\r\nHost: default\r\nTrailer:foo, bar\r\nTransfer-Encoding: chunked\r\n\r\n9\r\nabcdefghi\r\n0\r\nfoo: fooVal\r\n bar: barVal\r\n\r\n";
+    // header order is not guaranteed, we really should be parsing this properly
+    String response1 = "HTTP/1.1 200 OK\r\nConnection: keep-alive\r\nContent-Length: 26\r\n\r\nfoo: fooVal\r\nbar: barVal\r\n";
+    // TODO: parse the response properly, or better yet ues a client that supports trailers
+    String response2 = "HTTP/1.1 200 OK\r\nConnection: keep-alive\r\nContent-Length: 26\r\n\r\nfoo: fooVal\r\nbar: barVal\r\n";
+    Socket s = new Socket(DefaultServer.getDefaultServerAddress().getAddress(), DefaultServer.getDefaultServerAddress().getPort());
+    try {
+        s.getOutputStream().write(request.getBytes());
+        StringBuilder sb = new StringBuilder();
+        int read = 0;
+        byte[] buf = new byte[300];
+        while (read < response1.length()) {
+            int r = s.getInputStream().read(buf);
+            if (r <= 0)
+                break;
+            if (r > 0) {
+                read += r;
+                sb.append(new String(buf, 0, r));
+            }
+        }
+        String actual = sb.toString();
+        actual = actual.replaceAll("\r\nDate:.*", "");
+        actual = actual.replaceAll("content-length", "Content-Length");
+        try {
+            // this is pretty yuck
+            Assert.assertEquals(response1, actual);
+        } catch (AssertionError e) {
+            Assert.assertEquals(response2, actual);
+        }
+        s.getOutputStream().write(request.getBytes());
+        sb = new StringBuilder();
+        read = 0;
+        while (read < response1.length()) {
+            int r = s.getInputStream().read(buf);
+            if (r <= 0)
+                break;
+            if (r > 0) {
+                read += r;
+                sb.append(new String(buf, 0, r));
+            }
+        }
+        actual = sb.toString();
+        actual = actual.replaceAll("\r\nDate:.*", "");
+        actual = actual.replaceAll("content-length", "Content-Length");
+        try {
+            Assert.assertEquals(response1, actual);
+        } catch (AssertionError e) {
+            Assert.assertEquals(response2, actual);
+        }
+    } finally {
+        s.close();
+    }
+}

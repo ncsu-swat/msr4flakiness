@@ -1,0 +1,10 @@
+@SuppressWarnings("unchecked")
+@Test
+void applicationListenerFromContextIsCalledWhenContextFailsRefreshAfterListenerRegistration() {
+    ApplicationListener<ApplicationEvent> listener = mock(ApplicationListener.class);
+    SpringApplication application = new SpringApplication(BrokenPostConstructConfig.class);
+    application.setWebApplicationType(WebApplicationType.NONE);
+    application.addInitializers((applicationContext) -> applicationContext.addApplicationListener(listener));
+    assertThatExceptionOfType(BeanCreationException.class).isThrownBy(application::run);
+    verifyListenerEvents(listener, ApplicationFailedEvent.class);
+}

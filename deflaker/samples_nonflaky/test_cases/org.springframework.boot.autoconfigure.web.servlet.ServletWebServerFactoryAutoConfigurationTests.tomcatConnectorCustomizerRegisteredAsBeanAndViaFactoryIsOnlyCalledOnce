@@ -1,0 +1,10 @@
+@Test
+void tomcatConnectorCustomizerRegisteredAsBeanAndViaFactoryIsOnlyCalledOnce() {
+    WebApplicationContextRunner runner = new WebApplicationContextRunner(AnnotationConfigServletWebServerApplicationContext::new).withConfiguration(AutoConfigurations.of(ServletWebServerFactoryAutoConfiguration.class)).withUserConfiguration(DoubleRegistrationTomcatConnectorCustomizerConfiguration.class).withPropertyValues("server.port: 0");
+    runner.run((context) -> {
+        TomcatServletWebServerFactory factory = context.getBean(TomcatServletWebServerFactory.class);
+        TomcatConnectorCustomizer customizer = context.getBean("connectorCustomizer", TomcatConnectorCustomizer.class);
+        assertThat(factory.getTomcatConnectorCustomizers()).contains(customizer);
+        verify(customizer, times(1)).customize(any(Connector.class));
+    });
+}

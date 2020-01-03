@@ -1,0 +1,11 @@
+@Test
+void preHandleSuccessfulWithRestrictedAccess() {
+    String accessToken = mockAccessToken();
+    given(this.securityService.getAccessLevel(accessToken, "my-app-id")).willReturn(Mono.just(AccessLevel.RESTRICTED));
+    given(this.tokenValidator.validate(any())).willReturn(Mono.empty());
+    MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/info").header(HttpHeaders.AUTHORIZATION, "bearer " + mockAccessToken()).build());
+    StepVerifier.create(this.interceptor.preHandle(exchange, "info")).consumeNextWith((response) -> {
+        assertThat(response.getStatus()).isEqualTo(HttpStatus.OK);
+        assertThat((AccessLevel) exchange.getAttribute("cloudFoundryAccessLevel")).isEqualTo(AccessLevel.RESTRICTED);
+    }).verifyComplete();
+}

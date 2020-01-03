@@ -1,0 +1,10 @@
+@Test
+void buildUsesHttpComponentsByDefault() {
+    ClientHttpRequestMessageSender messageSender = build(new HttpWebServiceMessageSenderBuilder().setConnectTimeout(Duration.ofSeconds(5)).setReadTimeout(Duration.ofSeconds(2)));
+    ClientHttpRequestFactory requestFactory = messageSender.getRequestFactory();
+    assertThat(requestFactory).isInstanceOf(HttpComponentsClientHttpRequestFactory.class);
+    RequestConfig requestConfig = (RequestConfig) ReflectionTestUtils.getField(requestFactory, "requestConfig");
+    assertThat(requestConfig).isNotNull();
+    assertThat(requestConfig.getConnectTimeout()).isEqualTo(5000);
+    assertThat(requestConfig.getSocketTimeout()).isEqualTo(2000);
+}

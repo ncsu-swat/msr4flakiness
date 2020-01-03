@@ -1,0 +1,9 @@
+@Test
+void errorOverridesIsCorrectlyMapped() {
+    this.contextRunner.withUserConfiguration(EmbeddedDataSourceConfiguration.class).withPropertyValues("spring.flyway.errorOverrides=D12345").run((context) -> {
+        assertThat(context).hasFailed();
+        Throwable failure = context.getStartupFailure();
+        assertThat(failure).hasRootCauseInstanceOf(FlywayProUpgradeRequiredException.class);
+        assertThat(failure).hasMessageContaining(" errorOverrides ");
+    });
+}

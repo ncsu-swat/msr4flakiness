@@ -1,0 +1,13 @@
+@Test
+void jettyConfigurations() throws Exception {
+    JettyServletWebServerFactory factory = getFactory();
+    Configuration[] configurations = new Configuration[4];
+    Arrays.setAll(configurations, (i) -> mock(Configuration.class));
+    factory.setConfigurations(Arrays.asList(configurations[0], configurations[1]));
+    factory.addConfigurations(configurations[2], configurations[3]);
+    this.webServer = factory.getWebServer();
+    InOrder ordered = inOrder((Object[]) configurations);
+    for (Configuration configuration : configurations) {
+        ordered.verify(configuration).configure(any(WebAppContext.class));
+    }
+}

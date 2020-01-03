@@ -1,0 +1,15 @@
+@Test
+public void shouldAllowBlockParamsOnChainedHelpers() throws IOException {
+    shouldCompileTo("{{#if bar}}{{else goodbyes as |value|}}{{value}}{{/if}}{{value}}", $("value", "foo"), $("goodbyes", new Helper<Object>() {
+
+        int value = 1;
+
+        @Override
+        public Object apply(final Object context, final Options options) throws IOException {
+            if (options.blockParams.size() > 0) {
+                return options.apply(options.fn, $("value", "bar"), Arrays.<Object>asList(value++, value++));
+            }
+            return options.fn($("value", "bar"));
+        }
+    }), "1foo");
+}

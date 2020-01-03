@@ -1,0 +1,8 @@
+@Test
+void testDisableSchemaLoader() {
+    this.contextRunner.withUserConfiguration(TestConfiguration.class, EmbeddedDataSourceConfiguration.class).withPropertyValues("spring.datasource.generate-unique-name=true", "spring.batch.initialize-schema:never").run((context) -> {
+        assertThat(context).hasSingleBean(JobLauncher.class);
+        assertThat(context.getBean(BatchProperties.class).getInitializeSchema()).isEqualTo(DataSourceInitializationMode.NEVER);
+        assertThatExceptionOfType(BadSqlGrammarException.class).isThrownBy(() -> new JdbcTemplate(context.getBean(DataSource.class)).queryForList("select * from BATCH_JOB_EXECUTION"));
+    });
+}

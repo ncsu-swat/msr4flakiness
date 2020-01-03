@@ -1,0 +1,12 @@
+@Test
+void consolePatternCanBeOverridden() throws JoranException {
+    JoranConfigurator configurator = new JoranConfigurator();
+    LoggerContext context = new LoggerContext();
+    configurator.setContext(context);
+    configurator.doConfigure(new File("src/test/resources/custom-console-log-pattern.xml"));
+    Appender<ILoggingEvent> appender = context.getLogger("ROOT").getAppender("CONSOLE");
+    assertThat(appender).isInstanceOf(ConsoleAppender.class);
+    Encoder<?> encoder = ((ConsoleAppender<?>) appender).getEncoder();
+    assertThat(encoder).isInstanceOf(PatternLayoutEncoder.class);
+    assertThat(((PatternLayoutEncoder) encoder).getPattern()).isEqualTo("foo");
+}

@@ -1,0 +1,13 @@
+@Test
+void validationAutoConfigurationWhenUserProvidesValidatorShouldBackOff() {
+    load(UserDefinedValidatorConfig.class);
+    String[] jsrValidatorNames = this.context.getBeanNamesForType(Validator.class);
+    String[] springValidatorNames = this.context.getBeanNamesForType(org.springframework.validation.Validator.class);
+    assertThat(jsrValidatorNames).containsExactly("customValidator");
+    assertThat(springValidatorNames).containsExactly("customValidator");
+    org.springframework.validation.Validator springValidator = this.context.getBean(org.springframework.validation.Validator.class);
+    Validator jsrValidator = this.context.getBean(Validator.class);
+    assertThat(jsrValidator).isInstanceOf(OptionalValidatorFactoryBean.class);
+    assertThat(jsrValidator).isEqualTo(springValidator);
+    assertThat(isPrimaryBean("customValidator")).isFalse();
+}

@@ -1,0 +1,21 @@
+@Test
+void jndiLookupsCanBePerformedDuringApplicationContextRefresh() throws NamingException {
+    Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
+    TomcatServletWebServerFactory factory = new TomcatServletWebServerFactory(0) {
+
+        @Override
+        protected TomcatWebServer getTomcatWebServer(Tomcat tomcat) {
+            tomcat.enableNaming();
+            return super.getTomcatWebServer(tomcat);
+        }
+    };
+    // Server is created in onRefresh
+    this.webServer = factory.getWebServer();
+    // Lookups should now be possible
+    new InitialContext().lookup("java:comp/env");
+    // Called in finishRefresh, giving us an opportunity to remove the context binding
+    // and avoid a leak
+    this.webServer.start();
+    // Lookups should no longer be possible
+    assertThatExceptionOfType(NamingException.class).isThrownBy(() -> new InitialContext().lookup("java:comp/env"));
+}

@@ -1,0 +1,17 @@
+@Test
+public void testProxyProtocolV2Tcp4Negative() throws Exception {
+    String requestHttp = "GET / HTTP/1.0\r\n\r\n";
+    byte[] request;
+    // missing destination port
+    request = createProxyHeaderV2(PROXY, TCPv4, 10, InetAddress.getByName("1.2.3.4"), InetAddress.getByName("5.6.7.8"), 444, null);
+    proxyProtocolRequestResponseCheck(request, requestHttp, "");
+    // missing destination address
+    request = createProxyHeaderV2(PROXY, TCPv4, 8, InetAddress.getByName("1.2.3.4"), null, 444, 555);
+    proxyProtocolRequestResponseCheck(request, requestHttp, "");
+    // invalid family
+    request = createProxyHeaderV2(PROXY, (byte) 0x42, 12, InetAddress.getByName("1.2.3.4"), InetAddress.getByName("5.6.7.8"), 444, 555);
+    proxyProtocolRequestResponseCheck(request, requestHttp, "");
+    // len too low
+    request = createProxyHeaderV2(PROXY, TCPv4, 4, InetAddress.getByName("1.2.3.4"), null, null, null);
+    proxyProtocolRequestResponseCheck(request, requestHttp, "");
+}

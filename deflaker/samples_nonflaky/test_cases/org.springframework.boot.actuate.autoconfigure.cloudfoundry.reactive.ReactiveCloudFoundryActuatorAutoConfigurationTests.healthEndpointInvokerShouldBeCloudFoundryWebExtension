@@ -1,0 +1,11 @@
+@Test
+void healthEndpointInvokerShouldBeCloudFoundryWebExtension() {
+    this.contextRunner.withConfiguration(AutoConfigurations.of(HealthEndpointAutoConfiguration.class)).withPropertyValues("VCAP_APPLICATION:---", "vcap.application.application_id:my-app-id", "vcap.application.cf_api:https://my-cloud-controller.com").run((context) -> {
+        Collection<ExposableWebEndpoint> endpoints = getHandlerMapping(context).getEndpoints();
+        ExposableWebEndpoint endpoint = endpoints.iterator().next();
+        assertThat(endpoint.getOperations()).hasSize(2);
+        WebOperation webOperation = findOperationWithRequestPath(endpoint, "health");
+        Object invoker = ReflectionTestUtils.getField(webOperation, "invoker");
+        assertThat(ReflectionTestUtils.getField(invoker, "target")).isInstanceOf(CloudFoundryReactiveHealthEndpointWebExtension.class);
+    });
+}

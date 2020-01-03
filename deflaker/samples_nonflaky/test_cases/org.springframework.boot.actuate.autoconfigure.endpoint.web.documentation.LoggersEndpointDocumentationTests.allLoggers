@@ -1,0 +1,6 @@
+@Test
+void allLoggers() throws Exception {
+    given(this.loggingSystem.getSupportedLogLevels()).willReturn(EnumSet.allOf(LogLevel.class));
+    given(this.loggingSystem.getLoggerConfigurations()).willReturn(Arrays.asList(new LoggerConfiguration("ROOT", LogLevel.INFO, LogLevel.INFO), new LoggerConfiguration("com.example", LogLevel.DEBUG, LogLevel.DEBUG)));
+    this.mockMvc.perform(get("/actuator/loggers")).andExpect(status().isOk()).andDo(MockMvcRestDocumentation.document("loggers/all", responseFields(fieldWithPath("levels").description("Levels support by the logging system."), fieldWithPath("loggers").description("Loggers keyed by name."), fieldWithPath("groups").description("Logger groups keyed by name")).andWithPrefix("loggers.*.", levelFields).andWithPrefix("groups.*.", groupLevelFields)));
+}
