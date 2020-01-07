@@ -1,0 +1,21 @@
+@Test
+public void testUUIDGetSlice() {
+    // Gets all columns based on the first component in the column name
+    Map<UUID, Set<UUID>> ids = init();
+    for (Entry<UUID, Set<UUID>> entry : ids.entrySet()) {
+        UUID component0 = entry.getKey();
+        // start at first column who's single component == component0
+        DynamicComposite start = new DynamicComposite();
+        start.addComponent(component0, us);
+        // up to and including any column whose first component == component0 regardless of remaining component values
+        DynamicComposite end = new DynamicComposite();
+        end.addComponent(component0, us, us.getComparatorType().getTypeName(), ComponentEquality.GREATER_THAN_EQUAL);
+        ColumnSliceIterator<String, DynamicComposite, String> iterator = getIterator(rowKey, start, end);
+        while (iterator.hasNext()) {
+            HColumn<DynamicComposite, String> column = iterator.next();
+            DynamicComposite composite = column.getName();
+            assertEquals(component0, composite.get(0, us));
+            assertTrue(ids.get(component0).contains(composite.get(1, us)));
+        }
+    }
+}

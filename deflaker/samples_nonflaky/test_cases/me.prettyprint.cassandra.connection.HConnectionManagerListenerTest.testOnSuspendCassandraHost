@@ -1,0 +1,16 @@
+@Test
+public void testOnSuspendCassandraHost() {
+    setupClient();
+    final CassandraHost host = new CassandraHost("127.0.0.1", 9170);
+    assertTrue(connectionManager.suspendCassandraHost(host));
+    final boolean[] eventFired = { false };
+    connectionManager.addListener(listenerName, new ConnectionManagerEmptyListener() {
+
+        @Override
+        public void onSuspendHost(CassandraHost cassandraHost, boolean removed) {
+            assertEquals(cassandraHost, host);
+            assertTrue(removed);
+            eventFired[0] = true;
+        }
+    });
+}

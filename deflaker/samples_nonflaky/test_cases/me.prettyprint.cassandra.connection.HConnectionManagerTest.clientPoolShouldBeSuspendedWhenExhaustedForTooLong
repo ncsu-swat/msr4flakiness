@@ -1,0 +1,42 @@
+@Test
+public void clientPoolShouldBeSuspendedWhenExhaustedForTooLong() throws InterruptedException {
+    final int maxActive = 5;
+    CassandraHostConfigurator configurator = new CassandraHostConfigurator("127.0.0.1:9170");
+    configurator.setClientFactoryClass(TestClientFactory.class.getName());
+    configurator.setMaxActive(maxActive);
+    configurator.setMaxWaitTimeWhenExhausted(50);
+    configurator.setMaxExhaustedTimeBeforeMarkingAsDown(0);
+    configurator.setRetryDownedHosts(false);
+    final HConnectionManager connectionManager = new HConnectionManager("TestCluster", configurator);
+    CassandraHost host = connectionManager.getHosts().iterator().next();
+    ConnectionManagerListener listener = mock(ConnectionManagerListener.class);
+    final MutableBoolean wasRemoved = new MutableBoolean();
+    doAnswer(new Answer() {
+
+        @Override
+        public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+            wasRemoved.setValue(true);
+            return null;
+        }
+    }).when(listener).onHostDown(host);
+    connectionManager.addListener("TestListener", listener);
+    ExecutorService exec = Executors.newCachedThreadPool();
+    final CountDownLatch latch = new CountDownLatch(1);
+    for (int i = 0; i < maxActive + 1; i++) {
+        exec.execute(new Runnable() {
+
+            @Override
+            public void run() {
+                try {
+                    connectionManager.operateWithFailover(new InfiniteOp(FailoverPolicy.FAIL_FAST));
+                } catch (HPoolExhaustedException e) {
+                    latch.countDown();
+                }
+            }
+        });
+        Thread.sleep(50);
+    }
+    latch.await();
+    assertTrue(wasRemoved.booleanValue());
+    exec.shutdownNow();
+}

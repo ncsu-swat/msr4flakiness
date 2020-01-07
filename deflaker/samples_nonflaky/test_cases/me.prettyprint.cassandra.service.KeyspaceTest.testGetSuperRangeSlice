@@ -1,0 +1,31 @@
+@Test
+public void testGetSuperRangeSlice() throws HectorException {
+    for (int i = 0; i < 10; i++) {
+        ColumnPath cp = new ColumnPath("Super1");
+        cp.setSuper_column(bytes("SuperColumn_1"));
+        cp.setColumn(bytes("testGetSuperRangeSlice_" + i));
+        keyspace.insert("testGetSuperRangeSlice0", cp, StringSerializer.get().toByteBuffer("testGetSuperRangeSlice_Value_" + i));
+        keyspace.insert("testGetSuperRangeSlice1", cp, StringSerializer.get().toByteBuffer("testGetSuperRangeSlice_Value_" + i));
+    }
+    // get value
+    ColumnParent clp = new ColumnParent("Super1");
+    SliceRange sr = new SliceRange(ByteBuffer.wrap(new byte[0]), ByteBuffer.wrap(new byte[0]), false, 150);
+    SlicePredicate sp = new SlicePredicate();
+    sp.setSlice_range(sr);
+    /*
+    @SuppressWarnings("deprecation")
+    Map<String, List<SuperColumn>> keySlices = keyspace.getSuperRangeSlice(clp, sp,
+        "testGetSuperRangeSlice0", "testGetSuperRangeSlice3", 5);
+
+    assertNotNull(keySlices);
+    assertEquals(2, keySlices.size());
+    assertNotNull("testGetSuperRangSlice0 is null", keySlices.get("testGetSuperRangeSlice0"));
+    assertEquals("testGetSuperRangeSlice_Value_0",
+        string(keySlices.get("testGetSuperRangeSlice0").get(0).getColumns().get(0).getValue()));
+    assertEquals(1, keySlices.get("testGetSuperRangeSlice1").size());
+    assertEquals(10, keySlices.get("testGetSuperRangeSlice1").get(0).getColumns().size());
+    */
+    ColumnPath cp = new ColumnPath("Super1");
+    keyspace.remove("testGetSuperRangeSlice0", cp);
+    keyspace.remove("testGetSuperRangeSlice1", cp);
+}

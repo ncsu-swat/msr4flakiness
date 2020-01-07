@@ -1,0 +1,29 @@
+@Test
+public void testGetRangeSlice() throws HectorException {
+    for (int i = 0; i < 10; i++) {
+        ColumnPath cp = new ColumnPath("Standard1");
+        cp.setColumn(bytes("testGetRangeSlice_" + i));
+        keyspace.insert("testGetRangeSlice0", cp, StringSerializer.get().toByteBuffer("testGetRangeSlice_Value_" + i));
+        keyspace.insert("testGetRangeSlice1", cp, StringSerializer.get().toByteBuffer("testGetRangeSlice_Value_" + i));
+        keyspace.insert("testGetRangeSlice2", cp, StringSerializer.get().toByteBuffer("testGetRangeSlice_Value_" + i));
+    }
+    // get value
+    ColumnParent clp = new ColumnParent("Standard1");
+    SliceRange sr = new SliceRange(ByteBuffer.wrap(new byte[0]), ByteBuffer.wrap(new byte[0]), false, 150);
+    SlicePredicate sp = new SlicePredicate();
+    sp.setSlice_range(sr);
+    /*
+    @SuppressWarnings("deprecation")
+    Map<String, List<Column>> keySlices = keyspace.getRangeSlice(clp, sp, "testGetRangeSlice0", "testGetRangeSlice3", 5);
+
+    assertNotNull(keySlices);
+    assertEquals(3, keySlices.size());
+    assertNotNull("testGetRangeSlice1 is null", keySlices.get("testGetRangeSlice1"));
+    assertEquals("testGetRangeSlice_Value_0", string(keySlices.get("testGetRangeSlice1").get(0).getValue()));
+    assertEquals(10, keySlices.get("testGetRangeSlice1").size());
+    */
+    ColumnPath cp = new ColumnPath("Standard1");
+    keyspace.remove("testGetRanageSlice0", cp);
+    keyspace.remove("testGetRanageSlice1", cp);
+    keyspace.remove("testGetRanageSlice2", cp);
+}
