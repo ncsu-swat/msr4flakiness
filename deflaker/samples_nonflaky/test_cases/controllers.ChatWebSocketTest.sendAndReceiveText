@@ -1,0 +1,23 @@
+@Test
+public void sendAndReceiveText() throws IOException, WebSocketException, InterruptedException {
+    String chatId = UUID.randomUUID().toString();
+    String url = withBaseWebSocketUrl("/chat");
+    WebSocket ws = new WebSocketFactory().createSocket(url);
+    try {
+        ws.addHeader("X-Chat-Id", chatId);
+        ws.connect();
+        BlockingQueue<String> received = new LinkedBlockingQueue<>();
+        ws.addListener(new WebSocketAdapter() {
+
+            @Override
+            public void onTextMessage(WebSocket ws, String text) throws Exception {
+                received.put(text);
+            }
+        });
+        ws.sendText("chat-id");
+        String reply = received.poll(2L, TimeUnit.SECONDS);
+        assertThat(reply, is(chatId));
+    } finally {
+        ws.disconnect(WebSocketCloseCode.NORMAL);
+    }
+}

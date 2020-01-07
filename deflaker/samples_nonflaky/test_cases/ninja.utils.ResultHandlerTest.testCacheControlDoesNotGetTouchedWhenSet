@@ -1,0 +1,14 @@
+@Test
+public void testCacheControlDoesNotGetTouchedWhenSet() {
+    Result result = Results.json();
+    // just a simple cache control header:
+    result.addHeader(Result.CACHE_CONTROL, "must-revalidate");
+    // just a new object as dummy...
+    result.render(new Object());
+    // handle result
+    resultHandler.handleResult(result, context);
+    // make sure stuff is there:
+    assertEquals("must-revalidate", result.getHeaders().get(Result.CACHE_CONTROL));
+    assertNull(result.getHeaders().get(Result.DATE));
+    assertNull(result.getHeaders().get(Result.EXPIRES));
+}

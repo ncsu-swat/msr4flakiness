@@ -1,0 +1,17 @@
+@Test
+public void testSkippingThroughModesWorks() {
+    // check that mode tests works:
+    NinjaPropertiesImpl ninjaPropertiesImpl = new NinjaPropertiesImpl(NinjaMode.test);
+    assertEquals("test_testproperty", ninjaPropertiesImpl.get("testproperty"));
+    // check that mode dev works:
+    ninjaPropertiesImpl = new NinjaPropertiesImpl(NinjaMode.dev);
+    assertEquals("dev_testproperty", ninjaPropertiesImpl.get("testproperty"));
+    assertEquals("secret", ninjaPropertiesImpl.get(NinjaConstant.applicationSecret));
+    // and in a completely different mode with no "%"-prefixed key the
+    // default value use used
+    ninjaPropertiesImpl = new NinjaPropertiesImpl(NinjaMode.prod);
+    assertEquals("testproperty_without_prefix", ninjaPropertiesImpl.get("testproperty"));
+    assertEquals("secret", ninjaPropertiesImpl.get(NinjaConstant.applicationSecret));
+    // tear down
+    System.clearProperty(NinjaConstant.MODE_KEY_NAME);
+}

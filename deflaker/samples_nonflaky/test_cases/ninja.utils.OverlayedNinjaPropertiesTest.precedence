@@ -1,0 +1,34 @@
+@Test
+public void precedence() {
+    OverlayedNinjaProperties ninjaProperties = new OverlayedNinjaProperties(new NinjaPropertiesImpl(NinjaMode.prod, "conf/overlayed.empty.conf"));
+    // no value anywhere
+    assertThat(ninjaProperties.get("key1", null, null), is(nullValue()));
+    assertThat(ninjaProperties.getInteger("key2", null, null), is(nullValue()));
+    assertThat(ninjaProperties.getBoolean("key3", null, null), is(nullValue()));
+    // defaultValue > nothing
+    assertThat(ninjaProperties.get("key1", null, "default"), is("default"));
+    assertThat(ninjaProperties.getInteger("key2", null, 0), is(0));
+    assertThat(ninjaProperties.getBoolean("key3", null, true), is(Boolean.TRUE));
+    // configProperty > defaultValue
+    ninjaProperties = new OverlayedNinjaProperties(new NinjaPropertiesImpl(NinjaMode.prod, "conf/overlayed.conf"));
+    assertThat(ninjaProperties.get("key1", null, "default"), is("test1"));
+    assertThat(ninjaProperties.getInteger("key2", null, 0), is(1));
+    assertThat(ninjaProperties.getBoolean("key3", null, true), is(Boolean.FALSE));
+    try {
+        // systemProperty > configProperty
+        System.setProperty("key1", "system");
+        System.setProperty("key2", "2");
+        System.setProperty("key3", "true");
+        assertThat(ninjaProperties.get("key1", null, "default"), is("system"));
+        assertThat(ninjaProperties.getInteger("key2", null, 0), is(2));
+        assertThat(ninjaProperties.getBoolean("key3", null, true), is(Boolean.TRUE));
+        // currentValue > systemProperty
+        assertThat(ninjaProperties.get("key1", "current", "default"), is("current"));
+        assertThat(ninjaProperties.getInteger("key2", 3, 0), is(3));
+        assertThat(ninjaProperties.getBoolean("key3", false, true), is(Boolean.FALSE));
+    } finally {
+        System.clearProperty("key1");
+        System.clearProperty("key2");
+        System.clearProperty("key3");
+    }
+}

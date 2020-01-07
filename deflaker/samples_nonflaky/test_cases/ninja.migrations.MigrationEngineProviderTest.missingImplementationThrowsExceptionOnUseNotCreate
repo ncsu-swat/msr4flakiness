@@ -1,0 +1,10 @@
+@Test
+public void missingImplementationThrowsExceptionOnUseNotCreate() {
+    NinjaPropertiesImpl ninjaProperties = new NinjaPropertiesImpl(NinjaMode.test);
+    ninjaProperties.setProperty(NinjaConstant.MIGRATION_ENGINE_IMPLEMENTATION, "not_existing_implementation");
+    Injector injector = Guice.createInjector(new BaseAndClassicModules(ninjaProperties));
+    Provider<MigrationEngine> provider = injector.getProvider(MigrationEngine.class);
+    // this will not work => we expect a runtime exception...
+    thrown.expect(RuntimeException.class);
+    MigrationEngine migrationEngine = injector.getInstance(MigrationEngine.class);
+}

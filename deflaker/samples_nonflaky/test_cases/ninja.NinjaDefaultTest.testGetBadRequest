@@ -1,0 +1,13 @@
+@Test
+public void testGetBadRequest() throws Exception {
+    when(ninjaProperties.getWithDefault(ArgumentMatchers.eq(NinjaConstant.LOCATION_VIEW_HTML_BAD_REQUEST_KEY), ArgumentMatchers.eq(NinjaConstant.LOCATION_VIEW_FTL_HTML_BAD_REQUEST))).thenReturn(NinjaConstant.LOCATION_VIEW_FTL_HTML_BAD_REQUEST);
+    BadRequestException exception = new BadRequestException("not important");
+    // real test:
+    Result result = ninjaDefault.getBadRequestResult(contextImpl, exception);
+    assertThat(result.getStatusCode(), equalTo(Result.SC_400_BAD_REQUEST));
+    assertThat(result.getTemplate(), equalTo(NinjaConstant.LOCATION_VIEW_FTL_HTML_BAD_REQUEST));
+    assertTrue(result.getRenderable() instanceof Message);
+    verify(messages).getWithDefault(ArgumentMatchers.eq(NinjaConstant.I18N_NINJA_SYSTEM_BAD_REQUEST_TEXT_KEY), ArgumentMatchers.eq(NinjaConstant.I18N_NINJA_SYSTEM_BAD_REQUEST_TEXT_DEFAULT), ArgumentMatchers.eq(contextImpl), any(Optional.class));
+    verify(messages).getWithDefault(ArgumentMatchers.eq(exception.getMessage()), ArgumentMatchers.eq(exception.getLocalizedMessage()), ArgumentMatchers.eq(contextImpl), any(Optional.class));
+    verify(ninjaProperties).getWithDefault(ArgumentMatchers.eq(NinjaConstant.LOCATION_VIEW_HTML_BAD_REQUEST_KEY), ArgumentMatchers.eq(NinjaConstant.LOCATION_VIEW_FTL_HTML_BAD_REQUEST));
+}

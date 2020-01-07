@@ -1,0 +1,12 @@
+@Test
+public void testInitializeWithAllUserSpecifiedThingsInShiftedConfDirectory() {
+    ninjaPropertiesImpl = Mockito.spy(new NinjaPropertiesImpl(NinjaMode.test));
+    Mockito.when(ninjaPropertiesImpl.get(NinjaConstant.APPLICATION_MODULES_BASE_PACKAGE)).thenReturn("com.example");
+    Bootstrap bootstrap = new Bootstrap(ninjaPropertiesImpl);
+    bootstrap.boot();
+    assertThat("Ninja Boostrap process picks up user supplied conf.Ninja definition", bootstrap.getInjector().getInstance(ninja.Ninja.class), is(instanceOf(com.example.conf.Ninja.class)));
+    assertThat("Ninja Boostrap process picks up user supplied Guice module in conf.Module", bootstrap.getInjector().getInstance(com.example.conf.Module.DummyInterfaceForTesting.class), is(instanceOf(com.example.conf.Module.DummyClassForTesting.class)));
+    Router router = bootstrap.getInjector().getInstance(Router.class);
+    Route route = router.getRouteFor("GET", "/");
+    assertThat("conf.Routes initialized properly. We get back the class we defined by the route.", route.getControllerClass(), is(instanceOf(com.example.controllers.DummyApplication.class.getClass())));
+}

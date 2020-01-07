@@ -1,0 +1,35 @@
+@Test
+public void testJsonBodyWithFullSpacesAndEndOfLines() {
+    final String jsonDocument = String.format("  \n\n\n    {  \n    \"firstName\"  \n  :   \"%s\", \"lastName\"\n : \"%s\", \"birthYear\":%d,\n \"lastSeen\":\"%s\"}   ", BodyParserEngineJsonTest.DATA_FIRSTNAME, BodyParserEngineJsonTest.DATA_LASTNAME, BodyParserEngineJsonTest.DATA_BIRTHYEAR, BodyParserEngineJsonTest.DATA_LASTSEEN);
+    final InputStream is = new ByteArrayInputStream(jsonDocument.getBytes());
+    final ObjectMapper jsonObjMapper = new ObjectMapper();
+    final BodyParserEngineJson bodyParserEngineJson = new BodyParserEngineJson(jsonObjMapper);
+    SimpleTestForm testForm = null;
+    try {
+        Mockito.when(context.getInputStream()).thenReturn(is);
+    } catch (IOException ignore) {
+    }
+    try {
+        testForm = bodyParserEngineJson.invoke(context, SimpleTestForm.class);
+    } catch (BadRequestException ignore) {
+    } finally {
+        try {
+            is.close();
+        } catch (IOException ignore) {
+        }
+    }
+    final Calendar cal = Calendar.getInstance();
+    final SimpleDateFormat dateFormat = new SimpleDateFormat(BodyParserEngineJsonTest.PARSER_DATEFORMAT);
+    dateFormat.setTimeZone(TimeZone.getTimeZone(BodyParserEngineJsonTest.PARSER_DATETZ));
+    try {
+        cal.setTime(dateFormat.parse(BodyParserEngineJsonTest.DATA_LASTSEEN));
+    } catch (ParseException ignore) {
+    }
+    cal.setTimeZone(TimeZone.getTimeZone(BodyParserEngineJsonTest.PARSER_DATETZ));
+    assertTrue(testForm != null);
+    assertThat(testForm.firstName, equalTo(BodyParserEngineJsonTest.DATA_FIRSTNAME));
+    assertThat(testForm.lastName, equalTo(BodyParserEngineJsonTest.DATA_LASTNAME));
+    assertThat(testForm.birthYear, CoreMatchers.equalTo(BodyParserEngineJsonTest.DATA_BIRTHYEAR));
+    assertTrue(testForm.lastSeen != null);
+    assertTrue(testForm.lastSeen.compareTo(cal) == 0);
+}

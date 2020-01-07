@@ -1,0 +1,28 @@
+@Test
+public void testGetWithContextAndResult() {
+    when(ninjaProperties.getStringArray(NinjaConstant.applicationLanguages)).thenReturn(new String[] { "en", "de", "fr-FR" });
+    Lang lang = new LangImpl(ninjaProperties);
+    Messages messages = new MessagesImpl(ninjaProperties, lang);
+    result = Results.ok();
+    // test with context Accept Header
+    when(context.getAcceptLanguage()).thenReturn("en-US");
+    assertEquals("english", messages.get("language", context, Optional.of(result)).get());
+    when(context.getAcceptLanguage()).thenReturn("en-CA");
+    assertEquals("english", messages.get("language", context, Optional.of(result)).get());
+    when(context.getAcceptLanguage()).thenReturn("en-UK");
+    assertEquals("english", messages.get("language", context, Optional.of(result)).get());
+    // test that result overwrites context AcceptHeader
+    lang.setLanguage("de", result);
+    assertEquals("deutsch", messages.get("language", context, Optional.of(result)).get());
+    result = Results.ok();
+    lang.setLanguage("de-DE", result);
+    assertEquals("deutsch", messages.get("language", context, Optional.of(result)).get());
+    // that forced language from context works with empty result
+    result = Results.ok();
+    when(context.getCookie(Mockito.anyString())).thenReturn(Cookie.builder("name", "fr-FR").build());
+    assertEquals("français", messages.get("language", context, Optional.of(result)).get());
+    // and the result overwrites it again...
+    result = Results.ok();
+    lang.setLanguage("de-DE", result);
+    assertEquals("deutsch", messages.get("language", context, Optional.of(result)).get());
+}

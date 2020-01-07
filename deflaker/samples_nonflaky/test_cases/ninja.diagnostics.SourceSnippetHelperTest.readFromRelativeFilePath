@@ -1,0 +1,37 @@
+@Test
+public void readFromRelativeFilePath() throws Exception {
+    SourceSnippet snippet;
+    snippet = SourceSnippetHelper.readFromRelativeFilePath(baseDir.toFile(), relativeSourcePath.toString(), 1, 10);
+    URI expectedSourceLocation = baseDir.resolve(relativeSourcePath).toUri();
+    Assert.assertEquals(expectedSourceLocation, snippet.getSourceLocation());
+    Assert.assertEquals(3, snippet.getLines().size());
+    Assert.assertEquals("first line", snippet.getLines().get(0));
+    Assert.assertEquals("second line", snippet.getLines().get(1));
+    Assert.assertEquals("third line", snippet.getLines().get(2));
+    Assert.assertEquals(1, snippet.getLineNumberFrom());
+    Assert.assertEquals(3, snippet.getLineNumberTo());
+    snippet = SourceSnippetHelper.readFromRelativeFilePath(baseDir.toFile(), relativeSourcePath.toString(), 1, 1);
+    Assert.assertEquals(expectedSourceLocation, snippet.getSourceLocation());
+    Assert.assertEquals(1, snippet.getLines().size());
+    Assert.assertEquals("first line", snippet.getLines().get(0));
+    Assert.assertEquals(1, snippet.getLineNumberFrom());
+    Assert.assertEquals(1, snippet.getLineNumberTo());
+    // graceful w/ bad from/to requested?
+    snippet = SourceSnippetHelper.readFromRelativeFilePath(baseDir.toFile(), relativeSourcePath.toString(), -1, 1);
+    Assert.assertEquals(expectedSourceLocation, snippet.getSourceLocation());
+    Assert.assertEquals(3, snippet.getLines().size());
+    Assert.assertEquals("first line", snippet.getLines().get(0));
+    Assert.assertEquals("second line", snippet.getLines().get(1));
+    Assert.assertEquals("third line", snippet.getLines().get(2));
+    Assert.assertEquals(1, snippet.getLineNumberFrom());
+    Assert.assertEquals(3, snippet.getLineNumberTo());
+    // graceful w/ bad from/to requested?
+    snippet = SourceSnippetHelper.readFromRelativeFilePath(baseDir.toFile(), relativeSourcePath.toString(), -10, -2);
+    Assert.assertEquals(expectedSourceLocation, snippet.getSourceLocation());
+    Assert.assertEquals(3, snippet.getLines().size());
+    Assert.assertEquals("first line", snippet.getLines().get(0));
+    Assert.assertEquals("second line", snippet.getLines().get(1));
+    Assert.assertEquals("third line", snippet.getLines().get(2));
+    Assert.assertEquals(1, snippet.getLineNumberFrom());
+    Assert.assertEquals(3, snippet.getLineNumberTo());
+}

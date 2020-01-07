@@ -1,0 +1,26 @@
+@Test
+public void testXmlBodyWithMissingVariables() {
+    final String xmlDocument = String.format("<form><firstName>%s</firstName><lastName>%s</lastName></form>", BodyParserEngineXmlTest.DATA_FIRSTNAME, BodyParserEngineXmlTest.DATA_LASTNAME);
+    final InputStream is = new ByteArrayInputStream(xmlDocument.getBytes());
+    final XmlMapper xmlObjMapper = new XmlMapper();
+    final BodyParserEngineXml bodyParserEngineXml = new BodyParserEngineXml(xmlObjMapper);
+    SimpleTestForm testForm = null;
+    try {
+        Mockito.when(context.getInputStream()).thenReturn(is);
+    } catch (IOException ignore) {
+    }
+    try {
+        testForm = bodyParserEngineXml.invoke(context, SimpleTestForm.class);
+    } catch (BadRequestException ignore) {
+    } finally {
+        try {
+            is.close();
+        } catch (IOException ignore) {
+        }
+    }
+    assertTrue(testForm != null);
+    assertThat(testForm.firstName, equalTo(BodyParserEngineXmlTest.DATA_FIRSTNAME));
+    assertThat(testForm.lastName, equalTo(BodyParserEngineXmlTest.DATA_LASTNAME));
+    assertTrue(testForm.birthYear == null);
+    assertTrue(testForm.lastSeen == null);
+}

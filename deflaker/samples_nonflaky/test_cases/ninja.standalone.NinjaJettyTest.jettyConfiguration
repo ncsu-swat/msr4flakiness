@@ -1,0 +1,19 @@
+@Test
+public void jettyConfiguration() throws Exception {
+    // use test resource of "jetty.xml" but we need to swap into a new
+    // random port and then write the file back out
+    String jettyConfiguration = createJettyConfiguration("jetty.xml", RANDOM_PORT);
+    NinjaJetty standalone = new NinjaJetty().externalConfigurationPath("conf/jetty.com.example.conf").jettyConfiguration(jettyConfiguration);
+    try {
+        standalone.start();
+        // port won't be correct b/c actually configured via jetty file
+        assertThat(standalone.ninjaServletListener, is(not(nullValue())));
+        assertThat(standalone.contextHandler.isAvailable(), is(true));
+        assertThat(standalone.contextHandler.isStarted(), is(true));
+        assertThat(standalone.jetty.isStarted(), is(true));
+        String page = get("http://localhost:" + RANDOM_PORT + "/home");
+        assertThat(page, containsString("Hello World!"));
+    } finally {
+        standalone.shutdown();
+    }
+}

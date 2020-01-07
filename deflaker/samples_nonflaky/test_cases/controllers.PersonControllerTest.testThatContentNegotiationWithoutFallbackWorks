@@ -1,0 +1,17 @@
+@Test
+public void testThatContentNegotiationWithoutFallbackWorks() throws Exception {
+    Map<String, String> headers = Maps.newHashMap();
+    headers.put("Accept", "text/html");
+    String response = ninjaTestBrowser.makeRequest(getServerAddress() + "api/person", headers);
+    assertThat(response, equalTo("Person is: zeeess name - and some utf8 =&gt; öäü"));
+    headers.put("Accept", "application/json");
+    response = ninjaTestBrowser.makeRequest(getServerAddress() + "api/person", headers);
+    assertThat(response, equalTo("{\"name\":\"zeeess name - and some utf8 => öäü\"}"));
+    headers.put("Accept", "application/xml");
+    response = ninjaTestBrowser.makeRequest(getServerAddress() + "api/person", headers);
+    assertThat(response, equalTo("<Person><name>zeeess name - and some utf8 => öäü</name></Person>"));
+    // not supported => expecting error result:
+    headers.put("Accept", "text/plain");
+    response = ninjaTestBrowser.makeRequest(getServerAddress() + "api/person", headers);
+    assertThat(response.contains("Oops. That&#39;s a bad request and all we know."), equalTo(true));
+}

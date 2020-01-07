@@ -1,0 +1,23 @@
+@Test
+public void testInvalidXmlBadCloseBody() {
+    final String xmlDocument = String.format("<form><firstName>%s</firstName><lastName>%s</lastName><birthYear>%d</birthYear><lastSeen>%s</lastSeen></>", BodyParserEngineXmlTest.DATA_FIRSTNAME, BodyParserEngineXmlTest.DATA_LASTNAME, BodyParserEngineXmlTest.DATA_BIRTHYEAR, BodyParserEngineXmlTest.DATA_LASTSEEN);
+    final InputStream is = new ByteArrayInputStream(xmlDocument.getBytes());
+    final XmlMapper xmlObjMapper = new XmlMapper();
+    final BodyParserEngineXml bodyParserEngineXml = new BodyParserEngineXml(xmlObjMapper);
+    boolean badRequestThrown = false;
+    try {
+        Mockito.when(context.getInputStream()).thenReturn(is);
+    } catch (IOException ignore) {
+    }
+    try {
+        bodyParserEngineXml.invoke(context, SimpleTestForm.class);
+    } catch (BadRequestException ignore) {
+        badRequestThrown = true;
+    } finally {
+        try {
+            is.close();
+        } catch (IOException ignore) {
+        }
+    }
+    assertTrue(badRequestThrown);
+}

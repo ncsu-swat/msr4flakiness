@@ -1,0 +1,27 @@
+@Test
+public void testIsModified() {
+    HttpCacheToolkit httpCacheToolkit = new HttpCacheToolkitImpl(ninjaProperties);
+    // test etag support:
+    when(context.getHeader(HttpHeaderConstants.IF_NONE_MATCH)).thenReturn("etag_xyz");
+    // same etag => not modified
+    assertFalse(httpCacheToolkit.isModified(Optional.of("etag_xyz"), Optional.of(0L), context));
+    // new etag => modified
+    assertTrue(httpCacheToolkit.isModified(Optional.of("etag_xyz_modified"), Optional.of(0L), context));
+    // remove etag to test modified timestamp caching:
+    when(context.getHeader(HttpHeaderConstants.IF_NONE_MATCH)).thenReturn(null);
+    // => no if modified since request => null
+    when(context.getHeader(HttpHeaderConstants.IF_MODIFIED_SINCE)).thenReturn(null);
+    assertTrue(httpCacheToolkit.isModified(Optional.of("etag_xyz_modified"), Optional.of(0L), context));
+    // => older timestamp => modified
+    when(context.getHeader(HttpHeaderConstants.IF_MODIFIED_SINCE)).thenReturn("Thu, 01 Jan 1970 00:00:00 GMT");
+    assertTrue(httpCacheToolkit.isModified(Optional.of("etag_xyz_modified"), Optional.of(1000L), context));
+    // => same timestamp => not modified
+    when(context.getHeader(HttpHeaderConstants.IF_MODIFIED_SINCE)).thenReturn("Thu, 01 Jan 1970 00:00:00 GMT");
+    assertFalse(httpCacheToolkit.isModified(Optional.of("etag_xyz_modified"), Optional.of(0L), context));
+    // => newer timestamp => not modified
+    when(context.getHeader(HttpHeaderConstants.IF_MODIFIED_SINCE)).thenReturn("Thu, 01 Jan 1971 00:00:00 GMT");
+    assertFalse(httpCacheToolkit.isModified(Optional.of("etag_xyz_modified"), Optional.of(0L), context));
+    // => strange timestamp => modified
+    when(context.getHeader(HttpHeaderConstants.IF_MODIFIED_SINCE)).thenReturn("STRANGE_TIMESTAMP");
+    assertTrue(httpCacheToolkit.isModified(Optional.of("etag_xyz_modified"), Optional.of(0L), context));
+}

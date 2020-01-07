@@ -1,0 +1,14 @@
+@Test
+public void missingLanguageThrowsInjectorException() throws Exception {
+    // bad configuration file will throw exception when creating NinjaPropertiesImpl
+    // that exception occurs in NinjaBootstrap during injector creation
+    NinjaJetty standalone = new NinjaJetty().externalConfigurationPath("conf/jetty.missinglang.conf").port(RANDOM_PORT);
+    try {
+        standalone.start();
+        fail("start() should have thrown exception");
+    } catch (CreationException e) {
+        assertThat(e.getMessage(), containsString("not retrieve application languages from ninjaProperties"));
+    } finally {
+        standalone.shutdown();
+    }
+}

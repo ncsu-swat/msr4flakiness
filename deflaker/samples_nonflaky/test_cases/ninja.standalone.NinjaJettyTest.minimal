@@ -1,0 +1,22 @@
+@Test
+public void minimal() throws Exception {
+    NinjaJetty standalone = new NinjaJetty().externalConfigurationPath("conf/jetty.minimal.conf").port(RANDOM_PORT);
+    try {
+        assertThat(standalone.getPort(), is(RANDOM_PORT));
+        assertThat(standalone.getHost(), is(nullValue()));
+        assertThat(standalone.getContextPath(), is(nullValue()));
+        assertThat(standalone.getNinjaMode(), is(NinjaMode.prod));
+        standalone.start();
+        assertThat(standalone.getServerUrls().get(0), is("http://localhost:" + RANDOM_PORT));
+        assertThat(standalone.contextHandler, is(not(nullValue())));
+        assertNotNull(standalone.ninjaServletListener);
+        assertThat(standalone.contextHandler.isAvailable(), is(true));
+        assertThat(standalone.contextHandler.isStarted(), is(true));
+        assertThat(standalone.jetty.isStarted(), is(true));
+        standalone.shutdown();
+        assertThat(standalone.contextHandler.isStopped(), is(true));
+        assertThat(standalone.jetty.isStopped(), is(true));
+    } finally {
+        standalone.shutdown();
+    }
+}

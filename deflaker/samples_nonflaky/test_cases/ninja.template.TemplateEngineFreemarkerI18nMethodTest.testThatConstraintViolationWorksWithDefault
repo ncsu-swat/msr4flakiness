@@ -1,0 +1,11 @@
+@Test
+public void testThatConstraintViolationWorksWithDefault() throws Exception {
+    Optional<Result> resultOptional = Optional.of(result);
+    Mockito.when(messages.get(IsInteger.KEY, context, resultOptional)).thenReturn(Optional.empty());
+    ConstraintViolation violation = new ConstraintViolation(IsInteger.KEY, "theField", IsInteger.MESSAGE);
+    List args = new ArrayList();
+    args.add(new StringModel(violation, new BeansWrapper()));
+    TemplateModel returnValue = templateEngineFreemarkerI18nMethod.exec(args);
+    assertThat(((SimpleScalar) returnValue).getAsString(), CoreMatchers.equalTo("theField must be an integer"));
+    Mockito.verify(mockAppender, Mockito.never()).doAppend(Matchers.anyObject());
+}

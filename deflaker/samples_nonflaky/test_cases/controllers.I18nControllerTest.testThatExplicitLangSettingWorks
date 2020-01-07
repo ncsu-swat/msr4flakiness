@@ -1,0 +1,23 @@
+@Test
+public void testThatExplicitLangSettingWorks() {
+    // 1) test that overriding of accept-language header works
+    Map<String, String> headers = Maps.newHashMap();
+    headers.put("Accept-Language", "de-DE");
+    String result = ninjaTestBrowser.makeRequest(getServerAddress() + "/i18n/en", headers);
+    assertTrue(result.contains(TEXT_EN));
+    // 2) test that fallback is accept-language header
+    headers = Maps.newHashMap();
+    headers.put("Accept-Language", "de-DE");
+    result = ninjaTestBrowser.makeRequest(getServerAddress() + "/i18n/tk", headers);
+    assertTrue(result.contains(TEXT_EN));
+    // 3) test when no accept-lanugage is present => fallback should be
+    // language on the root.
+    headers = Maps.newHashMap();
+    result = ninjaTestBrowser.makeRequest(getServerAddress() + "/i18n/tk", headers);
+    assertTrue(result.contains(TEXT_EN));
+    // 4) normal operation
+    headers = Maps.newHashMap();
+    headers.put("Accept-Language", "de-DE");
+    result = ninjaTestBrowser.makeRequest(getServerAddress() + "/i18n/de", headers);
+    assertTrue(result.contains(TEXT_DE));
+}

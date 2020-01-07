@@ -1,0 +1,20 @@
+@Test
+public void testRenderRaw() throws Exception {
+    String stringToRender = "{\"user\" : \"john@woo.com\"}";
+    // Construct a new result via Results.
+    Result result = Results.json().renderRaw(stringToRender);
+    // Setup some stuff to catch the output that gets written to the
+    // output stream.
+    Writer writer = new StringWriter();
+    when(context.finalizeHeaders(result)).thenReturn(responseStreams);
+    when(responseStreams.getWriter()).thenReturn(writer);
+    Renderable renderable = (Renderable) result.getRenderable();
+    // Now issue a "render":
+    renderable.render(context, result);
+    // make sure we called the finalizeHeaders
+    verify(context).finalizeHeaders(result);
+    // make sure we did render the string to the OutputStream.
+    assertEquals(writer.toString(), stringToRender);
+    // also make sure the content type is set correctly.
+    assertEquals(Result.APPLICATION_JSON, result.getContentType());
+}
