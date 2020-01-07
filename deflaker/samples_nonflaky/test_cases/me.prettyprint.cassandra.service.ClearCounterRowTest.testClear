@@ -1,0 +1,24 @@
+@Test
+public void testClear() {
+    Mutator<String> mutator = createMutator(keyspace, ss);
+    for (int i = 1; i <= 10; i++) {
+        mutator.addCounter(key, cf, createCounterColumn("" + i, i));
+    }
+    mutator.execute();
+    SliceCounterQuery query = HFactory.createCounterSliceQuery(keyspace, ss, ss);
+    query.setColumnFamily(cf);
+    query.setKey(key);
+    SliceCounterIterator<String, String> iterator = new SliceCounterIterator<String, String>(query, null, (String) null, false, 10);
+    while (iterator.hasNext()) {
+        HCounterColumn<String> column = iterator.next();
+        long expected = Long.parseLong(column.getName());
+        assertEquals(expected, (long) column.getValue());
+    }
+    new ClearCounterRow(keyspace, ss, ss).setColumnFamily(cf).setRowKey(key).clear();
+    iterator = new SliceCounterIterator<String, String>(query, null, (String) null, false, 10);
+    while (iterator.hasNext()) {
+        HCounterColumn<String> column = iterator.next();
+        long expected = 0;
+        assertEquals(expected, (long) column.getValue());
+    }
+}

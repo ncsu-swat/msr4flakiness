@@ -1,0 +1,24 @@
+@Test
+public void testNonExistingKeyspaceWithHostAutoDiscover() {
+    hThriftClient.open();
+    // this keyspace won't exist
+    String ksname = "test_ks_2_" + Thread.currentThread().getName() + Thread.currentThread().getId();
+    Exception caughtException = null;
+    try {
+        hThriftClient.getCassandra(ksname);
+    } catch (Exception e) {
+        caughtException = e;
+    }
+    assertTrue("if you try to access a non-existent ks, hclient should throw exception", (caughtException != null) && (caughtException instanceof HInvalidRequestException));
+    // now create the ks
+    KeyspaceDefinition ksdef = HFactory.createKeyspaceDefinition(ksname);
+    CassandraHostConfigurator cassandraHostConfigurator = new CassandraHostConfigurator("127.0.0.1");
+    cassandraHostConfigurator.setPort(9170);
+    cassandraHostConfigurator.setRunAutoDiscoveryAtStartup(true);
+    cassandraHostConfigurator.setAutoDiscoverHosts(true);
+    Cluster cluster = HFactory.getOrCreateCluster(clusterName, cassandraHostConfigurator);
+    cluster.addKeyspace(ksdef);
+    // now it should work
+    hThriftClient.getCassandra(ksname);
+    assertTrue(hThriftClient.isOpen());
+}

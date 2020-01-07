@@ -1,0 +1,35 @@
+@Test
+public void testStringGetSlice() {
+    Mutator<String> mutator = createMutator(keyspace, ss);
+    DynamicComposite composite = (DynamicComposite) new DynamicComposite().addComponent("a", ss).addComponent("ba", ss).addComponent("ca", ss).addComponent("da", ss);
+    mutator.addInsertion(rowKey, columnFamily, HFactory.createColumn(composite, composite.toString(), ds, ss));
+    composite = (DynamicComposite) new DynamicComposite().addComponent("a", ss).addComponent("bb", ss).addComponent("cb", ss).addComponent("db", ss);
+    mutator.addInsertion(rowKey, columnFamily, HFactory.createColumn(composite, composite.toString(), ds, ss));
+    composite = (DynamicComposite) new DynamicComposite().addComponent("b", ss).addComponent("ba", ss).addComponent("ca", ss).addComponent("da", ss);
+    mutator.addInsertion(rowKey, columnFamily, HFactory.createColumn(composite, composite.toString(), ds, ss));
+    composite = (DynamicComposite) new DynamicComposite().addComponent("b", ss).addComponent("bb", ss).addComponent("cb", ss).addComponent("db", ss);
+    mutator.addInsertion(rowKey, columnFamily, HFactory.createColumn(composite, composite.toString(), ds, ss));
+    mutator.execute();
+    String compType = ss.getComparatorType().getTypeName();
+    System.out.println("LESS_THAN_EQUAL");
+    DynamicComposite end = (DynamicComposite) new DynamicComposite().addComponent("b", ss, compType).addComponent("ba", ss).addComponent("ca", ss).addComponent("da", ss, compType, // s@a:s@ba:s@ca:s@da thru s@a:s@bb:s@cb:s@db
+    ComponentEquality.LESS_THAN_EQUAL);
+    ColumnSliceIterator<String, DynamicComposite, String> iterator = getIterator(rowKey, null, end);
+    while (iterator.hasNext()) {
+        System.out.println(iterator.next().getName());
+    }
+    System.out.println("EQUAL");
+    end = (DynamicComposite) new DynamicComposite().addComponent("b", ss, compType).addComponent("ba", ss).addComponent("ca", ss).addComponent("da", ss, compType, // s@a:s@ba:s@ca:s@da thru s@b:s@ba:s@ca:s@da
+    ComponentEquality.EQUAL);
+    iterator = getIterator(rowKey, null, end);
+    while (iterator.hasNext()) {
+        System.out.println(iterator.next().getName());
+    }
+    System.out.println("GREATER_THAN_EQUAL");
+    end = (DynamicComposite) new DynamicComposite().addComponent("b", ss, compType).addComponent("bb", ss, compType, // s@a:s@ba:s@ca:s@da thru s@b:s@bb:s@cb:s@db
+    ComponentEquality.GREATER_THAN_EQUAL);
+    iterator = getIterator(rowKey, null, end);
+    while (iterator.hasNext()) {
+        System.out.println(iterator.next().getName());
+    }
+}
