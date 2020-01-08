@@ -1,0 +1,13 @@
+@Test
+public void redirectsDoNotIncludeTooManyAuthHeaders() throws Exception {
+    server2.enqueue(new MockResponse().setBody("Page 2"));
+    server.enqueue(new MockResponse().setResponseCode(401));
+    server.enqueue(new MockResponse().setResponseCode(302).addHeader("Location: " + server2.url("/b")));
+    client = client.newBuilder().authenticator(new RecordingOkAuthenticator(Credentials.basic("jesse", "secret"), null)).build();
+    Request request = new Request.Builder().url(server.url("/a")).build();
+    Response response = client.newCall(request).execute();
+    assertThat(response.body().string()).isEqualTo("Page 2");
+    RecordedRequest redirectRequest = server2.takeRequest();
+    assertThat(redirectRequest.getHeader("Authorization")).isNull();
+    assertThat(redirectRequest.getPath()).isEqualTo("/b");
+}

@@ -1,0 +1,36 @@
+@Test
+public void requestHeaders() throws Exception {
+    server.enqueue(new MockResponse());
+    Request request = new Request.Builder().url(server.url("/")).addHeader("D", "e").addHeader("D", "f").build();
+    assertThat(request.header("D")).isEqualTo("f");
+    assertThat(request.header("d")).isEqualTo("f");
+    Headers requestHeaders = request.headers();
+    assertThat(new LinkedHashSet<>(requestHeaders.values("D"))).isEqualTo(newSet("e", "f"));
+    assertThat(new LinkedHashSet<>(requestHeaders.values("d"))).isEqualTo(newSet("e", "f"));
+    try {
+        new Request.Builder().header(null, "j");
+        fail();
+    } catch (IllegalArgumentException expected) {
+    }
+    try {
+        new Request.Builder().addHeader(null, "k");
+        fail();
+    } catch (IllegalArgumentException expected) {
+    }
+    try {
+        new Request.Builder().addHeader("NullValue", null);
+        fail();
+    } catch (IllegalArgumentException expected) {
+    }
+    try {
+        new Request.Builder().addHeader("AnotherNullValue", null);
+        fail();
+    } catch (IllegalArgumentException expected) {
+    }
+    Response response = getResponse(request);
+    response.close();
+    RecordedRequest recordedRequest = server.takeRequest();
+    assertThat(recordedRequest.getHeaders().values("D")).isEqualTo(asList("e", "f"));
+    assertThat(recordedRequest.getHeader("G")).isNull();
+    assertThat(recordedRequest.getHeader("null")).isNull();
+}

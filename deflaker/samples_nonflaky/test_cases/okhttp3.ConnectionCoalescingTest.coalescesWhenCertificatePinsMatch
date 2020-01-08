@@ -1,0 +1,14 @@
+/**
+ * Can still coalesce when pinning is used if pins match.
+ */
+@Test
+public void coalescesWhenCertificatePinsMatch() throws Exception {
+    CertificatePinner pinner = new CertificatePinner.Builder().add("san.com", CertificatePinner.pin(certificate.certificate())).build();
+    client = client.newBuilder().certificatePinner(pinner).build();
+    server.enqueue(new MockResponse().setResponseCode(200));
+    server.enqueue(new MockResponse().setResponseCode(200));
+    assert200Http2Response(execute(url), server.getHostName());
+    HttpUrl sanUrl = url.newBuilder().host("san.com").build();
+    assert200Http2Response(execute(sanUrl), "san.com");
+    assertThat(client.connectionPool().connectionCount()).isEqualTo(1);
+}

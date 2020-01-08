@@ -1,0 +1,16 @@
+@Test
+public void rangeHeaderPreventsAutomaticGzip() throws Exception {
+    Buffer gzippedBody = gzip("abcabcabc");
+    // Enqueue a gzipped response. Our request isn't expecting it, but that's okay.
+    server.enqueue(new MockResponse().setResponseCode(HttpURLConnection.HTTP_PARTIAL).setBody(gzippedBody).addHeader("Content-Encoding: gzip").addHeader("Content-Range: bytes 0-" + (gzippedBody.size() - 1)));
+    // Make a range request.
+    Request request = new Request.Builder().url(server.url("/")).header("Range", "bytes=0-").build();
+    Call call = client.newCall(request);
+    // The response is not decompressed.
+    Response response = call.execute();
+    assertThat(response.header("Content-Encoding")).isEqualTo("gzip");
+    assertThat(response.body().source().readByteString()).isEqualTo(gzippedBody.snapshot());
+    // The request did not offer gzip support.
+    RecordedRequest recordedRequest = server.takeRequest();
+    assertThat(recordedRequest.getHeader("Accept-Encoding")).isNull();
+}

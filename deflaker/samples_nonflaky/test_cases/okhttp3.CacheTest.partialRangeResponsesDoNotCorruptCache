@@ -1,0 +1,12 @@
+@Test
+public void partialRangeResponsesDoNotCorruptCache() throws Exception {
+    // 1. Request a range.
+    // 2. Request a full document, expecting a cache miss.
+    server.enqueue(new MockResponse().setBody("AA").setResponseCode(HttpURLConnection.HTTP_PARTIAL).addHeader("Expires: " + formatDate(1, TimeUnit.HOURS)).addHeader("Content-Range: bytes 1000-1001/2000"));
+    server.enqueue(new MockResponse().setBody("BB"));
+    HttpUrl url = server.url("/");
+    Request request = new Request.Builder().url(url).header("Range", "bytes=1000-1001").build();
+    Response range = client.newCall(request).execute();
+    assertThat(range.body().string()).isEqualTo("AA");
+    assertThat(get(url).body().string()).isEqualTo("BB");
+}

@@ -1,0 +1,25 @@
+@Test
+public void redirectToCachedResult() throws Exception {
+    server.enqueue(new MockResponse().addHeader("Cache-Control: max-age=60").setBody("ABC"));
+    server.enqueue(new MockResponse().setResponseCode(HttpURLConnection.HTTP_MOVED_PERM).addHeader("Location: /foo"));
+    server.enqueue(new MockResponse().setBody("DEF"));
+    Request request1 = new Request.Builder().url(server.url("/foo")).build();
+    Response response1 = client.newCall(request1).execute();
+    assertThat(response1.body().string()).isEqualTo("ABC");
+    RecordedRequest recordedRequest1 = server.takeRequest();
+    assertThat(recordedRequest1.getRequestLine()).isEqualTo("GET /foo HTTP/1.1");
+    assertThat(recordedRequest1.getSequenceNumber()).isEqualTo(0);
+    Request request2 = new Request.Builder().url(server.url("/bar")).build();
+    Response response2 = client.newCall(request2).execute();
+    assertThat(response2.body().string()).isEqualTo("ABC");
+    RecordedRequest recordedRequest2 = server.takeRequest();
+    assertThat(recordedRequest2.getRequestLine()).isEqualTo("GET /bar HTTP/1.1");
+    assertThat(recordedRequest2.getSequenceNumber()).isEqualTo(1);
+    // an unrelated request should reuse the pooled connection
+    Request request3 = new Request.Builder().url(server.url("/baz")).build();
+    Response response3 = client.newCall(request3).execute();
+    assertThat(response3.body().string()).isEqualTo("DEF");
+    RecordedRequest recordedRequest3 = server.takeRequest();
+    assertThat(recordedRequest3.getRequestLine()).isEqualTo("GET /baz HTTP/1.1");
+    assertThat(recordedRequest3.getSequenceNumber()).isEqualTo(2);
+}

@@ -1,0 +1,43 @@
+/**
+ * Oldest entries are evicted to support newer ones.
+ */
+@Test
+public void writerEviction() throws IOException {
+    List<Header> headerBlock = headerEntries("custom-foo", "custom-header", "custom-bar", "custom-header", "custom-baz", "custom-header");
+    // Literal indexed
+    bytesIn.writeByte(0x40);
+    // Literal name (len = 10)
+    bytesIn.writeByte(0x0a);
+    bytesIn.writeUtf8("custom-foo");
+    // Literal value (len = 13)
+    bytesIn.writeByte(0x0d);
+    bytesIn.writeUtf8("custom-header");
+    // Literal indexed
+    bytesIn.writeByte(0x40);
+    // Literal name (len = 10)
+    bytesIn.writeByte(0x0a);
+    bytesIn.writeUtf8("custom-bar");
+    // Literal value (len = 13)
+    bytesIn.writeByte(0x0d);
+    bytesIn.writeUtf8("custom-header");
+    // Literal indexed
+    bytesIn.writeByte(0x40);
+    // Literal name (len = 10)
+    bytesIn.writeByte(0x0a);
+    bytesIn.writeUtf8("custom-baz");
+    // Literal value (len = 13)
+    bytesIn.writeByte(0x0d);
+    bytesIn.writeUtf8("custom-header");
+    // Set to only support 110 bytes (enough for 2 headers).
+    // Use a new Writer because we don't support change the dynamic table
+    // size after Writer constructed.
+    Hpack.Writer writer = new Hpack.Writer(110, false, bytesOut);
+    writer.writeHeaders(headerBlock);
+    assertThat(bytesOut).isEqualTo(bytesIn);
+    assertThat(writer.headerCount).isEqualTo(2);
+    int tableLength = writer.dynamicTable.length;
+    Header entry = writer.dynamicTable[tableLength - 1];
+    checkEntry(entry, "custom-bar", "custom-header", 55);
+    entry = writer.dynamicTable[tableLength - 2];
+    checkEntry(entry, "custom-baz", "custom-header", 55);
+}

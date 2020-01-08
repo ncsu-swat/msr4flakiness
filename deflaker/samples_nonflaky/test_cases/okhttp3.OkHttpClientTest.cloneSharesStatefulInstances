@@ -1,0 +1,20 @@
+/**
+ * When copying the client, stateful things like the connection pool are shared across all
+ * clients.
+ */
+@Test
+public void cloneSharesStatefulInstances() throws Exception {
+    OkHttpClient client = clientTestRule.newClient();
+    // Values should be non-null.
+    OkHttpClient a = client.newBuilder().build();
+    assertThat(a.dispatcher()).isNotNull();
+    assertThat(a.connectionPool()).isNotNull();
+    assertThat(a.sslSocketFactory()).isNotNull();
+    assertThat(a.x509TrustManager()).isNotNull();
+    // Multiple clients share the instances.
+    OkHttpClient b = client.newBuilder().build();
+    assertThat(b.dispatcher()).isSameAs(a.dispatcher());
+    assertThat(b.connectionPool()).isSameAs(a.connectionPool());
+    assertThat(b.sslSocketFactory()).isSameAs(a.sslSocketFactory());
+    assertThat(b.x509TrustManager()).isSameAs(a.x509TrustManager());
+}

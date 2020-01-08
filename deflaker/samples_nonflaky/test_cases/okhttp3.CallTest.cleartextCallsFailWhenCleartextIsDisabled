@@ -1,0 +1,13 @@
+@Test
+public void cleartextCallsFailWhenCleartextIsDisabled() throws Exception {
+    // Configure the client with only TLS configurations. No cleartext!
+    client = client.newBuilder().connectionSpecs(asList(ConnectionSpec.MODERN_TLS, ConnectionSpec.COMPATIBLE_TLS)).build();
+    server.enqueue(new MockResponse());
+    Request request = new Request.Builder().url(server.url("/")).build();
+    try {
+        client.newCall(request).execute();
+        fail();
+    } catch (UnknownServiceException expected) {
+        assertThat(expected.getMessage()).isEqualTo("CLEARTEXT communication not enabled for client");
+    }
+}

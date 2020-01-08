@@ -1,0 +1,11 @@
+@Test
+public void checkRemoteDNSResolve() throws Exception {
+    // This testcase will fail if the target is resolved locally instead of through the proxy.
+    server.enqueue(new MockResponse().setBody("abc"));
+    OkHttpClient client = clientTestRule.newClientBuilder().proxy(socksProxy.proxy()).build();
+    HttpUrl url = server.url("/").newBuilder().host(SocksProxy.HOSTNAME_THAT_ONLY_THE_PROXY_KNOWS).build();
+    Request request = new Request.Builder().url(url).build();
+    Response response1 = client.newCall(request).execute();
+    assertThat(response1.body().string()).isEqualTo("abc");
+    assertThat(socksProxy.connectionCount()).isEqualTo(1);
+}

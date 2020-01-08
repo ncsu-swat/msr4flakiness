@@ -1,0 +1,24 @@
+@Test
+public void evictionHonorsLruFromCurrentSession() throws Exception {
+    cache.close();
+    createNewCacheWithSize(10);
+    set("a", "a", "a");
+    set("b", "b", "b");
+    set("c", "c", "c");
+    set("d", "d", "d");
+    set("e", "e", "e");
+    // 'B' is now least recently used.
+    cache.get("b").close();
+    // Causing the size to grow to 12 should evict 'A'.
+    set("f", "f", "f");
+    // Causing the size to grow to 12 should evict 'C'.
+    set("g", "g", "g");
+    cache.flush();
+    assertThat(cache.size()).isEqualTo(10);
+    assertAbsent("a");
+    assertValue("b", "b", "b");
+    assertAbsent("c");
+    assertValue("d", "d", "d");
+    assertValue("e", "e", "e");
+    assertValue("f", "f", "f");
+}

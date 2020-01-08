@@ -1,0 +1,14 @@
+@Test
+public void redirectedOnHttps() throws Exception {
+    server.useHttps(handshakeCertificates.sslSocketFactory(), false);
+    server.enqueue(new MockResponse().setResponseCode(HttpURLConnection.HTTP_MOVED_TEMP).addHeader("Location: /foo").setBody("This page has moved!"));
+    server.enqueue(new MockResponse().setBody("This is the new location!"));
+    client = client.newBuilder().sslSocketFactory(handshakeCertificates.sslSocketFactory(), handshakeCertificates.trustManager()).hostnameVerifier(new RecordingHostnameVerifier()).build();
+    Response response = getResponse(newRequest("/"));
+    assertThat(readAscii(response.body().byteStream(), Integer.MAX_VALUE)).isEqualTo("This is the new location!");
+    RecordedRequest first = server.takeRequest();
+    assertThat(first.getRequestLine()).isEqualTo("GET / HTTP/1.1");
+    RecordedRequest retry = server.takeRequest();
+    assertThat(retry.getRequestLine()).isEqualTo("GET /foo HTTP/1.1");
+    assertThat(retry.getSequenceNumber()).overridingErrorMessage("Expected connection reuse").isEqualTo(1);
+}

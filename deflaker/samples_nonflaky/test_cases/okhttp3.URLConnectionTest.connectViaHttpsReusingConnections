@@ -1,0 +1,24 @@
+@Test
+public void connectViaHttpsReusingConnections() throws Exception {
+    connectViaHttpsReusingConnections(false);
+}
+private void connectViaHttpsReusingConnections(boolean rebuildClient) throws Exception {
+    server.useHttps(handshakeCertificates.sslSocketFactory(), false);
+    server.enqueue(new MockResponse().setBody("this response comes via HTTPS"));
+    server.enqueue(new MockResponse().setBody("another response via HTTPS"));
+    // The pool will only reuse sockets if the SSL socket factories are the same.
+    SSLSocketFactory clientSocketFactory = handshakeCertificates.sslSocketFactory();
+    RecordingHostnameVerifier hostnameVerifier = new RecordingHostnameVerifier();
+    CookieJar cookieJar = new JavaNetCookieJar(new CookieManager());
+    ConnectionPool connectionPool = new ConnectionPool();
+    client = new OkHttpClient.Builder().cache(cache).connectionPool(connectionPool).cookieJar(cookieJar).sslSocketFactory(clientSocketFactory, handshakeCertificates.trustManager()).hostnameVerifier(hostnameVerifier).build();
+    Response response1 = getResponse(newRequest("/"));
+    assertContent("this response comes via HTTPS", response1);
+    if (rebuildClient) {
+        client = new OkHttpClient.Builder().cache(cache).connectionPool(connectionPool).cookieJar(cookieJar).sslSocketFactory(clientSocketFactory, handshakeCertificates.trustManager()).hostnameVerifier(hostnameVerifier).build();
+    }
+    Response response2 = getResponse(newRequest("/"));
+    assertContent("another response via HTTPS", response2);
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(0);
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(1);
+}

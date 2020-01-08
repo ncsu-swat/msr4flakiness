@@ -1,0 +1,16 @@
+@Test
+public void rebuildJournalFailureAllowsRemovals() throws Exception {
+    while (taskFaker.isIdle()) {
+        set("a", "a", "a");
+        set("b", "b", "b");
+    }
+    // Cause the rebuild action to fail.
+    fileSystem.setFaultyRename(new File(cacheDir, DiskLruCache.JOURNAL_FILE_BACKUP), true);
+    taskFaker.runNextTask();
+    assertThat(cache.remove("a")).isTrue();
+    assertAbsent("a");
+    // Let the rebuild complete successfully.
+    fileSystem.setFaultyRename(new File(cacheDir, DiskLruCache.JOURNAL_FILE_BACKUP), false);
+    taskFaker.runNextTask();
+    assertJournalEquals("CLEAN b 1 1");
+}

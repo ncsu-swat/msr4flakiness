@@ -1,0 +1,19 @@
+@Test
+public void proxySelectorHttpWithConnectionReuse() throws IOException {
+    server.enqueue(new MockResponse().setBody("response 1"));
+    server.enqueue(new MockResponse().setResponseCode(407));
+    client = client.newBuilder().proxySelector(new ProxySelector() {
+
+        @Override
+        public List<Proxy> select(URI uri) {
+            return Collections.singletonList(server.toProxyAddress());
+        }
+
+        @Override
+        public void connectFailed(URI uri, SocketAddress socketAddress, IOException e) {
+        }
+    }).build();
+    HttpUrl url = HttpUrl.get("http://android.com/foo");
+    assertContent("response 1", getResponse(newRequest(url)));
+    assertThat(getResponse(newRequest(url)).code()).isEqualTo(407);
+}

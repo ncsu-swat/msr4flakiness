@@ -1,0 +1,12 @@
+@Test
+public void connectionCloseInRequest() throws Exception {
+    // Server doesn't honor the connection: close header!
+    server.enqueue(new MockResponse());
+    server.enqueue(new MockResponse());
+    Response a = getResponse(new Request.Builder().url(server.url("/")).header("Connection", "close").build());
+    assertThat(a.code()).isEqualTo(200);
+    Response b = getResponse(newRequest("/"));
+    assertThat(b.code()).isEqualTo(200);
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(0);
+    assertThat(server.takeRequest().getSequenceNumber()).overridingErrorMessage("When connection: close is used, each request should get its own connection").isEqualTo((long) 0);
+}

@@ -1,0 +1,18 @@
+@Test
+public void streamedBodyIsRetriedOnHttp2Shutdown() throws Exception {
+    platform.assumeHttp2Support();
+    enableProtocol(Protocol.HTTP_2);
+    server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_END).setBody("abc"));
+    server.enqueue(new MockResponse().setBody("def"));
+    // Send a separate request which will trigger a GOAWAY frame on the healthy connection.
+    Response response = getResponse(newRequest("/"));
+    assertContent("abc", response);
+    // Ensure the GOAWAY frame has time to be read and processed.
+    Thread.sleep(500);
+    assertContent("def", getResponse(new Request.Builder().url(server.url("/")).post(RequestBody.create("123", null)).build()));
+    RecordedRequest request1 = server.takeRequest();
+    assertThat(request1.getSequenceNumber()).isEqualTo(0);
+    RecordedRequest request2 = server.takeRequest();
+    assertThat(request2.getBody().readUtf8()).isEqualTo("123");
+    assertThat(request2.getSequenceNumber()).isEqualTo(0);
+}

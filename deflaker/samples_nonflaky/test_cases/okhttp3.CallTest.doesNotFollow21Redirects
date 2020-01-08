@@ -1,0 +1,12 @@
+@Test
+public void doesNotFollow21Redirects() throws Exception {
+    for (int i = 0; i < 21; i++) {
+        server.enqueue(new MockResponse().setResponseCode(301).addHeader("Location: /" + (i + 1)).setBody("Redirecting to /" + (i + 1)));
+    }
+    try {
+        client.newCall(new Request.Builder().url(server.url("/0")).build()).execute();
+        fail();
+    } catch (IOException expected) {
+        assertThat(expected.getMessage()).isEqualTo("Too many follow-up requests: 21");
+    }
+}

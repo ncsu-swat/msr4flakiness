@@ -1,0 +1,9 @@
+@Test
+public void redirectUsingNewConnectionEventSequence() throws IOException {
+    MockWebServer otherServer = new MockWebServer();
+    server.enqueue(new MockResponse().setResponseCode(HttpURLConnection.HTTP_MOVED_TEMP).addHeader("Location: " + otherServer.url("/foo")));
+    otherServer.enqueue(new MockResponse());
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).build());
+    call.execute();
+    assertThat(listener.recordedEventTypes()).containsExactly("CallStart", "ProxySelectStart", "ProxySelectEnd", "DnsStart", "DnsEnd", "ConnectStart", "ConnectEnd", "ConnectionAcquired", "RequestHeadersStart", "RequestHeadersEnd", "ResponseHeadersStart", "ResponseHeadersEnd", "ResponseBodyStart", "ResponseBodyEnd", "ConnectionReleased", "ProxySelectStart", "ProxySelectEnd", "DnsStart", "DnsEnd", "ConnectStart", "ConnectEnd", "ConnectionAcquired", "RequestHeadersStart", "RequestHeadersEnd", "ResponseHeadersStart", "ResponseHeadersEnd", "ResponseBodyStart", "ResponseBodyEnd", "ConnectionReleased", "CallEnd");
+}

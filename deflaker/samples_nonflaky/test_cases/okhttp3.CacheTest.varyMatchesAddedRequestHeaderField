@@ -1,0 +1,9 @@
+@Test
+public void varyMatchesAddedRequestHeaderField() throws Exception {
+    server.enqueue(new MockResponse().addHeader("Cache-Control: max-age=60").addHeader("Vary: Foo").setBody("A"));
+    server.enqueue(new MockResponse().setBody("B"));
+    assertThat(get(server.url("/")).body().string()).isEqualTo("A");
+    Request request = new Request.Builder().url(server.url("/")).header("Foo", "bar").build();
+    Response response = client.newCall(request).execute();
+    assertThat(response.body().string()).isEqualTo("B");
+}

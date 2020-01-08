@@ -1,0 +1,13 @@
+@Test
+public void failedCallEventSequence() {
+    server.enqueue(new MockResponse().setHeadersDelay(2, TimeUnit.SECONDS));
+    client = client.newBuilder().readTimeout(250, TimeUnit.MILLISECONDS).build();
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).build());
+    try {
+        call.execute();
+        fail();
+    } catch (IOException expected) {
+        assertThat(expected.getMessage()).isIn("timeout", "Read timed out");
+    }
+    assertThat(listener.recordedEventTypes()).containsExactly("CallStart", "ProxySelectStart", "ProxySelectEnd", "DnsStart", "DnsEnd", "ConnectStart", "ConnectEnd", "ConnectionAcquired", "RequestHeadersStart", "RequestHeadersEnd", "ResponseFailed", "ConnectionReleased", "CallFailed");
+}

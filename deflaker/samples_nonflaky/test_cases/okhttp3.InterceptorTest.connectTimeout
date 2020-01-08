@@ -1,0 +1,26 @@
+@Test
+public void connectTimeout() throws Exception {
+    Interceptor interceptor1 = chainA -> {
+        assertThat(chainA.connectTimeoutMillis()).isEqualTo(5000);
+        Interceptor.Chain chainB = chainA.withConnectTimeout(100, TimeUnit.MILLISECONDS);
+        assertThat(chainB.connectTimeoutMillis()).isEqualTo(100);
+        return chainB.proceed(chainA.request());
+    };
+    Interceptor interceptor2 = chain -> {
+        assertThat(chain.connectTimeoutMillis()).isEqualTo(100);
+        return chain.proceed(chain.request());
+    };
+    InetAddress localhost = InetAddress.getLoopbackAddress();
+    ServerSocket serverSocket = new ServerSocket(0, 1, localhost);
+    // Fill backlog queue with this request so subsequent requests will be blocked.
+    new Socket().connect(serverSocket.getLocalSocketAddress());
+    client = client.newBuilder().connectTimeout(5, TimeUnit.SECONDS).addInterceptor(interceptor1).addInterceptor(interceptor2).build();
+    Request request1 = new Request.Builder().url("http://" + serverSocket.getInetAddress().getCanonicalHostName() + ":" + serverSocket.getLocalPort()).build();
+    Call call = client.newCall(request1);
+    try {
+        call.execute();
+        fail();
+    } catch (SocketTimeoutException expected) {
+    }
+    serverSocket.close();
+}

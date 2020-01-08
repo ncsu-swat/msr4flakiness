@@ -1,0 +1,16 @@
+@Test
+public void networkInterceptorInvokedForConditionalGet() throws Exception {
+    server.enqueue(new MockResponse().addHeader("ETag: v1").setBody("A"));
+    server.enqueue(new MockResponse().setResponseCode(HttpURLConnection.HTTP_NOT_MODIFIED));
+    // Seed the cache.
+    HttpUrl url = server.url("/");
+    assertThat(get(url).body().string()).isEqualTo("A");
+    final AtomicReference<String> ifNoneMatch = new AtomicReference<>();
+    client = client.newBuilder().addNetworkInterceptor(chain -> {
+        ifNoneMatch.compareAndSet(null, chain.request().header("If-None-Match"));
+        return chain.proceed(chain.request());
+    }).build();
+    // Confirm the value is cached and intercepted.
+    assertThat(get(url).body().string()).isEqualTo("A");
+    assertThat(ifNoneMatch.get()).isEqualTo("v1");
+}

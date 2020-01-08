@@ -1,0 +1,37 @@
+@Test
+public void serverWritesTrailersWithData() throws Exception {
+    // We buffer some outbound data and headers and confirm that the END_STREAM flag comes with the
+    // headers (and not with the data).
+    // write the mocking script for the client
+    peer.setClient(true);
+    // Write the mocking script.
+    peer.sendFrame().settings(new Settings());
+    peer.sendFrame().headers(true, 3, headerEntries("client", "abc"));
+    // ACK
+    peer.acceptFrame();
+    // HEADERS STREAM 3
+    peer.acceptFrame();
+    // DATA STREAM 3 "abcde"
+    peer.acceptFrame();
+    // HEADERS STREAM 3
+    peer.acceptFrame();
+    peer.play();
+    // Play it back.
+    Http2Connection connection = connect(peer);
+    Http2Stream stream = connection.newStream(headerEntries("a", "android"), true);
+    stream.enqueueTrailers(Headers.of("foo", "bar"));
+    BufferedSink sink = Okio.buffer(stream.getSink());
+    sink.writeUtf8("abcdefghi");
+    sink.close();
+    // Verify the peer received what was expected.
+    InFrame headers1 = peer.takeFrame();
+    assertThat(headers1.type).isEqualTo(Http2.TYPE_HEADERS);
+    InFrame data1 = peer.takeFrame();
+    assertThat(data1.type).isEqualTo(Http2.TYPE_DATA);
+    assertThat(data1.streamId).isEqualTo(3);
+    assertArrayEquals("abcdefghi".getBytes(UTF_8), data1.data);
+    assertThat(data1.inFinished).isFalse();
+    InFrame headers2 = peer.takeFrame();
+    assertThat(headers2.type).isEqualTo(Http2.TYPE_HEADERS);
+    assertThat(headers2.inFinished).isTrue();
+}

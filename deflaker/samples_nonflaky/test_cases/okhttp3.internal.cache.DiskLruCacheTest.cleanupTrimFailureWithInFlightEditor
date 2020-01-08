@@ -1,0 +1,19 @@
+@Test
+public void cleanupTrimFailureWithInFlightEditor() throws Exception {
+    cache.setMaxSize(8);
+    taskFaker.runNextTask();
+    set("a", "aa", "aaa");
+    set("b", "bb", "bb");
+    DiskLruCache.Editor inFlightEditor = cache.edit("c");
+    // Cause the cache trim job to fail.
+    fileSystem.setFaultyDelete(new File(cacheDir, "a.0"), true);
+    taskFaker.runNextTask();
+    // The in-flight editor can still write after a trim failure.
+    setString(inFlightEditor, 0, "cc");
+    setString(inFlightEditor, 1, "cc");
+    inFlightEditor.commit();
+    // Confirm the committed values are present after a successful cache trim.
+    fileSystem.setFaultyDelete(new File(cacheDir, "a.0"), false);
+    taskFaker.runNextTask();
+    assertValue("c", "cc", "cc");
+}

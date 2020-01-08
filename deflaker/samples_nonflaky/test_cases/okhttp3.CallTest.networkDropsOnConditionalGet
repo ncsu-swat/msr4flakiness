@@ -1,0 +1,10 @@
+@Test
+public void networkDropsOnConditionalGet() throws IOException {
+    client = client.newBuilder().cache(cache).build();
+    // Seed the cache.
+    server.enqueue(new MockResponse().addHeader("ETag: v1").setBody("A"));
+    executeSynchronously("/").assertCode(200).assertBody("A");
+    // Attempt conditional cache validation and a DNS miss.
+    client = client.newBuilder().dns(new FakeDns()).build();
+    executeSynchronously("/").assertFailure(UnknownHostException.class);
+}

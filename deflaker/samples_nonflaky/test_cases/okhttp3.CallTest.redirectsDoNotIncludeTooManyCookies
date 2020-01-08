@@ -1,0 +1,19 @@
+@Test
+public void redirectsDoNotIncludeTooManyCookies() throws Exception {
+    server2.enqueue(new MockResponse().setBody("Page 2"));
+    server.enqueue(new MockResponse().setResponseCode(HttpURLConnection.HTTP_MOVED_TEMP).addHeader("Location: " + server2.url("/")));
+    CookieManager cookieManager = new CookieManager(null, ACCEPT_ORIGINAL_SERVER);
+    HttpCookie cookie = new HttpCookie("c", "cookie");
+    cookie.setDomain(server.getHostName());
+    cookie.setPath("/");
+    String portList = Integer.toString(server.getPort());
+    cookie.setPortlist(portList);
+    cookieManager.getCookieStore().add(server.url("/").uri(), cookie);
+    client = client.newBuilder().cookieJar(new JavaNetCookieJar(cookieManager)).build();
+    Response response = client.newCall(new Request.Builder().url(server.url("/page1")).build()).execute();
+    assertThat(response.body().string()).isEqualTo("Page 2");
+    RecordedRequest request1 = server.takeRequest();
+    assertThat(request1.getHeader("Cookie")).isEqualTo("c=cookie");
+    RecordedRequest request2 = server2.takeRequest();
+    assertThat(request2.getHeader("Cookie")).isNull();
+}

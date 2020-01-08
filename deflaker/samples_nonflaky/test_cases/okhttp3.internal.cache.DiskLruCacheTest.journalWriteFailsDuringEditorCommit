@@ -1,0 +1,25 @@
+/**
+ * We had a bug where the cache was left in an inconsistent state after a journal write failed.
+ * https://github.com/square/okhttp/issues/1211
+ */
+@Test
+public void journalWriteFailsDuringEditorCommit() throws Exception {
+    set("a", "a", "a");
+    set("b", "b", "b");
+    // Create an entry that fails to write to the journal during commit.
+    DiskLruCache.Editor editor = cache.edit("c");
+    setString(editor, 0, "c");
+    setString(editor, 1, "c");
+    fileSystem.setFaultyWrite(journalFile, true);
+    editor.commit();
+    // Once the journal has a failure, subsequent writes aren't permitted.
+    fileSystem.setFaultyWrite(journalFile, false);
+    assertThat(cache.edit("d")).isNull();
+    // Confirm that the fault didn't corrupt entries stored before the fault was introduced.
+    cache.close();
+    cache = new DiskLruCache(fileSystem, cacheDir, appVersion, 2, Integer.MAX_VALUE, taskRunner);
+    assertValue("a", "a", "a");
+    assertValue("b", "b", "b");
+    assertAbsent("c");
+    assertAbsent("d");
+}

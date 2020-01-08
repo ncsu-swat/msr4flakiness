@@ -1,0 +1,42 @@
+@Test
+public void reusedSinksGetIndependentTimeoutInstances() throws Exception {
+    server.enqueue(new MockResponse());
+    server.enqueue(new MockResponse());
+    // Call 1: set a deadline on the request body.
+    RequestBody requestBody1 = new RequestBody() {
+
+        @Override
+        public MediaType contentType() {
+            return MediaType.get("text/plain");
+        }
+
+        @Override
+        public void writeTo(BufferedSink sink) throws IOException {
+            sink.writeUtf8("abc");
+            sink.timeout().deadline(5, TimeUnit.SECONDS);
+        }
+    };
+    Request request1 = new Request.Builder().url(server.url("/")).method("POST", requestBody1).build();
+    Response response1 = client.newCall(request1).execute();
+    assertThat(response1.code()).isEqualTo(200);
+    // Call 2: check for the absence of a deadline on the request body.
+    RequestBody requestBody2 = new RequestBody() {
+
+        @Override
+        public MediaType contentType() {
+            return MediaType.get("text/plain");
+        }
+
+        @Override
+        public void writeTo(BufferedSink sink) throws IOException {
+            assertThat(sink.timeout().hasDeadline()).isFalse();
+            sink.writeUtf8("def");
+        }
+    };
+    Request request2 = new Request.Builder().url(server.url("/")).method("POST", requestBody2).build();
+    Response response2 = client.newCall(request2).execute();
+    assertThat(response2.code()).isEqualTo(200);
+    // Use sequence numbers to confirm the connection was pooled.
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(0);
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(1);
+}

@@ -1,0 +1,26 @@
+@Test
+public void readMultipleSetsOfResponseHeaders() throws Exception {
+    // write the mocking script
+    peer.sendFrame().settings(new Settings());
+    // ACK
+    peer.acceptFrame();
+    // SYN_STREAM
+    peer.acceptFrame();
+    peer.sendFrame().headers(false, 3, headerEntries("a", "android"));
+    // PING
+    peer.acceptFrame();
+    peer.sendFrame().headers(true, 3, headerEntries("c", "cola"));
+    // PONG
+    peer.sendFrame().ping(true, AWAIT_PING, 0);
+    peer.play();
+    // play it back
+    Http2Connection connection = connect(peer);
+    Http2Stream stream = connection.newStream(headerEntries("b", "banana"), true);
+    stream.getConnection().flush();
+    assertThat(stream.takeHeaders()).isEqualTo(Headers.of("a", "android"));
+    connection.writePingAndAwaitPong();
+    assertThat(stream.trailers()).isEqualTo(Headers.of("c", "cola"));
+    // verify the peer received what was expected
+    assertThat(peer.takeFrame().type).isEqualTo(Http2.TYPE_HEADERS);
+    assertThat(peer.takeFrame().type).isEqualTo(Http2.TYPE_PING);
+}

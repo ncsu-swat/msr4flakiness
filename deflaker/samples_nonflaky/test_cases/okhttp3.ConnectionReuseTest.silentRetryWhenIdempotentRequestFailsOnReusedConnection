@@ -1,0 +1,14 @@
+@Test
+public void silentRetryWhenIdempotentRequestFailsOnReusedConnection() throws Exception {
+    server.enqueue(new MockResponse().setBody("a"));
+    server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST));
+    server.enqueue(new MockResponse().setBody("b"));
+    Request request = new Request.Builder().url(server.url("/")).build();
+    Response responseA = client.newCall(request).execute();
+    assertThat(responseA.body().string()).isEqualTo("a");
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(0);
+    Response responseB = client.newCall(request).execute();
+    assertThat(responseB.body().string()).isEqualTo("b");
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(1);
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(0);
+}

@@ -1,0 +1,18 @@
+@Test
+public void connectionsAreNotReusedIfSslSocketFactoryChanges() throws Exception {
+    enableHttps();
+    server.enqueue(new MockResponse());
+    server.enqueue(new MockResponse());
+    Request request = new Request.Builder().url(server.url("/")).build();
+    Response response = client.newCall(request).execute();
+    response.body().close();
+    // This client shares a connection pool but has a different SSL socket factory.
+    HandshakeCertificates handshakeCertificates2 = new HandshakeCertificates.Builder().build();
+    OkHttpClient anotherClient = client.newBuilder().sslSocketFactory(handshakeCertificates2.sslSocketFactory(), handshakeCertificates2.trustManager()).build();
+    // This client fails to connect because the new SSL socket factory refuses.
+    try {
+        anotherClient.newCall(request).execute();
+        fail();
+    } catch (SSLException expected) {
+    }
+}

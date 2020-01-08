@@ -1,0 +1,19 @@
+@Test
+public void successfulHttpProxyConnect() throws IOException {
+    server.enqueue(new MockResponse());
+    client = client.newBuilder().proxy(server.toProxyAddress()).build();
+    Call call = client.newCall(new Request.Builder().url("http://www.fakeurl").build());
+    Response response = call.execute();
+    assertThat(response.code()).isEqualTo(200);
+    response.body().close();
+    InetAddress address = client.dns().lookup(server.getHostName()).get(0);
+    InetSocketAddress expectedAddress = new InetSocketAddress(address, server.getPort());
+    ConnectStart connectStart = listener.removeUpToEvent(ConnectStart.class);
+    assertThat(connectStart.getCall()).isSameAs(call);
+    assertThat(connectStart.getInetSocketAddress()).isEqualTo(expectedAddress);
+    assertThat(connectStart.getProxy()).isEqualTo(server.toProxyAddress());
+    ConnectEnd connectEnd = listener.removeUpToEvent(ConnectEnd.class);
+    assertThat(connectEnd.getCall()).isSameAs(call);
+    assertThat(connectEnd.getInetSocketAddress()).isEqualTo(expectedAddress);
+    assertThat(connectEnd.getProtocol()).isEqualTo(Protocol.HTTP_1_1);
+}

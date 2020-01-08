@@ -1,0 +1,10 @@
+@Test
+public void applyIntersectionRetainsSslPrefixes() throws Exception {
+    FakeSslSocket socket = new FakeSslSocket();
+    socket.setEnabledProtocols(new String[] { "TLSv1" });
+    socket.setSupportedCipherSuites(new String[] { "SSL_A", "SSL_B", "SSL_C", "SSL_D", "SSL_E" });
+    socket.setEnabledCipherSuites(new String[] { "SSL_A", "SSL_B", "SSL_C" });
+    ConnectionSpec connectionSpec = new ConnectionSpec.Builder(true).tlsVersions(TlsVersion.TLS_1_0).cipherSuites("TLS_A", "TLS_C", "TLS_E").build();
+    applyConnectionSpec(connectionSpec, socket, false);
+    assertArrayEquals(new String[] { "SSL_A", "SSL_C" }, socket.enabledCipherSuites);
+}

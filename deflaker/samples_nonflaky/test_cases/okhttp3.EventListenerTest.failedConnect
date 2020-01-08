@@ -1,0 +1,22 @@
+@Test
+public void failedConnect() throws UnknownHostException {
+    enableTlsWithTunnel(false);
+    server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.FAIL_HANDSHAKE));
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).build());
+    try {
+        call.execute();
+        fail();
+    } catch (IOException expected) {
+    }
+    InetAddress address = client.dns().lookup(server.getHostName()).get(0);
+    InetSocketAddress expectedAddress = new InetSocketAddress(address, server.getPort());
+    ConnectStart connectStart = listener.removeUpToEvent(ConnectStart.class);
+    assertThat(connectStart.getCall()).isSameAs(call);
+    assertThat(connectStart.getInetSocketAddress()).isEqualTo(expectedAddress);
+    assertThat(connectStart.getProxy()).isEqualTo(Proxy.NO_PROXY);
+    ConnectFailed connectFailed = listener.removeUpToEvent(ConnectFailed.class);
+    assertThat(connectFailed.getCall()).isSameAs(call);
+    assertThat(connectFailed.getInetSocketAddress()).isEqualTo(expectedAddress);
+    assertThat(connectFailed.getProtocol()).isNull();
+    assertThat(connectFailed.getIoe()).isNotNull();
+}

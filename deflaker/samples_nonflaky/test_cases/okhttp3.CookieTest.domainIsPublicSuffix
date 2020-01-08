@@ -1,0 +1,18 @@
+/**
+ * These public suffixes were selected by inspecting the publicsuffix.org list. It's possible they
+ * may change in the future. If this test begins to fail, please double check they are still
+ * present in the public suffix list.
+ */
+@Test
+public void domainIsPublicSuffix() {
+    HttpUrl ascii = HttpUrl.get("https://foo1.foo.bar.elb.amazonaws.com");
+    assertThat(Cookie.parse(ascii, "a=b; domain=foo.bar.elb.amazonaws.com")).isNotNull();
+    assertThat(Cookie.parse(ascii, "a=b; domain=bar.elb.amazonaws.com")).isNull();
+    assertThat(Cookie.parse(ascii, "a=b; domain=com")).isNull();
+    HttpUrl unicode = HttpUrl.get("https://長.長.長崎.jp");
+    assertThat(Cookie.parse(unicode, "a=b; domain=長.長崎.jp")).isNotNull();
+    assertThat(Cookie.parse(unicode, "a=b; domain=長崎.jp")).isNull();
+    HttpUrl punycode = HttpUrl.get("https://xn--ue5a.xn--ue5a.xn--8ltr62k.jp");
+    assertThat(Cookie.parse(punycode, "a=b; domain=xn--ue5a.xn--8ltr62k.jp")).isNotNull();
+    assertThat(Cookie.parse(punycode, "a=b; domain=xn--8ltr62k.jp")).isNull();
+}

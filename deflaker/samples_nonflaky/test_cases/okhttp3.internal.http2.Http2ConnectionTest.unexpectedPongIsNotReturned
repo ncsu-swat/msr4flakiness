@@ -1,0 +1,23 @@
+@Test
+public void unexpectedPongIsNotReturned() throws Exception {
+    // write the mocking script
+    peer.sendFrame().settings(new Settings());
+    // ACK
+    peer.acceptFrame();
+    peer.sendFrame().ping(false, 2, 0);
+    // PING
+    peer.acceptFrame();
+    // This pong is silently ignored.
+    peer.sendFrame().ping(true, 99, 0);
+    peer.sendFrame().ping(false, 4, 0);
+    // PING
+    peer.acceptFrame();
+    peer.play();
+    // play it back
+    connect(peer);
+    // verify the peer received what was expected
+    InFrame ping2 = peer.takeFrame();
+    assertThat(ping2.payload1).isEqualTo(2);
+    InFrame ping4 = peer.takeFrame();
+    assertThat(ping4.payload1).isEqualTo(4);
+}

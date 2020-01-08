@@ -1,0 +1,12 @@
+@Test
+public void twoFrameNotContinuation() throws IOException {
+    byte[] bytes = binaryData(200);
+    data.write(ByteString.decodeHex("0264")).write(bytes, 0, 100);
+    data.write(ByteString.decodeHex("8264")).write(bytes, 100, 100);
+    try {
+        clientReader.processNextFrame();
+        fail();
+    } catch (ProtocolException e) {
+        assertThat(e.getMessage()).isEqualTo("Expected continuation opcode. Got: 2");
+    }
+}

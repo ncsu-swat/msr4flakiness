@@ -1,0 +1,23 @@
+@Test
+public void testTruncatedDataFrame() throws Exception {
+    // write the mocking script
+    peer.sendFrame().settings(new Settings());
+    // ACK
+    peer.acceptFrame();
+    // SYN_STREAM
+    peer.acceptFrame();
+    peer.sendFrame().headers(false, 3, headerEntries("a", "android"));
+    peer.sendFrame().data(false, 3, data(1024), 1024);
+    peer.truncateLastFrame(8 + 100);
+    peer.play();
+    // play it back
+    Http2Connection connection = connect(peer);
+    Http2Stream stream = connection.newStream(headerEntries("b", "banana"), false);
+    assertThat(stream.takeHeaders()).isEqualTo(Headers.of("a", "android"));
+    Source in = stream.getSource();
+    try {
+        Okio.buffer(in).readByteString(101);
+        fail();
+    } catch (EOFException expected) {
+    }
+}

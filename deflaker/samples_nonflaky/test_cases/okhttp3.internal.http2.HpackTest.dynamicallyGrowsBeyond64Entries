@@ -1,0 +1,24 @@
+/**
+ * Header table backing array is initially 8 long, let's ensure it grows.
+ */
+@Test
+public void dynamicallyGrowsBeyond64Entries() throws IOException {
+    // Lots of headers need more room!
+    hpackReader = new Hpack.Reader(bytesIn, 16384, 4096);
+    // Dynamic table size update (size = 16384).
+    bytesIn.writeByte(0x3F);
+    bytesIn.writeByte(0xE1);
+    bytesIn.writeByte(0x7F);
+    for (int i = 0; i < 256; i++) {
+        // Literal indexed
+        bytesIn.writeByte(0x40);
+        // Literal name (len = 10)
+        bytesIn.writeByte(0x0a);
+        bytesIn.writeUtf8("custom-foo");
+        // Literal value (len = 13)
+        bytesIn.writeByte(0x0d);
+        bytesIn.writeUtf8("custom-header");
+    }
+    hpackReader.readHeaders();
+    assertThat(hpackReader.headerCount).isEqualTo(256);
+}

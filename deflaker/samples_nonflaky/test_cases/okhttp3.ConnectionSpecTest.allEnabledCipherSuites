@@ -1,0 +1,10 @@
+@Test
+public void allEnabledCipherSuites() throws Exception {
+    platform.assumeNotConscrypt();
+    ConnectionSpec tlsSpec = new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS).allEnabledCipherSuites().build();
+    assertThat(tlsSpec.cipherSuites()).isNull();
+    SSLSocket sslSocket = (SSLSocket) SSLSocketFactory.getDefault().createSocket();
+    sslSocket.setEnabledCipherSuites(new String[] { CipherSuite.TLS_RSA_WITH_RC4_128_SHA.javaName(), CipherSuite.TLS_RSA_WITH_RC4_128_MD5.javaName() });
+    applyConnectionSpec(tlsSpec, sslSocket, false);
+    assertThat(sslSocket.getEnabledCipherSuites()).containsExactly(CipherSuite.TLS_RSA_WITH_RC4_128_SHA.javaName(), CipherSuite.TLS_RSA_WITH_RC4_128_MD5.javaName());
+}

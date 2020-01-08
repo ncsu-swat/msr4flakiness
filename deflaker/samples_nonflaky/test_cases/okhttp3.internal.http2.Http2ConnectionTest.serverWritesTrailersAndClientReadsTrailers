@@ -1,0 +1,30 @@
+@Test
+public void serverWritesTrailersAndClientReadsTrailers() throws Exception {
+    // write the mocking script
+    peer.sendFrame().settings(new Settings());
+    // ACK
+    peer.acceptFrame();
+    // SYN_STREAM
+    peer.acceptFrame();
+    peer.sendFrame().headers(false, 3, headerEntries("headers", "bam"));
+    // PING
+    peer.acceptFrame();
+    peer.sendFrame().headers(true, 3, headerEntries("trailers", "boom"));
+    // PONG
+    peer.sendFrame().ping(true, AWAIT_PING, 0);
+    peer.play();
+    // play it back
+    Http2Connection connection = connect(peer);
+    Http2Stream stream = connection.newStream(headerEntries("a", "artichaut"), false);
+    assertThat(stream.takeHeaders()).isEqualTo(Headers.of("headers", "bam"));
+    connection.writePingAndAwaitPong();
+    assertThat(stream.trailers()).isEqualTo(Headers.of("trailers", "boom"));
+    assertThat(connection.openStreamCount()).isEqualTo(0);
+    // verify the peer received what was expected
+    InFrame synStream = peer.takeFrame();
+    assertThat(synStream.type).isEqualTo(Http2.TYPE_HEADERS);
+    assertThat(synStream.outFinished).isFalse();
+    assertThat(synStream.streamId).isEqualTo(3);
+    assertThat(synStream.associatedStreamId).isEqualTo(-1);
+    assertThat(synStream.headerBlock).isEqualTo(headerEntries("a", "artichaut"));
+}

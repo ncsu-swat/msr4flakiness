@@ -1,0 +1,8 @@
+@Test
+public void responseBodyClosedClosedWithoutReadingAllData() throws IOException {
+    server.enqueue(new MockResponse().setBody("abc").setBodyDelay(1, TimeUnit.SECONDS).setSocketPolicy(SocketPolicy.DISCONNECT_DURING_RESPONSE_BODY));
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).build());
+    Response response = call.execute();
+    response.body().close();
+    assertThat(listener.recordedEventTypes()).containsExactly("CallStart", "ProxySelectStart", "ProxySelectEnd", "DnsStart", "DnsEnd", "ConnectStart", "ConnectEnd", "ConnectionAcquired", "RequestHeadersStart", "RequestHeadersEnd", "ResponseHeadersStart", "ResponseHeadersEnd", "ResponseBodyStart", "ResponseBodyEnd", "ConnectionReleased", "CallEnd");
+}

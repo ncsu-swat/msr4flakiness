@@ -1,0 +1,15 @@
+@Test
+public void iteratorElementsUpdatedDuringIterationAreUpdated() throws Exception {
+    set("a", "a1", "a2");
+    set("b", "b1", "b2");
+    Iterator<DiskLruCache.Snapshot> iterator = cache.snapshots();
+    DiskLruCache.Snapshot a = iterator.next();
+    assertThat(a.key()).isEqualTo("a");
+    a.close();
+    set("b", "b3", "b4");
+    DiskLruCache.Snapshot b = iterator.next();
+    assertThat(b.key()).isEqualTo("b");
+    assertSnapshotValue(b, 0, "b3");
+    assertSnapshotValue(b, 1, "b4");
+    b.close();
+}

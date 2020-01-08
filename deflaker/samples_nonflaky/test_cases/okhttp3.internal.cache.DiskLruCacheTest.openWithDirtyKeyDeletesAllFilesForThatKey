@@ -1,0 +1,19 @@
+@Test
+public void openWithDirtyKeyDeletesAllFilesForThatKey() throws Exception {
+    cache.close();
+    File cleanFile0 = getCleanFile("k1", 0);
+    File cleanFile1 = getCleanFile("k1", 1);
+    File dirtyFile0 = getDirtyFile("k1", 0);
+    File dirtyFile1 = getDirtyFile("k1", 1);
+    writeFile(cleanFile0, "A");
+    writeFile(cleanFile1, "B");
+    writeFile(dirtyFile0, "C");
+    writeFile(dirtyFile1, "D");
+    createJournal("CLEAN k1 1 1", "DIRTY   k1");
+    createNewCache();
+    assertThat(fileSystem.exists(cleanFile0)).isFalse();
+    assertThat(fileSystem.exists(cleanFile1)).isFalse();
+    assertThat(fileSystem.exists(dirtyFile0)).isFalse();
+    assertThat(fileSystem.exists(dirtyFile1)).isFalse();
+    assertThat(cache.get("k1")).isNull();
+}

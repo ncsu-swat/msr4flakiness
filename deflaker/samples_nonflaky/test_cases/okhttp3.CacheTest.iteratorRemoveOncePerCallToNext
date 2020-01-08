@@ -1,0 +1,16 @@
+@Test
+public void iteratorRemoveOncePerCallToNext() throws Exception {
+    // Put a response in the cache.
+    server.enqueue(new MockResponse().setBody("a"));
+    HttpUrl url = server.url("/a");
+    assertThat(get(url).body().string()).isEqualTo("a");
+    Iterator<String> i = cache.urls();
+    assertThat(i.next()).isEqualTo(url.toString());
+    i.remove();
+    // Too many calls to remove().
+    try {
+        i.remove();
+        fail();
+    } catch (IllegalStateException expected) {
+    }
+}

@@ -1,0 +1,20 @@
+@Test
+public void testNetscapeResponse() throws Exception {
+    CookieManager cookieManager = new CookieManager(null, ACCEPT_ORIGINAL_SERVER);
+    client = client.newBuilder().cookieJar(new JavaNetCookieJar(cookieManager)).build();
+    HttpUrl urlWithIpAddress = urlWithIpAddress(server, "/path/foo");
+    server.enqueue(new MockResponse().addHeader("Set-Cookie: a=android; " + "expires=Fri, 31-Dec-9999 23:59:59 GMT; " + "path=/path; " + "domain=" + urlWithIpAddress.host() + "; " + "secure"));
+    get(urlWithIpAddress);
+    List<HttpCookie> cookies = cookieManager.getCookieStore().getCookies();
+    assertThat(cookies.size()).isEqualTo(1);
+    HttpCookie cookie = cookies.get(0);
+    assertThat(cookie.getName()).isEqualTo("a");
+    assertThat(cookie.getValue()).isEqualTo("android");
+    assertThat(cookie.getComment()).isNull();
+    assertThat(cookie.getCommentURL()).isNull();
+    assertThat(cookie.getDiscard()).isFalse();
+    assertThat(cookie.getMaxAge()).isGreaterThan(100000000000L);
+    assertThat(cookie.getPath()).isEqualTo("/path");
+    assertThat(cookie.getSecure()).isTrue();
+    assertThat(cookie.getVersion()).isEqualTo(0);
+}

@@ -1,0 +1,25 @@
+@Test
+public void singleRouteReturnsFailedRoute() throws Exception {
+    Address address = httpAddress();
+    RouteSelector routeSelector = new RouteSelector(address, routeDatabase, call, EventListener.NONE);
+    assertThat(routeSelector.hasNext()).isTrue();
+    dns.set(uriHost, dns.allocate(1));
+    RouteSelector.Selection selection = routeSelector.next();
+    Route route = selection.next();
+    routeDatabase.failed(route);
+    routeSelector = new RouteSelector(address, routeDatabase, call, EventListener.NONE);
+    selection = routeSelector.next();
+    assertRoute(selection.next(), address, NO_PROXY, dns.lookup(uriHost, 0), uriPort);
+    assertThat(selection.hasNext()).isFalse();
+    try {
+        selection.next();
+        fail();
+    } catch (NoSuchElementException expected) {
+    }
+    assertThat(routeSelector.hasNext()).isFalse();
+    try {
+        routeSelector.next();
+        fail();
+    } catch (NoSuchElementException expected) {
+    }
+}

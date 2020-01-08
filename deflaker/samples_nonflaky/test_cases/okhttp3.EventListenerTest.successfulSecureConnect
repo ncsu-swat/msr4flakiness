@@ -1,0 +1,14 @@
+@Test
+public void successfulSecureConnect() throws IOException {
+    enableTlsWithTunnel(false);
+    server.enqueue(new MockResponse());
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).build());
+    Response response = call.execute();
+    assertThat(response.code()).isEqualTo(200);
+    response.body().close();
+    SecureConnectStart secureStart = listener.removeUpToEvent(SecureConnectStart.class);
+    assertThat(secureStart.getCall()).isSameAs(call);
+    SecureConnectEnd secureEnd = listener.removeUpToEvent(SecureConnectEnd.class);
+    assertThat(secureEnd.getCall()).isSameAs(call);
+    assertThat(secureEnd.getHandshake()).isNotNull();
+}

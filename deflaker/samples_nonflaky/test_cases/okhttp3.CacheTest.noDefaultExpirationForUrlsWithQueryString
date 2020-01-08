@@ -1,0 +1,8 @@
+@Test
+public void noDefaultExpirationForUrlsWithQueryString() throws Exception {
+    server.enqueue(new MockResponse().addHeader("Last-Modified: " + formatDate(-105, TimeUnit.SECONDS)).addHeader("Date: " + formatDate(-5, TimeUnit.SECONDS)).setBody("A"));
+    server.enqueue(new MockResponse().setBody("B"));
+    HttpUrl url = server.url("/").newBuilder().addQueryParameter("foo", "bar").build();
+    assertThat(get(url).body().string()).isEqualTo("A");
+    assertThat(get(url).body().string()).isEqualTo("B");
+}

@@ -1,0 +1,17 @@
+@Test
+public void readPaddedHeadersFrame() throws IOException {
+    int paddingLength = 254;
+    byte[] padding = new byte[paddingLength];
+    Arrays.fill(padding, (byte) 0);
+    Buffer headerBlock = literalHeaders(headerEntries("foo", "barrr", "baz", "qux"));
+    writeMedium(frame, (int) headerBlock.size() + paddingLength + 1);
+    frame.writeByte(Http2.TYPE_HEADERS);
+    frame.writeByte(FLAG_END_HEADERS | FLAG_PADDED);
+    frame.writeInt(expectedStreamId & 0x7fffffff);
+    frame.writeByte(paddingLength);
+    frame.writeAll(headerBlock);
+    frame.write(padding);
+    reader.nextFrame(false, assertHeaderBlock());
+    // Padding was skipped.
+    assertThat(frame.exhausted()).isTrue();
+}

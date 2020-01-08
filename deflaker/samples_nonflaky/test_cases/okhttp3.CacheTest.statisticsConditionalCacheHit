@@ -1,0 +1,15 @@
+@Test
+public void statisticsConditionalCacheHit() throws Exception {
+    server.enqueue(new MockResponse().addHeader("Last-Modified: " + formatDate(-1, TimeUnit.HOURS)).addHeader("Cache-Control: max-age=0").setBody("A"));
+    server.enqueue(new MockResponse().setResponseCode(HttpURLConnection.HTTP_NOT_MODIFIED));
+    server.enqueue(new MockResponse().setResponseCode(HttpURLConnection.HTTP_NOT_MODIFIED));
+    assertThat(get(server.url("/")).body().string()).isEqualTo("A");
+    assertThat(cache.requestCount()).isEqualTo(1);
+    assertThat(cache.networkCount()).isEqualTo(1);
+    assertThat(cache.hitCount()).isEqualTo(0);
+    assertThat(get(server.url("/")).body().string()).isEqualTo("A");
+    assertThat(get(server.url("/")).body().string()).isEqualTo("A");
+    assertThat(cache.requestCount()).isEqualTo(3);
+    assertThat(cache.networkCount()).isEqualTo(3);
+    assertThat(cache.hitCount()).isEqualTo(2);
+}

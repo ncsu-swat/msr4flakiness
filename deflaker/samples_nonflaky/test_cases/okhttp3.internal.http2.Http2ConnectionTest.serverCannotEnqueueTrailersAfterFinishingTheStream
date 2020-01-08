@@ -1,0 +1,22 @@
+@Test
+public void serverCannotEnqueueTrailersAfterFinishingTheStream() throws Exception {
+    peer.setClient(true);
+    peer.sendFrame().settings(new Settings());
+    // ACK
+    peer.acceptFrame();
+    // PING
+    peer.acceptFrame();
+    peer.sendFrame().ping(true, AWAIT_PING, 0);
+    peer.play();
+    // Play it back.
+    Http2Connection connection = connect(peer);
+    connection.writePingAndAwaitPong();
+    Http2Stream stream = connection.newStream(headerEntries("a", "android"), true);
+    // finish the stream
+    stream.writeHeaders(headerEntries("b", "berserk"), true, false);
+    try {
+        stream.enqueueTrailers(Headers.of("trailers", "boom"));
+        fail();
+    } catch (IllegalStateException expected) {
+    }
+}

@@ -1,0 +1,14 @@
+@Test
+public void threeParts() throws Exception {
+    String expected = "" + "--123\r\n" + "Content-Length: 5\r\n" + "\r\n" + "Quick\r\n" + "--123\r\n" + "Content-Length: 5\r\n" + "\r\n" + "Brown\r\n" + "--123\r\n" + "Content-Length: 3\r\n" + "\r\n" + "Fox\r\n" + "--123--\r\n";
+    MultipartBody body = new MultipartBody.Builder("123").addPart(RequestBody.create("Quick", null)).addPart(RequestBody.create("Brown", null)).addPart(RequestBody.create("Fox", null)).build();
+    assertThat(body.boundary()).isEqualTo("123");
+    assertThat(body.type()).isEqualTo(MultipartBody.MIXED);
+    assertThat(body.contentType().toString()).isEqualTo("multipart/mixed; boundary=123");
+    assertThat(body.parts().size()).isEqualTo(3);
+    assertThat(body.contentLength()).isEqualTo(112);
+    Buffer buffer = new Buffer();
+    body.writeTo(buffer);
+    assertThat(body.contentLength()).isEqualTo(buffer.size());
+    assertThat(buffer.readUtf8()).isEqualTo(expected);
+}

@@ -1,0 +1,8 @@
+@Test
+public void successfulChunkedHttpsCallEventSequence() throws IOException {
+    enableTlsWithTunnel(false);
+    server.setProtocols(asList(Protocol.HTTP_1_1));
+    server.enqueue(new MockResponse().setBodyDelay(100, TimeUnit.MILLISECONDS).setChunkedBody("Hello!", 2));
+    assertSuccessfulEventOrder(anyResponse);
+    assertBytesReadWritten(listener, any(Long.class), null, greaterThan(0L), equalTo(6L));
+}

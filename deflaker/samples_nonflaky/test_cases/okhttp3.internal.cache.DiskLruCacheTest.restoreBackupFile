@@ -1,0 +1,16 @@
+@Test
+public void restoreBackupFile() throws Exception {
+    DiskLruCache.Editor creator = cache.edit("k1");
+    setString(creator, 0, "ABC");
+    setString(creator, 1, "DE");
+    creator.commit();
+    cache.close();
+    fileSystem.rename(journalFile, journalBkpFile);
+    assertThat(fileSystem.exists(journalFile)).isFalse();
+    createNewCache();
+    DiskLruCache.Snapshot snapshot = cache.get("k1");
+    assertSnapshotValue(snapshot, 0, "ABC");
+    assertSnapshotValue(snapshot, 1, "DE");
+    assertThat(fileSystem.exists(journalBkpFile)).isFalse();
+    assertThat(fileSystem.exists(journalFile)).isTrue();
+}

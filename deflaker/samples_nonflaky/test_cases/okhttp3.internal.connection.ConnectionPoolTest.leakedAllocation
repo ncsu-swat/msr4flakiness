@@ -1,0 +1,12 @@
+@Test
+public void leakedAllocation() throws Exception {
+    RealConnectionPool pool = new RealConnectionPool(taskRunner, Integer.MAX_VALUE, 100L, TimeUnit.NANOSECONDS);
+    ConnectionPool poolApi = new ConnectionPool(pool);
+    RealConnection c1 = newConnection(pool, routeA1, 0L);
+    allocateAndLeakAllocation(poolApi, c1);
+    awaitGarbageCollection();
+    assertThat(pool.cleanup(100L)).isEqualTo(0L);
+    assertThat(c1.getTransmitters()).isEmpty();
+    // Can't allocate once a leak has been detected.
+    assertThat(c1.getNoNewExchanges()).isTrue();
+}

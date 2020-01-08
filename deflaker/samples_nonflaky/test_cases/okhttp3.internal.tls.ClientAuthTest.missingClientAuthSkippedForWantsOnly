@@ -1,0 +1,13 @@
+@Test
+public void missingClientAuthSkippedForWantsOnly() throws Exception {
+    OkHttpClient client = buildClient(null, clientIntermediateCa.certificate());
+    SSLSocketFactory socketFactory = buildServerSslSocketFactory();
+    server.useHttps(socketFactory, false);
+    server.requestClientAuth();
+    server.enqueue(new MockResponse().setBody("abc"));
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).build());
+    Response response = call.execute();
+    assertThat(response.handshake().peerPrincipal()).isEqualTo(new X500Principal("CN=Local Host"));
+    assertThat(response.handshake().localPrincipal()).isNull();
+    assertThat(response.body().string()).isEqualTo("abc");
+}

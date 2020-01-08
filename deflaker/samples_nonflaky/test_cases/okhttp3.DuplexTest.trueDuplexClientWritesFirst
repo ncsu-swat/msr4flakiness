@@ -1,0 +1,22 @@
+@Test
+public void trueDuplexClientWritesFirst() throws Exception {
+    enableProtocol(Protocol.HTTP_2);
+    MockDuplexResponseBody mockDuplexResponseBody = enqueueResponseWithBody(new MockResponse().clearHeaders(), new MockDuplexResponseBody().receiveRequest("request A\n").sendResponse("response B\n").receiveRequest("request C\n").sendResponse("response D\n").receiveRequest("request E\n").sendResponse("response F\n").exhaustRequest().exhaustResponse());
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).post(new AsyncRequestBody()).build());
+    try (Response response = call.execute()) {
+        BufferedSink requestBody = ((AsyncRequestBody) call.request().body()).takeSink();
+        requestBody.writeUtf8("request A\n");
+        requestBody.flush();
+        BufferedSource responseBody = response.body().source();
+        assertThat(responseBody.readUtf8Line()).isEqualTo("response B");
+        requestBody.writeUtf8("request C\n");
+        requestBody.flush();
+        assertThat(responseBody.readUtf8Line()).isEqualTo("response D");
+        requestBody.writeUtf8("request E\n");
+        requestBody.flush();
+        assertThat(responseBody.readUtf8Line()).isEqualTo("response F");
+        requestBody.close();
+        assertThat(responseBody.readUtf8Line()).isNull();
+    }
+    mockDuplexResponseBody.awaitSuccess();
+}

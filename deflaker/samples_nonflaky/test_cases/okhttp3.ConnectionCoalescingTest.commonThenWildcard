@@ -1,0 +1,12 @@
+/**
+ * Check that wildcard SANs are supported.
+ */
+@Test
+public void commonThenWildcard() throws Exception {
+    server.enqueue(new MockResponse().setResponseCode(200));
+    server.enqueue(new MockResponse().setResponseCode(200));
+    assert200Http2Response(execute(url), server.getHostName());
+    HttpUrl sanUrl = url.newBuilder().host("www.wildcard.com").build();
+    assert200Http2Response(execute(sanUrl), "www.wildcard.com");
+    assertThat(client.connectionPool().connectionCount()).isEqualTo(1);
+}

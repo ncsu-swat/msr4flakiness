@@ -1,0 +1,10 @@
+@Test
+public void applyIntersectionAddsSslScsvForFallback() throws Exception {
+    FakeSslSocket socket = new FakeSslSocket();
+    socket.setEnabledProtocols(new String[] { "TLSv1" });
+    socket.setSupportedCipherSuites(new String[] { "SSL_A", "SSL_FALLBACK_SCSV" });
+    socket.setEnabledCipherSuites(new String[] { "SSL_A" });
+    ConnectionSpec connectionSpec = new ConnectionSpec.Builder(true).tlsVersions(TlsVersion.TLS_1_0).cipherSuites("SSL_A").build();
+    applyConnectionSpec(connectionSpec, socket, true);
+    assertArrayEquals(new String[] { "SSL_A", "SSL_FALLBACK_SCSV" }, socket.enabledCipherSuites);
+}

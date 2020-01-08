@@ -1,0 +1,12 @@
+@Test
+public void chainMaxLength() throws Exception {
+    List<HeldCertificate> heldCertificates = chainOfLength(10);
+    List<Certificate> certificates = new ArrayList<>();
+    for (HeldCertificate heldCertificate : heldCertificates) {
+        certificates.add(heldCertificate.certificate());
+    }
+    X509Certificate root = heldCertificates.get(heldCertificates.size() - 1).certificate();
+    CertificateChainCleaner cleaner = CertificateChainCleaner.Companion.get(root);
+    assertThat(cleaner.clean(certificates, "hostname")).isEqualTo(certificates);
+    assertThat(cleaner.clean(certificates.subList(0, 9), "hostname")).isEqualTo(certificates);
+}

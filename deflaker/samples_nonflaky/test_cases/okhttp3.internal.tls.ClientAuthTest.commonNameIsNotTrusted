@@ -1,0 +1,14 @@
+@Test
+public void commonNameIsNotTrusted() throws Exception {
+    serverCert = new HeldCertificate.Builder().signedBy(serverIntermediateCa).serialNumber(3L).commonName(server.getHostName()).addSubjectAlternativeName("different-host.com").build();
+    OkHttpClient client = buildClient(clientCert, clientIntermediateCa.certificate());
+    SSLSocketFactory socketFactory = buildServerSslSocketFactory();
+    server.useHttps(socketFactory, false);
+    server.requireClientAuth();
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).build());
+    try {
+        call.execute();
+        fail();
+    } catch (SSLPeerUnverifiedException expected) {
+    }
+}

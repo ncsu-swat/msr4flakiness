@@ -1,0 +1,18 @@
+/**
+ * Confirm that the proxy authenticator works for unencrypted HTTP proxies.
+ */
+@Test
+public void httpProxyAuthenticate() throws Exception {
+    server.enqueue(new MockResponse().setResponseCode(407).addHeader("Proxy-Authenticate: Basic realm=\"localhost\""));
+    server.enqueue(new MockResponse().setBody("response body"));
+    client = client.newBuilder().proxy(server.toProxyAddress()).proxyAuthenticator(new RecordingOkAuthenticator("password", "Basic")).build();
+    Request request = new Request.Builder().url("http://android.com/foo").build();
+    Response response = client.newCall(request).execute();
+    assertThat(response.body().string()).isEqualTo("response body");
+    RecordedRequest get1 = server.takeRequest();
+    assertThat(get1.getRequestLine()).isEqualTo("GET http://android.com/foo HTTP/1.1");
+    assertThat(get1.getHeader("Proxy-Authorization")).isNull();
+    RecordedRequest get2 = server.takeRequest();
+    assertThat(get2.getRequestLine()).isEqualTo("GET http://android.com/foo HTTP/1.1");
+    assertThat(get2.getHeader("Proxy-Authorization")).isEqualTo("password");
+}

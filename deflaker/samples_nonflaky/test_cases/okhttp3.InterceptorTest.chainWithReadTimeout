@@ -1,0 +1,24 @@
+@Test
+public void chainWithReadTimeout() throws Exception {
+    Interceptor interceptor1 = chainA -> {
+        assertThat(chainA.readTimeoutMillis()).isEqualTo(5000);
+        Interceptor.Chain chainB = chainA.withReadTimeout(100, TimeUnit.MILLISECONDS);
+        assertThat(chainB.readTimeoutMillis()).isEqualTo(100);
+        return chainB.proceed(chainA.request());
+    };
+    Interceptor interceptor2 = chain -> {
+        assertThat(chain.readTimeoutMillis()).isEqualTo(100);
+        return chain.proceed(chain.request());
+    };
+    client = client.newBuilder().readTimeout(5, TimeUnit.SECONDS).addInterceptor(interceptor1).addInterceptor(interceptor2).build();
+    server.enqueue(new MockResponse().setBody("abc").throttleBody(1, 1, TimeUnit.SECONDS));
+    Request request1 = new Request.Builder().url(server.url("/")).build();
+    Call call = client.newCall(request1);
+    Response response = call.execute();
+    ResponseBody body = response.body();
+    try {
+        body.string();
+        fail();
+    } catch (SocketTimeoutException expected) {
+    }
+}

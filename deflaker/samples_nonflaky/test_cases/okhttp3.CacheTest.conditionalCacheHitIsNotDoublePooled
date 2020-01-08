@@ -1,0 +1,9 @@
+@Test
+public void conditionalCacheHitIsNotDoublePooled() throws Exception {
+    clientTestRule.ensureAllConnectionsReleased();
+    server.enqueue(new MockResponse().addHeader("ETag: v1").setBody("A"));
+    server.enqueue(new MockResponse().clearHeaders().setResponseCode(HttpURLConnection.HTTP_NOT_MODIFIED));
+    assertThat(get(server.url("/")).body().string()).isEqualTo("A");
+    assertThat(get(server.url("/")).body().string()).isEqualTo("A");
+    assertThat(client.connectionPool().idleConnectionCount()).isEqualTo(1);
+}

@@ -1,0 +1,31 @@
+@Test
+public void iterator() throws Exception {
+    set("a", "a1", "a2");
+    set("b", "b1", "b2");
+    set("c", "c1", "c2");
+    Iterator<DiskLruCache.Snapshot> iterator = cache.snapshots();
+    assertThat(iterator.hasNext()).isTrue();
+    DiskLruCache.Snapshot a = iterator.next();
+    assertThat(a.key()).isEqualTo("a");
+    assertSnapshotValue(a, 0, "a1");
+    assertSnapshotValue(a, 1, "a2");
+    a.close();
+    assertThat(iterator.hasNext()).isTrue();
+    DiskLruCache.Snapshot b = iterator.next();
+    assertThat(b.key()).isEqualTo("b");
+    assertSnapshotValue(b, 0, "b1");
+    assertSnapshotValue(b, 1, "b2");
+    b.close();
+    assertThat(iterator.hasNext()).isTrue();
+    DiskLruCache.Snapshot c = iterator.next();
+    assertThat(c.key()).isEqualTo("c");
+    assertSnapshotValue(c, 0, "c1");
+    assertSnapshotValue(c, 1, "c2");
+    c.close();
+    assertThat(iterator.hasNext()).isFalse();
+    try {
+        iterator.next();
+        fail();
+    } catch (NoSuchElementException expected) {
+    }
+}

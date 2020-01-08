@@ -1,0 +1,11 @@
+@Test
+public void chainGoesAllTheWayToSelfSignedRoot() throws Exception {
+    HeldCertificate selfSigned = new HeldCertificate.Builder().serialNumber(1L).build();
+    HeldCertificate trusted = new HeldCertificate.Builder().serialNumber(2L).signedBy(selfSigned).build();
+    HeldCertificate certA = new HeldCertificate.Builder().serialNumber(3L).signedBy(trusted).build();
+    HeldCertificate certB = new HeldCertificate.Builder().serialNumber(4L).signedBy(certA).build();
+    CertificateChainCleaner cleaner = CertificateChainCleaner.Companion.get(selfSigned.certificate(), trusted.certificate());
+    assertThat(cleaner.clean(list(certB, certA), "hostname")).isEqualTo(list(certB, certA, trusted, selfSigned));
+    assertThat(cleaner.clean(list(certB, certA, trusted), "hostname")).isEqualTo(list(certB, certA, trusted, selfSigned));
+    assertThat(cleaner.clean(list(certB, certA, trusted, selfSigned), "hostname")).isEqualTo(list(certB, certA, trusted, selfSigned));
+}

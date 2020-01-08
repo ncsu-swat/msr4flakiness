@@ -1,0 +1,10 @@
+@Test
+public void allEnabledTlsVersions() throws Exception {
+    platform.assumeNotConscrypt();
+    ConnectionSpec tlsSpec = new ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS).allEnabledTlsVersions().build();
+    assertThat(tlsSpec.tlsVersions()).isNull();
+    SSLSocket sslSocket = (SSLSocket) SSLSocketFactory.getDefault().createSocket();
+    sslSocket.setEnabledProtocols(new String[] { TlsVersion.SSL_3_0.javaName(), TlsVersion.TLS_1_1.javaName() });
+    applyConnectionSpec(tlsSpec, sslSocket, false);
+    assertThat(sslSocket.getEnabledProtocols()).containsExactly(TlsVersion.SSL_3_0.javaName(), TlsVersion.TLS_1_1.javaName());
+}

@@ -1,0 +1,15 @@
+@Test
+public void tooManyProxyAuthFailuresWithConnectionClose() throws IOException {
+    server.useHttps(handshakeCertificates.sslSocketFactory(), true);
+    server.setProtocols(Collections.singletonList(Protocol.HTTP_1_1));
+    for (int i = 0; i < 21; i++) {
+        server.enqueue(new MockResponse().setResponseCode(407).addHeader("Proxy-Authenticate: Basic realm=\"localhost\"").addHeader("Connection: close"));
+    }
+    client = client.newBuilder().sslSocketFactory(handshakeCertificates.sslSocketFactory(), handshakeCertificates.trustManager()).proxy(server.toProxyAddress()).proxyAuthenticator(new RecordingOkAuthenticator("password", "Basic")).hostnameVerifier(new RecordingHostnameVerifier()).build();
+    Request request = new Request.Builder().url("https://android.com/foo").build();
+    try {
+        client.newCall(request).execute();
+        fail();
+    } catch (ProtocolException expected) {
+    }
+}

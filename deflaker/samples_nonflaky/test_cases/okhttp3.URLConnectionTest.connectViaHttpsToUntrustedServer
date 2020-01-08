@@ -1,0 +1,23 @@
+/**
+ * Verify that we don't retry connections on certificate verification errors.
+ *
+ * http://code.google.com/p/android/issues/detail?id=13178
+ */
+@Flaky
+@Test
+public void connectViaHttpsToUntrustedServer() throws Exception {
+    // Flaky https://github.com/square/okhttp/issues/5222
+    server.useHttps(handshakeCertificates.sslSocketFactory(), false);
+    // unused
+    server.enqueue(new MockResponse());
+    try {
+        getResponse(newRequest("/foo"));
+        fail();
+    } catch (SSLHandshakeException expected) {
+        // Allow conscrypt to fail in different ways
+        if (!platform.isConscrypt()) {
+            assertThat(expected.getCause()).isInstanceOf(CertificateException.class);
+        }
+    }
+    assertThat(server.getRequestCount()).isEqualTo(0);
+}

@@ -1,0 +1,18 @@
+@Test
+public void serverMessageLengthLong() throws IOException {
+    Sink sink = serverWriter.newMessageSink(OPCODE_BINARY, -1);
+    // Create a payload which will overflow the normal and short payload byte size.
+    Buffer payload = new Buffer();
+    while (payload.completeSegmentByteCount() <= PAYLOAD_SHORT_MAX) {
+        payload.writeByte('0');
+    }
+    long byteCount = payload.completeSegmentByteCount();
+    // Write directly to the unbuffered sink. This ensures it will become single frame.
+    sink.write(payload.clone(), byteCount);
+    // 'f' == 16-byte follow-up length.
+    assertData("027f");
+    assertData(Util.format("%016X", byteCount));
+    assertData(payload.readByteArray(byteCount));
+    sink.close();
+    assertData("8000");
+}

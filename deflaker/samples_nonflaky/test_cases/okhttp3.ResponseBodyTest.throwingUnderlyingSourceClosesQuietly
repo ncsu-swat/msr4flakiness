@@ -1,0 +1,29 @@
+@Test
+public void throwingUnderlyingSourceClosesQuietly() throws IOException {
+    ResponseBody body = new ResponseBody() {
+
+        @Override
+        public MediaType contentType() {
+            return null;
+        }
+
+        @Override
+        public long contentLength() {
+            return 5;
+        }
+
+        @Override
+        public BufferedSource source() {
+            Buffer source = new Buffer().writeUtf8("hello");
+            return Okio.buffer(new ForwardingSource(source) {
+
+                @Override
+                public void close() throws IOException {
+                    throw new IOException("Broken!");
+                }
+            });
+        }
+    };
+    assertThat(body.source().readUtf8()).isEqualTo("hello");
+    body.close();
+}

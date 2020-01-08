@@ -1,0 +1,20 @@
+/**
+ * Tolerate bad https proxy response when using HttpResponseCache. Android bug 6754912.
+ */
+@Test
+public void connectViaHttpProxyToHttpsUsingBadProxyAndHttpResponseCache() throws Exception {
+    initResponseCache();
+    server.useHttps(handshakeCertificates.sslSocketFactory(), true);
+    // The inclusion of a body in the response to a CONNECT is key to reproducing b/6754912.
+    MockResponse badProxyResponse = new MockResponse().setSocketPolicy(UPGRADE_TO_SSL_AT_END).setBody("bogus proxy connect response content");
+    server.enqueue(badProxyResponse);
+    server.enqueue(new MockResponse().setBody("response"));
+    // Configure a single IP address for the host and a single configuration, so we only need one
+    // failure to fail permanently.
+    client = client.newBuilder().sslSocketFactory(handshakeCertificates.sslSocketFactory(), handshakeCertificates.trustManager()).connectionSpecs(immutableListOf(ConnectionSpec.MODERN_TLS)).hostnameVerifier(new RecordingHostnameVerifier()).proxy(server.toProxyAddress()).build();
+    Response response = getResponse(new Request.Builder().url(HttpUrl.get("https://android.com/foo")).build());
+    assertContent("response", response);
+    RecordedRequest connect = server.takeRequest();
+    assertThat(connect.getRequestLine()).isEqualTo("CONNECT android.com:443 HTTP/1.1");
+    assertThat(connect.getHeader("Host")).isEqualTo("android.com:443");
+}

@@ -1,0 +1,11 @@
+@Test
+public void getHeadersReturnsCachedHopByHopHeaders() throws Exception {
+    server.enqueue(new MockResponse().addHeader("Transfer-Encoding: identity").addHeader("Last-Modified: " + formatDate(-1, TimeUnit.HOURS)).addHeader("Cache-Control: max-age=0").setBody("A"));
+    server.enqueue(new MockResponse().addHeader("Transfer-Encoding: none").setResponseCode(HttpURLConnection.HTTP_NOT_MODIFIED));
+    Response response1 = get(server.url("/"));
+    assertThat(response1.body().string()).isEqualTo("A");
+    assertThat(response1.header("Transfer-Encoding")).isEqualTo("identity");
+    Response response2 = get(server.url("/"));
+    assertThat(response2.body().string()).isEqualTo("A");
+    assertThat(response2.header("Transfer-Encoding")).isEqualTo("identity");
+}

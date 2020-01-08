@@ -1,0 +1,24 @@
+@Test
+public void rebuildJournalFailureWithInFlightEditors() throws Exception {
+    while (taskFaker.isIdle()) {
+        set("a", "a", "a");
+        set("b", "b", "b");
+    }
+    DiskLruCache.Editor commitEditor = cache.edit("c");
+    DiskLruCache.Editor abortEditor = cache.edit("d");
+    // Grab an editor, but don't do anything with it.
+    cache.edit("e");
+    // Cause the rebuild action to fail.
+    fileSystem.setFaultyRename(new File(cacheDir, DiskLruCache.JOURNAL_FILE_BACKUP), true);
+    taskFaker.runNextTask();
+    // In-flight editors can commit and have their values retained.
+    setString(commitEditor, 0, "c");
+    setString(commitEditor, 1, "c");
+    commitEditor.commit();
+    assertValue("c", "c", "c");
+    abortEditor.abort();
+    // Let the rebuild complete successfully.
+    fileSystem.setFaultyRename(new File(cacheDir, DiskLruCache.JOURNAL_FILE_BACKUP), false);
+    taskFaker.runNextTask();
+    assertJournalEquals("CLEAN a 1 1", "CLEAN b 1 1", "DIRTY e", "CLEAN c 1 1");
+}

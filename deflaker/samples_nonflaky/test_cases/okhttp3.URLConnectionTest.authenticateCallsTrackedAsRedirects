@@ -1,0 +1,13 @@
+@Test
+public void authenticateCallsTrackedAsRedirects() throws Exception {
+    server.enqueue(new MockResponse().setResponseCode(302).addHeader("Location: /b"));
+    server.enqueue(new MockResponse().setResponseCode(401).addHeader("WWW-Authenticate: Basic realm=\"protected area\""));
+    server.enqueue(new MockResponse().setBody("c"));
+    RecordingOkAuthenticator authenticator = new RecordingOkAuthenticator(Credentials.basic("jesse", "peanutbutter"), "Basic");
+    client = client.newBuilder().authenticator(authenticator).build();
+    assertContent("c", getResponse(newRequest("/a")));
+    Response challengeResponse = authenticator.responses.get(0);
+    assertThat(challengeResponse.request().url().url().getPath()).isEqualTo("/b");
+    Response redirectedBy = challengeResponse.priorResponse();
+    assertThat(redirectedBy.request().url().url().getPath()).isEqualTo("/a");
+}

@@ -1,0 +1,11 @@
+@Test
+public void unsuccessfulExpectContinuePermitsConnectionReuseWithHttp2() throws Exception {
+    platform.assumeHttp2Support();
+    enableProtocol(Protocol.HTTP_2);
+    server.enqueue(new MockResponse());
+    server.enqueue(new MockResponse());
+    executeSynchronously(new Request.Builder().url(server.url("/")).header("Expect", "100-continue").post(RequestBody.create("abc", MediaType.get("text/plain"))).build());
+    executeSynchronously(new Request.Builder().url(server.url("/")).build());
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(0);
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(1);
+}

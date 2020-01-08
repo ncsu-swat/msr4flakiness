@@ -1,0 +1,8 @@
+@Test
+public void endOfStreamResponseIsNotPooled() throws Exception {
+    client.connectionPool().evictAll();
+    server.enqueue(new MockResponse().setBody("{}").clearHeaders().setSocketPolicy(DISCONNECT_AT_END));
+    Response response = getResponse(newRequest("/"));
+    assertContent("{}", response);
+    assertThat(client.connectionPool().idleConnectionCount()).isEqualTo(0);
+}

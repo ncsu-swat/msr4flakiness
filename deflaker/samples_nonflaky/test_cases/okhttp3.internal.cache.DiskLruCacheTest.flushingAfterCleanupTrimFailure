@@ -1,0 +1,17 @@
+@Test
+public void flushingAfterCleanupTrimFailure() throws Exception {
+    cache.setMaxSize(8);
+    taskFaker.runNextTask();
+    set("a", "aa", "aa");
+    set("b", "bb", "bbb");
+    // Cause the cache trim job to fail.
+    fileSystem.setFaultyDelete(new File(cacheDir, "a.0"), true);
+    taskFaker.runNextTask();
+    // Confirm we prevent edits after a trim failure.
+    assertThat(cache.edit("c")).isNull();
+    // A successful flush trims the cache and should allow new writes.
+    fileSystem.setFaultyDelete(new File(cacheDir, "a.0"), false);
+    cache.flush();
+    set("c", "cc", "cc");
+    assertValue("c", "cc", "cc");
+}

@@ -1,0 +1,8 @@
+@Test
+public void authenticateNoConnection() throws Exception {
+    server.enqueue(new MockResponse().addHeader("Connection: close").setResponseCode(401).setSocketPolicy(SocketPolicy.DISCONNECT_AT_END));
+    Authenticator.setDefault(new RecordingAuthenticator(null));
+    client = client.newBuilder().authenticator(new JavaNetAuthenticator()).build();
+    Response response = getResponse(newRequest("/"));
+    assertThat(response.code()).isEqualTo(401);
+}

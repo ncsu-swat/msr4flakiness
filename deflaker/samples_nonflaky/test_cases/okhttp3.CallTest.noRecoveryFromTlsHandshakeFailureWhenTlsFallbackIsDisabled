@@ -1,0 +1,19 @@
+@Test
+public void noRecoveryFromTlsHandshakeFailureWhenTlsFallbackIsDisabled() throws Exception {
+    client = client.newBuilder().connectionSpecs(asList(ConnectionSpec.MODERN_TLS, ConnectionSpec.CLEARTEXT)).hostnameVerifier(new RecordingHostnameVerifier()).sslSocketFactory(suppressTlsFallbackClientSocketFactory(), handshakeCertificates.trustManager()).build();
+    server.useHttps(handshakeCertificates.sslSocketFactory(), false);
+    server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.FAIL_HANDSHAKE));
+    Request request = new Request.Builder().url(server.url("/")).build();
+    try {
+        client.newCall(request).execute();
+        fail();
+    } catch (SSLProtocolException expected) {
+    // RI response to the FAIL_HANDSHAKE
+    } catch (SSLHandshakeException expected) {
+    // Android's response to the FAIL_HANDSHAKE
+    } catch (SSLException expected) {
+        // JDK 11 response to the FAIL_HANDSHAKE
+        String jvmVersion = System.getProperty("java.specification.version");
+        assertThat(jvmVersion).isEqualTo("11");
+    }
+}

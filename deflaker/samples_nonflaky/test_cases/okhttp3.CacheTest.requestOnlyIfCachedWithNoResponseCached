@@ -1,0 +1,11 @@
+@Test
+public void requestOnlyIfCachedWithNoResponseCached() throws IOException {
+    // (no responses enqueued)
+    Request request = new Request.Builder().url(server.url("/")).header("Cache-Control", "only-if-cached").build();
+    Response response = client.newCall(request).execute();
+    assertThat(response.body().source().exhausted()).isTrue();
+    assertThat(response.code()).isEqualTo(504);
+    assertThat(cache.requestCount()).isEqualTo(1);
+    assertThat(cache.networkCount()).isEqualTo(0);
+    assertThat(cache.hitCount()).isEqualTo(0);
+}

@@ -1,0 +1,15 @@
+@Test
+public void responseHeaderParsingIsLenient() throws Exception {
+    Headers.Builder headersBuilder = new Headers.Builder();
+    headersBuilder.add("Content-Length", "0");
+    addHeaderLenient(headersBuilder, "a\tb: c\u007fd");
+    addHeaderLenient(headersBuilder, ": ef");
+    addHeaderLenient(headersBuilder, "\ud83c\udf69: \u2615\ufe0f");
+    Headers headers = headersBuilder.build();
+    server.enqueue(new MockResponse().setHeaders(headers));
+    Response response = getResponse(newRequest("/"));
+    assertThat(response.code()).isEqualTo(200);
+    assertThat(response.header("a\tb")).isEqualTo("c\u007fd");
+    assertThat(response.header("\ud83c\udf69")).isEqualTo("\u2615\ufe0f");
+    assertThat(response.header("")).isEqualTo("ef");
+}

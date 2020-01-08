@@ -1,0 +1,25 @@
+@Test
+public void chainWithWriteTimeout() throws Exception {
+    Interceptor interceptor1 = chainA -> {
+        assertThat(chainA.writeTimeoutMillis()).isEqualTo(5000);
+        Interceptor.Chain chainB = chainA.withWriteTimeout(100, TimeUnit.MILLISECONDS);
+        assertThat(chainB.writeTimeoutMillis()).isEqualTo(100);
+        return chainB.proceed(chainA.request());
+    };
+    Interceptor interceptor2 = chain -> {
+        assertThat(chain.writeTimeoutMillis()).isEqualTo(100);
+        return chain.proceed(chain.request());
+    };
+    client = client.newBuilder().writeTimeout(5, TimeUnit.SECONDS).addInterceptor(interceptor1).addInterceptor(interceptor2).build();
+    server.enqueue(new MockResponse().setBody("abc").throttleBody(1, 1, TimeUnit.SECONDS));
+    // 2 MiB.
+    byte[] data = new byte[2 * 1024 * 1024];
+    Request request1 = new Request.Builder().url(server.url("/")).post(RequestBody.create(data, MediaType.get("text/plain"))).build();
+    Call call = client.newCall(request1);
+    try {
+        // we want this call to throw a SocketTimeoutException
+        call.execute();
+        fail();
+    } catch (SocketTimeoutException expected) {
+    }
+}

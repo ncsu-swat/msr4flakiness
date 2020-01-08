@@ -1,0 +1,14 @@
+@Test
+public void clientReadsHeadersDataTrailers() throws Exception {
+    enableProtocol(Protocol.HTTP_2);
+    MockDuplexResponseBody mockDuplexResponseBody = enqueueResponseWithBody(new MockResponse().clearHeaders().addHeader("h1", "v1").addHeader("h2", "v2").setTrailers(Headers.of("trailers", "boom")), new MockDuplexResponseBody().sendResponse("ok").exhaustResponse());
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).build());
+    try (Response response = call.execute()) {
+        assertThat(response.headers()).isEqualTo(Headers.of("h1", "v1", "h2", "v2"));
+        BufferedSource responseBody = response.body().source();
+        assertThat(responseBody.readUtf8(2)).isEqualTo("ok");
+        assertTrue(responseBody.exhausted());
+        assertThat(response.trailers()).isEqualTo(Headers.of("trailers", "boom"));
+    }
+    mockDuplexResponseBody.awaitSuccess();
+}

@@ -1,0 +1,14 @@
+@Test
+public void defaultExpirationDateFullyCachedForLessThan24Hours() throws Exception {
+    // last modified: 105 seconds ago
+    // served:   5 seconds ago
+    // default lifetime: (105 - 5) / 10 = 10 seconds
+    // expires:  10 seconds from served date = 5 seconds from now
+    server.enqueue(new MockResponse().addHeader("Last-Modified: " + formatDate(-105, TimeUnit.SECONDS)).addHeader("Date: " + formatDate(-5, TimeUnit.SECONDS)).setBody("A"));
+    HttpUrl url = server.url("/");
+    Response response1 = get(url);
+    assertThat(response1.body().string()).isEqualTo("A");
+    Response response2 = get(url);
+    assertThat(response2.body().string()).isEqualTo("A");
+    assertThat(response2.header("Warning")).isNull();
+}

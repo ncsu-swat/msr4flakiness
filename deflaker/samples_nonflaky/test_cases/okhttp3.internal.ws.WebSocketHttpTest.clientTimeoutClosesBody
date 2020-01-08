@@ -1,0 +1,13 @@
+@Test
+public void clientTimeoutClosesBody() {
+    webServer.enqueue(new MockResponse().setResponseCode(408));
+    webServer.enqueue(new MockResponse().withWebSocketUpgrade(serverListener));
+    WebSocket webSocket = newWebSocket();
+    clientListener.assertOpen();
+    WebSocket server = serverListener.assertOpen();
+    webSocket.send("abc");
+    serverListener.assertTextMessage("abc");
+    server.send("def");
+    clientListener.assertTextMessage("def");
+    closeWebSockets(webSocket, server);
+}

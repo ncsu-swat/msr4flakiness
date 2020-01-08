@@ -1,0 +1,11 @@
+@Test
+public void contentDisagreesWithChunkedHeaderBodyTooLong() throws IOException {
+    MockResponse mockResponse = new MockResponse().setChunkedBody("abc", 3);
+    Buffer buffer = mockResponse.getBody();
+    buffer.writeUtf8("\r\nYOU SHOULD NOT SEE THIS");
+    mockResponse.setBody(buffer);
+    mockResponse.clearHeaders();
+    mockResponse.addHeader("Transfer-encoding: chunked");
+    server.enqueue(mockResponse);
+    assertContent("abc", getResponse(newRequest("/")));
+}

@@ -1,0 +1,19 @@
+@Test
+public void testCookiesSentIgnoresCase() throws Exception {
+    client = client.newBuilder().cookieJar(new JavaNetCookieJar(new CookieManager() {
+
+        @Override
+        public Map<String, List<String>> get(URI uri, Map<String, List<String>> requestHeaders) throws IOException {
+            Map<String, List<String>> result = new LinkedHashMap<>();
+            result.put("COOKIE", Collections.singletonList("Bar=bar"));
+            result.put("cooKIE2", Collections.singletonList("Baz=baz"));
+            return result;
+        }
+    })).build();
+    server.enqueue(new MockResponse());
+    get(server.url("/"));
+    RecordedRequest request = server.takeRequest();
+    assertThat(request.getHeader("Cookie")).isEqualTo("Bar=bar; Baz=baz");
+    assertThat(request.getHeader("Cookie2")).isNull();
+    assertThat(request.getHeader("Quux")).isNull();
+}

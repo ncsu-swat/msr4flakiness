@@ -1,0 +1,25 @@
+@Test
+public void connectionsEvictedWhenIdleLongEnough() throws Exception {
+    RealConnectionPool pool = new RealConnectionPool(taskRunner, Integer.MAX_VALUE, 100L, TimeUnit.NANOSECONDS);
+    RealConnection c1 = newConnection(pool, routeA1, 50L);
+    // Running at time 50, the pool returns that nothing can be evicted until time 150.
+    assertThat(pool.cleanup(50L)).isEqualTo(100L);
+    assertThat(pool.connectionCount()).isEqualTo(1);
+    assertThat(c1.socket().isClosed()).isFalse();
+    // Running at time 60, the pool returns that nothing can be evicted until time 150.
+    assertThat(pool.cleanup(60L)).isEqualTo(90L);
+    assertThat(pool.connectionCount()).isEqualTo(1);
+    assertThat(c1.socket().isClosed()).isFalse();
+    // Running at time 149, the pool returns that nothing can be evicted until time 150.
+    assertThat(pool.cleanup(149L)).isEqualTo(1L);
+    assertThat(pool.connectionCount()).isEqualTo(1);
+    assertThat(c1.socket().isClosed()).isFalse();
+    // Running at time 150, the pool evicts.
+    assertThat(pool.cleanup(150L)).isEqualTo(0);
+    assertThat(pool.connectionCount()).isEqualTo(0);
+    assertThat(c1.socket().isClosed()).isTrue();
+    // Running again, the pool reports that no further runs are necessary.
+    assertThat(pool.cleanup(150L)).isEqualTo(-1);
+    assertThat(pool.connectionCount()).isEqualTo(0);
+    assertThat(c1.socket().isClosed()).isTrue();
+}

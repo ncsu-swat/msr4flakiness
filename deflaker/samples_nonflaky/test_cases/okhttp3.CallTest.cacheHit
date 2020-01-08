@@ -1,0 +1,20 @@
+@Test
+public void cacheHit() throws Exception {
+    server.enqueue(new MockResponse().addHeader("ETag: v1").addHeader("Cache-Control: max-age=60").addHeader("Vary: Accept-Charset").setBody("A"));
+    client = client.newBuilder().cache(cache).build();
+    // Store a response in the cache.
+    HttpUrl url = server.url("/");
+    long request1SentAt = System.currentTimeMillis();
+    executeSynchronously("/", "Accept-Language", "fr-CA", "Accept-Charset", "UTF-8").assertCode(200).assertBody("A");
+    long request1ReceivedAt = System.currentTimeMillis();
+    assertThat(server.takeRequest().getHeader("If-None-Match")).isNull();
+    // Hit that stored response. It's different, but Vary says it doesn't matter.
+    // Make sure the timestamps are unique.
+    Thread.sleep(10);
+    RecordedResponse cacheHit = executeSynchronously("/", "Accept-Language", "en-US", "Accept-Charset", "UTF-8");
+    // Check the merged response. The request is the application's original request.
+    cacheHit.assertCode(200).assertBody("A").assertHeaders(new Headers.Builder().add("ETag", "v1").add("Cache-Control", "max-age=60").add("Vary", "Accept-Charset").add("Content-Length", "1").build()).assertRequestUrl(url).assertRequestHeader("Accept-Language", "en-US").assertRequestHeader("Accept-Charset", "UTF-8").assertSentRequestAtMillis(request1SentAt, request1ReceivedAt).assertReceivedResponseAtMillis(request1SentAt, request1ReceivedAt);
+    // Check the cached response. Its request contains only the saved Vary headers.
+    cacheHit.cacheResponse().assertCode(200).assertHeaders(new Headers.Builder().add("ETag", "v1").add("Cache-Control", "max-age=60").add("Vary", "Accept-Charset").add("Content-Length", "1").build()).assertRequestMethod("GET").assertRequestUrl(url).assertRequestHeader("Accept-Language").assertRequestHeader("Accept-Charset", "UTF-8").assertSentRequestAtMillis(request1SentAt, request1ReceivedAt).assertReceivedResponseAtMillis(request1SentAt, request1ReceivedAt);
+    cacheHit.assertNoNetworkResponse();
+}

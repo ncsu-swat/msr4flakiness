@@ -1,0 +1,23 @@
+/**
+ * We've had bugs where caching and cross-protocol redirects yield class cast exceptions internal
+ * to the cache because we incorrectly assumed that HttpsURLConnection was always HTTPS and
+ * HttpURLConnection was always HTTP; in practice redirects mean that each can do either.
+ *
+ * https://github.com/square/okhttp/issues/214
+ */
+@Test
+public void secureResponseCachingAndProtocolRedirects() throws IOException {
+    server2.useHttps(handshakeCertificates.sslSocketFactory(), false);
+    server2.enqueue(new MockResponse().addHeader("Last-Modified: " + formatDate(-1, TimeUnit.HOURS)).addHeader("Expires: " + formatDate(1, TimeUnit.HOURS)).setBody("ABC"));
+    server2.enqueue(new MockResponse().setBody("DEF"));
+    server.enqueue(new MockResponse().addHeader("Last-Modified: " + formatDate(-1, TimeUnit.HOURS)).addHeader("Expires: " + formatDate(1, TimeUnit.HOURS)).setResponseCode(HttpURLConnection.HTTP_MOVED_PERM).addHeader("Location: " + server2.url("/")));
+    client = client.newBuilder().sslSocketFactory(handshakeCertificates.sslSocketFactory(), handshakeCertificates.trustManager()).hostnameVerifier(NULL_HOSTNAME_VERIFIER).build();
+    Response response1 = get(server.url("/"));
+    assertThat(response1.body().string()).isEqualTo("ABC");
+    // Cached!
+    Response response2 = get(server.url("/"));
+    assertThat(response2.body().string()).isEqualTo("ABC");
+    // 2 direct + 2 redirect = 4
+    assertThat(cache.requestCount()).isEqualTo(4);
+    assertThat(cache.hitCount()).isEqualTo(2);
+}

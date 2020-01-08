@@ -1,0 +1,10 @@
+@Test
+public void binaryMessage() {
+    webServer.enqueue(new MockResponse().withWebSocketUpgrade(serverListener));
+    WebSocket webSocket = newWebSocket();
+    clientListener.assertOpen();
+    WebSocket server = serverListener.assertOpen();
+    webSocket.send(ByteString.encodeUtf8("Hello!"));
+    serverListener.assertBinaryMessage(ByteString.of(new byte[] { 'H', 'e', 'l', 'l', 'o', '!' }));
+    closeWebSockets(webSocket, server);
+}

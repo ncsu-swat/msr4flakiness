@@ -1,0 +1,22 @@
+@Test
+public void successfulCallEventSequenceForEnqueue() throws Exception {
+    server.enqueue(new MockResponse().setBody("abc"));
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).build());
+    final CountDownLatch completionLatch = new CountDownLatch(1);
+    Callback callback = new Callback() {
+
+        @Override
+        public void onFailure(Call call, IOException e) {
+            completionLatch.countDown();
+        }
+
+        @Override
+        public void onResponse(Call call, Response response) {
+            response.close();
+            completionLatch.countDown();
+        }
+    };
+    call.enqueue(callback);
+    completionLatch.await();
+    assertThat(listener.recordedEventTypes()).containsExactly("CallStart", "ProxySelectStart", "ProxySelectEnd", "DnsStart", "DnsEnd", "ConnectStart", "ConnectEnd", "ConnectionAcquired", "RequestHeadersStart", "RequestHeadersEnd", "ResponseHeadersStart", "ResponseHeadersEnd", "ResponseBodyStart", "ResponseBodyEnd", "ConnectionReleased", "CallEnd");
+}

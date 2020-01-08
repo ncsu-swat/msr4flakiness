@@ -1,0 +1,19 @@
+@Test
+public void networkInterceptorReturnsNull() throws Exception {
+    server.enqueue(new MockResponse());
+    Interceptor interceptor = chain -> {
+        chain.proceed(chain.request());
+        return null;
+    };
+    client = client.newBuilder().addNetworkInterceptor(interceptor).build();
+    ExceptionCatchingExecutor executor = new ExceptionCatchingExecutor();
+    client = client.newBuilder().dispatcher(new Dispatcher(executor)).build();
+    Request request = new Request.Builder().url(server.url("/")).build();
+    try {
+        client.newCall(request).execute();
+        fail();
+    } catch (NullPointerException expected) {
+        expected.printStackTrace();
+        assertThat(expected.getMessage()).isEqualTo(("interceptor " + interceptor + " returned null"));
+    }
+}

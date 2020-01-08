@@ -1,0 +1,12 @@
+@Test
+public void connectionPooling() throws Exception {
+    server.enqueue(new MockResponse().setBody("abc"));
+    server.enqueue(new MockResponse().setBody("def"));
+    server.enqueue(new MockResponse().setBody("ghi"));
+    executeSynchronously("/a").assertBody("abc");
+    executeSynchronously("/b").assertBody("def");
+    executeSynchronously("/c").assertBody("ghi");
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(0);
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(1);
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(2);
+}

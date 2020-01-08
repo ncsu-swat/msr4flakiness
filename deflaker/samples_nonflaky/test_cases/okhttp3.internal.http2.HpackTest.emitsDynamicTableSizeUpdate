@@ -1,0 +1,18 @@
+@Test
+public void emitsDynamicTableSizeUpdate() throws IOException {
+    hpackWriter.resizeHeaderTable(2048);
+    hpackWriter.writeHeaders(asList(new Header("foo", "bar")));
+    assertBytes(// Dynamic table size update (size = 2048).
+    0x3F, // Dynamic table size update (size = 2048).
+    0xE1, // Dynamic table size update (size = 2048).
+    0xF, 0x40, 3, 'f', 'o', 'o', 3, 'b', 'a', 'r');
+    hpackWriter.resizeHeaderTable(8192);
+    hpackWriter.writeHeaders(asList(new Header("bar", "foo")));
+    assertBytes(// Dynamic table size update (size = 8192).
+    0x3F, // Dynamic table size update (size = 8192).
+    0xE1, // Dynamic table size update (size = 8192).
+    0x3F, 0x40, 3, 'b', 'a', 'r', 3, 'f', 'o', 'o');
+    // No more dynamic table updates should be emitted.
+    hpackWriter.writeHeaders(asList(new Header("far", "boo")));
+    assertBytes(0x40, 3, 'f', 'a', 'r', 3, 'b', 'o', 'o');
+}

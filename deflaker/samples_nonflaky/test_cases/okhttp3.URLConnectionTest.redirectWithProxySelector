@@ -1,0 +1,22 @@
+@Test
+public void redirectWithProxySelector() throws Exception {
+    final List<URI> proxySelectionRequests = new ArrayList<>();
+    client = client.newBuilder().proxySelector(new ProxySelector() {
+
+        @Override
+        public List<Proxy> select(URI uri) {
+            proxySelectionRequests.add(uri);
+            MockWebServer proxyServer = (uri.getPort() == server.getPort()) ? server : server2;
+            return asList(proxyServer.toProxyAddress());
+        }
+
+        @Override
+        public void connectFailed(URI uri, SocketAddress address, IOException failure) {
+            throw new AssertionError();
+        }
+    }).build();
+    server2.enqueue(new MockResponse().setBody("This is the 2nd server!"));
+    server.enqueue(new MockResponse().setResponseCode(HttpURLConnection.HTTP_MOVED_TEMP).addHeader("Location: " + server2.url("/b").toString()).setBody("This page has moved!"));
+    assertContent("This is the 2nd server!", getResponse(newRequest("/a")));
+    assertThat(proxySelectionRequests).isEqualTo(asList(server.url("/").url().toURI(), server2.url("/").url().toURI()));
+}

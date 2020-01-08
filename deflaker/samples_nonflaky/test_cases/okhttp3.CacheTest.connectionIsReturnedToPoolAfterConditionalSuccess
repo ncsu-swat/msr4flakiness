@@ -1,0 +1,12 @@
+@Test
+public void connectionIsReturnedToPoolAfterConditionalSuccess() throws Exception {
+    server.enqueue(new MockResponse().addHeader("Last-Modified: " + formatDate(-1, TimeUnit.HOURS)).addHeader("Cache-Control: max-age=0").setBody("A"));
+    server.enqueue(new MockResponse().setResponseCode(HttpURLConnection.HTTP_NOT_MODIFIED));
+    server.enqueue(new MockResponse().setBody("B"));
+    assertThat(get(server.url("/a")).body().string()).isEqualTo("A");
+    assertThat(get(server.url("/a")).body().string()).isEqualTo("A");
+    assertThat(get(server.url("/b")).body().string()).isEqualTo("B");
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(0);
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(1);
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(2);
+}

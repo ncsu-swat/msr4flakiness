@@ -1,0 +1,9 @@
+@Test
+public void clientCanWriteMessagesAfterServerClose() throws IOException {
+    server.webSocket.close(1000, "Hello!");
+    client.processNextFrame();
+    client.listener.assertClosing(1000, "Hello!");
+    assertThat(client.webSocket.send("Hi!")).isTrue();
+    server.processNextFrame();
+    server.listener.assertTextMessage("Hi!");
+}

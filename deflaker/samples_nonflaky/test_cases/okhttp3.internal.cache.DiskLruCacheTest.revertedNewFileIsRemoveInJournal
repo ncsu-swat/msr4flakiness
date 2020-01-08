@@ -1,0 +1,11 @@
+@Test
+public void revertedNewFileIsRemoveInJournal() throws Exception {
+    DiskLruCache.Editor creator = cache.edit("k1");
+    // DIRTY must always be flushed.
+    assertJournalEquals("DIRTY k1");
+    setString(creator, 0, "AB");
+    setString(creator, 1, "C");
+    creator.abort();
+    cache.close();
+    assertJournalEquals("DIRTY k1", "REMOVE k1");
+}

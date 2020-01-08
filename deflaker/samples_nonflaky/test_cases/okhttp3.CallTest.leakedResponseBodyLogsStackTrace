@@ -1,0 +1,11 @@
+@Test
+public void leakedResponseBodyLogsStackTrace() throws Exception {
+    server.enqueue(new MockResponse().setBody("This gets leaked."));
+    client = clientTestRule.newClientBuilder().connectionPool(new ConnectionPool(0, 10, TimeUnit.MILLISECONDS)).build();
+    Request request = new Request.Builder().url(server.url("/")).build();
+    // Ignore the response so it gets leaked then GC'd.
+    client.newCall(request).execute();
+    awaitGarbageCollection();
+    String message = testLogHandler.take();
+    assertThat(message).contains("A connection to " + server.url("/") + " was leaked." + " Did you forget to close a response body?");
+}

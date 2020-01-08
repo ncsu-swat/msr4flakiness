@@ -1,0 +1,47 @@
+@Test
+public void readerEviction() throws IOException {
+    List<Header> headerBlock = headerEntries("custom-foo", "custom-header", "custom-bar", "custom-header", "custom-baz", "custom-header");
+    // Set to only support 110 bytes (enough for 2 headers).
+    // Dynamic table size update (size = 110).
+    bytesIn.writeByte(0x3F);
+    bytesIn.writeByte(0x4F);
+    // Literal indexed
+    bytesIn.writeByte(0x40);
+    // Literal name (len = 10)
+    bytesIn.writeByte(0x0a);
+    bytesIn.writeUtf8("custom-foo");
+    // Literal value (len = 13)
+    bytesIn.writeByte(0x0d);
+    bytesIn.writeUtf8("custom-header");
+    // Literal indexed
+    bytesIn.writeByte(0x40);
+    // Literal name (len = 10)
+    bytesIn.writeByte(0x0a);
+    bytesIn.writeUtf8("custom-bar");
+    // Literal value (len = 13)
+    bytesIn.writeByte(0x0d);
+    bytesIn.writeUtf8("custom-header");
+    // Literal indexed
+    bytesIn.writeByte(0x40);
+    // Literal name (len = 10)
+    bytesIn.writeByte(0x0a);
+    bytesIn.writeUtf8("custom-baz");
+    // Literal value (len = 13)
+    bytesIn.writeByte(0x0d);
+    bytesIn.writeUtf8("custom-header");
+    hpackReader.readHeaders();
+    assertThat(hpackReader.headerCount).isEqualTo(2);
+    Header entry1 = hpackReader.dynamicTable[readerHeaderTableLength() - 1];
+    checkEntry(entry1, "custom-bar", "custom-header", 55);
+    Header entry2 = hpackReader.dynamicTable[readerHeaderTableLength() - 2];
+    checkEntry(entry2, "custom-baz", "custom-header", 55);
+    // Once a header field is decoded and added to the reconstructed header
+    // list, it cannot be removed from it. Hence, foo is here.
+    assertThat(hpackReader.getAndResetHeaderList()).isEqualTo(headerBlock);
+    // Simulate receiving a small dynamic table size update, that implies eviction.
+    // Dynamic table size update (size = 55).
+    bytesIn.writeByte(0x3F);
+    bytesIn.writeByte(0x18);
+    hpackReader.readHeaders();
+    assertThat(hpackReader.headerCount).isEqualTo(1);
+}

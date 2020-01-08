@@ -1,0 +1,18 @@
+/**
+ * http://tools.ietf.org/html/draft-ietf-httpbis-header-compression-12#appendix-C.2.2
+ */
+@Test
+public void literalHeaderFieldWithoutIndexingIndexedName() throws IOException {
+    List<Header> headerBlock = headerEntries(":path", "/sample/path");
+    // == Literal not indexed ==
+    bytesIn.writeByte(0x04);
+    // Indexed name (idx = 4) -> :path
+    // Literal value (len = 12)
+    bytesIn.writeByte(0x0c);
+    bytesIn.writeUtf8("/sample/path");
+    hpackWriter.writeHeaders(headerBlock);
+    assertThat(bytesOut).isEqualTo(bytesIn);
+    hpackReader.readHeaders();
+    assertThat(hpackReader.headerCount).isEqualTo(0);
+    assertThat(hpackReader.getAndResetHeaderList()).isEqualTo(headerBlock);
+}

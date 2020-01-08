@@ -1,0 +1,13 @@
+/**
+ * The RFC is unclear in this regard as it only specifies that this should invalidate the cache
+ * entry (if any).
+ */
+@Test
+public void bodyPermittedOnDelete() throws Exception {
+    server.enqueue(new MockResponse());
+    Response response = getResponse(new Request.Builder().url(server.url("/")).delete(RequestBody.create("BODY", null)).build());
+    assertThat(response.code()).isEqualTo(200);
+    RecordedRequest request = server.takeRequest();
+    assertThat(request.getMethod()).isEqualTo("DELETE");
+    assertThat(request.getBody().readUtf8()).isEqualTo("BODY");
+}

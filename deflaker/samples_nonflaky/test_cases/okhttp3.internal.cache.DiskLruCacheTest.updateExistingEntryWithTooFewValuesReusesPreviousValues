@@ -1,0 +1,14 @@
+@Test
+public void updateExistingEntryWithTooFewValuesReusesPreviousValues() throws Exception {
+    DiskLruCache.Editor creator = cache.edit("k1");
+    setString(creator, 0, "A");
+    setString(creator, 1, "B");
+    creator.commit();
+    DiskLruCache.Editor updater = cache.edit("k1");
+    setString(updater, 0, "C");
+    updater.commit();
+    DiskLruCache.Snapshot snapshot = cache.get("k1");
+    assertSnapshotValue(snapshot, 0, "C");
+    assertSnapshotValue(snapshot, 1, "B");
+    snapshot.close();
+}

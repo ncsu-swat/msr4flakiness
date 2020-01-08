@@ -1,0 +1,20 @@
+@Test
+public void clientAndServerCloseClosesConnection() throws Exception {
+    // Send close from both sides at the same time.
+    server.webSocket.close(1000, "Hello!");
+    // Read close, close connection close.
+    client.processNextFrame();
+    assertThat(client.closed).isFalse();
+    client.webSocket.close(1000, "Hi!");
+    server.processNextFrame();
+    client.listener.assertClosing(1000, "Hello!");
+    server.listener.assertClosing(1000, "Hi!");
+    client.listener.assertClosed(1000, "Hello!");
+    server.listener.assertClosed(1000, "Hi!");
+    client.webSocket.awaitTermination(5, TimeUnit.SECONDS);
+    assertThat(client.closed).isTrue();
+    // Client should not have sent second close.
+    server.listener.assertExhausted();
+    // Server should not have sent second close.
+    client.listener.assertExhausted();
+}

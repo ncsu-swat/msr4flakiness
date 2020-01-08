@@ -1,0 +1,23 @@
+@Test
+public void readFailingRequestExample() throws IOException {
+    // == Indexed - Add ==
+    bytesIn.writeByte(0x82);
+    // idx = 2 -> :method: GET
+    // == Indexed - Add ==
+    bytesIn.writeByte(0x86);
+    // idx = 7 -> :scheme: http
+    // == Indexed - Add ==
+    bytesIn.writeByte(0x84);
+    // == Bad index! ==
+    bytesIn.writeByte(0x7f);
+    // Indexed name (idx = 4) -> :authority
+    // Literal value (len = 15)
+    bytesIn.writeByte(0x0f);
+    bytesIn.writeUtf8("www.example.com");
+    try {
+        hpackReader.readHeaders();
+        fail();
+    } catch (IOException e) {
+        assertThat(e.getMessage()).isEqualTo("Header index too large 78");
+    }
+}

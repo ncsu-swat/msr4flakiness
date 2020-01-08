@@ -1,0 +1,14 @@
+@Test
+public void editSinceEvicted() throws Exception {
+    cache.close();
+    createNewCacheWithSize(10);
+    // size 5
+    set("a", "aa", "aaa");
+    DiskLruCache.Snapshot snapshot = cache.get("a");
+    // size 5
+    set("b", "bb", "bbb");
+    // size 5; will evict 'A'
+    set("c", "cc", "ccc");
+    cache.flush();
+    assertThat(snapshot.edit()).isNull();
+}

@@ -1,0 +1,14 @@
+/**
+ * This test checks whether connections are gzipped by default. This behavior in not required by
+ * the API, so a failure of this test does not imply a bug in the implementation.
+ */
+@Test
+public void gzipEncodingEnabledByDefault() throws Exception {
+    server.enqueue(new MockResponse().setBody(gzip("ABCABCABC")).addHeader("Content-Encoding: gzip"));
+    Response response = getResponse(newRequest("/"));
+    assertThat(readAscii(response.body().byteStream(), Integer.MAX_VALUE)).isEqualTo("ABCABCABC");
+    assertThat(response.header("Content-Encoding")).isNull();
+    assertThat(response.body().contentLength()).isEqualTo(-1L);
+    RecordedRequest request = server.takeRequest();
+    assertThat(request.getHeader("Accept-Encoding")).isEqualTo("gzip");
+}

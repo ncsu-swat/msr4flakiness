@@ -1,0 +1,15 @@
+@Test
+public void customBasicAuthenticator() throws Exception {
+    server.enqueue(new MockResponse().setResponseCode(401).addHeader("WWW-Authenticate: Basic realm=\"protected area\"").setBody("Please authenticate."));
+    server.enqueue(new MockResponse().setBody("A"));
+    String credential = Credentials.basic("jesse", "peanutbutter");
+    RecordingOkAuthenticator authenticator = new RecordingOkAuthenticator(credential, null);
+    client = client.newBuilder().authenticator(authenticator).build();
+    assertContent("A", getResponse(newRequest("/private")));
+    assertThat(server.takeRequest().getHeader("Authorization")).isNull();
+    assertThat(server.takeRequest().getHeader("Authorization")).isEqualTo(credential);
+    assertThat(authenticator.onlyRoute().proxy()).isEqualTo(Proxy.NO_PROXY);
+    Response response = authenticator.onlyResponse();
+    assertThat(response.request().url().url().getPath()).isEqualTo("/private");
+    assertThat(response.challenges()).isEqualTo(asList(new Challenge("Basic", "protected area")));
+}

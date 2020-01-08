@@ -1,0 +1,16 @@
+@Test
+public void cancelWithInterceptor() throws Exception {
+    client = client.newBuilder().addInterceptor(chain -> {
+        chain.proceed(chain.request());
+        // We expect an exception.
+        throw new AssertionError();
+    }).build();
+    Call call = client.newCall(new Request.Builder().url(server.url("/a")).build());
+    call.cancel();
+    try {
+        call.execute();
+        fail();
+    } catch (IOException expected) {
+    }
+    assertThat(server.getRequestCount()).isEqualTo(0);
+}

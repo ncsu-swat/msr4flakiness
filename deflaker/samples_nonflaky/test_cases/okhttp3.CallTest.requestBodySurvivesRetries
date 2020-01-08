@@ -1,0 +1,10 @@
+@Test
+public void requestBodySurvivesRetries() throws Exception {
+    server.enqueue(new MockResponse());
+    // Enable a misconfigured proxy selector to guarantee that the request is retried.
+    client = client.newBuilder().proxySelector(new FakeProxySelector().addProxy(server2.toProxyAddress()).addProxy(Proxy.NO_PROXY)).build();
+    server2.shutdown();
+    Request request = new Request.Builder().url(server.url("/")).post(RequestBody.create("abc", MediaType.get("text/plain"))).build();
+    executeSynchronously(request);
+    assertThat(server.takeRequest().getBody().readUtf8()).isEqualTo("abc");
+}

@@ -1,0 +1,19 @@
+@Test
+public void missingClientAuthFailsForNeeds() throws Exception {
+    // Fails with 11.0.1 https://github.com/square/okhttp/issues/4598
+    // StreamReset stream was reset: PROT...
+    OkHttpClient client = buildClient(null, clientIntermediateCa.certificate());
+    SSLSocketFactory socketFactory = buildServerSslSocketFactory();
+    server.useHttps(socketFactory, false);
+    server.requireClientAuth();
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).build());
+    try {
+        call.execute();
+        fail();
+    } catch (SSLHandshakeException expected) {
+    } catch (SSLException expected) {
+        assertThat(PlatformVersion.INSTANCE.getMajorVersion()).isGreaterThanOrEqualTo(11);
+    } catch (SocketException expected) {
+        assertThat(getPlatformSystemProperty()).isIn(PlatformRule.JDK9_PROPERTY, PlatformRule.CONSCRYPT_PROPERTY);
+    }
+}

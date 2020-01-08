@@ -1,0 +1,13 @@
+@Test
+public void httpsCallsFailWhenProtocolIsH2PriorKnowledge() throws Exception {
+    client = client.newBuilder().protocols(Collections.singletonList(Protocol.H2_PRIOR_KNOWLEDGE)).build();
+    server.useHttps(handshakeCertificates.sslSocketFactory(), false);
+    server.enqueue(new MockResponse());
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).build());
+    try {
+        call.execute();
+        fail();
+    } catch (UnknownServiceException expected) {
+        assertThat(expected.getMessage()).isEqualTo("H2_PRIOR_KNOWLEDGE cannot be used with HTTPS");
+    }
+}

@@ -1,0 +1,22 @@
+@Test
+public void rebuildJournalFailureIsRetried() throws Exception {
+    while (taskFaker.isIdle()) {
+        set("a", "a", "a");
+        set("b", "b", "b");
+    }
+    // Cause the rebuild action to fail.
+    fileSystem.setFaultyRename(new File(cacheDir, DiskLruCache.JOURNAL_FILE_BACKUP), true);
+    taskFaker.runNextTask();
+    // The rebuild is retried on cache hits and on cache edits.
+    DiskLruCache.Snapshot snapshot = cache.get("b");
+    snapshot.close();
+    assertThat(cache.edit("d")).isNull();
+    assertThat(taskFaker.isIdle()).isFalse();
+    // On cache misses, no retry job is queued.
+    assertThat(cache.get("c")).isNull();
+    assertThat(taskFaker.isIdle()).isFalse();
+    // Let the rebuild complete successfully.
+    fileSystem.setFaultyRename(new File(cacheDir, DiskLruCache.JOURNAL_FILE_BACKUP), false);
+    taskFaker.runNextTask();
+    assertJournalEquals("CLEAN a 1 1", "CLEAN b 1 1");
+}

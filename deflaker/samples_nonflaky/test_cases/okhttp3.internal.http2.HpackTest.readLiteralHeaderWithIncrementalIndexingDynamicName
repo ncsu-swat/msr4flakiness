@@ -1,0 +1,16 @@
+@Test
+public void readLiteralHeaderWithIncrementalIndexingDynamicName() throws IOException {
+    bytesIn.writeByte(0x40);
+    // Literal name (len = 10)
+    bytesIn.writeByte(0x0a);
+    bytesIn.writeUtf8("custom-foo");
+    // Literal value (len = 5)
+    bytesIn.writeByte(0x05);
+    bytesIn.writeUtf8("Basic");
+    bytesIn.writeByte(0x7e);
+    // Literal value (len = 6)
+    bytesIn.writeByte(0x06);
+    bytesIn.writeUtf8("Basic2");
+    hpackReader.readHeaders();
+    assertThat(hpackReader.getAndResetHeaderList()).containsExactly(new Header("custom-foo", "Basic"), new Header("custom-foo", "Basic2"));
+}

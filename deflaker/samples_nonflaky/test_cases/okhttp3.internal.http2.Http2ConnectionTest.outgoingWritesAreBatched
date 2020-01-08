@@ -1,0 +1,27 @@
+@Test
+public void outgoingWritesAreBatched() throws Exception {
+    // write the mocking script
+    peer.sendFrame().settings(new Settings());
+    // ACK
+    peer.acceptFrame();
+    // SYN_STREAM
+    peer.acceptFrame();
+    peer.sendFrame().headers(false, 3, headerEntries("a", "android"));
+    // DATA
+    peer.acceptFrame();
+    peer.play();
+    // play it back
+    Http2Connection connection = connect(peer);
+    Http2Stream stream = connection.newStream(headerEntries("b", "banana"), true);
+    // two outgoing writes
+    Sink sink = stream.getSink();
+    sink.write(new Buffer().writeUtf8("abcde"), 5);
+    sink.write(new Buffer().writeUtf8("fghij"), 5);
+    sink.close();
+    // verify the peer received one incoming frame
+    assertThat(peer.takeFrame().type).isEqualTo(Http2.TYPE_HEADERS);
+    InFrame data = peer.takeFrame();
+    assertThat(data.type).isEqualTo(Http2.TYPE_DATA);
+    assertArrayEquals("abcdefghij".getBytes(UTF_8), data.data);
+    assertThat(data.inFinished).isTrue();
+}

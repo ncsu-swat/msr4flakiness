@@ -1,0 +1,13 @@
+/**
+ * Test connecting to the main host then an alternative, although only subject alternative names
+ * are used if present no special consideration of common name.
+ */
+@Test
+public void commonThenAlternative() throws Exception {
+    server.enqueue(new MockResponse().setResponseCode(200));
+    server.enqueue(new MockResponse().setResponseCode(200));
+    assert200Http2Response(execute(url), server.getHostName());
+    HttpUrl sanUrl = url.newBuilder().host("san.com").build();
+    assert200Http2Response(execute(sanUrl), "san.com");
+    assertThat(client.connectionPool().connectionCount()).isEqualTo(1);
+}

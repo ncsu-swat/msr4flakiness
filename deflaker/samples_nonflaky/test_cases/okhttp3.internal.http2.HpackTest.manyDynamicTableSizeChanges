@@ -1,0 +1,14 @@
+@Test
+public void manyDynamicTableSizeChanges() throws IOException {
+    hpackWriter.resizeHeaderTable(16384);
+    hpackWriter.resizeHeaderTable(8096);
+    hpackWriter.resizeHeaderTable(0);
+    hpackWriter.resizeHeaderTable(4096);
+    hpackWriter.resizeHeaderTable(2048);
+    hpackWriter.writeHeaders(asList(new Header("foo", "bar")));
+    assertBytes(// Dynamic size update (size = 0).
+    0x20, // Dynamic size update (size = 2048).
+    0x3F, // Dynamic size update (size = 2048).
+    0xE1, // Dynamic size update (size = 2048).
+    0xF, 0x40, 3, 'f', 'o', 'o', 3, 'b', 'a', 'r');
+}

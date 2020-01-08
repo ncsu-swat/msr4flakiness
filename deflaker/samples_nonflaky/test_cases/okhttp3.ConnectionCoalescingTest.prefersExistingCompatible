@@ -1,0 +1,24 @@
+/**
+ * Check we would use an existing connection to a later DNS result instead of connecting to the
+ * first DNS result for the first time.
+ */
+@Test
+public void prefersExistingCompatible() throws Exception {
+    server.enqueue(new MockResponse().setResponseCode(200));
+    server.enqueue(new MockResponse().setResponseCode(200));
+    AtomicInteger connectCount = new AtomicInteger();
+    EventListener listener = new EventListener() {
+
+        @Override
+        public void connectStart(Call call, InetSocketAddress inetSocketAddress, Proxy proxy) {
+            connectCount.getAndIncrement();
+        }
+    };
+    client = client.newBuilder().eventListenerFactory(clientTestRule.wrap(listener)).build();
+    assert200Http2Response(execute(url), server.getHostName());
+    HttpUrl sanUrl = url.newBuilder().host("san.com").build();
+    dns.set("san.com", asList(InetAddress.getByAddress("san.com", new byte[] { 0, 0, 0, 0 }), serverIps.get(0)));
+    assert200Http2Response(execute(sanUrl), "san.com");
+    assertThat(client.connectionPool().connectionCount()).isEqualTo(1);
+    assertThat(connectCount.get()).isEqualTo(1);
+}

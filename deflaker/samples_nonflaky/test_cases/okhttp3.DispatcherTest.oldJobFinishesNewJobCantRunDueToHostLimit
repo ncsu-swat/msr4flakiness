@@ -1,0 +1,9 @@
+@Test
+public void oldJobFinishesNewJobCantRunDueToHostLimit() throws Exception {
+    dispatcher.setMaxRequestsPerHost(1);
+    client.newCall(newRequest("http://a/1")).enqueue(callback);
+    client.newCall(newRequest("http://b/1")).enqueue(callback);
+    client.newCall(newRequest("http://a/2")).enqueue(callback);
+    executor.finishJob("http://b/1");
+    executor.assertJobs("http://a/1");
+}

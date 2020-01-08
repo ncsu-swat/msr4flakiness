@@ -1,0 +1,13 @@
+@Test
+public void redirectedPostStripsRequestBodyHeaders() throws Exception {
+    server.enqueue(new MockResponse().setResponseCode(HttpURLConnection.HTTP_MOVED_TEMP).addHeader("Location: /page2"));
+    server.enqueue(new MockResponse().setBody("Page 2"));
+    Response response = getResponse(new Request.Builder().url(server.url("/page1")).post(RequestBody.create("ABCD", MediaType.get("text/plain; charset=utf-8"))).header("Transfer-Encoding", "identity").build());
+    assertThat(readAscii(response.body().byteStream(), Integer.MAX_VALUE)).isEqualTo("Page 2");
+    assertThat(server.takeRequest().getRequestLine()).isEqualTo("POST /page1 HTTP/1.1");
+    RecordedRequest page2 = server.takeRequest();
+    assertThat(page2.getRequestLine()).isEqualTo("GET /page2 HTTP/1.1");
+    assertThat(page2.getHeader("Content-Length")).isNull();
+    assertThat(page2.getHeader("Content-Type")).isNull();
+    assertThat(page2.getHeader("Transfer-Encoding")).isNull();
+}

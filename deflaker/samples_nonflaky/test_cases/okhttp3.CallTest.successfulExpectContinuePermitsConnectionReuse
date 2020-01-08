@@ -1,0 +1,9 @@
+@Test
+public void successfulExpectContinuePermitsConnectionReuse() throws Exception {
+    server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.EXPECT_CONTINUE));
+    server.enqueue(new MockResponse());
+    executeSynchronously(new Request.Builder().url(server.url("/")).header("Expect", "100-continue").post(RequestBody.create("abc", MediaType.get("text/plain"))).build());
+    executeSynchronously(new Request.Builder().url(server.url("/")).build());
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(0);
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(1);
+}

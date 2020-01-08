@@ -1,0 +1,16 @@
+/**
+ * Confirm that runtime exceptions thrown inside of OkHttp propagate to the caller.
+ */
+@Test
+public void unexpectedExceptionSync() throws Exception {
+    client = client.newBuilder().dns(hostname -> {
+        throw new RuntimeException("boom!");
+    }).build();
+    server.enqueue(new MockResponse());
+    try {
+        getResponse(newRequest("/"));
+        fail();
+    } catch (RuntimeException expected) {
+        assertThat(expected.getMessage()).isEqualTo("boom!");
+    }
+}

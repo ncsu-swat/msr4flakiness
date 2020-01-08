@@ -1,0 +1,25 @@
+@Test
+public void networkInterceptorsObserveNetworkHeaders() throws Exception {
+    server.enqueue(new MockResponse().setBody(gzip("abcabcabc")).addHeader("Content-Encoding: gzip"));
+    Interceptor interceptor = chain -> {
+        // The network request has everything: User-Agent, Host, Accept-Encoding.
+        Request networkRequest = chain.request();
+        assertThat(networkRequest.header("User-Agent")).isNotNull();
+        assertThat(networkRequest.header("Host")).isEqualTo((server.getHostName() + ":" + server.getPort()));
+        assertThat(networkRequest.header("Accept-Encoding")).isNotNull();
+        // The network response also has everything, including the raw gzipped content.
+        Response networkResponse = chain.proceed(networkRequest);
+        assertThat(networkResponse.header("Content-Encoding")).isEqualTo("gzip");
+        return networkResponse;
+    };
+    client = client.newBuilder().addNetworkInterceptor(interceptor).build();
+    Request request = new Request.Builder().url(server.url("/")).build();
+    // No extra headers in the application's request.
+    assertThat(request.header("User-Agent")).isNull();
+    assertThat(request.header("Host")).isNull();
+    assertThat(request.header("Accept-Encoding")).isNull();
+    // No extra headers in the application's response.
+    Response response = client.newCall(request).execute();
+    assertThat(request.header("Content-Encoding")).isNull();
+    assertThat(response.body().string()).isEqualTo("abcabcabc");
+}

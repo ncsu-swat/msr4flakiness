@@ -1,0 +1,10 @@
+@Test
+public void multipleConnectionsFoundForSingleCall() throws IOException {
+    server.enqueue(new MockResponse().setResponseCode(301).addHeader("Location", "/foo").addHeader("Connection", "Close"));
+    server.enqueue(new MockResponse().setBody("ABC"));
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).build());
+    Response response = call.execute();
+    assertThat(response.body().string()).isEqualTo("ABC");
+    listener.removeUpToEvent(ConnectionAcquired.class);
+    listener.removeUpToEvent(ConnectionAcquired.class);
+}

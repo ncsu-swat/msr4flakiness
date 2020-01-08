@@ -1,0 +1,12 @@
+@Test
+public void huffmanEncode() throws IOException {
+    hpackWriter = new Hpack.Writer(4096, true, bytesOut);
+    hpackWriter.writeHeaders(headerEntries("foo", "bar"));
+    ByteString expected = new Buffer().writeByte(// Literal header, new name.
+    0x40).writeByte(// String literal is Huffman encoded (len = 2).
+    0x82).writeByte(// 'foo' Huffman encoded.
+    0x94).writeByte(0xE7).writeByte(// String literal not Huffman encoded (len = 3).
+    3).writeByte('b').writeByte('a').writeByte('r').readByteString();
+    ByteString actual = bytesOut.readByteString();
+    assertThat(actual).isEqualTo(expected);
+}

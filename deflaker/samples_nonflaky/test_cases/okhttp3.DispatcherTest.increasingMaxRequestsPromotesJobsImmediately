@@ -1,0 +1,11 @@
+@Test
+public void increasingMaxRequestsPromotesJobsImmediately() throws Exception {
+    dispatcher.setMaxRequests(2);
+    client.newCall(newRequest("http://a/1")).enqueue(callback);
+    client.newCall(newRequest("http://b/1")).enqueue(callback);
+    client.newCall(newRequest("http://c/1")).enqueue(callback);
+    client.newCall(newRequest("http://a/2")).enqueue(callback);
+    client.newCall(newRequest("http://b/2")).enqueue(callback);
+    dispatcher.setMaxRequests(4);
+    executor.assertJobs("http://a/1", "http://b/1", "http://c/1", "http://a/2");
+}

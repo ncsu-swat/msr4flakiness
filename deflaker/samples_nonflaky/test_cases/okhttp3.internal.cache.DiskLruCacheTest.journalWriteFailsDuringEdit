@@ -1,0 +1,18 @@
+@Test
+public void journalWriteFailsDuringEdit() throws Exception {
+    set("a", "a", "a");
+    set("b", "b", "b");
+    // We can't begin the edit if writing 'DIRTY' fails.
+    fileSystem.setFaultyWrite(journalFile, true);
+    assertThat(cache.edit("c")).isNull();
+    // Once the journal has a failure, subsequent writes aren't permitted.
+    fileSystem.setFaultyWrite(journalFile, false);
+    assertThat(cache.edit("d")).isNull();
+    // Confirm that the fault didn't corrupt entries stored before the fault was introduced.
+    cache.close();
+    cache = new DiskLruCache(fileSystem, cacheDir, appVersion, 2, Integer.MAX_VALUE, taskRunner);
+    assertValue("a", "a", "a");
+    assertValue("b", "b", "b");
+    assertAbsent("c");
+    assertAbsent("d");
+}

@@ -1,0 +1,31 @@
+@Test
+public void headersWithPriority() throws IOException {
+    final List<Header> sentHeaders = headerEntries("name", "value");
+    Buffer headerBytes = literalHeaders(sentHeaders);
+    writeMedium(frame, (int) (headerBytes.size() + 5));
+    frame.writeByte(Http2.TYPE_HEADERS);
+    frame.writeByte(FLAG_END_HEADERS | FLAG_PRIORITY);
+    frame.writeInt(expectedStreamId & 0x7fffffff);
+    // Independent stream.
+    frame.writeInt(0);
+    // Heaviest weight, zero-indexed.
+    frame.writeByte(255);
+    frame.writeAll(headerBytes);
+    reader.nextFrame(false, new BaseTestHandler() {
+
+        @Override
+        public void priority(int streamId, int streamDependency, int weight, boolean exclusive) {
+            assertThat(streamDependency).isEqualTo(0);
+            assertThat(weight).isEqualTo(256);
+            assertThat(exclusive).isFalse();
+        }
+
+        @Override
+        public void headers(boolean inFinished, int streamId, int associatedStreamId, List<Header> nameValueBlock) {
+            assertThat(inFinished).isFalse();
+            assertThat(streamId).isEqualTo(expectedStreamId);
+            assertThat(associatedStreamId).isEqualTo(-1);
+            assertThat(nameValueBlock).isEqualTo(sentHeaders);
+        }
+    });
+}

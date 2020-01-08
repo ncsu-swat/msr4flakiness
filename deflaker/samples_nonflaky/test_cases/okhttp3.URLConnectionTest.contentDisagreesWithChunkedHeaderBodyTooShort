@@ -1,0 +1,18 @@
+@Test
+public void contentDisagreesWithChunkedHeaderBodyTooShort() {
+    MockResponse mockResponse = new MockResponse().setChunkedBody("abcdefg", 5);
+    Buffer truncatedBody = new Buffer();
+    Buffer fullBody = mockResponse.getBody();
+    truncatedBody.write(fullBody, 4);
+    mockResponse.setBody(truncatedBody);
+    mockResponse.clearHeaders();
+    mockResponse.addHeader("Transfer-encoding: chunked");
+    mockResponse.setSocketPolicy(DISCONNECT_AT_END);
+    server.enqueue(mockResponse);
+    try {
+        Response response = getResponse(newRequest("/"));
+        response.body().source().readUtf8(7);
+        fail();
+    } catch (IOException expected) {
+    }
+}

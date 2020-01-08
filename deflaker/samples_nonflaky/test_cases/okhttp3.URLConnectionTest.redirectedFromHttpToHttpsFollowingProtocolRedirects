@@ -1,0 +1,9 @@
+@Test
+public void redirectedFromHttpToHttpsFollowingProtocolRedirects() throws Exception {
+    server2.useHttps(handshakeCertificates.sslSocketFactory(), false);
+    server2.enqueue(new MockResponse().setBody("This is secure HTTPS!"));
+    server.enqueue(new MockResponse().setResponseCode(HttpURLConnection.HTTP_MOVED_TEMP).addHeader("Location: " + server2.url("/").url()).setBody("This page has moved!"));
+    client = client.newBuilder().sslSocketFactory(handshakeCertificates.sslSocketFactory(), handshakeCertificates.trustManager()).hostnameVerifier(new RecordingHostnameVerifier()).followSslRedirects(true).build();
+    Response response = getResponse(newRequest("/"));
+    assertContent("This is secure HTTPS!", response);
+}

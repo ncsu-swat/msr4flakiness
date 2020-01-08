@@ -1,0 +1,11 @@
+@Test
+public void getHeadersReturnsNetworkEndToEndHeaders() throws Exception {
+    server.enqueue(new MockResponse().addHeader("Allow: GET, HEAD").addHeader("Last-Modified: " + formatDate(-1, TimeUnit.HOURS)).addHeader("Cache-Control: max-age=0").setBody("A"));
+    server.enqueue(new MockResponse().addHeader("Allow: GET, HEAD, PUT").setResponseCode(HttpURLConnection.HTTP_NOT_MODIFIED));
+    Response response1 = get(server.url("/"));
+    assertThat(response1.body().string()).isEqualTo("A");
+    assertThat(response1.header("Allow")).isEqualTo("GET, HEAD");
+    Response response2 = get(server.url("/"));
+    assertThat(response2.body().string()).isEqualTo("A");
+    assertThat(response2.header("Allow")).isEqualTo("GET, HEAD, PUT");
+}

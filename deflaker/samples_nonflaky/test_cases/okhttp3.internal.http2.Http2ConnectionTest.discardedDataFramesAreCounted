@@ -1,0 +1,35 @@
+/**
+ * Confirm that we account for discarded data frames. It's possible that data frames are in-flight
+ * just prior to us canceling a stream.
+ */
+@Test
+public void discardedDataFramesAreCounted() throws Exception {
+    // Write the mocking script.
+    peer.sendFrame().settings(new Settings());
+    // ACK
+    peer.acceptFrame();
+    // SYN_STREAM 3
+    peer.acceptFrame();
+    peer.sendFrame().headers(false, 3, headerEntries("a", "apple"));
+    peer.sendFrame().data(false, 3, data(1024), 1024);
+    // RST_STREAM
+    peer.acceptFrame();
+    peer.sendFrame().data(true, 3, data(1024), 1024);
+    // RST_STREAM
+    peer.acceptFrame();
+    peer.play();
+    Http2Connection connection = connect(peer);
+    Http2Stream stream1 = connection.newStream(headerEntries("b", "bark"), false);
+    Source source = stream1.getSource();
+    Buffer buffer = new Buffer();
+    while (buffer.size() != 1024) source.read(buffer, 1024);
+    stream1.close(ErrorCode.CANCEL, null);
+    InFrame frame1 = peer.takeFrame();
+    assertThat(frame1.type).isEqualTo(Http2.TYPE_HEADERS);
+    InFrame frame2 = peer.takeFrame();
+    assertThat(frame2.type).isEqualTo(Http2.TYPE_RST_STREAM);
+    InFrame frame3 = peer.takeFrame();
+    assertThat(frame3.type).isEqualTo(Http2.TYPE_RST_STREAM);
+    assertThat(connection.getReadBytesAcknowledged()).isEqualTo(0L);
+    assertThat(connection.getReadBytesTotal()).isEqualTo(2048L);
+}

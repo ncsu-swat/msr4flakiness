@@ -1,0 +1,17 @@
+@Test
+public void networkInterceptorsCannotCallProceedMultipleTimes() throws Exception {
+    server.enqueue(new MockResponse());
+    server.enqueue(new MockResponse());
+    Interceptor interceptor = chain -> {
+        chain.proceed(chain.request());
+        return chain.proceed(chain.request());
+    };
+    client = client.newBuilder().addNetworkInterceptor(interceptor).build();
+    Request request = new Request.Builder().url(server.url("/")).build();
+    try {
+        client.newCall(request).execute();
+        fail();
+    } catch (IllegalStateException expected) {
+        assertThat(expected.getMessage()).isEqualTo(("network interceptor " + interceptor + " must call proceed() exactly once"));
+    }
+}

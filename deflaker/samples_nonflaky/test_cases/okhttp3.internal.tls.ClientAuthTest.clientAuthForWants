@@ -1,0 +1,13 @@
+@Test
+public void clientAuthForWants() throws Exception {
+    OkHttpClient client = buildClient(clientCert, clientIntermediateCa.certificate());
+    SSLSocketFactory socketFactory = buildServerSslSocketFactory();
+    server.useHttps(socketFactory, false);
+    server.requestClientAuth();
+    server.enqueue(new MockResponse().setBody("abc"));
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).build());
+    Response response = call.execute();
+    assertThat(response.handshake().peerPrincipal()).isEqualTo(new X500Principal("CN=Local Host"));
+    assertThat(response.handshake().localPrincipal()).isEqualTo(new X500Principal("CN=Jethro Willis"));
+    assertThat(response.body().string()).isEqualTo("abc");
+}

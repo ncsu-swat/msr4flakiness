@@ -1,0 +1,19 @@
+@Test
+public void authenticateWithCharset() throws Exception {
+    server.enqueue(new MockResponse().setResponseCode(401).addHeader("WWW-Authenticate: Basic realm=\"protected area\", charset=\"UTF-8\"").setBody("Please authenticate with UTF-8."));
+    server.enqueue(new MockResponse().setResponseCode(401).addHeader("WWW-Authenticate: Basic realm=\"protected area\"").setBody("Please authenticate with ISO-8859-1."));
+    server.enqueue(new MockResponse().setBody("Successful auth!"));
+    Authenticator.setDefault(new RecordingAuthenticator(new PasswordAuthentication("username", "mötorhead".toCharArray())));
+    client = client.newBuilder().authenticator(new JavaNetAuthenticator()).build();
+    Response response = getResponse(newRequest("/"));
+    assertThat(readAscii(response.body().byteStream(), Integer.MAX_VALUE)).isEqualTo("Successful auth!");
+    // No authorization header for the first request...
+    RecordedRequest request1 = server.takeRequest();
+    assertThat(request1.getHeader("Authorization")).isNull();
+    // UTF-8 encoding for the first credential.
+    RecordedRequest request2 = server.takeRequest();
+    assertThat(request2.getHeader("Authorization")).isEqualTo("Basic dXNlcm5hbWU6bcO2dG9yaGVhZA==");
+    // ISO-8859-1 encoding for the second credential.
+    RecordedRequest request3 = server.takeRequest();
+    assertThat(request3.getHeader("Authorization")).isEqualTo("Basic dXNlcm5hbWU6bfZ0b3JoZWFk");
+}

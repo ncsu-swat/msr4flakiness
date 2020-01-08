@@ -1,0 +1,16 @@
+@Test
+public void protocolErrorAfterCloseDoesNotSendClose() throws IOException {
+    client.webSocket.close(1000, "Hello!");
+    server.processNextFrame();
+    // Not closed until close reply is received.
+    assertThat(client.closed).isFalse();
+    // Invalid non-final ping frame.
+    server.getSink().write(ByteString.decodeHex("0a00")).emit();
+    // Detects error, disconnects immediately since close already sent.
+    client.processNextFrame();
+    assertThat(client.closed).isTrue();
+    client.listener.assertFailure(ProtocolException.class, "Control frames must be final.");
+    server.listener.assertClosing(1000, "Hello!");
+    // Client should not have sent second close.
+    server.listener.assertExhausted();
+}

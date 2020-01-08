@@ -1,0 +1,12 @@
+@Test
+public void editSnapshotAfterChangeAborted() throws Exception {
+    set("a", "a", "a");
+    DiskLruCache.Snapshot snapshot = cache.get("a");
+    DiskLruCache.Editor toAbort = snapshot.edit();
+    setString(toAbort, 0, "b");
+    toAbort.abort();
+    DiskLruCache.Editor editor = snapshot.edit();
+    setString(editor, 1, "a2");
+    editor.commit();
+    assertValue("a", "a", "a2");
+}

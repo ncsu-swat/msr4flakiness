@@ -1,0 +1,23 @@
+@Test
+public void closeReservedSetThrows() throws IOException {
+    // Close with code 1004
+    data.write(ByteString.decodeHex("880203ec"));
+    // Close with code 1005
+    data.write(ByteString.decodeHex("880203ed"));
+    // Close with code 1006
+    data.write(ByteString.decodeHex("880203ee"));
+    for (int i = 1015; i <= 2999; i++) {
+        data.write(ByteString.decodeHex(// Close with code 'i'
+        "8802" + Util.format("%04X", i)));
+    }
+    int count = 0;
+    for (; !data.exhausted(); count++) {
+        try {
+            clientReader.processNextFrame();
+            fail();
+        } catch (ProtocolException e) {
+            assertThat(e.getMessage()).matches("Code \\d+ is reserved and may not be used.");
+        }
+    }
+    assertThat(count).isEqualTo(1988);
+}

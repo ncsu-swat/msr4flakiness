@@ -1,0 +1,28 @@
+/**
+ * https://github.com/square/okhttp/issues/4583
+ */
+@Test
+public void lateCancelCallsOnFailure() throws Exception {
+    server.enqueue(new MockResponse().setBody("abc"));
+    AtomicBoolean closed = new AtomicBoolean();
+    client = client.newBuilder().addInterceptor(new Interceptor() {
+
+        @Override
+        public Response intercept(Chain chain) throws IOException {
+            Response response = chain.proceed(chain.request());
+            // Cancel after we have the response.
+            chain.call().cancel();
+            ForwardingSource closeTrackingSource = new ForwardingSource(response.body().source()) {
+
+                @Override
+                public void close() throws IOException {
+                    closed.set(true);
+                    super.close();
+                }
+            };
+            return response.newBuilder().body(ResponseBody.create(Okio.buffer(closeTrackingSource), null, -1L)).build();
+        }
+    }).build();
+    executeSynchronously("/").assertFailure("Canceled");
+    assertThat(closed.get()).isTrue();
+}

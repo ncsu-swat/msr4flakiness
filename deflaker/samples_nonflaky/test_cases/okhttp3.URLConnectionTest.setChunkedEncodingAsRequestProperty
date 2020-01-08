@@ -1,0 +1,8 @@
+@Test
+public void setChunkedEncodingAsRequestProperty() throws Exception {
+    server.enqueue(new MockResponse());
+    Response response = getResponse(new Request.Builder().url(server.url("/")).header("Transfer-encoding", "chunked").post(TransferKind.CHUNKED.newRequestBody("ABC")).build());
+    assertThat(response.code()).isEqualTo(200);
+    RecordedRequest request = server.takeRequest();
+    assertThat(request.getBody().readUtf8()).isEqualTo("ABC");
+}

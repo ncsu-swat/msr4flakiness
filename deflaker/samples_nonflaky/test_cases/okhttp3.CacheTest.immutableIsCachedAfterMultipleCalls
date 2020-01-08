@@ -1,0 +1,10 @@
+@Test
+public void immutableIsCachedAfterMultipleCalls() throws Exception {
+    server.enqueue(new MockResponse().setBody("A"));
+    server.enqueue(new MockResponse().addHeader("Cache-Control", "immutable, max-age=10").setBody("B"));
+    server.enqueue(new MockResponse().setBody("C"));
+    HttpUrl url = server.url("/");
+    assertThat(get(url).body().string()).isEqualTo("A");
+    assertThat(get(url).body().string()).isEqualTo("B");
+    assertThat(get(url).body().string()).isEqualTo("B");
+}

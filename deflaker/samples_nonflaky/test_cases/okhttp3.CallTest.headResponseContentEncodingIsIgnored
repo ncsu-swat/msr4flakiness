@@ -1,0 +1,11 @@
+@Test
+public void headResponseContentEncodingIsIgnored() throws Exception {
+    server.enqueue(new MockResponse().clearHeaders().addHeader("Content-Encoding", "chunked"));
+    server.enqueue(new MockResponse().setBody("abc"));
+    Request headRequest = new Request.Builder().url(server.url("/")).head().build();
+    executeSynchronously(headRequest).assertCode(200).assertHeader("Content-Encoding", "chunked").assertBody("");
+    Request getRequest = new Request.Builder().url(server.url("/")).build();
+    executeSynchronously(getRequest).assertCode(200).assertBody("abc");
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(0);
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(1);
+}

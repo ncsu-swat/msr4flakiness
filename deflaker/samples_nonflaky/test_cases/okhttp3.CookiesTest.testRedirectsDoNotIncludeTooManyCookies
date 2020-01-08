@@ -1,0 +1,27 @@
+@Test
+public void testRedirectsDoNotIncludeTooManyCookies() throws Exception {
+    MockWebServer redirectTarget = new MockWebServer();
+    redirectTarget.enqueue(new MockResponse().setBody("A"));
+    redirectTarget.start();
+    HttpUrl redirectTargetUrl = urlWithIpAddress(redirectTarget, "/");
+    MockWebServer redirectSource = new MockWebServer();
+    redirectSource.enqueue(new MockResponse().setResponseCode(HttpURLConnection.HTTP_MOVED_TEMP).addHeader("Location: " + redirectTargetUrl));
+    redirectSource.start();
+    HttpUrl redirectSourceUrl = urlWithIpAddress(redirectSource, "/");
+    CookieManager cookieManager = new CookieManager(null, ACCEPT_ORIGINAL_SERVER);
+    HttpCookie cookie = new HttpCookie("c", "cookie");
+    cookie.setDomain(redirectSourceUrl.host());
+    cookie.setPath("/");
+    String portList = Integer.toString(redirectSource.getPort());
+    cookie.setPortlist(portList);
+    cookieManager.getCookieStore().add(redirectSourceUrl.uri(), cookie);
+    client = client.newBuilder().cookieJar(new JavaNetCookieJar(cookieManager)).build();
+    get(redirectSourceUrl);
+    RecordedRequest request = redirectSource.takeRequest();
+    assertThat(request.getHeader("Cookie")).isEqualTo("c=cookie");
+    for (String header : redirectTarget.takeRequest().getHeaders().names()) {
+        if (header.startsWith("Cookie")) {
+            fail(header);
+        }
+    }
+}

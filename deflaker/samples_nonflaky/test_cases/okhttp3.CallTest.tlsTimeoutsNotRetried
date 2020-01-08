@@ -1,0 +1,17 @@
+/**
+ * https://github.com/square/okhttp/issues/442
+ */
+@Test
+public void tlsTimeoutsNotRetried() throws Exception {
+    enableTls();
+    server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.NO_RESPONSE));
+    server.enqueue(new MockResponse().setBody("unreachable!"));
+    client = client.newBuilder().readTimeout(100, TimeUnit.MILLISECONDS).build();
+    Request request = new Request.Builder().url(server.url("/")).build();
+    try {
+        // If this succeeds, too many requests were made.
+        client.newCall(request).execute();
+        fail();
+    } catch (InterruptedIOException expected) {
+    }
+}

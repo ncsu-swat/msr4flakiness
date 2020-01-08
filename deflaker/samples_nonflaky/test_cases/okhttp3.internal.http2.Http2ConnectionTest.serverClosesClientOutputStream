@@ -1,0 +1,41 @@
+@Test
+public void serverClosesClientOutputStream() throws Exception {
+    // write the mocking script
+    peer.sendFrame().settings(new Settings());
+    // ACK
+    peer.acceptFrame();
+    // SYN_STREAM
+    peer.acceptFrame();
+    peer.sendFrame().rstStream(3, ErrorCode.CANCEL);
+    // PING
+    peer.acceptFrame();
+    peer.sendFrame().ping(true, AWAIT_PING, 0);
+    peer.play();
+    // play it back
+    Http2Connection connection = connect(peer);
+    Http2Stream stream = connection.newStream(headerEntries("a", "android"), true);
+    BufferedSink out = Okio.buffer(stream.getSink());
+    // Ensure that the RST_CANCEL has been received.
+    connection.writePingAndAwaitPong();
+    try {
+        out.writeUtf8("square");
+        out.flush();
+        fail();
+    } catch (IOException expected) {
+        assertThat(expected.getMessage()).isEqualTo("stream was reset: CANCEL");
+    }
+    try {
+        out.close();
+        fail();
+    } catch (IOException expected) {
+    // Close throws because buffered data wasn't flushed.
+    }
+    assertThat(connection.openStreamCount()).isEqualTo(0);
+    // verify the peer received what was expected
+    InFrame synStream = peer.takeFrame();
+    assertThat(synStream.type).isEqualTo(Http2.TYPE_HEADERS);
+    assertThat(synStream.inFinished).isFalse();
+    assertThat(synStream.outFinished).isFalse();
+    InFrame ping = peer.takeFrame();
+    assertThat(ping.type).isEqualTo(Http2.TYPE_PING);
+}

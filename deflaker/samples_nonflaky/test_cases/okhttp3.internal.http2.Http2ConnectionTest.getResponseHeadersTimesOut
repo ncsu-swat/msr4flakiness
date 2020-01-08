@@ -1,0 +1,30 @@
+@Test
+public void getResponseHeadersTimesOut() throws Exception {
+    // write the mocking script
+    peer.sendFrame().settings(new Settings());
+    // ACK
+    peer.acceptFrame();
+    // SYN_STREAM
+    peer.acceptFrame();
+    // RST_STREAM
+    peer.acceptFrame();
+    peer.play();
+    // play it back
+    Http2Connection connection = connect(peer);
+    Http2Stream stream = connection.newStream(headerEntries("b", "banana"), false);
+    stream.readTimeout().timeout(500, TimeUnit.MILLISECONDS);
+    long startNanos = System.nanoTime();
+    try {
+        stream.takeHeaders();
+        fail();
+    } catch (InterruptedIOException expected) {
+    }
+    long elapsedNanos = System.nanoTime() - startNanos;
+    awaitWatchdogIdle();
+    /* 200ms delta */
+    assertThat((double) TimeUnit.NANOSECONDS.toMillis(elapsedNanos)).isCloseTo(500d, offset(200d));
+    assertThat(connection.openStreamCount()).isEqualTo(0);
+    // verify the peer received what was expected
+    assertThat(peer.takeFrame().type).isEqualTo(Http2.TYPE_HEADERS);
+    assertThat(peer.takeFrame().type).isEqualTo(Http2.TYPE_RST_STREAM);
+}

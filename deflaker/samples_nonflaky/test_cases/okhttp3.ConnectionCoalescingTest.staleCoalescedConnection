@@ -1,0 +1,20 @@
+/**
+ * Test a previously coalesced connection that's no longer healthy.
+ */
+@Test
+public void staleCoalescedConnection() throws Exception {
+    server.enqueue(new MockResponse().setResponseCode(200));
+    server.enqueue(new MockResponse().setResponseCode(200));
+    AtomicReference<Connection> connection = new AtomicReference<>();
+    client = client.newBuilder().addNetworkInterceptor(chain -> {
+        connection.set(chain.connection());
+        return chain.proceed(chain.request());
+    }).build();
+    dns.set("san.com", Dns.SYSTEM.lookup(server.getHostName()).subList(0, 1));
+    assert200Http2Response(execute(url), server.getHostName());
+    // Simulate a stale connection in the pool.
+    connection.get().socket().close();
+    HttpUrl sanUrl = url.newBuilder().host("san.com").build();
+    assert200Http2Response(execute(sanUrl), "san.com");
+    assertThat(client.connectionPool().connectionCount()).isEqualTo(1);
+}

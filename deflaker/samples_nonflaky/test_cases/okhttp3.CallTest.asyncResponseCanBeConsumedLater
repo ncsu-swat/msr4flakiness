@@ -1,0 +1,34 @@
+@Test
+public void asyncResponseCanBeConsumedLater() throws Exception {
+    server.enqueue(new MockResponse().setBody("abc"));
+    server.enqueue(new MockResponse().setBody("def"));
+    Request request = new Request.Builder().url(server.url("/")).header("User-Agent", "SyncApiTest").build();
+    final BlockingQueue<Response> responseRef = new SynchronousQueue<>();
+    client.newCall(request).enqueue(new Callback() {
+
+        @Override
+        public void onFailure(Call call, IOException e) {
+            throw new AssertionError();
+        }
+
+        @Override
+        public void onResponse(Call call, Response response) throws IOException {
+            try {
+                responseRef.put(response);
+            } catch (InterruptedException e) {
+                throw new AssertionError();
+            }
+        }
+    });
+    Response response = responseRef.take();
+    assertThat(response.code()).isEqualTo(200);
+    assertThat(response.body().string()).isEqualTo("abc");
+    // Make another request just to confirm that that connection can be reused...
+    executeSynchronously("/").assertBody("def");
+    // New connection.
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(0);
+    // Connection reused.
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(1);
+    // ... even before we close the response body!
+    response.body().close();
+}

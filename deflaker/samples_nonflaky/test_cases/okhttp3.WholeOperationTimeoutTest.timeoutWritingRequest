@@ -1,0 +1,14 @@
+@Test
+public void timeoutWritingRequest() throws Exception {
+    server.enqueue(new MockResponse());
+    Request request = new Request.Builder().url(server.url("/")).post(sleepingRequestBody(500)).build();
+    Call call = client.newCall(request);
+    call.timeout().timeout(250, TimeUnit.MILLISECONDS);
+    try {
+        call.execute();
+        fail();
+    } catch (IOException e) {
+        assertThat(e.getMessage()).isEqualTo("timeout");
+        assertThat(call.isCanceled()).isTrue();
+    }
+}

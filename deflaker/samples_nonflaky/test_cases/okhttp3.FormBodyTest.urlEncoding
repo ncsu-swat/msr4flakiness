@@ -1,0 +1,23 @@
+@Test
+public void urlEncoding() throws Exception {
+    FormBody body = new FormBody.Builder().add("a+=& b", "c+=& d").add("space, the", "final frontier").add("%25", "%25").build();
+    assertThat(body.size()).isEqualTo(3);
+    assertThat(body.encodedName(0)).isEqualTo("a%2B%3D%26%20b");
+    assertThat(body.encodedName(1)).isEqualTo("space%2C%20the");
+    assertThat(body.encodedName(2)).isEqualTo("%2525");
+    assertThat(body.name(0)).isEqualTo("a+=& b");
+    assertThat(body.name(1)).isEqualTo("space, the");
+    assertThat(body.name(2)).isEqualTo("%25");
+    assertThat(body.encodedValue(0)).isEqualTo("c%2B%3D%26%20d");
+    assertThat(body.encodedValue(1)).isEqualTo("final%20frontier");
+    assertThat(body.encodedValue(2)).isEqualTo("%2525");
+    assertThat(body.value(0)).isEqualTo("c+=& d");
+    assertThat(body.value(1)).isEqualTo("final frontier");
+    assertThat(body.value(2)).isEqualTo("%25");
+    assertThat(body.contentType().toString()).isEqualTo("application/x-www-form-urlencoded");
+    String expected = "a%2B%3D%26%20b=c%2B%3D%26%20d&space%2C%20the=final%20frontier&%2525=%2525";
+    assertThat(body.contentLength()).isEqualTo(expected.length());
+    Buffer out = new Buffer();
+    body.writeTo(out);
+    assertThat(out.readUtf8()).isEqualTo(expected);
+}

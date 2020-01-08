@@ -1,0 +1,22 @@
+@Test
+public void clientPingsServerOnInterval() throws Exception {
+    client = client.newBuilder().pingInterval(500, TimeUnit.MILLISECONDS).build();
+    webServer.enqueue(new MockResponse().withWebSocketUpgrade(serverListener));
+    RealWebSocket webSocket = newWebSocket();
+    clientListener.assertOpen();
+    RealWebSocket server = (RealWebSocket) serverListener.assertOpen();
+    long startNanos = System.nanoTime();
+    while (webSocket.receivedPongCount() < 3) {
+        Thread.sleep(50);
+    }
+    long elapsedUntilPong3 = System.nanoTime() - startNanos;
+    assertThat(TimeUnit.NANOSECONDS.toMillis(elapsedUntilPong3)).isCloseTo(1500L, offset(250L));
+    // The client pinged the server 3 times, and it has ponged back 3 times.
+    assertThat(webSocket.sentPingCount()).isEqualTo(3);
+    assertThat(server.receivedPingCount()).isEqualTo(3);
+    assertThat(webSocket.receivedPongCount()).isEqualTo(3);
+    // The server has never pinged the client.
+    assertThat(server.receivedPongCount()).isEqualTo(0);
+    assertThat(webSocket.receivedPingCount()).isEqualTo(0);
+    closeWebSockets(webSocket, server);
+}

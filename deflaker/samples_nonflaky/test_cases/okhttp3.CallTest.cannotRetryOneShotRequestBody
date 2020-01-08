@@ -1,0 +1,30 @@
+@Test
+public void cannotRetryOneShotRequestBody() throws Exception {
+    server.enqueue(new MockResponse().setResponseCode(503).setHeader("Retry-After", "0").setBody("please retry"));
+    server.enqueue(new MockResponse().setBody("thank you for retrying"));
+    Request request = new Request.Builder().url(server.url("/")).post(new RequestBody() {
+
+        int attempt = 0;
+
+        @Override
+        @Nullable
+        public MediaType contentType() {
+            return null;
+        }
+
+        @Override
+        public void writeTo(BufferedSink sink) throws IOException {
+            sink.writeUtf8("attempt " + attempt++);
+        }
+
+        @Override
+        public boolean isOneShot() {
+            return true;
+        }
+    }).build();
+    Response response = client.newCall(request).execute();
+    assertThat(response.code()).isEqualTo(503);
+    assertThat(response.body().string()).isEqualTo("please retry");
+    assertThat(server.takeRequest().getBody().readUtf8()).isEqualTo("attempt 0");
+    assertThat(server.getRequestCount()).isEqualTo(1);
+}

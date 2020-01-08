@@ -1,0 +1,19 @@
+@Test
+public void oldestConnectionsEvictedIfIdleLimitExceeded() throws Exception {
+    RealConnectionPool pool = new RealConnectionPool(taskRunner, 2, 100L, TimeUnit.NANOSECONDS);
+    RealConnection c1 = newConnection(pool, routeA1, 50L);
+    RealConnection c2 = newConnection(pool, routeB1, 75L);
+    // With 2 connections, there's no need to evict until the connections time out.
+    assertThat(pool.cleanup(100L)).isEqualTo(50L);
+    assertThat(pool.connectionCount()).isEqualTo(2);
+    assertThat(c1.socket().isClosed()).isFalse();
+    assertThat(c2.socket().isClosed()).isFalse();
+    // Add a third connection
+    RealConnection c3 = newConnection(pool, routeC1, 75L);
+    // The third connection bounces the first.
+    assertThat(pool.cleanup(100L)).isEqualTo(0L);
+    assertThat(pool.connectionCount()).isEqualTo(2);
+    assertThat(c1.socket().isClosed()).isTrue();
+    assertThat(c2.socket().isClosed()).isFalse();
+    assertThat(c3.socket().isClosed()).isFalse();
+}

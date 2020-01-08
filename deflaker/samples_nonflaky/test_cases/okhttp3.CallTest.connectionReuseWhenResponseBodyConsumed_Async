@@ -1,0 +1,28 @@
+@Test
+public void connectionReuseWhenResponseBodyConsumed_Async() throws Exception {
+    server.enqueue(new MockResponse().setBody("abc"));
+    server.enqueue(new MockResponse().setBody("def"));
+    Request request = new Request.Builder().url(server.url("/a")).build();
+    client.newCall(request).enqueue(new Callback() {
+
+        @Override
+        public void onFailure(Call call, IOException e) {
+            throw new AssertionError();
+        }
+
+        @Override
+        public void onResponse(Call call, Response response) throws IOException {
+            InputStream bytes = response.body().byteStream();
+            assertThat(bytes.read()).isEqualTo('a');
+            assertThat(bytes.read()).isEqualTo('b');
+            assertThat(bytes.read()).isEqualTo('c');
+            // This request will share a connection with 'A' cause it's all done.
+            client.newCall(new Request.Builder().url(server.url("/b")).build()).enqueue(callback);
+        }
+    });
+    callback.await(server.url("/b")).assertCode(200).assertBody("def");
+    // New connection.
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(0);
+    // Connection reuse!
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(1);
+}

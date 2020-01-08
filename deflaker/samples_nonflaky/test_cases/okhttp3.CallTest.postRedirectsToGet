@@ -1,0 +1,12 @@
+@Test
+public void postRedirectsToGet() throws Exception {
+    server.enqueue(new MockResponse().setResponseCode(HttpURLConnection.HTTP_MOVED_TEMP).addHeader("Location: /page2").setBody("This page has moved!"));
+    server.enqueue(new MockResponse().setBody("Page 2"));
+    Response response = client.newCall(new Request.Builder().url(server.url("/page1")).post(RequestBody.create("Request Body", MediaType.get("text/plain"))).build()).execute();
+    assertThat(response.body().string()).isEqualTo("Page 2");
+    RecordedRequest page1 = server.takeRequest();
+    assertThat(page1.getRequestLine()).isEqualTo("POST /page1 HTTP/1.1");
+    assertThat(page1.getBody().readUtf8()).isEqualTo("Request Body");
+    RecordedRequest page2 = server.takeRequest();
+    assertThat(page2.getRequestLine()).isEqualTo("GET /page2 HTTP/1.1");
+}

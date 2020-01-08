@@ -1,0 +1,15 @@
+@Test
+public void getKeepAlive() throws Exception {
+    server.enqueue(new MockResponse().setBody("ABC"));
+    // The request should work once and then fail.
+    Response connection1 = getResponse(newRequest("/"));
+    BufferedSource source1 = connection1.body().source();
+    source1.timeout().timeout(100, TimeUnit.MILLISECONDS);
+    assertThat(readAscii(source1.inputStream(), Integer.MAX_VALUE)).isEqualTo("ABC");
+    server.shutdown();
+    try {
+        getResponse(newRequest("/"));
+        fail();
+    } catch (ConnectException expected) {
+    }
+}

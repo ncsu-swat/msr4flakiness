@@ -1,0 +1,10 @@
+@Test
+public void readNameValueBlockDropsForbiddenHeadersHttp2() {
+    Headers headerBlock = Headers.of(":status", "200 OK", ":version", "HTTP/1.1", "connection", "close");
+    Request request = new Request.Builder().url("http://square.com/").build();
+    Response response = Http2ExchangeCodec.Companion.readHttp2HeadersList(headerBlock, Protocol.HTTP_2).request(request).build();
+    Headers headers = response.headers();
+    assertThat(headers.size()).isEqualTo(1);
+    assertThat(headers.name(0)).isEqualTo(":version");
+    assertThat(headers.value(0)).isEqualTo("HTTP/1.1");
+}

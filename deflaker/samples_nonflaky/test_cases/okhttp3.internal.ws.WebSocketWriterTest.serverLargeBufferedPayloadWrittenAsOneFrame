@@ -1,0 +1,13 @@
+@Test
+public void serverLargeBufferedPayloadWrittenAsOneFrame() throws IOException {
+    int length = 12345;
+    byte[] bytes = binaryData(length);
+    RequestBody body = RequestBody.create(bytes, null);
+    BufferedSink sink = Okio.buffer(serverWriter.newMessageSink(OPCODE_TEXT, length));
+    body.writeTo(sink);
+    sink.close();
+    assertData("817e");
+    assertData(Util.format("%04x", length));
+    assertData(bytes);
+    assertThat(data.exhausted()).isTrue();
+}

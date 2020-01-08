@@ -1,0 +1,24 @@
+@Test
+public void goAwayWithoutDebugDataRoundTrip() throws IOException {
+    final ErrorCode expectedError = ErrorCode.PROTOCOL_ERROR;
+    // Without debug data there's only 2 32-bit fields.
+    writeMedium(frame, 8);
+    frame.writeByte(Http2.TYPE_GOAWAY);
+    frame.writeByte(Http2.FLAG_NONE);
+    // connection-scope
+    frame.writeInt(0);
+    // last good stream.
+    frame.writeInt(expectedStreamId);
+    frame.writeInt(expectedError.getHttpCode());
+    // Check writer sends the same bytes.
+    assertThat(sendGoAway(expectedStreamId, expectedError, Util.EMPTY_BYTE_ARRAY)).isEqualTo(frame);
+    reader.nextFrame(false, new BaseTestHandler() {
+
+        @Override
+        public void goAway(int lastGoodStreamId, ErrorCode errorCode, ByteString debugData) {
+            assertThat(lastGoodStreamId).isEqualTo(expectedStreamId);
+            assertThat(errorCode).isEqualTo(expectedError);
+            assertThat(debugData.size()).isEqualTo(0);
+        }
+    });
+}

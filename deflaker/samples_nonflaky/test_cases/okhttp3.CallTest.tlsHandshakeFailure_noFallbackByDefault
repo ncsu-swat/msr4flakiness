@@ -1,0 +1,12 @@
+@Test
+public void tlsHandshakeFailure_noFallbackByDefault() throws Exception {
+    server.useHttps(handshakeCertificates.sslSocketFactory(), false);
+    server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.FAIL_HANDSHAKE));
+    server.enqueue(new MockResponse().setBody("response that will never be received"));
+    RecordedResponse response = executeSynchronously("/");
+    response.assertFailure(// JDK 11 response to the FAIL_HANDSHAKE
+    SSLException.class, // RI response to the FAIL_HANDSHAKE
+    SSLProtocolException.class, // Android's response to the FAIL_HANDSHAKE
+    SSLHandshakeException.class);
+    assertThat(client.connectionSpecs()).doesNotContain(ConnectionSpec.COMPATIBLE_TLS);
+}

@@ -1,0 +1,10 @@
+@Test
+public void applicationInterceptorsCanShortCircuitResponses() throws Exception {
+    // Accept no connections.
+    server.shutdown();
+    Request request = new Request.Builder().url("https://localhost:1/").build();
+    Response interceptorResponse = new Response.Builder().request(request).protocol(Protocol.HTTP_1_1).code(200).message("Intercepted!").body(ResponseBody.create("abc", MediaType.get("text/plain; charset=utf-8"))).build();
+    client = client.newBuilder().addInterceptor(chain -> interceptorResponse).build();
+    Response response = client.newCall(request).execute();
+    assertThat(response).isSameAs(interceptorResponse);
+}

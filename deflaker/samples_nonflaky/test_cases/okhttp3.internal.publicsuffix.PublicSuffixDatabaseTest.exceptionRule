@@ -1,0 +1,9 @@
+@Test
+public void exceptionRule() {
+    Buffer exception = new Buffer().writeUtf8("my.square.jp\n");
+    Buffer buffer = new Buffer().writeUtf8("*.jp\n").writeUtf8("*.square.jp\n").writeUtf8("example.com\n").writeUtf8("square.com\n");
+    publicSuffixDatabase.setListBytes(buffer.readByteArray(), exception.readByteArray());
+    assertThat(publicSuffixDatabase.getEffectiveTldPlusOne("my.square.jp")).isEqualTo("my.square.jp");
+    assertThat(publicSuffixDatabase.getEffectiveTldPlusOne("foo.my.square.jp")).isEqualTo("my.square.jp");
+    assertThat(publicSuffixDatabase.getEffectiveTldPlusOne("my1.square.jp")).isNull();
+}

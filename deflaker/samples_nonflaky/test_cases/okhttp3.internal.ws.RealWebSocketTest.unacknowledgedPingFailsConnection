@@ -1,0 +1,9 @@
+@Test
+public void unacknowledgedPingFailsConnection() throws IOException {
+    long startNanos = System.nanoTime();
+    client.initWebSocket(random, 500);
+    // Don't process the ping and pong frames!
+    client.listener.assertFailure(SocketTimeoutException.class, "sent ping but didn't receive pong within 500ms (after 0 successful ping/pongs)");
+    long elapsedUntilFailure = System.nanoTime() - startNanos;
+    assertThat((double) TimeUnit.NANOSECONDS.toMillis(elapsedUntilFailure)).isCloseTo((double) 1000, offset(250d));
+}

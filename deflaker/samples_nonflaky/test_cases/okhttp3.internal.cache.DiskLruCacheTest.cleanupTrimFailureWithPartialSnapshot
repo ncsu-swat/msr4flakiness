@@ -1,0 +1,18 @@
+@Test
+public void cleanupTrimFailureWithPartialSnapshot() throws Exception {
+    cache.setMaxSize(8);
+    taskFaker.runNextTask();
+    set("a", "aa", "aa");
+    set("b", "bb", "bbb");
+    // Cause the cache trim to fail on the second value leaving a partial snapshot.
+    fileSystem.setFaultyDelete(new File(cacheDir, "a.1"), true);
+    taskFaker.runNextTask();
+    // Confirm the partial snapshot is not returned.
+    assertThat(cache.get("a")).isNull();
+    // Confirm we prevent edits after a trim failure.
+    assertThat(cache.edit("a")).isNull();
+    // Confirm the partial snapshot is not returned after a successful trim.
+    fileSystem.setFaultyDelete(new File(cacheDir, "a.1"), false);
+    taskFaker.runNextTask();
+    assertThat(cache.get("a")).isNull();
+}

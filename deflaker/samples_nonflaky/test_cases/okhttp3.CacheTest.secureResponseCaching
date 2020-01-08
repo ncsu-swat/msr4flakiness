@@ -1,0 +1,27 @@
+@Test
+public void secureResponseCaching() throws IOException {
+    server.useHttps(handshakeCertificates.sslSocketFactory(), false);
+    server.enqueue(new MockResponse().addHeader("Last-Modified: " + formatDate(-1, TimeUnit.HOURS)).addHeader("Expires: " + formatDate(1, TimeUnit.HOURS)).setBody("ABC"));
+    client = client.newBuilder().sslSocketFactory(handshakeCertificates.sslSocketFactory(), handshakeCertificates.trustManager()).hostnameVerifier(NULL_HOSTNAME_VERIFIER).build();
+    Request request = new Request.Builder().url(server.url("/")).build();
+    Response response1 = client.newCall(request).execute();
+    BufferedSource in = response1.body().source();
+    assertThat(in.readUtf8()).isEqualTo("ABC");
+    // OpenJDK 6 fails on this line, complaining that the connection isn't open yet
+    CipherSuite cipherSuite = response1.handshake().cipherSuite();
+    List<Certificate> localCerts = response1.handshake().localCertificates();
+    List<Certificate> serverCerts = response1.handshake().peerCertificates();
+    Principal peerPrincipal = response1.handshake().peerPrincipal();
+    Principal localPrincipal = response1.handshake().localPrincipal();
+    // Cached!
+    Response response2 = client.newCall(request).execute();
+    assertThat(response2.body().string()).isEqualTo("ABC");
+    assertThat(cache.requestCount()).isEqualTo(2);
+    assertThat(cache.networkCount()).isEqualTo(1);
+    assertThat(cache.hitCount()).isEqualTo(1);
+    assertThat(response2.handshake().cipherSuite()).isEqualTo(cipherSuite);
+    assertThat(response2.handshake().localCertificates()).isEqualTo(localCerts);
+    assertThat(response2.handshake().peerCertificates()).isEqualTo(serverCerts);
+    assertThat(response2.handshake().peerPrincipal()).isEqualTo(peerPrincipal);
+    assertThat(response2.handshake().localPrincipal()).isEqualTo(localPrincipal);
+}

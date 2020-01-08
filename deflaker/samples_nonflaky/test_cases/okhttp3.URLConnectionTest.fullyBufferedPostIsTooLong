@@ -1,0 +1,27 @@
+@Test
+public void fullyBufferedPostIsTooLong() {
+    server.enqueue(new MockResponse().setBody("A"));
+    RequestBody requestBody = new RequestBody() {
+
+        @Override
+        @Nullable
+        public MediaType contentType() {
+            return null;
+        }
+
+        @Override
+        public long contentLength() {
+            return 3L;
+        }
+
+        @Override
+        public void writeTo(BufferedSink sink) throws IOException {
+            sink.writeUtf8("abcd");
+        }
+    };
+    try {
+        getResponse(new Request.Builder().url(server.url("/b")).post(requestBody).build());
+        fail();
+    } catch (IOException expected) {
+    }
+}

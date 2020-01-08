@@ -1,0 +1,14 @@
+@Test
+public void serverRespondsWith100ContinueOnly() throws Exception {
+    client = client.newBuilder().readTimeout(1, TimeUnit.SECONDS).build();
+    server.enqueue(new MockResponse().setStatus("HTTP/1.1 100 Continue"));
+    Request request = new Request.Builder().url(server.url("/")).post(RequestBody.create("abc", MediaType.get("text/plain"))).build();
+    Call call = client.newCall(request);
+    try {
+        call.execute();
+        fail();
+    } catch (SocketTimeoutException expected) {
+    }
+    RecordedRequest recordedRequest = server.takeRequest();
+    assertThat(recordedRequest.getBody().readUtf8()).isEqualTo("abc");
+}

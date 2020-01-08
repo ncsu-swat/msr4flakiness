@@ -1,0 +1,21 @@
+@Test
+public void journalWriteFailsDuringEditorAbort() throws Exception {
+    set("a", "a", "a");
+    set("b", "b", "b");
+    // Create an entry that fails to write to the journal during abort.
+    DiskLruCache.Editor editor = cache.edit("c");
+    setString(editor, 0, "c");
+    setString(editor, 1, "c");
+    fileSystem.setFaultyWrite(journalFile, true);
+    editor.abort();
+    // Once the journal has a failure, subsequent writes aren't permitted.
+    fileSystem.setFaultyWrite(journalFile, false);
+    assertThat(cache.edit("d")).isNull();
+    // Confirm that the fault didn't corrupt entries stored before the fault was introduced.
+    cache.close();
+    cache = new DiskLruCache(fileSystem, cacheDir, appVersion, 2, Integer.MAX_VALUE, taskRunner);
+    assertValue("a", "a", "a");
+    assertValue("b", "b", "b");
+    assertAbsent("c");
+    assertAbsent("d");
+}

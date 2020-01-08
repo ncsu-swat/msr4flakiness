@@ -1,0 +1,24 @@
+@Test
+public void close() throws IOException {
+    client.webSocket.close(1000, "Hello!");
+    // This will trigger a close response.
+    assertThat(server.processNextFrame()).isFalse();
+    server.listener.assertClosing(1000, "Hello!");
+    server.webSocket.close(1000, "Goodbye!");
+    assertThat(client.processNextFrame()).isFalse();
+    client.listener.assertClosing(1000, "Goodbye!");
+    server.listener.assertClosed(1000, "Hello!");
+    client.listener.assertClosed(1000, "Goodbye!");
+}
+@Override
+public void close() throws IOException {
+    getSource().close();
+    getSink().close();
+    if (closed) {
+        throw new AssertionError("Already closed");
+    }
+    closed = true;
+    if (closeThrows) {
+        throw new RuntimeException("Oops!");
+    }
+}

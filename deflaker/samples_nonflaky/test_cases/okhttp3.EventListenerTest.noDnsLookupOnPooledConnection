@@ -1,0 +1,18 @@
+@Test
+public void noDnsLookupOnPooledConnection() throws IOException {
+    server.enqueue(new MockResponse());
+    server.enqueue(new MockResponse());
+    // Seed the pool.
+    Call call1 = client.newCall(new Request.Builder().url(server.url("/")).build());
+    Response response1 = call1.execute();
+    assertThat(response1.code()).isEqualTo(200);
+    response1.body().close();
+    listener.clearAllEvents();
+    Call call2 = client.newCall(new Request.Builder().url(server.url("/")).build());
+    Response response2 = call2.execute();
+    assertThat(response2.code()).isEqualTo(200);
+    response2.body().close();
+    List<String> recordedEvents = listener.recordedEventTypes();
+    assertThat(recordedEvents).doesNotContain("DnsStart");
+    assertThat(recordedEvents).doesNotContain("DnsEnd");
+}

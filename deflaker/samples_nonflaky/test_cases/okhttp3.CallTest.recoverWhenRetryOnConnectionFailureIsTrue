@@ -1,0 +1,40 @@
+@Test
+public void recoverWhenRetryOnConnectionFailureIsTrue() throws Exception {
+    // Set to 2 because the seeding request will count down before the retried request does.
+    CountDownLatch requestFinished = new CountDownLatch(2);
+    QueueDispatcher dispatcher = new QueueDispatcher() {
+
+        @Override
+        public MockResponse dispatch(RecordedRequest request) throws InterruptedException {
+            if (peek().getSocketPolicy() == SocketPolicy.DISCONNECT_AFTER_REQUEST) {
+                requestFinished.await();
+            }
+            return super.dispatch(request);
+        }
+    };
+    dispatcher.enqueueResponse(new MockResponse().setBody("seed connection pool"));
+    dispatcher.enqueueResponse(new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST));
+    dispatcher.enqueueResponse(new MockResponse().setBody("retry success"));
+    server.setDispatcher(dispatcher);
+    listener = new RecordingEventListener() {
+
+        @Override
+        public void requestHeadersEnd(Call call, Request request) {
+            requestFinished.countDown();
+            super.responseHeadersStart(call);
+        }
+    };
+    client = client.newBuilder().dns(new DoubleInetAddressDns()).eventListenerFactory(clientTestRule.wrap(listener)).build();
+    assertThat(client.retryOnConnectionFailure()).isTrue();
+    executeSynchronously("/").assertBody("seed connection pool");
+    executeSynchronously("/").assertBody("retry success");
+    // The call that seeds the connection pool.
+    listener.removeUpToEvent(CallEnd.class);
+    // The ResponseFailed event is not necessarily fatal!
+    listener.removeUpToEvent(ConnectionAcquired.class);
+    listener.removeUpToEvent(ResponseFailed.class);
+    listener.removeUpToEvent(ConnectionReleased.class);
+    listener.removeUpToEvent(ConnectionAcquired.class);
+    listener.removeUpToEvent(ConnectionReleased.class);
+    listener.removeUpToEvent(CallEnd.class);
+}

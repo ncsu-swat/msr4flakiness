@@ -1,0 +1,21 @@
+/**
+ * Make sure interceptors can interact with the OkHttp client.
+ */
+@Test
+public void interceptorMakesAnUnrelatedRequest() throws Exception {
+    // Fetched by interceptor.
+    server.enqueue(new MockResponse().setBody("a"));
+    // Fetched directly.
+    server.enqueue(new MockResponse().setBody("b"));
+    client = client.newBuilder().addInterceptor(chain -> {
+        if (chain.request().url().encodedPath().equals("/b")) {
+            Request requestA = new Request.Builder().url(server.url("/a")).build();
+            Response responseA = client.newCall(requestA).execute();
+            assertThat(responseA.body().string()).isEqualTo("a");
+        }
+        return chain.proceed(chain.request());
+    }).build();
+    Request requestB = new Request.Builder().url(server.url("/b")).build();
+    Response responseB = client.newCall(requestB).execute();
+    assertThat(responseB.body().string()).isEqualTo("b");
+}

@@ -1,0 +1,21 @@
+/**
+ * We had a long-lived bug where {@link DiskLruCache#trimToSize} could infinite loop if entries
+ * being edited required deletion for the operation to complete.
+ */
+@Test
+public void trimToSizeWithActiveEdit() throws Exception {
+    set("a", "a1234", "a1234");
+    DiskLruCache.Editor a = cache.edit("a");
+    setString(a, 0, "a123");
+    // Smaller than the sum of active edits!
+    cache.setMaxSize(8);
+    // Force trimToSize().
+    cache.flush();
+    assertThat(cache.size()).isEqualTo(0);
+    assertThat(cache.get("a")).isNull();
+    // After the edit is completed, its entry is still gone.
+    setString(a, 1, "a1");
+    a.commit();
+    assertAbsent("a");
+    assertThat(cache.size()).isEqualTo(0);
+}

@@ -1,0 +1,30 @@
+@Test
+public void overflowOutgoingQueue() {
+    webServer.enqueue(new MockResponse().withWebSocketUpgrade(serverListener));
+    WebSocket webSocket = newWebSocket();
+    clientListener.assertOpen();
+    // Send messages until the client's outgoing buffer overflows!
+    ByteString message = ByteString.of(new byte[1024 * 1024]);
+    long messageCount = 0;
+    while (true) {
+        boolean success = webSocket.send(message);
+        if (!success)
+            break;
+        messageCount++;
+        long queueSize = webSocket.queueSize();
+        assertThat(queueSize).isBetween(0L, messageCount * message.size());
+        // Expect to fail before enqueueing 32 MiB.
+        assertThat(messageCount).isLessThan(32L);
+    }
+    // Confirm all sent messages were received, followed by a client-initiated close.
+    WebSocket server = serverListener.assertOpen();
+    for (int i = 0; i < messageCount; i++) {
+        serverListener.assertBinaryMessage(message);
+    }
+    serverListener.assertClosing(1001, "");
+    // When the server acknowledges the close the connection shuts down gracefully.
+    server.close(1000, null);
+    clientListener.assertClosing(1000, "");
+    clientListener.assertClosed(1000, "");
+    serverListener.assertClosed(1001, "");
+}

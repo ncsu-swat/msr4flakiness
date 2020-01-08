@@ -1,0 +1,13 @@
+@Test
+public void executionRejectedAfterMaxRequestsChange() throws Exception {
+    Request request1 = newRequest("http://a/1");
+    Request request2 = newRequest("http://a/2");
+    dispatcher.setMaxRequests(1);
+    client.newCall(request1).enqueue(callback);
+    executor.shutdown();
+    client.newCall(request2).enqueue(callback);
+    // Trigger promotion.
+    dispatcher.setMaxRequests(2);
+    callback.await(request2.url()).assertFailure(InterruptedIOException.class);
+    assertThat(listener.recordedEventTypes()).containsExactly("CallStart", "CallStart", "CallFailed");
+}

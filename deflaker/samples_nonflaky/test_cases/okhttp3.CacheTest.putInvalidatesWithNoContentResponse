@@ -1,0 +1,15 @@
+@Test
+public void putInvalidatesWithNoContentResponse() throws Exception {
+    // 1. Seed the cache.
+    // 2. Invalidate it.
+    // 3. Expect a cache miss.
+    server.enqueue(new MockResponse().setBody("A").addHeader("Expires: " + formatDate(1, TimeUnit.HOURS)));
+    server.enqueue(new MockResponse().clearHeaders().setResponseCode(HttpURLConnection.HTTP_NO_CONTENT));
+    server.enqueue(new MockResponse().setBody("C"));
+    HttpUrl url = server.url("/");
+    assertThat(get(url).body().string()).isEqualTo("A");
+    Request request = new Request.Builder().url(url).put(RequestBody.create("foo", MediaType.get("text/plain"))).build();
+    Response invalidate = client.newCall(request).execute();
+    assertThat(invalidate.body().string()).isEqualTo("");
+    assertThat(get(url).body().string()).isEqualTo("C");
+}

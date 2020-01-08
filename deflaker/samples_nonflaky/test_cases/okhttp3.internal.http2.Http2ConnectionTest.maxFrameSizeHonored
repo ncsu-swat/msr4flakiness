@@ -1,0 +1,30 @@
+@Test
+public void maxFrameSizeHonored() throws Exception {
+    byte[] buff = new byte[peer.maxOutboundDataLength() + 1];
+    Arrays.fill(buff, (byte) '*');
+    // write the mocking script
+    peer.sendFrame().settings(new Settings());
+    // ACK
+    peer.acceptFrame();
+    // SYN_STREAM
+    peer.acceptFrame();
+    peer.sendFrame().headers(false, 3, headerEntries("a", "android"));
+    // DATA
+    peer.acceptFrame();
+    // DATA
+    peer.acceptFrame();
+    peer.play();
+    // play it back
+    Http2Connection connection = connect(peer);
+    Http2Stream stream = connection.newStream(headerEntries("b", "banana"), true);
+    BufferedSink out = Okio.buffer(stream.getSink());
+    out.write(buff);
+    out.flush();
+    out.close();
+    InFrame synStream = peer.takeFrame();
+    assertThat(synStream.type).isEqualTo(Http2.TYPE_HEADERS);
+    InFrame data = peer.takeFrame();
+    assertThat(data.data.length).isEqualTo(peer.maxOutboundDataLength());
+    data = peer.takeFrame();
+    assertThat(data.data.length).isEqualTo(1);
+}

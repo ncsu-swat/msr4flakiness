@@ -1,0 +1,18 @@
+@Test
+public void tls_defaultCiphers_withFallbackIndicator() throws Exception {
+    platform.assumeNotConscrypt();
+    ConnectionSpec tlsSpec = new ConnectionSpec.Builder(true).tlsVersions(TlsVersion.TLS_1_2).supportsTlsExtensions(false).build();
+    SSLSocket socket = (SSLSocket) SSLSocketFactory.getDefault().createSocket();
+    socket.setEnabledCipherSuites(new String[] { CipherSuite.TLS_RSA_WITH_RC4_128_MD5.javaName(), CipherSuite.TLS_RSA_WITH_RC4_128_SHA.javaName() });
+    socket.setEnabledProtocols(new String[] { TlsVersion.TLS_1_2.javaName(), TlsVersion.TLS_1_1.javaName() });
+    assertThat(tlsSpec.isCompatible(socket)).isTrue();
+    applyConnectionSpec(tlsSpec, socket, true);
+    assertThat(socket.getEnabledProtocols()).containsExactly(TlsVersion.TLS_1_2.javaName());
+    List<String> expectedCipherSuites = new ArrayList<>();
+    expectedCipherSuites.add(CipherSuite.TLS_RSA_WITH_RC4_128_MD5.javaName());
+    expectedCipherSuites.add(CipherSuite.TLS_RSA_WITH_RC4_128_SHA.javaName());
+    if (asList(socket.getSupportedCipherSuites()).contains("TLS_FALLBACK_SCSV")) {
+        expectedCipherSuites.add("TLS_FALLBACK_SCSV");
+    }
+    assertThat(socket.getEnabledCipherSuites()).containsExactlyElementsOf(expectedCipherSuites);
+}

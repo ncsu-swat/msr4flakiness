@@ -1,0 +1,14 @@
+@Test
+public void serverReadsHeadersData() throws Exception {
+    enableProtocol(Protocol.HTTP_2);
+    MockDuplexResponseBody mockDuplexResponseBody = enqueueResponseWithBody(new MockResponse().clearHeaders().addHeader("h1", "v1").addHeader("h2", "v2"), new MockDuplexResponseBody().exhaustResponse().receiveRequest("hey\n").receiveRequest("whats going on\n").exhaustRequest());
+    Request request = new Request.Builder().url(server.url("/")).method("POST", new AsyncRequestBody()).build();
+    Call call = client.newCall(request);
+    try (Response response = call.execute()) {
+        BufferedSink sink = ((AsyncRequestBody) request.body()).takeSink();
+        sink.writeUtf8("hey\n");
+        sink.writeUtf8("whats going on\n");
+        sink.close();
+    }
+    mockDuplexResponseBody.awaitSuccess();
+}

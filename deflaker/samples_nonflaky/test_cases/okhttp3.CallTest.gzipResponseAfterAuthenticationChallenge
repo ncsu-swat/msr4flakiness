@@ -1,0 +1,10 @@
+/**
+ * https://github.com/square/okhttp/issues/1927
+ */
+@Test
+public void gzipResponseAfterAuthenticationChallenge() throws Exception {
+    server.enqueue(new MockResponse().setResponseCode(401));
+    server.enqueue(new MockResponse().setBody(gzip("abcabcabc")).addHeader("Content-Encoding: gzip"));
+    client = client.newBuilder().authenticator(new RecordingOkAuthenticator("password", null)).build();
+    executeSynchronously("/").assertBody("abcabcabc");
+}

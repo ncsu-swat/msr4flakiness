@@ -1,0 +1,25 @@
+@Test
+public void failedRouteWithSingleProxy() throws Exception {
+    Address address = httpsAddress();
+    RouteSelector routeSelector = new RouteSelector(address, routeDatabase, call, EventListener.NONE);
+    final int numberOfAddresses = 2;
+    dns.set(uriHost, dns.allocate(numberOfAddresses));
+    // Extract the regular sequence of routes from selector.
+    RouteSelector.Selection selection1 = routeSelector.next();
+    List<Route> regularRoutes = selection1.getRoutes();
+    // Check that we do indeed have more than one route.
+    assertThat(regularRoutes.size()).isEqualTo(numberOfAddresses);
+    // Add first regular route as failed.
+    routeDatabase.failed(regularRoutes.get(0));
+    // Reset selector
+    routeSelector = new RouteSelector(address, routeDatabase, call, EventListener.NONE);
+    // The first selection prioritizes the non-failed routes.
+    RouteSelector.Selection selection2 = routeSelector.next();
+    assertThat(selection2.next()).isEqualTo(regularRoutes.get(1));
+    assertThat(selection2.hasNext()).isFalse();
+    // The second selection will contain all failed routes.
+    RouteSelector.Selection selection3 = routeSelector.next();
+    assertThat(selection3.next()).isEqualTo(regularRoutes.get(0));
+    assertThat(selection3.hasNext()).isFalse();
+    assertThat(routeSelector.hasNext()).isFalse();
+}

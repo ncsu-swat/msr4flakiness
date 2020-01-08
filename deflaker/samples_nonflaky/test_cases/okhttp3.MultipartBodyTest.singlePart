@@ -1,0 +1,14 @@
+@Test
+public void singlePart() throws Exception {
+    String expected = "" + "--123\r\n" + "Content-Length: 13\r\n" + "\r\n" + "Hello, World!\r\n" + "--123--\r\n";
+    MultipartBody body = new MultipartBody.Builder("123").addPart(RequestBody.create("Hello, World!", null)).build();
+    assertThat(body.boundary()).isEqualTo("123");
+    assertThat(body.type()).isEqualTo(MultipartBody.MIXED);
+    assertThat(body.contentType().toString()).isEqualTo("multipart/mixed; boundary=123");
+    assertThat(body.parts().size()).isEqualTo(1);
+    assertThat(body.contentLength()).isEqualTo(53);
+    Buffer buffer = new Buffer();
+    body.writeTo(buffer);
+    assertThat(body.contentLength()).isEqualTo(buffer.size());
+    assertThat(buffer.readUtf8()).isEqualTo(expected);
+}

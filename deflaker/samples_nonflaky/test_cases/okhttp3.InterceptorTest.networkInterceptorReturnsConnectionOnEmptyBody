@@ -1,0 +1,13 @@
+@Test
+public void networkInterceptorReturnsConnectionOnEmptyBody() throws Exception {
+    server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_END).addHeader("Connection", "Close"));
+    Interceptor interceptor = chain -> {
+        Response response = chain.proceed(chain.request());
+        assertThat(chain.connection()).isNotNull();
+        return response;
+    };
+    client = client.newBuilder().addNetworkInterceptor(interceptor).build();
+    Request request = new Request.Builder().url(server.url("/")).build();
+    Response response = client.newCall(request).execute();
+    response.body().close();
+}

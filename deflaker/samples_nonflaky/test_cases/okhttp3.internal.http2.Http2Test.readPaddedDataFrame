@@ -1,0 +1,19 @@
+@Test
+public void readPaddedDataFrame() throws IOException {
+    int dataLength = 1123;
+    byte[] expectedData = new byte[dataLength];
+    Arrays.fill(expectedData, (byte) 2);
+    int paddingLength = 254;
+    byte[] padding = new byte[paddingLength];
+    Arrays.fill(padding, (byte) 0);
+    writeMedium(frame, dataLength + paddingLength + 1);
+    frame.writeByte(Http2.TYPE_DATA);
+    frame.writeByte(FLAG_PADDED);
+    frame.writeInt(expectedStreamId & 0x7fffffff);
+    frame.writeByte(paddingLength);
+    frame.write(expectedData);
+    frame.write(padding);
+    reader.nextFrame(false, assertData());
+    // Padding was skipped.
+    assertThat(frame.exhausted()).isTrue();
+}

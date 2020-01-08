@@ -1,0 +1,25 @@
+@Test
+public void proxySelectorReturnsNull() throws Exception {
+    ProxySelector nullProxySelector = new ProxySelector() {
+
+        @Override
+        public List<Proxy> select(URI uri) {
+            assertThat(uri.getHost()).isEqualTo(uriHost);
+            return null;
+        }
+
+        @Override
+        public void connectFailed(URI uri, SocketAddress socketAddress, IOException e) {
+            throw new AssertionError();
+        }
+    };
+    Address address = new Address(uriHost, uriPort, dns, socketFactory, null, null, null, authenticator, null, protocols, connectionSpecs, nullProxySelector);
+    RouteSelector routeSelector = new RouteSelector(address, routeDatabase, call, EventListener.NONE);
+    assertThat(routeSelector.hasNext()).isTrue();
+    dns.set(uriHost, dns.allocate(1));
+    RouteSelector.Selection selection = routeSelector.next();
+    assertRoute(selection.next(), address, NO_PROXY, dns.lookup(uriHost, 0), uriPort);
+    dns.assertRequests(uriHost);
+    assertThat(selection.hasNext()).isFalse();
+    assertThat(routeSelector.hasNext()).isFalse();
+}

@@ -1,0 +1,21 @@
+/**
+ * We do not send SETTINGS_COMPRESS_DATA = 1, nor want to. Let's make sure we error.
+ */
+@Test
+public void compressedDataFrameWhenSettingDisabled() throws IOException {
+    byte[] expectedData = new byte[Http2.INITIAL_MAX_FRAME_SIZE];
+    Arrays.fill(expectedData, (byte) 2);
+    Buffer zipped = gzip(expectedData);
+    int zippedSize = (int) zipped.size();
+    writeMedium(frame, zippedSize);
+    frame.writeByte(Http2.TYPE_DATA);
+    frame.writeByte(FLAG_COMPRESSED);
+    frame.writeInt(expectedStreamId & 0x7fffffff);
+    zipped.readAll(frame);
+    try {
+        reader.nextFrame(false, new BaseTestHandler());
+        fail();
+    } catch (IOException e) {
+        assertThat(e.getMessage()).isEqualTo("PROTOCOL_ERROR: FLAG_COMPRESSED without SETTINGS_COMPRESS_DATA");
+    }
+}

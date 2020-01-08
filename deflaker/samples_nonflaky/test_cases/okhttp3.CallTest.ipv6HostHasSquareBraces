@@ -1,0 +1,21 @@
+/**
+ * https://github.com/square/okhttp/issues/2344
+ */
+@Test
+public void ipv6HostHasSquareBraces() throws Exception {
+    // Use a proxy to fake IPv6 connectivity, even if localhost doesn't have IPv6.
+    server.useHttps(handshakeCertificates.sslSocketFactory(), true);
+    server.setProtocols(Collections.singletonList(Protocol.HTTP_1_1));
+    server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.UPGRADE_TO_SSL_AT_END).clearHeaders());
+    server.enqueue(new MockResponse().setBody("response body"));
+    client = client.newBuilder().sslSocketFactory(handshakeCertificates.sslSocketFactory(), handshakeCertificates.trustManager()).hostnameVerifier(new RecordingHostnameVerifier()).proxy(server.toProxyAddress()).build();
+    Request request = new Request.Builder().url("https://[::1]/").build();
+    Response response = client.newCall(request).execute();
+    assertThat(response.body().string()).isEqualTo("response body");
+    RecordedRequest connect = server.takeRequest();
+    assertThat(connect.getRequestLine()).isEqualTo("CONNECT [::1]:443 HTTP/1.1");
+    assertThat(connect.getHeader("Host")).isEqualTo("[::1]:443");
+    RecordedRequest get = server.takeRequest();
+    assertThat(get.getRequestLine()).isEqualTo("GET / HTTP/1.1");
+    assertThat(get.getHeader("Host")).isEqualTo("[::1]");
+}

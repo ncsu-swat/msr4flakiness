@@ -1,0 +1,21 @@
+@Test
+public void chainCanCancelCall() throws Exception {
+    AtomicReference<Call> callRef = new AtomicReference<>();
+    Interceptor interceptor = chain -> {
+        Call call = chain.call();
+        callRef.set(call);
+        assertThat(call.isCanceled()).isFalse();
+        call.cancel();
+        assertThat(call.isCanceled()).isTrue();
+        return chain.proceed(chain.request());
+    };
+    client = client.newBuilder().addInterceptor(interceptor).build();
+    Request request = new Request.Builder().url(server.url("/")).build();
+    Call call = client.newCall(request);
+    try {
+        call.execute();
+        fail();
+    } catch (IOException expected) {
+    }
+    assertThat(callRef.get()).isSameAs(call);
+}

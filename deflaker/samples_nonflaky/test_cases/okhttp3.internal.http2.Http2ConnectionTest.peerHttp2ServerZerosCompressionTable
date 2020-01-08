@@ -1,0 +1,13 @@
+@Test
+public void peerHttp2ServerZerosCompressionTable() throws Exception {
+    // Peer is server, so we are client.
+    boolean client = false;
+    Settings settings = new Settings();
+    settings.set(HEADER_TABLE_SIZE, 0);
+    Http2Connection connection = connectWithSettings(client, settings);
+    // Verify the peer's settings were read and applied.
+    assertThat(connection.getPeerSettings().getHeaderTableSize()).isEqualTo(0);
+    Http2Writer writer = connection.getWriter();
+    assertThat(writer.getHpackWriter().dynamicTableByteCount).isEqualTo(0);
+    assertThat(writer.getHpackWriter().headerTableSizeSetting).isEqualTo(0);
+}

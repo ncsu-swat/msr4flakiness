@@ -1,0 +1,25 @@
+@Test
+public void recoverFromTlsHandshakeFailure_tlsFallbackScsvEnabled() throws Exception {
+    platform.assumeNotConscrypt();
+    final String tlsFallbackScsv = "TLS_FALLBACK_SCSV";
+    List<String> supportedCiphers = asList(handshakeCertificates.sslSocketFactory().getSupportedCipherSuites());
+    if (!supportedCiphers.contains(tlsFallbackScsv)) {
+        // This only works if the client socket supports TLS_FALLBACK_SCSV.
+        return;
+    }
+    server.useHttps(handshakeCertificates.sslSocketFactory(), false);
+    server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.FAIL_HANDSHAKE));
+    RecordingSSLSocketFactory clientSocketFactory = new RecordingSSLSocketFactory(handshakeCertificates.sslSocketFactory());
+    client = client.newBuilder().sslSocketFactory(clientSocketFactory, handshakeCertificates.trustManager()).connectionSpecs(asList(ConnectionSpec.RESTRICTED_TLS, ConnectionSpec.MODERN_TLS)).hostnameVerifier(new RecordingHostnameVerifier()).build();
+    Request request = new Request.Builder().url(server.url("/")).build();
+    try {
+        client.newCall(request).execute();
+        fail();
+    } catch (SSLHandshakeException expected) {
+    }
+    List<SSLSocket> clientSockets = clientSocketFactory.getSocketsCreated();
+    SSLSocket firstSocket = clientSockets.get(0);
+    assertThat(asList(firstSocket.getEnabledCipherSuites())).doesNotContain(tlsFallbackScsv);
+    SSLSocket secondSocket = clientSockets.get(1);
+    assertThat(asList(secondSocket.getEnabledCipherSuites())).contains(tlsFallbackScsv);
+}

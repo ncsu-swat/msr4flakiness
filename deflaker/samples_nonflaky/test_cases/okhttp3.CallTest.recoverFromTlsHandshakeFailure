@@ -1,0 +1,8 @@
+@Test
+public void recoverFromTlsHandshakeFailure() throws Exception {
+    server.useHttps(handshakeCertificates.sslSocketFactory(), false);
+    server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.FAIL_HANDSHAKE));
+    server.enqueue(new MockResponse().setBody("abc"));
+    client = client.newBuilder().hostnameVerifier(new RecordingHostnameVerifier()).connectionSpecs(asList(ConnectionSpec.RESTRICTED_TLS, ConnectionSpec.MODERN_TLS)).sslSocketFactory(suppressTlsFallbackClientSocketFactory(), handshakeCertificates.trustManager()).build();
+    executeSynchronously("/").assertBody("abc");
+}

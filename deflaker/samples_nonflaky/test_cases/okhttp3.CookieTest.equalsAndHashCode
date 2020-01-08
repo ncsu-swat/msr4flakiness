@@ -1,0 +1,18 @@
+@Test
+public void equalsAndHashCode() throws Exception {
+    List<String> cookieStrings = asList("a=b; Path=/c; Domain=example.com; Max-Age=5; Secure; HttpOnly", "a= ; Path=/c; Domain=example.com; Max-Age=5; Secure; HttpOnly", "a=b;          Domain=example.com; Max-Age=5; Secure; HttpOnly", "a=b; Path=/c;                     Max-Age=5; Secure; HttpOnly", "a=b; Path=/c; Domain=example.com;            Secure; HttpOnly", "a=b; Path=/c; Domain=example.com; Max-Age=5;         HttpOnly", "a=b; Path=/c; Domain=example.com; Max-Age=5; Secure;         ");
+    for (String stringA : cookieStrings) {
+        Cookie cookieA = parseCookie(0, url, stringA);
+        for (String stringB : cookieStrings) {
+            Cookie cookieB = parseCookie(0, url, stringB);
+            if (Objects.equals(stringA, stringB)) {
+                assertThat(cookieB.hashCode()).isEqualTo(cookieA.hashCode());
+                assertThat(cookieB).isEqualTo(cookieA);
+            } else {
+                assertThat(cookieB.hashCode()).isNotEqualTo((long) cookieA.hashCode());
+                assertThat(cookieB).isNotEqualTo(cookieA);
+            }
+        }
+        assertThat(cookieA).isNotEqualTo(null);
+    }
+}

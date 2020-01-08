@@ -1,0 +1,16 @@
+@Test
+public void canceledBeforeResponseReadSignalsOnFailure() throws Exception {
+    Request requestA = new Request.Builder().url(server.url("/a")).build();
+    final Call call = client.newCall(requestA);
+    server.setDispatcher(new Dispatcher() {
+
+        @Override
+        public MockResponse dispatch(RecordedRequest request) {
+            call.cancel();
+            return new MockResponse().setBody("A");
+        }
+    });
+    call.enqueue(callback);
+    assertThat(server.takeRequest().getPath()).isEqualTo("/a");
+    callback.await(requestA.url()).assertFailure("Canceled", "stream was reset: CANCEL", "Socket closed");
+}

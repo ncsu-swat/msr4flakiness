@@ -1,0 +1,22 @@
+@Test
+public void postWithFileNotFound() throws Exception {
+    final AtomicInteger called = new AtomicInteger(0);
+    RequestBody body = new RequestBody() {
+
+        @Nullable
+        @Override
+        public MediaType contentType() {
+            return MediaType.get("application/octet-stream");
+        }
+
+        @Override
+        public void writeTo(BufferedSink sink) throws IOException {
+            called.incrementAndGet();
+            throw new FileNotFoundException();
+        }
+    };
+    Request request = new Request.Builder().url(server.url("/")).post(body).build();
+    client = client.newBuilder().dns(new DoubleInetAddressDns()).build();
+    executeSynchronously(request).assertFailure(FileNotFoundException.class);
+    assertThat(called.get()).isEqualTo(1L);
+}

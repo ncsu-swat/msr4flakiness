@@ -1,0 +1,24 @@
+@Test
+public void conditionalCacheMiss() throws Exception {
+    server.enqueue(new MockResponse().addHeader("ETag: v1").addHeader("Vary: Accept-Charset").addHeader("Donut: a").setBody("A"));
+    server.enqueue(new MockResponse().addHeader("Donut: b").setBody("B"));
+    client = client.newBuilder().cache(cache).build();
+    long request1SentAt = System.currentTimeMillis();
+    executeSynchronously("/", "Accept-Language", "fr-CA", "Accept-Charset", "UTF-8").assertCode(200).assertBody("A");
+    long request1ReceivedAt = System.currentTimeMillis();
+    assertThat(server.takeRequest().getHeader("If-None-Match")).isNull();
+    // Different request, but Vary says it doesn't matter.
+    // Make sure the timestamps are unique.
+    Thread.sleep(10);
+    long request2SentAt = System.currentTimeMillis();
+    RecordedResponse cacheMiss = executeSynchronously("/", "Accept-Language", "en-US", "Accept-Charset", "UTF-8");
+    long request2ReceivedAt = System.currentTimeMillis();
+    assertThat(server.takeRequest().getHeader("If-None-Match")).isEqualTo("v1");
+    // Check the user response. It has the application's original request.
+    cacheMiss.assertCode(200).assertBody("B").assertHeader("Donut", "b").assertRequestUrl(server.url("/")).assertSentRequestAtMillis(request2SentAt, request2ReceivedAt).assertReceivedResponseAtMillis(request2SentAt, request2ReceivedAt);
+    // Check the cache response. Even though it's a miss, we used the cache.
+    cacheMiss.cacheResponse().assertCode(200).assertHeader("Donut", "a").assertHeader("ETag", "v1").assertRequestUrl(server.url("/")).assertSentRequestAtMillis(request1SentAt, request1ReceivedAt).assertReceivedResponseAtMillis(request1SentAt, request1ReceivedAt);
+    // Check the network response. It has the network request, plus caching headers.
+    cacheMiss.networkResponse().assertCode(200).assertHeader("Donut", "b").assertRequestHeader("If-None-Match", // If-None-Match in the validation request.
+    "v1").assertRequestUrl(server.url("/")).assertSentRequestAtMillis(request2SentAt, request2ReceivedAt).assertReceivedResponseAtMillis(request2SentAt, request2ReceivedAt);
+}

@@ -1,0 +1,31 @@
+@Test
+public void bytesClosesUnderlyingSource() throws IOException {
+    final AtomicBoolean closed = new AtomicBoolean();
+    ResponseBody body = new ResponseBody() {
+
+        @Override
+        public MediaType contentType() {
+            return null;
+        }
+
+        @Override
+        public long contentLength() {
+            return 5;
+        }
+
+        @Override
+        public BufferedSource source() {
+            Buffer source = new Buffer().writeUtf8("hello");
+            return Okio.buffer(new ForwardingSource(source) {
+
+                @Override
+                public void close() throws IOException {
+                    closed.set(true);
+                    super.close();
+                }
+            });
+        }
+    };
+    assertThat(body.bytes().length).isEqualTo(5);
+    assertThat(closed.get()).isTrue();
+}

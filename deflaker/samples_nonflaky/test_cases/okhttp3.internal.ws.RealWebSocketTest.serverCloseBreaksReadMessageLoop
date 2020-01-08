@@ -1,0 +1,9 @@
+@Test
+public void serverCloseBreaksReadMessageLoop() throws IOException {
+    server.webSocket.send("Hello!");
+    server.webSocket.close(1000, "Bye!");
+    assertThat(client.processNextFrame()).isTrue();
+    client.listener.assertTextMessage("Hello!");
+    assertThat(client.processNextFrame()).isFalse();
+    client.listener.assertClosing(1000, "Bye!");
+}

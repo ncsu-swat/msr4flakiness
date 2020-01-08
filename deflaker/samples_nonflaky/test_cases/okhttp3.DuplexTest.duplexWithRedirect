@@ -1,0 +1,42 @@
+/**
+ * Duplex calls that have follow-ups are weird. By the time we know there's a follow-up we've
+ * already split off another thread to stream the request body. Because we permit at most one
+ * exchange at a time we break the request stream out from under that writer.
+ */
+@Test
+public void duplexWithRedirect() throws Exception {
+    enableProtocol(Protocol.HTTP_2);
+    CountDownLatch duplexResponseSent = new CountDownLatch(1);
+    listener = new RecordingEventListener() {
+
+        @Override
+        public void responseHeadersEnd(Call call, Response response) {
+            try {
+                // Wait for the server to send the duplex response before acting on the 301 response
+                // and resetting the stream.
+                duplexResponseSent.await();
+            } catch (InterruptedException e) {
+                throw new AssertionError();
+            }
+            super.responseHeadersEnd(call, response);
+        }
+    };
+    client = client.newBuilder().eventListener(listener).build();
+    MockDuplexResponseBody mockDuplexResponseBody = enqueueResponseWithBody(new MockResponse().clearHeaders().setResponseCode(HttpURLConnection.HTTP_MOVED_PERM).addHeader("Location: /b"), new MockDuplexResponseBody().sendResponse("/a has moved!\n", duplexResponseSent).requestIOException().exhaustResponse());
+    server.enqueue(new MockResponse().setBody("this is /b"));
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).post(new AsyncRequestBody()).build());
+    try (Response response = call.execute()) {
+        BufferedSource responseBody = response.body().source();
+        assertThat(responseBody.readUtf8Line()).isEqualTo("this is /b");
+    }
+    BufferedSink requestBody = ((AsyncRequestBody) call.request().body()).takeSink();
+    try {
+        requestBody.writeUtf8("request body\n");
+        requestBody.flush();
+        fail();
+    } catch (IOException expected) {
+        assertThat(expected.getMessage()).isEqualTo("stream was reset: CANCEL");
+    }
+    mockDuplexResponseBody.awaitSuccess();
+    assertThat(listener.recordedEventTypes()).containsExactly("CallStart", "ProxySelectStart", "ProxySelectEnd", "DnsStart", "DnsEnd", "ConnectStart", "SecureConnectStart", "SecureConnectEnd", "ConnectEnd", "ConnectionAcquired", "RequestHeadersStart", "RequestHeadersEnd", "RequestBodyStart", "ResponseHeadersStart", "ResponseHeadersEnd", "ResponseBodyStart", "ResponseBodyEnd", "RequestHeadersStart", "RequestHeadersEnd", "ResponseHeadersStart", "ResponseHeadersEnd", "ResponseBodyStart", "ResponseBodyEnd", "ConnectionReleased", "CallEnd", "RequestFailed");
+}

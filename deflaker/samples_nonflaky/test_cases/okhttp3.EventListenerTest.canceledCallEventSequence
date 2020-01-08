@@ -1,0 +1,12 @@
+@Test
+public void canceledCallEventSequence() {
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).build());
+    call.cancel();
+    try {
+        call.execute();
+        fail();
+    } catch (IOException expected) {
+        assertThat(expected.getMessage()).isEqualTo("Canceled");
+    }
+    assertThat(listener.recordedEventTypes()).containsExactly("CallStart", "ProxySelectStart", "ProxySelectEnd", "CallFailed");
+}

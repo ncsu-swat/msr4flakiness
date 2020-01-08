@@ -1,0 +1,20 @@
+@Test
+public void cancelReadingResponseBody() throws Exception {
+    // 8 MiB.
+    int responseBodySize = 8 * 1024 * 1024;
+    server.enqueue(new MockResponse().setBody(new Buffer().write(new byte[responseBodySize])).throttleBody(64 * 1024, 125, // 500 Kbps
+    TimeUnit.MILLISECONDS));
+    server.start();
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).build());
+    Response response = call.execute();
+    cancelLater(call, 500);
+    InputStream responseBody = response.body().byteStream();
+    byte[] buffer = new byte[1024];
+    try {
+        while (responseBody.read(buffer) != -1) {
+        }
+        fail("Expected connection to be closed");
+    } catch (IOException expected) {
+    }
+    responseBody.close();
+}

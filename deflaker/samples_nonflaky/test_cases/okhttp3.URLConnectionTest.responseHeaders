@@ -1,0 +1,23 @@
+@Test
+public void responseHeaders() throws Exception {
+    server.enqueue(new MockResponse().setStatus("HTTP/1.0 200 Fantastic").addHeader("A: c").addHeader("B: d").addHeader("A: e").setChunkedBody("ABCDE\nFGHIJ\nKLMNO\nPQR", 8));
+    Request request = newRequest("/");
+    Response response = getResponse(request);
+    assertThat(response.code()).isEqualTo(200);
+    assertThat(response.message()).isEqualTo("Fantastic");
+    try {
+        response.header(null);
+        fail();
+    } catch (IllegalArgumentException expected) {
+    }
+    Headers responseHeaders = response.headers();
+    assertThat(new LinkedHashSet<>(responseHeaders.values("A"))).isEqualTo(newSet("c", "e"));
+    assertThat(new LinkedHashSet<>(responseHeaders.values("a"))).isEqualTo(newSet("c", "e"));
+    assertThat(responseHeaders.name(0)).isEqualTo("A");
+    assertThat(responseHeaders.value(0)).isEqualTo("c");
+    assertThat(responseHeaders.name(1)).isEqualTo("B");
+    assertThat(responseHeaders.value(1)).isEqualTo("d");
+    assertThat(responseHeaders.name(2)).isEqualTo("A");
+    assertThat(responseHeaders.value(2)).isEqualTo("e");
+    response.body().close();
+}

@@ -1,0 +1,26 @@
+@Test
+public void byteStringThrowsWhenLengthsDisagree() {
+    ResponseBody body = new ResponseBody() {
+
+        @Override
+        public MediaType contentType() {
+            return null;
+        }
+
+        @Override
+        public long contentLength() {
+            return 10;
+        }
+
+        @Override
+        public BufferedSource source() {
+            return new Buffer().writeUtf8("hello");
+        }
+    };
+    try {
+        body.byteString();
+        fail();
+    } catch (IOException e) {
+        assertThat(e.getMessage()).isEqualTo("Content-Length (10) and stream length (5) disagree");
+    }
+}

@@ -1,0 +1,14 @@
+@Test
+public void iteratorRemoveFromCache() throws Exception {
+    // Put a response in the cache.
+    server.enqueue(new MockResponse().addHeader("Cache-Control: max-age=60").setBody("a"));
+    HttpUrl url = server.url("/a");
+    assertThat(get(url).body().string()).isEqualTo("a");
+    // Remove it with iteration.
+    Iterator<String> i = cache.urls();
+    assertThat(i.next()).isEqualTo(url.toString());
+    i.remove();
+    // Confirm that subsequent requests suffer a cache miss.
+    server.enqueue(new MockResponse().setBody("b"));
+    assertThat(get(url).body().string()).isEqualTo("b");
+}

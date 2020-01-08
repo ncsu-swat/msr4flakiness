@@ -1,0 +1,24 @@
+@Test
+public void clientCannotReadTrailersIfTheStreamFailed() throws Exception {
+    // write the mocking script
+    peer.sendFrame().settings(new Settings());
+    // ACK
+    peer.acceptFrame();
+    // SYN_STREAM
+    peer.acceptFrame();
+    peer.sendFrame().rstStream(3, ErrorCode.PROTOCOL_ERROR);
+    // PING
+    peer.acceptFrame();
+    // PONG
+    peer.sendFrame().ping(true, AWAIT_PING, 0);
+    peer.play();
+    // play it back
+    Http2Connection connection = connect(peer);
+    Http2Stream stream = connection.newStream(headerEntries("a", "artichaut"), true);
+    connection.writePingAndAwaitPong();
+    try {
+        stream.trailers();
+        fail();
+    } catch (StreamResetException expected) {
+    }
+}

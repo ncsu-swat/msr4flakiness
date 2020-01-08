@@ -1,0 +1,16 @@
+@Test
+public void applicationInterceptorResponseMustHaveBody() throws Exception {
+    server.enqueue(new MockResponse());
+    Interceptor interceptor = chain -> {
+        Response response = chain.proceed(chain.request());
+        return response.newBuilder().body(null).build();
+    };
+    client = client.newBuilder().addInterceptor(interceptor).build();
+    Request request = new Request.Builder().url(server.url("/")).build();
+    try {
+        client.newCall(request).execute();
+        fail();
+    } catch (IllegalStateException expected) {
+        assertThat(expected.getMessage()).isEqualTo(("interceptor " + interceptor + " returned a response with no body"));
+    }
+}

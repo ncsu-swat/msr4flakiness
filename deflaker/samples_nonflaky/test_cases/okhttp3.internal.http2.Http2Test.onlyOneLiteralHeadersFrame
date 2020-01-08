@@ -1,0 +1,22 @@
+@Test
+public void onlyOneLiteralHeadersFrame() throws IOException {
+    final List<Header> sentHeaders = headerEntries("name", "value");
+    Buffer headerBytes = literalHeaders(sentHeaders);
+    writeMedium(frame, (int) headerBytes.size());
+    frame.writeByte(Http2.TYPE_HEADERS);
+    frame.writeByte(FLAG_END_HEADERS | FLAG_END_STREAM);
+    frame.writeInt(expectedStreamId & 0x7fffffff);
+    frame.writeAll(headerBytes);
+    // Check writer sends the same bytes.
+    assertThat(sendHeaderFrames(true, sentHeaders)).isEqualTo(frame);
+    reader.nextFrame(false, new BaseTestHandler() {
+
+        @Override
+        public void headers(boolean inFinished, int streamId, int associatedStreamId, List<Header> headerBlock) {
+            assertThat(inFinished).isTrue();
+            assertThat(streamId).isEqualTo(expectedStreamId);
+            assertThat(associatedStreamId).isEqualTo(-1);
+            assertThat(headerBlock).isEqualTo(sentHeaders);
+        }
+    });
+}

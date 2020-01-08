@@ -1,0 +1,16 @@
+@Test
+public void propfindRedirectsToPropfindAndMaintainsRequestBody() throws Exception {
+    // given
+    server.enqueue(new MockResponse().setResponseCode(HttpURLConnection.HTTP_MOVED_TEMP).addHeader("Location: /page2").setBody("This page has moved!"));
+    server.enqueue(new MockResponse().setBody("Page 2"));
+    // when
+    Response response = client.newCall(new Request.Builder().url(server.url("/page1")).method("PROPFIND", RequestBody.create("Request Body", MediaType.get("text/plain"))).build()).execute();
+    // then
+    assertThat(response.body().string()).isEqualTo("Page 2");
+    RecordedRequest page1 = server.takeRequest();
+    assertThat(page1.getRequestLine()).isEqualTo("PROPFIND /page1 HTTP/1.1");
+    assertThat(page1.getBody().readUtf8()).isEqualTo("Request Body");
+    RecordedRequest page2 = server.takeRequest();
+    assertThat(page2.getRequestLine()).isEqualTo("PROPFIND /page2 HTTP/1.1");
+    assertThat(page2.getBody().readUtf8()).isEqualTo("Request Body");
+}

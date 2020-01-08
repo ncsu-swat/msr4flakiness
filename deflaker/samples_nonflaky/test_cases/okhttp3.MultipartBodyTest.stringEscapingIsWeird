@@ -1,0 +1,8 @@
+@Test
+public void stringEscapingIsWeird() throws Exception {
+    String expected = "" + "--AaB03x\r\n" + "Content-Disposition: form-data; name=\"field with spaces\"; filename=\"filename with spaces.txt\"\r\n" + "Content-Type: text/plain; charset=utf-8\r\n" + "Content-Length: 4\r\n" + "\r\n" + "okay\r\n" + "--AaB03x\r\n" + "Content-Disposition: form-data; name=\"field with %22\"\r\n" + "Content-Length: 1\r\n" + "\r\n" + "\"\r\n" + "--AaB03x\r\n" + "Content-Disposition: form-data; name=\"field with %22\"\r\n" + "Content-Length: 3\r\n" + "\r\n" + "%22\r\n" + "--AaB03x\r\n" + "Content-Disposition: form-data; name=\"field with \u007e\"\r\n" + "Content-Length: 5\r\n" + "\r\n" + "Alpha\r\n" + "--AaB03x--\r\n";
+    MultipartBody body = new MultipartBody.Builder("AaB03x").setType(MultipartBody.FORM).addFormDataPart("field with spaces", "filename with spaces.txt", RequestBody.create("okay", MediaType.get("text/plain; charset=utf-8"))).addFormDataPart("field with \"", "\"").addFormDataPart("field with %22", "%22").addFormDataPart("field with \u007e", "Alpha").build();
+    Buffer buffer = new Buffer();
+    body.writeTo(buffer);
+    assertThat(buffer.readUtf8()).isEqualTo(expected);
+}

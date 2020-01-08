@@ -1,0 +1,11 @@
+@Test
+public void tlsHostnameVerificationFailure() throws Exception {
+    server.enqueue(new MockResponse());
+    HeldCertificate serverCertificate = new HeldCertificate.Builder().commonName(// Unusued for hostname verification.
+    "localhost").addSubjectAlternativeName("wronghostname").build();
+    HandshakeCertificates serverCertificates = new HandshakeCertificates.Builder().heldCertificate(serverCertificate).build();
+    HandshakeCertificates clientCertificates = new HandshakeCertificates.Builder().addTrustedCertificate(serverCertificate.certificate()).build();
+    client = client.newBuilder().sslSocketFactory(clientCertificates.sslSocketFactory(), clientCertificates.trustManager()).build();
+    server.useHttps(serverCertificates.sslSocketFactory(), false);
+    executeSynchronously("/").assertFailureMatches("(?s)Hostname localhost not verified.*");
+}

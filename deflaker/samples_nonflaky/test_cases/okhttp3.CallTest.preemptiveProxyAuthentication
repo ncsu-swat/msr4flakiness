@@ -1,0 +1,28 @@
+/**
+ * Confirm that we can send authentication information without being prompted first.
+ */
+@Test
+public void preemptiveProxyAuthentication() throws Exception {
+    server.useHttps(handshakeCertificates.sslSocketFactory(), true);
+    server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.UPGRADE_TO_SSL_AT_END).clearHeaders());
+    server.enqueue(new MockResponse().setBody("encrypted response from the origin server"));
+    final String credential = Credentials.basic("jesse", "password1");
+    client = client.newBuilder().sslSocketFactory(handshakeCertificates.sslSocketFactory(), handshakeCertificates.trustManager()).proxy(server.toProxyAddress()).hostnameVerifier(new RecordingHostnameVerifier()).proxyAuthenticator((route, response) -> {
+        assertThat(response.request().method()).isEqualTo("CONNECT");
+        assertThat(response.code()).isEqualTo(HttpURLConnection.HTTP_PROXY_AUTH);
+        assertThat(response.request().url().host()).isEqualTo("android.com");
+        List<Challenge> challenges = response.challenges();
+        assertThat(challenges.get(0).scheme()).isEqualTo("OkHttp-Preemptive");
+        return response.request().newBuilder().header("Proxy-Authorization", credential).build();
+    }).build();
+    Request request = new Request.Builder().url("https://android.com/foo").build();
+    executeSynchronously(request).assertSuccessful();
+    RecordedRequest connect = server.takeRequest();
+    assertThat(connect.getMethod()).isEqualTo("CONNECT");
+    assertThat(connect.getHeader("Proxy-Authorization")).isEqualTo(credential);
+    assertThat(connect.getPath()).isEqualTo("/");
+    RecordedRequest get = server.takeRequest();
+    assertThat(get.getMethod()).isEqualTo("GET");
+    assertThat(get.getHeader("Proxy-Authorization")).isNull();
+    assertThat(get.getPath()).isEqualTo("/foo");
+}

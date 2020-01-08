@@ -1,0 +1,13 @@
+@Test
+public void get() throws Exception {
+    server.enqueue(new MockResponse().setBody("abc").clearHeaders().addHeader("content-type: text/plain").addHeader("content-length", "3"));
+    long sentAt = System.currentTimeMillis();
+    RecordedResponse recordedResponse = executeSynchronously("/", "User-Agent", "SyncApiTest");
+    long receivedAt = System.currentTimeMillis();
+    recordedResponse.assertCode(200).assertSuccessful().assertHeaders(new Headers.Builder().add("content-type", "text/plain").add("content-length", "3").build()).assertBody("abc").assertSentRequestAtMillis(sentAt, receivedAt).assertReceivedResponseAtMillis(sentAt, receivedAt);
+    RecordedRequest recordedRequest = server.takeRequest();
+    assertThat(recordedRequest.getMethod()).isEqualTo("GET");
+    assertThat(recordedRequest.getHeader("User-Agent")).isEqualTo("SyncApiTest");
+    assertThat(recordedRequest.getBody().size()).isEqualTo(0);
+    assertThat(recordedRequest.getHeader("Content-Length")).isNull();
+}

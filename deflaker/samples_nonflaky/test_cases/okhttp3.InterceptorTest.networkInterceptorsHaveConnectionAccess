@@ -1,0 +1,12 @@
+@Test
+public void networkInterceptorsHaveConnectionAccess() throws Exception {
+    server.enqueue(new MockResponse());
+    Interceptor interceptor = chain -> {
+        Connection connection = chain.connection();
+        assertThat(connection).isNotNull();
+        return chain.proceed(chain.request());
+    };
+    client = client.newBuilder().addNetworkInterceptor(interceptor).build();
+    Request request = new Request.Builder().url(server.url("/")).build();
+    client.newCall(request).execute();
+}

@@ -1,0 +1,14 @@
+@Test
+public void varyAndHttps() throws Exception {
+    server.useHttps(handshakeCertificates.sslSocketFactory(), false);
+    server.enqueue(new MockResponse().addHeader("Cache-Control: max-age=60").addHeader("Vary: Accept-Language").setBody("A"));
+    server.enqueue(new MockResponse().setBody("B"));
+    client = client.newBuilder().sslSocketFactory(handshakeCertificates.sslSocketFactory(), handshakeCertificates.trustManager()).hostnameVerifier(NULL_HOSTNAME_VERIFIER).build();
+    HttpUrl url = server.url("/");
+    Request request1 = new Request.Builder().url(url).header("Accept-Language", "en-US").build();
+    Response response1 = client.newCall(request1).execute();
+    assertThat(response1.body().string()).isEqualTo("A");
+    Request request2 = new Request.Builder().url(url).header("Accept-Language", "en-US").build();
+    Response response2 = client.newCall(request2).execute();
+    assertThat(response2.body().string()).isEqualTo("A");
+}

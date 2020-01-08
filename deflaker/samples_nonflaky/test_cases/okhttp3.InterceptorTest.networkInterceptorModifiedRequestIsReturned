@@ -1,0 +1,14 @@
+@Test
+public void networkInterceptorModifiedRequestIsReturned() throws IOException {
+    server.enqueue(new MockResponse());
+    Interceptor modifyHeaderInterceptor = chain -> {
+        Request modifiedRequest = chain.request().newBuilder().header("User-Agent", "intercepted request").build();
+        return chain.proceed(modifiedRequest);
+    };
+    client = client.newBuilder().addNetworkInterceptor(modifyHeaderInterceptor).build();
+    Request request = new Request.Builder().url(server.url("/")).header("User-Agent", "user request").build();
+    Response response = client.newCall(request).execute();
+    assertThat(response.request().header("User-Agent")).isNotNull();
+    assertThat(response.request().header("User-Agent")).isEqualTo("user request");
+    assertThat(response.networkResponse().request().header("User-Agent")).isEqualTo("intercepted request");
+}

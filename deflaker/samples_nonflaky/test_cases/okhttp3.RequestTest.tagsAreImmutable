@@ -1,0 +1,13 @@
+/**
+ * Confirm that we don't accidentally share the backing map between objects.
+ */
+@Test
+public void tagsAreImmutable() {
+    Request.Builder builder = new Request.Builder().url("https://square.com");
+    Request requestA = builder.tag(String.class, "a").build();
+    Request requestB = builder.tag(String.class, "b").build();
+    Request requestC = requestA.newBuilder().tag(String.class, "c").build();
+    assertThat(requestA.tag(String.class)).isSameAs("a");
+    assertThat(requestB.tag(String.class)).isSameAs("b");
+    assertThat(requestC.tag(String.class)).isSameAs("c");
+}

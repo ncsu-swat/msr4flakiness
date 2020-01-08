@@ -1,0 +1,57 @@
+/**
+ * Confirm that the client times out if the server stalls after 3 bytes. After the timeout the
+ * connection is still considered healthy while we await the degraded pong. When that doesn't
+ * arrive the connection goes unhealthy.
+ */
+@Test
+public void readTimesOut() throws Exception {
+    // write the mocking script
+    peer.sendFrame().settings(new Settings());
+    // ACK
+    peer.acceptFrame();
+    // SYN_STREAM
+    peer.acceptFrame();
+    peer.sendFrame().headers(false, 3, headerEntries("a", "android"));
+    peer.sendFrame().data(false, 3, new Buffer().writeUtf8("abc"), 3);
+    // RST_STREAM
+    peer.acceptFrame();
+    // DEGRADED PING
+    peer.acceptFrame();
+    // AWAIT PING
+    peer.acceptFrame();
+    // DEGRADED PONG
+    peer.sendFrame().ping(true, DEGRADED_PING, 1);
+    // AWAIT PONG
+    peer.sendFrame().ping(true, AWAIT_PING, 0);
+    peer.play();
+    // play it back
+    Http2Connection connection = connect(peer);
+    Http2Stream stream = connection.newStream(headerEntries("b", "banana"), false);
+    stream.readTimeout().timeout(500, TimeUnit.MILLISECONDS);
+    BufferedSource source = Okio.buffer(stream.getSource());
+    source.require(3);
+    long startNanos = System.nanoTime();
+    try {
+        source.require(4);
+        fail();
+    } catch (InterruptedIOException expected) {
+    }
+    long elapsedNanos = System.nanoTime() - startNanos;
+    awaitWatchdogIdle();
+    /* 200ms delta */
+    assertThat((double) TimeUnit.NANOSECONDS.toMillis(elapsedNanos)).isCloseTo(500d, offset(200d));
+    assertThat(connection.openStreamCount()).isEqualTo(0);
+    // When the timeout is sent the connection doesn't immediately go unhealthy.
+    assertThat(connection.isHealthy(System.nanoTime())).isTrue();
+    // But if the ping doesn't arrive, the connection goes unhealthy.
+    Thread.sleep(TimeUnit.NANOSECONDS.toMillis(DEGRADED_PONG_TIMEOUT_NS));
+    assertThat(connection.isHealthy(System.nanoTime())).isFalse();
+    // When a pong does arrive, the connection becomes healthy again.
+    connection.writePingAndAwaitPong();
+    assertThat(connection.isHealthy(System.nanoTime())).isTrue();
+    // verify the peer received what was expected
+    assertThat(peer.takeFrame().type).isEqualTo(Http2.TYPE_HEADERS);
+    assertThat(peer.takeFrame().type).isEqualTo(Http2.TYPE_RST_STREAM);
+    assertThat(peer.takeFrame().type).isEqualTo(Http2.TYPE_PING);
+    assertThat(peer.takeFrame().type).isEqualTo(Http2.TYPE_PING);
+}

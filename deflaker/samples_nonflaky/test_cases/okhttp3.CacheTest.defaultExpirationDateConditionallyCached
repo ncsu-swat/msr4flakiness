@@ -1,0 +1,10 @@
+@Test
+public void defaultExpirationDateConditionallyCached() throws Exception {
+    // last modified: 115 seconds ago
+    // served:  15 seconds ago
+    // default lifetime: (115 - 15) / 10 = 10 seconds
+    // expires:  10 seconds from served date = 5 seconds ago
+    String lastModifiedDate = formatDate(-115, TimeUnit.SECONDS);
+    RecordedRequest conditionalRequest = assertConditionallyCached(new MockResponse().addHeader("Last-Modified: " + lastModifiedDate).addHeader("Date: " + formatDate(-15, TimeUnit.SECONDS)));
+    assertThat(conditionalRequest.getHeader("If-Modified-Since")).isEqualTo(lastModifiedDate);
+}

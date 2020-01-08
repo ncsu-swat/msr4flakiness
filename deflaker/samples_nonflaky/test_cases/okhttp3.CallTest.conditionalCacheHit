@@ -1,0 +1,29 @@
+@Test
+public void conditionalCacheHit() throws Exception {
+    server.enqueue(new MockResponse().addHeader("ETag: v1").addHeader("Vary: Accept-Charset").addHeader("Donut: a").setBody("A"));
+    server.enqueue(new MockResponse().clearHeaders().addHeader("Donut: b").setResponseCode(HttpURLConnection.HTTP_NOT_MODIFIED));
+    client = client.newBuilder().cache(cache).build();
+    // Store a response in the cache.
+    long request1SentAt = System.currentTimeMillis();
+    executeSynchronously("/", "Accept-Language", "fr-CA", "Accept-Charset", "UTF-8").assertCode(200).assertHeader("Donut", "a").assertBody("A");
+    long request1ReceivedAt = System.currentTimeMillis();
+    assertThat(server.takeRequest().getHeader("If-None-Match")).isNull();
+    // Hit that stored response. It's different, but Vary says it doesn't matter.
+    // Make sure the timestamps are unique.
+    Thread.sleep(10);
+    long request2SentAt = System.currentTimeMillis();
+    RecordedResponse cacheHit = executeSynchronously("/", "Accept-Language", "en-US", "Accept-Charset", "UTF-8");
+    long request2ReceivedAt = System.currentTimeMillis();
+    assertThat(server.takeRequest().getHeader("If-None-Match")).isEqualTo("v1");
+    // Check the merged response. The request is the application's original request.
+    cacheHit.assertCode(200).assertBody("A").assertHeader("Donut", "b").assertRequestUrl(server.url("/")).assertRequestHeader("Accept-Language", "en-US").assertRequestHeader("Accept-Charset", "UTF-8").assertRequestHeader(// No If-None-Match on the user's request.
+    "If-None-Match").assertSentRequestAtMillis(request2SentAt, request2ReceivedAt).assertReceivedResponseAtMillis(request2SentAt, request2ReceivedAt);
+    // Check the cached response. Its request contains only the saved Vary headers.
+    cacheHit.cacheResponse().assertCode(200).assertHeader("Donut", "a").assertHeader("ETag", "v1").assertRequestUrl(server.url("/")).assertRequestHeader(// No Vary on Accept-Language.
+    "Accept-Language").assertRequestHeader("Accept-Charset", // Because of Vary on Accept-Charset.
+    "UTF-8").assertRequestHeader(// This wasn't present in the original request.
+    "If-None-Match").assertSentRequestAtMillis(request1SentAt, request1ReceivedAt).assertReceivedResponseAtMillis(request1SentAt, request1ReceivedAt);
+    // Check the network response. It has the caller's request, plus some caching headers.
+    cacheHit.networkResponse().assertCode(304).assertHeader("Donut", "b").assertRequestHeader("Accept-Language", "en-US").assertRequestHeader("Accept-Charset", "UTF-8").assertRequestHeader("If-None-Match", // If-None-Match in the validation request.
+    "v1").assertSentRequestAtMillis(request2SentAt, request2ReceivedAt).assertReceivedResponseAtMillis(request2SentAt, request2ReceivedAt);
+}

@@ -1,0 +1,25 @@
+@Test
+public void disconnectDuringConnect_cookieJar() {
+    AtomicReference<Call> callReference = new AtomicReference<>();
+    class DisconnectingCookieJar implements CookieJar {
+
+        @Override
+        public void saveFromResponse(HttpUrl url, List<Cookie> cookies) {
+        }
+
+        @Override
+        public List<Cookie> loadForRequest(HttpUrl url) {
+            callReference.get().cancel();
+            return Collections.emptyList();
+        }
+    }
+    client = client.newBuilder().cookieJar(new DisconnectingCookieJar()).build();
+    Call call = client.newCall(newRequest("/"));
+    callReference.set(call);
+    try {
+        call.execute();
+        fail("Connection should not be established");
+    } catch (IOException expected) {
+        assertThat(expected.getMessage()).isEqualTo("Canceled");
+    }
+}

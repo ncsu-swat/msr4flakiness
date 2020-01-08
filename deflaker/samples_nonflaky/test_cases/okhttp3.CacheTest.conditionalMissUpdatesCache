@@ -1,0 +1,19 @@
+/**
+ * Test https://github.com/square/okhttp/issues/1712.
+ */
+@Test
+public void conditionalMissUpdatesCache() throws Exception {
+    server.enqueue(new MockResponse().addHeader("ETag: v1").setBody("A"));
+    server.enqueue(new MockResponse().setResponseCode(HttpURLConnection.HTTP_NOT_MODIFIED));
+    server.enqueue(new MockResponse().addHeader("ETag: v2").setBody("B"));
+    server.enqueue(new MockResponse().setResponseCode(HttpURLConnection.HTTP_NOT_MODIFIED));
+    HttpUrl url = server.url("/");
+    assertThat(get(url).body().string()).isEqualTo("A");
+    assertThat(get(url).body().string()).isEqualTo("A");
+    assertThat(get(url).body().string()).isEqualTo("B");
+    assertThat(get(url).body().string()).isEqualTo("B");
+    assertThat(server.takeRequest().getHeader("If-None-Match")).isNull();
+    assertThat(server.takeRequest().getHeader("If-None-Match")).isEqualTo("v1");
+    assertThat(server.takeRequest().getHeader("If-None-Match")).isEqualTo("v1");
+    assertThat(server.takeRequest().getHeader("If-None-Match")).isEqualTo("v2");
+}

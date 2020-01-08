@@ -1,0 +1,26 @@
+@Test
+public void byteStringThrowsMoreThanIntMaxValue() {
+    ResponseBody body = new ResponseBody() {
+
+        @Override
+        public MediaType contentType() {
+            return null;
+        }
+
+        @Override
+        public long contentLength() {
+            return Integer.MAX_VALUE + 1L;
+        }
+
+        @Override
+        public BufferedSource source() {
+            throw new AssertionError();
+        }
+    };
+    try {
+        body.byteString();
+        fail();
+    } catch (IOException e) {
+        assertThat(e.getMessage()).isEqualTo("Cannot buffer entire body for content length: 2147483648");
+    }
+}

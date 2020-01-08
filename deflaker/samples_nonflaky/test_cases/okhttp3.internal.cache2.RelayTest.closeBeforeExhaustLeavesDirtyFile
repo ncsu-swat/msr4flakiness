@@ -1,0 +1,18 @@
+@Test
+public void closeBeforeExhaustLeavesDirtyFile() throws Exception {
+    Buffer upstream = new Buffer();
+    upstream.writeUtf8("abcdefghij");
+    Relay relay1 = Relay.Companion.edit(file, upstream, metadata, 5);
+    BufferedSource source1 = Okio.buffer(relay1.newSource());
+    assertThat(source1.readUtf8(10)).isEqualTo("abcdefghij");
+    // Not exhausted!
+    source1.close();
+    assertThat(relay1.isClosed()).isTrue();
+    try {
+        Relay.Companion.read(file);
+        fail();
+    } catch (IOException expected) {
+        assertThat(expected.getMessage()).isEqualTo("unreadable cache file");
+    }
+    assertFile(Relay.PREFIX_DIRTY, -1L, -1, null, null);
+}

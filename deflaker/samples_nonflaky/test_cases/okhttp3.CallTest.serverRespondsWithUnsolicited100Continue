@@ -1,0 +1,8 @@
+@Test
+public void serverRespondsWithUnsolicited100Continue() throws Exception {
+    server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.CONTINUE_ALWAYS));
+    Request request = new Request.Builder().url(server.url("/")).post(RequestBody.create("abc", MediaType.get("text/plain"))).build();
+    executeSynchronously(request).assertCode(200).assertSuccessful();
+    RecordedRequest recordedRequest = server.takeRequest();
+    assertThat(recordedRequest.getBody().readUtf8()).isEqualTo("abc");
+}

@@ -1,0 +1,48 @@
+@Test
+public void synchronousCallAccessors() throws Exception {
+    CountDownLatch ready = new CountDownLatch(2);
+    CountDownLatch waiting = new CountDownLatch(1);
+    client = client.newBuilder().addInterceptor(chain -> {
+        try {
+            ready.countDown();
+            waiting.await();
+        } catch (InterruptedException e) {
+            throw new AssertionError();
+        }
+        throw new IOException();
+    }).build();
+    Call a1 = client.newCall(newRequest("http://a/1"));
+    Call a2 = client.newCall(newRequest("http://a/2"));
+    Call a3 = client.newCall(newRequest("http://a/3"));
+    Call a4 = client.newCall(newRequest("http://a/4"));
+    Thread t1 = makeSynchronousCall(a1);
+    Thread t2 = makeSynchronousCall(a2);
+    // We created 4 calls and started 2 of them. That's 2 running calls and 0 queued.
+    ready.await();
+    assertThat(dispatcher.runningCallsCount()).isEqualTo(2);
+    assertThat(dispatcher.queuedCallsCount()).isEqualTo(0);
+    assertThat(dispatcher.runningCalls()).containsExactlyInAnyOrder(a1, a2);
+    assertThat(dispatcher.queuedCalls()).isEmpty();
+    // Cancel some calls. That doesn't impact running or queued.
+    a2.cancel();
+    a3.cancel();
+    assertThat(dispatcher.runningCalls()).containsExactlyInAnyOrder(a1, a2);
+    assertThat(dispatcher.queuedCalls()).isEmpty();
+    // Let the calls finish.
+    waiting.countDown();
+    t1.join();
+    t2.join();
+    // Now we should have 0 running calls and 0 queued calls.
+    assertThat(dispatcher.runningCallsCount()).isEqualTo(0);
+    assertThat(dispatcher.queuedCallsCount()).isEqualTo(0);
+    assertThat(dispatcher.runningCalls()).isEmpty();
+    assertThat(dispatcher.queuedCalls()).isEmpty();
+    assertThat(a1.isExecuted()).isTrue();
+    assertThat(a1.isCanceled()).isFalse();
+    assertThat(a2.isExecuted()).isTrue();
+    assertThat(a2.isCanceled()).isTrue();
+    assertThat(a3.isExecuted()).isFalse();
+    assertThat(a3.isCanceled()).isTrue();
+    assertThat(a4.isExecuted()).isFalse();
+    assertThat(a4.isCanceled()).isFalse();
+}

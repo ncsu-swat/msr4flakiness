@@ -1,0 +1,27 @@
+@Test
+public void idleCallbackInvokedWhenIdle() throws Exception {
+    AtomicBoolean idle = new AtomicBoolean();
+    dispatcher.setIdleCallback(() -> idle.set(true));
+    client.newCall(newRequest("http://a/1")).enqueue(callback);
+    client.newCall(newRequest("http://a/2")).enqueue(callback);
+    executor.finishJob("http://a/1");
+    assertThat(idle.get()).isFalse();
+    CountDownLatch ready = new CountDownLatch(1);
+    CountDownLatch proceed = new CountDownLatch(1);
+    client = client.newBuilder().addInterceptor(chain -> {
+        ready.countDown();
+        try {
+            proceed.await(5, SECONDS);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        return chain.proceed(chain.request());
+    }).build();
+    Thread t1 = makeSynchronousCall(client.newCall(newRequest("http://a/3")));
+    ready.await(5, SECONDS);
+    executor.finishJob("http://a/2");
+    assertThat(idle.get()).isFalse();
+    proceed.countDown();
+    t1.join();
+    assertThat(idle.get()).isTrue();
+}

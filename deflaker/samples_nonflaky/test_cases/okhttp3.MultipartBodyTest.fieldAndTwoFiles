@@ -1,0 +1,14 @@
+@Test
+public void fieldAndTwoFiles() throws Exception {
+    String expected = "" + "--AaB03x\r\n" + "Content-Disposition: form-data; name=\"submit-name\"\r\n" + "Content-Length: 5\r\n" + "\r\n" + "Larry\r\n" + "--AaB03x\r\n" + "Content-Disposition: form-data; name=\"files\"\r\n" + "Content-Type: multipart/mixed; boundary=BbC04y\r\n" + "Content-Length: 337\r\n" + "\r\n" + "--BbC04y\r\n" + "Content-Disposition: file; filename=\"file1.txt\"\r\n" + "Content-Type: text/plain; charset=utf-8\r\n" + "Content-Length: 29\r\n" + "\r\n" + "... contents of file1.txt ...\r\n" + "--BbC04y\r\n" + "Content-Disposition: file; filename=\"file2.gif\"\r\n" + "Content-Transfer-Encoding: binary\r\n" + "Content-Type: image/gif\r\n" + "Content-Length: 29\r\n" + "\r\n" + "... contents of file2.gif ...\r\n" + "--BbC04y--\r\n" + "\r\n" + "--AaB03x--\r\n";
+    MultipartBody body = new MultipartBody.Builder("AaB03x").setType(MultipartBody.FORM).addFormDataPart("submit-name", "Larry").addFormDataPart("files", null, new MultipartBody.Builder("BbC04y").addPart(Headers.of("Content-Disposition", "file; filename=\"file1.txt\""), RequestBody.create("... contents of file1.txt ...", MediaType.get("text/plain"))).addPart(Headers.of("Content-Disposition", "file; filename=\"file2.gif\"", "Content-Transfer-Encoding", "binary"), RequestBody.create("... contents of file2.gif ...".getBytes(UTF_8), MediaType.get("image/gif"))).build()).build();
+    assertThat(body.boundary()).isEqualTo("AaB03x");
+    assertThat(body.type()).isEqualTo(MultipartBody.FORM);
+    assertThat(body.contentType().toString()).isEqualTo("multipart/form-data; boundary=AaB03x");
+    assertThat(body.parts().size()).isEqualTo(2);
+    assertThat(body.contentLength()).isEqualTo(568);
+    Buffer buffer = new Buffer();
+    body.writeTo(buffer);
+    assertThat(body.contentLength()).isEqualTo(buffer.size());
+    assertThat(buffer.readUtf8()).isEqualTo(expected);
+}

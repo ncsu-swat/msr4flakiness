@@ -1,0 +1,26 @@
+@Test
+public void clearSettingsBeforeMerge() throws Exception {
+    // write the mocking script
+    Settings settings1 = new Settings();
+    settings1.set(HEADER_TABLE_SIZE, 10000);
+    settings1.set(INITIAL_WINDOW_SIZE, 20000);
+    settings1.set(MAX_FRAME_SIZE, 30000);
+    peer.sendFrame().settings(settings1);
+    // ACK
+    peer.acceptFrame();
+    peer.sendFrame().ping(false, 2, 0);
+    peer.acceptFrame();
+    peer.play();
+    // play it back
+    Http2Connection connection = connect(peer);
+    // fake a settings frame with clear flag set.
+    Settings settings2 = new Settings();
+    settings2.set(MAX_CONCURRENT_STREAMS, 60000);
+    connection.getReaderRunnable().applyAndAckSettings(true, settings2);
+    synchronized (connection) {
+        assertThat(connection.getPeerSettings().getHeaderTableSize()).isEqualTo(-1);
+        assertThat(connection.getPeerSettings().getInitialWindowSize()).isEqualTo((long) DEFAULT_INITIAL_WINDOW_SIZE);
+        assertThat(connection.getPeerSettings().getMaxFrameSize(-1)).isEqualTo(-1);
+        assertThat(connection.getPeerSettings().getMaxConcurrentStreams()).isEqualTo(60000);
+    }
+}

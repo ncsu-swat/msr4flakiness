@@ -1,0 +1,11 @@
+@Test
+public void successfulConnectionFound() throws IOException {
+    server.enqueue(new MockResponse());
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).build());
+    Response response = call.execute();
+    assertThat(response.code()).isEqualTo(200);
+    response.body().close();
+    ConnectionAcquired connectionAcquired = listener.removeUpToEvent(ConnectionAcquired.class);
+    assertThat(connectionAcquired.getCall()).isSameAs(call);
+    assertThat(connectionAcquired.getConnection()).isNotNull();
+}

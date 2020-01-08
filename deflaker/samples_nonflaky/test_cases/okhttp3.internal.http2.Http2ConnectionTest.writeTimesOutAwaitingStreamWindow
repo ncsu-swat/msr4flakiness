@@ -1,0 +1,46 @@
+@Test
+public void writeTimesOutAwaitingStreamWindow() throws Exception {
+    // Set the peer's receive window to 5 bytes!
+    Settings peerSettings = new Settings().set(INITIAL_WINDOW_SIZE, 5);
+    // write the mocking script
+    peer.sendFrame().settings(peerSettings);
+    // ACK SETTINGS
+    peer.acceptFrame();
+    // PING
+    peer.acceptFrame();
+    peer.sendFrame().ping(true, AWAIT_PING, 0);
+    // SYN_STREAM
+    peer.acceptFrame();
+    peer.sendFrame().headers(false, 3, headerEntries("a", "android"));
+    // DATA
+    peer.acceptFrame();
+    // RST_STREAM
+    peer.acceptFrame();
+    peer.play();
+    // play it back
+    Http2Connection connection = connect(peer);
+    // Make sure settings have been received.
+    connection.writePingAndAwaitPong();
+    Http2Stream stream = connection.newStream(headerEntries("b", "banana"), true);
+    Sink sink = stream.getSink();
+    sink.write(new Buffer().writeUtf8("abcde"), 5);
+    stream.writeTimeout().timeout(500, TimeUnit.MILLISECONDS);
+    long startNanos = System.nanoTime();
+    sink.write(new Buffer().writeUtf8("f"), 1);
+    try {
+        // This will time out waiting on the write window.
+        sink.flush();
+        fail();
+    } catch (InterruptedIOException expected) {
+    }
+    long elapsedNanos = System.nanoTime() - startNanos;
+    awaitWatchdogIdle();
+    /* 200ms delta */
+    assertThat((double) TimeUnit.NANOSECONDS.toMillis(elapsedNanos)).isCloseTo(500d, offset(200d));
+    assertThat(connection.openStreamCount()).isEqualTo(0);
+    // verify the peer received what was expected
+    assertThat(peer.takeFrame().type).isEqualTo(Http2.TYPE_PING);
+    assertThat(peer.takeFrame().type).isEqualTo(Http2.TYPE_HEADERS);
+    assertThat(peer.takeFrame().type).isEqualTo(Http2.TYPE_DATA);
+    assertThat(peer.takeFrame().type).isEqualTo(Http2.TYPE_RST_STREAM);
+}

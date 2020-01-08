@@ -1,0 +1,11 @@
+@Test
+public void responseCookies() throws Exception {
+    server.enqueue(new MockResponse().addHeader("Set-Cookie", "a=b; Expires=Thu, 01 Jan 1970 00:00:00 GMT").addHeader("Set-Cookie", "c=d; Expires=Fri, 02 Jan 1970 23:59:59 GMT; path=/bar; secure"));
+    RecordingCookieJar cookieJar = new RecordingCookieJar();
+    client = client.newBuilder().cookieJar(cookieJar).build();
+    executeSynchronously("/").assertCode(200);
+    List<Cookie> responseCookies = cookieJar.takeResponseCookies();
+    assertThat(responseCookies.size()).isEqualTo(2);
+    assertThat(responseCookies.get(0).toString()).isEqualTo("a=b; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/");
+    assertThat(responseCookies.get(1).toString()).isEqualTo("c=d; expires=Fri, 02 Jan 1970 23:59:59 GMT; path=/bar; secure");
+}

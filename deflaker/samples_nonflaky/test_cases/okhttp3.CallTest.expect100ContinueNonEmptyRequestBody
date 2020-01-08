@@ -1,0 +1,7 @@
+@Test
+public void expect100ContinueNonEmptyRequestBody() throws Exception {
+    server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.EXPECT_CONTINUE));
+    Request request = new Request.Builder().url(server.url("/")).header("Expect", "100-continue").post(RequestBody.create("abc", MediaType.get("text/plain"))).build();
+    executeSynchronously(request).assertCode(200).assertSuccessful();
+    assertThat(server.takeRequest().getBody().readUtf8()).isEqualTo("abc");
+}

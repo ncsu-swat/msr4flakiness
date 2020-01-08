@@ -1,0 +1,23 @@
+/**
+ * Test which headers are sent unencrypted to the HTTP proxy.
+ */
+@Test
+public void proxyConnectOmitsApplicationHeaders() throws Exception {
+    server.useHttps(handshakeCertificates.sslSocketFactory(), true);
+    server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.UPGRADE_TO_SSL_AT_END).clearHeaders());
+    server.enqueue(new MockResponse().setBody("encrypted response from the origin server"));
+    RecordingHostnameVerifier hostnameVerifier = new RecordingHostnameVerifier();
+    client = client.newBuilder().sslSocketFactory(handshakeCertificates.sslSocketFactory(), handshakeCertificates.trustManager()).proxy(server.toProxyAddress()).hostnameVerifier(hostnameVerifier).build();
+    Request request = new Request.Builder().url("https://android.com/foo").header("Private", "Secret").header("User-Agent", "App 1.0").build();
+    Response response = client.newCall(request).execute();
+    assertThat(response.body().string()).isEqualTo("encrypted response from the origin server");
+    RecordedRequest connect = server.takeRequest();
+    assertThat(connect.getHeader("Private")).isNull();
+    assertThat(connect.getHeader("User-Agent")).isEqualTo(Version.userAgent);
+    assertThat(connect.getHeader("Proxy-Connection")).isEqualTo("Keep-Alive");
+    assertThat(connect.getHeader("Host")).isEqualTo("android.com:443");
+    RecordedRequest get = server.takeRequest();
+    assertThat(get.getHeader("Private")).isEqualTo("Secret");
+    assertThat(get.getHeader("User-Agent")).isEqualTo("App 1.0");
+    assertThat(hostnameVerifier.calls).containsExactly("verify android.com");
+}
