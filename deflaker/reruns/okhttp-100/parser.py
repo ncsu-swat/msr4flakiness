@@ -20,6 +20,8 @@ for filename in glob.glob('*.log'):
                     status = "pass"
                 elif status == "SKIPPED":
                     status = "skip"
+                elif status == "FAILURE":
+                    status = "fail"
                 else:
                     status = "error"
 
