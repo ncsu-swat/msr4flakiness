@@ -1,0 +1,18 @@
+@Test
+public void should_fail_when_actual_differs_from_expected_even_when_collection_order_is_ignored() {
+    // GIVEN
+    FriendlyPerson actual = friend("Sherlock Holmes");
+    actual.home.address.number = 1;
+    actual.friends.add(friend("Dr. John Watson"));
+    actual.friends.add(friend("Molly Hooper"));
+    FriendlyPerson expected = friend("Sherlock Holmes");
+    expected.home.address.number = 2;
+    expected.friends.add(friend("Molly Hooper"));
+    expected.friends.add(friend("Dr. John Watson"));
+    recursiveComparisonConfiguration.ignoreCollectionOrder(true);
+    // WHEN
+    compareRecursivelyFailsAsExpected(actual, expected);
+    // THEN
+    ComparisonDifference comparisonDifference = new ComparisonDifference(list("home.address.number"), 1, 2);
+    verifyShouldBeEqualByComparingFieldByFieldRecursivelyCall(actual, expected, comparisonDifference);
+}

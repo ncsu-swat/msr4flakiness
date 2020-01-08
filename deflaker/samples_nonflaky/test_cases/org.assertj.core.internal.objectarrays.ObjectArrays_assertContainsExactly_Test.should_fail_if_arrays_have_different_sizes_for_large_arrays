@@ -1,0 +1,21 @@
+@Test
+public void should_fail_if_arrays_have_different_sizes_for_large_arrays() {
+    // GIVEN
+    Object[] actual = new Object[2000];
+    Object[] expected = new Object[actual.length + 1];
+    for (int i = 0; i < actual.length; i++) {
+        actual[i] = String.valueOf(i);
+        expected[i] = String.valueOf(i);
+    }
+    expected[actual.length] = "extra";
+    AssertionInfo info = someInfo();
+    // WHEN
+    try {
+        arrays.assertContainsExactly(info, actual, expected);
+    } catch (AssertionError e) {
+        // THEN
+        verify(failures).failure(info, shouldContainExactly(actual, asList(expected), newArrayList("extra"), newArrayList(), StandardComparisonStrategy.instance()));
+        return;
+    }
+    failBecauseExpectedAssertionErrorWasNotThrown();
+}

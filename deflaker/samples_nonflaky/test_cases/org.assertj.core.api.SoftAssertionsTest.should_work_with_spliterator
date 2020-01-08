@@ -1,0 +1,19 @@
+@Test
+public void should_work_with_spliterator() {
+    // GIVEN
+    Spliterator<String> spliterator1 = Stream.of("a", "b", "c").spliterator();
+    Spliterator<String> spliterator2 = Stream.of("a", "b", "c").spliterator();
+    Spliterator<Integer> nullSpliterator = null;
+    // WHEN
+    softly.assertThat(spliterator1).hasCharacteristics(// OK
+    Spliterator.SIZED).hasOnlyCharacteristics(// FAIL
+    Spliterator.IMMUTABLE);
+    softly.assertThat(spliterator2).hasCharacteristics(Spliterator.DISTINCT);
+    softly.assertThat(nullSpliterator).hasCharacteristics(Spliterator.DISTINCT);
+    // THEN
+    List<Throwable> errorsCollected = softly.errorsCollected();
+    assertThat(errorsCollected).hasSize(3);
+    assertThat(errorsCollected.get(0)).hasMessageContaining("IMMUTABLE");
+    assertThat(errorsCollected.get(1)).hasMessageContaining("DISTINCT");
+    assertThat(errorsCollected.get(2)).hasMessageContaining("Expecting actual not to be null");
+}

@@ -1,0 +1,13 @@
+@Test
+void must_not_check_all_entries() {
+    // GIVEN
+    // This test requires a map with size > 2
+    assertThat(greatPlayers).hasSizeGreaterThan(2);
+    // first entry does not match -> assertion error, 2nd entry does match -> doNothing()
+    doThrow(new AssertionError("some error message")).doNothing().when(consumer).accept(anyString(), any(Player.class));
+    // WHEN
+    maps.assertAnySatisfy(someInfo(), greatPlayers, consumer);
+    // THEN
+    // make sure that we only evaluated 2 out of 3 entries
+    verify(consumer, times(2)).accept(anyString(), any(Player.class));
+}

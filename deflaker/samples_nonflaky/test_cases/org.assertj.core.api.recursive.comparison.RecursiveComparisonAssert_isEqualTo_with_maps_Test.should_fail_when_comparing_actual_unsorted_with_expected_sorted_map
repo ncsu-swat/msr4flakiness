@@ -1,0 +1,14 @@
+@Test
+public void should_fail_when_comparing_actual_unsorted_with_expected_sorted_map() {
+    WithMap<Long, Boolean> actual = new WithMap<>(new LinkedHashMap<>());
+    actual.group.put(1L, true);
+    actual.group.put(2L, false);
+    WithMap<Long, Boolean> expected = new WithMap<>(new TreeMap<>());
+    expected.group.put(2L, false);
+    expected.group.put(1L, true);
+    // WHEN
+    compareRecursivelyFailsAsExpected(actual, expected);
+    // THEN
+    ComparisonDifference mapDifference = diff("group", actual.group, expected.group, "expected field is a sorted map but actual field is not (java.util.LinkedHashMap)");
+    verifyShouldBeEqualByComparingFieldByFieldRecursivelyCall(actual, expected, mapDifference);
+}

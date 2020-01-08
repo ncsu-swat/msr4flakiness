@@ -1,0 +1,11 @@
+@Test
+public void should_allow_assertions_on_field_values_extracted_from_given_iterable() {
+    assertThat(jedis).extracting("id").as("extract field").containsOnly(1L, 2L);
+    assertThat(jedis).extracting("surname").as("null field").containsNull();
+    assertThat(jedis).extracting("surname.first").as("null nested field").containsNull();
+    yoda.surname = new Name();
+    assertThat(jedis).extracting("surname.first").as("not null field but null nested field").containsNull();
+    yoda.surname = new Name("Master");
+    assertThat(jedis).extracting("surname.first").as("nested field").containsOnly("Master", null);
+    assertThat(jedis).extracting("surname", Name.class).as("extract field specifying the extracted type").containsOnly(new Name("Master"), null);
+}

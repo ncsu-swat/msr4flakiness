@@ -1,0 +1,17 @@
+@Test
+public void should_not_use_equal_implementation_of_objects_to_compare() {
+    AssertionInfo info = someInfo();
+    EqualPerson actual = new EqualPerson();
+    actual.name = "John";
+    actual.home.address.number = 1;
+    EqualPerson other = new EqualPerson();
+    other.name = "John";
+    other.home.address.number = 2;
+    try {
+        objects.assertIsEqualToComparingFieldByFieldRecursively(info, actual, other, noFieldComparators(), defaultTypeComparators());
+    } catch (AssertionError err) {
+        verify(failures).failure(info, shouldBeEqualByComparingFieldByFieldRecursive(actual, other, asList(new Difference(asList("home.address.number"), 1, 2)), CONFIGURATION_PROVIDER.representation()));
+        return;
+    }
+    failBecauseExpectedAssertionErrorWasNotThrown();
+}

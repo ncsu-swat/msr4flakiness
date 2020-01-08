@@ -1,0 +1,12 @@
+@Test
+public void should_collect_all_errors_when_using_predicate_filtering() {
+    // GIVEN
+    LinkedHashSet<CartoonCharacter> dads = newLinkedHashSet(homer, fred);
+    // WHEN
+    softly.then(dads).filteredOn(c -> c.getName().equals("Homer Simpson")).hasSize(10).isEmpty();
+    // THEN
+    List<Throwable> errorsCollected = softly.errorsCollected();
+    assertThat(errorsCollected).hasSize(2);
+    assertThat(errorsCollected.get(0)).hasMessageStartingWith(format("%nExpected size:<10> but was:<1> in:%n<[CartoonCharacter [name=Homer Simpson]]>"));
+    assertThat(errorsCollected.get(1)).hasMessageStartingWith(format("%nExpecting empty but was:<[CartoonCharacter [name=Homer Simpson]]>"));
+}

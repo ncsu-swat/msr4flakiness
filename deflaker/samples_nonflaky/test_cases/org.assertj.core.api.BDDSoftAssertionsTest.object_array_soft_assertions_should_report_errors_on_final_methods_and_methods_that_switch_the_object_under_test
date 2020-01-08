@@ -1,0 +1,70 @@
+// the test would fail if any method was not proxyable as the assertion error would not be softly caught
+@SuppressWarnings("unchecked")
+@Test
+public void object_array_soft_assertions_should_report_errors_on_final_methods_and_methods_that_switch_the_object_under_test() {
+    // GIVEN
+    Name[] names = array(name("John", "Doe"), name("Jane", "Doe"));
+    CartoonCharacter[] characters = array(homer, fred);
+    // WHEN
+    softly.then(names).extracting(Name::getFirst).contains("gandalf").contains("frodo");
+    softly.then(names).extracting("last").containsExactly("foo", "bar");
+    softly.then(characters).flatExtracting(CartoonCharacter::getChildren).as("using flatExtracting on Iterable").hasSize(1).containsAnyOf(homer, fred);
+    softly.then(characters).flatExtracting(CartoonCharacter::getChildrenWithException).as("using flatExtracting on Iterable with exception").containsExactlyInAnyOrder(homer, fred);
+    softly.then(characters).containsOnly(bart);
+    softly.then(characters).containsOnlyOnce(maggie, bart);
+    softly.then(characters).containsSequence(homer, bart);
+    softly.then(characters).containsSubsequence(homer, maggie);
+    softly.then(characters).doesNotContain(homer, maggie);
+    softly.then(characters).doesNotContainSequence(fred);
+    softly.then(characters).doesNotContainSubsequence(homer, fred);
+    softly.then(characters).isSubsetOf(homer, bart);
+    softly.then(characters).startsWith(fred);
+    softly.then(characters).endsWith(bart);
+    softly.then(names).extracting(Name::getFirst, Name::getLast).contains(tuple("John", "Doe")).contains(tuple("Frodo", "Baggins"));
+    softly.then(names).extracting("first", "last").contains(tuple("John", "Doe")).contains(tuple("Bilbo", "Baggins"));
+    softly.then(names).extracting(firstNameFunction).contains("John").contains("sam");
+    softly.then(names).extracting("first", String.class).contains("John").contains("Aragorn");
+    softly.then(names).filteredOn(name -> name.first.startsWith("Jo")).hasSize(123);
+    softly.then(names).filteredOn(name -> name.first.startsWith("Jo")).extracting(firstNameFunction).contains("Sauron");
+    softly.then(names).extractingResultOf("getFirst").contains("John", "Jane").contains("Sam", "Aragorn");
+    softly.then(names).extractingResultOf("getFirst", String.class).contains("John", "Jane").contains("Messi", "Ronaldo");
+    softly.then(names).filteredOn(new Condition<>(name -> name.first.startsWith("Jo"), "startsWith Jo")).as("filteredOn with condition").hasSize(5);
+    softly.then(names).filteredOn("first", in("John", "Frodo")).as("filteredOn firstName in {John, Frodo}").isEmpty();
+    softly.then(names).filteredOn("first", "John").as("filteredOn firstName = John").isEmpty();
+    softly.then(names).filteredOnNull("first").as("filteredOn firstName = null").isNotEmpty();
+    softly.then(characters).flatExtracting("children").as("using flatExtracting(String fieldOrPropertyName)").contains(bart, maggie).contains("Sauron");
+    softly.then(names).filteredOnAssertions(name -> assertThat(name.first).startsWith("Jo")).as("filteredOn with consumer").hasSize(5);
+    // THEN
+    List<Throwable> errorsCollected = softly.errorsCollected();
+    assertThat(errorsCollected).hasSize(30);
+    assertThat(errorsCollected.get(0)).hasMessageContaining("gandalf");
+    assertThat(errorsCollected.get(1)).hasMessageContaining("frodo");
+    assertThat(errorsCollected.get(2)).hasMessageContaining("foo").hasMessageContaining("bar");
+    assertThat(errorsCollected.get(3)).hasMessageContaining("size");
+    assertThat(errorsCollected.get(4)).hasMessageContaining(fred.toString());
+    assertThat(errorsCollected.get(5)).hasMessageContaining(homer.toString());
+    assertThat(errorsCollected.get(6)).hasMessageContaining(bart.toString());
+    assertThat(errorsCollected.get(7)).hasMessageContaining(maggie.toString());
+    assertThat(errorsCollected.get(8)).hasMessageContaining(bart.toString());
+    assertThat(errorsCollected.get(9)).hasMessageContaining(maggie.toString());
+    assertThat(errorsCollected.get(10)).hasMessageContaining(homer.toString());
+    assertThat(errorsCollected.get(11)).hasMessageContaining(fred.toString());
+    assertThat(errorsCollected.get(12)).hasMessageContaining(homer.toString());
+    assertThat(errorsCollected.get(13)).hasMessageContaining(bart.toString());
+    assertThat(errorsCollected.get(14)).hasMessageContaining(fred.toString());
+    assertThat(errorsCollected.get(15)).hasMessageContaining(bart.toString());
+    assertThat(errorsCollected.get(16)).hasMessageContaining("Baggins");
+    assertThat(errorsCollected.get(17)).hasMessageContaining("Bilbo");
+    assertThat(errorsCollected.get(18)).hasMessageContaining("sam");
+    assertThat(errorsCollected.get(19)).hasMessageContaining("Aragorn");
+    assertThat(errorsCollected.get(20)).hasMessageContaining("123");
+    assertThat(errorsCollected.get(21)).hasMessageContaining("Sauron");
+    assertThat(errorsCollected.get(22)).hasMessageContaining("Sam");
+    assertThat(errorsCollected.get(23)).hasMessageContaining("Ronaldo");
+    assertThat(errorsCollected.get(24)).hasMessageContaining("filteredOn with condition");
+    assertThat(errorsCollected.get(25)).hasMessageContaining("filteredOn firstName in {John, Frodo}");
+    assertThat(errorsCollected.get(26)).hasMessageContaining("filteredOn firstName = John");
+    assertThat(errorsCollected.get(27)).hasMessageContaining("filteredOn firstName = null");
+    assertThat(errorsCollected.get(28)).hasMessageContaining("using flatExtracting(String fieldOrPropertyName)");
+    assertThat(errorsCollected.get(29)).hasMessageContaining("filteredOn with consumer");
+}

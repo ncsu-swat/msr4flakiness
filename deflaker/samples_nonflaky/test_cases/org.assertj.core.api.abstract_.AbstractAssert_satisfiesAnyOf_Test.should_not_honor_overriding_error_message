@@ -1,0 +1,11 @@
+@Test
+public void should_not_honor_overriding_error_message() {
+    // GIVEN
+    Consumer<String> isEmpty = string -> assertThat(string).overridingErrorMessage("fail empty").isEmpty();
+    Consumer<String> endsWithZ = string -> assertThat(string).endsWith("Z");
+    ThrowingCallable failingAssertionCode = () -> assertThat("abc").satisfiesAnyOf(isEmpty, endsWithZ);
+    // THEN
+    AssertionError assertionError = expectAssertionError(failingAssertionCode);
+    // THEN
+    assertThat(assertionError).hasMessageContaining("fail empty");
+}

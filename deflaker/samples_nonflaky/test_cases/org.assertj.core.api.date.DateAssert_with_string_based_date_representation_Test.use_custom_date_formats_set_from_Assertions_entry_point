@@ -1,0 +1,23 @@
+@Test
+public void use_custom_date_formats_set_from_Assertions_entry_point() {
+    final Date date = DateUtil.parse("2003-04-26");
+    registerCustomDateFormat("yyyy/MM/dd'T'HH:mm:ss");
+    try {
+        // fail : the registered format does not match the given date
+        assertThat(date).isEqualTo("2003/04/26");
+        failBecauseExpectedAssertionErrorWasNotThrown();
+    } catch (AssertionError e) {
+        assertThat(e).hasMessage(format("Failed to parse 2003/04/26 with any of these date formats:%n" + "   [yyyy/MM/dd'T'HH:mm:ss,%n" + "    yyyy-MM-dd'T'HH:mm:ss.SSSX,%n" + "    yyyy-MM-dd'T'HH:mm:ss.SSS,%n" + "    yyyy-MM-dd HH:mm:ss.SSS,%n" + "    yyyy-MM-dd'T'HH:mm:ssX,%n" + "    yyyy-MM-dd'T'HH:mm:ss,%n" + "    yyyy-MM-dd]"));
+    }
+    // register the expected custom formats, they are used in the order they have been registered.
+    registerCustomDateFormat("yyyy/MM/dd");
+    assertThat(date).isEqualTo("2003/04/26");
+    // another to register a DateFormat
+    registerCustomDateFormat(new SimpleDateFormat("yyyy/MM/dd'T'HH:mm:ss.SSS"));
+    // the assertion uses the last custom date format registered.
+    assertThat(date).isEqualTo("2003/04/26T00:00:00.000");
+    useDefaultDateFormatsOnly();
+    assertThat(date).isEqualTo("2003-04-26");
+    assertThat(date).isEqualTo("2003-04-26T00:00:00");
+    assertThat(date).isEqualTo("2003-04-26T00:00:00.000");
+}

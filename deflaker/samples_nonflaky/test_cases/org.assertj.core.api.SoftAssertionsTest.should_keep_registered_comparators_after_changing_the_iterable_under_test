@@ -1,0 +1,14 @@
+@Test
+public void should_keep_registered_comparators_after_changing_the_iterable_under_test() {
+    // GIVEN
+    Iterable<Name> names = asList(name("Manu", "Ginobili"), name("Magic", "Johnson"));
+    // WHEN
+    softly.assertThat(names).extracting(firstNameFunction).usingElementComparator(CaseInsensitiveStringComparator.instance).filteredOn(string -> string.startsWith("Ma")).containsExactly("MANU", "MAGIC");
+    softly.assertThat(names).extracting(firstNameFunction).usingElementComparator(CaseInsensitiveStringComparator.instance).filteredOn(new Condition<>(string -> string.startsWith("Ma"), "starts with Ma")).containsExactly("MANU", "MAGIC");
+    softly.assertThat(names).extracting(firstNameFunction).usingElementComparator(CaseInsensitiveStringComparator.instance).filteredOnAssertions(string -> assertThat(string).startsWith("Ma")).containsExactly("MANU", "MAGIC");
+    softly.assertThat(names).usingElementComparator(lastNameComparator).filteredOn("first", "Manu").containsExactly(name("Whoever", "Ginobili"));
+    softly.assertThat(names).usingElementComparator(lastNameComparator).filteredOn("first", not("Manu")).containsExactly(name("Whoever", "Johnson"));
+    softly.assertThat(array(name("John", null), name("Jane", "Doe"))).usingElementComparator(alwaysEqual()).filteredOnNull("last").hasSize(1).contains(name("Can be", "anybody"));
+    // THEN
+    assertThat(softly.errorsCollected()).isEmpty();
+}

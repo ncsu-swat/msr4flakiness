@@ -1,0 +1,16 @@
+@Test
+public void should_use_unambiguous_fields_description_when_standard_description_of_actual_and_expected_collection_fields_values_are_identical() {
+    // GIVEN
+    WithCollection<String> withHashSet = new WithCollection<>(new LinkedHashSet<String>());
+    WithCollection<String> withSortedSet = new WithCollection<>(new TreeSet<String>());
+    withHashSet.collection.add("bar");
+    withHashSet.collection.add("foo");
+    withSortedSet.collection.addAll(withHashSet.collection);
+    List<Difference> differences = determineDifferences(withHashSet, withSortedSet, null, null);
+    // WHEN
+    // @format:off
+    String message = shouldBeEqualByComparingFieldByFieldRecursive(withHashSet, withSortedSet, differences, REPRESENTATION).create(TEST_DESCRIPTION, REPRESENTATION);
+    // @format:on
+    // THEN
+    assertThat(message).isEqualTo(format("[Test] %n" + "Expecting:%n" + "  <WithCollection [collection=[bar, foo]]>%n" + "to be equal to:%n" + "  <WithCollection [collection=[bar, foo]]>%n" + "when recursively comparing field by field, but found the following difference(s):%n" + "%n" + "Path to difference: <collection>%n" + "- actual  : <[\"bar\", \"foo\"] (LinkedHashSet@%s)>%n" + "- expected: <[\"bar\", \"foo\"] (TreeSet@%s)>", toHexString(System.identityHashCode(withHashSet.collection)), toHexString(System.identityHashCode(withSortedSet.collection))));
+}

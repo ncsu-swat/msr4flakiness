@@ -1,0 +1,23 @@
+@Test
+public void should_show_a_complete_multiline_description() {
+    // GIVEN
+    recursiveComparisonConfiguration.setIgnoreAllActualNullFields(true);
+    recursiveComparisonConfiguration.ignoreFields("foo", "bar", "foo.bar");
+    recursiveComparisonConfiguration.ignoreFieldsMatchingRegexes("f.*", ".ba.", "..b%sr..");
+    recursiveComparisonConfiguration.ignoreOverriddenEqualsForFieldsMatchingRegexes(".*oo", ".ar", "oo.ba");
+    recursiveComparisonConfiguration.ignoreOverriddenEqualsForTypes(String.class, Multimap.class);
+    recursiveComparisonConfiguration.ignoreOverriddenEqualsForFields("foo", "baz", "foo.baz");
+    recursiveComparisonConfiguration.ignoreCollectionOrder(true);
+    recursiveComparisonConfiguration.ignoreCollectionOrderInFields("foo", "bar", "foo.bar");
+    recursiveComparisonConfiguration.ignoreCollectionOrderInFieldsMatchingRegexes("f.*", "ba.", "foo.*");
+    recursiveComparisonConfiguration.registerComparatorForType(new AbsValueComparator<>(), Integer.class);
+    recursiveComparisonConfiguration.registerComparatorForType(AlwaysEqualComparator.ALWAY_EQUALS_TUPLE, Tuple.class);
+    recursiveComparisonConfiguration.registerComparatorForField(ALWAY_EQUALS_TUPLE, fielLocation("foo"));
+    recursiveComparisonConfiguration.registerComparatorForField(alwaysDifferent(), fielLocation("bar.baz"));
+    // WHEN
+    String multiLineDescription = recursiveComparisonConfiguration.multiLineDescription(STANDARD_REPRESENTATION);
+    // THEN
+    // @format:off
+    assertThat(multiLineDescription).isEqualTo(format("- all actual null fields were ignored in the comparison%n" + "- the following fields were ignored in the comparison: foo, bar, foo.bar%n" + "- the fields matching the following regexes were ignored in the comparison: f.*, .ba., ..b%%sr..%n" + "- overridden equals methods were used in the comparison, except for:%n" + "  - the following fields: foo, baz, foo.baz%n" + "  - the following types: java.lang.String, com.google.common.collect.Multimap%n" + "  - the types matching the following regexes: .*oo, .ar, oo.ba%n" + "- collection order was ignored in all fields in the comparison%n" + "- collection order was ignored in the following fields in the comparison: foo, bar, foo.bar%n" + "- collection order was ignored in the fields matching the following regexes in the comparison: f.*, ba., foo.*%n" + "- these types were compared with the following comparators:%n" + "  - java.lang.Double -> DoubleComparator[precision=1.0E-15]%n" + "  - java.lang.Float -> FloatComparator[precision=1.0E-6]%n" + "  - java.lang.Integer -> AbsValueComparator%n" + "  - org.assertj.core.groups.Tuple -> AlwaysEqualComparator%n" + "- these fields were compared with the following comparators:%n" + "  - bar.baz -> AlwaysDifferentComparator%n" + "  - foo -> AlwaysEqualComparator%n" + "- field comparators take precedence over type comparators.%n" + "- actual and expected objects and their fields were compared field by field recursively even if they were not of the same type, this allows for example to compare a Person to a PersonDto (call strictTypeChecking(true) to change that behavior).%n"));
+// @format:on
+}

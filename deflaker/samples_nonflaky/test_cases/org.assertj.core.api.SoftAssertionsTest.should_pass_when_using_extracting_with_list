@@ -1,0 +1,21 @@
+@Test
+public void should_pass_when_using_extracting_with_list() {
+    // GIVEN
+    List<Name> names = asList(Name.name("John", "Doe"), name("Jane", "Doe"));
+    // WHEN
+    softly.assertThat(names).overridingErrorMessage("overridingErrorMessage with extracting(String)").extracting("first").contains("John").contains("Jane").contains("Foo1");
+    softly.assertThat(names).as("using extracting(Extractor)").extracting(Name::getFirst).contains("John").contains("Jane").contains("Foo2");
+    softly.assertThat(names).as("using extracting(..., Class)").extracting("first", String.class).contains("John").contains("Jane").contains("Foo3");
+    softly.assertThat(names).as("using extracting(...)").extracting("first", "last").contains(tuple("John", "Doe")).contains(tuple("Jane", "Doe")).contains(tuple("Foo", "4"));
+    softly.assertThat(names).as("using extractingResultOf(method, Class)").extractingResultOf("getFirst", String.class).contains("John").contains("Jane").contains("Foo5");
+    softly.assertThat(names).as("using extractingResultOf(method)").extractingResultOf("getFirst").contains("John").contains("Jane").contains("Foo6");
+    // THEN
+    List<Throwable> errorsCollected = softly.errorsCollected();
+    assertThat(errorsCollected).hasSize(6);
+    assertThat(errorsCollected.get(0)).hasMessage("overridingErrorMessage with extracting(String)");
+    assertThat(errorsCollected.get(1)).hasMessageContaining("Foo2");
+    assertThat(errorsCollected.get(2)).hasMessageContaining("Foo3");
+    assertThat(errorsCollected.get(3)).hasMessageContaining("Foo").hasMessageContaining("4");
+    assertThat(errorsCollected.get(4)).hasMessageContaining("Foo5");
+    assertThat(errorsCollected.get(5)).hasMessageContaining("Foo6");
+}

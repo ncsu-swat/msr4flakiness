@@ -1,0 +1,17 @@
+@Test
+public void should_fail_when_fields_of_child_objects_differ() {
+    AssertionInfo info = someInfo();
+    Person actual = new Person();
+    actual.name = "John";
+    actual.home.address.number = 1;
+    Person other = new Person();
+    other.name = "John";
+    other.home.address.number = 2;
+    try {
+        objects.assertIsEqualToComparingFieldByFieldRecursively(info, actual, other, noFieldComparators(), defaultTypeComparators());
+    } catch (AssertionError err) {
+        verify(failures).failure(info, shouldBeEqualByComparingFieldByFieldRecursive(actual, other, asList(new Difference(asList("home.address.number"), 1, 2)), CONFIGURATION_PROVIDER.representation()));
+        return;
+    }
+    failBecauseExpectedAssertionErrorWasNotThrown();
+}

@@ -1,0 +1,15 @@
+@Test
+void should_allow_to_specify_type_comparator_after_using_extracting_with_single_parameter_on_object() {
+    // GIVEN
+    Person obiwan = new Person("Obi-Wan");
+    obiwan.setHeight(new BigDecimal("1.820"));
+    Comparator<Object> heightComparator = (o1, o2) -> {
+        if (o1 instanceof BigDecimal)
+            return BIG_DECIMAL_COMPARATOR.compare((BigDecimal) o1, (BigDecimal) o2);
+        throw new IllegalStateException("only supported for BigDecimal");
+    };
+    // WHEN
+    AbstractBigDecimalAssert<?> result = assertThat(obiwan).extracting("height", BIG_DECIMAL).usingComparator(heightComparator);
+    // THEN
+    result.isEqualTo(new BigDecimal("1.82"));
+}

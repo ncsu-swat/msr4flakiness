@@ -1,0 +1,16 @@
+@Test
+public void should_fail_if_some_actual_files_match_the_filter() {
+    // GIVEN
+    File file1 = mockRegularFile("Test.class");
+    File file2 = mockRegularFile("Test.java");
+    File file3 = mockRegularFile("Utils.class");
+    File file4 = mockRegularFile("Utils.java");
+    File file5 = mockRegularFile("application.yml");
+    List<File> items = list(file1, file2, file3, file4, file5);
+    File actual = mockDirectory(items, "root");
+    mockPathMatcher(actual);
+    // WHEN
+    expectAssertionError(() -> files.assertIsDirectoryNotContaining(INFO, actual, JAVA_SOURCE_PATTERN));
+    // THEN
+    verify(failures).failure(INFO, directoryShouldNotContain(actual, toFileNames(list(file2, file4)), JAVA_SOURCE_PATTERN_DESCRIPTION));
+}

@@ -1,0 +1,24 @@
+@Test
+public void should_fail_when_actual_differs_from_expected_when_using_field_comparators() {
+    // GIVEN
+    Person actual = new Person("John");
+    actual.home.address.number = 1;
+    actual.dateOfBirth = new Date(123);
+    actual.neighbour = new Person("Jack");
+    actual.neighbour.home.address.number = 123;
+    // actually a clone of actual
+    Person expected = new Person("John");
+    expected.home.address.number = 1;
+    expected.dateOfBirth = new Date(123);
+    expected.neighbour = new Person("Jack");
+    expected.neighbour.home.address.number = 123;
+    // register comparators for some fields that will fail the comparison
+    recursiveComparisonConfiguration.registerComparatorForField(alwaysDifferent(), fielLocation("dateOfBirth"));
+    recursiveComparisonConfiguration.registerComparatorForField(alwaysDifferent(), fielLocation("neighbour.home.address"));
+    // WHEN
+    compareRecursivelyFailsAsExpected(actual, expected);
+    // THEN
+    ComparisonDifference dateOfBirthDifference = diff("dateOfBirth", actual.dateOfBirth, expected.dateOfBirth);
+    ComparisonDifference neighbourAddressDifference = diff("neighbour.home.address", actual.neighbour.home.address, expected.neighbour.home.address);
+    verifyShouldBeEqualByComparingFieldByFieldRecursivelyCall(actual, expected, dateOfBirthDifference, neighbourAddressDifference);
+}

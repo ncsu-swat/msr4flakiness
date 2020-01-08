@@ -1,0 +1,12 @@
+@Test
+public void should_be_able_to_detect_mixed_differences() throws IOException {
+    // @format:off
+    writer.write(actual, "line1", "line2", "line3", "line4", "line5", "line 9", "line 10", "line 11");
+    writer.write(expected, "line1", "line1a", "line1b", "line2", "line3", "line7", "line5");
+    // @format:on
+    List<Delta<String>> diffs = diff.diff(actual, defaultCharset(), expected, defaultCharset());
+    assertThat(diffs).hasSize(3);
+    assertThat(diffs.get(0)).hasToString(format("Missing content at line 2:%n" + "  [\"line1a\",%n" + "   \"line1b\"]%n"));
+    assertThat(diffs.get(1)).hasToString(format("Changed content at line 6:%n" + "expecting:%n" + "  [\"line7\"]%n" + "but was:%n" + "  [\"line4\"]%n"));
+    assertThat(diffs.get(2)).hasToString(format("Extra content at line 8:%n" + "  [\"line 9\",%n" + "   \"line 10\",%n" + "   \"line 11\"]%n"));
+}

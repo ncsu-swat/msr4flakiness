@@ -1,0 +1,15 @@
+@Test
+void extracting_should_keep_assertion_state() {
+    // GIVEN
+    // not all comparators are used but we want to test that they are passed correctly after extracting
+    AbstractObjectAssert<?, Employee> assertion = assertThat(luke).as("test description").withFailMessage("error message").withRepresentation(UNICODE_REPRESENTATION).usingComparator(ALWAY_EQUALS).usingComparatorForFields(ALWAY_EQUALS_STRING, "foo").usingComparatorForType(ALWAY_EQUALS_STRING, String.class);
+    // WHEN
+    AbstractObjectAssert<?, ?> result = assertion.extracting(firstName);
+    // THEN
+    then(result.descriptionText()).isEqualTo("test description");
+    then(result.info.overridingErrorMessage()).isEqualTo("error message");
+    then(result.info.representation()).isEqualTo(UNICODE_REPRESENTATION);
+    then(comparatorsByTypeOf(result).get(String.class)).isSameAs(ALWAY_EQUALS_STRING);
+    then(comparatorByPropertyOrFieldOf(result).get("foo")).isSameAs(ALWAY_EQUALS_STRING);
+    then(comparatorOf(result).getComparator()).isSameAs(ALWAY_EQUALS);
+}

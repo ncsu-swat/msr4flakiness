@@ -1,0 +1,12 @@
+@Test
+public void should_create_SoftAssertionError_when_MultipleFailuresError_could_not_be_created() throws Exception {
+    // GIVEN
+    List<? extends AssertionError> errors = list(new AssertionError("error1"), new AssertionError("error2"));
+    ConstructorInvoker constructorInvoker = mock(ConstructorInvoker.class);
+    given(constructorInvoker.newInstance(anyString(), any(Class[].class), any(Object[].class))).willThrow(Exception.class);
+    assertionErrorCreator.constructorInvoker = constructorInvoker;
+    // WHEN
+    AssertionError assertionError = assertionErrorCreator.multipleSoftAssertionsError(errors);
+    // THEN
+    assertThat(assertionError).isNotInstanceOf(MultipleFailuresError.class).isInstanceOf(SoftAssertionError.class).hasMessage(format("%n" + "The following 2 assertions failed:%n" + "1) error1%n" + "2) error2%n"));
+}

@@ -1,0 +1,23 @@
+@Test
+public void should_work_with_atomic() {
+    // WHEN
+    // simple atomic value
+    softly.then(new AtomicBoolean(true)).isTrue().isFalse();
+    softly.then(new AtomicInteger(1)).hasValueGreaterThan(0).hasNegativeValue();
+    softly.then(new AtomicLong(1L)).hasValueGreaterThan(0L).hasNegativeValue();
+    softly.then(new AtomicReference<>("abc")).hasValue("abc").hasValue("def");
+    // atomic array value
+    softly.then(new AtomicIntegerArray(new int[] { 1, 2, 3 })).containsExactly(1, 2, 3).isEmpty();
+    softly.then(new AtomicLongArray(new long[] { 1L, 2L, 3L })).containsExactly(1L, 2L, 3L).contains(0);
+    softly.then(new AtomicReferenceArray<>(array("a", "b", "c"))).containsExactly("a", "b", "c").contains("123");
+    // THEN
+    List<Throwable> errorsCollected = softly.errorsCollected();
+    assertThat(errorsCollected).hasSize(7);
+    assertThat(errorsCollected.get(0)).hasMessageContaining("false");
+    assertThat(errorsCollected.get(1)).hasMessageContaining("0");
+    assertThat(errorsCollected.get(2)).hasMessageContaining("0L");
+    assertThat(errorsCollected.get(3)).hasMessageContaining("def");
+    assertThat(errorsCollected.get(4)).hasMessageContaining("empty");
+    assertThat(errorsCollected.get(5)).hasMessageContaining("0");
+    assertThat(errorsCollected.get(6)).hasMessageContaining("123");
+}

@@ -1,0 +1,26 @@
+@Test
+public void should_fail_when_actual_differs_from_expected_when_using_comparators_by_type() {
+    // GIVEN
+    Person actual = new Person("John");
+    actual.home.address.number = 1;
+    actual.dateOfBirth = new Date(123);
+    actual.neighbour = new Person("Jack");
+    actual.neighbour.home.address.number = 123;
+    // actually a clone of actual
+    Person expected = new Person("John");
+    expected.home.address.number = 1;
+    expected.dateOfBirth = new Date(123);
+    expected.neighbour = new Person("Jack");
+    expected.neighbour.home.address.number = 123;
+    // register comparators for some type that will fail the comparison
+    recursiveComparisonConfiguration.registerComparatorForType(new AlwaysDifferentComparator<>(), Person.class);
+    recursiveComparisonConfiguration.registerComparatorForType(new AlwaysDifferentComparator<>(), Date.class);
+    recursiveComparisonConfiguration.registerComparatorForType(new AlwaysDifferentComparator<>(), Address.class);
+    // WHEN
+    compareRecursivelyFailsAsExpected(actual, expected);
+    // THEN
+    ComparisonDifference dateOfBirthDifference = diff("dateOfBirth", actual.dateOfBirth, expected.dateOfBirth);
+    ComparisonDifference addressDifference = diff("home.address", actual.home.address, expected.home.address);
+    ComparisonDifference neighbourDifference = diff("neighbour", actual.neighbour, expected.neighbour);
+    verifyShouldBeEqualByComparingFieldByFieldRecursivelyCall(actual, expected, dateOfBirthDifference, addressDifference, neighbourDifference);
+}

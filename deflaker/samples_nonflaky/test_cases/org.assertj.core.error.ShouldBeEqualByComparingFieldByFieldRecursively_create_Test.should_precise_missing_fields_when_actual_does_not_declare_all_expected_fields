@@ -1,0 +1,16 @@
+@Test
+public void should_precise_missing_fields_when_actual_does_not_declare_all_expected_fields() {
+    // GIVEN
+    Person person = new Person("John", "Doe");
+    PersonDAO personDAO = new PersonDAO("John", "Doe", 1L, 23);
+    // THEN
+    List<Difference> differences = determineDifferences(person, personDAO, null, null);
+    // WHEN
+    // @format:off
+    String message = shouldBeEqualByComparingFieldByFieldRecursive(person, personDAO, differences, REPRESENTATION).create(TEST_DESCRIPTION, REPRESENTATION);
+    // @format:on
+    // THEN
+    String personHash = toHexString(person.hashCode());
+    String personDAOHash = toHexString(personDAO.hashCode());
+    assertThat(message).isEqualTo(format("[Test] %n" + "Expecting:%n" + "  <org.assertj.core.error.Person@%s>%n" + "to be equal to:%n" + "  <org.assertj.core.error.PersonDAO@%s>%n" + "when recursively comparing field by field, but found the following difference(s):%n" + "%n" + "Path to difference: <>%n" + "- actual  : <org.assertj.core.error.Person@%s>%n" + "- expected: <org.assertj.core.error.PersonDAO@%s>%n" + "- reason  : org.assertj.core.error.Person can't be compared to org.assertj.core.error.PersonDAO as PersonDAO does not declare all Person fields, it lacks these:[firstName, lastName]", personHash, personDAOHash, personHash, personDAOHash));
+}

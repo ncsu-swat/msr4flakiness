@@ -1,0 +1,13 @@
+@SuppressWarnings("unchecked")
+@Test
+public void should_be_able_to_catch_exceptions_thrown_by_map_assertions() {
+    // GIVEN
+    Map<String, String> map = mapOf(MapEntry.entry("54", "55"));
+    // WHEN
+    softly.assertThat(map).contains(MapEntry.entry("1", "2")).isEmpty();
+    // THEN
+    List<Throwable> errors = softly.errorsCollected();
+    assertThat(errors).hasSize(2);
+    assertThat(errors.get(0)).hasMessageStartingWith(format("%nExpecting:%n" + " <{\"54\"=\"55\"}>%n" + "to contain:%n" + " <[MapEntry[key=\"1\", value=\"2\"]]>%n" + "but could not find:%n" + " <[MapEntry[key=\"1\", value=\"2\"]]>%n"));
+    assertThat(errors.get(1)).hasMessageStartingWith(format("%nExpecting empty but was:<{\"54\"=\"55\"}>"));
+}

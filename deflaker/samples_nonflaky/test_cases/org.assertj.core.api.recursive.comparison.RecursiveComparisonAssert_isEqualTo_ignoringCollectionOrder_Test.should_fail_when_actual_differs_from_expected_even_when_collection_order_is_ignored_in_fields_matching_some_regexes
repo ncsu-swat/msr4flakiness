@@ -1,0 +1,22 @@
+@Test
+public void should_fail_when_actual_differs_from_expected_even_when_collection_order_is_ignored_in_fields_matching_some_regexes() {
+    // GIVEN
+    FriendlyPerson actual = friend("Sherlock Holmes");
+    FriendlyPerson actualFriend = friend("Dr. John Watson");
+    actualFriend.friends.add(friend("D.I. Greg Lestrade"));
+    actualFriend.friends.add(friend("Mrs. Hudson"));
+    actual.friends.add(actualFriend);
+    actual.friends.add(friend("Molly Hooper"));
+    FriendlyPerson expected = friend("Sherlock Holmes");
+    expected.friends.add(friend("Molly Hooper"));
+    FriendlyPerson expectedFriend = friend("Dr. John Watson");
+    expectedFriend.friends.add(friend("Mrs. Hudson"));
+    expectedFriend.friends.add(friend("D.I. Greg Lestrade"));
+    expected.friends.add(expectedFriend);
+    recursiveComparisonConfiguration.ignoreCollectionOrderInFieldsMatchingRegexes("friend.");
+    // WHEN
+    compareRecursivelyFailsAsExpected(actual, expected);
+    // THEN
+    ComparisonDifference friendsDifference = diff("friends", actual.friends, expected.friends);
+    verifyShouldBeEqualByComparingFieldByFieldRecursivelyCall(actual, expected, friendsDifference);
+}

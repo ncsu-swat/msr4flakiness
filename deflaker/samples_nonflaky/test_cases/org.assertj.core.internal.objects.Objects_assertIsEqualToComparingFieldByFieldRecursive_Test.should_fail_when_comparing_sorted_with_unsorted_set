@@ -1,0 +1,20 @@
+@Test
+// test for deprecated method
+@SuppressWarnings("deprecation")
+public void should_fail_when_comparing_sorted_with_unsorted_set() {
+    WithCollection<String> actual = new WithCollection<>(new TreeSet<String>());
+    actual.collection.add("bar");
+    actual.collection.add("foo");
+    WithCollection<String> expected = new WithCollection<>(new LinkedHashSet<String>());
+    expected.collection.add("bar");
+    expected.collection.add("foo");
+    try {
+        assertThat(actual).isEqualToComparingFieldByFieldRecursively(expected);
+    } catch (AssertionError err) {
+        assertThat(err).hasMessageContaining(format("Path to difference: <collection>%n"));
+        assertThat(err).hasMessageContaining(format("- actual  : <[\"bar\", \"foo\"] (TreeSet@"));
+        assertThat(err).hasMessageContaining(format("- expected: <[\"bar\", \"foo\"] (LinkedHashSet@"));
+        return;
+    }
+    failBecauseExpectedAssertionErrorWasNotThrown();
+}

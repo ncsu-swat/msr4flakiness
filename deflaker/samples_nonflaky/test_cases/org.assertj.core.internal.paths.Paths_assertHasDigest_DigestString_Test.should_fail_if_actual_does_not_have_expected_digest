@@ -1,0 +1,15 @@
+@Test
+public void should_fail_if_actual_does_not_have_expected_digest() throws IOException {
+    // GIVEN
+    InputStream stream = getClass().getResourceAsStream("/red.png");
+    given(nioFilesWrapper.exists(actual)).willReturn(true);
+    given(nioFilesWrapper.isRegularFile(actual)).willReturn(true);
+    given(nioFilesWrapper.isReadable(actual)).willReturn(true);
+    given(nioFilesWrapper.newInputStream(actual)).willReturn(stream);
+    given(digest.digest()).willReturn(new byte[] { 0, 1 });
+    // WHEN
+    catchThrowable(() -> paths.assertHasDigest(INFO, actual, digest, expected));
+    // THEN
+    verify(failures).failure(INFO, shouldHaveDigest(actual, new DigestDiff("0001", "", digest)));
+    failIfStreamIsOpen(stream);
+}

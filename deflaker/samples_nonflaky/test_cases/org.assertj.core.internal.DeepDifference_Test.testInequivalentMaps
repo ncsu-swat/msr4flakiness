@@ -1,0 +1,30 @@
+@Test
+public void testInequivalentMaps() {
+    Map<String, Integer> map1 = new TreeMap<>();
+    fillMap(map1);
+    Map<String, Integer> map2 = new HashMap<>();
+    fillMap(map2);
+    // Sorted versus non-sorted Map
+    assertHaveDifferences(map1, map2);
+    // Hashcodes are equals because the Maps have same elements
+    assertThat(DeepDifference.deepHashCode(map1)).isEqualTo(DeepDifference.deepHashCode(map2));
+    map2 = new TreeMap<>();
+    fillMap(map2);
+    map2.remove("kilo");
+    assertHaveDifferences(map1, map2);
+    // Hashcodes are different because contents of maps are different
+    assertThat(DeepDifference.deepHashCode(map1)).isNotEqualTo(DeepDifference.deepHashCode(map2));
+    // Inequality because ConcurrentSkipListMap is a SortedMap
+    map1 = new HashMap<>();
+    fillMap(map1);
+    map2 = new ConcurrentSkipListMap<>();
+    fillMap(map2);
+    assertHaveDifferences(map1, map2);
+    map1 = new TreeMap<>();
+    fillMap(map1);
+    map2 = new ConcurrentSkipListMap<>();
+    fillMap(map2);
+    assertHaveNoDifferences(map1, map2);
+    map2.remove("papa");
+    assertHaveDifferences(map1, map2);
+}

@@ -1,0 +1,14 @@
+@Test
+// test for deprecated method
+@SuppressWarnings("deprecation")
+public void should_have_error_message_with_path_to_difference_when_difference_is_in_collection() {
+    FriendlyPerson actual = new FriendlyPerson();
+    FriendlyPerson friendOfActual = new FriendlyPerson();
+    friendOfActual.home.address.number = 99;
+    actual.friends = Arrays.asList(friendOfActual);
+    FriendlyPerson other = new FriendlyPerson();
+    FriendlyPerson friendOfOther = new FriendlyPerson();
+    friendOfOther.home.address.number = 10;
+    other.friends = Arrays.asList(friendOfOther);
+    assertThatExceptionOfType(AssertionError.class).isThrownBy(() -> assertThat(actual).isEqualToComparingFieldByFieldRecursively(other)).withMessage(format("%nExpecting:%n  <%s>%nto be equal to:%n  <%s>%n" + "when recursively comparing field by field, but found the following difference(s):%n%n" + "Path to difference: <friends.home.address.number>%n" + "- actual  : <99>%n" + "- expected: <10>", actual, other));
+}

@@ -1,0 +1,13 @@
+// the test would fail if any method was not proxyable as the assertion error would not be softly caught
+@SuppressWarnings("unchecked")
+@Test
+public void class_soft_assertions_should_report_errors_on_final_methods() {
+    // GIVEN
+    Class<AnnotatedClass> actual = AnnotatedClass.class;
+    // WHEN
+    softly.then(actual).hasAnnotations(MyAnnotation.class, AnotherAnnotation.class).hasAnnotations(SafeVarargs.class, VisibleForTesting.class);
+    // THEN
+    List<Throwable> errorsCollected = softly.errorsCollected();
+    assertThat(errorsCollected).hasSize(1);
+    assertThat(errorsCollected.get(0)).hasMessageContaining("SafeVarargs").hasMessageContaining("VisibleForTesting");
+}

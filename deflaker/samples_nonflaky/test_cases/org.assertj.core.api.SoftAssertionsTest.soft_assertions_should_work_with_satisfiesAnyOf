@@ -1,0 +1,13 @@
+@Test
+public void soft_assertions_should_work_with_satisfiesAnyOf() {
+    // GIVEN
+    TolkienCharacter legolas = TolkienCharacter.of("Legolas", 1000, ELF);
+    Consumer<TolkienCharacter> isHobbit = tolkienCharacter -> assertThat(tolkienCharacter.getRace()).isEqualTo(HOBBIT);
+    Consumer<TolkienCharacter> isMan = tolkienCharacter -> assertThat(tolkienCharacter.getRace()).isEqualTo(MAN);
+    // WHEN
+    softly.assertThat(legolas).as("satisfiesAnyOf").satisfiesAnyOf(isHobbit, isMan);
+    // THEN
+    List<Throwable> errorsCollected = softly.errorsCollected();
+    assertThat(errorsCollected).hasSize(1);
+    assertThat(errorsCollected.get(0)).hasMessageContaining("[satisfiesAnyOf] ").hasMessageContaining("HOBBIT").hasMessageContaining("ELF").hasMessageContaining("MAN");
+}

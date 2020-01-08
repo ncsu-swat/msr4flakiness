@@ -1,0 +1,12 @@
+@Test
+public void should_pass_when_using_extracting_with_iterable() {
+    Iterable<Name> names = asList(name("John", "Doe"), name("Jane", "Doe"));
+    try (AutoCloseableBDDSoftAssertions softly = new AutoCloseableBDDSoftAssertions()) {
+        softly.then(names).extracting("first").as("using extracting()").contains("John").contains("Jane");
+        softly.then(names).extracting(Name::getFirst).as("using extracting(Extractor)").contains("John").contains("Jane");
+        softly.then(names).extracting("first", String.class).as("using extracting(..., Class)").contains("John").contains("Jane");
+        softly.then(names).extracting("first", "last").as("using extracting(...)").contains(tuple("John", "Doe")).contains(tuple("Jane", "Doe"));
+        softly.then(names).extractingResultOf("getFirst", String.class).as("using extractingResultOf(method, Class)").contains("John").contains("Jane");
+        softly.then(names).extractingResultOf("getFirst").as("using extractingResultOf(method)").contains("John").contains("Jane");
+    }
+}

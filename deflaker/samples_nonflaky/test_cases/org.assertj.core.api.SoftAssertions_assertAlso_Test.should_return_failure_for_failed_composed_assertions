@@ -1,0 +1,19 @@
+@Test
+public void should_return_failure_for_failed_composed_assertions() {
+    // GIVEN some soft assertions
+    softly.assertThat(1).isEqualTo(1);
+    assertThat(softly.wasSuccess()).isTrue();
+    softly.assertThat(1).isEqualTo(3);
+    assertThat(softly.wasSuccess()).isFalse();
+    // and other ones
+    SoftAssertions other = new SoftAssertions();
+    other.assertThat(1).isEqualTo(2);
+    other.assertThat(list(1, 2)).containsOnly(1, 4);
+    assertThat(other.wasSuccess()).isFalse();
+    assertThat(other.errorsCollected()).hasSize(2);
+    // WHEN
+    softly.assertAlso(other);
+    // THEN
+    assertThat(softly.wasSuccess()).isFalse();
+    assertThat(softly.errorsCollected()).hasSize(3);
+}

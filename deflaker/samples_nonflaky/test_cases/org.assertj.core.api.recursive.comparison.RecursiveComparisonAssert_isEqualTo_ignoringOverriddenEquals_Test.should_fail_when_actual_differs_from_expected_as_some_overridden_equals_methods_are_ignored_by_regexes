@@ -1,0 +1,21 @@
+@Test
+public void should_fail_when_actual_differs_from_expected_as_some_overridden_equals_methods_are_ignored_by_regexes() {
+    // GIVEN
+    Person actual = new Person();
+    actual.neighbour = new AlwaysEqualPerson();
+    actual.neighbour.name = "Jack";
+    actual.neighbour.home.address = new AlwaysEqualAddress();
+    actual.neighbour.home.address.number = 123;
+    Person expected = new Person();
+    expected.neighbour = new AlwaysEqualPerson();
+    expected.neighbour.name = "Jim";
+    expected.neighbour.home.address = new AlwaysEqualAddress();
+    expected.neighbour.home.address.number = 234;
+    recursiveComparisonConfiguration.ignoreOverriddenEqualsForFieldsMatchingRegexes(".*AlwaysEqualPerson", ".*AlwaysEqualAddress");
+    // WHEN
+    compareRecursivelyFailsAsExpected(actual, expected);
+    // THEN
+    ComparisonDifference neighbourNameDifference = diff("neighbour.name", actual.neighbour.name, expected.neighbour.name);
+    ComparisonDifference numberDifference = diff("neighbour.home.address.number", actual.neighbour.home.address.number, expected.neighbour.home.address.number);
+    verifyShouldBeEqualByComparingFieldByFieldRecursivelyCall(actual, expected, numberDifference, neighbourNameDifference);
+}

@@ -1,0 +1,14 @@
+@Test
+public void must_not_check_all_elements() {
+    // GIVEN
+    // This test requires an iterable with size > 2
+    assertThat(actual).hasSizeGreaterThan(2);
+    Consumer<String> consumer = mock(Consumer.class);
+    // first element does not match -> assertion error, 2nd element does match -> doNothing()
+    doThrow(new AssertionError("some error message")).doNothing().when(consumer).accept(anyString());
+    // WHEN
+    iterables.assertAnySatisfy(someInfo(), actual, consumer);
+    // THEN
+    // make sure that we only evaluated 2 out of 4 elements
+    verify(consumer, times(2)).accept(anyString());
+}

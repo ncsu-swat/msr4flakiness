@@ -1,0 +1,14 @@
+@Test
+public void should_fail_if_actual_does_not_have_expected_digest() throws IOException, NoSuchAlgorithmException {
+    // GIVEN
+    InputStream stream = getClass().getResourceAsStream("/red.png");
+    given(actual.exists()).willReturn(true);
+    given(actual.isFile()).willReturn(true);
+    given(actual.canRead()).willReturn(true);
+    given(nioFilesWrapper.newInputStream(any())).willReturn(stream);
+    // WHEN
+    catchThrowable(() -> files.assertHasDigest(INFO, actual, algorithm, expected));
+    // THEN
+    verify(failures).failure(INFO, shouldHaveDigest(actual, new DigestDiff(real, "", MessageDigest.getInstance(algorithm))));
+    failIfStreamIsOpen(stream);
+}

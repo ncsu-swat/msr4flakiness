@@ -1,0 +1,13 @@
+@Test
+public void should_display_comparison_strategy_in_error_message() {
+    // GIVEN
+    String actual = "Luke";
+    String expected = "Yoda";
+    ThrowingCallable code = () -> assertThat(actual).as("Jedi").usingComparator(CaseInsensitiveStringComparator.instance).isEqualTo(expected);
+    // WHEN
+    AssertionFailedError error = catchThrowableOfType(code, AssertionFailedError.class);
+    // THEN
+    assertThat(error.getActual().getValue()).isSameAs(actual);
+    assertThat(error.getExpected().getValue()).isSameAs(expected);
+    assertThat(error).hasMessage(format("[Jedi] %nExpecting:%n" + " <\"Luke\">%n" + "to be equal to:%n" + " <\"Yoda\">%n" + "when comparing values using CaseInsensitiveStringComparator%n" + "but was not."));
+}

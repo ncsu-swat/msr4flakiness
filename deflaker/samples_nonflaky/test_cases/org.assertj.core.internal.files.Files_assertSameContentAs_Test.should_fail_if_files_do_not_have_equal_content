@@ -1,0 +1,14 @@
+@Test
+public void should_fail_if_files_do_not_have_equal_content() throws IOException {
+    List<Delta<String>> diffs = Lists.newArrayList(delta);
+    when(diff.diff(actual, defaultCharset(), expected, defaultCharset())).thenReturn(diffs);
+    when(binaryDiff.diff(actual, readAllBytes(expected.toPath()))).thenReturn(new BinaryDiffResult(1, -1, -1));
+    AssertionInfo info = someInfo();
+    try {
+        files.assertSameContentAs(info, actual, defaultCharset(), expected, defaultCharset());
+    } catch (AssertionError e) {
+        verify(failures).failure(info, shouldHaveSameContent(actual, expected, diffs));
+        return;
+    }
+    failBecauseExpectedAssertionErrorWasNotThrown();
+}

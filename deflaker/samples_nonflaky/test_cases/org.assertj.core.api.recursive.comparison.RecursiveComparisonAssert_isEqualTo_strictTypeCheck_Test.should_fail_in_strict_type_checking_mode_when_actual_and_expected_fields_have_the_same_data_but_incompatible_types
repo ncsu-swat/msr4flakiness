@@ -1,0 +1,13 @@
+@Test
+public void should_fail_in_strict_type_checking_mode_when_actual_and_expected_fields_have_the_same_data_but_incompatible_types() {
+    // GIVEN
+    Something withA = new Something(new A(10));
+    Something withB = new Something(new B(10));
+    recursiveComparisonConfiguration.strictTypeChecking(true);
+    // WHEN
+    compareRecursivelyFailsAsExpected(withA, withB);
+    // THEN
+    // inner comparison fails as the fields have different types
+    ComparisonDifference valueDifference = diff("inner", withA.inner, withB.inner, "the fields are considered different since the comparison enforces strict type check and org.assertj.core.api.recursive.comparison.RecursiveComparisonAssert_isEqualTo_strictTypeCheck_Test$B is not a subtype of org.assertj.core.api.recursive.comparison.RecursiveComparisonAssert_isEqualTo_strictTypeCheck_Test$A");
+    verifyShouldBeEqualByComparingFieldByFieldRecursivelyCall(withA, withB, valueDifference);
+}

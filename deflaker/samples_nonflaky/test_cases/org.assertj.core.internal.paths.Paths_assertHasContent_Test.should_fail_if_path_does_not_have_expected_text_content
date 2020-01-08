@@ -1,0 +1,16 @@
+@Test
+public void should_fail_if_path_does_not_have_expected_text_content() throws IOException {
+    @SuppressWarnings("unchecked")
+    List<Delta<String>> diffs = newArrayList((Delta<String>) mock(Delta.class));
+    when(diff.diff(path, expected, charset)).thenReturn(diffs);
+    when(nioFilesWrapper.exists(path)).thenReturn(true);
+    when(nioFilesWrapper.isReadable(path)).thenReturn(true);
+    AssertionInfo info = someInfo();
+    try {
+        paths.assertHasContent(info, path, expected, charset);
+    } catch (AssertionError e) {
+        verify(failures).failure(info, shouldHaveContent(path, charset, diffs));
+        return;
+    }
+    failBecauseExpectedAssertionErrorWasNotThrown();
+}

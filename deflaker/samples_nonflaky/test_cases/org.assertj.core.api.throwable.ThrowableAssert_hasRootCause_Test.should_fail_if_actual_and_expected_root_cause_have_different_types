@@ -1,0 +1,11 @@
+@Test
+public void should_fail_if_actual_and_expected_root_cause_have_different_types() {
+    // GIVEN
+    Throwable rootCause = new IllegalStateException();
+    Throwable cause = new RuntimeException(rootCause);
+    final Throwable throwable = new IllegalArgumentException(cause);
+    // WHEN
+    AssertionError actual = expectAssertionError(() -> assertThat(throwable).hasRootCause(new NullPointerException()));
+    // THEN
+    assertThat(actual).hasMessage(format("%n" + "Expecting a root cause with type:%n" + "  <\"java.lang.NullPointerException\">%n" + "but type was:%n" + "  <\"java.lang.IllegalStateException\">." + "%n" + "Throwable that failed the check:%n" + "%n%s", getStackTrace(throwable)));
+}

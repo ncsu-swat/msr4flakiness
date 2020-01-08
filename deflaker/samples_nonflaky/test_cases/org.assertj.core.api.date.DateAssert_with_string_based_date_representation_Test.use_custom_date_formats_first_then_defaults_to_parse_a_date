@@ -1,0 +1,29 @@
+@Test
+public void use_custom_date_formats_first_then_defaults_to_parse_a_date() {
+    // using default formats should work
+    final Date date = DateUtil.parse("2003-04-26");
+    assertThat(date).isEqualTo("2003-04-26");
+    try {
+        // date with a custom format : failure since the default formats don't match.
+        assertThat(date).isEqualTo("2003/04/26");
+        failBecauseExpectedAssertionErrorWasNotThrown();
+    } catch (AssertionError e) {
+        assertThat(e).hasMessage(format("Failed to parse 2003/04/26 with any of these date formats:%n" + "   [yyyy-MM-dd'T'HH:mm:ss.SSSX,%n" + "    yyyy-MM-dd'T'HH:mm:ss.SSS,%n" + "    yyyy-MM-dd HH:mm:ss.SSS,%n" + "    yyyy-MM-dd'T'HH:mm:ssX,%n" + "    yyyy-MM-dd'T'HH:mm:ss,%n" + "    yyyy-MM-dd]"));
+    }
+    // registering a custom date format to make the assertion pass
+    registerCustomDateFormat("yyyy/MM/dd");
+    assertThat(date).isEqualTo("2003/04/26");
+    // the default formats are still available and should work
+    assertThat(date).isEqualTo("2003-04-26");
+    assertThat(date).isEqualTo("2003-04-26T00:00:00");
+    try {
+        // but if not format at all matches, it fails.
+        assertThat(date).isEqualTo("2003 04 26");
+        failBecauseExpectedAssertionErrorWasNotThrown();
+    } catch (AssertionError e) {
+        assertThat(e).hasMessage(format("Failed to parse 2003 04 26 with any of these date formats:%n" + "   [yyyy/MM/dd,%n" + "    yyyy-MM-dd'T'HH:mm:ss.SSSX,%n" + "    yyyy-MM-dd'T'HH:mm:ss.SSS,%n" + "    yyyy-MM-dd HH:mm:ss.SSS,%n" + "    yyyy-MM-dd'T'HH:mm:ssX,%n" + "    yyyy-MM-dd'T'HH:mm:ss,%n" + "    yyyy-MM-dd]"));
+    }
+    // register a new custom format should work
+    registerCustomDateFormat("yyyy MM dd");
+    assertThat(date).isEqualTo("2003 04 26");
+}

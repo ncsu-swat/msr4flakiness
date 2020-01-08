@@ -1,0 +1,11 @@
+@Test
+public void should_fail_if_one_entry_does_not_satisfy_the_given_requirements() {
+    // WHEN
+    AssertionError error = expectAssertionError(() -> maps.assertAllSatisfy(someInfo(), greatPlayers, (team, player) -> {
+        assertThat(team).isIn("Lakers", "Bulls", "Spurs");
+        assertThat(player.getPointsPerGame()).as("%s %s ppg", player.getName().first, player.getName().getLast()).isLessThan(30);
+    }));
+    // THEN
+    List<UnsatisfiedRequirement> unsatisfiedRequirements = list(failOnPpgLessThan("Bulls", jordan, 30));
+    assertThat(error).hasMessage(elementsShouldSatisfy(greatPlayers, unsatisfiedRequirements, someInfo()).create());
+}

@@ -1,0 +1,24 @@
+@Test
+void optional_soft_assertions_should_report_errors_on_methods_that_switch_the_object_under_test() {
+    // GIVEN
+    Optional<String> optional = Optional.of("Yoda");
+    Function<String, Optional<String>> upperCaseOptional = s -> s == null ? Optional.empty() : Optional.of(s.toUpperCase());
+    // WHEN
+    softly.assertThat(optional).as("map(String::length)").overridingErrorMessage("error message").map(String::length).hasValue(4).hasValue(// fail
+    777);
+    softly.assertThat(optional).as("flatMap(upperCaseOptional)").flatMap(upperCaseOptional).contains("YODA").contains(// fail
+    "yoda").as("map(String::length) after flatMap(upperCaseOptional)").map(String::length).hasValue(4).hasValue(// fail
+    888);
+    softly.assertThat(optional).as("get()").overridingErrorMessage("error message").get().isEqualTo("Yoda").isEqualTo(// fail
+    "Luke");
+    softly.assertThat(optional).as("get(as(STRING))").overridingErrorMessage("error message").get(as(STRING)).startsWith("Yo").startsWith(// fail
+    "Lu");
+    // THEN
+    List<Throwable> errorsCollected = softly.errorsCollected();
+    assertThat(errorsCollected).hasSize(5);
+    assertThat(errorsCollected.get(0)).hasMessage("[map(String::length)] error message");
+    assertThat(errorsCollected.get(1)).hasMessageContaining("flatMap(upperCaseOptional)").hasMessageContaining("yoda");
+    assertThat(errorsCollected.get(2)).hasMessageContaining("map(String::length) after flatMap(upperCaseOptional)").hasMessageContaining("888");
+    assertThat(errorsCollected.get(3)).hasMessage("[get()] error message");
+    assertThat(errorsCollected.get(4)).hasMessage("[get(as(STRING))] error message");
+}

@@ -1,0 +1,20 @@
+@Test
+// test for deprecated method
+@SuppressWarnings("deprecation")
+public void should_fail_when_comparing_sorted_with_unsorted_map() {
+    WithMap<Long, Boolean> actual = new WithMap<>(new TreeMap<Long, Boolean>());
+    actual.map.put(1L, true);
+    actual.map.put(2L, false);
+    WithMap<Long, Boolean> expected = new WithMap<>(new LinkedHashMap<Long, Boolean>());
+    expected.map.put(2L, false);
+    expected.map.put(1L, true);
+    try {
+        assertThat(actual).isEqualToComparingFieldByFieldRecursively(expected);
+    } catch (AssertionError err) {
+        assertThat(err).hasMessageContaining(format("Path to difference: <map>%n"));
+        assertThat(err).hasMessageContaining(format("- actual  : <{1L=true, 2L=false} (TreeMap@"));
+        assertThat(err).hasMessageContaining(format("- expected: <{1L=true, 2L=false} (LinkedHashMap@"));
+        return;
+    }
+    failBecauseExpectedAssertionErrorWasNotThrown();
+}

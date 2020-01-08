@@ -1,0 +1,13 @@
+@Test
+public void should_collect_errors_from_standard_and_custom_assertions() {
+    // GIVEN
+    MyProjectClass custom = new MyProjectClass("foo");
+    // WHEN
+    softly.check(() -> Assertions.assertThat(true).isFalse());
+    softly.check(() -> Assertions.assertThat(true).isTrue());
+    softly.check(() -> MyProjectAssertions.assertThat(custom).hasValue("bar"));
+    // THEN
+    List<Throwable> errorsCollected = softly.errorsCollected();
+    assertThat(errorsCollected).hasSize(2);
+    assertThat(errorsCollected.get(1)).hasMessageContainingAll("foo", "bar");
+}

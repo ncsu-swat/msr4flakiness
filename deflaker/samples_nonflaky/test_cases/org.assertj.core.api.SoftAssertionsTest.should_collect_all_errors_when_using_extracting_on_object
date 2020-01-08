@@ -1,0 +1,15 @@
+@SuppressWarnings("unchecked")
+@Test
+public void should_collect_all_errors_when_using_extracting_on_object() {
+    // GIVEN
+    TolkienCharacter frodo = TolkienCharacter.of("Frodo", 33, HOBBIT);
+    // WHEN
+    softly.assertThat(frodo).overridingErrorMessage("error 1").extracting("name").isEqualTo("Foo");
+    softly.assertThat(frodo).overridingErrorMessage("error 2").extracting("name", "age").contains("Frodo", 55);
+    softly.assertThat(frodo).overridingErrorMessage("error 3").extracting("name", as(STRING)).startsWith("Bar");
+    softly.assertThat(frodo).overridingErrorMessage("error 4").extracting(TolkienCharacter::getName, character -> character.age, character -> character.getRace()).containsExactly("Frodon", 33, HOBBIT);
+    softly.assertThat(frodo).overridingErrorMessage("error 5").extracting(TolkienCharacter::getName).isEqualTo("Foo");
+    softly.assertThat(frodo).overridingErrorMessage("error 6").extracting(TolkienCharacter::getName, as(STRING)).startsWith("Bar");
+    // THEN
+    assertThat(softly.errorsCollected()).extracting(Throwable::getMessage).containsExactly("error 1", "error 2", "error 3", "error 4", "error 5", "error 6");
+}

@@ -1,0 +1,11 @@
+@Test
+void should_fail_if_multiple_entries_satisfy_the_given_requirements() {
+    // WHEN
+    AssertionError error = expectAssertionError(() -> maps.assertNoneSatisfy(someInfo(), greatPlayers, (team, player) -> {
+        assertThat(team).isIn("Lakers", "Bulls", "Spurs");
+        assertThat(player.getPointsPerGame()).as("%s %s ppg", player.getName().first, player.getName().getLast()).isLessThan(30);
+    }));
+    // THEN
+    List<Map.Entry<?, ?>> erroneousEntries = list(createEntry("Spurs", duncan), createEntry("Lakers", magic));
+    assertThat(error).hasMessage(noElementsShouldSatisfy(greatPlayers, erroneousEntries).create());
+}

@@ -1,0 +1,16 @@
+@Test
+public void should_use_unambiguous_fields_description_when_standard_description_of_actual_and_expected_map_fields_values_are_identical() {
+    // GIVEN
+    WithMap<Long, Boolean> withLinkedHashMap = new WithMap<>(new LinkedHashMap<>());
+    WithMap<Long, Boolean> withTreeMap = new WithMap<>(new TreeMap<>());
+    withLinkedHashMap.map.put(1L, true);
+    withLinkedHashMap.map.put(2L, false);
+    withTreeMap.map.putAll(withLinkedHashMap.map);
+    List<Difference> differences = determineDifferences(withLinkedHashMap, withTreeMap, null, null);
+    // WHEN
+    // @format:off
+    String message = shouldBeEqualByComparingFieldByFieldRecursive(withLinkedHashMap, withTreeMap, differences, REPRESENTATION).create(TEST_DESCRIPTION, REPRESENTATION);
+    // @format:on
+    // THEN
+    assertThat(message).isEqualTo(format("[Test] %n" + "Expecting:%n" + "  <WithMap [map={1=true, 2=false}]>%n" + "to be equal to:%n" + "  <WithMap [map={1=true, 2=false}]>%n" + "when recursively comparing field by field, but found the following difference(s):%n" + "%n" + "Path to difference: <map>%n" + "- actual  : <{1L=true, 2L=false} (LinkedHashMap@%s)>%n" + "- expected: <{1L=true, 2L=false} (TreeMap@%s)>", toHexString(System.identityHashCode(withLinkedHashMap.map)), toHexString(System.identityHashCode(withTreeMap.map))));
+}

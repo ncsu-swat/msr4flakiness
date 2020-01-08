@@ -1,0 +1,11 @@
+@Test
+public void should_fail_if_completable_future_has_failed_with_wrong_throwable() {
+    // GIVEN
+    CompletableFuture<String> future = new CompletableFuture<>();
+    RuntimeException exception = new RuntimeException("some random error");
+    future.completeExceptionally(exception);
+    // WHEN
+    ThrowingCallable code = () -> assertThat(future).hasFailedWithThrowableThat().isInstanceOf(IllegalArgumentException.class);
+    // THEN
+    assertThatAssertionErrorIsThrownBy(code).withMessage(shouldBeInstance(exception, IllegalArgumentException.class).create());
+}

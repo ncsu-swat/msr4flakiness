@@ -1,0 +1,13 @@
+@SuppressWarnings("unchecked")
+@Test
+public void predicate_soft_assertions_should_report_errors_on_final_methods() {
+    // GIVEN
+    Predicate<MapEntry<String, String>> ballSportPredicate = sport -> sport.value.contains("ball");
+    // WHEN
+    softly.then(ballSportPredicate).accepts(entry("sport", "boxing"), entry("sport", "marathon")).rejects(entry("sport", "football"), entry("sport", "basketball"));
+    // THEN
+    List<Throwable> errorsCollected = softly.errorsCollected();
+    assertThat(errorsCollected).hasSize(2);
+    assertThat(errorsCollected.get(0)).hasMessageContaining("boxing");
+    assertThat(errorsCollected.get(1)).hasMessageContaining("basketball");
+}

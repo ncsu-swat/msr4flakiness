@@ -1,0 +1,14 @@
+@Test
+public void should_fail_according_to_requirements() {
+    // GIVEN
+    Consumer<String> restrictions = s -> {
+        assertThat(s.length()).isEqualTo(4);
+        assertThat(s).startsWith("L");
+    };
+    // WHEN
+    Throwable error = catchThrowable(() -> iterables.assertAllSatisfy(someInfo(), actual, restrictions));
+    // THEN
+    assertThat(error).isNotNull();
+    List<UnsatisfiedRequirement> errors = list(new UnsatisfiedRequirement("Yoda", format("%n" + "Expecting:%n" + " <\"Yoda\">%n" + "to start with:%n" + " <\"L\">%n")));
+    verify(failures).failure(info, elementsShouldSatisfy(actual, errors, someInfo()));
+}

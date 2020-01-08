@@ -1,0 +1,23 @@
+@Test
+public void shouldBeAbleToUseCustomComparatorForHashMap() {
+    class ObjectWithMapField {
+
+        Map<Integer, Boolean> map;
+    }
+    ObjectWithMapField a = new ObjectWithMapField(), b = new ObjectWithMapField();
+    a.map = new HashMap<>();
+    a.map.put(1, true);
+    b.map = new HashMap<>();
+    b.map.put(2, true);
+    @SuppressWarnings("rawtypes")
+    class AlwaysEqualMapComparator implements Comparator<Map> {
+
+        @Override
+        public int compare(Map o1, Map o2) {
+            return 0;
+        }
+    }
+    TypeComparators typeComparators = new TypeComparators();
+    typeComparators.put(Map.class, new AlwaysEqualMapComparator());
+    assertThat(DeepDifference.determineDifferences(a, b, noFieldComparators(), typeComparators)).isEmpty();
+}

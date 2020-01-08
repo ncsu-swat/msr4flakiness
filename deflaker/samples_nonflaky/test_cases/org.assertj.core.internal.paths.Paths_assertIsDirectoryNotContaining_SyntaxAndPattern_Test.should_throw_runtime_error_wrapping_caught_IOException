@@ -1,0 +1,13 @@
+@Test
+public void should_throw_runtime_error_wrapping_caught_IOException() throws IOException {
+    // GIVEN
+    IOException cause = new IOException();
+    given(nioFilesWrapper.exists(actual)).willReturn(true);
+    given(nioFilesWrapper.isDirectory(actual)).willReturn(true);
+    given(nioFilesWrapper.newDirectoryStream(eq(actual), any())).willThrow(cause);
+    mockPathMatcher(actual);
+    // WHEN
+    Throwable error = catchThrowable(() -> paths.assertIsDirectoryNotContaining(INFO, actual, JAVA_SOURCE_PATTERN));
+    // THEN
+    assertThat(error).isInstanceOf(UncheckedIOException.class).hasCause(cause);
+}
