@@ -1,0 +1,11 @@
+@Test
+public void should_only_collect_error_from_chained_assertions_performed_after_succeedsWithin() {
+    // GIVEN
+    CompletableFuture<String> completableFuture = completedFuture("done");
+    // WHEN
+    softly.assertThat(completableFuture).succeedsWithin(10, TimeUnit.MILLISECONDS).isEqualTo("not done").isEqualTo("not ok");
+    // THEN
+    assertThat(softly.errorsCollected()).hasSize(2);
+    assertThat(softly.errorsCollected().get(0)).hasMessageContaining("not done");
+    assertThat(softly.errorsCollected().get(1)).hasMessageContaining("not ok");
+}

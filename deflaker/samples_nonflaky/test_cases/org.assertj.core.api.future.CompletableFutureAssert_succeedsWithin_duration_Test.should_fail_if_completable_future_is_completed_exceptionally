@@ -1,0 +1,10 @@
+@Test
+public void should_fail_if_completable_future_is_completed_exceptionally() {
+    // GIVEN
+    CompletableFuture<String> future = new CompletableFuture<>();
+    future.completeExceptionally(new RuntimeException("boom%s%n"));
+    // WHEN
+    AssertionError assertionError = expectAssertionError(() -> assertThat(future).succeedsWithin(Duration.of(1L, MILLIS)));
+    // THEN
+    then(assertionError).hasMessageStartingWith(format("%nExpecting%n  <CompletableFuture[Failed with the following stack trace:%njava.lang.RuntimeException: boom%%s%%n")).hasMessageContaining("to be completed within 0.001S.");
+}

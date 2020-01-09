@@ -1,0 +1,12 @@
+@Test
+public void should_fail_if_actual_and_expected_correspond_to_the_same_instant_in_different_time_zones() {
+    // GIVEN
+    ZonedDateTime nowInParis = NOW.withZoneSameInstant(ZoneId.of("Europe/Paris"));
+    ZonedDateTime nowInLA = NOW.withZoneSameInstant(ZoneId.of("America/Los_Angeles"));
+    // WHEN
+    AssertionError assertionErrorInParis = expectAssertionError(() -> assertThat(NOW).isNotEqualTo(nowInParis));
+    AssertionError assertionErrorInLA = expectAssertionError(() -> assertThat(NOW).isNotEqualTo(nowInLA));
+    // THEN
+    then(assertionErrorInParis).hasMessage(shouldNotBeEqual(NOW, nowInParis, COMPARISON_STRATEGY).create());
+    then(assertionErrorInLA).hasMessage(shouldNotBeEqual(NOW, nowInLA, COMPARISON_STRATEGY).create());
+}
