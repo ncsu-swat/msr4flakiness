@@ -1,0 +1,31 @@
+#!/bin/bash
+
+function genReport() {
+    for x in `find . -name "surefire-reports"`
+    do
+        for y in `ls $x/*.xml`
+        do
+            python parse.py $y
+        done
+    done
+}
+
+
+#mvn -Drat.skip=true install
+# mvn dependency:go-offline -Dlicense.skip=true
+
+for x in {11..100}
+do
+    mvn clean
+    (cd wro4j-core;
+       mvn test -Dlicense.skip=true
+    )
+    (cd wro4j-extensions;
+       mvn test -Dlicense.skip=true
+    )
+    (cd wro4j-maven-plugin;
+       mvn test -Dlicense.skip=true
+    )
+    genReport &> run${x}.log
+done
+
