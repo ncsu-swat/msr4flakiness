@@ -1,0 +1,17 @@
+@Test
+public void should_build_statements_from_lines() throws Exception {
+    // Given
+    List<String> lines = new ArrayList<>();
+    lines.add("CREATE TABLE IF NOT EXISTS test(");
+    lines.add("id int PRIMARY KEY,");
+    lines.add("value text");
+    lines.add(");");
+    lines.add("INSERT INTO test(id,value) VALUES(1,';^');");
+    lines.add("DELETE FROM test WHERE id=1;");
+    // When
+    final List<SimpleStatement> statements = scriptExecutor.buildStatements(lines);
+    // Then
+    assertThat(statements.get(0).getQueryString()).isEqualTo("CREATE TABLE IF NOT EXISTS test( id int PRIMARY KEY, value text );");
+    assertThat(statements.get(1).getQueryString()).isEqualTo("INSERT INTO test(id,value) VALUES(1,';^');");
+    assertThat(statements.get(2).getQueryString()).isEqualTo("DELETE FROM test WHERE id=1;");
+}
