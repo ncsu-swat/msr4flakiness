@@ -1,0 +1,11 @@
+@Test
+public void tls_missingTlsVersion() throws Exception {
+    platform.assumeNotConscrypt();
+    ConnectionSpec tlsSpec = new ConnectionSpec.Builder(true).cipherSuites(CipherSuite.TLS_RSA_WITH_RC4_128_MD5).tlsVersions(TlsVersion.TLS_1_2).supportsTlsExtensions(false).build();
+    SSLSocket socket = (SSLSocket) SSLSocketFactory.getDefault().createSocket();
+    socket.setEnabledCipherSuites(new String[] { CipherSuite.TLS_RSA_WITH_RC4_128_MD5.javaName() });
+    socket.setEnabledProtocols(new String[] { TlsVersion.TLS_1_2.javaName(), TlsVersion.TLS_1_1.javaName() });
+    assertThat(tlsSpec.isCompatible(socket)).isTrue();
+    socket.setEnabledProtocols(new String[] { TlsVersion.TLS_1_1.javaName() });
+    assertThat(tlsSpec.isCompatible(socket)).isFalse();
+}

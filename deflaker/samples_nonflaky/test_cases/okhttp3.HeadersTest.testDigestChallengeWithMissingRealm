@@ -1,0 +1,14 @@
+@Test
+public void testDigestChallengeWithMissingRealm() {
+    Headers headers = new Headers.Builder().add("WWW-Authenticate", "Digest qop=\"auth\", underrealm=\"myrealm\", nonce=\"fjalskdflwej" + "rlaskdfjlaskdjflaksjdflkasdf\", stale=\"FALSE\"").build();
+    List<Challenge> challenges = HttpHeaders.parseChallenges(headers, "WWW-Authenticate");
+    assertThat(challenges.size()).isEqualTo(1);
+    assertThat(challenges.get(0).scheme()).isEqualTo("Digest");
+    assertThat(challenges.get(0).realm()).isNull();
+    Map<String, String> expectedAuthParams = new LinkedHashMap<>();
+    expectedAuthParams.put("underrealm", "myrealm");
+    expectedAuthParams.put("nonce", "fjalskdflwejrlaskdfjlaskdjflaksjdflkasdf");
+    expectedAuthParams.put("qop", "auth");
+    expectedAuthParams.put("stale", "FALSE");
+    assertThat(challenges.get(0).authParams()).isEqualTo(expectedAuthParams);
+}

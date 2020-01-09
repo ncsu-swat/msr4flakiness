@@ -1,0 +1,11 @@
+@Test
+public void response305UseProxy() throws Exception {
+    server.enqueue(new MockResponse().setResponseCode(HttpURLConnection.HTTP_USE_PROXY).addHeader("Location: " + server.url("/").url()).setBody("This page has moved!"));
+    server.enqueue(new MockResponse().setBody("Proxy Response"));
+    Response response = getResponse(newRequest("/foo"));
+    // Fails on the RI, which gets "Proxy Response".
+    assertThat(readAscii(response.body().byteStream(), Integer.MAX_VALUE)).isEqualTo("This page has moved!");
+    RecordedRequest page1 = server.takeRequest();
+    assertThat(page1.getRequestLine()).isEqualTo("GET /foo HTTP/1.1");
+    assertThat(server.getRequestCount()).isEqualTo(1);
+}

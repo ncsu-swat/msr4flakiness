@@ -1,0 +1,11 @@
+@Test
+public void put() throws Exception {
+    server.enqueue(new MockResponse().setBody("abc"));
+    Request request = new Request.Builder().url(server.url("/")).put(RequestBody.create("def", MediaType.get("text/plain"))).build();
+    executeSynchronously(request).assertCode(200).assertBody("abc");
+    RecordedRequest recordedRequest = server.takeRequest();
+    assertThat(recordedRequest.getMethod()).isEqualTo("PUT");
+    assertThat(recordedRequest.getBody().readUtf8()).isEqualTo("def");
+    assertThat(recordedRequest.getHeader("Content-Length")).isEqualTo("3");
+    assertThat(recordedRequest.getHeader("Content-Type")).isEqualTo("text/plain; charset=utf-8");
+}

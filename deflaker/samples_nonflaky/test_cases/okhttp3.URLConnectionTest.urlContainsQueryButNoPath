@@ -1,0 +1,9 @@
+@Test
+public void urlContainsQueryButNoPath() throws Exception {
+    server.enqueue(new MockResponse().setBody("A"));
+    HttpUrl url = server.url("?query");
+    Response response = getResponse(newRequest(url));
+    assertThat(readAscii(response.body().byteStream(), Integer.MAX_VALUE)).isEqualTo("A");
+    RecordedRequest request = server.takeRequest();
+    assertThat(request.getRequestLine()).isEqualTo("GET /?query HTTP/1.1");
+}

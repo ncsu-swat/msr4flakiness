@@ -1,0 +1,18 @@
+@Test
+public void asyncCallAccessors() throws Exception {
+    dispatcher.setMaxRequests(3);
+    Call a1 = client.newCall(newRequest("http://a/1"));
+    Call a2 = client.newCall(newRequest("http://a/2"));
+    Call a3 = client.newCall(newRequest("http://a/3"));
+    Call a4 = client.newCall(newRequest("http://a/4"));
+    Call a5 = client.newCall(newRequest("http://a/5"));
+    a1.enqueue(callback);
+    a2.enqueue(callback);
+    a3.enqueue(callback);
+    a4.enqueue(callback);
+    a5.enqueue(callback);
+    assertThat(dispatcher.runningCallsCount()).isEqualTo(3);
+    assertThat(dispatcher.queuedCallsCount()).isEqualTo(2);
+    assertThat(dispatcher.runningCalls()).containsExactlyInAnyOrder(a1, a2, a3);
+    assertThat(dispatcher.queuedCalls()).containsExactlyInAnyOrder(a4, a5);
+}

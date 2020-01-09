@@ -1,0 +1,12 @@
+@Test
+public void defaultExpirationDateFullyCachedForMoreThan24Hours() throws Exception {
+    // last modified: 105 days ago
+    // served:   5 days ago
+    // default lifetime: (105 - 5) / 10 = 10 days
+    // expires:  10 days from served date = 5 days from now
+    server.enqueue(new MockResponse().addHeader("Last-Modified: " + formatDate(-105, TimeUnit.DAYS)).addHeader("Date: " + formatDate(-5, TimeUnit.DAYS)).setBody("A"));
+    assertThat(get(server.url("/")).body().string()).isEqualTo("A");
+    Response response = get(server.url("/"));
+    assertThat(response.body().string()).isEqualTo("A");
+    assertThat(response.header("Warning")).isEqualTo("113 HttpURLConnection \"Heuristic expiration\"");
+}

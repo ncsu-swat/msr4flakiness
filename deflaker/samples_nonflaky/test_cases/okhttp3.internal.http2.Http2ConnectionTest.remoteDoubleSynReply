@@ -1,0 +1,26 @@
+@Test
+public void remoteDoubleSynReply() throws Exception {
+    // write the mocking script
+    peer.sendFrame().settings(new Settings());
+    // ACK
+    peer.acceptFrame();
+    // SYN_STREAM
+    peer.acceptFrame();
+    peer.sendFrame().headers(false, 3, headerEntries("a", "android"));
+    // PING
+    peer.acceptFrame();
+    peer.sendFrame().headers(false, 3, headerEntries("b", "banana"));
+    peer.sendFrame().ping(true, AWAIT_PING, 0);
+    peer.play();
+    // play it back
+    Http2Connection connection = connect(peer);
+    Http2Stream stream = connection.newStream(headerEntries("c", "cola"), false);
+    assertThat(stream.takeHeaders()).isEqualTo(Headers.of("a", "android"));
+    // Ensure that the 2nd SYN REPLY has been received.
+    connection.writePingAndAwaitPong();
+    // verify the peer received what was expected
+    InFrame synStream = peer.takeFrame();
+    assertThat(synStream.type).isEqualTo(Http2.TYPE_HEADERS);
+    InFrame ping = peer.takeFrame();
+    assertThat(ping.type).isEqualTo(Http2.TYPE_PING);
+}

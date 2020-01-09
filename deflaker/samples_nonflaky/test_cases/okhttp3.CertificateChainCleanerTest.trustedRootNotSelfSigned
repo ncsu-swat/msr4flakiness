@@ -1,0 +1,10 @@
+@Test
+public void trustedRootNotSelfSigned() throws Exception {
+    HeldCertificate unknownSigner = new HeldCertificate.Builder().serialNumber(1L).build();
+    HeldCertificate trusted = new HeldCertificate.Builder().signedBy(unknownSigner).serialNumber(2L).build();
+    HeldCertificate intermediateCa = new HeldCertificate.Builder().signedBy(trusted).serialNumber(3L).build();
+    HeldCertificate certificate = new HeldCertificate.Builder().signedBy(intermediateCa).serialNumber(4L).build();
+    CertificateChainCleaner cleaner = CertificateChainCleaner.Companion.get(trusted.certificate());
+    assertThat(cleaner.clean(list(certificate, intermediateCa), "hostname")).isEqualTo(list(certificate, intermediateCa, trusted));
+    assertThat(cleaner.clean(list(certificate, intermediateCa, trusted), "hostname")).isEqualTo(list(certificate, intermediateCa, trusted));
+}

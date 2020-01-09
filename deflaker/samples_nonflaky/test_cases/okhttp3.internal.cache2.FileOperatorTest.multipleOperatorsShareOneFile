@@ -1,0 +1,19 @@
+@Test
+public void multipleOperatorsShareOneFile() throws Exception {
+    FileOperator operatorA = new FileOperator(randomAccessFile.getChannel());
+    FileOperator operatorB = new FileOperator(randomAccessFile.getChannel());
+    Buffer bufferA = new Buffer();
+    Buffer bufferB = new Buffer();
+    bufferA.writeUtf8("Dodgson!\n");
+    operatorA.write(0, bufferA, 9);
+    bufferB.writeUtf8("You shouldn't use my name.\n");
+    operatorB.write(9, bufferB, 27);
+    bufferA.writeUtf8("Dodgson, we've got Dodgson here!\n");
+    operatorA.write(36, bufferA, 33);
+    operatorB.read(0, bufferB, 9);
+    assertThat(bufferB.readUtf8()).isEqualTo("Dodgson!\n");
+    operatorA.read(9, bufferA, 27);
+    assertThat(bufferA.readUtf8()).isEqualTo("You shouldn't use my name.\n");
+    operatorB.read(36, bufferB, 33);
+    assertThat(bufferB.readUtf8()).isEqualTo("Dodgson, we've got Dodgson here!\n");
+}

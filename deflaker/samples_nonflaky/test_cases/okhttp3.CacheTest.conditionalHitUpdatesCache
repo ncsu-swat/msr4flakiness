@@ -1,0 +1,29 @@
+@Test
+public void conditionalHitUpdatesCache() throws Exception {
+    server.enqueue(new MockResponse().addHeader("Last-Modified: " + formatDate(0, TimeUnit.SECONDS)).addHeader("Cache-Control: max-age=0").setBody("A"));
+    server.enqueue(new MockResponse().addHeader("Cache-Control: max-age=30").addHeader("Allow: GET, HEAD").setResponseCode(HttpURLConnection.HTTP_NOT_MODIFIED));
+    server.enqueue(new MockResponse().setBody("B"));
+    // A cache miss writes the cache.
+    long t0 = System.currentTimeMillis();
+    Response response1 = get(server.url("/a"));
+    assertThat(response1.body().string()).isEqualTo("A");
+    assertThat(response1.header("Allow")).isNull();
+    assertThat((double) (response1.receivedResponseAtMillis() - t0)).isCloseTo((double) 0, offset(250.0));
+    // A conditional cache hit updates the cache.
+    // Make sure t0 and t1 are distinct.
+    Thread.sleep(500);
+    long t1 = System.currentTimeMillis();
+    Response response2 = get(server.url("/a"));
+    assertThat(response2.code()).isEqualTo(HttpURLConnection.HTTP_OK);
+    assertThat(response2.body().string()).isEqualTo("A");
+    assertThat(response2.header("Allow")).isEqualTo("GET, HEAD");
+    Long updatedTimestamp = response2.receivedResponseAtMillis();
+    assertThat((double) (updatedTimestamp - t1)).isCloseTo((double) 0, offset(250.0));
+    // A full cache hit reads the cache.
+    Thread.sleep(10);
+    Response response3 = get(server.url("/a"));
+    assertThat(response3.body().string()).isEqualTo("A");
+    assertThat(response3.header("Allow")).isEqualTo("GET, HEAD");
+    assertThat(response3.receivedResponseAtMillis()).isEqualTo(updatedTimestamp);
+    assertThat(server.getRequestCount()).isEqualTo(2);
+}

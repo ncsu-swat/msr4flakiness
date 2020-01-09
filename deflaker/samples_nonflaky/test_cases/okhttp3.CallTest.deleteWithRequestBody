@@ -1,0 +1,9 @@
+@Test
+public void deleteWithRequestBody() throws Exception {
+    server.enqueue(new MockResponse().setBody("abc"));
+    Request request = new Request.Builder().url(server.url("/")).method("DELETE", RequestBody.create("def", MediaType.get("text/plain"))).build();
+    executeSynchronously(request).assertCode(200).assertBody("abc");
+    RecordedRequest recordedRequest = server.takeRequest();
+    assertThat(recordedRequest.getMethod()).isEqualTo("DELETE");
+    assertThat(recordedRequest.getBody().readUtf8()).isEqualTo("def");
+}

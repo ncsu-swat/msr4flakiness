@@ -1,0 +1,17 @@
+@Test
+public void legalToExecuteTwiceCloning_Async() throws Exception {
+    server.enqueue(new MockResponse().setBody("abc"));
+    server.enqueue(new MockResponse().setBody("def"));
+    Request request = new Request.Builder().url(server.url("/")).build();
+    Call call = client.newCall(request);
+    call.enqueue(callback);
+    Call cloned = call.clone();
+    cloned.enqueue(callback);
+    RecordedResponse firstResponse = callback.await(request.url()).assertSuccessful();
+    RecordedResponse secondResponse = callback.await(request.url()).assertSuccessful();
+    Set<String> bodies = new LinkedHashSet<>();
+    bodies.add(firstResponse.getBody());
+    bodies.add(secondResponse.getBody());
+    assertThat(bodies).contains("abc");
+    assertThat(bodies).contains("def");
+}

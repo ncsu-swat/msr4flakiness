@@ -1,0 +1,27 @@
+/**
+ * Headers are compressed, then framed.
+ */
+@Test
+public void readPaddedHeadersFrameThenContinuation() throws IOException {
+    int paddingLength = 254;
+    byte[] padding = new byte[paddingLength];
+    Arrays.fill(padding, (byte) 0);
+    // Decoding the first header will cross frame boundaries.
+    Buffer headerBlock = literalHeaders(headerEntries("foo", "barrr", "baz", "qux"));
+    // Write the first headers frame.
+    writeMedium(frame, (int) (headerBlock.size() / 2) + paddingLength + 1);
+    frame.writeByte(Http2.TYPE_HEADERS);
+    frame.writeByte(FLAG_PADDED);
+    frame.writeInt(expectedStreamId & 0x7fffffff);
+    frame.writeByte(paddingLength);
+    frame.write(headerBlock, headerBlock.size() / 2);
+    frame.write(padding);
+    // Write the continuation frame, specifying no more frames are expected.
+    writeMedium(frame, (int) headerBlock.size());
+    frame.writeByte(Http2.TYPE_CONTINUATION);
+    frame.writeByte(FLAG_END_HEADERS);
+    frame.writeInt(expectedStreamId & 0x7fffffff);
+    frame.writeAll(headerBlock);
+    reader.nextFrame(false, assertHeaderBlock());
+    assertThat(frame.exhausted()).isTrue();
+}

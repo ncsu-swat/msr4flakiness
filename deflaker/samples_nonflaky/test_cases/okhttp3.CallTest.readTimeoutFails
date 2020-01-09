@@ -1,0 +1,16 @@
+/**
+ * Make a request with two routes. The first route will fail because the null server connects but
+ * never responds. The manual retry will succeed.
+ */
+@Test
+public void readTimeoutFails() throws Exception {
+    server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.STALL_SOCKET_AT_START));
+    server2.enqueue(new MockResponse().setBody("success!"));
+    RecordingProxySelector proxySelector = new RecordingProxySelector();
+    proxySelector.proxies.add(server.toProxyAddress());
+    proxySelector.proxies.add(server2.toProxyAddress());
+    client = client.newBuilder().proxySelector(proxySelector).readTimeout(100, TimeUnit.MILLISECONDS).build();
+    Request request = new Request.Builder().url("http://android.com/").build();
+    executeSynchronously(request).assertFailure(SocketTimeoutException.class);
+    executeSynchronously(request).assertCode(200).assertBody("success!");
+}

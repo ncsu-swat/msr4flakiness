@@ -1,0 +1,11 @@
+@Test
+public void noConnectionFoundOnFollowUp() throws IOException {
+    server.enqueue(new MockResponse().setResponseCode(301).addHeader("Location", "/foo"));
+    server.enqueue(new MockResponse().setBody("ABC"));
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).build());
+    Response response = call.execute();
+    assertThat(response.body().string()).isEqualTo("ABC");
+    listener.removeUpToEvent(ConnectionAcquired.class);
+    List<String> remainingEvents = listener.recordedEventTypes();
+    assertThat(remainingEvents).doesNotContain("ConnectionAcquired");
+}

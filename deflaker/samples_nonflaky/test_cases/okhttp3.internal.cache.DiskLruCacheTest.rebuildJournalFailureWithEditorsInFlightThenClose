@@ -1,0 +1,28 @@
+@Test
+public void rebuildJournalFailureWithEditorsInFlightThenClose() throws Exception {
+    while (taskFaker.isIdle()) {
+        set("a", "a", "a");
+        set("b", "b", "b");
+    }
+    DiskLruCache.Editor commitEditor = cache.edit("c");
+    DiskLruCache.Editor abortEditor = cache.edit("d");
+    // Grab an editor, but don't do anything with it.
+    cache.edit("e");
+    // Cause the rebuild action to fail.
+    fileSystem.setFaultyRename(new File(cacheDir, DiskLruCache.JOURNAL_FILE_BACKUP), true);
+    taskFaker.runNextTask();
+    setString(commitEditor, 0, "c");
+    setString(commitEditor, 1, "c");
+    commitEditor.commit();
+    assertValue("c", "c", "c");
+    abortEditor.abort();
+    cache.close();
+    createNewCache();
+    // Although 'c' successfully committed above, the journal wasn't available to issue a CLEAN op.
+    // Because the last state of 'c' was DIRTY before the journal failed, it should be removed
+    // entirely on a subsequent open.
+    assertThat(cache.size()).isEqualTo(4);
+    assertAbsent("c");
+    assertAbsent("d");
+    assertAbsent("e");
+}

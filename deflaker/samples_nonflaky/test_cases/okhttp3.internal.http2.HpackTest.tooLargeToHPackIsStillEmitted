@@ -1,0 +1,20 @@
+/**
+ * HPACK has a max header table size, which can be smaller than the max header message. Ensure the
+ * larger header content is not lost.
+ */
+@Test
+public void tooLargeToHPackIsStillEmitted() throws IOException {
+    // Dynamic table size update (size = 1).
+    bytesIn.writeByte(0x21);
+    // Literal indexed
+    bytesIn.writeByte(0x00);
+    // Literal name (len = 10)
+    bytesIn.writeByte(0x0a);
+    bytesIn.writeUtf8("custom-key");
+    // Literal value (len = 13)
+    bytesIn.writeByte(0x0d);
+    bytesIn.writeUtf8("custom-header");
+    hpackReader.readHeaders();
+    assertThat(hpackReader.headerCount).isEqualTo(0);
+    assertThat(hpackReader.getAndResetHeaderList()).isEqualTo(headerEntries("custom-key", "custom-header"));
+}

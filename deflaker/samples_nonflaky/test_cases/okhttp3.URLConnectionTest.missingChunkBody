@@ -1,0 +1,9 @@
+@Test
+public void missingChunkBody() {
+    server.enqueue(new MockResponse().setBody("5").clearHeaders().addHeader("Transfer-encoding: chunked").setSocketPolicy(DISCONNECT_AT_END));
+    try (Response response = getResponse(newRequest("/"))) {
+        readAscii(response.body().byteStream(), Integer.MAX_VALUE);
+        fail();
+    } catch (IOException expected) {
+    }
+}

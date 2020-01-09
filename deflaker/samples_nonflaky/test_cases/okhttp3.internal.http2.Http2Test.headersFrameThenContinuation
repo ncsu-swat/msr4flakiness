@@ -1,0 +1,33 @@
+/**
+ * Headers are compressed, then framed.
+ */
+@Test
+public void headersFrameThenContinuation() throws IOException {
+    final List<Header> sentHeaders = largeHeaders();
+    Buffer headerBlock = literalHeaders(sentHeaders);
+    // Write the first headers frame.
+    writeMedium(frame, Http2.INITIAL_MAX_FRAME_SIZE);
+    frame.writeByte(Http2.TYPE_HEADERS);
+    frame.writeByte(Http2.FLAG_NONE);
+    frame.writeInt(expectedStreamId & 0x7fffffff);
+    frame.write(headerBlock, Http2.INITIAL_MAX_FRAME_SIZE);
+    // Write the continuation frame, specifying no more frames are expected.
+    writeMedium(frame, (int) headerBlock.size());
+    frame.writeByte(Http2.TYPE_CONTINUATION);
+    frame.writeByte(FLAG_END_HEADERS);
+    frame.writeInt(expectedStreamId & 0x7fffffff);
+    frame.writeAll(headerBlock);
+    // Check writer sends the same bytes.
+    assertThat(sendHeaderFrames(false, sentHeaders)).isEqualTo(frame);
+    // Reading the above frames should result in a concatenated headerBlock.
+    reader.nextFrame(false, new BaseTestHandler() {
+
+        @Override
+        public void headers(boolean inFinished, int streamId, int associatedStreamId, List<Header> headerBlock) {
+            assertThat(inFinished).isFalse();
+            assertThat(streamId).isEqualTo(expectedStreamId);
+            assertThat(associatedStreamId).isEqualTo(-1);
+            assertThat(headerBlock).isEqualTo(sentHeaders);
+        }
+    });
+}

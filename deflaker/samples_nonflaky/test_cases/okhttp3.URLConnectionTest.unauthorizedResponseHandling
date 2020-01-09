@@ -1,0 +1,17 @@
+/**
+ * We've had a bug where we forget the HTTP response when we see response code 401. This causes a
+ * new HTTP request to be issued for every call into the URLConnection.
+ */
+@Test
+public void unauthorizedResponseHandling() throws IOException {
+    MockResponse mockResponse = new MockResponse().addHeader("WWW-Authenticate: challenge").setResponseCode(HttpURLConnection.HTTP_UNAUTHORIZED).setBody("Unauthorized");
+    server.enqueue(mockResponse);
+    server.enqueue(mockResponse);
+    server.enqueue(mockResponse);
+    Response response = getResponse(newRequest("/"));
+    assertThat(response.code()).isEqualTo(401);
+    assertThat(response.code()).isEqualTo(401);
+    assertThat(response.code()).isEqualTo(401);
+    assertThat(server.getRequestCount()).isEqualTo(1);
+    response.body().close();
+}

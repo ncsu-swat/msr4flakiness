@@ -1,0 +1,27 @@
+@Test
+public void failedRouteWithMultipleProxies() throws IOException {
+    Address address = httpsAddress();
+    proxySelector.proxies.add(proxyA);
+    proxySelector.proxies.add(proxyB);
+    RouteSelector routeSelector = new RouteSelector(address, routeDatabase, call, EventListener.NONE);
+    dns.set(proxyAHost, dns.allocate(1));
+    dns.set(proxyBHost, dns.allocate(1));
+    // Mark the ProxyA route as failed.
+    RouteSelector.Selection selection = routeSelector.next();
+    dns.assertRequests(proxyAHost);
+    Route route = selection.next();
+    assertRoute(route, address, proxyA, dns.lookup(proxyAHost, 0), proxyAPort);
+    routeDatabase.failed(route);
+    routeSelector = new RouteSelector(address, routeDatabase, call, EventListener.NONE);
+    // Confirm we enumerate both proxies, giving preference to the route from ProxyB.
+    RouteSelector.Selection selection2 = routeSelector.next();
+    dns.assertRequests(proxyAHost, proxyBHost);
+    assertRoute(selection2.next(), address, proxyB, dns.lookup(proxyBHost, 0), proxyBPort);
+    assertThat(selection2.hasNext()).isFalse();
+    // Confirm the last selection contains the postponed route from ProxyA.
+    RouteSelector.Selection selection3 = routeSelector.next();
+    dns.assertRequests();
+    assertRoute(selection3.next(), address, proxyA, dns.lookup(proxyAHost, 0), proxyAPort);
+    assertThat(selection3.hasNext()).isFalse();
+    assertThat(routeSelector.hasNext()).isFalse();
+}

@@ -1,0 +1,8 @@
+@Test
+public void applicationInterceptorShortCircuit() throws Exception {
+    client = client.newBuilder().addInterceptor(chain -> new Response.Builder().request(chain.request()).protocol(Protocol.HTTP_1_1).code(200).message("OK").body(ResponseBody.create("a", null)).build()).build();
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).build());
+    Response response = call.execute();
+    assertThat(response.body().string()).isEqualTo("a");
+    assertThat(listener.recordedEventTypes()).containsExactly("CallStart", "CallEnd");
+}

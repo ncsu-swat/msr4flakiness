@@ -1,0 +1,19 @@
+@Test
+public void createNewEntryWithTooFewValuesFails() throws Exception {
+    DiskLruCache.Editor creator = cache.edit("k1");
+    setString(creator, 1, "A");
+    try {
+        creator.commit();
+        fail();
+    } catch (IllegalStateException expected) {
+    }
+    assertThat(fileSystem.exists(getCleanFile("k1", 0))).isFalse();
+    assertThat(fileSystem.exists(getCleanFile("k1", 1))).isFalse();
+    assertThat(fileSystem.exists(getDirtyFile("k1", 0))).isFalse();
+    assertThat(fileSystem.exists(getDirtyFile("k1", 1))).isFalse();
+    assertThat(cache.get("k1")).isNull();
+    DiskLruCache.Editor creator2 = cache.edit("k1");
+    setString(creator2, 0, "B");
+    setString(creator2, 1, "C");
+    creator2.commit();
+}

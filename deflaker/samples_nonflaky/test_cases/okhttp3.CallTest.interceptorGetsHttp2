@@ -1,0 +1,16 @@
+@Test
+public void interceptorGetsHttp2() throws Exception {
+    platform.assumeHttp2Support();
+    enableProtocol(Protocol.HTTP_2);
+    // Capture the protocol as it is observed by the interceptor.
+    final AtomicReference<Protocol> protocolRef = new AtomicReference<>();
+    Interceptor interceptor = chain -> {
+        protocolRef.set(chain.connection().protocol());
+        return chain.proceed(chain.request());
+    };
+    client = client.newBuilder().addNetworkInterceptor(interceptor).build();
+    // Make an HTTP/2 request and confirm that the protocol matches.
+    server.enqueue(new MockResponse());
+    executeSynchronously("/");
+    assertThat(protocolRef.get()).isEqualTo(Protocol.HTTP_2);
+}

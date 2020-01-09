@@ -1,0 +1,39 @@
+/**
+ * There's a race condition where the cancel may apply after the stream has already been
+ * processed.
+ */
+@Test
+public void canceledAfterResponseIsDeliveredBreaksStreamButSignalsOnce() throws Exception {
+    server.enqueue(new MockResponse().setBody("A"));
+    final CountDownLatch latch = new CountDownLatch(1);
+    final AtomicReference<String> bodyRef = new AtomicReference<>();
+    final AtomicBoolean failureRef = new AtomicBoolean();
+    Request request = new Request.Builder().url(server.url("/a")).build();
+    final Call call = client.newCall(request);
+    call.enqueue(new Callback() {
+
+        @Override
+        public void onFailure(Call call, IOException e) {
+            failureRef.set(true);
+            latch.countDown();
+        }
+
+        @Override
+        public void onResponse(Call call, Response response) throws IOException {
+            call.cancel();
+            try {
+                bodyRef.set(response.body().string());
+            } catch (IOException e) {
+                // It is ok if this broke the stream.
+                bodyRef.set("A");
+                // We expect to not loop into onFailure in this case.
+                throw e;
+            } finally {
+                latch.countDown();
+            }
+        }
+    });
+    latch.await();
+    assertThat(bodyRef.get()).isEqualTo("A");
+    assertThat(failureRef.get()).isFalse();
+}

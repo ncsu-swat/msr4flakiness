@@ -1,0 +1,19 @@
+@Test
+public void pushPromiseStreamsAutomaticallyCancel() throws Exception {
+    // write the mocking script
+    peer.sendFrame().settings(new Settings());
+    // ACK
+    peer.acceptFrame();
+    peer.sendFrame().pushPromise(3, 2, asList(new Header(Header.TARGET_METHOD, "GET"), new Header(Header.TARGET_SCHEME, "https"), new Header(Header.TARGET_AUTHORITY, "squareup.com"), new Header(Header.TARGET_PATH, "/cached")));
+    peer.sendFrame().headers(true, 2, asList(new Header(Header.RESPONSE_STATUS, "200")));
+    // RST_STREAM
+    peer.acceptFrame();
+    peer.play();
+    // play it back
+    connect(peer, PushObserver.CANCEL, REFUSE_INCOMING_STREAMS);
+    // verify the peer received what was expected
+    InFrame rstStream = peer.takeFrame();
+    assertThat(rstStream.type).isEqualTo(Http2.TYPE_RST_STREAM);
+    assertThat(rstStream.streamId).isEqualTo(2);
+    assertThat(rstStream.errorCode).isEqualTo(ErrorCode.CANCEL);
+}

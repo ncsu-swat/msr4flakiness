@@ -1,0 +1,10 @@
+@Test
+public void contentDisagreesWithContentLengthHeaderBodyTooShort() throws IOException {
+    server.enqueue(new MockResponse().setBody("abc").setHeader("Content-Length", "5").setSocketPolicy(DISCONNECT_AT_END));
+    try {
+        Response response = getResponse(newRequest("/"));
+        response.body().source().readUtf8(5);
+        fail();
+    } catch (ProtocolException expected) {
+    }
+}

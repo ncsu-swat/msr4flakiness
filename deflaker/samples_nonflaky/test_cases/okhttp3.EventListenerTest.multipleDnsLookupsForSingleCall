@@ -1,0 +1,17 @@
+@Test
+public void multipleDnsLookupsForSingleCall() throws IOException {
+    server.enqueue(new MockResponse().setResponseCode(301).setHeader("Location", "http://www.fakeurl:" + server.getPort()));
+    server.enqueue(new MockResponse());
+    FakeDns dns = new FakeDns();
+    dns.set("fakeurl", client.dns().lookup(server.getHostName()));
+    dns.set("www.fakeurl", client.dns().lookup(server.getHostName()));
+    client = client.newBuilder().dns(dns).build();
+    Call call = client.newCall(new Request.Builder().url("http://fakeurl:" + server.getPort()).build());
+    Response response = call.execute();
+    assertThat(response.code()).isEqualTo(200);
+    response.body().close();
+    listener.removeUpToEvent(DnsStart.class);
+    listener.removeUpToEvent(DnsEnd.class);
+    listener.removeUpToEvent(DnsStart.class);
+    listener.removeUpToEvent(DnsEnd.class);
+}

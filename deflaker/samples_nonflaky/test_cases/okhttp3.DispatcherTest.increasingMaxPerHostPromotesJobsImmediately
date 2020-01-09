@@ -1,0 +1,11 @@
+@Test
+public void increasingMaxPerHostPromotesJobsImmediately() throws Exception {
+    dispatcher.setMaxRequestsPerHost(2);
+    client.newCall(newRequest("http://a/1")).enqueue(callback);
+    client.newCall(newRequest("http://a/2")).enqueue(callback);
+    client.newCall(newRequest("http://a/3")).enqueue(callback);
+    client.newCall(newRequest("http://a/4")).enqueue(callback);
+    client.newCall(newRequest("http://a/5")).enqueue(callback);
+    dispatcher.setMaxRequestsPerHost(4);
+    executor.assertJobs("http://a/1", "http://a/2", "http://a/3", "http://a/4");
+}

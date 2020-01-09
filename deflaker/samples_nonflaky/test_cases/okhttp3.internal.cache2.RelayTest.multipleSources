@@ -1,0 +1,14 @@
+@Test
+public void multipleSources() throws Exception {
+    Buffer upstream = new Buffer();
+    upstream.writeUtf8("abcdefghijklm");
+    Relay relay = Relay.Companion.edit(file, upstream, metadata, 1024);
+    BufferedSource source1 = Okio.buffer(relay.newSource());
+    BufferedSource source2 = Okio.buffer(relay.newSource());
+    assertThat(source1.readUtf8()).isEqualTo("abcdefghijklm");
+    assertThat(source2.readUtf8()).isEqualTo("abcdefghijklm");
+    source1.close();
+    source2.close();
+    assertThat(relay.isClosed()).isTrue();
+    assertFile(Relay.PREFIX_CLEAN, 13L, metadata.size(), "abcdefghijklm", metadata);
+}

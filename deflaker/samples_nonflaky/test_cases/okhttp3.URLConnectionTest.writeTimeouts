@@ -1,0 +1,50 @@
+/**
+ * Confirm that an unacknowledged write times out.
+ */
+@Test
+public void writeTimeouts() throws IOException {
+    MockWebServer server = new MockWebServer();
+    // Sockets on some platforms can have large buffers that mean writes do not block when
+    // required. These socket factories explicitly set the buffer sizes on sockets created.
+    final int SOCKET_BUFFER_SIZE = 4 * 1024;
+    server.setServerSocketFactory(new DelegatingServerSocketFactory(ServerSocketFactory.getDefault()) {
+
+        @Override
+        protected ServerSocket configureServerSocket(ServerSocket serverSocket) throws IOException {
+            serverSocket.setReceiveBufferSize(SOCKET_BUFFER_SIZE);
+            return serverSocket;
+        }
+    });
+    client = client.newBuilder().socketFactory(new DelegatingSocketFactory(SocketFactory.getDefault()) {
+
+        @Override
+        protected Socket configureSocket(Socket socket) throws IOException {
+            socket.setReceiveBufferSize(SOCKET_BUFFER_SIZE);
+            socket.setSendBufferSize(SOCKET_BUFFER_SIZE);
+            return socket;
+        }
+    }).writeTimeout(500, TimeUnit.MILLISECONDS).build();
+    server.start();
+    server.enqueue(new MockResponse().throttleBody(1, 1, // Prevent the server from reading!
+    TimeUnit.SECONDS));
+    Request request = new Request.Builder().url(server.url("/")).post(new RequestBody() {
+
+        @Override
+        @Nullable
+        public MediaType contentType() {
+            return null;
+        }
+
+        @Override
+        public void writeTo(BufferedSink sink) throws IOException {
+            // 2 MiB.
+            byte[] data = new byte[2 * 1024 * 1024];
+            sink.write(data);
+        }
+    }).build();
+    try {
+        getResponse(request);
+        fail();
+    } catch (SocketTimeoutException expected) {
+    }
+}

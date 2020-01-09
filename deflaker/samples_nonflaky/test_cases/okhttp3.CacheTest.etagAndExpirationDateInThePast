@@ -1,0 +1,10 @@
+/**
+ * If both If-Modified-Since and If-None-Match conditions apply, send only If-None-Match.
+ */
+@Test
+public void etagAndExpirationDateInThePast() throws Exception {
+    String lastModifiedDate = formatDate(-2, TimeUnit.HOURS);
+    RecordedRequest conditionalRequest = assertConditionallyCached(new MockResponse().addHeader("ETag: v1").addHeader("Last-Modified: " + lastModifiedDate).addHeader("Expires: " + formatDate(-1, TimeUnit.HOURS)));
+    assertThat(conditionalRequest.getHeader("If-None-Match")).isEqualTo("v1");
+    assertThat(conditionalRequest.getHeader("If-Modified-Since")).isNull();
+}

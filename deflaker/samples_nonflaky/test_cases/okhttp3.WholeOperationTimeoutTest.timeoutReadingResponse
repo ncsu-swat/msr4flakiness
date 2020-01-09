@@ -1,0 +1,16 @@
+@Test
+public void timeoutReadingResponse() throws Exception {
+    server.enqueue(new MockResponse().setBody(BIG_ENOUGH_BODY));
+    Request request = new Request.Builder().url(server.url("/")).build();
+    Call call = client.newCall(request);
+    call.timeout().timeout(250, TimeUnit.MILLISECONDS);
+    Response response = call.execute();
+    Thread.sleep(500);
+    try {
+        response.body().source().readUtf8();
+        fail();
+    } catch (IOException e) {
+        assertThat(e.getMessage()).isEqualTo("timeout");
+        assertThat(call.isCanceled()).isTrue();
+    }
+}

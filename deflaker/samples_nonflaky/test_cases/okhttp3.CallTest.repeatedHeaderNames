@@ -1,0 +1,7 @@
+@Test
+public void repeatedHeaderNames() throws Exception {
+    server.enqueue(new MockResponse().addHeader("B", "123").addHeader("B", "234"));
+    executeSynchronously("/", "A", "345", "A", "456").assertCode(200).assertHeader("B", "123", "234");
+    RecordedRequest recordedRequest = server.takeRequest();
+    assertThat(recordedRequest.getHeaders().values("A")).containsExactly("345", "456");
+}

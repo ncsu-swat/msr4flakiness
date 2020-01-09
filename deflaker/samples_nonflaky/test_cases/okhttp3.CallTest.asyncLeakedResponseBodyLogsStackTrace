@@ -1,0 +1,27 @@
+@Test
+public void asyncLeakedResponseBodyLogsStackTrace() throws Exception {
+    server.enqueue(new MockResponse().setBody("This gets leaked."));
+    client = clientTestRule.newClientBuilder().connectionPool(new ConnectionPool(0, 10, TimeUnit.MILLISECONDS)).build();
+    Request request = new Request.Builder().url(server.url("/")).build();
+    CountDownLatch latch = new CountDownLatch(1);
+    client.newCall(request).enqueue(new Callback() {
+
+        @Override
+        public void onFailure(Call call, IOException e) {
+            fail();
+        }
+
+        @Override
+        public void onResponse(Call call, Response response) throws IOException {
+            // Ignore the response so it gets leaked then GC'd.
+            latch.countDown();
+        }
+    });
+    latch.await();
+    // There's some flakiness when triggering a GC for objects in a separate thread. Adding a
+    // small delay appears to ensure the objects will get GC'd.
+    Thread.sleep(200);
+    awaitGarbageCollection();
+    String message = testLogHandler.take();
+    assertThat(message).contains("A connection to " + server.url("/") + " was leaked." + " Did you forget to close a response body?");
+}

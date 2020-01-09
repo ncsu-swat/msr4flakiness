@@ -1,0 +1,25 @@
+@Test
+public void maxLengthDataFrame() throws IOException {
+    final byte[] expectedData = new byte[Http2.INITIAL_MAX_FRAME_SIZE];
+    Arrays.fill(expectedData, (byte) 2);
+    writeMedium(frame, expectedData.length);
+    frame.writeByte(Http2.TYPE_DATA);
+    frame.writeByte(Http2.FLAG_NONE);
+    frame.writeInt(expectedStreamId & 0x7fffffff);
+    frame.write(expectedData);
+    // Check writer sends the same bytes.
+    assertThat(sendDataFrame(new Buffer().write(expectedData))).isEqualTo(frame);
+    reader.nextFrame(false, new BaseTestHandler() {
+
+        @Override
+        public void data(boolean inFinished, int streamId, BufferedSource source, int length) throws IOException {
+            assertThat(inFinished).isFalse();
+            assertThat(streamId).isEqualTo(expectedStreamId);
+            assertThat(length).isEqualTo(Http2.INITIAL_MAX_FRAME_SIZE);
+            ByteString data = source.readByteString(length);
+            for (byte b : data.toByteArray()) {
+                assertThat(b).isEqualTo((byte) 2);
+            }
+        }
+    });
+}

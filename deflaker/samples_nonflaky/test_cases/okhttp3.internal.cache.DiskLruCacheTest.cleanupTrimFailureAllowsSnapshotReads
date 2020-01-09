@@ -1,0 +1,15 @@
+@Test
+public void cleanupTrimFailureAllowsSnapshotReads() throws Exception {
+    cache.setMaxSize(8);
+    taskFaker.runNextTask();
+    set("a", "aa", "aa");
+    set("b", "bb", "bbb");
+    // Cause the cache trim job to fail.
+    fileSystem.setFaultyDelete(new File(cacheDir, "a.0"), true);
+    taskFaker.runNextTask();
+    // Confirm we still allow snapshot reads after a trim failure.
+    assertValue("a", "aa", "aa");
+    assertValue("b", "bb", "bbb");
+    // Allow the test to clean up.
+    fileSystem.setFaultyDelete(new File(cacheDir, "a.0"), false);
+}

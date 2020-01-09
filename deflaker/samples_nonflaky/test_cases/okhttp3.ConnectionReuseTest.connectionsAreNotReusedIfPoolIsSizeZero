@@ -1,0 +1,8 @@
+@Test
+public void connectionsAreNotReusedIfPoolIsSizeZero() throws Exception {
+    client = client.newBuilder().connectionPool(new ConnectionPool(0, 5, TimeUnit.SECONDS)).build();
+    server.enqueue(new MockResponse().setBody("a"));
+    server.enqueue(new MockResponse().setBody("b"));
+    Request request = new Request.Builder().url(server.url("/")).build();
+    assertConnectionNotReused(request, request);
+}

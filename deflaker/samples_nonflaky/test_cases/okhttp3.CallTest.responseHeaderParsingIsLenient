@@ -1,0 +1,14 @@
+/**
+ * We forbid non-ASCII characters in outgoing request headers, but accept UTF-8.
+ */
+@Test
+public void responseHeaderParsingIsLenient() throws Exception {
+    Headers.Builder headersBuilder = new Headers.Builder();
+    headersBuilder.add("Content-Length", "0");
+    addHeaderLenient(headersBuilder, "a\tb: c\u007fd");
+    addHeaderLenient(headersBuilder, ": ef");
+    addHeaderLenient(headersBuilder, "\ud83c\udf69: \u2615\ufe0f");
+    Headers headers = headersBuilder.build();
+    server.enqueue(new MockResponse().setHeaders(headers));
+    executeSynchronously("/").assertHeader("a\tb", "c\u007fd").assertHeader("\ud83c\udf69", "\u2615\ufe0f").assertHeader("", "ef");
+}

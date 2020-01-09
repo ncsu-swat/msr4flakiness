@@ -1,0 +1,18 @@
+@Test
+public void testGoldenCacheHttpResponseOkHttp30() throws Exception {
+    HttpUrl url = server.url("/");
+    String urlKey = Cache.key(url);
+    String prefix = Platform.get().getPrefix();
+    String entryMetadata = "" + "" + url + "\n" + "GET\n" + "0\n" + "HTTP/1.1 200 OK\n" + "4\n" + "Cache-Control: max-age=60\n" + "Content-Length: 3\n" + prefix + "-Received-Millis: " + System.currentTimeMillis() + "\n" + prefix + "-Sent-Millis: " + System.currentTimeMillis() + "\n";
+    String entryBody = "abc";
+    String journalBody = "" + "libcore.io.DiskLruCache\n" + "1\n" + "201105\n" + "2\n" + "\n" + "DIRTY " + urlKey + "\n" + "CLEAN " + urlKey + " " + entryMetadata.length() + " " + entryBody.length() + "\n";
+    writeFile(cache.directory(), urlKey + ".0", entryMetadata);
+    writeFile(cache.directory(), urlKey + ".1", entryBody);
+    writeFile(cache.directory(), "journal", journalBody);
+    cache.close();
+    cache = new Cache(cache.directory(), Integer.MAX_VALUE, fileSystem);
+    client = client.newBuilder().cache(cache).build();
+    Response response = get(url);
+    assertThat(response.body().string()).isEqualTo(entryBody);
+    assertThat(response.header("Content-Length")).isEqualTo("3");
+}

@@ -1,0 +1,20 @@
+@Test
+public void serverSendsEmptyDataClientDoesntSendWindowUpdate() throws Exception {
+    // Write the mocking script.
+    peer.sendFrame().settings(new Settings());
+    // ACK
+    peer.acceptFrame();
+    // SYN_STREAM
+    peer.acceptFrame();
+    peer.sendFrame().headers(false, 3, headerEntries("a", "android"));
+    peer.sendFrame().data(true, 3, data(0), 0);
+    peer.play();
+    // Play it back.
+    Http2Connection connection = connect(peer);
+    Http2Stream client = connection.newStream(headerEntries("b", "banana"), false);
+    assertThat(client.getSource().read(new Buffer(), 1)).isEqualTo(-1);
+    // Verify the peer received what was expected.
+    InFrame synStream = peer.takeFrame();
+    assertThat(synStream.type).isEqualTo(Http2.TYPE_HEADERS);
+    assertThat(peer.frameCount()).isEqualTo(5);
+}

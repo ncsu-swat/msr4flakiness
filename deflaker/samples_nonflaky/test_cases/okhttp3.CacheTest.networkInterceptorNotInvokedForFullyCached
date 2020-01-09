@@ -1,0 +1,12 @@
+@Test
+public void networkInterceptorNotInvokedForFullyCached() throws Exception {
+    server.enqueue(new MockResponse().addHeader("Cache-Control: max-age=60").setBody("A"));
+    // Seed the cache.
+    HttpUrl url = server.url("/");
+    assertThat(get(url).body().string()).isEqualTo("A");
+    // Confirm the interceptor isn't exercised.
+    client = client.newBuilder().addNetworkInterceptor(chain -> {
+        throw new AssertionError();
+    }).build();
+    assertThat(get(url).body().string()).isEqualTo("A");
+}

@@ -1,0 +1,14 @@
+@Test
+public void timeoutProcessing() throws Exception {
+    server.enqueue(new MockResponse().setHeadersDelay(500, TimeUnit.MILLISECONDS));
+    Request request = new Request.Builder().url(server.url("/")).build();
+    Call call = client.newCall(request);
+    call.timeout().timeout(250, TimeUnit.MILLISECONDS);
+    try {
+        call.execute();
+        fail();
+    } catch (IOException e) {
+        assertThat(e.getMessage()).isEqualTo("timeout");
+        assertThat(call.isCanceled()).isTrue();
+    }
+}

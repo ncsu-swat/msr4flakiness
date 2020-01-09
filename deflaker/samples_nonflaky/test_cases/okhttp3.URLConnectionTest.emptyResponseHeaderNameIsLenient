@@ -1,0 +1,10 @@
+@Test
+public void emptyResponseHeaderNameIsLenient() throws Exception {
+    Headers.Builder headers = new Headers.Builder();
+    Internal.addHeaderLenient(headers, ":A");
+    server.enqueue(new MockResponse().setHeaders(headers.build()).setBody("body"));
+    Response response = getResponse(newRequest("/"));
+    assertThat(response.code()).isEqualTo(200);
+    assertThat(response.header("")).isEqualTo("A");
+    response.body().close();
+}

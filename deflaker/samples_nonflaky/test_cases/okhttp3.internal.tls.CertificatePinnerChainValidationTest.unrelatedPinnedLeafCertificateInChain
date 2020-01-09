@@ -1,0 +1,37 @@
+@Test
+public void unrelatedPinnedLeafCertificateInChain() throws Exception {
+    // https://github.com/square/okhttp/issues/4729
+    platform.expectFailureOnConscryptPlatform();
+    platform.expectFailureOnCorrettoPlatform();
+    // Start with a trusted root CA certificate.
+    HeldCertificate rootCa = new HeldCertificate.Builder().serialNumber(1L).certificateAuthority(1).commonName("root").build();
+    // Add a good intermediate CA, and have that issue a good certificate to localhost. Prepare an
+    // SSL context for an HTTP client under attack. It includes the trusted CA and a pinned
+    // certificate.
+    HeldCertificate goodIntermediateCa = new HeldCertificate.Builder().signedBy(rootCa).certificateAuthority(0).serialNumber(2L).commonName("good_intermediate_ca").build();
+    HeldCertificate goodCertificate = new HeldCertificate.Builder().signedBy(goodIntermediateCa).serialNumber(3L).commonName(server.getHostName()).build();
+    CertificatePinner certificatePinner = new CertificatePinner.Builder().add(server.getHostName(), CertificatePinner.pin(goodCertificate.certificate())).build();
+    HandshakeCertificates handshakeCertificates = new HandshakeCertificates.Builder().addTrustedCertificate(rootCa.certificate()).build();
+    OkHttpClient client = clientTestRule.newClientBuilder().sslSocketFactory(handshakeCertificates.sslSocketFactory(), handshakeCertificates.trustManager()).hostnameVerifier(new RecordingHostnameVerifier()).certificatePinner(certificatePinner).build();
+    // Add a bad intermediate CA and have that issue a rogue certificate for localhost. Prepare
+    // an SSL context for an attacking webserver. It includes both these rogue certificates plus the
+    // trusted good certificate above. The attack is that by including the good certificate in the
+    // chain, we may trick the certificate pinner into accepting the rouge certificate.
+    HeldCertificate compromisedIntermediateCa = new HeldCertificate.Builder().signedBy(rootCa).certificateAuthority(0).serialNumber(4L).commonName("bad_intermediate_ca").build();
+    HeldCertificate rogueCertificate = new HeldCertificate.Builder().serialNumber(5L).signedBy(compromisedIntermediateCa).commonName(server.getHostName()).build();
+    SSLSocketFactory socketFactory = newServerSocketFactory(rogueCertificate, compromisedIntermediateCa.certificate(), goodCertificate.certificate());
+    server.useHttps(socketFactory, false);
+    server.enqueue(new MockResponse().setBody("abc").addHeader("Content-Type: text/plain"));
+    // Make a request from client to server. It should succeed certificate checks (unfortunately the
+    // rogue CA is trusted) but it should fail certificate pinning.
+    Request request = new Request.Builder().url(server.url("/")).build();
+    Call call = client.newCall(request);
+    try {
+        call.execute();
+        fail();
+    } catch (SSLPeerUnverifiedException expected) {
+        // Certificate pinning fails!
+        String message = expected.getMessage();
+        assertThat(message).startsWith("Certificate pinning failure!");
+    }
+}

@@ -1,0 +1,23 @@
+@Test
+public void rebuildJournalFailureAllowsEvictAll() throws Exception {
+    while (taskFaker.isIdle()) {
+        set("a", "a", "a");
+        set("b", "b", "b");
+    }
+    // Cause the rebuild action to fail.
+    fileSystem.setFaultyRename(new File(cacheDir, DiskLruCache.JOURNAL_FILE_BACKUP), true);
+    taskFaker.runNextTask();
+    cache.evictAll();
+    assertThat(cache.size()).isEqualTo(0);
+    assertAbsent("a");
+    assertAbsent("b");
+    cache.close();
+    createNewCache();
+    // The journal has no record that 'a' and 'b' were removed. It will have an entry for both, but
+    // when it tries to read the cache files for either entry, it will discover the cache files are
+    // missing and remove the entries from the cache.
+    assertThat(cache.size()).isEqualTo(4);
+    assertThat(cache.get("a")).isNull();
+    assertThat(cache.get("b")).isNull();
+    assertThat(cache.size()).isEqualTo(0);
+}

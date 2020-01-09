@@ -1,0 +1,10 @@
+@Test
+public void connectViaHttps() throws Exception {
+    server.useHttps(handshakeCertificates.sslSocketFactory(), false);
+    server.enqueue(new MockResponse().setBody("this response comes via HTTPS"));
+    client = client.newBuilder().sslSocketFactory(handshakeCertificates.sslSocketFactory(), handshakeCertificates.trustManager()).hostnameVerifier(new RecordingHostnameVerifier()).build();
+    Response response = getResponse(newRequest("/foo"));
+    assertContent("this response comes via HTTPS", response);
+    RecordedRequest request = server.takeRequest();
+    assertThat(request.getRequestLine()).isEqualTo("GET /foo HTTP/1.1");
+}

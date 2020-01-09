@@ -1,0 +1,13 @@
+@Test
+public void connectViaHttpsWithSSLFallbackFailuresRecorded() {
+    server.useHttps(handshakeCertificates.sslSocketFactory(), false);
+    server.enqueue(new MockResponse().setSocketPolicy(FAIL_HANDSHAKE));
+    server.enqueue(new MockResponse().setSocketPolicy(FAIL_HANDSHAKE));
+    client = client.newBuilder().connectionSpecs(asList(ConnectionSpec.MODERN_TLS, ConnectionSpec.COMPATIBLE_TLS)).hostnameVerifier(new RecordingHostnameVerifier()).sslSocketFactory(suppressTlsFallbackClientSocketFactory(), handshakeCertificates.trustManager()).build();
+    try {
+        getResponse(newRequest("/foo"));
+        fail();
+    } catch (IOException expected) {
+        assertThat(expected.getSuppressed().length).isEqualTo(1);
+    }
+}

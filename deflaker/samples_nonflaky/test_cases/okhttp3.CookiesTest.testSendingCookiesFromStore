@@ -1,0 +1,18 @@
+@Test
+public void testSendingCookiesFromStore() throws Exception {
+    server.enqueue(new MockResponse());
+    HttpUrl serverUrl = urlWithIpAddress(server, "/");
+    CookieManager cookieManager = new CookieManager(null, ACCEPT_ORIGINAL_SERVER);
+    HttpCookie cookieA = new HttpCookie("a", "android");
+    cookieA.setDomain(serverUrl.host());
+    cookieA.setPath("/");
+    cookieManager.getCookieStore().add(serverUrl.uri(), cookieA);
+    HttpCookie cookieB = new HttpCookie("b", "banana");
+    cookieB.setDomain(serverUrl.host());
+    cookieB.setPath("/");
+    cookieManager.getCookieStore().add(serverUrl.uri(), cookieB);
+    client = client.newBuilder().cookieJar(new JavaNetCookieJar(cookieManager)).build();
+    get(serverUrl);
+    RecordedRequest request = server.takeRequest();
+    assertThat(request.getHeader("Cookie")).isEqualTo("a=android; b=banana");
+}

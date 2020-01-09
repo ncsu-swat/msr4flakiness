@@ -1,0 +1,15 @@
+@Test
+public void redundantCallsToCloseAreIgnored() throws Exception {
+    Buffer upstream = new Buffer();
+    upstream.writeUtf8("abcde");
+    Relay relay = Relay.Companion.edit(file, upstream, metadata, 1024);
+    Source source1 = relay.newSource();
+    Source source2 = relay.newSource();
+    source1.close();
+    // Unnecessary. Shouldn't decrement the reference count.
+    source1.close();
+    assertThat(relay.isClosed()).isFalse();
+    source2.close();
+    assertThat(relay.isClosed()).isTrue();
+    assertFile(Relay.PREFIX_DIRTY, -1L, -1, null, null);
+}

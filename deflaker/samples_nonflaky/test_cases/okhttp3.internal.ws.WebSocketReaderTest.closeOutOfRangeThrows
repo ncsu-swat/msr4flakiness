@@ -1,0 +1,19 @@
+@Test
+public void closeOutOfRangeThrows() throws IOException {
+    // Close with code 1
+    data.write(ByteString.decodeHex("88020001"));
+    try {
+        clientReader.processNextFrame();
+        fail();
+    } catch (ProtocolException e) {
+        assertThat(e.getMessage()).isEqualTo("Code must be in range [1000,5000): 1");
+    }
+    // Close with code 5000
+    data.write(ByteString.decodeHex("88021388"));
+    try {
+        clientReader.processNextFrame();
+        fail();
+    } catch (ProtocolException e) {
+        assertThat(e.getMessage()).isEqualTo("Code must be in range [1000,5000): 5000");
+    }
+}

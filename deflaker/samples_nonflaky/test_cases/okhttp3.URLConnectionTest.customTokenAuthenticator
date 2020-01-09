@@ -1,0 +1,13 @@
+@Test
+public void customTokenAuthenticator() throws Exception {
+    server.enqueue(new MockResponse().setResponseCode(401).addHeader("WWW-Authenticate: Bearer realm=\"oauthed\"").setBody("Please authenticate."));
+    server.enqueue(new MockResponse().setBody("A"));
+    RecordingOkAuthenticator authenticator = new RecordingOkAuthenticator("oauthed abc123", "Bearer");
+    client = client.newBuilder().authenticator(authenticator).build();
+    assertContent("A", getResponse(newRequest("/private")));
+    assertThat(server.takeRequest().getHeader("Authorization")).isNull();
+    assertThat(server.takeRequest().getHeader("Authorization")).isEqualTo("oauthed abc123");
+    Response response = authenticator.onlyResponse();
+    assertThat(response.request().url().url().getPath()).isEqualTo("/private");
+    assertThat(response.challenges()).isEqualTo(asList(new Challenge("Bearer", "oauthed")));
+}

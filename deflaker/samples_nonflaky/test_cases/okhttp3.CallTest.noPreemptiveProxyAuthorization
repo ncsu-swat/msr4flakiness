@@ -1,0 +1,19 @@
+/**
+ * Confirm that we don't send the Proxy-Authorization header from the request to the proxy server.
+ * We used to have that behavior but it is problematic because unrelated requests end up sharing
+ * credentials. Worse, that approach leaks proxy credentials to the origin server.
+ */
+@Test
+public void noPreemptiveProxyAuthorization() throws Exception {
+    server.useHttps(handshakeCertificates.sslSocketFactory(), true);
+    server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.UPGRADE_TO_SSL_AT_END).clearHeaders());
+    server.enqueue(new MockResponse().setBody("response body"));
+    client = client.newBuilder().sslSocketFactory(handshakeCertificates.sslSocketFactory(), handshakeCertificates.trustManager()).proxy(server.toProxyAddress()).hostnameVerifier(new RecordingHostnameVerifier()).build();
+    Request request = new Request.Builder().url("https://android.com/foo").header("Proxy-Authorization", "password").build();
+    Response response = client.newCall(request).execute();
+    assertThat(response.body().string()).isEqualTo("response body");
+    RecordedRequest connect1 = server.takeRequest();
+    assertThat(connect1.getHeader("Proxy-Authorization")).isNull();
+    RecordedRequest connect2 = server.takeRequest();
+    assertThat(connect2.getHeader("Proxy-Authorization")).isEqualTo("password");
+}

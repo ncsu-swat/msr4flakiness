@@ -1,0 +1,20 @@
+/**
+ * http://tools.ietf.org/html/draft-ietf-httpbis-header-compression-12#appendix-C.2.1
+ */
+@Test
+public void readLiteralHeaderFieldWithIndexing() throws IOException {
+    // Literal indexed
+    bytesIn.writeByte(0x40);
+    // Literal name (len = 10)
+    bytesIn.writeByte(0x0a);
+    bytesIn.writeUtf8("custom-key");
+    // Literal value (len = 13)
+    bytesIn.writeByte(0x0d);
+    bytesIn.writeUtf8("custom-header");
+    hpackReader.readHeaders();
+    assertThat(hpackReader.headerCount).isEqualTo(1);
+    assertThat(hpackReader.dynamicTableByteCount).isEqualTo(55);
+    Header entry = hpackReader.dynamicTable[readerHeaderTableLength() - 1];
+    checkEntry(entry, "custom-key", "custom-header", 55);
+    assertThat(hpackReader.getAndResetHeaderList()).isEqualTo(headerEntries("custom-key", "custom-header"));
+}

@@ -1,0 +1,19 @@
+@Test
+public void allPublicSuffixes() throws IOException {
+    InputStream resource = PublicSuffixDatabaseTest.class.getResourceAsStream(PUBLIC_SUFFIX_RESOURCE);
+    BufferedSource source = Okio.buffer(new GzipSource(Okio.source(resource)));
+    int length = source.readInt();
+    Buffer buffer = new Buffer();
+    buffer.write(source, length);
+    resource.close();
+    while (!buffer.exhausted()) {
+        String publicSuffix = buffer.readUtf8LineStrict();
+        if (publicSuffix.contains("*")) {
+            // A wildcard rule, let's replace the wildcard with a value.
+            publicSuffix = publicSuffix.replaceAll("\\*", "square");
+        }
+        assertThat(publicSuffixDatabase.getEffectiveTldPlusOne(publicSuffix)).isNull();
+        String test = "foobar." + publicSuffix;
+        assertThat(publicSuffixDatabase.getEffectiveTldPlusOne(test)).isEqualTo(test);
+    }
+}

@@ -1,0 +1,14 @@
+@Test
+public void failedDnsLookup() {
+    client = client.newBuilder().dns(new FakeDns()).build();
+    Call call = client.newCall(new Request.Builder().url("http://fakeurl/").build());
+    try {
+        call.execute();
+        fail();
+    } catch (IOException expected) {
+    }
+    listener.removeUpToEvent(DnsStart.class);
+    CallFailed callFailed = listener.removeUpToEvent(CallFailed.class);
+    assertThat(callFailed.getCall()).isSameAs(call);
+    assertThat(callFailed.getIoe()).isInstanceOf(UnknownHostException.class);
+}

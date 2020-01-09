@@ -1,0 +1,15 @@
+@Test
+public void fullCallTimeoutAppliesToSetup() throws Exception {
+    enableProtocol(Protocol.HTTP_2);
+    server.enqueue(new MockResponse().setHeadersDelay(500, TimeUnit.MILLISECONDS));
+    Request request = new Request.Builder().url(server.url("/")).post(new AsyncRequestBody()).build();
+    Call call = client.newCall(request);
+    call.timeout().timeout(250, TimeUnit.MILLISECONDS);
+    try {
+        call.execute();
+        fail();
+    } catch (IOException e) {
+        assertThat(e.getMessage()).isEqualTo("timeout");
+        assertTrue(call.isCanceled());
+    }
+}

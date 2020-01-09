@@ -1,0 +1,9 @@
+@Test
+public void clientSendsContentLength() throws Exception {
+    server.enqueue(new MockResponse().setBody("A"));
+    Response response = getResponse(new Request.Builder().url(server.url("/")).post(RequestBody.create("ABC", null)).build());
+    assertThat(readAscii(response.body().byteStream(), Integer.MAX_VALUE)).isEqualTo("A");
+    RecordedRequest request = server.takeRequest();
+    assertThat(request.getHeader("Content-Length")).isEqualTo("3");
+    response.body().close();
+}

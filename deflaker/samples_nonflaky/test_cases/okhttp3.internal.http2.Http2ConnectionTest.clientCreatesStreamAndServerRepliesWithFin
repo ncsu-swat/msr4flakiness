@@ -1,0 +1,26 @@
+@Test
+public void clientCreatesStreamAndServerRepliesWithFin() throws Exception {
+    // write the mocking script
+    peer.sendFrame().settings(new Settings());
+    // ACK
+    peer.acceptFrame();
+    // SYN_STREAM
+    peer.acceptFrame();
+    // PING
+    peer.acceptFrame();
+    peer.sendFrame().headers(true, 3, headerEntries("a", "android"));
+    peer.sendFrame().ping(true, AWAIT_PING, 0);
+    peer.play();
+    // play it back
+    Http2Connection connection = connect(peer);
+    connection.newStream(headerEntries("b", "banana"), false);
+    assertThat(connection.openStreamCount()).isEqualTo(1);
+    // Ensure that the SYN_REPLY has been received.
+    connection.writePingAndAwaitPong();
+    assertThat(connection.openStreamCount()).isEqualTo(0);
+    // verify the peer received what was expected
+    InFrame synStream = peer.takeFrame();
+    assertThat(synStream.type).isEqualTo(Http2.TYPE_HEADERS);
+    InFrame ping = peer.takeFrame();
+    assertThat(ping.type).isEqualTo(Http2.TYPE_PING);
+}

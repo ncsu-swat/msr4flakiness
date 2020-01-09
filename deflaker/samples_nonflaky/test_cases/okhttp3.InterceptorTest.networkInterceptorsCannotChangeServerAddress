@@ -1,0 +1,18 @@
+@Test
+public void networkInterceptorsCannotChangeServerAddress() throws Exception {
+    server.enqueue(new MockResponse().setResponseCode(500));
+    Interceptor interceptor = chain -> {
+        Address address = chain.connection().route().address();
+        String sameHost = address.url().host();
+        int differentPort = address.url().port() + 1;
+        return chain.proceed(chain.request().newBuilder().url("http://" + sameHost + ":" + differentPort + "/").build());
+    };
+    client = client.newBuilder().addNetworkInterceptor(interceptor).build();
+    Request request = new Request.Builder().url(server.url("/")).build();
+    try {
+        client.newCall(request).execute();
+        fail();
+    } catch (IllegalStateException expected) {
+        assertThat(expected.getMessage()).isEqualTo(("network interceptor " + interceptor + " must retain the same host and port"));
+    }
+}

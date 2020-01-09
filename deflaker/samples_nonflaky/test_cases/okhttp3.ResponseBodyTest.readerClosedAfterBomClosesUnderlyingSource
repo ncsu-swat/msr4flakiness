@@ -1,0 +1,33 @@
+@Test
+public void readerClosedAfterBomClosesUnderlyingSource() throws IOException {
+    final AtomicBoolean closed = new AtomicBoolean();
+    ResponseBody body = new ResponseBody() {
+
+        @Override
+        public MediaType contentType() {
+            return null;
+        }
+
+        @Override
+        public long contentLength() {
+            return 5;
+        }
+
+        @Override
+        public BufferedSource source() {
+            ResponseBody body = body("fffe680065006c006c006f00");
+            return Okio.buffer(new ForwardingSource(body.source()) {
+
+                @Override
+                public void close() throws IOException {
+                    closed.set(true);
+                    super.close();
+                }
+            });
+        }
+    };
+    Reader reader = body.charStream();
+    assertThat(reader.read()).isEqualTo('h');
+    reader.close();
+    assertThat(closed.get()).isTrue();
+}

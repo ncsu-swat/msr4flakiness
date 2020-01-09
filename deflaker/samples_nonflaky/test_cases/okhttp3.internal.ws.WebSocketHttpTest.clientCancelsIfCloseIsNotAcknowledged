@@ -1,0 +1,21 @@
+/**
+ * https://github.com/square/okhttp/issues/2788
+ */
+@Test
+public void clientCancelsIfCloseIsNotAcknowledged() {
+    webServer.enqueue(new MockResponse().withWebSocketUpgrade(serverListener));
+    RealWebSocket webSocket = newWebSocket();
+    clientListener.assertOpen();
+    WebSocket server = serverListener.assertOpen();
+    // Initiate a close on the client, which will schedule a hard cancel in 500 ms.
+    long closeAtNanos = System.nanoTime();
+    webSocket.close(1000, "goodbye", 500L);
+    serverListener.assertClosing(1000, "goodbye");
+    // Confirm that the hard cancel occurred after 500 ms.
+    clientListener.assertFailure();
+    long elapsedUntilFailure = System.nanoTime() - closeAtNanos;
+    assertThat(TimeUnit.NANOSECONDS.toMillis(elapsedUntilFailure)).isCloseTo(500L, offset(250L));
+    // Close the server and confirm it saw what we expected.
+    server.close(1000, null);
+    serverListener.assertClosed(1000, "goodbye");
+}

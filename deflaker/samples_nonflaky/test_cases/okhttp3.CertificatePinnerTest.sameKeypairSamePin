@@ -1,0 +1,13 @@
+/**
+ * Multiple certificates generated from the same keypair have the same pin.
+ */
+@Test
+public void sameKeypairSamePin() throws Exception {
+    HeldCertificate heldCertificateA2 = new HeldCertificate.Builder().keyPair(certA1.keyPair()).serialNumber(101L).build();
+    String keypairACertificate2Pin = CertificatePinner.pin(heldCertificateA2.certificate());
+    HeldCertificate heldCertificateB2 = new HeldCertificate.Builder().keyPair(certB1.keyPair()).serialNumber(201L).build();
+    String keypairBCertificate2Pin = CertificatePinner.pin(heldCertificateB2.certificate());
+    assertThat(keypairACertificate2Pin).isEqualTo(certA1Sha256Pin);
+    assertThat(keypairBCertificate2Pin).isEqualTo(certB1Sha256Pin);
+    assertThat(certB1Sha256Pin).isNotEqualTo(certA1Sha256Pin);
+}

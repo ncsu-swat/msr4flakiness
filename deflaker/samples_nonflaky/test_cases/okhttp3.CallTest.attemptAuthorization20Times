@@ -1,0 +1,10 @@
+@Test
+public void attemptAuthorization20Times() throws Exception {
+    for (int i = 0; i < 20; i++) {
+        server.enqueue(new MockResponse().setResponseCode(401));
+    }
+    server.enqueue(new MockResponse().setBody("Success!"));
+    String credential = Credentials.basic("jesse", "secret");
+    client = client.newBuilder().authenticator(new RecordingOkAuthenticator(credential, null)).build();
+    executeSynchronously("/").assertCode(200).assertBody("Success!");
+}

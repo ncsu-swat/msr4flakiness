@@ -1,0 +1,39 @@
+@Test
+public void sendGoAway() throws Exception {
+    // write the mocking script
+    peer.sendFrame().settings(new Settings());
+    // ACK
+    peer.acceptFrame();
+    // SYN_STREAM 1
+    peer.acceptFrame();
+    // GOAWAY
+    peer.acceptFrame();
+    // PING
+    peer.acceptFrame();
+    // Should be ignored!
+    peer.sendFrame().headers(false, 2, headerEntries("b", "b"));
+    peer.sendFrame().ping(true, AWAIT_PING, 0);
+    peer.play();
+    // play it back
+    Http2Connection connection = connect(peer);
+    connection.newStream(headerEntries("a", "android"), false);
+    synchronized (connection) {
+        if (!connection.isHealthy(System.nanoTime())) {
+            throw new ConnectionShutdownException();
+        }
+    }
+    connection.writePing();
+    connection.shutdown(ErrorCode.PROTOCOL_ERROR);
+    assertThat(connection.openStreamCount()).isEqualTo(1);
+    // Prevent the peer from exiting prematurely.
+    connection.awaitPong();
+    // verify the peer received what was expected
+    InFrame synStream1 = peer.takeFrame();
+    assertThat(synStream1.type).isEqualTo(Http2.TYPE_HEADERS);
+    InFrame pingFrame = peer.takeFrame();
+    assertThat(pingFrame.type).isEqualTo(Http2.TYPE_PING);
+    InFrame goaway = peer.takeFrame();
+    assertThat(goaway.type).isEqualTo(Http2.TYPE_GOAWAY);
+    assertThat(goaway.streamId).isEqualTo(0);
+    assertThat(goaway.errorCode).isEqualTo(ErrorCode.PROTOCOL_ERROR);
+}

@@ -1,0 +1,14 @@
+@Test
+public void testDigestChallengeWithAdditionalSpaces() {
+    Headers headers = new Headers.Builder().add("WWW-Authenticate", "Digest qop=\"auth\",    realm=\"myrealm\", nonce=\"fjalskdflwejrl" + "askdfjlaskdjflaksjdflkasdf\", stale=\"FALSE\"").build();
+    List<Challenge> challenges = HttpHeaders.parseChallenges(headers, "WWW-Authenticate");
+    assertThat(challenges.size()).isEqualTo(1);
+    assertThat(challenges.get(0).scheme()).isEqualTo("Digest");
+    assertThat(challenges.get(0).realm()).isEqualTo("myrealm");
+    Map<String, String> expectedAuthParams = new LinkedHashMap<>();
+    expectedAuthParams.put("realm", "myrealm");
+    expectedAuthParams.put("nonce", "fjalskdflwejrlaskdfjlaskdjflaksjdflkasdf");
+    expectedAuthParams.put("qop", "auth");
+    expectedAuthParams.put("stale", "FALSE");
+    assertThat(challenges.get(0).authParams()).isEqualTo(expectedAuthParams);
+}

@@ -1,0 +1,28 @@
+@Test
+public void redirectToAnotherOriginServer() throws Exception {
+    redirectToAnotherOriginServer(false);
+}
+private void redirectToAnotherOriginServer(boolean https) throws Exception {
+    if (https) {
+        server.useHttps(handshakeCertificates.sslSocketFactory(), false);
+        server2.useHttps(handshakeCertificates.sslSocketFactory(), false);
+        server2.setProtocolNegotiationEnabled(false);
+        client = client.newBuilder().sslSocketFactory(handshakeCertificates.sslSocketFactory(), handshakeCertificates.trustManager()).hostnameVerifier(new RecordingHostnameVerifier()).build();
+    }
+    server2.enqueue(new MockResponse().setBody("This is the 2nd server!"));
+    server2.enqueue(new MockResponse().setBody("This is the 2nd server, again!"));
+    server.enqueue(new MockResponse().setResponseCode(HttpURLConnection.HTTP_MOVED_TEMP).addHeader("Location: " + server2.url("/").url().toString()).setBody("This page has moved!"));
+    server.enqueue(new MockResponse().setBody("This is the first server again!"));
+    Response response = getResponse(newRequest("/"));
+    assertContent("This is the 2nd server!", response);
+    assertThat(response.request().url()).isEqualTo(server2.url("/"));
+    // make sure the first server was careful to recycle the connection
+    assertContent("This is the first server again!", getResponse(newRequest(server.url("/"))));
+    assertContent("This is the 2nd server, again!", getResponse(newRequest(server2.url("/"))));
+    String server1Host = server.getHostName() + ":" + server.getPort();
+    String server2Host = server2.getHostName() + ":" + server2.getPort();
+    assertThat(server.takeRequest().getHeader("Host")).isEqualTo(server1Host);
+    assertThat(server2.takeRequest().getHeader("Host")).isEqualTo(server2Host);
+    assertThat(server.takeRequest().getSequenceNumber()).overridingErrorMessage("Expected connection reuse").isEqualTo(1);
+    assertThat(server2.takeRequest().getSequenceNumber()).overridingErrorMessage("Expected connection reuse").isEqualTo(1);
+}

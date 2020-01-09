@@ -1,0 +1,15 @@
+@Test
+public void chainTooLong() {
+    List<HeldCertificate> heldCertificates = chainOfLength(11);
+    List<Certificate> certificates = new ArrayList<>();
+    for (HeldCertificate heldCertificate : heldCertificates) {
+        certificates.add(heldCertificate.certificate());
+    }
+    X509Certificate root = heldCertificates.get(heldCertificates.size() - 1).certificate();
+    CertificateChainCleaner cleaner = CertificateChainCleaner.Companion.get(root);
+    try {
+        cleaner.clean(certificates, "hostname");
+        fail();
+    } catch (SSLPeerUnverifiedException expected) {
+    }
+}

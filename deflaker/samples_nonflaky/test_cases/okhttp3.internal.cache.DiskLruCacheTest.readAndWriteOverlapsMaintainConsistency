@@ -1,0 +1,27 @@
+/**
+ * Each read sees a snapshot of the file at the time read was called. This means that two reads of
+ * the same key can see different data.
+ */
+@Test
+public void readAndWriteOverlapsMaintainConsistency() throws Exception {
+    DiskLruCache.Editor v1Creator = cache.edit("k1");
+    setString(v1Creator, 0, "AAaa");
+    setString(v1Creator, 1, "BBbb");
+    v1Creator.commit();
+    DiskLruCache.Snapshot snapshot1 = cache.get("k1");
+    BufferedSource inV1 = Okio.buffer(snapshot1.getSource(0));
+    assertThat(inV1.readByte()).isEqualTo((byte) 'A');
+    assertThat(inV1.readByte()).isEqualTo((byte) 'A');
+    DiskLruCache.Editor v1Updater = cache.edit("k1");
+    setString(v1Updater, 0, "CCcc");
+    setString(v1Updater, 1, "DDdd");
+    v1Updater.commit();
+    DiskLruCache.Snapshot snapshot2 = cache.get("k1");
+    assertSnapshotValue(snapshot2, 0, "CCcc");
+    assertSnapshotValue(snapshot2, 1, "DDdd");
+    snapshot2.close();
+    assertThat(inV1.readByte()).isEqualTo((byte) 'a');
+    assertThat(inV1.readByte()).isEqualTo((byte) 'a');
+    assertSnapshotValue(snapshot1, 1, "BBbb");
+    snapshot1.close();
+}

@@ -1,0 +1,13 @@
+/**
+ * http://code.google.com/p/android/issues/detail?id=14562
+ */
+@Test
+public void readAfterLastByte() throws Exception {
+    server.enqueue(new MockResponse().setBody("ABC").clearHeaders().addHeader("Connection: close").setSocketPolicy(DISCONNECT_AT_END));
+    Response response = getResponse(newRequest("/"));
+    InputStream in = response.body().byteStream();
+    assertThat(readAscii(in, 3)).isEqualTo("ABC");
+    assertThat(in.read()).isEqualTo(-1);
+    // throws IOException in Gingerbread.
+    assertThat(in.read()).isEqualTo(-1);
+}

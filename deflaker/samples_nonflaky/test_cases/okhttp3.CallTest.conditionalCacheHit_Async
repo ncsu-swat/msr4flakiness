@@ -1,0 +1,14 @@
+@Test
+public void conditionalCacheHit_Async() throws Exception {
+    server.enqueue(new MockResponse().setBody("A").addHeader("ETag: v1"));
+    server.enqueue(new MockResponse().clearHeaders().setResponseCode(HttpURLConnection.HTTP_NOT_MODIFIED));
+    client = client.newBuilder().cache(cache).build();
+    Request request1 = new Request.Builder().url(server.url("/")).build();
+    client.newCall(request1).enqueue(callback);
+    callback.await(request1.url()).assertCode(200).assertBody("A");
+    assertThat(server.takeRequest().getHeader("If-None-Match")).isNull();
+    Request request2 = new Request.Builder().url(server.url("/")).build();
+    client.newCall(request2).enqueue(callback);
+    callback.await(request2.url()).assertCode(200).assertBody("A");
+    assertThat(server.takeRequest().getHeader("If-None-Match")).isEqualTo("v1");
+}

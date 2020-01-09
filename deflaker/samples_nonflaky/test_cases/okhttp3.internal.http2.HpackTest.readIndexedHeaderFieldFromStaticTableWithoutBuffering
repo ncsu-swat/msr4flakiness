@@ -1,0 +1,15 @@
+/**
+ * http://tools.ietf.org/html/draft-ietf-httpbis-header-compression-12#appendix-C.2.4
+ */
+@Test
+public void readIndexedHeaderFieldFromStaticTableWithoutBuffering() throws IOException {
+    // Dynamic table size update (size = 0).
+    bytesIn.writeByte(0x20);
+    // == Indexed - Add ==
+    bytesIn.writeByte(0x82);
+    // idx = 2 -> :method: GET
+    hpackReader.readHeaders();
+    // Not buffered in header table.
+    assertThat(hpackReader.headerCount).isEqualTo(0);
+    assertThat(hpackReader.getAndResetHeaderList()).isEqualTo(headerEntries(":method", "GET"));
+}

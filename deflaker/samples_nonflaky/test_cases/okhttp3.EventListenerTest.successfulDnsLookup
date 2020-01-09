@@ -1,0 +1,15 @@
+@Test
+public void successfulDnsLookup() throws IOException {
+    server.enqueue(new MockResponse());
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).build());
+    Response response = call.execute();
+    assertThat(response.code()).isEqualTo(200);
+    response.body().close();
+    DnsStart dnsStart = listener.removeUpToEvent(DnsStart.class);
+    assertThat(dnsStart.getCall()).isSameAs(call);
+    assertThat(dnsStart.getDomainName()).isEqualTo(server.getHostName());
+    DnsEnd dnsEnd = listener.removeUpToEvent(DnsEnd.class);
+    assertThat(dnsEnd.getCall()).isSameAs(call);
+    assertThat(dnsEnd.getDomainName()).isEqualTo(server.getHostName());
+    assertThat(dnsEnd.getInetAddressList().size()).isEqualTo(1);
+}

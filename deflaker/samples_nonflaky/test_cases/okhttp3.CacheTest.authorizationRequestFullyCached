@@ -1,0 +1,10 @@
+@Test
+public void authorizationRequestFullyCached() throws Exception {
+    server.enqueue(new MockResponse().addHeader("Cache-Control: max-age=60").setBody("A"));
+    server.enqueue(new MockResponse().setBody("B"));
+    HttpUrl url = server.url("/");
+    Request request = new Request.Builder().url(url).header("Authorization", "password").build();
+    Response response = client.newCall(request).execute();
+    assertThat(response.body().string()).isEqualTo("A");
+    assertThat(get(url).body().string()).isEqualTo("A");
+}

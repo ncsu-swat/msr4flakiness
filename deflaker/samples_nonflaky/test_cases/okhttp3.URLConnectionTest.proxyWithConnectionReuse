@@ -1,0 +1,12 @@
+@Test
+public void proxyWithConnectionReuse() throws IOException {
+    SSLSocketFactory socketFactory = handshakeCertificates.sslSocketFactory();
+    RecordingHostnameVerifier hostnameVerifier = new RecordingHostnameVerifier();
+    server.useHttps(socketFactory, true);
+    server.enqueue(new MockResponse().setSocketPolicy(UPGRADE_TO_SSL_AT_END).clearHeaders());
+    server.enqueue(new MockResponse().setBody("response 1"));
+    server.enqueue(new MockResponse().setBody("response 2"));
+    client = client.newBuilder().proxy(server.toProxyAddress()).sslSocketFactory(socketFactory, handshakeCertificates.trustManager()).hostnameVerifier(hostnameVerifier).build();
+    assertContent("response 1", getResponse(newRequest(HttpUrl.get("https://android.com/foo"))));
+    assertContent("response 2", getResponse(newRequest(HttpUrl.get("https://android.com/foo"))));
+}

@@ -1,0 +1,13 @@
+@Test
+public void serverCloseClosesConnection() throws IOException {
+    server.webSocket.close(1000, "Hello!");
+    // Read server close, send client close, close connection.
+    client.processNextFrame();
+    assertThat(client.closed).isFalse();
+    client.listener.assertClosing(1000, "Hello!");
+    client.webSocket.close(1000, "Hello!");
+    server.processNextFrame();
+    server.listener.assertClosing(1000, "Hello!");
+    client.listener.assertClosed(1000, "Hello!");
+    server.listener.assertClosed(1000, "Hello!");
+}

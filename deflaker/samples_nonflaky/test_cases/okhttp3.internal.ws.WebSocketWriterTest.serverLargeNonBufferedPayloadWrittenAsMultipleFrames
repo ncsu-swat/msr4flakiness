@@ -1,0 +1,26 @@
+@Test
+public void serverLargeNonBufferedPayloadWrittenAsMultipleFrames() throws IOException {
+    int length = 100_000;
+    Buffer bytes = new Buffer().write(binaryData(length));
+    BufferedSink sink = Okio.buffer(serverWriter.newMessageSink(OPCODE_TEXT, length));
+    Buffer body = bytes.clone();
+    sink.write(body.readByteString(20_000));
+    sink.write(body.readByteString(20_000));
+    sink.write(body.readByteString(20_000));
+    sink.write(body.readByteString(20_000));
+    sink.write(body.readByteString(20_000));
+    sink.close();
+    assertData("017e4000");
+    assertData(bytes.readByteArray(16_384));
+    assertData("007e4000");
+    assertData(bytes.readByteArray(16_384));
+    assertData("007e6000");
+    assertData(bytes.readByteArray(24_576));
+    assertData("007e4000");
+    assertData(bytes.readByteArray(16_384));
+    assertData("007e6000");
+    assertData(bytes.readByteArray(24_576));
+    assertData("807e06a0");
+    assertData(bytes.readByteArray(1_696));
+    assertThat(data.exhausted()).isTrue();
+}

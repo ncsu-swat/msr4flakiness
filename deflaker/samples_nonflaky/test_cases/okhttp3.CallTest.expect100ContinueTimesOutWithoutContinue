@@ -1,0 +1,14 @@
+@Test
+public void expect100ContinueTimesOutWithoutContinue() throws Exception {
+    server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.NO_RESPONSE));
+    client = client.newBuilder().readTimeout(500, TimeUnit.MILLISECONDS).build();
+    Request request = new Request.Builder().url(server.url("/")).header("Expect", "100-continue").post(RequestBody.create("abc", MediaType.get("text/plain"))).build();
+    Call call = client.newCall(request);
+    try {
+        call.execute();
+        fail();
+    } catch (SocketTimeoutException expected) {
+    }
+    RecordedRequest recordedRequest = server.takeRequest();
+    assertThat(recordedRequest.getBody().readUtf8()).isEqualTo("");
+}

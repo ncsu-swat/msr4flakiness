@@ -1,0 +1,32 @@
+@Test
+public void multipleSettingsFramesAreMerged() throws Exception {
+    // write the mocking script
+    Settings settings1 = new Settings();
+    settings1.set(HEADER_TABLE_SIZE, 10000);
+    settings1.set(INITIAL_WINDOW_SIZE, 20000);
+    settings1.set(MAX_FRAME_SIZE, 30000);
+    peer.sendFrame().settings(settings1);
+    // ACK SETTINGS
+    peer.acceptFrame();
+    Settings settings2 = new Settings();
+    settings2.set(INITIAL_WINDOW_SIZE, 40000);
+    settings2.set(MAX_FRAME_SIZE, 50000);
+    settings2.set(MAX_CONCURRENT_STREAMS, 60000);
+    peer.sendFrame().settings(settings2);
+    // ACK SETTINGS
+    peer.acceptFrame();
+    peer.sendFrame().ping(false, 2, 0);
+    // PING
+    peer.acceptFrame();
+    peer.play();
+    // play it back
+    Http2Connection connection = connect(peer);
+    assertThat(peer.takeFrame().type).isEqualTo(Http2.TYPE_SETTINGS);
+    assertThat(peer.takeFrame().type).isEqualTo(Http2.TYPE_PING);
+    synchronized (connection) {
+        assertThat(connection.getPeerSettings().getHeaderTableSize()).isEqualTo(10000);
+        assertThat(connection.getPeerSettings().getInitialWindowSize()).isEqualTo(40000);
+        assertThat(connection.getPeerSettings().getMaxFrameSize(-1)).isEqualTo(50000);
+        assertThat(connection.getPeerSettings().getMaxConcurrentStreams()).isEqualTo(60000);
+    }
+}

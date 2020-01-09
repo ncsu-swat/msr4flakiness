@@ -1,0 +1,17 @@
+@Test
+public void httpsWithCustomTrustManager() throws Exception {
+    RecordingHostnameVerifier hostnameVerifier = new RecordingHostnameVerifier();
+    RecordingTrustManager trustManager = new RecordingTrustManager(handshakeCertificates.trustManager());
+    SSLContext sslContext = Platform.get().newSSLContext();
+    sslContext.init(null, new TrustManager[] { trustManager }, null);
+    client = client.newBuilder().hostnameVerifier(hostnameVerifier).sslSocketFactory(sslContext.getSocketFactory(), trustManager).build();
+    server.useHttps(handshakeCertificates.sslSocketFactory(), false);
+    server.enqueue(new MockResponse().setBody("ABC"));
+    server.enqueue(new MockResponse().setBody("DEF"));
+    server.enqueue(new MockResponse().setBody("GHI"));
+    assertContent("ABC", getResponse(newRequest("/")));
+    assertContent("DEF", getResponse(newRequest("/")));
+    assertContent("GHI", getResponse(newRequest("/")));
+    assertThat(hostnameVerifier.calls).isEqualTo(asList("verify " + server.getHostName()));
+    assertThat(trustManager.calls).isEqualTo(asList("checkServerTrusted [CN=localhost 1]"));
+}

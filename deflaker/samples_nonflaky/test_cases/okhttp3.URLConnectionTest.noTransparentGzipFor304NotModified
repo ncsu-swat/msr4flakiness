@@ -1,0 +1,20 @@
+/**
+ * We had a bug where we attempted to gunzip responses that didn't have a body. This only came up
+ * with 304s since that response code can include headers (like "Content-Encoding") without any
+ * content to go along with it. https://github.com/square/okhttp/issues/358
+ */
+@Test
+public void noTransparentGzipFor304NotModified() throws Exception {
+    server.enqueue(new MockResponse().clearHeaders().setResponseCode(HttpURLConnection.HTTP_NOT_MODIFIED).addHeader("Content-Encoding: gzip"));
+    server.enqueue(new MockResponse().setBody("b"));
+    Response response1 = getResponse(newRequest("/"));
+    assertThat(response1.code()).isEqualTo((long) HttpURLConnection.HTTP_NOT_MODIFIED);
+    assertContent("", response1);
+    Response response2 = getResponse(newRequest("/"));
+    assertThat(response2.code()).isEqualTo(HttpURLConnection.HTTP_OK);
+    assertContent("b", response2);
+    RecordedRequest requestA = server.takeRequest();
+    assertThat(requestA.getSequenceNumber()).isEqualTo(0);
+    RecordedRequest requestB = server.takeRequest();
+    assertThat(requestB.getSequenceNumber()).isEqualTo(1);
+}

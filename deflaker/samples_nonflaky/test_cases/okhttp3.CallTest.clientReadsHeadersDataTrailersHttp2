@@ -1,0 +1,17 @@
+@Test
+public void clientReadsHeadersDataTrailersHttp2() throws IOException {
+    platform.assumeHttp2Support();
+    MockResponse mockResponse = new MockResponse().clearHeaders().addHeader("h1", "v1").addHeader("h2", "v2").setBody("HelloBonjour").setTrailers(Headers.of("trailers", "boom"));
+    server.enqueue(mockResponse);
+    enableProtocol(Protocol.HTTP_2);
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).build());
+    try (Response response = call.execute()) {
+        BufferedSource source = response.body().source();
+        assertThat(response.header("h1")).isEqualTo("v1");
+        assertThat(response.header("h2")).isEqualTo("v2");
+        assertThat(source.readUtf8(5)).isEqualTo("Hello");
+        assertThat(source.readUtf8(7)).isEqualTo("Bonjour");
+        assertThat(source.exhausted()).isTrue();
+        assertThat(response.trailers()).isEqualTo(Headers.of("trailers", "boom"));
+    }
+}

@@ -1,0 +1,27 @@
+/**
+ * https://code.google.com/p/android/issues/detail?id=74026
+ */
+@Test
+public void authenticateWithGetAndTransparentGzip() throws Exception {
+    MockResponse pleaseAuthenticate = new MockResponse().setResponseCode(401).addHeader("WWW-Authenticate: Basic realm=\"protected area\"").setBody("Please authenticate.");
+    // Fail auth three times...
+    server.enqueue(pleaseAuthenticate);
+    server.enqueue(pleaseAuthenticate);
+    server.enqueue(pleaseAuthenticate);
+    // ...then succeed the fourth time.
+    MockResponse successfulResponse = new MockResponse().addHeader("Content-Encoding", "gzip").setBody(gzip("Successful auth!"));
+    server.enqueue(successfulResponse);
+    Authenticator.setDefault(new RecordingAuthenticator());
+    client = client.newBuilder().authenticator(new JavaNetAuthenticator()).build();
+    Response response = getResponse(newRequest("/"));
+    assertThat(readAscii(response.body().byteStream(), Integer.MAX_VALUE)).isEqualTo("Successful auth!");
+    // no authorization header for the first request...
+    RecordedRequest request = server.takeRequest();
+    assertThat(request.getHeader("Authorization")).isNull();
+    // ...but the three requests that follow requests include an authorization header
+    for (int i = 0; i < 3; i++) {
+        request = server.takeRequest();
+        assertThat(request.getRequestLine()).isEqualTo("GET / HTTP/1.1");
+        assertThat(request.getHeader("Authorization")).isEqualTo(("Basic " + RecordingAuthenticator.BASE_64_CREDENTIALS));
+    }
+}

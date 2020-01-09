@@ -1,0 +1,15 @@
+@Test
+public void journalWithEditAndPublishAndRead() throws Exception {
+    DiskLruCache.Editor k1Creator = cache.edit("k1");
+    setString(k1Creator, 0, "AB");
+    setString(k1Creator, 1, "C");
+    k1Creator.commit();
+    DiskLruCache.Editor k2Creator = cache.edit("k2");
+    setString(k2Creator, 0, "DEF");
+    setString(k2Creator, 1, "G");
+    k2Creator.commit();
+    DiskLruCache.Snapshot k1Snapshot = cache.get("k1");
+    k1Snapshot.close();
+    cache.close();
+    assertJournalEquals("DIRTY k1", "CLEAN k1 2 1", "DIRTY k2", "CLEAN k2 3 1", "READ k1");
+}

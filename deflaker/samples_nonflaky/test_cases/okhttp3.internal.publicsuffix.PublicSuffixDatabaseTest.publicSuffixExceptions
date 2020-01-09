@@ -1,0 +1,17 @@
+@Test
+public void publicSuffixExceptions() throws IOException {
+    InputStream resource = PublicSuffixDatabaseTest.class.getResourceAsStream(PUBLIC_SUFFIX_RESOURCE);
+    BufferedSource source = Okio.buffer(new GzipSource(Okio.source(resource)));
+    int length = source.readInt();
+    source.skip(length);
+    length = source.readInt();
+    Buffer buffer = new Buffer();
+    buffer.write(source, length);
+    resource.close();
+    while (!buffer.exhausted()) {
+        String exception = buffer.readUtf8LineStrict();
+        assertThat(publicSuffixDatabase.getEffectiveTldPlusOne(exception)).isEqualTo(exception);
+        String test = "foobar." + exception;
+        assertThat(publicSuffixDatabase.getEffectiveTldPlusOne(test)).isEqualTo(exception);
+    }
+}

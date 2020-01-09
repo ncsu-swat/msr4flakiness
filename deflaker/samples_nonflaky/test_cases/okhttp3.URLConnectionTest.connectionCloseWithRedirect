@@ -1,0 +1,9 @@
+@Test
+public void connectionCloseWithRedirect() throws Exception {
+    server.enqueue(new MockResponse().setResponseCode(HttpURLConnection.HTTP_MOVED_TEMP).addHeader("Location: /foo").addHeader("Connection: close"));
+    server.enqueue(new MockResponse().setBody("This is the new location!"));
+    Response response = getResponse(newRequest("/"));
+    assertThat(readAscii(response.body().byteStream(), Integer.MAX_VALUE)).isEqualTo("This is the new location!");
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(0);
+    assertThat(server.takeRequest().getSequenceNumber()).overridingErrorMessage("When connection: close is used, each request should get its own connection").isEqualTo((long) 0);
+}

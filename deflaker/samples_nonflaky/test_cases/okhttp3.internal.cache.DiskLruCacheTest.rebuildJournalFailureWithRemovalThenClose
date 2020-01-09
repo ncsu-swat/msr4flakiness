@@ -1,0 +1,20 @@
+@Test
+public void rebuildJournalFailureWithRemovalThenClose() throws Exception {
+    while (taskFaker.isIdle()) {
+        set("a", "a", "a");
+        set("b", "b", "b");
+    }
+    // Cause the rebuild action to fail.
+    fileSystem.setFaultyRename(new File(cacheDir, DiskLruCache.JOURNAL_FILE_BACKUP), true);
+    taskFaker.runNextTask();
+    assertThat(cache.remove("a")).isTrue();
+    assertAbsent("a");
+    cache.close();
+    createNewCache();
+    // The journal will have no record that 'a' was removed. It will have an entry for 'a', but when
+    // it tries to read the cache files, it will find they were deleted. Once it encounters an entry
+    // with missing cache files, it should remove it from the cache entirely.
+    assertThat(cache.size()).isEqualTo(4);
+    assertThat(cache.get("a")).isNull();
+    assertThat(cache.size()).isEqualTo(2);
+}

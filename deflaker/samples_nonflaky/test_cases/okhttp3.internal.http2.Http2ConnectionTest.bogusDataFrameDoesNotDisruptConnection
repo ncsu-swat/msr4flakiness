@@ -1,0 +1,23 @@
+@Test
+public void bogusDataFrameDoesNotDisruptConnection() throws Exception {
+    // write the mocking script
+    peer.sendFrame().settings(new Settings());
+    // ACK
+    peer.acceptFrame();
+    peer.sendFrame().data(true, 41, new Buffer().writeUtf8("bogus"), 5);
+    // RST_STREAM
+    peer.acceptFrame();
+    peer.sendFrame().ping(false, 2, 0);
+    // PING
+    peer.acceptFrame();
+    peer.play();
+    // play it back
+    connect(peer);
+    // verify the peer received what was expected
+    InFrame rstStream = peer.takeFrame();
+    assertThat(rstStream.type).isEqualTo(Http2.TYPE_RST_STREAM);
+    assertThat(rstStream.streamId).isEqualTo(41);
+    assertThat(rstStream.errorCode).isEqualTo(ErrorCode.PROTOCOL_ERROR);
+    InFrame ping = peer.takeFrame();
+    assertThat(ping.payload1).isEqualTo(2);
+}

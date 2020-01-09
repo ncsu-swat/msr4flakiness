@@ -1,0 +1,31 @@
+@Test
+public void clientDoesNotLimitFlowControl() throws Exception {
+    int dataLength = 16384;
+    // write the mocking script
+    peer.sendFrame().settings(new Settings());
+    // ACK
+    peer.acceptFrame();
+    // SYN_STREAM
+    peer.acceptFrame();
+    peer.sendFrame().headers(false, 3, headerEntries("b", "banana"));
+    peer.sendFrame().data(false, 3, new Buffer().write(new byte[dataLength]), dataLength);
+    peer.sendFrame().data(false, 3, new Buffer().write(new byte[dataLength]), dataLength);
+    peer.sendFrame().data(false, 3, new Buffer().write(new byte[dataLength]), dataLength);
+    peer.sendFrame().data(false, 3, new Buffer().write(new byte[dataLength]), dataLength);
+    peer.sendFrame().data(false, 3, new Buffer().write(new byte[1]), 1);
+    // Ping just to make sure the stream was fastforwarded.
+    peer.sendFrame().ping(false, 2, 0);
+    // PING
+    peer.acceptFrame();
+    peer.play();
+    // play it back
+    Http2Connection connection = connect(peer);
+    Http2Stream stream = connection.newStream(headerEntries("a", "android"), false);
+    assertThat(stream.takeHeaders()).isEqualTo(Headers.of("b", "banana"));
+    // verify the peer received what was expected
+    InFrame synStream = peer.takeFrame();
+    assertThat(synStream.type).isEqualTo(Http2.TYPE_HEADERS);
+    InFrame ping = peer.takeFrame();
+    assertThat(ping.type).isEqualTo(Http2.TYPE_PING);
+    assertThat(ping.payload1).isEqualTo(2);
+}

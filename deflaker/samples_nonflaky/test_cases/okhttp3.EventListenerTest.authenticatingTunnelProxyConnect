@@ -1,0 +1,17 @@
+@Test
+public void authenticatingTunnelProxyConnect() throws IOException {
+    enableTlsWithTunnel(true);
+    server.enqueue(new MockResponse().setResponseCode(407).addHeader("Proxy-Authenticate: Basic realm=\"localhost\"").addHeader("Connection: close"));
+    server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.UPGRADE_TO_SSL_AT_END));
+    server.enqueue(new MockResponse());
+    client = client.newBuilder().proxy(server.toProxyAddress()).proxyAuthenticator(new RecordingOkAuthenticator("password", "Basic")).build();
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).build());
+    Response response = call.execute();
+    assertThat(response.code()).isEqualTo(200);
+    response.body().close();
+    listener.removeUpToEvent(ConnectStart.class);
+    ConnectEnd connectEnd = listener.removeUpToEvent(ConnectEnd.class);
+    assertThat(connectEnd.getProtocol()).isNull();
+    listener.removeUpToEvent(ConnectStart.class);
+    listener.removeUpToEvent(ConnectEnd.class);
+}

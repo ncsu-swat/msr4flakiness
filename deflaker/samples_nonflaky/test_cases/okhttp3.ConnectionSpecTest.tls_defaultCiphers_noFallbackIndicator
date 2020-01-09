@@ -1,0 +1,12 @@
+@Test
+public void tls_defaultCiphers_noFallbackIndicator() throws Exception {
+    platform.assumeNotConscrypt();
+    ConnectionSpec tlsSpec = new ConnectionSpec.Builder(true).tlsVersions(TlsVersion.TLS_1_2).supportsTlsExtensions(false).build();
+    SSLSocket socket = (SSLSocket) SSLSocketFactory.getDefault().createSocket();
+    socket.setEnabledCipherSuites(new String[] { CipherSuite.TLS_RSA_WITH_RC4_128_MD5.javaName(), CipherSuite.TLS_RSA_WITH_RC4_128_SHA.javaName() });
+    socket.setEnabledProtocols(new String[] { TlsVersion.TLS_1_2.javaName(), TlsVersion.TLS_1_1.javaName() });
+    assertThat(tlsSpec.isCompatible(socket)).isTrue();
+    applyConnectionSpec(tlsSpec, socket, false);
+    assertThat(socket.getEnabledProtocols()).containsExactly(TlsVersion.TLS_1_2.javaName());
+    assertThat(socket.getEnabledCipherSuites()).containsExactlyInAnyOrder(CipherSuite.TLS_RSA_WITH_RC4_128_MD5.javaName(), CipherSuite.TLS_RSA_WITH_RC4_128_SHA.javaName());
+}

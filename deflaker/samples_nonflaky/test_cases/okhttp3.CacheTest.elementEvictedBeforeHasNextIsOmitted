@@ -1,0 +1,16 @@
+@Test
+public void elementEvictedBeforeHasNextIsOmitted() throws Exception {
+    // Put a response in the cache.
+    server.enqueue(new MockResponse().setBody("a"));
+    HttpUrl url = server.url("/a");
+    assertThat(get(url).body().string()).isEqualTo("a");
+    Iterator<String> i = cache.urls();
+    cache.evictAll();
+    // The URL was evicted before hasNext() made any promises.
+    assertThat(i.hasNext()).isFalse();
+    try {
+        i.next();
+        fail();
+    } catch (NoSuchElementException expected) {
+    }
+}

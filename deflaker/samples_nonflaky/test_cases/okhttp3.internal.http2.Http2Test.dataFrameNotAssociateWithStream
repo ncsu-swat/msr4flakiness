@@ -1,0 +1,15 @@
+@Test
+public void dataFrameNotAssociateWithStream() throws IOException {
+    byte[] payload = new byte[] { 0x01, 0x02 };
+    writeMedium(frame, payload.length);
+    frame.writeByte(Http2.TYPE_DATA);
+    frame.writeByte(Http2.FLAG_NONE);
+    frame.writeInt(0);
+    frame.write(payload);
+    try {
+        reader.nextFrame(false, new BaseTestHandler());
+        fail();
+    } catch (IOException e) {
+        assertThat(e.getMessage()).isEqualTo("PROTOCOL_ERROR: TYPE_DATA streamId == 0");
+    }
+}

@@ -1,0 +1,14 @@
+@Test
+public void doesNotAttemptAuthorization21Times() throws Exception {
+    for (int i = 0; i < 21; i++) {
+        server.enqueue(new MockResponse().setResponseCode(401));
+    }
+    String credential = Credentials.basic("jesse", "peanutbutter");
+    client = client.newBuilder().authenticator(new RecordingOkAuthenticator(credential, null)).build();
+    try {
+        getResponse(newRequest("/"));
+        fail();
+    } catch (ProtocolException expected) {
+        assertThat(expected.getMessage()).isEqualTo("Too many follow-up requests: 21");
+    }
+}

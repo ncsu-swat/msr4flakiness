@@ -1,0 +1,13 @@
+@Test
+public void chunkedConnectionsArePooled() throws Exception {
+    MockResponse response = new MockResponse().setChunkedBody("ABCDEFGHIJKLMNOPQR", 5);
+    server.enqueue(response);
+    server.enqueue(response);
+    server.enqueue(response);
+    assertContent("ABCDEFGHIJKLMNOPQR", getResponse(newRequest("/foo")));
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(0);
+    assertContent("ABCDEFGHIJKLMNOPQR", getResponse(newRequest("/bar?baz=quux")));
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(1);
+    assertContent("ABCDEFGHIJKLMNOPQR", getResponse(newRequest("/z")));
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(2);
+}

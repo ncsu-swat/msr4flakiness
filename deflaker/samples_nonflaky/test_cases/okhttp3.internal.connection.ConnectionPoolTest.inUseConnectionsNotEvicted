@@ -1,0 +1,25 @@
+@Test
+public void inUseConnectionsNotEvicted() throws Exception {
+    RealConnectionPool pool = new RealConnectionPool(taskRunner, Integer.MAX_VALUE, 100L, TimeUnit.NANOSECONDS);
+    ConnectionPool poolApi = new ConnectionPool(pool);
+    RealConnection c1 = newConnection(pool, routeA1, 50L);
+    synchronized (pool) {
+        OkHttpClient client = new OkHttpClient.Builder().connectionPool(poolApi).build();
+        Call call = client.newCall(newRequest(addressA));
+        Transmitter transmitter = new Transmitter(client, call);
+        transmitter.prepareToConnect(call.request());
+        transmitter.acquireConnectionNoEvents(c1);
+    }
+    // Running at time 50, the pool returns that nothing can be evicted until time 150.
+    assertThat(pool.cleanup(50L)).isEqualTo(100L);
+    assertThat(pool.connectionCount()).isEqualTo(1);
+    assertThat(c1.socket().isClosed()).isFalse();
+    // Running at time 60, the pool returns that nothing can be evicted until time 160.
+    assertThat(pool.cleanup(60L)).isEqualTo(100L);
+    assertThat(pool.connectionCount()).isEqualTo(1);
+    assertThat(c1.socket().isClosed()).isFalse();
+    // Running at time 160, the pool returns that nothing can be evicted until time 260.
+    assertThat(pool.cleanup(160L)).isEqualTo(100L);
+    assertThat(pool.connectionCount()).isEqualTo(1);
+    assertThat(c1.socket().isClosed()).isFalse();
+}

@@ -1,0 +1,9 @@
+@Test
+public void streamedBodyWithClientRequestTimeout() throws Exception {
+    enqueueClientRequestTimeoutResponses();
+    Response response = getResponse(new Request.Builder().url(server.url("/")).post(TransferKind.CHUNKED.newRequestBody("Hello")).build());
+    assertThat(response.code()).isEqualTo(200);
+    assertContent("Body", response);
+    response.close();
+    assertThat(server.getRequestCount()).isEqualTo(2);
+}

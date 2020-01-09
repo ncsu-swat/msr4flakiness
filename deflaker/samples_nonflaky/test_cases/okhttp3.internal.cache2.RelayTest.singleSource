@@ -1,0 +1,17 @@
+@Test
+public void singleSource() throws Exception {
+    Buffer upstream = new Buffer();
+    upstream.writeUtf8("abcdefghijklm");
+    Relay relay = Relay.Companion.edit(file, upstream, metadata, 1024);
+    Source source = relay.newSource();
+    Buffer sourceBuffer = new Buffer();
+    assertThat(source.read(sourceBuffer, 5)).isEqualTo(5);
+    assertThat(sourceBuffer.readUtf8()).isEqualTo("abcde");
+    assertThat(source.read(sourceBuffer, 1024)).isEqualTo(8);
+    assertThat(sourceBuffer.readUtf8()).isEqualTo("fghijklm");
+    assertThat(source.read(sourceBuffer, 1024)).isEqualTo(-1);
+    assertThat(sourceBuffer.size()).isEqualTo(0);
+    source.close();
+    assertThat(relay.isClosed()).isTrue();
+    assertFile(Relay.PREFIX_CLEAN, 13L, metadata.size(), "abcdefghijklm", metadata);
+}

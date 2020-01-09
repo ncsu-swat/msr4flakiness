@@ -1,0 +1,25 @@
+@Test
+public void clientCannotReadTrailersWithoutExhaustingStream() throws Exception {
+    // write the mocking script
+    peer.sendFrame().settings(new Settings());
+    // ACK
+    peer.acceptFrame();
+    // SYN_STREAM
+    peer.acceptFrame();
+    peer.sendFrame().data(false, 3, new Buffer().writeUtf8("robot"), 5);
+    peer.sendFrame().headers(true, 3, headerEntries("trailers", "boom"));
+    // PING
+    peer.acceptFrame();
+    // PONG
+    peer.sendFrame().ping(true, AWAIT_PING, 0);
+    peer.play();
+    // play it back
+    Http2Connection connection = connect(peer);
+    Http2Stream stream = connection.newStream(headerEntries("a", "artichaut"), true);
+    connection.writePingAndAwaitPong();
+    try {
+        stream.trailers();
+        fail();
+    } catch (IllegalStateException expected) {
+    }
+}

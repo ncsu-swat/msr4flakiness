@@ -1,0 +1,16 @@
+@Test
+public void failedSecureConnect() {
+    enableTlsWithTunnel(false);
+    server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.FAIL_HANDSHAKE));
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).build());
+    try {
+        call.execute();
+        fail();
+    } catch (IOException expected) {
+    }
+    SecureConnectStart secureStart = listener.removeUpToEvent(SecureConnectStart.class);
+    assertThat(secureStart.getCall()).isSameAs(call);
+    CallFailed callFailed = listener.removeUpToEvent(CallFailed.class);
+    assertThat(callFailed.getCall()).isSameAs(call);
+    assertThat(callFailed.getIoe()).isNotNull();
+}

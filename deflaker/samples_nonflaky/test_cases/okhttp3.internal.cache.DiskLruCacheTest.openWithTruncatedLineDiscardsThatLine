@@ -1,0 +1,17 @@
+@Test
+public void openWithTruncatedLineDiscardsThatLine() throws Exception {
+    cache.close();
+    writeFile(getCleanFile("k1", 0), "A");
+    writeFile(getCleanFile("k1", 1), "B");
+    BufferedSink sink = Okio.buffer(fileSystem.sink(journalFile));
+    // no trailing newline
+    sink.writeUtf8(MAGIC + "\n" + VERSION_1 + "\n100\n2\n\nCLEAN k1 1 1");
+    sink.close();
+    createNewCache();
+    assertThat(cache.get("k1")).isNull();
+    // The journal is not corrupt when editing after a truncated line.
+    set("k1", "C", "D");
+    cache.close();
+    createNewCache();
+    assertValue("k1", "C", "D");
+}

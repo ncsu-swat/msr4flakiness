@@ -1,0 +1,32 @@
+@Test
+public void veryLargeFixedLengthRequest() throws Exception {
+    server.setBodyLimit(0);
+    server.enqueue(new MockResponse());
+    long contentLength = Integer.MAX_VALUE + 1L;
+    Response response = getResponse(new Request.Builder().url(server.url("/")).post(new RequestBody() {
+
+        @Override
+        @Nullable
+        public MediaType contentType() {
+            return null;
+        }
+
+        @Override
+        public long contentLength() {
+            return contentLength;
+        }
+
+        @Override
+        public void writeTo(BufferedSink sink) throws IOException {
+            byte[] buffer = new byte[1024 * 1024];
+            for (long bytesWritten = 0; bytesWritten < contentLength; ) {
+                int byteCount = (int) Math.min(buffer.length, contentLength - bytesWritten);
+                bytesWritten += byteCount;
+                sink.write(buffer, 0, byteCount);
+            }
+        }
+    }).build());
+    assertContent("", response);
+    RecordedRequest request = server.takeRequest();
+    assertThat(request.getHeader("Content-Length")).isEqualTo(Long.toString(contentLength));
+}

@@ -1,0 +1,9 @@
+@Test
+public void setChunkedStreamingMode() throws Exception {
+    server.enqueue(new MockResponse());
+    Response response = getResponse(new Request.Builder().url(server.url("/")).post(TransferKind.CHUNKED.newRequestBody("ABCDEFGHIJKLMNOPQ")).build());
+    assertThat(response.code()).isEqualTo(200);
+    RecordedRequest request = server.takeRequest();
+    assertThat(request.getBody().readUtf8()).isEqualTo("ABCDEFGHIJKLMNOPQ");
+    assertThat(request.getChunkSizes()).isEqualTo(asList("ABCDEFGHIJKLMNOPQ".length()));
+}

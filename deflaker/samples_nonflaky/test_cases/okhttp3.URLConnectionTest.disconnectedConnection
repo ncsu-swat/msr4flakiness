@@ -1,0 +1,18 @@
+@Test
+public void disconnectedConnection() throws IOException {
+    server.enqueue(new MockResponse().throttleBody(2, 100, TimeUnit.MILLISECONDS).setBody("ABCD"));
+    Call call = client.newCall(newRequest("/"));
+    Response response = call.execute();
+    InputStream in = response.body().byteStream();
+    assertThat((char) in.read()).isEqualTo('A');
+    call.cancel();
+    try {
+        // Reading 'B' may succeed if it's buffered.
+        in.read();
+        // But 'C' shouldn't be buffered (the response is throttled) and this should fail.
+        in.read();
+        fail("Expected a connection closed exception");
+    } catch (IOException expected) {
+    }
+    in.close();
+}

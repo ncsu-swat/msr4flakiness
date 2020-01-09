@@ -1,0 +1,8 @@
+@Test
+public void redirectUsingSameConnectionEventSequence() throws IOException {
+    server.enqueue(new MockResponse().setResponseCode(HttpURLConnection.HTTP_MOVED_TEMP).addHeader("Location: /foo"));
+    server.enqueue(new MockResponse());
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).build());
+    call.execute();
+    assertThat(listener.recordedEventTypes()).containsExactly("CallStart", "ProxySelectStart", "ProxySelectEnd", "DnsStart", "DnsEnd", "ConnectStart", "ConnectEnd", "ConnectionAcquired", "RequestHeadersStart", "RequestHeadersEnd", "ResponseHeadersStart", "ResponseHeadersEnd", "ResponseBodyStart", "ResponseBodyEnd", "RequestHeadersStart", "RequestHeadersEnd", "ResponseHeadersStart", "ResponseHeadersEnd", "ResponseBodyStart", "ResponseBodyEnd", "ConnectionReleased", "CallEnd");
+}

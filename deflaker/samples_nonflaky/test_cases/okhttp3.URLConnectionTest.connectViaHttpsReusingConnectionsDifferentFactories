@@ -1,0 +1,22 @@
+@Test
+public void connectViaHttpsReusingConnectionsDifferentFactories() throws Exception {
+    server.useHttps(handshakeCertificates.sslSocketFactory(), false);
+    server.enqueue(new MockResponse().setBody("this response comes via HTTPS"));
+    server.enqueue(new MockResponse().setBody("another response via HTTPS"));
+    // install a custom SSL socket factory so the server can be authorized
+    client = client.newBuilder().sslSocketFactory(handshakeCertificates.sslSocketFactory(), handshakeCertificates.trustManager()).hostnameVerifier(new RecordingHostnameVerifier()).build();
+    Response response1 = getResponse(newRequest("/"));
+    assertContent("this response comes via HTTPS", response1);
+    SSLContext sslContext2 = Platform.get().newSSLContext();
+    sslContext2.init(null, null, null);
+    SSLSocketFactory sslSocketFactory2 = sslContext2.getSocketFactory();
+    TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+    trustManagerFactory.init((KeyStore) null);
+    X509TrustManager trustManager = (X509TrustManager) trustManagerFactory.getTrustManagers()[0];
+    client = client.newBuilder().sslSocketFactory(sslSocketFactory2, trustManager).build();
+    try {
+        getResponse(newRequest("/"));
+        fail("without an SSL socket factory, the connection should fail");
+    } catch (SSLException expected) {
+    }
+}

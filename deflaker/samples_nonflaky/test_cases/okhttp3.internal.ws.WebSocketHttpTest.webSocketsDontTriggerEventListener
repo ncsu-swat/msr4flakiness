@@ -1,0 +1,18 @@
+@Test
+public void webSocketsDontTriggerEventListener() {
+    RecordingEventListener listener = new RecordingEventListener();
+    client = client.newBuilder().eventListenerFactory(clientTestRule.wrap(listener)).build();
+    webServer.enqueue(new MockResponse().withWebSocketUpgrade(serverListener));
+    WebSocket webSocket = newWebSocket();
+    clientListener.assertOpen();
+    WebSocket server = serverListener.assertOpen();
+    webSocket.send("Web Sockets and Events?!");
+    serverListener.assertTextMessage("Web Sockets and Events?!");
+    webSocket.close(1000, "");
+    serverListener.assertClosing(1000, "");
+    server.close(1000, "");
+    clientListener.assertClosing(1000, "");
+    clientListener.assertClosed(1000, "");
+    serverListener.assertClosed(1000, "");
+    assertThat(listener.recordedEventTypes()).isEmpty();
+}

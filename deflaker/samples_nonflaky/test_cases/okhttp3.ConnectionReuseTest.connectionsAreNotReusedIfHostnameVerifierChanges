@@ -1,0 +1,15 @@
+@Test
+public void connectionsAreNotReusedIfHostnameVerifierChanges() throws Exception {
+    enableHttps();
+    server.enqueue(new MockResponse());
+    server.enqueue(new MockResponse());
+    Request request = new Request.Builder().url(server.url("/")).build();
+    Response response1 = client.newCall(request).execute();
+    response1.body().close();
+    // This client shares a connection pool but has a different SSL socket factory.
+    OkHttpClient anotherClient = client.newBuilder().hostnameVerifier(new RecordingHostnameVerifier()).build();
+    Response response2 = anotherClient.newCall(request).execute();
+    response2.body().close();
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(0);
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(0);
+}

@@ -1,0 +1,25 @@
+@Test
+public void cleanupPrioritizesEarliestEviction() throws Exception {
+    RealConnectionPool pool = new RealConnectionPool(taskRunner, Integer.MAX_VALUE, 100L, TimeUnit.NANOSECONDS);
+    RealConnection c1 = newConnection(pool, routeA1, 75L);
+    RealConnection c2 = newConnection(pool, routeB1, 50L);
+    // Running at time 75, the pool returns that nothing can be evicted until time 150.
+    assertThat(pool.cleanup(75L)).isEqualTo(75L);
+    assertThat(pool.connectionCount()).isEqualTo(2);
+    // Running at time 149, the pool returns that nothing can be evicted until time 150.
+    assertThat(pool.cleanup(149L)).isEqualTo(1L);
+    assertThat(pool.connectionCount()).isEqualTo(2);
+    // Running at time 150, the pool evicts c2.
+    assertThat(pool.cleanup(150L)).isEqualTo(0L);
+    assertThat(pool.connectionCount()).isEqualTo(1);
+    assertThat(c1.socket().isClosed()).isFalse();
+    assertThat(c2.socket().isClosed()).isTrue();
+    // Running at time 150, the pool returns that nothing can be evicted until time 175.
+    assertThat(pool.cleanup(150L)).isEqualTo(25L);
+    assertThat(pool.connectionCount()).isEqualTo(1);
+    // Running at time 175, the pool evicts c1.
+    assertThat(pool.cleanup(175L)).isEqualTo(0L);
+    assertThat(pool.connectionCount()).isEqualTo(0);
+    assertThat(c1.socket().isClosed()).isTrue();
+    assertThat(c2.socket().isClosed()).isTrue();
+}

@@ -1,0 +1,16 @@
+@Test
+public void cancelBeforeBodyIsRead() throws Exception {
+    server.enqueue(new MockResponse().setBody("def").throttleBody(1, 750, TimeUnit.MILLISECONDS));
+    final Call call = client.newCall(new Request.Builder().url(server.url("/a")).build());
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    Future<Response> result = executor.submit(call::execute);
+    // wait for it to go in flight.
+    Thread.sleep(100);
+    call.cancel();
+    try {
+        result.get().body().bytes();
+        fail();
+    } catch (IOException expected) {
+    }
+    assertThat(server.getRequestCount()).isEqualTo(1);
+}

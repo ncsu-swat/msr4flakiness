@@ -1,0 +1,10 @@
+@Test
+public void journalDoesNotIncludeReadOfYetUnpublishedValue() throws Exception {
+    DiskLruCache.Editor creator = cache.edit("k1");
+    assertThat(cache.get("k1")).isNull();
+    setString(creator, 0, "A");
+    setString(creator, 1, "BC");
+    creator.commit();
+    cache.close();
+    assertJournalEquals("DIRTY k1", "CLEAN k1 1 2");
+}

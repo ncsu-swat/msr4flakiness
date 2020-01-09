@@ -1,0 +1,14 @@
+/**
+ * If the existing connection matches a SAN but not a match for DNS then skip.
+ */
+@Test
+public void skipsWhenDnsDontMatch() throws Exception {
+    server.enqueue(new MockResponse().setResponseCode(200));
+    assert200Http2Response(execute(url), server.getHostName());
+    HttpUrl differentDnsUrl = url.newBuilder().host("differentdns.com").build();
+    try {
+        execute(differentDnsUrl);
+        fail("expected a failed attempt to connect");
+    } catch (IOException expected) {
+    }
+}

@@ -1,0 +1,17 @@
+@Test
+public void racingReaders() throws Exception {
+    Pipe pipe = new Pipe(1024);
+    BufferedSink sink = Okio.buffer(pipe.sink());
+    Relay relay = Relay.Companion.edit(file, pipe.source(), metadata, 5);
+    Future<ByteString> future1 = executor.submit(sourceReader(relay.newSource()));
+    Future<ByteString> future2 = executor.submit(sourceReader(relay.newSource()));
+    Thread.sleep(500);
+    sink.writeUtf8("abcdefghij");
+    Thread.sleep(500);
+    sink.writeUtf8("klmnopqrst");
+    sink.close();
+    assertThat(future1.get()).isEqualTo(ByteString.encodeUtf8("abcdefghijklmnopqrst"));
+    assertThat(future2.get()).isEqualTo(ByteString.encodeUtf8("abcdefghijklmnopqrst"));
+    assertThat(relay.isClosed()).isTrue();
+    assertFile(Relay.PREFIX_CLEAN, 20L, metadata.size(), "abcdefghijklmnopqrst", metadata);
+}

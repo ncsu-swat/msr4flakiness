@@ -1,0 +1,21 @@
+@Test
+public void illegalToExecuteTwice() throws Exception {
+    server.enqueue(new MockResponse().setBody("abc").addHeader("Content-Type: text/plain"));
+    Request request = new Request.Builder().url(server.url("/")).header("User-Agent", "SyncApiTest").build();
+    Call call = client.newCall(request);
+    Response response = call.execute();
+    response.body().close();
+    try {
+        call.execute();
+        fail();
+    } catch (IllegalStateException e) {
+        assertThat(e.getMessage()).isEqualTo("Already Executed");
+    }
+    try {
+        call.enqueue(callback);
+        fail();
+    } catch (IllegalStateException e) {
+        assertThat(e.getMessage()).isEqualTo("Already Executed");
+    }
+    assertThat(server.takeRequest().getHeader("User-Agent")).isEqualTo("SyncApiTest");
+}

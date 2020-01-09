@@ -1,0 +1,13 @@
+// Example taken from twitter/hpack DecoderTest.testInsidiousMaxHeaderSize
+@Test
+public void readHeaderTableStateChangeInsidiousMaxHeaderByteCount() throws IOException {
+    bytesIn.writeByte(0x3f);
+    // count = -2147483648
+    bytesIn.write(decodeHex("e1ffffff07"));
+    try {
+        hpackReader.readHeaders();
+        fail();
+    } catch (IOException e) {
+        assertThat(e.getMessage()).isEqualTo("Invalid dynamic table size update -2147483648");
+    }
+}

@@ -1,0 +1,10 @@
+@Test
+public void failedProxyAuthenticatorReleasesConnection() throws IOException {
+    server.enqueue(new MockResponse().setResponseCode(407));
+    client = client.newBuilder().proxyAuthenticator((route, response) -> {
+        throw new IOException("IOException!");
+    }).build();
+    Request request = new Request.Builder().url(server.url("/")).build();
+    executeSynchronously(request).assertFailure(IOException.class);
+    assertThat(client.connectionPool().idleConnectionCount()).isEqualTo(1);
+}

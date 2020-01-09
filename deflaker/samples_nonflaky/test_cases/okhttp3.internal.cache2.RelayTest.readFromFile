@@ -1,0 +1,18 @@
+@Test
+public void readFromFile() throws Exception {
+    Buffer upstream = new Buffer();
+    upstream.writeUtf8("abcdefghijklmnopqrst");
+    Relay relay = Relay.Companion.edit(file, upstream, metadata, 5);
+    BufferedSource source1 = Okio.buffer(relay.newSource());
+    BufferedSource source2 = Okio.buffer(relay.newSource());
+    assertThat(source1.readUtf8(10)).isEqualTo("abcdefghij");
+    assertThat(source2.readUtf8(10)).isEqualTo("abcdefghij");
+    assertThat(source2.readUtf8(10)).isEqualTo("klmnopqrst");
+    assertThat(source1.readUtf8(10)).isEqualTo("klmnopqrst");
+    assertThat(source1.exhausted()).isTrue();
+    assertThat(source2.exhausted()).isTrue();
+    source1.close();
+    source2.close();
+    assertThat(relay.isClosed()).isTrue();
+    assertFile(Relay.PREFIX_CLEAN, 20L, metadata.size(), "abcdefghijklmnopqrst", metadata);
+}

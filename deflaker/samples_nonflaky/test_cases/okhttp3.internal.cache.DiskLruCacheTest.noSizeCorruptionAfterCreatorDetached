@@ -1,0 +1,15 @@
+@Test
+public void noSizeCorruptionAfterCreatorDetached() throws Exception {
+    // Create an editor for k1. Detach it by clearing the cache.
+    DiskLruCache.Editor editor = cache.edit("k1");
+    setString(editor, 0, "a");
+    setString(editor, 1, "a");
+    cache.evictAll();
+    // Create a new value in its place.
+    set("k1", "bb", "bb");
+    assertThat(cache.size()).isEqualTo(4);
+    // Committing the detached editor should not change the cache's size.
+    editor.commit();
+    assertThat(cache.size()).isEqualTo(4);
+    assertValue("k1", "bb", "bb");
+}

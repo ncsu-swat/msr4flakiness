@@ -1,0 +1,10 @@
+@Test
+public void setFollowSslRedirectsFalse() throws Exception {
+    enableTls();
+    server.enqueue(new MockResponse().setResponseCode(301).addHeader("Location: http://square.com"));
+    client = client.newBuilder().followSslRedirects(false).build();
+    Request request = new Request.Builder().url(server.url("/")).build();
+    Response response = client.newCall(request).execute();
+    assertThat(response.code()).isEqualTo(301);
+    response.body().close();
+}

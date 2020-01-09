@@ -1,0 +1,15 @@
+@Test
+public void unmatchingPinnedCertificate() throws Exception {
+    enableTls();
+    server.enqueue(new MockResponse());
+    // Pin publicobject.com's cert.
+    client = client.newBuilder().certificatePinner(new CertificatePinner.Builder().add(server.getHostName(), "sha1/DmxUShsZuNiqPQsX2Oi9uv2sCnw=").build()).build();
+    // When we pin the wrong certificate, connectivity fails.
+    Request request = new Request.Builder().url(server.url("/")).build();
+    try {
+        client.newCall(request).execute();
+        fail();
+    } catch (SSLPeerUnverifiedException expected) {
+        assertThat(expected.getMessage()).startsWith("Certificate pinning failure!");
+    }
+}

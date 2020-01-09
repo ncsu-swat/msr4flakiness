@@ -1,0 +1,13 @@
+/**
+ * Tests that interned CipherSuite instances remain the case across garbage collections, even if
+ * the String used to construct them is no longer strongly referenced outside of the CipherSuite.
+ */
+@SuppressWarnings("RedundantStringConstructorCall")
+@Test
+public void instancesAreInterned_survivesGarbageCollection() {
+    // We're not holding onto a reference to this String instance outside of the CipherSuite...
+    CipherSuite cs = forJavaName(new String("FakeCipherSuite_instancesAreInterned"));
+    // Unless cs references the String instance, it may now be garbage collected.
+    System.gc();
+    assertThat(forJavaName(new String(cs.javaName()))).isSameAs(cs);
+}

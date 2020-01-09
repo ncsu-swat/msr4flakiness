@@ -1,0 +1,23 @@
+@Test
+public void invalidClientAuthFails() throws Throwable {
+    // Fails with https://github.com/square/okhttp/issues/4598
+    // StreamReset stream was reset: PROT...
+    HeldCertificate clientCert2 = new HeldCertificate.Builder().serialNumber(4L).commonName("Jethro Willis").build();
+    OkHttpClient client = buildClient(clientCert2);
+    SSLSocketFactory socketFactory = buildServerSslSocketFactory();
+    server.useHttps(socketFactory, false);
+    server.requireClientAuth();
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).build());
+    try {
+        call.execute();
+        fail();
+    } catch (SSLHandshakeException expected) {
+    } catch (SSLException expected) {
+        // javax.net.ssl.SSLException: readRecord
+        assertThat(PlatformVersion.INSTANCE.getMajorVersion()).isGreaterThanOrEqualTo(11);
+    } catch (SocketException expected) {
+        assertThat(getPlatformSystemProperty()).isIn(PlatformRule.JDK9_PROPERTY, PlatformRule.CONSCRYPT_PROPERTY);
+    } catch (ConnectionShutdownException expected) {
+    // It didn't fail until it reached the application layer.
+    }
+}

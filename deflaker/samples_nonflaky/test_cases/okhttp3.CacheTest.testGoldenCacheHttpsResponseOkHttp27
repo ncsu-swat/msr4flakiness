@@ -1,0 +1,21 @@
+/**
+ * Exercise the cache format in OkHttp 2.7 and all earlier releases.
+ */
+@Test
+public void testGoldenCacheHttpsResponseOkHttp27() throws Exception {
+    HttpUrl url = server.url("/");
+    String urlKey = Cache.key(url);
+    String prefix = Platform.get().getPrefix();
+    String entryMetadata = "" + "" + url + "\n" + "GET\n" + "0\n" + "HTTP/1.1 200 OK\n" + "4\n" + "Content-Length: 3\n" + prefix + "-Received-Millis: " + System.currentTimeMillis() + "\n" + prefix + "-Sent-Millis: " + System.currentTimeMillis() + "\n" + "Cache-Control: max-age=60\n" + "\n" + "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256\n" + "1\n" + "MIIBnDCCAQWgAwIBAgIBATANBgkqhkiG9w0BAQsFADAUMRIwEAYDVQQDEwlsb2NhbGhvc3QwHhcNMTUxMjIyMDEx" + "MTQwWhcNMTUxMjIzMDExMTQwWjAUMRIwEAYDVQQDEwlsb2NhbGhvc3QwgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJ" + "AoGBAJTn2Dh8xYmegvpOSmsKb2Os6Cxf1L4fYbnHr/turInUD5r1P7ZAuxurY880q3GT5bUDoirS3IfucddrT1Ac" + "AmUzEmk/FDjggiP8DlxFkY/XwXBlhRDVIp/mRuASPMGInckc0ZaixOkRFyrxADj+r1eaSmXCIvV5yTY6IaIokLj1" + "AgMBAAEwDQYJKoZIhvcNAQELBQADgYEAFblnedqtfRqI9j2WDyPPoG0NTZf9xwjeUu+ju+Ktty8u9k7Lgrrd/DH2" + "mQEtBD1Ctvp91MJfAClNg3faZzwClUyu5pd0QXRZEUwSwZQNen2QWDHRlVsItclBJ4t+AJLqTbwofWi4m4K8REOl" + "593hD55E4+lY22JZiVQyjsQhe6I=\n" + "0\n";
+    String entryBody = "abc";
+    String journalBody = "" + "libcore.io.DiskLruCache\n" + "1\n" + "201105\n" + "2\n" + "\n" + "DIRTY " + urlKey + "\n" + "CLEAN " + urlKey + " " + entryMetadata.length() + " " + entryBody.length() + "\n";
+    writeFile(cache.directory(), urlKey + ".0", entryMetadata);
+    writeFile(cache.directory(), urlKey + ".1", entryBody);
+    writeFile(cache.directory(), "journal", journalBody);
+    cache.close();
+    cache = new Cache(cache.directory(), Integer.MAX_VALUE, fileSystem);
+    client = client.newBuilder().cache(cache).build();
+    Response response = get(url);
+    assertThat(response.body().string()).isEqualTo(entryBody);
+    assertThat(response.header("Content-Length")).isEqualTo("3");
+}

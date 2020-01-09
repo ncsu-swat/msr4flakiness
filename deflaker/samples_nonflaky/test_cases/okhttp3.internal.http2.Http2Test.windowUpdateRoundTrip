@@ -1,0 +1,20 @@
+@Test
+public void windowUpdateRoundTrip() throws IOException {
+    final long expectedWindowSizeIncrement = 0x7fffffff;
+    // length
+    writeMedium(frame, 4);
+    frame.writeByte(Http2.TYPE_WINDOW_UPDATE);
+    frame.writeByte(Http2.FLAG_NONE);
+    frame.writeInt(expectedStreamId);
+    frame.writeInt((int) expectedWindowSizeIncrement);
+    // Check writer sends the same bytes.
+    assertThat(windowUpdate(expectedWindowSizeIncrement)).isEqualTo(frame);
+    reader.nextFrame(false, new BaseTestHandler() {
+
+        @Override
+        public void windowUpdate(int streamId, long windowSizeIncrement) {
+            assertThat(streamId).isEqualTo(expectedStreamId);
+            assertThat(windowSizeIncrement).isEqualTo(expectedWindowSizeIncrement);
+        }
+    });
+}

@@ -1,0 +1,8 @@
+@Test
+public void notRedirectedFromHttpsToHttp() throws Exception {
+    server.useHttps(handshakeCertificates.sslSocketFactory(), false);
+    server.enqueue(new MockResponse().setResponseCode(HttpURLConnection.HTTP_MOVED_TEMP).addHeader("Location: http://anyhost/foo").setBody("This page has moved!"));
+    client = client.newBuilder().followSslRedirects(false).sslSocketFactory(handshakeCertificates.sslSocketFactory(), handshakeCertificates.trustManager()).hostnameVerifier(new RecordingHostnameVerifier()).build();
+    Response response = getResponse(newRequest("/"));
+    assertThat(readAscii(response.body().byteStream(), Integer.MAX_VALUE)).isEqualTo("This page has moved!");
+}

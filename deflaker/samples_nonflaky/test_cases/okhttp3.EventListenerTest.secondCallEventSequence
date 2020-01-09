@@ -1,0 +1,13 @@
+@Test
+public void secondCallEventSequence() throws IOException {
+    enableTlsWithTunnel(false);
+    server.setProtocols(asList(Protocol.HTTP_2, Protocol.HTTP_1_1));
+    server.enqueue(new MockResponse());
+    server.enqueue(new MockResponse());
+    client.newCall(new Request.Builder().url(server.url("/")).build()).execute().close();
+    listener.removeUpToEvent(CallEnd.class);
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).build());
+    Response response = call.execute();
+    response.close();
+    assertThat(listener.recordedEventTypes()).containsExactly("CallStart", "ProxySelectStart", "ProxySelectEnd", "ConnectionAcquired", "RequestHeadersStart", "RequestHeadersEnd", "ResponseHeadersStart", "ResponseHeadersEnd", "ResponseBodyStart", "ResponseBodyEnd", "ConnectionReleased", "CallEnd");
+}

@@ -1,0 +1,13 @@
+/**
+ * https://github.com/square/okhttp/issues/1801
+ */
+@Test
+public void asyncCallEngineInitialized() throws Exception {
+    OkHttpClient c = client.newBuilder().addInterceptor(chain -> {
+        throw new IOException();
+    }).build();
+    Request request = new Request.Builder().url(server.url("/")).build();
+    c.newCall(request).enqueue(callback);
+    RecordedResponse response = callback.await(request.url());
+    assertThat(response.request).isEqualTo(request);
+}

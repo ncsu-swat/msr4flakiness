@@ -1,0 +1,8 @@
+@Test
+public void orderedChainOfCertificatesWithRoot() throws Exception {
+    HeldCertificate root = new HeldCertificate.Builder().serialNumber(1L).build();
+    HeldCertificate certA = new HeldCertificate.Builder().serialNumber(2L).signedBy(root).build();
+    HeldCertificate certB = new HeldCertificate.Builder().serialNumber(3L).signedBy(certA).build();
+    CertificateChainCleaner cleaner = CertificateChainCleaner.Companion.get(root.certificate());
+    assertThat(cleaner.clean(list(certB, certA, root), "hostname")).isEqualTo(list(certB, certA, root));
+}

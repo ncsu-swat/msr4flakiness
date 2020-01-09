@@ -1,0 +1,20 @@
+@Test
+public void literalHeaderFieldWithIncrementalIndexingNewName() throws IOException {
+    List<Header> headerBlock = headerEntries("custom-key", "custom-header");
+    // Never indexed
+    bytesIn.writeByte(0x40);
+    // Literal name (len = 10)
+    bytesIn.writeByte(0x0a);
+    bytesIn.writeUtf8("custom-key");
+    // Literal value (len = 13)
+    bytesIn.writeByte(0x0d);
+    bytesIn.writeUtf8("custom-header");
+    hpackWriter.writeHeaders(headerBlock);
+    assertThat(bytesOut).isEqualTo(bytesIn);
+    assertThat(hpackWriter.headerCount).isEqualTo(1);
+    Header entry = hpackWriter.dynamicTable[hpackWriter.dynamicTable.length - 1];
+    checkEntry(entry, "custom-key", "custom-header", 55);
+    hpackReader.readHeaders();
+    assertThat(hpackReader.headerCount).isEqualTo(1);
+    assertThat(hpackReader.getAndResetHeaderList()).isEqualTo(headerBlock);
+}

@@ -1,0 +1,55 @@
+@Test
+public void receiveGoAwayHttp2() throws Exception {
+    // write the mocking script
+    peer.sendFrame().settings(new Settings());
+    // ACK
+    peer.acceptFrame();
+    // SYN_STREAM 3
+    peer.acceptFrame();
+    // SYN_STREAM 5
+    peer.acceptFrame();
+    peer.sendFrame().goAway(3, ErrorCode.PROTOCOL_ERROR, EMPTY_BYTE_ARRAY);
+    // PING
+    peer.acceptFrame();
+    peer.sendFrame().ping(true, AWAIT_PING, 0);
+    // DATA STREAM 3
+    peer.acceptFrame();
+    peer.play();
+    // play it back
+    Http2Connection connection = connect(peer);
+    Http2Stream stream1 = connection.newStream(headerEntries("a", "android"), true);
+    Http2Stream stream2 = connection.newStream(headerEntries("b", "banana"), true);
+    // Ensure the GO_AWAY that resets stream2 has been received.
+    connection.writePingAndAwaitPong();
+    BufferedSink sink1 = Okio.buffer(stream1.getSink());
+    BufferedSink sink2 = Okio.buffer(stream2.getSink());
+    sink1.writeUtf8("abc");
+    try {
+        sink2.writeUtf8("abc");
+        sink2.flush();
+        fail();
+    } catch (IOException expected) {
+        assertThat(expected.getMessage()).isEqualTo("stream was reset: REFUSED_STREAM");
+    }
+    sink1.writeUtf8("def");
+    sink1.close();
+    try {
+        connection.newStream(headerEntries("c", "cola"), true);
+        fail();
+    } catch (ConnectionShutdownException expected) {
+    }
+    assertThat(stream1.isOpen()).isTrue();
+    assertThat(stream2.isOpen()).isFalse();
+    assertThat(connection.openStreamCount()).isEqualTo(1);
+    // verify the peer received what was expected
+    InFrame synStream1 = peer.takeFrame();
+    assertThat(synStream1.type).isEqualTo(Http2.TYPE_HEADERS);
+    InFrame synStream2 = peer.takeFrame();
+    assertThat(synStream2.type).isEqualTo(Http2.TYPE_HEADERS);
+    InFrame ping = peer.takeFrame();
+    assertThat(ping.type).isEqualTo(Http2.TYPE_PING);
+    InFrame data1 = peer.takeFrame();
+    assertThat(data1.type).isEqualTo(Http2.TYPE_DATA);
+    assertThat(data1.streamId).isEqualTo(3);
+    assertArrayEquals("abcdef".getBytes(UTF_8), data1.data);
+}

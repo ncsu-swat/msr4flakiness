@@ -1,0 +1,8 @@
+@Test
+public void getClientRequestTimeout() throws Exception {
+    server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_END).setResponseCode(408).setHeader("Connection", "Close").setBody("You took too long!"));
+    server.enqueue(new MockResponse().setBody("Body"));
+    Request request = new Request.Builder().url(server.url("/")).build();
+    Response response = client.newCall(request).execute();
+    assertThat(response.body().string()).isEqualTo("Body");
+}

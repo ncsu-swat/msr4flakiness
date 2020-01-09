@@ -1,0 +1,15 @@
+@Test
+public void connectionPooling_Async() throws Exception {
+    server.enqueue(new MockResponse().setBody("abc"));
+    server.enqueue(new MockResponse().setBody("def"));
+    server.enqueue(new MockResponse().setBody("ghi"));
+    client.newCall(new Request.Builder().url(server.url("/a")).build()).enqueue(callback);
+    callback.await(server.url("/a")).assertBody("abc");
+    client.newCall(new Request.Builder().url(server.url("/b")).build()).enqueue(callback);
+    callback.await(server.url("/b")).assertBody("def");
+    client.newCall(new Request.Builder().url(server.url("/c")).build()).enqueue(callback);
+    callback.await(server.url("/c")).assertBody("ghi");
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(0);
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(1);
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(2);
+}

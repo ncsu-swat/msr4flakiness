@@ -1,0 +1,32 @@
+/**
+ * Regression test for an edge case where closing response body in the HTTP engine doesn't release
+ * the corresponding stream allocation. This test keeps those response bodies alive and reads
+ * them after the redirect has completed. This forces a connection to not be reused where it would
+ * be otherwise.
+ *
+ * <p>This test leaks a response body by not closing it.
+ *
+ * https://github.com/square/okhttp/issues/2409
+ */
+@Test
+public void connectionsAreNotReusedIfNetworkInterceptorInterferes() throws Exception {
+    List<Response> responsesNotClosed = new ArrayList<>();
+    client = client.newBuilder().connectionPool(new ConnectionPool()).addNetworkInterceptor(chain -> {
+        Response response = chain.proceed(chain.request());
+        responsesNotClosed.add(response);
+        return response.newBuilder().body(ResponseBody.create("unrelated response body!", null)).build();
+    }).build();
+    server.enqueue(new MockResponse().setResponseCode(301).addHeader("Location: /b").setBody("/a has moved!"));
+    server.enqueue(new MockResponse().setBody("/b is here"));
+    Request request = new Request.Builder().url(server.url("/")).build();
+    Call call = client.newCall(request);
+    try (Response response = call.execute()) {
+        assertThat(response.body().string()).isEqualTo("unrelated response body!");
+    }
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(0);
+    // No connection reuse.
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(0);
+    for (Response response : responsesNotClosed) {
+        closeQuietly(response);
+    }
+}

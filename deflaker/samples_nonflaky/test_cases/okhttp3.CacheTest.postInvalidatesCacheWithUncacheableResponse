@@ -1,0 +1,15 @@
+@Test
+public void postInvalidatesCacheWithUncacheableResponse() throws Exception {
+    // 1. Seed the cache.
+    // 2. Invalidate it with an uncacheable response.
+    // 3. Expect a cache miss.
+    server.enqueue(new MockResponse().setBody("A").addHeader("Expires: " + formatDate(1, TimeUnit.HOURS)));
+    server.enqueue(new MockResponse().setBody("B").setResponseCode(500));
+    server.enqueue(new MockResponse().setBody("C"));
+    HttpUrl url = server.url("/");
+    assertThat(get(url).body().string()).isEqualTo("A");
+    Request request = new Request.Builder().url(url).method("POST", requestBodyOrNull("POST")).build();
+    Response invalidate = client.newCall(request).execute();
+    assertThat(invalidate.body().string()).isEqualTo("B");
+    assertThat(get(url).body().string()).isEqualTo("C");
+}

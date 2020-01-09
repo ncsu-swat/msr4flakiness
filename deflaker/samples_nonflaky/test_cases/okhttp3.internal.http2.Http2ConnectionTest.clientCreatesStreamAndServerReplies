@@ -1,0 +1,37 @@
+@Test
+public void clientCreatesStreamAndServerReplies() throws Exception {
+    // write the mocking script
+    peer.sendFrame().settings(new Settings());
+    // ACK
+    peer.acceptFrame();
+    // SYN_STREAM
+    peer.acceptFrame();
+    // DATA
+    peer.acceptFrame();
+    peer.sendFrame().headers(false, 3, headerEntries("a", "android"));
+    peer.sendFrame().data(true, 3, new Buffer().writeUtf8("robot"), 5);
+    // PING
+    peer.acceptFrame();
+    // PING
+    peer.sendFrame().ping(true, AWAIT_PING, 0);
+    peer.play();
+    // play it back
+    Http2Connection connection = connect(peer);
+    Http2Stream stream = connection.newStream(headerEntries("b", "banana"), true);
+    BufferedSink out = Okio.buffer(stream.getSink());
+    out.writeUtf8("c3po");
+    out.close();
+    assertThat(stream.takeHeaders()).isEqualTo(Headers.of("a", "android"));
+    assertStreamData("robot", stream.getSource());
+    connection.writePingAndAwaitPong();
+    assertThat(connection.openStreamCount()).isEqualTo(0);
+    // verify the peer received what was expected
+    InFrame synStream = peer.takeFrame();
+    assertThat(synStream.type).isEqualTo(Http2.TYPE_HEADERS);
+    assertThat(synStream.outFinished).isFalse();
+    assertThat(synStream.streamId).isEqualTo(3);
+    assertThat(synStream.associatedStreamId).isEqualTo(-1);
+    assertThat(synStream.headerBlock).isEqualTo(headerEntries("b", "banana"));
+    InFrame requestData = peer.takeFrame();
+    assertArrayEquals("c3po".getBytes(UTF_8), requestData.data);
+}

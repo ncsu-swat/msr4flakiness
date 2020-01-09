@@ -1,0 +1,21 @@
+@Test
+public void requestBodyThrowsUnrelatedToNetwork() throws Exception {
+    server.enqueue(new MockResponse());
+    Request request = new Request.Builder().url(server.url("/")).post(new RequestBody() {
+
+        @Override
+        @Nullable
+        public MediaType contentType() {
+            return null;
+        }
+
+        @Override
+        public void writeTo(BufferedSink sink) throws IOException {
+            // For determinism, always send a partial request to the server.
+            sink.flush();
+            throw new IOException("boom");
+        }
+    }).build();
+    executeSynchronously(request).assertFailure("boom");
+    assertThat(server.takeRequest().getFailure()).isNotNull();
+}

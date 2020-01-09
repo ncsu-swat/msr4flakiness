@@ -1,0 +1,28 @@
+@Test
+public void peerHttp2ServerLowersInitialWindowSize() throws Exception {
+    Settings initial = new Settings();
+    initial.set(INITIAL_WINDOW_SIZE, 1684);
+    Settings shouldntImpactConnection = new Settings();
+    shouldntImpactConnection.set(INITIAL_WINDOW_SIZE, 3368);
+    peer.sendFrame().settings(initial);
+    // ACK
+    peer.acceptFrame();
+    peer.sendFrame().settings(shouldntImpactConnection);
+    // ACK 2
+    peer.acceptFrame();
+    // HEADERS
+    peer.acceptFrame();
+    peer.play();
+    Http2Connection connection = connect(peer);
+    // Verify the peer received the second ACK.
+    InFrame ackFrame = peer.takeFrame();
+    assertThat(ackFrame.type).isEqualTo(Http2.TYPE_SETTINGS);
+    assertThat(ackFrame.streamId).isEqualTo(0);
+    assertThat(ackFrame.ack).isTrue();
+    // This stream was created *after* the connection settings were adjusted.
+    Http2Stream stream = connection.newStream(headerEntries("a", "android"), false);
+    assertThat(connection.getPeerSettings().getInitialWindowSize()).isEqualTo(3368L);
+    // New Stream is has the most recent initial window size.
+    assertThat(stream.getWriteBytesTotal()).isEqualTo(0L);
+    assertThat(stream.getWriteBytesMaximum()).isEqualTo(3368L);
+}

@@ -1,0 +1,14 @@
+@Test
+public void journalWriteFailsDuringRemove() throws Exception {
+    set("a", "a", "a");
+    set("b", "b", "b");
+    // Remove, but the journal write will fail.
+    fileSystem.setFaultyWrite(journalFile, true);
+    assertThat(cache.remove("a")).isTrue();
+    // Confirm that the entry was still removed.
+    fileSystem.setFaultyWrite(journalFile, false);
+    cache.close();
+    cache = new DiskLruCache(fileSystem, cacheDir, appVersion, 2, Integer.MAX_VALUE, taskRunner);
+    assertAbsent("a");
+    assertValue("b", "b", "b");
+}

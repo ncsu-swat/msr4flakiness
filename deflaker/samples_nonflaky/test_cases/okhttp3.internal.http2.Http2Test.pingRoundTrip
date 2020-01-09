@@ -1,0 +1,24 @@
+@Test
+public void pingRoundTrip() throws IOException {
+    final int expectedPayload1 = 7;
+    final int expectedPayload2 = 8;
+    // length
+    writeMedium(frame, 8);
+    frame.writeByte(Http2.TYPE_PING);
+    frame.writeByte(Http2.FLAG_ACK);
+    // connection-level
+    frame.writeInt(0);
+    frame.writeInt(expectedPayload1);
+    frame.writeInt(expectedPayload2);
+    // Check writer sends the same bytes.
+    assertThat(sendPingFrame(true, expectedPayload1, expectedPayload2)).isEqualTo(frame);
+    reader.nextFrame(false, new BaseTestHandler() {
+
+        @Override
+        public void ping(boolean ack, int payload1, int payload2) {
+            assertThat(ack).isTrue();
+            assertThat(payload1).isEqualTo(expectedPayload1);
+            assertThat(payload2).isEqualTo(expectedPayload2);
+        }
+    });
+}

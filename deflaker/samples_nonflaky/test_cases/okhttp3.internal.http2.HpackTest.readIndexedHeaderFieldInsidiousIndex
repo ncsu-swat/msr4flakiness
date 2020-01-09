@@ -1,0 +1,14 @@
+// Example taken from twitter/hpack DecoderTest.testInsidiousIndex
+@Test
+public void readIndexedHeaderFieldInsidiousIndex() throws IOException {
+    // == Indexed - Add ==
+    bytesIn.writeByte(0xff);
+    // idx = -2147483521
+    bytesIn.write(decodeHex("8080808008"));
+    try {
+        hpackReader.readHeaders();
+        fail();
+    } catch (IOException e) {
+        assertThat(e.getMessage()).isEqualTo("Header index too large -2147483521");
+    }
+}

@@ -1,0 +1,9 @@
+@Test
+public void orderedChainOfCertificatesWithoutRoot() throws Exception {
+    HeldCertificate root = new HeldCertificate.Builder().serialNumber(1L).build();
+    HeldCertificate certA = new HeldCertificate.Builder().serialNumber(2L).signedBy(root).build();
+    HeldCertificate certB = new HeldCertificate.Builder().serialNumber(3L).signedBy(certA).build();
+    CertificateChainCleaner cleaner = CertificateChainCleaner.Companion.get(root.certificate());
+    // Root is added!
+    assertThat(cleaner.clean(list(certB, certA), "hostname")).isEqualTo(list(certB, certA, root));
+}

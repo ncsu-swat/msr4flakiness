@@ -1,0 +1,7 @@
+@Test
+public void httpWithExcessiveHeaders() throws IOException {
+    String longLine = "HTTP/1.1 200 " + stringFill('O', 256 * 1024) + "K";
+    server.setProtocols(Collections.singletonList(Protocol.HTTP_1_1));
+    server.enqueue(new MockResponse().setStatus(longLine).setBody("I'm not even supposed to be here today."));
+    executeSynchronously("/").assertFailureMatches(".*unexpected end of stream on " + server.url("/").redact());
+}

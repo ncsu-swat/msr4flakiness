@@ -1,0 +1,24 @@
+@Test
+public void clientSendsEmptyDataServerDoesntSendWindowUpdateHttp2() throws Exception {
+    // Write the mocking script.
+    peer.sendFrame().settings(new Settings());
+    // ACK
+    peer.acceptFrame();
+    // SYN_STREAM
+    peer.acceptFrame();
+    // DATA
+    peer.acceptFrame();
+    peer.sendFrame().headers(false, 3, headerEntries("a", "android"));
+    peer.play();
+    // Play it back.
+    Http2Connection connection = connect(peer);
+    Http2Stream client = connection.newStream(headerEntries("b", "banana"), true);
+    BufferedSink out = Okio.buffer(client.getSink());
+    out.write(EMPTY_BYTE_ARRAY);
+    out.flush();
+    out.close();
+    // Verify the peer received what was expected.
+    assertThat(peer.takeFrame().type).isEqualTo(Http2.TYPE_HEADERS);
+    assertThat(peer.takeFrame().type).isEqualTo(Http2.TYPE_DATA);
+    assertThat(peer.frameCount()).isEqualTo(5);
+}

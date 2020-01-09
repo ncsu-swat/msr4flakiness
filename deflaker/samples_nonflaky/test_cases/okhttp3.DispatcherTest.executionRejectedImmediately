@@ -1,0 +1,8 @@
+@Test
+public void executionRejectedImmediately() throws Exception {
+    Request request = newRequest("http://a/1");
+    executor.shutdown();
+    client.newCall(request).enqueue(callback);
+    callback.await(request.url()).assertFailure(InterruptedIOException.class);
+    assertThat(listener.recordedEventTypes()).containsExactly("CallStart", "CallFailed");
+}

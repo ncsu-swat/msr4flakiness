@@ -1,0 +1,8 @@
+@Test
+public void retryOnUnavailableWith0RetryAfter() throws IOException {
+    server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_END).setResponseCode(503).setHeader("Connection", "Close").setHeader("Retry-After", "0").setBody("You took too long!"));
+    server.enqueue(new MockResponse().setBody("Body"));
+    Request request = new Request.Builder().url(server.url("/")).build();
+    Response response = client.newCall(request).execute();
+    assertThat(response.body().string()).isEqualTo("Body");
+}

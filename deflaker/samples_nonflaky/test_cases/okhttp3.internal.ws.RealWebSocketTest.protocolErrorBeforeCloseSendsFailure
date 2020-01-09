@@ -1,0 +1,11 @@
+@Test
+public void protocolErrorBeforeCloseSendsFailure() throws IOException {
+    // Invalid non-final ping frame.
+    server.getSink().write(ByteString.decodeHex("0a00")).emit();
+    // Detects error, send close, close connection.
+    client.processNextFrame();
+    assertThat(client.closed).isTrue();
+    client.listener.assertFailure(ProtocolException.class, "Control frames must be final.");
+    server.processNextFrame();
+    server.listener.assertFailure(EOFException.class);
+}

@@ -1,0 +1,19 @@
+@Test
+public void cleanupTrimFailureRetriedOnEditors() throws Exception {
+    cache.setMaxSize(8);
+    taskFaker.runNextTask();
+    set("a", "aa", "aa");
+    set("b", "bb", "bbb");
+    // Cause the cache trim job to fail.
+    fileSystem.setFaultyDelete(new File(cacheDir, "a.0"), true);
+    taskFaker.runNextTask();
+    // An edit should now add a job to clean up if the most recent trim failed.
+    assertThat(cache.edit("b")).isNull();
+    taskFaker.runNextTask();
+    // Confirm a successful cache trim now allows edits.
+    fileSystem.setFaultyDelete(new File(cacheDir, "a.0"), false);
+    assertThat(cache.edit("c")).isNull();
+    taskFaker.runNextTask();
+    set("c", "cc", "cc");
+    assertValue("c", "cc", "cc");
+}

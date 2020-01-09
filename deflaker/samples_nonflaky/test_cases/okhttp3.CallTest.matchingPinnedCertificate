@@ -1,0 +1,21 @@
+@Test
+public void matchingPinnedCertificate() throws Exception {
+    // Fails on 11.0.1 https://github.com/square/okhttp/issues/4703
+    enableTls();
+    server.enqueue(new MockResponse());
+    server.enqueue(new MockResponse());
+    // Make a first request without certificate pinning. Use it to collect certificates to pin.
+    Request request1 = new Request.Builder().url(server.url("/")).build();
+    Response response1 = client.newCall(request1).execute();
+    CertificatePinner.Builder certificatePinnerBuilder = new CertificatePinner.Builder();
+    for (Certificate certificate : response1.handshake().peerCertificates()) {
+        certificatePinnerBuilder.add(server.getHostName(), CertificatePinner.pin(certificate));
+    }
+    response1.body().close();
+    // Make another request with certificate pinning. It should complete normally.
+    client = client.newBuilder().certificatePinner(certificatePinnerBuilder.build()).build();
+    Request request2 = new Request.Builder().url(server.url("/")).build();
+    Response response2 = client.newCall(request2).execute();
+    assertThat(response1.handshake()).isNotSameAs(response2.handshake());
+    response2.body().close();
+}

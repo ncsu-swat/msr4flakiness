@@ -1,0 +1,50 @@
+/**
+ * Test that the client doesn't send a RST_STREAM if doing so will disrupt the output stream.
+ */
+@Test
+public void clientClosesClientInputStreamIfOutputStreamIsClosed() throws Exception {
+    // write the mocking script
+    peer.sendFrame().settings(new Settings());
+    // ACK
+    peer.acceptFrame();
+    // SYN_STREAM
+    peer.acceptFrame();
+    // DATA
+    peer.acceptFrame();
+    // DATA with FLAG_FIN
+    peer.acceptFrame();
+    // RST_STREAM
+    peer.acceptFrame();
+    peer.play();
+    // play it back
+    Http2Connection connection = connect(peer);
+    Http2Stream stream = connection.newStream(headerEntries("a", "android"), true);
+    Source source = stream.getSource();
+    BufferedSink out = Okio.buffer(stream.getSink());
+    source.close();
+    try {
+        source.read(new Buffer(), 1);
+        fail();
+    } catch (IOException expected) {
+        assertThat(expected.getMessage()).isEqualTo("stream closed");
+    }
+    out.writeUtf8("square");
+    out.flush();
+    out.close();
+    assertThat(connection.openStreamCount()).isEqualTo(0);
+    // verify the peer received what was expected
+    InFrame synStream = peer.takeFrame();
+    assertThat(synStream.type).isEqualTo(Http2.TYPE_HEADERS);
+    assertThat(synStream.inFinished).isFalse();
+    assertThat(synStream.outFinished).isFalse();
+    InFrame data = peer.takeFrame();
+    assertThat(data.type).isEqualTo(Http2.TYPE_DATA);
+    assertArrayEquals("square".getBytes(UTF_8), data.data);
+    InFrame fin = peer.takeFrame();
+    assertThat(fin.type).isEqualTo(Http2.TYPE_DATA);
+    assertThat(fin.inFinished).isTrue();
+    assertThat(fin.outFinished).isFalse();
+    InFrame rstStream = peer.takeFrame();
+    assertThat(rstStream.type).isEqualTo(Http2.TYPE_RST_STREAM);
+    assertThat(rstStream.errorCode).isEqualTo(ErrorCode.CANCEL);
+}

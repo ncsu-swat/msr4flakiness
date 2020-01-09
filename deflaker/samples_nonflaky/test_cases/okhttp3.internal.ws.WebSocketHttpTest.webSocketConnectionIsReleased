@@ -1,0 +1,19 @@
+/**
+ * We had a bug where web socket connections were leaked if the HTTP connection upgrade was not
+ * successful. This test confirms that connections are released back to the connection pool!
+ * https://github.com/square/okhttp/issues/4258
+ */
+@Test
+public void webSocketConnectionIsReleased() throws Exception {
+    // This test assumes HTTP/1.1 pooling semantics.
+    client = client.newBuilder().protocols(asList(Protocol.HTTP_1_1)).build();
+    webServer.enqueue(new MockResponse().setResponseCode(HttpURLConnection.HTTP_NOT_FOUND).setBody("not found!"));
+    webServer.enqueue(new MockResponse());
+    newWebSocket();
+    clientListener.assertFailure();
+    Request regularRequest = new Request.Builder().url(webServer.url("/")).build();
+    Response response = client.newCall(regularRequest).execute();
+    response.close();
+    assertThat(webServer.takeRequest().getSequenceNumber()).isEqualTo(0);
+    assertThat(webServer.takeRequest().getSequenceNumber()).isEqualTo(1);
+}

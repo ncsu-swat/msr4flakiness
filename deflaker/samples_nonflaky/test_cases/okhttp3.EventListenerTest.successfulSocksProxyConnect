@@ -1,0 +1,21 @@
+@Test
+public void successfulSocksProxyConnect() throws Exception {
+    server.enqueue(new MockResponse());
+    socksProxy = new SocksProxy();
+    socksProxy.play();
+    Proxy proxy = socksProxy.proxy();
+    client = client.newBuilder().proxy(proxy).build();
+    Call call = client.newCall(new Request.Builder().url("http://" + SocksProxy.HOSTNAME_THAT_ONLY_THE_PROXY_KNOWS + ":" + server.getPort()).build());
+    Response response = call.execute();
+    assertThat(response.code()).isEqualTo(200);
+    response.body().close();
+    InetSocketAddress expectedAddress = InetSocketAddress.createUnresolved(SocksProxy.HOSTNAME_THAT_ONLY_THE_PROXY_KNOWS, server.getPort());
+    ConnectStart connectStart = listener.removeUpToEvent(ConnectStart.class);
+    assertThat(connectStart.getCall()).isSameAs(call);
+    assertThat(connectStart.getInetSocketAddress()).isEqualTo(expectedAddress);
+    assertThat(connectStart.getProxy()).isEqualTo(proxy);
+    ConnectEnd connectEnd = listener.removeUpToEvent(ConnectEnd.class);
+    assertThat(connectEnd.getCall()).isSameAs(call);
+    assertThat(connectEnd.getInetSocketAddress()).isEqualTo(expectedAddress);
+    assertThat(connectEnd.getProtocol()).isEqualTo(Protocol.HTTP_1_1);
+}

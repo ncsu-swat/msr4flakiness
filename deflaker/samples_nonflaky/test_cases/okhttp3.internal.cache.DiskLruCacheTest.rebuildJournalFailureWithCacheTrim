@@ -1,0 +1,15 @@
+@Test
+public void rebuildJournalFailureWithCacheTrim() throws Exception {
+    while (taskFaker.isIdle()) {
+        set("a", "aa", "aa");
+        set("b", "bb", "bb");
+    }
+    // Cause the rebuild action to fail.
+    fileSystem.setFaultyRename(new File(cacheDir, DiskLruCache.JOURNAL_FILE_BACKUP), true);
+    taskFaker.runNextTask();
+    // Trigger a job to trim the cache.
+    cache.setMaxSize(4);
+    taskFaker.runNextTask();
+    assertAbsent("a");
+    assertValue("b", "bb", "bb");
+}

@@ -1,0 +1,16 @@
+@Test
+public void responseCachingAndRedirects() throws Exception {
+    server.enqueue(new MockResponse().addHeader("Last-Modified: " + formatDate(-1, TimeUnit.HOURS)).addHeader("Expires: " + formatDate(1, TimeUnit.HOURS)).setResponseCode(HttpURLConnection.HTTP_MOVED_PERM).addHeader("Location: /foo"));
+    server.enqueue(new MockResponse().addHeader("Last-Modified: " + formatDate(-1, TimeUnit.HOURS)).addHeader("Expires: " + formatDate(1, TimeUnit.HOURS)).setBody("ABC"));
+    server.enqueue(new MockResponse().setBody("DEF"));
+    Request request = new Request.Builder().url(server.url("/")).build();
+    Response response1 = client.newCall(request).execute();
+    assertThat(response1.body().string()).isEqualTo("ABC");
+    // Cached!
+    Response response2 = client.newCall(request).execute();
+    assertThat(response2.body().string()).isEqualTo("ABC");
+    // 2 requests + 2 redirects
+    assertThat(cache.requestCount()).isEqualTo(4);
+    assertThat(cache.networkCount()).isEqualTo(2);
+    assertThat(cache.hitCount()).isEqualTo(2);
+}

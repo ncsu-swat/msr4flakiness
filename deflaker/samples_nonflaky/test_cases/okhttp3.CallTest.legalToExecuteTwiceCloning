@@ -1,0 +1,12 @@
+@Test
+public void legalToExecuteTwiceCloning() throws Exception {
+    server.enqueue(new MockResponse().setBody("abc"));
+    server.enqueue(new MockResponse().setBody("def"));
+    Request request = new Request.Builder().url(server.url("/")).build();
+    Call call = client.newCall(request);
+    Response response1 = call.execute();
+    Call cloned = call.clone();
+    Response response2 = cloned.execute();
+    assertThat("abc").isEqualTo(response1.body().string());
+    assertThat("def").isEqualTo(response2.body().string());
+}

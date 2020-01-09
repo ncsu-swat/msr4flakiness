@@ -1,0 +1,12 @@
+@Test
+public void serverSmallBufferedPayloadWrittenAsOneFrame() throws IOException {
+    int length = 5;
+    byte[] bytes = binaryData(length);
+    RequestBody body = RequestBody.create(bytes, null);
+    BufferedSink sink = Okio.buffer(serverWriter.newMessageSink(OPCODE_TEXT, length));
+    body.writeTo(sink);
+    sink.close();
+    assertData("8105");
+    assertData(bytes);
+    assertThat(data.exhausted()).isTrue();
+}

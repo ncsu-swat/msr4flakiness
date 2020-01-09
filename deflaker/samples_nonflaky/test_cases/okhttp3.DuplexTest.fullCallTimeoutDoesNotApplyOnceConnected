@@ -1,0 +1,19 @@
+@Test
+public void fullCallTimeoutDoesNotApplyOnceConnected() throws Exception {
+    enableProtocol(Protocol.HTTP_2);
+    MockDuplexResponseBody mockDuplexResponseBody = enqueueResponseWithBody(new MockResponse().clearHeaders(), new MockDuplexResponseBody().sendResponse("response A\n").sleep(750, TimeUnit.MILLISECONDS).sendResponse("response B\n").receiveRequest("request C\n").exhaustResponse().exhaustRequest());
+    Request request = new Request.Builder().url(server.url("/")).post(new AsyncRequestBody()).build();
+    Call call = client.newCall(request);
+    // Long enough for the first TLS handshake.
+    call.timeout().timeout(500, TimeUnit.MILLISECONDS);
+    try (Response response = call.execute()) {
+        BufferedSink requestBody = ((AsyncRequestBody) call.request().body()).takeSink();
+        BufferedSource responseBody = response.body().source();
+        assertThat(responseBody.readUtf8Line()).isEqualTo("response A");
+        assertThat(responseBody.readUtf8Line()).isEqualTo("response B");
+        requestBody.writeUtf8("request C\n");
+        requestBody.close();
+        assertThat(responseBody.readUtf8Line()).isNull();
+    }
+    mockDuplexResponseBody.awaitSuccess();
+}

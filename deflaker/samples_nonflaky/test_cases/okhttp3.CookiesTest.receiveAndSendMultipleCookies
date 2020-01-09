@@ -1,0 +1,13 @@
+@Test
+public void receiveAndSendMultipleCookies() throws Exception {
+    server.enqueue(new MockResponse().addHeader("Set-Cookie", "a=android").addHeader("Set-Cookie", "b=banana"));
+    server.enqueue(new MockResponse());
+    CookieManager cookieManager = new CookieManager(null, ACCEPT_ORIGINAL_SERVER);
+    client = client.newBuilder().cookieJar(new JavaNetCookieJar(cookieManager)).build();
+    get(urlWithIpAddress(server, "/"));
+    RecordedRequest request1 = server.takeRequest();
+    assertThat(request1.getHeader("Cookie")).isNull();
+    get(urlWithIpAddress(server, "/"));
+    RecordedRequest request2 = server.takeRequest();
+    assertThat(request2.getHeader("Cookie")).isEqualTo("a=android; b=banana");
+}

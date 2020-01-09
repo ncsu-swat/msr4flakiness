@@ -1,0 +1,8 @@
+@Test
+public void clientConfiguredCustomContentEncoding() throws Exception {
+    server.enqueue(new MockResponse().setBody("ABCDE").addHeader("Content-Encoding: custom"));
+    Response response = getResponse(new Request.Builder().url(server.url("/")).header("Accept-Encoding", "custom").build());
+    assertThat(readAscii(response.body().byteStream(), Integer.MAX_VALUE)).isEqualTo("ABCDE");
+    RecordedRequest request = server.takeRequest();
+    assertThat(request.getHeader("Accept-Encoding")).isEqualTo("custom");
+}

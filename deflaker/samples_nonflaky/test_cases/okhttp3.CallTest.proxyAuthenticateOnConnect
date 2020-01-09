@@ -1,0 +1,23 @@
+/**
+ * Respond to a proxy authorization challenge.
+ */
+@Test
+public void proxyAuthenticateOnConnect() throws Exception {
+    server.useHttps(handshakeCertificates.sslSocketFactory(), true);
+    server.enqueue(new MockResponse().setResponseCode(407).addHeader("Proxy-Authenticate: Basic realm=\"localhost\""));
+    server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.UPGRADE_TO_SSL_AT_END).clearHeaders());
+    server.enqueue(new MockResponse().setBody("response body"));
+    client = client.newBuilder().sslSocketFactory(handshakeCertificates.sslSocketFactory(), handshakeCertificates.trustManager()).proxy(server.toProxyAddress()).proxyAuthenticator(new RecordingOkAuthenticator("password", "Basic")).hostnameVerifier(new RecordingHostnameVerifier()).build();
+    Request request = new Request.Builder().url("https://android.com/foo").build();
+    Response response = client.newCall(request).execute();
+    assertThat(response.body().string()).isEqualTo("response body");
+    RecordedRequest connect1 = server.takeRequest();
+    assertThat(connect1.getRequestLine()).isEqualTo("CONNECT android.com:443 HTTP/1.1");
+    assertThat(connect1.getHeader("Proxy-Authorization")).isNull();
+    RecordedRequest connect2 = server.takeRequest();
+    assertThat(connect2.getRequestLine()).isEqualTo("CONNECT android.com:443 HTTP/1.1");
+    assertThat(connect2.getHeader("Proxy-Authorization")).isEqualTo("password");
+    RecordedRequest get = server.takeRequest();
+    assertThat(get.getRequestLine()).isEqualTo("GET /foo HTTP/1.1");
+    assertThat(get.getHeader("Proxy-Authorization")).isNull();
+}

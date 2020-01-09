@@ -1,0 +1,16 @@
+@Test
+public void clientDoesNotPingServerByDefault() throws Exception {
+    webServer.enqueue(new MockResponse().withWebSocketUpgrade(serverListener));
+    RealWebSocket webSocket = newWebSocket();
+    clientListener.assertOpen();
+    RealWebSocket server = (RealWebSocket) serverListener.assertOpen();
+    Thread.sleep(1000);
+    // No pings and no pongs.
+    assertThat(webSocket.sentPingCount()).isEqualTo(0);
+    assertThat(webSocket.receivedPingCount()).isEqualTo(0);
+    assertThat(webSocket.receivedPongCount()).isEqualTo(0);
+    assertThat(server.sentPingCount()).isEqualTo(0);
+    assertThat(server.receivedPingCount()).isEqualTo(0);
+    assertThat(server.receivedPongCount()).isEqualTo(0);
+    closeWebSockets(webSocket, server);
+}

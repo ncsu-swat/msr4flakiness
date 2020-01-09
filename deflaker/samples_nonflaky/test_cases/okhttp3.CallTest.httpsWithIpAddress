@@ -1,0 +1,18 @@
+@Test
+public void httpsWithIpAddress() throws Exception {
+    String localIpAddress = InetAddress.getLoopbackAddress().getHostAddress();
+    // Create a certificate with an IP address in the subject alt name.
+    HeldCertificate heldCertificate = new HeldCertificate.Builder().commonName("example.com").addSubjectAlternativeName(localIpAddress).build();
+    HandshakeCertificates handshakeCertificates = new HandshakeCertificates.Builder().heldCertificate(heldCertificate).addTrustedCertificate(heldCertificate.certificate()).build();
+    // Use that certificate on the server and trust it on the client.
+    server.useHttps(handshakeCertificates.sslSocketFactory(), false);
+    client = client.newBuilder().sslSocketFactory(handshakeCertificates.sslSocketFactory(), handshakeCertificates.trustManager()).hostnameVerifier(new RecordingHostnameVerifier()).protocols(Collections.singletonList(Protocol.HTTP_1_1)).build();
+    // Make a request.
+    server.enqueue(new MockResponse());
+    HttpUrl url = server.url("/").newBuilder().host(localIpAddress).build();
+    Request request = new Request.Builder().url(url).build();
+    executeSynchronously(request).assertCode(200);
+    // Confirm that the IP address was used in the host header.
+    RecordedRequest recordedRequest = server.takeRequest();
+    assertThat(recordedRequest.getHeader("Host")).isEqualTo((localIpAddress + ":" + server.getPort()));
+}

@@ -1,0 +1,15 @@
+@Test
+public void elementEvictedBetweenHasNextAndNext() throws Exception {
+    // Put a response in the cache.
+    server.enqueue(new MockResponse().setBody("a"));
+    HttpUrl url = server.url("/a");
+    assertThat(get(url).body().string()).isEqualTo("a");
+    // The URL will remain available if hasNext() returned true...
+    Iterator<String> i = cache.urls();
+    assertThat(i.hasNext()).isTrue();
+    // ...so even when we evict the element, we still get something back.
+    cache.evictAll();
+    assertThat(i.next()).isEqualTo(url.toString());
+    // Remove does nothing. But most importantly, it doesn't throw!
+    i.remove();
+}

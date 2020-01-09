@@ -1,0 +1,14 @@
+@Test
+public void transparentGzipWorksAfterExceptionRecovery() throws Exception {
+    server.enqueue(new MockResponse().setBody("a").setSocketPolicy(SHUTDOWN_INPUT_AT_END));
+    server.enqueue(new MockResponse().addHeader("Content-Encoding: gzip").setBody(gzip("b")));
+    // Seed the pool with a bad connection.
+    assertContent("a", getResponse(newRequest("/")));
+    // Give the server time to disconnect.
+    Thread.sleep(500);
+    // This connection will need to be recovered. When it is, transparent gzip should still work!
+    assertContent("b", getResponse(newRequest("/")));
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(0);
+    // Connection is not pooled.
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(0);
+}

@@ -1,0 +1,16 @@
+@Test
+public void protocolErrorInCloseResponseClosesConnection() throws IOException {
+    client.webSocket.close(1000, "Hello");
+    server.processNextFrame();
+    // Not closed until close reply is received.
+    assertThat(client.closed).isFalse();
+    // Manually write an invalid masked close frame.
+    server.getSink().write(ByteString.decodeHex("888760b420bb635c68de0cd84f")).emit();
+    // Detects error, disconnects immediately since close already sent.
+    client.processNextFrame();
+    assertThat(client.closed).isTrue();
+    client.listener.assertFailure(ProtocolException.class, "Server-sent frames must not be masked.");
+    server.listener.assertClosing(1000, "Hello");
+    // Client should not have sent second close.
+    server.listener.assertExhausted();
+}

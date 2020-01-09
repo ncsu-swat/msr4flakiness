@@ -1,0 +1,19 @@
+@Test
+public void cancelInFlightBeforeResponseReadThrowsIOE() throws Exception {
+    Request request = new Request.Builder().url(server.url("/a")).build();
+    final Call call = client.newCall(request);
+    server.setDispatcher(new Dispatcher() {
+
+        @Override
+        public MockResponse dispatch(RecordedRequest request) {
+            call.cancel();
+            return new MockResponse().setBody("A");
+        }
+    });
+    try {
+        call.execute();
+        fail();
+    } catch (IOException expected) {
+    }
+    assertThat(server.takeRequest().getPath()).isEqualTo("/a");
+}

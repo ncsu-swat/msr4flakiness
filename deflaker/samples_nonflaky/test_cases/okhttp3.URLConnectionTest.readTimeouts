@@ -1,0 +1,22 @@
+@Test
+public void readTimeouts() throws IOException {
+    // This relies on the fact that MockWebServer doesn't close the
+    // connection after a response has been sent. This causes the client to
+    // try to read more bytes than are sent, which results in a timeout.
+    server.enqueue(new MockResponse().setBody("ABC").clearHeaders().addHeader("Content-Length: 4"));
+    server.enqueue(new MockResponse().setBody(// to keep the server alive
+    "unused"));
+    Response response = getResponse(newRequest("/"));
+    BufferedSource in = response.body().source();
+    in.timeout().timeout(1000, MILLISECONDS);
+    assertThat(in.readByte()).isEqualTo((byte) 'A');
+    assertThat(in.readByte()).isEqualTo((byte) 'B');
+    assertThat(in.readByte()).isEqualTo((byte) 'C');
+    try {
+        // If Content-Length was accurate, this would return -1 immediately.
+        in.readByte();
+        fail();
+    } catch (SocketTimeoutException expected) {
+    }
+    in.close();
+}

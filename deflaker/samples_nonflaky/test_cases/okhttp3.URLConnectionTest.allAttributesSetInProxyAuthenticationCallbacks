@@ -1,0 +1,15 @@
+@Test
+public void allAttributesSetInProxyAuthenticationCallbacks() throws Exception {
+    List<String> calls = authCallsForHeader("Proxy-Authenticate: Basic realm=\"Bar\"");
+    assertThat(calls.size()).isEqualTo(1);
+    URL url = server.url("/").url();
+    String call = calls.get(0);
+    assertThat(call).contains("host=" + url.getHost());
+    assertThat(call).contains("port=" + url.getPort());
+    assertThat(call).contains("site=" + url.getHost());
+    assertThat(call).contains("url=http://android.com");
+    assertThat(call).contains("type=" + Authenticator.RequestorType.PROXY);
+    assertThat(call).contains("prompt=Bar");
+    assertThat(call).contains("protocol=http");
+    assertThat(call.toLowerCase(US)).contains("scheme=basic");
+}

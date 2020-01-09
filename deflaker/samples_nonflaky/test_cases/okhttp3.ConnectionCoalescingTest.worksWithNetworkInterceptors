@@ -1,0 +1,13 @@
+/**
+ * Network interceptors check for changes to target.
+ */
+@Test
+public void worksWithNetworkInterceptors() throws Exception {
+    client = client.newBuilder().addNetworkInterceptor(chain -> chain.proceed(chain.request())).build();
+    server.enqueue(new MockResponse().setResponseCode(200));
+    server.enqueue(new MockResponse().setResponseCode(200));
+    assert200Http2Response(execute(url), server.getHostName());
+    HttpUrl sanUrl = url.newBuilder().host("san.com").build();
+    assert200Http2Response(execute(sanUrl), "san.com");
+    assertThat(client.connectionPool().connectionCount()).isEqualTo(1);
+}

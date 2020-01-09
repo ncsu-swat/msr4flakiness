@@ -1,0 +1,29 @@
+@Test
+public void interruptWritingRequestBody() throws Exception {
+    server.enqueue(new MockResponse());
+    server.start();
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).post(new RequestBody() {
+
+        @Override
+        @Nullable
+        public MediaType contentType() {
+            return null;
+        }
+
+        @Override
+        public void writeTo(BufferedSink sink) throws IOException {
+            for (int i = 0; i < 10; i++) {
+                sink.writeByte(0);
+                sink.flush();
+                sleep(100);
+            }
+            fail("Expected connection to be closed");
+        }
+    }).build());
+    interruptLater(500);
+    try {
+        call.execute();
+        fail();
+    } catch (IOException expected) {
+    }
+}

@@ -1,0 +1,51 @@
+@Test
+public void readSendsWindowUpdate() throws Exception {
+    int windowSize = 100;
+    int windowUpdateThreshold = 50;
+    // Write the mocking script.
+    peer.sendFrame().settings(new Settings());
+    // ACK
+    peer.acceptFrame();
+    // SYN_STREAM
+    peer.acceptFrame();
+    peer.sendFrame().headers(false, 3, headerEntries("a", "android"));
+    for (int i = 0; i < 3; i++) {
+        // Send frames of summing to size 50, which is windowUpdateThreshold.
+        peer.sendFrame().data(false, 3, data(24), 24);
+        peer.sendFrame().data(false, 3, data(25), 25);
+        peer.sendFrame().data(false, 3, data(1), 1);
+        // connection WINDOW UPDATE
+        peer.acceptFrame();
+        // stream WINDOW UPDATE
+        peer.acceptFrame();
+    }
+    peer.sendFrame().data(true, 3, data(0), 0);
+    peer.play();
+    // Play it back.
+    Http2Connection connection = connect(peer);
+    connection.getOkHttpSettings().set(INITIAL_WINDOW_SIZE, windowSize);
+    Http2Stream stream = connection.newStream(headerEntries("b", "banana"), false);
+    assertThat(stream.getReadBytesAcknowledged()).isEqualTo(0L);
+    assertThat(stream.getReadBytesTotal()).isEqualTo(0L);
+    assertThat(stream.takeHeaders()).isEqualTo(Headers.of("a", "android"));
+    Source in = stream.getSource();
+    Buffer buffer = new Buffer();
+    buffer.writeAll(in);
+    assertThat(in.read(buffer, 1)).isEqualTo(-1);
+    assertThat(buffer.size()).isEqualTo(150);
+    InFrame synStream = peer.takeFrame();
+    assertThat(synStream.type).isEqualTo(Http2.TYPE_HEADERS);
+    for (int i = 0; i < 3; i++) {
+        List<Integer> windowUpdateStreamIds = new ArrayList<>(2);
+        for (int j = 0; j < 2; j++) {
+            InFrame windowUpdate = peer.takeFrame();
+            assertThat(windowUpdate.type).isEqualTo(Http2.TYPE_WINDOW_UPDATE);
+            windowUpdateStreamIds.add(windowUpdate.streamId);
+            assertThat(windowUpdate.windowSizeIncrement).isEqualTo(windowUpdateThreshold);
+        }
+        // connection
+        assertThat(windowUpdateStreamIds).contains(0);
+        // stream
+        assertThat(windowUpdateStreamIds).contains(3);
+    }
+}

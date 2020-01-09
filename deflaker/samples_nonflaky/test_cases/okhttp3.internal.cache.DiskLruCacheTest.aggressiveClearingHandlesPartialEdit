@@ -1,0 +1,14 @@
+/**
+ * @see <a href="https://github.com/JakeWharton/DiskLruCache/issues/2">Issue #2</a>
+ */
+@Test
+public void aggressiveClearingHandlesPartialEdit() throws Exception {
+    set("a", "a", "a");
+    set("b", "b", "b");
+    DiskLruCache.Editor a = cache.get("a").edit();
+    setString(a, 0, "a1");
+    fileSystem.deleteContents(tempDir.getRoot());
+    setString(a, 1, "a2");
+    a.commit();
+    assertThat(cache.get("a")).isNull();
+}

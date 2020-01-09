@@ -1,0 +1,36 @@
+@Test
+public void timeoutReadingResponseWithEnqueue() throws Exception {
+    server.enqueue(new MockResponse().setBody(BIG_ENOUGH_BODY));
+    Request request = new Request.Builder().url(server.url("/")).build();
+    final CountDownLatch latch = new CountDownLatch(1);
+    final AtomicReference<Throwable> exceptionRef = new AtomicReference<>();
+    Call call = client.newCall(request);
+    call.timeout().timeout(250, TimeUnit.MILLISECONDS);
+    call.enqueue(new Callback() {
+
+        @Override
+        public void onFailure(Call call, IOException e) {
+            latch.countDown();
+        }
+
+        @Override
+        public void onResponse(Call call, Response response) throws IOException {
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                throw new AssertionError();
+            }
+            try {
+                response.body().source().readUtf8();
+                fail();
+            } catch (IOException e) {
+                exceptionRef.set(e);
+            } finally {
+                latch.countDown();
+            }
+        }
+    });
+    latch.await();
+    assertThat(call.isCanceled()).isTrue();
+    assertThat(exceptionRef.get()).isNotNull();
+}

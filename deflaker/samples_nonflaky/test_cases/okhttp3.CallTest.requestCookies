@@ -1,0 +1,10 @@
+@Test
+public void requestCookies() throws Exception {
+    server.enqueue(new MockResponse());
+    RecordingCookieJar cookieJar = new RecordingCookieJar();
+    cookieJar.enqueueRequestCookies(new Cookie.Builder().name("a").value("b").domain(server.getHostName()).build(), new Cookie.Builder().name("c").value("d").domain(server.getHostName()).build());
+    client = client.newBuilder().cookieJar(cookieJar).build();
+    executeSynchronously("/").assertCode(200);
+    RecordedRequest recordedRequest = server.takeRequest();
+    assertThat(recordedRequest.getHeader("Cookie")).isEqualTo("a=b; c=d");
+}

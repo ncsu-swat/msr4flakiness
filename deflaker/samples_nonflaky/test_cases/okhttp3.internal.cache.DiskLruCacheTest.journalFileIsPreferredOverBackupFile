@@ -1,0 +1,25 @@
+@Test
+public void journalFileIsPreferredOverBackupFile() throws Exception {
+    DiskLruCache.Editor creator = cache.edit("k1");
+    setString(creator, 0, "ABC");
+    setString(creator, 1, "DE");
+    creator.commit();
+    cache.flush();
+    copyFile(journalFile, journalBkpFile);
+    creator = cache.edit("k2");
+    setString(creator, 0, "F");
+    setString(creator, 1, "GH");
+    creator.commit();
+    cache.close();
+    assertThat(fileSystem.exists(journalFile)).isTrue();
+    assertThat(fileSystem.exists(journalBkpFile)).isTrue();
+    createNewCache();
+    DiskLruCache.Snapshot snapshotA = cache.get("k1");
+    assertSnapshotValue(snapshotA, 0, "ABC");
+    assertSnapshotValue(snapshotA, 1, "DE");
+    DiskLruCache.Snapshot snapshotB = cache.get("k2");
+    assertSnapshotValue(snapshotB, 0, "F");
+    assertSnapshotValue(snapshotB, 1, "GH");
+    assertThat(fileSystem.exists(journalBkpFile)).isFalse();
+    assertThat(fileSystem.exists(journalFile)).isTrue();
+}

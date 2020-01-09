@@ -1,0 +1,16 @@
+@Test
+public void duplexWith100Continue() throws Exception {
+    enableProtocol(Protocol.HTTP_2);
+    MockDuplexResponseBody mockDuplexResponseBody = enqueueResponseWithBody(new MockResponse().clearHeaders().setSocketPolicy(SocketPolicy.EXPECT_CONTINUE), new MockDuplexResponseBody().receiveRequest("request body\n").sendResponse("response body\n").exhaustRequest());
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).header("Expect", "100-continue").post(new AsyncRequestBody()).build());
+    try (Response response = call.execute()) {
+        BufferedSink requestBody = ((AsyncRequestBody) call.request().body()).takeSink();
+        requestBody.writeUtf8("request body\n");
+        requestBody.flush();
+        BufferedSource responseBody = response.body().source();
+        assertThat(responseBody.readUtf8Line()).isEqualTo("response body");
+        requestBody.close();
+        assertThat(responseBody.readUtf8Line()).isNull();
+    }
+    mockDuplexResponseBody.awaitSuccess();
+}

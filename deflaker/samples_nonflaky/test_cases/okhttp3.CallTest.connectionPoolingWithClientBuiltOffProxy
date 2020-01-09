@@ -1,0 +1,16 @@
+@Test
+public void connectionPoolingWithClientBuiltOffProxy() throws Exception {
+    client = new OkHttpClient.Builder().proxy(server.toProxyAddress()).build();
+    server.enqueue(new MockResponse().setBody("abc"));
+    server.enqueue(new MockResponse().setBody("def"));
+    server.enqueue(new MockResponse().setBody("ghi"));
+    client = client.newBuilder().build();
+    executeSynchronously("/a").assertBody("abc");
+    client = client.newBuilder().build();
+    executeSynchronously("/b").assertBody("def");
+    client = client.newBuilder().build();
+    executeSynchronously("/c").assertBody("ghi");
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(0);
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(1);
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(2);
+}

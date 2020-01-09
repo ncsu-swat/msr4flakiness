@@ -1,0 +1,11 @@
+// Don't disconnect after building a tunnel with CONNECT
+// http://code.google.com/p/android/issues/detail?id=37221
+@Test
+public void proxyWithConnectionClose() throws IOException {
+    server.useHttps(handshakeCertificates.sslSocketFactory(), true);
+    server.enqueue(new MockResponse().setSocketPolicy(UPGRADE_TO_SSL_AT_END).clearHeaders());
+    server.enqueue(new MockResponse().setBody("this response comes via a proxy"));
+    client = client.newBuilder().proxy(server.toProxyAddress()).sslSocketFactory(handshakeCertificates.sslSocketFactory(), handshakeCertificates.trustManager()).hostnameVerifier(new RecordingHostnameVerifier()).build();
+    Response response = getResponse(new Request.Builder().url("https://android.com/foo").header("Connection", "close").build());
+    assertContent("this response comes via a proxy", response);
+}

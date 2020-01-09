@@ -1,0 +1,18 @@
+@Test
+public void exceptionThrownByOnResponseIsRedactedAndLogged() throws Exception {
+    server.enqueue(new MockResponse());
+    Request request = new Request.Builder().url(server.url("/secret")).build();
+    client.newCall(request).enqueue(new Callback() {
+
+        @Override
+        public void onFailure(Call call, IOException e) {
+            fail();
+        }
+
+        @Override
+        public void onResponse(Call call, Response response) throws IOException {
+            throw new IOException("a");
+        }
+    });
+    assertThat(testLogHandler.take()).isEqualTo("INFO: Callback failure for call to " + server.url("/") + "...");
+}

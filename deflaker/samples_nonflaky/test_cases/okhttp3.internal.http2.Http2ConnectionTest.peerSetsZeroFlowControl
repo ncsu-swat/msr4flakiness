@@ -1,0 +1,48 @@
+/**
+ * Webservers may set the initial window size to zero, which is a special case because it means
+ * that we have to flush headers immediately before any request body can be sent.
+ * https://github.com/square/okhttp/issues/2543
+ */
+@Test
+public void peerSetsZeroFlowControl() throws Exception {
+    peer.setClient(true);
+    // Write the mocking script.
+    peer.sendFrame().settings(new Settings().set(INITIAL_WINDOW_SIZE, 0));
+    // ACK
+    peer.acceptFrame();
+    // Increase the connection window size.
+    peer.sendFrame().windowUpdate(0, 10);
+    // PING
+    peer.acceptFrame();
+    peer.sendFrame().ping(true, AWAIT_PING, 0);
+    // HEADERS STREAM 3
+    peer.acceptFrame();
+    peer.sendFrame().windowUpdate(3, 5);
+    // DATA STREAM 3 "abcde"
+    peer.acceptFrame();
+    peer.sendFrame().windowUpdate(3, 5);
+    // DATA STREAM 3 "fghi"
+    peer.acceptFrame();
+    peer.play();
+    // Play it back.
+    Http2Connection connection = connect(peer);
+    // Ensure the SETTINGS have been received.
+    connection.writePingAndAwaitPong();
+    Http2Stream stream = connection.newStream(headerEntries("a", "android"), true);
+    BufferedSink sink = Okio.buffer(stream.getSink());
+    sink.writeUtf8("abcdefghi");
+    sink.flush();
+    // Verify the peer received what was expected.
+    // PING
+    peer.takeFrame();
+    InFrame headers = peer.takeFrame();
+    assertThat(headers.type).isEqualTo(Http2.TYPE_HEADERS);
+    InFrame data1 = peer.takeFrame();
+    assertThat(data1.type).isEqualTo(Http2.TYPE_DATA);
+    assertThat(data1.streamId).isEqualTo(3);
+    assertArrayEquals("abcde".getBytes(UTF_8), data1.data);
+    InFrame data2 = peer.takeFrame();
+    assertThat(data2.type).isEqualTo(Http2.TYPE_DATA);
+    assertThat(data2.streamId).isEqualTo(3);
+    assertArrayEquals("fghi".getBytes(UTF_8), data2.data);
+}

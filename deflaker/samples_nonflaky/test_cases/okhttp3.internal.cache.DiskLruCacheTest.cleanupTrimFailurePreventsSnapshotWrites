@@ -1,0 +1,19 @@
+@Test
+public void cleanupTrimFailurePreventsSnapshotWrites() throws Exception {
+    cache.setMaxSize(8);
+    taskFaker.runNextTask();
+    set("a", "aa", "aa");
+    set("b", "bb", "bbb");
+    // Cause the cache trim job to fail.
+    fileSystem.setFaultyDelete(new File(cacheDir, "a.0"), true);
+    taskFaker.runNextTask();
+    // Confirm snapshot writes are prevented after a trim failure.
+    DiskLruCache.Snapshot snapshot1 = cache.get("a");
+    assertThat(snapshot1.edit()).isNull();
+    snapshot1.close();
+    DiskLruCache.Snapshot snapshot2 = cache.get("b");
+    assertThat(snapshot2.edit()).isNull();
+    snapshot2.close();
+    // Allow the test to clean up.
+    fileSystem.setFaultyDelete(new File(cacheDir, "a.0"), false);
+}

@@ -1,0 +1,10 @@
+@Test
+public void evictAll() throws Exception {
+    server.enqueue(new MockResponse().addHeader("Cache-Control: max-age=60").setBody("A"));
+    server.enqueue(new MockResponse().setBody("B"));
+    HttpUrl url = server.url("/");
+    assertThat(get(url).body().string()).isEqualTo("A");
+    client.cache().evictAll();
+    assertThat(client.cache().size()).isEqualTo(0);
+    assertThat(get(url).body().string()).isEqualTo("B");
+}

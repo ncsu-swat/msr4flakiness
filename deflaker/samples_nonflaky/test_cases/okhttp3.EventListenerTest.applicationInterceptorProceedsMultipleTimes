@@ -1,0 +1,17 @@
+@Test
+public void applicationInterceptorProceedsMultipleTimes() throws Exception {
+    server.enqueue(new MockResponse().setBody("a"));
+    server.enqueue(new MockResponse().setBody("b"));
+    client = client.newBuilder().addInterceptor(chain -> {
+        try (Response a = chain.proceed(chain.request())) {
+            assertThat(a.body().string()).isEqualTo("a");
+        }
+        return chain.proceed(chain.request());
+    }).build();
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).build());
+    Response response = call.execute();
+    assertThat(response.body().string()).isEqualTo("b");
+    assertThat(listener.recordedEventTypes()).containsExactly("CallStart", "ProxySelectStart", "ProxySelectEnd", "DnsStart", "DnsEnd", "ConnectStart", "ConnectEnd", "ConnectionAcquired", "RequestHeadersStart", "RequestHeadersEnd", "ResponseHeadersStart", "ResponseHeadersEnd", "ResponseBodyStart", "ResponseBodyEnd", "RequestHeadersStart", "RequestHeadersEnd", "ResponseHeadersStart", "ResponseHeadersEnd", "ResponseBodyStart", "ResponseBodyEnd", "ConnectionReleased", "CallEnd");
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(0);
+    assertThat(server.takeRequest().getSequenceNumber()).isEqualTo(1);
+}

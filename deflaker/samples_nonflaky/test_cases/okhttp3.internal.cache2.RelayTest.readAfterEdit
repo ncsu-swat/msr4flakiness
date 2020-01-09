@@ -1,0 +1,23 @@
+@Test
+public void readAfterEdit() throws Exception {
+    Buffer upstream = new Buffer();
+    upstream.writeUtf8("abcdefghij");
+    Relay relay1 = Relay.Companion.edit(file, upstream, metadata, 5);
+    BufferedSource source1 = Okio.buffer(relay1.newSource());
+    assertThat(source1.readUtf8(10)).isEqualTo("abcdefghij");
+    assertThat(source1.exhausted()).isTrue();
+    source1.close();
+    assertThat(relay1.isClosed()).isTrue();
+    // Since relay1 is closed, new sources cannot be created.
+    assertThat(relay1.newSource()).isNull();
+    Relay relay2 = Relay.Companion.read(file);
+    assertThat(relay2.metadata()).isEqualTo(metadata);
+    BufferedSource source2 = Okio.buffer(relay2.newSource());
+    assertThat(source2.readUtf8(10)).isEqualTo("abcdefghij");
+    assertThat(source2.exhausted()).isTrue();
+    source2.close();
+    assertThat(relay2.isClosed()).isTrue();
+    // Since relay2 is closed, new sources cannot be created.
+    assertThat(relay2.newSource()).isNull();
+    assertFile(Relay.PREFIX_CLEAN, 10L, metadata.size(), "abcdefghij", metadata);
+}

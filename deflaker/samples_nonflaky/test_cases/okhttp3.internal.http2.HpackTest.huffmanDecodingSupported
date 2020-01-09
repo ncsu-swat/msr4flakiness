@@ -1,0 +1,15 @@
+@Test
+public void huffmanDecodingSupported() throws IOException {
+    // == Literal indexed ==
+    bytesIn.writeByte(0x44);
+    // Indexed name (idx = 4) -> :path
+    // Literal value Huffman encoded 12 bytes
+    bytesIn.writeByte(0x8c);
+    // decodes to www.example.com which is length 15
+    bytesIn.write(decodeHex("f1e3c2e5f23a6ba0ab90f4ff"));
+    hpackReader.readHeaders();
+    assertThat(hpackReader.headerCount).isEqualTo(1);
+    assertThat(hpackReader.dynamicTableByteCount).isEqualTo(52);
+    Header entry = hpackReader.dynamicTable[readerHeaderTableLength() - 1];
+    checkEntry(entry, ":path", "www.example.com", 52);
+}

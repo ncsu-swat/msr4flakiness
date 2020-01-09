@@ -1,0 +1,14 @@
+/**
+ * Make a request with two routes. The first route will time out because it's connecting to a
+ * special address that never connects. The automatic retry will succeed.
+ */
+@Test
+public void connectTimeoutsAttemptsAlternateRoute() throws Exception {
+    RecordingProxySelector proxySelector = new RecordingProxySelector();
+    proxySelector.proxies.add(new Proxy(Proxy.Type.HTTP, TestUtil.UNREACHABLE_ADDRESS));
+    proxySelector.proxies.add(server.toProxyAddress());
+    server.enqueue(new MockResponse().setBody("success!"));
+    client = client.newBuilder().proxySelector(proxySelector).readTimeout(100, TimeUnit.MILLISECONDS).connectTimeout(100, TimeUnit.MILLISECONDS).build();
+    Request request = new Request.Builder().url("http://android.com/").build();
+    executeSynchronously(request).assertCode(200).assertBody("success!");
+}

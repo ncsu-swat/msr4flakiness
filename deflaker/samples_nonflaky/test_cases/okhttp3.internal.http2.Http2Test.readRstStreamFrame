@@ -1,0 +1,16 @@
+@Test
+public void readRstStreamFrame() throws IOException {
+    writeMedium(frame, 4);
+    frame.writeByte(Http2.TYPE_RST_STREAM);
+    frame.writeByte(Http2.FLAG_NONE);
+    frame.writeInt(expectedStreamId & 0x7fffffff);
+    frame.writeInt(ErrorCode.PROTOCOL_ERROR.getHttpCode());
+    reader.nextFrame(false, new BaseTestHandler() {
+
+        @Override
+        public void rstStream(int streamId, ErrorCode errorCode) {
+            assertThat(streamId).isEqualTo(expectedStreamId);
+            assertThat(errorCode).isEqualTo(ErrorCode.PROTOCOL_ERROR);
+        }
+    });
+}

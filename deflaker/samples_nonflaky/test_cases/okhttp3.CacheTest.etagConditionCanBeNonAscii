@@ -1,0 +1,11 @@
+@Test
+public void etagConditionCanBeNonAscii() throws Exception {
+    server.enqueue(new MockResponse().addHeaderLenient("Etag", "α").addHeader("Cache-Control: max-age=0").setBody("abcd"));
+    server.enqueue(new MockResponse().setResponseCode(HttpURLConnection.HTTP_NOT_MODIFIED));
+    Response response1 = get(server.url("/"));
+    assertThat(response1.body().string()).isEqualTo("abcd");
+    Response response2 = get(server.url("/"));
+    assertThat(response2.body().string()).isEqualTo("abcd");
+    assertThat(server.takeRequest().getHeader("If-None-Match")).isNull();
+    assertThat(server.takeRequest().getHeader("If-None-Match")).isEqualTo("α");
+}

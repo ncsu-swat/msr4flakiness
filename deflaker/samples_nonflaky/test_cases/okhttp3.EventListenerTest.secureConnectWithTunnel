@@ -1,0 +1,16 @@
+@Test
+public void secureConnectWithTunnel() throws IOException {
+    enableTlsWithTunnel(true);
+    server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.UPGRADE_TO_SSL_AT_END));
+    server.enqueue(new MockResponse());
+    client = client.newBuilder().proxy(server.toProxyAddress()).build();
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).build());
+    Response response = call.execute();
+    assertThat(response.code()).isEqualTo(200);
+    response.body().close();
+    SecureConnectStart secureStart = listener.removeUpToEvent(SecureConnectStart.class);
+    assertThat(secureStart.getCall()).isSameAs(call);
+    SecureConnectEnd secureEnd = listener.removeUpToEvent(SecureConnectEnd.class);
+    assertThat(secureEnd.getCall()).isSameAs(call);
+    assertThat(secureEnd.getHandshake()).isNotNull();
+}

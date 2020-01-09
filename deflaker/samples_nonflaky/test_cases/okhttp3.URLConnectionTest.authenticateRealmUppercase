@@ -1,0 +1,12 @@
+/**
+ * https://github.com/square/okhttp/issues/342
+ */
+@Test
+public void authenticateRealmUppercase() throws Exception {
+    server.enqueue(new MockResponse().setResponseCode(401).addHeader("wWw-aUtHeNtIcAtE: bAsIc rEaLm=\"pRoTeCtEd aReA\"").setBody("Please authenticate."));
+    server.enqueue(new MockResponse().setBody("Successful auth!"));
+    Authenticator.setDefault(new RecordingAuthenticator());
+    client = client.newBuilder().authenticator(new JavaNetAuthenticator()).build();
+    Response response = getResponse(newRequest("/"));
+    assertThat(readAscii(response.body().byteStream(), Integer.MAX_VALUE)).isEqualTo("Successful auth!");
+}

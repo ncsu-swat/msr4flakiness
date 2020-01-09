@@ -1,0 +1,15 @@
+@Test
+public void multipleSecureConnectsForSingleCall() throws IOException {
+    enableTlsWithTunnel(false);
+    server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.FAIL_HANDSHAKE));
+    server.enqueue(new MockResponse());
+    client = client.newBuilder().dns(new DoubleInetAddressDns()).build();
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).build());
+    Response response = call.execute();
+    assertThat(response.code()).isEqualTo(200);
+    response.body().close();
+    listener.removeUpToEvent(SecureConnectStart.class);
+    listener.removeUpToEvent(ConnectFailed.class);
+    listener.removeUpToEvent(SecureConnectStart.class);
+    listener.removeUpToEvent(SecureConnectEnd.class);
+}

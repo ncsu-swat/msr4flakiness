@@ -1,0 +1,13 @@
+@Test
+public void addParsing() {
+    Headers headers = new Headers.Builder().add("foo: bar").add(// Name leading whitespace is trimmed.
+    " foo: baz").add(// Name trailing whitespace is trimmed.
+    "foo : bak").add(// '\t' also counts as whitespace
+    "\tkey\t:\tvalue\t").add(// Value whitespace is trimmed.
+    "ping:  pong  ").add(// Space after colon is not required.
+    "kit:kat").build();
+    assertThat(headers.values("foo")).containsExactly("bar", "baz", "bak");
+    assertThat(headers.values("key")).containsExactly("value");
+    assertThat(headers.values("ping")).containsExactly("pong");
+    assertThat(headers.values("kit")).containsExactly("kat");
+}

@@ -1,0 +1,11 @@
+@Test
+public void clientConfiguredGzipContentEncoding() throws Exception {
+    Buffer bodyBytes = gzip("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+    server.enqueue(new MockResponse().setBody(bodyBytes).addHeader("Content-Encoding: gzip"));
+    Response response = getResponse(new Request.Builder().url(server.url("/")).header("Accept-Encoding", "gzip").build());
+    InputStream gunzippedIn = new GZIPInputStream(response.body().byteStream());
+    assertThat(readAscii(gunzippedIn, Integer.MAX_VALUE)).isEqualTo("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+    assertThat(response.body().contentLength()).isEqualTo(bodyBytes.size());
+    RecordedRequest request = server.takeRequest();
+    assertThat(request.getHeader("Accept-Encoding")).isEqualTo("gzip");
+}

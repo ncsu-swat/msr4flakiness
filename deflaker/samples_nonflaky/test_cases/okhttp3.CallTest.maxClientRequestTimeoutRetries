@@ -1,0 +1,10 @@
+@Test
+public void maxClientRequestTimeoutRetries() throws IOException {
+    server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_END).setResponseCode(408).setHeader("Connection", "Close").setBody("You took too long!"));
+    server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_END).setResponseCode(408).setHeader("Connection", "Close").setBody("You took too long!"));
+    Request request = new Request.Builder().url(server.url("/")).build();
+    Response response = client.newCall(request).execute();
+    assertThat(response.code()).isEqualTo(408);
+    assertThat(response.body().string()).isEqualTo("You took too long!");
+    assertThat(server.getRequestCount()).isEqualTo(2);
+}

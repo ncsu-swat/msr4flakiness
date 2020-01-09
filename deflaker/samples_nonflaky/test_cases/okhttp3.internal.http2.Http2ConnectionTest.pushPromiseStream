@@ -1,0 +1,25 @@
+@Test
+public void pushPromiseStream() throws Exception {
+    // write the mocking script
+    peer.sendFrame().settings(new Settings());
+    // ACK
+    peer.acceptFrame();
+    // SYN_STREAM
+    peer.acceptFrame();
+    peer.sendFrame().headers(false, 3, headerEntries("a", "android"));
+    final List<Header> expectedRequestHeaders = asList(new Header(Header.TARGET_METHOD, "GET"), new Header(Header.TARGET_SCHEME, "https"), new Header(Header.TARGET_AUTHORITY, "squareup.com"), new Header(Header.TARGET_PATH, "/cached"));
+    peer.sendFrame().pushPromise(3, 2, expectedRequestHeaders);
+    final List<Header> expectedResponseHeaders = asList(new Header(Header.RESPONSE_STATUS, "200"));
+    peer.sendFrame().headers(true, 2, expectedResponseHeaders);
+    peer.sendFrame().data(true, 3, data(0), 0);
+    peer.play();
+    RecordingPushObserver observer = new RecordingPushObserver();
+    // play it back
+    Http2Connection connection = connect(peer, observer, REFUSE_INCOMING_STREAMS);
+    Http2Stream client = connection.newStream(headerEntries("b", "banana"), false);
+    assertThat(client.getSource().read(new Buffer(), 1)).isEqualTo(-1);
+    // verify the peer received what was expected
+    assertThat(peer.takeFrame().type).isEqualTo(Http2.TYPE_HEADERS);
+    assertThat(observer.takeEvent()).isEqualTo(expectedRequestHeaders);
+    assertThat(observer.takeEvent()).isEqualTo(expectedResponseHeaders);
+}

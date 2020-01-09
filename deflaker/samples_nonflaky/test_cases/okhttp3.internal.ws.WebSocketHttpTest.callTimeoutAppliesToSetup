@@ -1,0 +1,7 @@
+@Test
+public void callTimeoutAppliesToSetup() throws Exception {
+    webServer.enqueue(new MockResponse().setHeadersDelay(500, TimeUnit.MILLISECONDS));
+    client = client.newBuilder().readTimeout(0, TimeUnit.MILLISECONDS).writeTimeout(0, TimeUnit.MILLISECONDS).callTimeout(100, TimeUnit.MILLISECONDS).build();
+    newWebSocket();
+    clientListener.assertFailure(InterruptedIOException.class, "timeout");
+}

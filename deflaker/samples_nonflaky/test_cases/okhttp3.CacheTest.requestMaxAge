@@ -1,0 +1,9 @@
+@Test
+public void requestMaxAge() throws IOException {
+    server.enqueue(new MockResponse().setBody("A").addHeader("Last-Modified: " + formatDate(-2, TimeUnit.HOURS)).addHeader("Date: " + formatDate(-1, TimeUnit.MINUTES)).addHeader("Expires: " + formatDate(1, TimeUnit.HOURS)));
+    server.enqueue(new MockResponse().setBody("B"));
+    assertThat(get(server.url("/")).body().string()).isEqualTo("A");
+    Request request = new Request.Builder().url(server.url("/")).header("Cache-Control", "max-age=30").build();
+    Response response = client.newCall(request).execute();
+    assertThat(response.body().string()).isEqualTo("B");
+}

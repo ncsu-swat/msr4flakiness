@@ -1,0 +1,23 @@
+@Test
+public void preemptiveThenReactiveProxyAuthentication() throws Exception {
+    server.useHttps(handshakeCertificates.sslSocketFactory(), true);
+    server.enqueue(new MockResponse().setResponseCode(HttpURLConnection.HTTP_PROXY_AUTH).addHeader("Proxy-Authenticate", "Basic realm=\"localhost\"").setBody("proxy auth required"));
+    server.enqueue(new MockResponse().setSocketPolicy(SocketPolicy.UPGRADE_TO_SSL_AT_END).clearHeaders());
+    server.enqueue(new MockResponse());
+    final List<String> challengeSchemes = new ArrayList<>();
+    final String credential = Credentials.basic("jesse", "password1");
+    client = client.newBuilder().sslSocketFactory(handshakeCertificates.sslSocketFactory(), handshakeCertificates.trustManager()).proxy(server.toProxyAddress()).hostnameVerifier(new RecordingHostnameVerifier()).proxyAuthenticator((route, response) -> {
+        List<Challenge> challenges = response.challenges();
+        challengeSchemes.add(challenges.get(0).scheme());
+        return response.request().newBuilder().header("Proxy-Authorization", credential).build();
+    }).build();
+    Request request = new Request.Builder().url("https://android.com/foo").build();
+    executeSynchronously(request).assertSuccessful();
+    RecordedRequest connect1 = server.takeRequest();
+    assertThat(connect1.getMethod()).isEqualTo("CONNECT");
+    assertThat(connect1.getHeader("Proxy-Authorization")).isEqualTo(credential);
+    RecordedRequest connect2 = server.takeRequest();
+    assertThat(connect2.getMethod()).isEqualTo("CONNECT");
+    assertThat(connect2.getHeader("Proxy-Authorization")).isEqualTo(credential);
+    assertThat(challengeSchemes).containsExactly("OkHttp-Preemptive", "Basic");
+}

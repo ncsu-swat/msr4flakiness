@@ -1,0 +1,12 @@
+@Test
+public void varyMultipleFieldsWithMatch() throws Exception {
+    server.enqueue(new MockResponse().addHeader("Cache-Control: max-age=60").addHeader("Vary: Accept-Language, Accept-Charset").addHeader("Vary: Accept-Encoding").setBody("A"));
+    server.enqueue(new MockResponse().setBody("B"));
+    HttpUrl url = server.url("/");
+    Request request = new Request.Builder().url(url).header("Accept-Language", "fr-CA").header("Accept-Charset", "UTF-8").header("Accept-Encoding", "identity").build();
+    Response response1 = client.newCall(request).execute();
+    assertThat(response1.body().string()).isEqualTo("A");
+    Request request1 = new Request.Builder().url(url).header("Accept-Language", "fr-CA").header("Accept-Charset", "UTF-8").header("Accept-Encoding", "identity").build();
+    Response response2 = client.newCall(request1).execute();
+    assertThat(response2.body().string()).isEqualTo("A");
+}

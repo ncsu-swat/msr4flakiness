@@ -1,0 +1,12 @@
+/**
+ * We had a bug where we were passing a null route to the authenticator.
+ * https://github.com/square/okhttp/issues/3809
+ */
+@Test
+public void authenticateWithNoConnection() throws Exception {
+    server.enqueue(new MockResponse().addHeader("Connection: close").setResponseCode(401).setSocketPolicy(SocketPolicy.DISCONNECT_AT_END));
+    RecordingOkAuthenticator authenticator = new RecordingOkAuthenticator(null, null);
+    client = client.newBuilder().authenticator(authenticator).build();
+    executeSynchronously("/").assertCode(401);
+    assertThat(authenticator.onlyRoute()).isNotNull();
+}

@@ -1,0 +1,10 @@
+@Test
+public void unspecifiedRequestBodyContentTypeDoesNotGetDefault() throws Exception {
+    server.enqueue(new MockResponse());
+    Request request = new Request.Builder().url(server.url("/")).method("POST", RequestBody.create("abc", null)).build();
+    executeSynchronously(request).assertCode(200);
+    RecordedRequest recordedRequest = server.takeRequest();
+    assertThat(recordedRequest.getHeader("Content-Type")).isNull();
+    assertThat(recordedRequest.getHeader("Content-Length")).isEqualTo("3");
+    assertThat(recordedRequest.getBody().readUtf8()).isEqualTo("abc");
+}

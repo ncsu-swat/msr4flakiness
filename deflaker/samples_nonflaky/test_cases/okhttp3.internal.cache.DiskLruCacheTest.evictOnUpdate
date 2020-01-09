@@ -1,0 +1,19 @@
+@Test
+public void evictOnUpdate() throws Exception {
+    cache.close();
+    createNewCacheWithSize(10);
+    // size 3
+    set("a", "a", "aa");
+    // size 3
+    set("b", "b", "bb");
+    // size 3
+    set("c", "c", "cc");
+    assertThat(cache.size()).isEqualTo(9);
+    // Causing the size to grow to 11 should evict 'A'.
+    set("b", "b", "bbbb");
+    cache.flush();
+    assertThat(cache.size()).isEqualTo(8);
+    assertAbsent("a");
+    assertValue("b", "b", "bbbb");
+    assertValue("c", "c", "cc");
+}

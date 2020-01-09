@@ -1,0 +1,27 @@
+@Test
+public void headers() throws Exception {
+    // write the mocking script
+    peer.sendFrame().settings(new Settings());
+    // ACK
+    peer.acceptFrame();
+    // SYN_STREAM
+    peer.acceptFrame();
+    // PING
+    peer.acceptFrame();
+    peer.sendFrame().headers(false, 3, headerEntries("a", "android"));
+    peer.sendFrame().headers(false, 3, headerEntries("c", "c3po"));
+    peer.sendFrame().ping(true, AWAIT_PING, 0);
+    peer.play();
+    // play it back
+    Http2Connection connection = connect(peer);
+    Http2Stream stream = connection.newStream(headerEntries("b", "banana"), true);
+    // Ensure that the HEADERS has been received.
+    connection.writePingAndAwaitPong();
+    assertThat(stream.takeHeaders()).isEqualTo(Headers.of("a", "android"));
+    assertThat(stream.takeHeaders()).isEqualTo(Headers.of("c", "c3po"));
+    // verify the peer received what was expected
+    InFrame synStream = peer.takeFrame();
+    assertThat(synStream.type).isEqualTo(Http2.TYPE_HEADERS);
+    InFrame ping = peer.takeFrame();
+    assertThat(ping.type).isEqualTo(Http2.TYPE_PING);
+}

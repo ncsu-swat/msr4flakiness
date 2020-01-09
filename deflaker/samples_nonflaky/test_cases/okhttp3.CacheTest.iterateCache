@@ -1,0 +1,28 @@
+@Test
+public void iterateCache() throws Exception {
+    // Put some responses in the cache.
+    server.enqueue(new MockResponse().setBody("a"));
+    HttpUrl urlA = server.url("/a");
+    assertThat(get(urlA).body().string()).isEqualTo("a");
+    server.enqueue(new MockResponse().setBody("b"));
+    HttpUrl urlB = server.url("/b");
+    assertThat(get(urlB).body().string()).isEqualTo("b");
+    server.enqueue(new MockResponse().setBody("c"));
+    HttpUrl urlC = server.url("/c");
+    assertThat(get(urlC).body().string()).isEqualTo("c");
+    // Confirm the iterator returns those responses...
+    Iterator<String> i = cache.urls();
+    assertThat(i.hasNext()).isTrue();
+    assertThat(i.next()).isEqualTo(urlA.toString());
+    assertThat(i.hasNext()).isTrue();
+    assertThat(i.next()).isEqualTo(urlB.toString());
+    assertThat(i.hasNext()).isTrue();
+    assertThat(i.next()).isEqualTo(urlC.toString());
+    // ... and nothing else.
+    assertThat(i.hasNext()).isFalse();
+    try {
+        i.next();
+        fail();
+    } catch (NoSuchElementException expected) {
+    }
+}

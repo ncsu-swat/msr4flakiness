@@ -1,0 +1,12 @@
+@Test
+public void readTimeoutDoesNotApplyAcrossFrames() throws Exception {
+    webServer.enqueue(new MockResponse().withWebSocketUpgrade(serverListener));
+    WebSocket webSocket = newWebSocket();
+    clientListener.assertOpen();
+    WebSocket server = serverListener.assertOpen();
+    // Sleep longer than the HTTP client's read timeout.
+    Thread.sleep(client.readTimeoutMillis() + 500);
+    server.send("abc");
+    clientListener.assertTextMessage("abc");
+    closeWebSockets(webSocket, server);
+}

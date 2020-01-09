@@ -1,0 +1,22 @@
+@Test
+public void postBodyRetransmittedAfterAuthorizationFail() throws Exception {
+    postBodyRetransmittedAfterAuthorizationFail("abc");
+}
+private void postBodyRetransmittedAfterAuthorizationFail(String body) throws Exception {
+    server.enqueue(new MockResponse().setResponseCode(401));
+    server.enqueue(new MockResponse());
+    Request request = new Request.Builder().url(server.url("/")).method("POST", RequestBody.create(body, null)).build();
+    String credential = Credentials.basic("jesse", "secret");
+    client = client.newBuilder().authenticator(new RecordingOkAuthenticator(credential, null)).build();
+    Response response = client.newCall(request).execute();
+    assertThat(response.code()).isEqualTo(200);
+    response.body().close();
+    RecordedRequest recordedRequest1 = server.takeRequest();
+    assertThat(recordedRequest1.getMethod()).isEqualTo("POST");
+    assertThat(recordedRequest1.getBody().readUtf8()).isEqualTo(body);
+    assertThat(recordedRequest1.getHeader("Authorization")).isNull();
+    RecordedRequest recordedRequest2 = server.takeRequest();
+    assertThat(recordedRequest2.getMethod()).isEqualTo("POST");
+    assertThat(recordedRequest2.getBody().readUtf8()).isEqualTo(body);
+    assertThat(recordedRequest2.getHeader("Authorization")).isEqualTo(credential);
+}

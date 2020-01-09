@@ -1,0 +1,28 @@
+@Test
+public void serverClosesClientInputStream() throws Exception {
+    // write the mocking script
+    peer.sendFrame().settings(new Settings());
+    // ACK
+    peer.acceptFrame();
+    // SYN_STREAM
+    peer.acceptFrame();
+    peer.sendFrame().headers(false, 3, headerEntries("b", "banana"));
+    peer.sendFrame().data(true, 3, new Buffer().writeUtf8("square"), 6);
+    // PING
+    peer.acceptFrame();
+    peer.sendFrame().ping(true, AWAIT_PING, 0);
+    peer.play();
+    // play it back
+    Http2Connection connection = connect(peer);
+    Http2Stream stream = connection.newStream(headerEntries("a", "android"), false);
+    Source source = stream.getSource();
+    assertStreamData("square", source);
+    // Ensure that inFinished has been received.
+    connection.writePingAndAwaitPong();
+    assertThat(connection.openStreamCount()).isEqualTo(0);
+    // verify the peer received what was expected
+    InFrame synStream = peer.takeFrame();
+    assertThat(synStream.type).isEqualTo(Http2.TYPE_HEADERS);
+    assertThat(synStream.inFinished).isTrue();
+    assertThat(synStream.outFinished).isFalse();
+}

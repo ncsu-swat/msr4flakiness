@@ -1,0 +1,18 @@
+@Test
+public void pooledConnectionFound() throws IOException {
+    server.enqueue(new MockResponse());
+    server.enqueue(new MockResponse());
+    // Seed the pool.
+    Call call1 = client.newCall(new Request.Builder().url(server.url("/")).build());
+    Response response1 = call1.execute();
+    assertThat(response1.code()).isEqualTo(200);
+    response1.body().close();
+    ConnectionAcquired connectionAcquired1 = listener.removeUpToEvent(ConnectionAcquired.class);
+    listener.clearAllEvents();
+    Call call2 = client.newCall(new Request.Builder().url(server.url("/")).build());
+    Response response2 = call2.execute();
+    assertThat(response2.code()).isEqualTo(200);
+    response2.body().close();
+    ConnectionAcquired connectionAcquired2 = listener.removeUpToEvent(ConnectionAcquired.class);
+    assertThat(connectionAcquired2.getConnection()).isSameAs(connectionAcquired1.getConnection());
+}

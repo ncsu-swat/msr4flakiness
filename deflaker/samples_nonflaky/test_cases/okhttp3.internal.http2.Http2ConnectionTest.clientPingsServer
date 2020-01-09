@@ -1,0 +1,26 @@
+@Test
+public void clientPingsServer() throws Exception {
+    // write the mocking script
+    peer.sendFrame().settings(new Settings());
+    // ACK
+    peer.acceptFrame();
+    // PING
+    peer.acceptFrame();
+    peer.sendFrame().ping(true, AWAIT_PING, 5);
+    peer.play();
+    // play it back
+    Http2Connection connection = connect(peer);
+    long pingAtNanos = System.nanoTime();
+    connection.writePingAndAwaitPong();
+    long elapsedNanos = System.nanoTime() - pingAtNanos;
+    assertThat(elapsedNanos).isGreaterThan(0L);
+    assertThat(elapsedNanos).isLessThan(TimeUnit.SECONDS.toNanos(1));
+    // verify the peer received what was expected
+    InFrame pingFrame = peer.takeFrame();
+    assertThat(pingFrame.type).isEqualTo(Http2.TYPE_PING);
+    assertThat(pingFrame.streamId).isEqualTo(0);
+    assertThat(pingFrame.payload1).isEqualTo(AWAIT_PING);
+    // OKok.
+    assertThat(pingFrame.payload2).isEqualTo(0x4f4b6f6b);
+    assertThat(pingFrame.ack).isFalse();
+}

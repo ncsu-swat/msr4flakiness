@@ -1,0 +1,8 @@
+@Test
+public void emptyResponseBodyConnectionClose() throws IOException {
+    server.enqueue(new MockResponse().addHeader("Connection", "close").setBody(""));
+    Call call = client.newCall(new Request.Builder().url(server.url("/")).build());
+    Response response = call.execute();
+    response.body().close();
+    assertThat(listener.recordedEventTypes()).containsExactly("CallStart", "ProxySelectStart", "ProxySelectEnd", "DnsStart", "DnsEnd", "ConnectStart", "ConnectEnd", "ConnectionAcquired", "RequestHeadersStart", "RequestHeadersEnd", "ResponseHeadersStart", "ResponseHeadersEnd", "ResponseBodyStart", "ResponseBodyEnd", "ConnectionReleased", "CallEnd");
+}

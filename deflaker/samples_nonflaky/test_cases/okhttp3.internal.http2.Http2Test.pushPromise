@@ -1,0 +1,35 @@
+@Override
+public void pushPromise(int streamId, int promisedStreamId, List<Header> headerBlock) {
+    assertThat(streamId).isEqualTo(expectedStreamId);
+    assertThat(promisedStreamId).isEqualTo(expectedPromisedStreamId);
+    assertThat(headerBlock).isEqualTo(pushPromise);
+}
+@Test
+public void pushPromise() throws IOException {
+    final int expectedPromisedStreamId = 11;
+    final List<Header> pushPromise = asList(new Header(Header.TARGET_METHOD, "GET"), new Header(Header.TARGET_SCHEME, "https"), new Header(Header.TARGET_AUTHORITY, "squareup.com"), new Header(Header.TARGET_PATH, "/"));
+    // Write the push promise frame, specifying the associated stream ID.
+    Buffer headerBytes = literalHeaders(pushPromise);
+    writeMedium(frame, (int) (headerBytes.size() + 4));
+    frame.writeByte(Http2.TYPE_PUSH_PROMISE);
+    frame.writeByte(Http2.FLAG_END_PUSH_PROMISE);
+    frame.writeInt(expectedStreamId & 0x7fffffff);
+    frame.writeInt(expectedPromisedStreamId & 0x7fffffff);
+    frame.writeAll(headerBytes);
+    assertThat(sendPushPromiseFrames(expectedPromisedStreamId, pushPromise)).isEqualTo(frame);
+    reader.nextFrame(false, new BaseTestHandler() {
+
+        @Override
+        public void pushPromise(int streamId, int promisedStreamId, List<Header> headerBlock) {
+            assertThat(streamId).isEqualTo(expectedStreamId);
+            assertThat(promisedStreamId).isEqualTo(expectedPromisedStreamId);
+            assertThat(headerBlock).isEqualTo(pushPromise);
+        }
+    });
+}
+@Override
+public void pushPromise(int streamId, int promisedStreamId, List<Header> headerBlock) {
+    assertThat(streamId).isEqualTo(expectedStreamId);
+    assertThat(promisedStreamId).isEqualTo(expectedPromisedStreamId);
+    assertThat(headerBlock).isEqualTo(pushPromise);
+}

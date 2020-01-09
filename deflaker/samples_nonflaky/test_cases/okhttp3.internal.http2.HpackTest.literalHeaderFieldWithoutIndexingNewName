@@ -1,0 +1,15 @@
+@Test
+public void literalHeaderFieldWithoutIndexingNewName() throws IOException {
+    List<Header> headerBlock = headerEntries("custom-key", "custom-header");
+    // Not indexed
+    bytesIn.writeByte(0x00);
+    // Literal name (len = 10)
+    bytesIn.writeByte(0x0a);
+    bytesIn.writeUtf8("custom-key");
+    // Literal value (len = 13)
+    bytesIn.writeByte(0x0d);
+    bytesIn.writeUtf8("custom-header");
+    hpackReader.readHeaders();
+    assertThat(hpackReader.headerCount).isEqualTo(0);
+    assertThat(hpackReader.getAndResetHeaderList()).isEqualTo(headerBlock);
+}

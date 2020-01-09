@@ -1,0 +1,28 @@
+/**
+ * When writing a set of headers fails due to an {@code IOException}, make sure the writer is left
+ * in a consistent state so the next writer also gets an {@code IOException} also instead of
+ * something worse (like an {@link IllegalStateException}.
+ *
+ * <p>See https://github.com/square/okhttp/issues/1651
+ */
+@Test
+public void socketExceptionWhileWritingHeaders() throws Exception {
+    // SYN_STREAM.
+    peer.acceptFrame();
+    peer.play();
+    String longString = repeat('a', Http2.INITIAL_MAX_FRAME_SIZE + 1);
+    Socket socket = peer.openSocket();
+    Http2Connection connection = new Http2Connection.Builder(true, TaskRunner.INSTANCE).socket(socket).pushObserver(IGNORE).build();
+    connection.start(false);
+    socket.shutdownOutput();
+    try {
+        connection.newStream(headerEntries("a", longString), false);
+        fail();
+    } catch (IOException expected) {
+    }
+    try {
+        connection.newStream(headerEntries("b", longString), false);
+        fail();
+    } catch (IOException expected) {
+    }
+}

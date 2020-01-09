@@ -1,0 +1,11 @@
+@Test
+public void clientSideNoStore() throws Exception {
+    server.enqueue(new MockResponse().addHeader("Cache-Control: max-age=60").setBody("A"));
+    server.enqueue(new MockResponse().addHeader("Cache-Control: max-age=60").setBody("B"));
+    Request request1 = new Request.Builder().url(server.url("/")).cacheControl(new CacheControl.Builder().noStore().build()).build();
+    Response response1 = client.newCall(request1).execute();
+    assertThat(response1.body().string()).isEqualTo("A");
+    Request request2 = new Request.Builder().url(server.url("/")).build();
+    Response response2 = client.newCall(request2).execute();
+    assertThat(response2.body().string()).isEqualTo("B");
+}

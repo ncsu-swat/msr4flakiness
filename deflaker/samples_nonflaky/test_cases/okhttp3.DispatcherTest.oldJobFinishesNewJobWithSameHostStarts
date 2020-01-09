@@ -1,0 +1,11 @@
+@Test
+public void oldJobFinishesNewJobWithSameHostStarts() throws Exception {
+    dispatcher.setMaxRequests(2);
+    dispatcher.setMaxRequestsPerHost(1);
+    client.newCall(newRequest("http://a/1")).enqueue(callback);
+    client.newCall(newRequest("http://b/1")).enqueue(callback);
+    client.newCall(newRequest("http://b/2")).enqueue(callback);
+    client.newCall(newRequest("http://a/2")).enqueue(callback);
+    executor.finishJob("http://a/1");
+    executor.assertJobs("http://b/1", "http://a/2");
+}

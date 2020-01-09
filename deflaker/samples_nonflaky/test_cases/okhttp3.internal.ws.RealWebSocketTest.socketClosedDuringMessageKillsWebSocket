@@ -1,0 +1,9 @@
+@Test
+public void socketClosedDuringMessageKillsWebSocket() throws IOException {
+    client2Server.source().close();
+    assertThat(client.webSocket.send("Hello!")).isTrue();
+    client.listener.assertFailure(IOException.class, "source is closed");
+    // A failed write prevents further use of the WebSocket instance.
+    assertThat(client.webSocket.send("Hello!")).isFalse();
+    assertThat(client.webSocket.pong(ByteString.encodeUtf8("Ping!"))).isFalse();
+}

@@ -1,0 +1,11 @@
+@Test
+public void evictAllDoesntInterruptPartialRead() throws Exception {
+    set("a", "a", "a");
+    DiskLruCache.Snapshot a = cache.get("a");
+    assertSnapshotValue(a, 0, "a");
+    cache.evictAll();
+    assertThat(cache.size()).isEqualTo(0);
+    assertAbsent("a");
+    assertSnapshotValue(a, 1, "a");
+    a.close();
+}

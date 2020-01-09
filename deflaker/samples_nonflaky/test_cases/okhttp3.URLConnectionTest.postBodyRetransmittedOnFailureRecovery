@@ -1,0 +1,18 @@
+@Test
+public void postBodyRetransmittedOnFailureRecovery() throws Exception {
+    server.enqueue(new MockResponse().setBody("abc"));
+    server.enqueue(new MockResponse().setSocketPolicy(DISCONNECT_AFTER_REQUEST));
+    server.enqueue(new MockResponse().setBody("def"));
+    // Seed the connection pool so we have something that can fail.
+    assertContent("abc", getResponse(newRequest("/")));
+    Response post = getResponse(new Request.Builder().url(server.url("/")).post(RequestBody.create("body!", null)).build());
+    assertContent("def", post);
+    RecordedRequest get = server.takeRequest();
+    assertThat(get.getSequenceNumber()).isEqualTo(0);
+    RecordedRequest post1 = server.takeRequest();
+    assertThat(post1.getBody().readUtf8()).isEqualTo("body!");
+    assertThat(post1.getSequenceNumber()).isEqualTo(1);
+    RecordedRequest post2 = server.takeRequest();
+    assertThat(post2.getBody().readUtf8()).isEqualTo("body!");
+    assertThat(post2.getSequenceNumber()).isEqualTo(0);
+}

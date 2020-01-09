@@ -1,0 +1,11 @@
+@Test
+public void emptyCloseInitiatesShutdown() throws IOException {
+    // Close without code.
+    server.getSink().write(ByteString.decodeHex("8800")).emit();
+    client.processNextFrame();
+    client.listener.assertClosing(1005, "");
+    assertThat(client.webSocket.close(1000, "Bye!")).isTrue();
+    server.processNextFrame();
+    server.listener.assertClosing(1000, "Bye!");
+    client.listener.assertClosed(1005, "");
+}
