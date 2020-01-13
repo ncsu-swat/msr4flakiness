@@ -1,0 +1,21 @@
+#!/bin/bash
+
+function genReport() {
+    for x in `find . -name "surefire-reports"`
+    do
+        for y in `ls $x/*.xml`
+        do
+            python parse.py $y
+        done
+    done
+}
+
+# mvn -Drat.skip=true install
+# mvn dependency:go-offline -Dlicense.skip=true
+
+for x in {2..100}
+do
+    mvn clean 
+    mvn test -Dlicense.skip=true -Dmaven.test.failure.ignore=true
+    genReport &> run${x}.log
+done
