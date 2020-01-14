@@ -49,7 +49,8 @@ def consolidate_results(project):
             c_skip = all_results[tc]["skip"] if "skip" in all_results[tc] else 0
             c_total = c_pass + c_fail + c_error + c_skip
 
-            if c_pass == num_runs:
+            #if c_pass == num_runs:
+            if c_pass/c_total == 1 or c_fail/c_total == 1 or c_error/c_total == 1 or c_skip/c_total == 1:
                 nonf_out.write("{}.{}\n".format(classname, name))
             else:
                 res = "{} {} {} {}".format(c_pass, c_fail, c_error, c_skip)
@@ -68,17 +69,17 @@ if __name__ == '__main__':
                     and p.endswith('-100')])
     #print(all_projects)
     #exit()
-    #all_projects = ['dropwizard-100']
+    #all_projects = ['hadoop-100', 'alluxio-100']
 
     num_runs = 100
-    
-    #skip_list = ['Achilles-100']  # wrong log format
+        
     skip_list = []
+    skip_list = ['hadoop-100', 'alluxio-100']  # wrong log format
 
     prob_all_outfile = os.path.join('deflaker', 'reruns', 'prob_all.csv')
     if os.path.exists(prob_all_outfile):
         os.remove(prob_all_outfile)
-        with open(prob_all_outfile, "a") as proball_out:
+        with open(prob_all_outfile, "w") as proball_out:
             proball_out.write("PROJECT,TC,PASS,FAIL,ERROR,SKIP\n")
     
     for project in all_projects:
