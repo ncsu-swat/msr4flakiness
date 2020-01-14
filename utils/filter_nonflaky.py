@@ -3,10 +3,15 @@ import csv
 from collections import OrderedDict
 
 
-def consolidate_results(project, project_dir, nonf_outfile, oth_outfile):
-    print("Consolidating results for project {}...".format(project))
+def consolidate_results(project):
+    project_dir = os.path.join('deflaker', 'reruns', project)
+    nonf_outfile = os.path.join(project_dir, 'nonflaky_list.txt')
+    oth_outfile = os.path.join(project_dir, 'results_distribution.txt')
+    prob_outfile = os.path.join(project_dir, 'prob.csv')    
+        
     all_results = OrderedDict()
 
+    print("Consolidating results for project {}...".format(project))
     for i in range(num_runs):
         log_file = os.path.join(project_dir, 'run{}.log'.format(i+1))
         log = csv.reader(open(log_file, "r"), delimiter=",")
@@ -32,42 +37,50 @@ def consolidate_results(project, project_dir, nonf_outfile, oth_outfile):
                 all_results[tc][status] = 1
 
 
-    with open(nonf_outfile, "w") as nonf_out, open(oth_outfile, "w") as oth_out:
+    with open(nonf_outfile, "w") as nonf_out, open(oth_outfile, "w") as oth_out, \
+        open(prob_outfile, "w") as prob_out, open(prob_all_outfile, "a") as proball_out:
         oth_out.write("TC PASS FAIL ERROR SKIP\n")
+        prob_out.write("TC,PASS,FAIL,ERROR,SKIP\n")        
         for tc in all_results:
             classname, name = tc.split("---")
             c_pass = all_results[tc]["pass"] if "pass" in all_results[tc] else 0
             c_fail = all_results[tc]["fail"] if "fail" in all_results[tc] else 0
             c_error = all_results[tc]["error"] if "error" in all_results[tc] else 0
             c_skip = all_results[tc]["skip"] if "skip" in all_results[tc] else 0
+            c_total = c_pass + c_fail + c_error + c_skip
 
             if c_pass == num_runs:
                 nonf_out.write("{}.{}\n".format(classname, name))
             else:
                 res = "{} {} {} {}".format(c_pass, c_fail, c_error, c_skip)
-                oth_out.write("{}.{} {}\n".format(classname, name, res))                
+                oth_out.write("{}.{} {}\n".format(classname, name, res))
+                # --- Prob
+                res_prob = "{},{},{},{}".format(c_pass/c_total, c_fail/c_total, c_error/c_total, c_skip/c_total)
+                prob_out.write("{}.{},{}\n".format(classname, name, res_prob))
+                # --- Prob_all
+                proball_out.write("{},{}.{},{}\n".format(project, classname, name, res_prob))
 
 
 
 if __name__ == '__main__':
-    all_projects = [p for p in os.listdir(os.path.join('deflaker', 'reruns')) 
+    all_projects = sorted([p for p in os.listdir(os.path.join('deflaker', 'reruns')) 
                     if os.path.isdir(os.path.join('deflaker', 'reruns', p))
-                    #and "-100" not in p]  # skipping 100 runs for now
-                    and p.endswith('-100')]
-
+                    and p.endswith('-100')])
     #print(all_projects)
     #exit()
-    #all_projects = ['assertj-core-100']
+    #all_projects = ['dropwizard-100']
 
     num_runs = 100
     
-    skip_list = ['spring-boot', 'assertj-core', 'okhttp', 'hbase']  # wrong log format
-    skip_list = ['ninja-100', 'ambari-100', 'Achilles-100', 'assertj-core-100']  # wrong log format
+    #skip_list = ['Achilles-100']  # wrong log format
+    skip_list = []
+
+    prob_all_outfile = os.path.join('deflaker', 'reruns', 'prob_all.csv')
+    if os.path.exists(prob_all_outfile):
+        os.remove(prob_all_outfile)
+        with open(prob_all_outfile, "a") as proball_out:
+            proball_out.write("PROJECT,TC,PASS,FAIL,ERROR,SKIP\n")
     
     for project in all_projects:
-        if project in skip_list:
-            continue
-        project_dir = os.path.join('deflaker', 'reruns', project)
-        nonf_outfile = os.path.join(project_dir, 'nonflaky_list.txt')
-        oth_outfile = os.path.join(project_dir, 'results_distribution.txt')
-        consolidate_results(project, project_dir, nonf_outfile, oth_outfile)
+        if project not in skip_list:
+            consolidate_results(project)
