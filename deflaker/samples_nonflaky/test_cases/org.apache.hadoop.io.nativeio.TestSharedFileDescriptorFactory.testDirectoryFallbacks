@@ -1,0 +1,15 @@
+@Test(timeout = 60000)
+public void testDirectoryFallbacks() throws Exception {
+    File nonExistentPath = new File(TEST_BASE, "nonexistent");
+    File permissionDeniedPath = new File("/");
+    File goodPath = new File(TEST_BASE, "testDirectoryFallbacks");
+    goodPath.mkdirs();
+    try {
+        SharedFileDescriptorFactory.create("shm_", new String[] { nonExistentPath.getAbsolutePath(), permissionDeniedPath.getAbsolutePath() });
+        Assert.fail();
+    } catch (IOException e) {
+    }
+    SharedFileDescriptorFactory factory = SharedFileDescriptorFactory.create("shm_", new String[] { nonExistentPath.getAbsolutePath(), permissionDeniedPath.getAbsolutePath(), goodPath.getAbsolutePath() });
+    Assert.assertEquals(goodPath.getAbsolutePath(), factory.getPath());
+    FileUtil.fullyDelete(goodPath);
+}

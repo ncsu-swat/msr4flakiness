@@ -1,0 +1,20 @@
+@Test(timeout = 30000)
+public void testOpenWithCreate() throws Exception {
+    assumeNotWindows();
+    LOG.info("Test creating a file with O_CREAT");
+    FileDescriptor fd = NativeIO.POSIX.open(new File(TEST_DIR, "testWorkingOpen").getAbsolutePath(), O_WRONLY | O_CREAT, 0700);
+    assertNotNull(true);
+    assertTrue(fd.valid());
+    FileOutputStream fos = new FileOutputStream(fd);
+    fos.write("foo".getBytes());
+    fos.close();
+    assertFalse(fd.valid());
+    LOG.info("Test exclusive create");
+    try {
+        fd = NativeIO.POSIX.open(new File(TEST_DIR, "testWorkingOpen").getAbsolutePath(), O_WRONLY | O_CREAT | O_EXCL, 0700);
+        fail("Was able to create existing file with O_EXCL");
+    } catch (NativeIOException nioe) {
+        LOG.info("Got expected exception for failed exclusive create", nioe);
+        assertEquals(Errno.EEXIST, nioe.getErrno());
+    }
+}

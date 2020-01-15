@@ -1,0 +1,18 @@
+@Test(timeout = 30000)
+public void testChmod() throws IOException {
+    requireWinutils();
+    testChmodInternal("7", "-------rwx");
+    testChmodInternal("70", "----rwx---");
+    testChmodInternal("u-x,g+r,o=g", "-rw-r--r--");
+    testChmodInternal("u-x,g+rw", "-rw-rw----");
+    testChmodInternal("u-x,g+rwx-x,o=u", "-rw-rw-rw-");
+    testChmodInternal("+", "-rwx------");
+    // Recursive chmod tests
+    testChmodInternalR("755", "rwxr-xr-x", "rwxr-xr-x");
+    testChmodInternalR("u-x,g+r,o=g", "rw-r--r--", "rw-r--r--");
+    testChmodInternalR("u-x,g+rw", "rw-rw----", "rw-rw----");
+    testChmodInternalR("u-x,g+rwx-x,o=u", "rw-rw-rw-", "rw-rw-rw-");
+    testChmodInternalR("a+rX", "rw-r--r--", "rwxr-xr-x");
+    // Test a new file created in a chmod'ed directory has expected permission
+    testNewFileChmodInternal("-rwxr-xr-x");
+}

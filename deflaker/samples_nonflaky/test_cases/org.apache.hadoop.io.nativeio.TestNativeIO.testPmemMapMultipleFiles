@@ -1,0 +1,27 @@
+@Test(timeout = 10000)
+public void testPmemMapMultipleFiles() {
+    assumeNotWindows("Native PMDK not supported on Windows");
+    // Skip testing while the build or environment does not support PMDK
+    assumeTrue(NativeIO.POSIX.isPmdkAvailable());
+    // Please make sure /mnt/pmem0 is a persistent memory device with total
+    // volume size 'volumeSize'
+    String filePath = "/mnt/pmem0/test_native_io";
+    long length = 0;
+    long volumnSize = 16 * 1024 * 1024 * 1024L;
+    // Multiple files, each with 128MB size, aggregated size exceeds volume
+    // limit 16GB
+    length = 128 * 1024 * 1024L;
+    long fileNumber = volumnSize / length;
+    LOG.info("File number = " + fileNumber);
+    for (int i = 0; i < fileNumber; i++) {
+        String path = filePath + i;
+        LOG.info("File path = " + path);
+        NativeIO.POSIX.Pmem.mapBlock(path, length, false);
+    }
+    try {
+        NativeIO.POSIX.Pmem.mapBlock(filePath, length, false);
+        fail("Request map extra file when persistent memory is all occupied");
+    } catch (Exception e) {
+        LOG.info(e.getMessage());
+    }
+}

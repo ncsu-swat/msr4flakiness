@@ -1,0 +1,30 @@
+@Test(timeout = 10000)
+public void testReadIncorrectlyRestrictedWithSecurity() throws IOException {
+    // this will only run if libs are available
+    assumeTrue(NativeIO.isAvailable());
+    System.out.println("Running test with native libs...");
+    String invalidUser = "InvalidUser";
+    // We need to make sure that forceSecure.. call works only if
+    // the file belongs to expectedOwner.
+    // InputStream
+    try {
+        SecureIOUtils.forceSecureOpenForRead(testFilePathIs, invalidUser, realGroup).close();
+        fail("Didn't throw expection for wrong user ownership!");
+    } catch (IOException ioe) {
+    // expected
+    }
+    // FSDataInputStream
+    try {
+        SecureIOUtils.forceSecureOpenFSDataInputStream(testFilePathFadis, invalidUser, realGroup).close();
+        fail("Didn't throw expection for wrong user ownership!");
+    } catch (IOException ioe) {
+    // expected
+    }
+    // RandomAccessFile
+    try {
+        SecureIOUtils.forceSecureOpenForRandomRead(testFilePathRaf, "r", invalidUser, realGroup).close();
+        fail("Didn't throw expection for wrong user ownership!");
+    } catch (IOException ioe) {
+    // expected
+    }
+}

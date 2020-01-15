@@ -1,0 +1,27 @@
+@Test(timeout = 10000)
+public void testPmemCheckParameters() {
+    assumeNotWindows("Native PMDK not supported on Windows");
+    // Skip testing while the build or environment does not support PMDK
+    assumeTrue(NativeIO.POSIX.isPmdkAvailable());
+    // Please make sure /mnt/pmem0 is a persistent memory device with total
+    // volume size 'volumeSize'
+    String filePath = "/$:";
+    long length = 0;
+    long volumnSize = 16 * 1024 * 1024 * 1024L;
+    // Incorrect file length
+    try {
+        NativeIO.POSIX.Pmem.mapBlock(filePath, length, false);
+        fail("Illegal length parameter should be detected");
+    } catch (Exception e) {
+        LOG.info(e.getMessage());
+    }
+    // Incorrect file length
+    filePath = "/mnt/pmem0/test_native_io";
+    length = -1L;
+    try {
+        NativeIO.POSIX.Pmem.mapBlock(filePath, length, false);
+        fail("Illegal length parameter should be detected");
+    } catch (Exception e) {
+        LOG.info(e.getMessage());
+    }
+}

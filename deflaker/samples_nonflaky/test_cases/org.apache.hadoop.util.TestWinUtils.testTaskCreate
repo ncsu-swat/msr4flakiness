@@ -1,0 +1,16 @@
+@SuppressWarnings("deprecation")
+@Test(timeout = 10000)
+public void testTaskCreate() throws IOException {
+    requireWinutils();
+    File batch = new File(TEST_DIR, "testTaskCreate.cmd");
+    File proof = new File(TEST_DIR, "testTaskCreate.out");
+    FileWriter fw = new FileWriter(batch);
+    String testNumber = String.format("%f", Math.random());
+    fw.write(String.format("echo %s > \"%s\"", testNumber, proof.getAbsolutePath()));
+    fw.close();
+    assertFalse(proof.exists());
+    Shell.execCommand(winutils, "task", "create", "testTaskCreate" + testNumber, batch.getAbsolutePath());
+    assertTrue(proof.exists());
+    String outNumber = FileUtils.readFileToString(proof);
+    assertThat(outNumber, containsString(testNumber));
+}

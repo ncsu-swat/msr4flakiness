@@ -1,0 +1,12 @@
+@Test(timeout = 30000)
+public void testOpenMissingWithoutCreate() throws Exception {
+    assumeNotWindows();
+    LOG.info("Open a missing file without O_CREAT and it should fail");
+    try {
+        FileDescriptor fd = NativeIO.POSIX.open(new File(TEST_DIR, "doesntexist").getAbsolutePath(), O_WRONLY, 0700);
+        fail("Able to open a new file without O_CREAT");
+    } catch (NativeIOException nioe) {
+        LOG.info("Got expected exception", nioe);
+        assertEquals(Errno.ENOENT, nioe.getErrno());
+    }
+}

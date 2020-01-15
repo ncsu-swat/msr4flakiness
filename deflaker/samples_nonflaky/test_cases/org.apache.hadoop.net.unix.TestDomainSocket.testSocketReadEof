@@ -1,0 +1,38 @@
+/**
+ * Test that we get a read result of -1 on EOF.
+ *
+ * @throws IOException
+ */
+@Test(timeout = 180000)
+public void testSocketReadEof() throws Exception {
+    final String TEST_PATH = new File(sockDir.getDir(), "testSocketReadEof").getAbsolutePath();
+    final DomainSocket serv = DomainSocket.bindAndListen(TEST_PATH);
+    ExecutorService exeServ = Executors.newSingleThreadExecutor();
+    Callable<Void> callable = new Callable<Void>() {
+
+        public Void call() {
+            DomainSocket conn;
+            try {
+                conn = serv.accept();
+            } catch (IOException e) {
+                throw new RuntimeException("unexpected IOException", e);
+            }
+            byte[] buf = new byte[100];
+            for (int i = 0; i < buf.length; i++) {
+                buf[i] = 0;
+            }
+            try {
+                Assert.assertEquals(-1, conn.getInputStream().read());
+            } catch (IOException e) {
+                throw new RuntimeException("unexpected IOException", e);
+            }
+            return null;
+        }
+    };
+    Future<Void> future = exeServ.submit(callable);
+    DomainSocket conn = DomainSocket.connect(serv.getPath());
+    Thread.sleep(50);
+    conn.close();
+    serv.close();
+    future.get(2, TimeUnit.MINUTES);
+}

@@ -1,0 +1,24 @@
+@Test(timeout = 30000)
+public void testLs() throws IOException {
+    requireWinutils();
+    final String content = "6bytes";
+    final int contentSize = content.length();
+    File testFile = new File(TEST_DIR, "file1");
+    writeFile(testFile, content);
+    // Verify permissions and file name return tokens
+    String testPath = testFile.getCanonicalPath();
+    String output = Shell.execCommand(winutils, "ls", testPath);
+    String[] outputArgs = output.split("[ \r\n]");
+    assertEquals("-rwx------", outputArgs[0]);
+    assertEquals(outputArgs[outputArgs.length - 1], testPath);
+    // Verify most tokens when using a formatted output (other tokens
+    // will be verified with chmod/chown)
+    output = Shell.execCommand(winutils, "ls", "-F", testPath);
+    outputArgs = output.split("[|\r\n]");
+    assertEquals(9, outputArgs.length);
+    assertEquals("-rwx------", outputArgs[0]);
+    assertEquals(contentSize, Long.parseLong(outputArgs[4]));
+    assertEquals(outputArgs[8], testPath);
+    testFile.delete();
+    assertFalse(testFile.exists());
+}

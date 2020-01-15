@@ -1,0 +1,18 @@
+@Test(timeout = 30000)
+public void testAppendRecordCompression() throws Exception {
+    GenericTestUtils.assumeInNativeProfile();
+    Path file = new Path(ROOT_PATH, "testseqappendblockcompr.seq");
+    fs.delete(file, true);
+    Option compressOption = Writer.compression(CompressionType.RECORD, new GzipCodec());
+    Writer writer = SequenceFile.createWriter(conf, SequenceFile.Writer.file(file), SequenceFile.Writer.keyClass(Long.class), SequenceFile.Writer.valueClass(String.class), compressOption);
+    writer.append(1L, "one");
+    writer.append(2L, "two");
+    writer.close();
+    verify2Values(file);
+    writer = SequenceFile.createWriter(conf, SequenceFile.Writer.file(file), SequenceFile.Writer.keyClass(Long.class), SequenceFile.Writer.valueClass(String.class), SequenceFile.Writer.appendIfExists(true), compressOption);
+    writer.append(3L, "three");
+    writer.append(4L, "four");
+    writer.close();
+    verifyAll4Values(file);
+    fs.deleteOnExit(file);
+}

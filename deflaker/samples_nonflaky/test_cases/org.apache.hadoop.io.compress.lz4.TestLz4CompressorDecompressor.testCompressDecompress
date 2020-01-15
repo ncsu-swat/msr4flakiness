@@ -1,0 +1,27 @@
+// test compress/decompress process
+@Test
+public void testCompressDecompress() {
+    int BYTE_SIZE = 1024 * 54;
+    byte[] bytes = generate(BYTE_SIZE);
+    Lz4Compressor compressor = new Lz4Compressor();
+    try {
+        compressor.setInput(bytes, 0, bytes.length);
+        assertTrue("Lz4CompressDecompress getBytesRead error !!!", compressor.getBytesRead() > 0);
+        assertTrue("Lz4CompressDecompress getBytesWritten before compress error !!!", compressor.getBytesWritten() == 0);
+        byte[] compressed = new byte[BYTE_SIZE];
+        int cSize = compressor.compress(compressed, 0, compressed.length);
+        assertTrue("Lz4CompressDecompress getBytesWritten after compress error !!!", compressor.getBytesWritten() > 0);
+        Lz4Decompressor decompressor = new Lz4Decompressor();
+        // set as input for decompressor only compressed data indicated with cSize
+        decompressor.setInput(compressed, 0, cSize);
+        byte[] decompressed = new byte[BYTE_SIZE];
+        decompressor.decompress(decompressed, 0, decompressed.length);
+        assertTrue("testLz4CompressDecompress finished error !!!", decompressor.finished());
+        assertArrayEquals(bytes, decompressed);
+        compressor.reset();
+        decompressor.reset();
+        assertTrue("decompressor getRemaining error !!!", decompressor.getRemaining() == 0);
+    } catch (Exception e) {
+        fail("testLz4CompressDecompress ex error!!!");
+    }
+}

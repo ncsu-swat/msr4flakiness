@@ -1,0 +1,28 @@
+@Test(timeout = 30000)
+public void testPosixFadvise() throws Exception {
+    assumeNotWindows();
+    FileInputStream fis = new FileInputStream("/dev/zero");
+    try {
+        NativeIO.POSIX.posix_fadvise(fis.getFD(), 0, 0, POSIX_FADV_SEQUENTIAL);
+    } catch (UnsupportedOperationException uoe) {
+        // we should just skip the unit test on machines where we don't
+        // have fadvise support
+        assumeTrue(false);
+    } catch (NativeIOException nioe) {
+    // ignore this error as FreeBSD returns EBADF even if length is zero
+    } finally {
+        fis.close();
+    }
+    try {
+        NativeIO.POSIX.posix_fadvise(fis.getFD(), 0, 1024, POSIX_FADV_SEQUENTIAL);
+        fail("Did not throw on bad file");
+    } catch (NativeIOException nioe) {
+        assertEquals(Errno.EBADF, nioe.getErrno());
+    }
+    try {
+        NativeIO.POSIX.posix_fadvise(null, 0, 1024, POSIX_FADV_SEQUENTIAL);
+        fail("Did not throw on null file");
+    } catch (NullPointerException npe) {
+    // expected
+    }
+}

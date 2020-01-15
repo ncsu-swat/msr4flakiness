@@ -1,0 +1,28 @@
+// test compress/decompress process
+@Test
+public void testCompressDecompress() {
+    byte[] rawData = null;
+    int rawDataSize = 0;
+    rawDataSize = 1024 * 64;
+    rawData = generate(rawDataSize);
+    try {
+        Bzip2Compressor compressor = new Bzip2Compressor();
+        Bzip2Decompressor decompressor = new Bzip2Decompressor();
+        assertFalse("testBzip2CompressDecompress finished error", compressor.finished());
+        compressor.setInput(rawData, 0, rawData.length);
+        assertTrue("testBzip2CompressDecompress getBytesRead before error", compressor.getBytesRead() == 0);
+        compressor.finish();
+        byte[] compressedResult = new byte[rawDataSize];
+        int cSize = compressor.compress(compressedResult, 0, rawDataSize);
+        assertTrue("testBzip2CompressDecompress getBytesRead after error", compressor.getBytesRead() == rawDataSize);
+        assertTrue("testBzip2CompressDecompress compressed size no less than original size", cSize < rawDataSize);
+        decompressor.setInput(compressedResult, 0, cSize);
+        byte[] decompressedBytes = new byte[rawDataSize];
+        decompressor.decompress(decompressedBytes, 0, decompressedBytes.length);
+        assertArrayEquals("testBzip2CompressDecompress arrays not equals ", rawData, decompressedBytes);
+        compressor.reset();
+        decompressor.reset();
+    } catch (IOException ex) {
+        fail("testBzip2CompressDecompress ex !!!" + ex);
+    }
+}

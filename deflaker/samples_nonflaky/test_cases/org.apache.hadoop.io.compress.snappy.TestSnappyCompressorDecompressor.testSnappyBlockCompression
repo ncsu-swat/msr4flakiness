@@ -1,0 +1,33 @@
+@Test
+public void testSnappyBlockCompression() {
+    int BYTE_SIZE = 1024 * 50;
+    int BLOCK_SIZE = 512;
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    byte[] block = new byte[BLOCK_SIZE];
+    byte[] bytes = BytesGenerator.get(BYTE_SIZE);
+    try {
+        // Use default of 512 as bufferSize and compressionOverhead of
+        // (1% of bufferSize + 12 bytes) = 18 bytes (zlib algorithm).
+        SnappyCompressor compressor = new SnappyCompressor();
+        int off = 0;
+        int len = BYTE_SIZE;
+        int maxSize = BLOCK_SIZE - 18;
+        if (BYTE_SIZE > maxSize) {
+            do {
+                int bufLen = Math.min(len, maxSize);
+                compressor.setInput(bytes, off, bufLen);
+                compressor.finish();
+                while (!compressor.finished()) {
+                    compressor.compress(block, 0, block.length);
+                    out.write(block);
+                }
+                compressor.reset();
+                off += bufLen;
+                len -= bufLen;
+            } while (len > 0);
+        }
+        assertTrue("testSnappyBlockCompression error !!!", out.toByteArray().length > 0);
+    } catch (Exception ex) {
+        fail("testSnappyBlockCompression ex error !!!");
+    }
+}

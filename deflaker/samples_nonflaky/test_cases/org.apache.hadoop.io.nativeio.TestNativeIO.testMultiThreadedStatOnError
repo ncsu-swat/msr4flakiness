@@ -1,0 +1,15 @@
+@Test
+public void testMultiThreadedStatOnError() throws Exception {
+    final String testInvalidFilePath = "C:\\nonexisting_path\\nonexisting_file";
+    int numOfThreads = 10;
+    ExecutorService executorService = Executors.newFixedThreadPool(numOfThreads);
+    for (int i = 0; i < numOfThreads; i++) {
+        try {
+            Future<Boolean> result = executorService.submit(() -> doStatTest(testInvalidFilePath));
+            result.get();
+        } catch (Exception e) {
+            assertTrue(e.getCause() instanceof PathIOException);
+        }
+    }
+    executorService.shutdown();
+}

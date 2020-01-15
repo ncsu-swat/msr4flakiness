@@ -1,0 +1,20 @@
+/**
+ * Test that we can get notifications out a DomainSocketWatcher.
+ */
+@Test(timeout = 180000)
+public void testDeliverNotifications() throws Exception {
+    DomainSocketWatcher watcher = newDomainSocketWatcher(10000000);
+    DomainSocket[] pair = DomainSocket.socketpair();
+    final CountDownLatch latch = new CountDownLatch(1);
+    watcher.add(pair[1], new DomainSocketWatcher.Handler() {
+
+        @Override
+        public boolean handle(DomainSocket sock) {
+            latch.countDown();
+            return true;
+        }
+    });
+    pair[0].close();
+    latch.await();
+    watcher.close();
+}

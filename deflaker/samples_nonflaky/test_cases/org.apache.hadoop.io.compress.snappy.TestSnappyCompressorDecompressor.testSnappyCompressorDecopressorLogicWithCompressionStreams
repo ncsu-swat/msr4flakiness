@@ -1,0 +1,34 @@
+@Test
+public void testSnappyCompressorDecopressorLogicWithCompressionStreams() {
+    int BYTE_SIZE = 1024 * 100;
+    byte[] bytes = BytesGenerator.get(BYTE_SIZE);
+    int bufferSize = 262144;
+    int compressionOverhead = (bufferSize / 6) + 32;
+    DataOutputStream deflateOut = null;
+    DataInputStream inflateIn = null;
+    try {
+        DataOutputBuffer compressedDataBuffer = new DataOutputBuffer();
+        CompressionOutputStream deflateFilter = new BlockCompressorStream(compressedDataBuffer, new SnappyCompressor(bufferSize), bufferSize, compressionOverhead);
+        deflateOut = new DataOutputStream(new BufferedOutputStream(deflateFilter));
+        deflateOut.write(bytes, 0, bytes.length);
+        deflateOut.flush();
+        deflateFilter.finish();
+        DataInputBuffer deCompressedDataBuffer = new DataInputBuffer();
+        deCompressedDataBuffer.reset(compressedDataBuffer.getData(), 0, compressedDataBuffer.getLength());
+        CompressionInputStream inflateFilter = new BlockDecompressorStream(deCompressedDataBuffer, new SnappyDecompressor(bufferSize), bufferSize);
+        inflateIn = new DataInputStream(new BufferedInputStream(inflateFilter));
+        byte[] result = new byte[BYTE_SIZE];
+        inflateIn.read(result);
+        Assert.assertArrayEquals("original array not equals compress/decompressed array", result, bytes);
+    } catch (IOException e) {
+        fail("testSnappyCompressorDecopressorLogicWithCompressionStreams ex error !!!");
+    } finally {
+        try {
+            if (deflateOut != null)
+                deflateOut.close();
+            if (inflateIn != null)
+                inflateIn.close();
+        } catch (Exception e) {
+        }
+    }
+}

@@ -1,0 +1,77 @@
+@Test
+public void testBuiltInGzipDecompressorExceptions() {
+    BuiltInGzipDecompressor decompresser = new BuiltInGzipDecompressor();
+    try {
+        decompresser.setInput(null, 0, 1);
+    } catch (NullPointerException ex) {
+    // expected
+    } catch (Exception ex) {
+        fail("testBuiltInGzipDecompressorExceptions npe error " + ex);
+    }
+    try {
+        decompresser.setInput(new byte[] { 0 }, 0, -1);
+    } catch (ArrayIndexOutOfBoundsException ex) {
+    // expected
+    } catch (Exception ex) {
+        fail("testBuiltInGzipDecompressorExceptions aioob error" + ex);
+    }
+    assertTrue("decompresser.getBytesRead error", decompresser.getBytesRead() == 0);
+    assertTrue("decompresser.getRemaining error", decompresser.getRemaining() == 0);
+    decompresser.reset();
+    decompresser.end();
+    InputStream decompStream = null;
+    try {
+        // invalid 0 and 1 bytes , must be 31, -117
+        int buffSize = 1 * 1024;
+        byte[] buffer = new byte[buffSize];
+        Decompressor decompressor = new BuiltInGzipDecompressor();
+        DataInputBuffer gzbuf = new DataInputBuffer();
+        decompStream = new DecompressorStream(gzbuf, decompressor);
+        gzbuf.reset(new byte[] { 0, 0, 1, 1, 1, 1, 11, 1, 1, 1, 1 }, 11);
+        decompStream.read(buffer);
+    } catch (IOException ioex) {
+    // expected
+    } catch (Exception ex) {
+        fail("invalid 0 and 1 byte in gzip stream" + ex);
+    }
+    // invalid 2 byte, must be 8
+    try {
+        int buffSize = 1 * 1024;
+        byte[] buffer = new byte[buffSize];
+        Decompressor decompressor = new BuiltInGzipDecompressor();
+        DataInputBuffer gzbuf = new DataInputBuffer();
+        decompStream = new DecompressorStream(gzbuf, decompressor);
+        gzbuf.reset(new byte[] { 31, -117, 7, 1, 1, 1, 1, 11, 1, 1, 1, 1 }, 11);
+        decompStream.read(buffer);
+    } catch (IOException ioex) {
+    // expected
+    } catch (Exception ex) {
+        fail("invalid 2 byte in gzip stream" + ex);
+    }
+    try {
+        int buffSize = 1 * 1024;
+        byte[] buffer = new byte[buffSize];
+        Decompressor decompressor = new BuiltInGzipDecompressor();
+        DataInputBuffer gzbuf = new DataInputBuffer();
+        decompStream = new DecompressorStream(gzbuf, decompressor);
+        gzbuf.reset(new byte[] { 31, -117, 8, -32, 1, 1, 1, 11, 1, 1, 1, 1 }, 11);
+        decompStream.read(buffer);
+    } catch (IOException ioex) {
+    // expected
+    } catch (Exception ex) {
+        fail("invalid 3 byte in gzip stream" + ex);
+    }
+    try {
+        int buffSize = 1 * 1024;
+        byte[] buffer = new byte[buffSize];
+        Decompressor decompressor = new BuiltInGzipDecompressor();
+        DataInputBuffer gzbuf = new DataInputBuffer();
+        decompStream = new DecompressorStream(gzbuf, decompressor);
+        gzbuf.reset(new byte[] { 31, -117, 8, 4, 1, 1, 1, 11, 1, 1, 1, 1 }, 11);
+        decompStream.read(buffer);
+    } catch (IOException ioex) {
+    // expected
+    } catch (Exception ex) {
+        fail("invalid 3 byte make hasExtraField" + ex);
+    }
+}

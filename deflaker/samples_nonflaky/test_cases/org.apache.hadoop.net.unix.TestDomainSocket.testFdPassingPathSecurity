@@ -1,0 +1,35 @@
+/**
+ * Test file descriptor path security.
+ *
+ * @throws IOException
+ */
+@Test(timeout = 180000)
+public void testFdPassingPathSecurity() throws Exception {
+    TemporarySocketDirectory tmp = new TemporarySocketDirectory();
+    try {
+        String prefix = tmp.getDir().getAbsolutePath();
+        Shell.execCommand(new String[] { "mkdir", "-p", prefix + "/foo/bar/baz" });
+        Shell.execCommand(new String[] { "chmod", "0700", prefix + "/foo/bar/baz" });
+        Shell.execCommand(new String[] { "chmod", "0700", prefix + "/foo/bar" });
+        Shell.execCommand(new String[] { "chmod", "0707", prefix + "/foo" });
+        Shell.execCommand(new String[] { "mkdir", "-p", prefix + "/q1/q2" });
+        Shell.execCommand(new String[] { "chmod", "0700", prefix + "/q1" });
+        Shell.execCommand(new String[] { "chmod", "0700", prefix + "/q1/q2" });
+        testValidateSocketPath(prefix + "/q1/q2", prefix);
+        try {
+            testValidateSocketPath(prefix + "/foo/bar/baz", prefix);
+        } catch (IOException e) {
+            GenericTestUtils.assertExceptionContains("world-writable", e);
+            GenericTestUtils.assertExceptionContains("/foo'", e);
+        }
+        try {
+            testValidateSocketPath(prefix + "/nope", prefix);
+        } catch (IOException e) {
+            GenericTestUtils.assertExceptionContains("failed to stat a path " + "component: ", e);
+        }
+        // Root should be secure
+        DomainSocket.validateSocketPathSecurity0("/foo", 0);
+    } finally {
+        tmp.close();
+    }
+}

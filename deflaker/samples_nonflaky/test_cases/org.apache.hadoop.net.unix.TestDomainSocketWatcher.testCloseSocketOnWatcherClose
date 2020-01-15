@@ -1,0 +1,18 @@
+/**
+ * Test that domain sockets are closed when the watcher is closed.
+ */
+@Test(timeout = 300000)
+public void testCloseSocketOnWatcherClose() throws Exception {
+    final DomainSocketWatcher watcher = newDomainSocketWatcher(10000000);
+    DomainSocket[] pair = DomainSocket.socketpair();
+    watcher.add(pair[1], new DomainSocketWatcher.Handler() {
+
+        @Override
+        public boolean handle(DomainSocket sock) {
+            return true;
+        }
+    });
+    watcher.close();
+    Uninterruptibles.joinUninterruptibly(watcher.watcherThread);
+    assertFalse(pair[1].isOpen());
+}

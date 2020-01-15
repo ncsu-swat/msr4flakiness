@@ -1,0 +1,42 @@
+/**
+ * Test for races in fstat usage
+ *
+ * NOTE: this test is likely to fail on RHEL 6.0 which has a non-threadsafe
+ * implementation of getpwuid_r.
+ */
+@Test(timeout = 30000)
+public void testMultiThreadedFstat() throws Exception {
+    assumeNotWindows();
+    final FileOutputStream fos = new FileOutputStream(new File(TEST_DIR, "testfstat"));
+    final AtomicReference<Throwable> thrown = new AtomicReference<Throwable>();
+    List<Thread> statters = new ArrayList<Thread>();
+    for (int i = 0; i < 10; i++) {
+        Thread statter = new Thread() {
+
+            @Override
+            public void run() {
+                long et = Time.now() + 5000;
+                while (Time.now() < et) {
+                    try {
+                        NativeIO.POSIX.Stat stat = NativeIO.POSIX.getFstat(fos.getFD());
+                        assertEquals(System.getProperty("user.name"), stat.getOwner());
+                        assertNotNull(stat.getGroup());
+                        assertTrue(!stat.getGroup().isEmpty());
+                        assertEquals("Stat mode field should indicate a regular file", S_IFREG, stat.getMode() & S_IFMT);
+                    } catch (Throwable t) {
+                        thrown.set(t);
+                    }
+                }
+            }
+        };
+        statters.add(statter);
+        statter.start();
+    }
+    for (Thread t : statters) {
+        t.join();
+    }
+    fos.close();
+    if (thrown.get() != null) {
+        throw new RuntimeException(thrown.get());
+    }
+}

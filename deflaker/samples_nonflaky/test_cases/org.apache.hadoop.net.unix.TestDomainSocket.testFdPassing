@@ -1,0 +1,82 @@
+/**
+ * Test file descriptor passing.
+ *
+ * @throws IOException
+ */
+@Test(timeout = 180000)
+public void testFdPassing() throws Exception {
+    final String TEST_PATH = new File(sockDir.getDir(), "test_sock").getAbsolutePath();
+    final byte[] clientMsg1 = new byte[] { 0x11, 0x22, 0x33, 0x44, 0x55, 0x66 };
+    final byte[] serverMsg1 = new byte[] { 0x31, 0x30, 0x32, 0x34, 0x31, 0x33, 0x44, 0x1, 0x1, 0x1, 0x1, 0x1 };
+    final ArrayBlockingQueue<Throwable> threadResults = new ArrayBlockingQueue<Throwable>(2);
+    final DomainSocket serv = DomainSocket.bindAndListen(TEST_PATH);
+    final PassedFile[] passedFiles = new PassedFile[] { new PassedFile(1), new PassedFile(2) };
+    final FileDescriptor[] passedFds = new FileDescriptor[passedFiles.length];
+    for (int i = 0; i < passedFiles.length; i++) {
+        passedFds[i] = passedFiles[i].getInputStream().getFD();
+    }
+    Thread serverThread = new Thread() {
+
+        public void run() {
+            // Run server
+            DomainSocket conn = null;
+            try {
+                conn = serv.accept();
+                byte[] in1 = new byte[clientMsg1.length];
+                InputStream connInputStream = conn.getInputStream();
+                IOUtils.readFully(connInputStream, in1, 0, in1.length);
+                Assert.assertTrue(Arrays.equals(clientMsg1, in1));
+                DomainSocket domainConn = (DomainSocket) conn;
+                domainConn.sendFileDescriptors(passedFds, serverMsg1, 0, serverMsg1.length);
+                conn.close();
+            } catch (Throwable e) {
+                threadResults.add(e);
+                Assert.fail(e.getMessage());
+            }
+            threadResults.add(new Success());
+        }
+    };
+    serverThread.start();
+    Thread clientThread = new Thread() {
+
+        public void run() {
+            try {
+                DomainSocket client = DomainSocket.connect(TEST_PATH);
+                OutputStream clientOutputStream = client.getOutputStream();
+                InputStream clientInputStream = client.getInputStream();
+                clientOutputStream.write(clientMsg1);
+                DomainSocket domainConn = (DomainSocket) client;
+                byte[] in1 = new byte[serverMsg1.length];
+                FileInputStream[] recvFis = new FileInputStream[passedFds.length];
+                int r = domainConn.recvFileInputStreams(recvFis, in1, 0, in1.length - 1);
+                Assert.assertTrue(r > 0);
+                IOUtils.readFully(clientInputStream, in1, r, in1.length - r);
+                Assert.assertTrue(Arrays.equals(serverMsg1, in1));
+                for (int i = 0; i < passedFds.length; i++) {
+                    Assert.assertNotNull(recvFis[i]);
+                    passedFiles[i].checkInputStream(recvFis[i]);
+                }
+                for (FileInputStream fis : recvFis) {
+                    fis.close();
+                }
+                client.close();
+            } catch (Throwable e) {
+                threadResults.add(e);
+            }
+            threadResults.add(new Success());
+        }
+    };
+    clientThread.start();
+    for (int i = 0; i < 2; i++) {
+        Throwable t = threadResults.take();
+        if (!(t instanceof Success)) {
+            Assert.fail(t.getMessage() + ExceptionUtils.getStackTrace(t));
+        }
+    }
+    serverThread.join(120000);
+    clientThread.join(120000);
+    serv.close();
+    for (PassedFile pf : passedFiles) {
+        pf.cleanup();
+    }
+}

@@ -1,0 +1,21 @@
+@Test(timeout = 10000)
+public void testPmemMapBigFile() {
+    assumeNotWindows("Native PMDK not supported on Windows");
+    // Skip testing while the build or environment does not support PMDK
+    assumeTrue(NativeIO.POSIX.isPmdkAvailable());
+    // Please make sure /mnt/pmem0 is a persistent memory device with total
+    // volume size 'volumeSize'
+    String filePath = "/mnt/pmem0/test_native_io_big";
+    long length = 0;
+    long volumeSize = 16 * 1024 * 1024 * 1024L;
+    // One file length exceeds persistent memory volume 16GB.
+    length = volumeSize + 1024L;
+    try {
+        LOG.info("File length = " + length);
+        NativeIO.POSIX.Pmem.mapBlock(filePath, length, false);
+        fail("File length exceeds persistent memory total volume size");
+    } catch (Exception e) {
+        LOG.info(e.getMessage());
+        deletePmemMappedFile(filePath);
+    }
+}

@@ -1,0 +1,33 @@
+@Test
+public void testCompressorDecompressorEmptyStreamLogic() {
+    ByteArrayInputStream bytesIn = null;
+    ByteArrayOutputStream bytesOut = null;
+    byte[] buf = null;
+    BlockDecompressorStream blockDecompressorStream = null;
+    try {
+        // compress empty stream
+        bytesOut = new ByteArrayOutputStream();
+        BlockCompressorStream blockCompressorStream = new BlockCompressorStream(bytesOut, new SnappyCompressor(), 1024, 0);
+        // close without write
+        blockCompressorStream.close();
+        // check compressed output
+        buf = bytesOut.toByteArray();
+        assertEquals("empty stream compressed output size != 4", 4, buf.length);
+        // use compressed output as input for decompression
+        bytesIn = new ByteArrayInputStream(buf);
+        // create decompression stream
+        blockDecompressorStream = new BlockDecompressorStream(bytesIn, new SnappyDecompressor(), 1024);
+        // no byte is available because stream was closed
+        assertEquals("return value is not -1", -1, blockDecompressorStream.read());
+    } catch (Exception e) {
+        fail("testCompressorDecompressorEmptyStreamLogic ex error !!!" + e.getMessage());
+    } finally {
+        if (blockDecompressorStream != null)
+            try {
+                bytesIn.close();
+                bytesOut.close();
+                blockDecompressorStream.close();
+            } catch (IOException e) {
+            }
+    }
+}

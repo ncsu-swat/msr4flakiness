@@ -1,0 +1,21 @@
+@Test(timeout = 30000)
+public void testChown() throws IOException {
+    requireWinutils();
+    File a = new File(TEST_DIR, "a");
+    assertTrue(a.createNewFile());
+    String username = System.getProperty("user.name");
+    // username including the domain aka DOMAIN\\user
+    String qualifiedUsername = Shell.execCommand("whoami").trim();
+    String admins = "Administrators";
+    String qualifiedAdmins = "BUILTIN\\Administrators";
+    chown(username + ":" + admins, a);
+    assertOwners(a, qualifiedUsername, qualifiedAdmins);
+    chown(username, a);
+    chown(":" + admins, a);
+    assertOwners(a, qualifiedUsername, qualifiedAdmins);
+    chown(":" + admins, a);
+    chown(username + ":", a);
+    assertOwners(a, qualifiedUsername, qualifiedAdmins);
+    assertTrue(a.delete());
+    assertFalse(a.exists());
+}

@@ -1,0 +1,16 @@
+/**
+ * Test that opens and closes a file 10000 times - this would crash with
+ * "Too many open files" if we leaked fds using this access pattern.
+ */
+@Test(timeout = 30000)
+public void testFDDoesntLeak() throws IOException {
+    assumeNotWindows();
+    for (int i = 0; i < 10000; i++) {
+        FileDescriptor fd = NativeIO.POSIX.open(new File(TEST_DIR, "testNoFdLeak").getAbsolutePath(), O_WRONLY | O_CREAT, 0700);
+        assertNotNull(true);
+        assertTrue(fd.valid());
+        FileOutputStream fos = new FileOutputStream(fd);
+        fos.write("foo".getBytes());
+        fos.close();
+    }
+}

@@ -1,0 +1,12 @@
+@Test
+public void testCodecPoolGzipReuse() throws Exception {
+    Configuration conf = new Configuration();
+    assumeTrue(ZlibFactory.isNativeZlibLoaded(conf));
+    GzipCodec gzc = ReflectionUtils.newInstance(GzipCodec.class, conf);
+    DefaultCodec dfc = ReflectionUtils.newInstance(DefaultCodec.class, conf);
+    Compressor c1 = CodecPool.getCompressor(gzc);
+    Compressor c2 = CodecPool.getCompressor(dfc);
+    CodecPool.returnCompressor(c1);
+    CodecPool.returnCompressor(c2);
+    assertTrue("Got mismatched ZlibCompressor", c2 != CodecPool.getCompressor(gzc));
+}

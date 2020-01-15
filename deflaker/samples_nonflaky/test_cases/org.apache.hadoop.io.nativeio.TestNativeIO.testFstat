@@ -1,0 +1,20 @@
+@Test(timeout = 30000)
+public void testFstat() throws Exception {
+    FileOutputStream fos = new FileOutputStream(new File(TEST_DIR, "testfstat"));
+    NativeIO.POSIX.Stat stat = NativeIO.POSIX.getFstat(fos.getFD());
+    fos.close();
+    LOG.info("Stat: " + String.valueOf(stat));
+    String owner = stat.getOwner();
+    String expectedOwner = System.getProperty("user.name");
+    if (Path.WINDOWS) {
+        UserGroupInformation ugi = UserGroupInformation.createRemoteUser(expectedOwner);
+        final String adminsGroupString = "Administrators";
+        if (Arrays.asList(ugi.getGroupNames()).contains(adminsGroupString)) {
+            expectedOwner = adminsGroupString;
+        }
+    }
+    assertEquals(expectedOwner, owner);
+    assertNotNull(stat.getGroup());
+    assertTrue(!stat.getGroup().isEmpty());
+    assertEquals("Stat mode field should indicate a regular file", S_IFREG, stat.getMode() & S_IFMT);
+}

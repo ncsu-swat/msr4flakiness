@@ -1,0 +1,45 @@
+@Test(timeout = 30000)
+public void testBasicChmod() throws IOException {
+    requireWinutils();
+    // - Create a file.
+    // - Change mode to 377 so owner does not have read permission.
+    // - Verify the owner truly does not have the permissions to read.
+    File a = new File(TEST_DIR, "a");
+    a.createNewFile();
+    chmod("377", a);
+    try {
+        readFile(a);
+        assertFalse("readFile should have failed!", true);
+    } catch (IOException ex) {
+        LOG.info("Expected: Failed read from a file with permissions 377");
+    }
+    // restore permissions
+    chmod("700", a);
+    // - Create a file.
+    // - Change mode to 577 so owner does not have write permission.
+    // - Verify the owner truly does not have the permissions to write.
+    chmod("577", a);
+    try {
+        writeFile(a, "test");
+        fail("writeFile should have failed!");
+    } catch (IOException ex) {
+        LOG.info("Expected: Failed write to a file with permissions 577");
+    }
+    // restore permissions
+    chmod("700", a);
+    assertTrue(a.delete());
+    // - Copy WINUTILS to a new executable file, a.exe.
+    // - Change mode to 677 so owner does not have execute permission.
+    // - Verify the owner truly does not have the permissions to execute the file.
+    File winutilsFile = Shell.getWinUtilsFile();
+    File aExe = new File(TEST_DIR, "a.exe");
+    FileUtils.copyFile(winutilsFile, aExe);
+    chmod("677", aExe);
+    try {
+        Shell.execCommand(aExe.getCanonicalPath(), "ls");
+        fail("executing " + aExe + " should have failed!");
+    } catch (IOException ex) {
+        LOG.info("Expected: Failed to execute a file with permissions 677");
+    }
+    assertTrue(aExe.delete());
+}

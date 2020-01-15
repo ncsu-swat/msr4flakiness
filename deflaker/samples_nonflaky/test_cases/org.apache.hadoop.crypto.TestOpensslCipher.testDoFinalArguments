@@ -1,0 +1,15 @@
+@Test(timeout = 120000)
+public void testDoFinalArguments() throws Exception {
+    Assume.assumeTrue(OpensslCipher.getLoadingFailureReason() == null);
+    OpensslCipher cipher = OpensslCipher.getInstance("AES/CTR/NoPadding");
+    Assert.assertTrue(cipher != null);
+    cipher.init(OpensslCipher.ENCRYPT_MODE, key, iv);
+    // Require direct buffer
+    ByteBuffer output = ByteBuffer.allocate(1024);
+    try {
+        cipher.doFinal(output);
+        Assert.fail("Output buffer should be direct buffer.");
+    } catch (IllegalArgumentException e) {
+        GenericTestUtils.assertExceptionContains("Direct buffer is required", e);
+    }
+}

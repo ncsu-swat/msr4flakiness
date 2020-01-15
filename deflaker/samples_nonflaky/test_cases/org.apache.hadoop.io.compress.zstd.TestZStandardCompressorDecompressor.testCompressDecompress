@@ -1,0 +1,23 @@
+@Test
+public void testCompressDecompress() throws Exception {
+    byte[] rawData;
+    int rawDataSize;
+    rawDataSize = IO_FILE_BUFFER_SIZE_DEFAULT;
+    rawData = generate(rawDataSize);
+    ZStandardCompressor compressor = new ZStandardCompressor();
+    ZStandardDecompressor decompressor = new ZStandardDecompressor(IO_FILE_BUFFER_SIZE_DEFAULT);
+    assertFalse(compressor.finished());
+    compressor.setInput(rawData, 0, rawData.length);
+    assertEquals(0, compressor.getBytesRead());
+    compressor.finish();
+    byte[] compressedResult = new byte[rawDataSize];
+    int cSize = compressor.compress(compressedResult, 0, rawDataSize);
+    assertEquals(rawDataSize, compressor.getBytesRead());
+    assertTrue(cSize < rawDataSize);
+    decompressor.setInput(compressedResult, 0, cSize);
+    byte[] decompressedBytes = new byte[rawDataSize];
+    decompressor.decompress(decompressedBytes, 0, decompressedBytes.length);
+    assertEquals(bytesToHex(rawData), bytesToHex(decompressedBytes));
+    compressor.reset();
+    decompressor.reset();
+}

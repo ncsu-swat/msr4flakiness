@@ -1,0 +1,30 @@
+@Test
+public void testCompressionCompressesCorrectly() throws Exception {
+    int uncompressedSize = (int) FileUtils.sizeOf(uncompressedFile);
+    byte[] bytes = FileUtils.readFileToByteArray(uncompressedFile);
+    assertEquals(uncompressedSize, bytes.length);
+    Configuration conf = new Configuration();
+    ZStandardCodec codec = new ZStandardCodec();
+    codec.setConf(conf);
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    Compressor compressor = codec.createCompressor();
+    CompressionOutputStream outputStream = codec.createOutputStream(baos, compressor);
+    for (byte aByte : bytes) {
+        outputStream.write(aByte);
+    }
+    outputStream.finish();
+    outputStream.close();
+    assertEquals(uncompressedSize, compressor.getBytesRead());
+    assertTrue(compressor.finished());
+    // just make sure we can decompress the file
+    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+    ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+    Decompressor decompressor = codec.createDecompressor();
+    CompressionInputStream inputStream = codec.createInputStream(bais, decompressor);
+    byte[] buffer = new byte[100];
+    int n = buffer.length;
+    while ((n = inputStream.read(buffer, 0, n)) != -1) {
+        byteArrayOutputStream.write(buffer, 0, n);
+    }
+    assertArrayEquals(bytes, byteArrayOutputStream.toByteArray());
+}

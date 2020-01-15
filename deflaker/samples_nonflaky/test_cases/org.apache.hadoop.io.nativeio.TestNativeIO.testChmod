@@ -1,0 +1,21 @@
+/**
+ * Test basic chmod operation
+ */
+@Test(timeout = 30000)
+public void testChmod() throws Exception {
+    assumeNotWindows();
+    try {
+        NativeIO.POSIX.chmod("/this/file/doesnt/exist", 777);
+        fail("Chmod of non-existent file didn't fail");
+    } catch (NativeIOException nioe) {
+        assertEquals(Errno.ENOENT, nioe.getErrno());
+    }
+    File toChmod = new File(TEST_DIR, "testChmod");
+    assertTrue("Create test subject", toChmod.exists() || toChmod.mkdir());
+    NativeIO.POSIX.chmod(toChmod.getAbsolutePath(), 0777);
+    assertPermissions(toChmod, 0777);
+    NativeIO.POSIX.chmod(toChmod.getAbsolutePath(), 0000);
+    assertPermissions(toChmod, 0000);
+    NativeIO.POSIX.chmod(toChmod.getAbsolutePath(), 0644);
+    assertPermissions(toChmod, 0644);
+}

@@ -1,0 +1,14 @@
+@Test(timeout = 10000)
+public void testReadAndWrite() throws Exception {
+    File path = new File(TEST_BASE, "testReadAndWrite");
+    path.mkdirs();
+    SharedFileDescriptorFactory factory = SharedFileDescriptorFactory.create("woot_", new String[] { path.getAbsolutePath() });
+    FileInputStream inStream = factory.createDescriptor("testReadAndWrite", 4096);
+    FileOutputStream outStream = new FileOutputStream(inStream.getFD());
+    outStream.write(101);
+    inStream.getChannel().position(0);
+    Assert.assertEquals(101, inStream.read());
+    inStream.close();
+    outStream.close();
+    FileUtil.fullyDelete(path);
+}

@@ -1,0 +1,23 @@
+@Test
+public void testDecompressingOutput() throws Exception {
+    byte[] expectedDecompressedResult = FileUtils.readFileToByteArray(uncompressedFile);
+    ZStandardCodec codec = new ZStandardCodec();
+    codec.setConf(CONFIGURATION);
+    CompressionInputStream inputStream = codec.createInputStream(FileUtils.openInputStream(compressedFile), codec.createDecompressor());
+    byte[] toDecompress = new byte[100];
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    byte[] decompressedResult;
+    int totalFileSize = 0;
+    int result = toDecompress.length;
+    try {
+        while ((result = inputStream.read(toDecompress, 0, result)) != -1) {
+            baos.write(toDecompress, 0, result);
+            totalFileSize += result;
+        }
+        decompressedResult = baos.toByteArray();
+    } finally {
+        IOUtils.closeQuietly(baos);
+    }
+    assertEquals(decompressedResult.length, totalFileSize);
+    assertEquals(bytesToHex(expectedDecompressedResult), bytesToHex(decompressedResult));
+}

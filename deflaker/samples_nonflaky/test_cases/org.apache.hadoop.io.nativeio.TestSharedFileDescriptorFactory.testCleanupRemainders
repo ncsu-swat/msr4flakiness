@@ -1,0 +1,17 @@
+@Test(timeout = 10000)
+public void testCleanupRemainders() throws Exception {
+    Assume.assumeTrue(NativeIO.isAvailable());
+    Assume.assumeTrue(SystemUtils.IS_OS_UNIX);
+    File path = new File(TEST_BASE, "testCleanupRemainders");
+    path.mkdirs();
+    String remainder1 = path.getAbsolutePath() + Path.SEPARATOR + "woot2_remainder1";
+    String remainder2 = path.getAbsolutePath() + Path.SEPARATOR + "woot2_remainder2";
+    createTempFile(remainder1);
+    createTempFile(remainder2);
+    SharedFileDescriptorFactory.create("woot2_", new String[] { path.getAbsolutePath() });
+    // creating the SharedFileDescriptorFactory should have removed
+    // the remainders
+    Assert.assertFalse(new File(remainder1).exists());
+    Assert.assertFalse(new File(remainder2).exists());
+    FileUtil.fullyDelete(path);
+}

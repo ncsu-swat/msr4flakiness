@@ -1,0 +1,23 @@
+@Test(timeout = 30000)
+public void testAppendSort() throws Exception {
+    GenericTestUtils.assumeInNativeProfile();
+    Path file = new Path(ROOT_PATH, "testseqappendSort.seq");
+    fs.delete(file, true);
+    Path sortedFile = new Path(ROOT_PATH, "testseqappendSort.seq.sort");
+    fs.delete(sortedFile, true);
+    SequenceFile.Sorter sorter = new SequenceFile.Sorter(fs, new JavaSerializationComparator<Long>(), Long.class, String.class, conf);
+    Option compressOption = Writer.compression(CompressionType.BLOCK, new GzipCodec());
+    Writer writer = SequenceFile.createWriter(conf, SequenceFile.Writer.file(file), SequenceFile.Writer.keyClass(Long.class), SequenceFile.Writer.valueClass(String.class), compressOption);
+    writer.append(2L, "two");
+    writer.append(1L, "one");
+    writer.close();
+    writer = SequenceFile.createWriter(conf, SequenceFile.Writer.file(file), SequenceFile.Writer.keyClass(Long.class), SequenceFile.Writer.valueClass(String.class), SequenceFile.Writer.appendIfExists(true), compressOption);
+    writer.append(4L, "four");
+    writer.append(3L, "three");
+    writer.close();
+    // Sort file after append
+    sorter.sort(file, sortedFile);
+    verifyAll4Values(sortedFile);
+    fs.deleteOnExit(file);
+    fs.deleteOnExit(sortedFile);
+}

@@ -1,0 +1,35 @@
+@Test(timeout = 10000)
+public void testPmemCopy() throws IOException {
+    assumeNotWindows("Native PMDK not supported on Windows");
+    // Skip testing while the build or environment does not support PMDK
+    assumeTrue(NativeIO.POSIX.isPmdkAvailable());
+    // Create and map a block file. Please make sure /mnt/pmem0 is a persistent
+    // memory device.
+    String filePath = "/mnt/pmem0/copy";
+    long length = 4096;
+    PmemMappedRegion region = NativeIO.POSIX.Pmem.mapBlock(filePath, length, false);
+    assertTrue(NativeIO.POSIX.Pmem.isPmem(region.getAddress(), length));
+    assertFalse(NativeIO.POSIX.Pmem.isPmem(region.getAddress(), length + 100));
+    assertFalse(NativeIO.POSIX.Pmem.isPmem(region.getAddress() + 100, length));
+    assertFalse(NativeIO.POSIX.Pmem.isPmem(region.getAddress() - 100, length));
+    // Copy content to mapped file
+    byte[] data = generateSequentialBytes(0, (int) length);
+    NativeIO.POSIX.Pmem.memCopy(data, region.getAddress(), region.isPmem(), length);
+    // Read content before pmemSync
+    byte[] readBuf1 = new byte[(int) length];
+    IOUtils.readFully(new FileInputStream(filePath), readBuf1, 0, (int) length);
+    assertArrayEquals(data, readBuf1);
+    byte[] readBuf2 = new byte[(int) length];
+    // Sync content to persistent memory twice
+    NativeIO.POSIX.Pmem.memSync(region);
+    NativeIO.POSIX.Pmem.memSync(region);
+    // Read content after pmemSync twice
+    IOUtils.readFully(new FileInputStream(filePath), readBuf2, 0, (int) length);
+    assertArrayEquals(data, readBuf2);
+    // Read content after unmap twice
+    NativeIO.POSIX.Pmem.unmapBlock(region.getAddress(), length);
+    NativeIO.POSIX.Pmem.unmapBlock(region.getAddress(), length);
+    byte[] readBuf3 = new byte[(int) length];
+    IOUtils.readFully(new FileInputStream(filePath), readBuf3, 0, (int) length);
+    assertArrayEquals(data, readBuf3);
+}

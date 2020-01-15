@@ -1,0 +1,21 @@
+@Test(timeout = 30000)
+public void testMultiThreadedStat() throws Exception {
+    Configuration conf = new Configuration();
+    FileSystem fileSystem = FileSystem.getLocal(conf).getRawFileSystem();
+    Path path = new Path(TEST_DIR.getPath(), "teststat2");
+    fileSystem.createNewFile(path);
+    String testFilePath = path.toString();
+    int numOfThreads = 10;
+    ExecutorService executorService = Executors.newFixedThreadPool(numOfThreads);
+    executorService.awaitTermination(1000, TimeUnit.MILLISECONDS);
+    try {
+        for (int i = 0; i < numOfThreads; i++) {
+            Future<Boolean> result = executorService.submit(() -> doStatTest(testFilePath));
+            assertTrue(result.get());
+        }
+        LOG.info("testMultiThreadedStat() is successful.");
+    } finally {
+        executorService.shutdown();
+        ContractTestUtils.cleanup("cleanup test file: " + path.toString(), fileSystem, path);
+    }
+}

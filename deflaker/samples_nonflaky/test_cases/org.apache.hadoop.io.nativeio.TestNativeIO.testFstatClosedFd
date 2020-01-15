@@ -1,0 +1,11 @@
+@Test(timeout = 30000)
+public void testFstatClosedFd() throws Exception {
+    FileOutputStream fos = new FileOutputStream(new File(TEST_DIR, "testfstat2"));
+    fos.close();
+    try {
+        NativeIO.POSIX.Stat stat = NativeIO.POSIX.getFstat(fos.getFD());
+    } catch (NativeIOException nioe) {
+        LOG.info("Got expected exception", nioe);
+        assertEquals(Errno.EBADF, nioe.getErrno());
+    }
+}

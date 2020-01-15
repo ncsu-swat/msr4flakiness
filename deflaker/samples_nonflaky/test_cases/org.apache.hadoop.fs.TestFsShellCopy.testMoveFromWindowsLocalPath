@@ -1,0 +1,15 @@
+@Test
+public void testMoveFromWindowsLocalPath() throws Exception {
+    assumeWindows();
+    Path testRoot = new Path(testRootDir, "testPutFile");
+    lfs.delete(testRoot, true);
+    lfs.mkdirs(testRoot);
+    Path target = new Path(testRoot, "target");
+    Path srcFile = new Path(testRoot, new Path("srcFile"));
+    lfs.createNewFile(srcFile);
+    String winSrcFile = (new File(srcFile.toUri().getPath().toString())).getAbsolutePath();
+    shellRun(0, "-moveFromLocal", winSrcFile, target.toString());
+    assertFalse(lfs.exists(srcFile));
+    assertTrue(lfs.exists(target));
+    assertTrue(lfs.getFileStatus(target).isFile());
+}
