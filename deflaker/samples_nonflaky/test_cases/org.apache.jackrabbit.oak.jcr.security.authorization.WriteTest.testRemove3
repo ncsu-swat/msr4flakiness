@@ -1,0 +1,19 @@
+@Test
+public void testRemove3() throws Exception {
+    // add 'remove_node' and 'remove_child_nodes' privilege at 'path'
+    Privilege[] privs = privilegesFromNames(new String[] { Privilege.JCR_REMOVE_CHILD_NODES, Privilege.JCR_REMOVE_NODE });
+    allow(path, privs);
+    /*
+         expected result:
+         - missing remove permission at path since REMOVE_CHILD_NODES present
+           at path only applies for nodes below. REMOVE_CHILD_NODES must
+           be present at the parent instead (which isn't)
+         - remove permission is however granted at childNPath.
+         - privileges: both at path and at childNPath 'remove_node' and
+           'remove_child_nodes' are present.
+        */
+    assertFalse(testSession.hasPermission(path, javax.jcr.Session.ACTION_REMOVE));
+    assertTrue(testSession.hasPermission(childNPath, javax.jcr.Session.ACTION_REMOVE));
+    assertTrue(testAcMgr.hasPrivileges(path, privs));
+    assertTrue(testAcMgr.hasPrivileges(childNPath, privs));
+}

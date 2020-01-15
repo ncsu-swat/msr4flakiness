@@ -1,0 +1,22 @@
+@Test
+public void testSyncUpdateAfterXmlImport() throws Exception {
+    try {
+        // force initial sync
+        login(new SimpleCredentials(USER_ID, new char[0])).close();
+        // remove properties according to the behavior in the XML-import
+        Root systemRoot = getSystemRoot();
+        UserManager userManager = getUserManager(systemRoot);
+        Authorizable a = userManager.getAuthorizable(USER_ID);
+        a.removeProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES);
+        a.removeProperty(ExternalIdentityConstants.REP_LAST_SYNCED);
+        systemRoot.commit();
+        // login again to force sync of the user (and it's group membership)
+        login(new SimpleCredentials(USER_ID, new char[0])).close();
+        systemRoot.refresh();
+        a = userManager.getAuthorizable(USER_ID);
+        assertTrue(a.hasProperty(ExternalIdentityConstants.REP_LAST_SYNCED));
+        assertExternalPrincipalNames(userManager, USER_ID);
+    } finally {
+        options.clear();
+    }
+}

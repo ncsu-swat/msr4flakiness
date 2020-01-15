@@ -1,0 +1,19 @@
+@Test
+public void testCollapseJcrContentNodes() throws Exception {
+    String query = "select [jcr:path], [jcr:score], * from [nt:hierarchy] as a where isdescendantnode(a, '/')";
+    Filter filter = mock(Filter.class);
+    OakSolrConfiguration configuration = new DefaultSolrConfiguration() {
+
+        @Override
+        public boolean collapseJcrContentNodes() {
+            return true;
+        }
+    };
+    when(filter.getQueryStatement()).thenReturn(query);
+    QueryIndex.IndexPlan plan = mock(QueryIndex.IndexPlan.class);
+    SolrQuery solrQuery = FilterQueryParser.getQuery(filter, plan, configuration);
+    assertNotNull(solrQuery);
+    String[] filterQueries = solrQuery.getFilterQueries();
+    assertTrue(Arrays.asList(filterQueries).contains("{!collapse field=" + configuration.getCollapsedPathField() + " min=" + configuration.getPathDepthField() + " hint=top_fc nullPolicy=expand}"));
+    assertEquals("*:*", solrQuery.get("q"));
+}

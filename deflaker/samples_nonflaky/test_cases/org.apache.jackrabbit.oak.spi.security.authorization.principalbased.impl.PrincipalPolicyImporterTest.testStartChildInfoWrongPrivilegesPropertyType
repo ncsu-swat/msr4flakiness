@@ -1,0 +1,16 @@
+@Test(expected = ConstraintViolationException.class)
+public void testStartChildInfoWrongPrivilegesPropertyType() throws Exception {
+    init(true, ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING);
+    User user = getTestSystemUser();
+    Tree policyTree = createPolicyTree(user);
+    importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()), mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
+    List<PropInfo> propInfos = mockPropInfos("/effective/path");
+    // rep:privileges with wrong type
+    PropInfo propInfo = mockPropInfo(getJcrName(REP_PRIVILEGES));
+    TextValue tx = when(mock(TextValue.class).getString()).thenReturn(getJcrName(JCR_READ)).getMock();
+    List values = ImmutableList.of(tx);
+    when(propInfo.getTextValues()).thenReturn(values);
+    when(propInfo.getType()).thenReturn(PropertyType.STRING);
+    propInfos.add(propInfo);
+    importer.startChildInfo(mockNodeInfo("entry", getJcrName(NT_REP_PRINCIPAL_ENTRY)), propInfos);
+}

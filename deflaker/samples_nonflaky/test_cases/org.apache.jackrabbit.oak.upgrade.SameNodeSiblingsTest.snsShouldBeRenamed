@@ -1,0 +1,27 @@
+@Test
+public void snsShouldBeRenamed() throws RepositoryException, IOException {
+    DocumentNodeStore nodeStore = migrate(new SourceDataCreator() {
+
+        @Override
+        public void create(Session session) throws RepositoryException {
+            Node parent = session.getRootNode().addNode("parent");
+            parent.addNode("child", "nt:folder");
+            parent.addNode("child", "nt:folder");
+            parent.addNode("child", "nt:folder");
+            parent.addNode("something_else", "nt:folder");
+            session.save();
+            // change parent type to
+            parent.setPrimaryType("nt:folder");
+            // something that doesn't
+            // allow SNS
+            session.save();
+        }
+    });
+    try {
+        NodeState parent = nodeStore.getRoot().getChildNode("parent");
+        Set<String> children = newHashSet(parent.getChildNodeNames());
+        assertEquals(of("child", "child_2_", "child_3_", "something_else"), children);
+    } finally {
+        nodeStore.dispose();
+    }
+}

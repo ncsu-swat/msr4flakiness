@@ -1,0 +1,20 @@
+@Test
+public void testAdminAsImpersonator() throws RepositoryException, NotExecutableException {
+    String adminId = superuser.getUserID();
+    Authorizable admin = userMgr.getAuthorizable(adminId);
+    if (admin == null || admin.isGroup() || !((User) admin).isAdmin()) {
+        throw new NotExecutableException(adminId + " is not administators ID");
+    }
+    Principal adminPrincipal = admin.getPrincipal();
+    // admin cannot be add/remove to set of impersonators of 'u' but is
+    // always allowed to impersonate that user.
+    Impersonation impersonation = user.getImpersonation();
+    assertFalse(impersonation.grantImpersonation(adminPrincipal));
+    assertFalse(impersonation.revokeImpersonation(adminPrincipal));
+    assertTrue(impersonation.allows(buildSubject(adminPrincipal)));
+    // same if the impersonation object of the admin itself is used.
+    Impersonation adminImpersonation = ((User) admin).getImpersonation();
+    assertFalse(adminImpersonation.grantImpersonation(adminPrincipal));
+    assertFalse(adminImpersonation.revokeImpersonation(adminPrincipal));
+    assertTrue(impersonation.allows(buildSubject(adminPrincipal)));
+}

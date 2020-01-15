@@ -1,0 +1,10 @@
+@Test
+public void testNotIsMember() throws Exception {
+    GroupPrincipal principal = getGroupPrincipal(idp.getUser(USER_ID).getDeclaredGroups().iterator().next());
+    Authorizable notMember = getUserManager(root).getAuthorizable(ID_SECOND_USER);
+    assertFalse(principal.isMember(notMember.getPrincipal()));
+    root.getTree(notMember.getPath()).setProperty(REP_EXTERNAL_PRINCIPAL_NAMES, ImmutableList.of("secondGroup"), Type.STRINGS);
+    assertFalse(principal.isMember(notMember.getPrincipal()));
+    root.getTree(notMember.getPath()).setProperty(REP_EXTERNAL_PRINCIPAL_NAMES, ImmutableList.of(), Type.STRINGS);
+    assertFalse(principal.isMember(new PrincipalImpl(notMember.getPrincipal().getName())));
+}

@@ -1,0 +1,23 @@
+@Test
+public void getAllSelectedColumns() throws Exception {
+    Tree contentRoot = root.getTree("/").addChild("testRoot");
+    contentRoot.setProperty("foo", "is fox ifoxing");
+    contentRoot.setProperty("bar", "ifoxing fox");
+    contentRoot.setProperty("baz", "fox ifoxing");
+    root.commit();
+    List<String> columns = newArrayList("rep:excerpt", "rep:excerpt(.)", "rep:excerpt(foo)", "rep:excerpt(bar)");
+    String selectColumns = Joiner.on(",").join(columns.stream().map(col -> "[" + col + "]").collect(Collectors.toList()));
+    String query = "SELECT " + selectColumns + " FROM [nt:base] WHERE CONTAINS(*, 'fox')";
+    Result result = executeQuery(query, SQL2, NO_BINDINGS);
+    Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
+    assertTrue(resultIter.hasNext());
+    ResultRow firstRow = resultIter.next();
+    PropertyValue excerptValue;
+    String excerpt;
+    for (String col : columns) {
+        excerptValue = firstRow.getValue(col);
+        assertNotNull(col + " not evaluated", excerptValue);
+        excerpt = excerptValue.getValue(STRING);
+        assertFalse(col + " didn't evaluate correctly - got '" + excerpt + "'", excerpt.contains("i<strong>fox</foxing>ing"));
+    }
+}

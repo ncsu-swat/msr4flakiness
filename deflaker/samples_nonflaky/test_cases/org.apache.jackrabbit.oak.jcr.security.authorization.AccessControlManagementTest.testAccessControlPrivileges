@@ -1,0 +1,16 @@
+@Test
+public void testAccessControlPrivileges() throws Exception {
+    /* grant 'testUser' rep:write, rep:readAccessControl and
+           rep:modifyAccessControl privileges at 'path' */
+    Privilege[] privileges = privilegesFromNames(new String[] { REP_WRITE, Privilege.JCR_READ_ACCESS_CONTROL, Privilege.JCR_MODIFY_ACCESS_CONTROL });
+    JackrabbitAccessControlList acl = allow(path, privileges);
+    /*
+         testuser must have
+         - permission to view AC items
+         - permission to modify AC items
+        */
+    // the policy node however must be visible to the test-user
+    assertTrue(testSession.itemExists(acl.getPath() + "/rep:policy"));
+    testAcMgr.getPolicies(acl.getPath());
+    testAcMgr.removePolicy(acl.getPath(), acl);
+}

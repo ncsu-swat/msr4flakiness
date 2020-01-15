@@ -1,0 +1,25 @@
+@Test
+public void testCombinedSetup() throws Exception {
+    AccessControlManager acMgr = getAccessControlManager(root);
+    JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/content");
+    acl.addAccessControlEntry(getTestGroupPrincipal(), AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
+    acMgr.setPolicy(acl.getPath(), acl);
+    root.commit();
+    PermissionProvider combined = getConfig(AuthorizationConfiguration.class).getPermissionProvider(root, root.getContentSession().getWorkspaceName(), ImmutableSet.of(getTestGroupPrincipal()));
+    for (String acPath : acPaths) {
+        boolean canReadAc = Text.isDescendantOrEqual("/content", acPath);
+        Tree acTree = root.getTree(acPath);
+        assertEquals(canReadAc, combined.hasPrivileges(acTree, PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
+        assertEquals(canReadAc, combined.getPrivileges(acTree).contains(PrivilegeConstants.JCR_READ_ACCESS_CONTROL));
+        assertEquals(canReadAc, combined.isGranted(acPath, JackrabbitSession.ACTION_READ_ACCESS_CONTROL));
+        assertEquals(canReadAc, combined.isGranted(acTree, null, Permissions.READ_ACCESS_CONTROL));
+        Tree t = root.getTree("/");
+        TreePermission tp = combined.getTreePermission(t, TreePermission.EMPTY);
+        for (String name : PathUtils.elements(acPath)) {
+            t = t.getChild(name);
+            tp = combined.getTreePermission(t, tp);
+        }
+        assertEquals(canReadAc, tp.canRead());
+        assertEquals(canReadAc, tp.isGranted(Permissions.READ_ACCESS_CONTROL));
+    }
+}

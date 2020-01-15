@@ -1,0 +1,12 @@
+@Test
+public void testGetEffectivePoliciesLimitedReadAcPermission() throws Exception {
+    setupCugsAndAcls();
+    // test-user2 only has read-ac permission on /content but not on /content2
+    try (ContentSession cs = createTestSession2()) {
+        Root r = cs.getLatestRoot();
+        CugAccessControlManager m = new CugAccessControlManager(r, NamePathMapper.DEFAULT, getSecurityProvider(), ImmutableSet.copyOf(SUPPORTED_PATHS), getExclude(), getRootProvider());
+        AccessControlPolicy[] effective = m.getEffectivePolicies("/content/a/b/c");
+        // [/content/a, /content/a/b/c]
+        assertEquals(2, effective.length);
+    }
+}

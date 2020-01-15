@@ -1,0 +1,34 @@
+public void testMixTitleOnUnstructured2() throws Exception {
+    Node n = testRootNode.addNode("unstructured", JcrConstants.NT_UNSTRUCTURED);
+    n.addMixin("mix:title");
+    superuser.save();
+    // create jcr:title as STRING => declaring NT is mix:title
+    Property title = n.setProperty("jcr:title", "str");
+    assertEquals(PropertyType.STRING, title.getType());
+    PropertyDefinition def = title.getDefinition();
+    assertEquals("mix:title", def.getDeclaringNodeType().getName());
+    assertEquals(PropertyType.STRING, def.getRequiredType());
+    // changing value to BOOLEAN => value is converted
+    title.setValue(true);
+    assertEquals(PropertyType.STRING, title.getType());
+    def = title.getDefinition();
+    assertEquals("mix:title", def.getDeclaringNodeType().getName());
+    assertEquals(PropertyType.STRING, def.getRequiredType());
+    // re-setting property to type BOOLEAN => declaring NT is nt:unstructured
+    title = n.setProperty("jcr:title", true);
+    def = title.getDefinition();
+    assertEquals(JcrConstants.NT_UNSTRUCTURED, def.getDeclaringNodeType().getName());
+    assertEquals(PropertyType.UNDEFINED, def.getRequiredType());
+    // same if property is set to type DOUBLE
+    title = n.setProperty("jcr:title", superuser.getValueFactory().createValue(2.3));
+    assertEquals(PropertyType.DOUBLE, title.getType());
+    def = title.getDefinition();
+    assertEquals(JcrConstants.NT_UNSTRUCTURED, def.getDeclaringNodeType().getName());
+    assertEquals(PropertyType.UNDEFINED, def.getRequiredType());
+    // setting property to STRING => declaring NT is back to mix:title
+    title = n.setProperty("jcr:title", "str");
+    assertEquals(PropertyType.STRING, title.getType());
+    def = title.getDefinition();
+    assertEquals("mix:title", def.getDeclaringNodeType().getName());
+    assertEquals(PropertyType.STRING, def.getRequiredType());
+}

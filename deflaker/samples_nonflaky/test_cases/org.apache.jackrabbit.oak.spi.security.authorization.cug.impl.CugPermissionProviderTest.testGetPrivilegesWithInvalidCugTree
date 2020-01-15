@@ -1,0 +1,15 @@
+/**
+ * @see PermissionProvider#getPrivileges(org.apache.jackrabbit.oak.api.Tree)
+ */
+@Test
+public void testGetPrivilegesWithInvalidCugTree() {
+    Tree invalidCug = mock(Tree.class);
+    when(invalidCug.getProperty(JCR_PRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED, Type.NAME));
+    Tree t = mock(Tree.class, withSettings().extraInterfaces(TreeTypeAware.class, ReadOnly.class));
+    when(t.exists()).thenReturn(true);
+    when(t.getPath()).thenReturn(SUPPORTED_PATH);
+    when(((TreeTypeAware) t).getType()).thenReturn(TreeType.DEFAULT);
+    when(t.hasChild(REP_CUG_POLICY)).thenReturn(true);
+    when(t.getChild(REP_CUG_POLICY)).thenReturn(invalidCug);
+    assertTrue(cugPermProvider.getPrivileges(t).isEmpty());
+}

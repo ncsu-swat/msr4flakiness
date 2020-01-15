@@ -1,0 +1,16 @@
+@Test
+public void indexCreationAndCloserWithUpdate() throws Exception {
+    LuceneIndexDefinition idxDefn = getNRTIndexDefinition("/foo");
+    Document d = new Document();
+    d.add(newPathField("/a/b"));
+    NRTIndex idx1 = indexFactory.createIndex(idxDefn);
+    idx1.getWriter().updateDocument("/a/b", d);
+    assertEquals(1, idx1.getReaders().size());
+    NRTIndex idx2 = indexFactory.createIndex(idxDefn);
+    idx2.getWriter().updateDocument("/a/b", d);
+    idx1.getWriter().updateDocument("/a/b", d);
+    assertEquals(2, idx2.getReaders().size());
+    NRTIndex idx3 = indexFactory.createIndex(idxDefn);
+    NRTIndex idx4 = indexFactory.createIndex(idxDefn);
+    assertTrue(idx1.isClosed());
+}

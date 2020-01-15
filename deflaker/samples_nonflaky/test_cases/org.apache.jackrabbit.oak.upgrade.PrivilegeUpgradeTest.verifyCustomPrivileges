@@ -1,0 +1,42 @@
+@Test
+public void verifyCustomPrivileges() throws Exception {
+    JackrabbitSession session = createAdminSession();
+    try {
+        JackrabbitWorkspace workspace = (JackrabbitWorkspace) session.getWorkspace();
+        PrivilegeManager manager = workspace.getPrivilegeManager();
+        Privilege privilege = manager.getPrivilege("test:privilege");
+        assertNotNull(privilege);
+        assertFalse(privilege.isAbstract());
+        assertFalse(privilege.isAggregate());
+        assertEquals(0, privilege.getDeclaredAggregatePrivileges().length);
+        Privilege privilege2 = manager.getPrivilege("test:privilege2");
+        assertNotNull(privilege2);
+        assertTrue(privilege2.isAbstract());
+        assertFalse(privilege2.isAggregate());
+        assertEquals(0, privilege.getDeclaredAggregatePrivileges().length);
+        Privilege aggregate = manager.getPrivilege("test:aggregate");
+        assertNotNull(aggregate);
+        assertFalse(aggregate.isAbstract());
+        assertTrue(aggregate.isAggregate());
+        List<Privilege> agg = ImmutableList.copyOf(aggregate.getDeclaredAggregatePrivileges());
+        assertEquals(2, agg.size());
+        assertTrue(agg.contains(privilege));
+        assertTrue(agg.contains(manager.getPrivilege(JCR_READ)));
+        Privilege aggregate2 = manager.getPrivilege("test:aggregate2");
+        assertNotNull(aggregate2);
+        assertTrue(aggregate2.isAbstract());
+        assertTrue(aggregate2.isAggregate());
+        List<Privilege> agg2 = ImmutableList.copyOf(aggregate2.getDeclaredAggregatePrivileges());
+        assertEquals(2, agg2.size());
+        assertTrue(agg2.contains(aggregate));
+        assertTrue(agg2.contains(privilege2));
+        Privilege jcrAll = manager.getPrivilege("jcr:all");
+        List<Privilege> privileges = asList(jcrAll.getAggregatePrivileges());
+        assertTrue(privileges.contains(privilege));
+        assertTrue(privileges.contains(privilege2));
+        assertTrue(privileges.contains(aggregate));
+        assertTrue(privileges.contains(aggregate2));
+    } finally {
+        session.logout();
+    }
+}

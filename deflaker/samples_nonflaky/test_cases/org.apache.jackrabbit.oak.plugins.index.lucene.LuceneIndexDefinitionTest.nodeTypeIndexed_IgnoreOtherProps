@@ -1,0 +1,15 @@
+@Test
+public void nodeTypeIndexed_IgnoreOtherProps() throws Exception {
+    TestUtil.registerNodeType(builder, testNodeTypeDefn);
+    root = builder.getNodeState();
+    IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+    defnb.nodeTypeIndex();
+    defnb.indexRule("oak:TestSuperType").sync();
+    defnb.indexRule("oak:TestSuperType").property("foo").propertyIndex();
+    IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+    IndexingRule ruleSuper = getRule(defn, "oak:TestSuperType");
+    assertNotNull(ruleSuper);
+    assertNull(ruleSuper.getConfig("foo"));
+    assertNotNull(ruleSuper.getConfig(JcrConstants.JCR_PRIMARYTYPE));
+    assertNotNull(ruleSuper.getConfig(JcrConstants.JCR_MIXINTYPES));
+}

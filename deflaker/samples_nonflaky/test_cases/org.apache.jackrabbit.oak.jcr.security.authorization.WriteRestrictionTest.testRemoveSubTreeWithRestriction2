@@ -1,0 +1,14 @@
+@Test
+public void testRemoveSubTreeWithRestriction2() throws Exception {
+    /* allow READ/WRITE privilege for testUser at 'path' */
+    allow(path, testUser.getPrincipal(), readWritePrivileges);
+    /* deny REMOVE_NODE privileges at subtree. */
+    deny(path, privilegesFromName(PrivilegeConstants.JCR_REMOVE_CHILD_NODES), createGlobRestriction("*/" + Text.getName(childNPath)));
+    testSession.getNode(childNPath).getNode(nodeName3).remove();
+    try {
+        testSession.save();
+        fail("Removing child node must be denied.");
+    } catch (AccessDeniedException e) {
+    // success
+    }
+}

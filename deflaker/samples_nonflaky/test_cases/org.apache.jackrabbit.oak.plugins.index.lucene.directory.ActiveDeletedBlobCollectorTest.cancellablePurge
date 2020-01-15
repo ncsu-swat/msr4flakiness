@@ -1,0 +1,32 @@
+@Test
+public void cancellablePurge() throws Exception {
+    BlobDeletionCallback bdc = adbc.getBlobDeletionCallback();
+    for (int i = 0; i < 10; i++) {
+        String id = "Blob" + i;
+        bdc.deleted(id, Collections.singleton(id));
+    }
+    bdc.commitProgress(COMMIT_SUCCEDED);
+    Semaphore purgeBlocker = new Semaphore(0);
+    blobStore.callback = () -> purgeBlocker.acquireUninterruptibly();
+    Thread purgeThread = new Thread(() -> {
+        try {
+            adbc.purgeBlobsDeleted(clock.getTimeIncreasing(), blobStore);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    });
+    purgeThread.setDaemon(true);
+    // allow 5 deletes
+    purgeBlocker.release(10);
+    purgeThread.start();
+    boolean deleted5 = waitFor(5000, () -> blobStore.deletedChunkIds.size() >= 10);
+    assertTrue("Deleted " + blobStore.deletedChunkIds.size() + " chunks", deleted5);
+    adbc.cancelBlobCollection();
+    // release all that's there... this is more than needed, btw.
+    purgeBlocker.release(20);
+    boolean deleted6 = waitFor(5000, () -> blobStore.deletedChunkIds.size() >= 12);
+    assertTrue("Haven't deleted another blob which was locked earlier.", deleted6);
+    boolean cancelWorked = waitFor(5000, () -> !purgeThread.isAlive());
+    assertTrue("Cancel didn't let go of purge thread in 2 seconds", cancelWorked);
+    assertTrue("Cancelling purge must return asap", blobStore.deletedChunkIds.size() == 12);
+}

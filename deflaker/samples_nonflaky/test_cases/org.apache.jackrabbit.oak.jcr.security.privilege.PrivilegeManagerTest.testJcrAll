@@ -1,0 +1,39 @@
+@Test
+public void testJcrAll() throws RepositoryException {
+    Privilege all = privilegeManager.getPrivilege(Privilege.JCR_ALL);
+    assertPrivilege(all, "jcr:all", true, false);
+    List<Privilege> decl = Arrays.asList(all.getDeclaredAggregatePrivileges());
+    List<Privilege> aggr = new ArrayList<Privilege>(Arrays.asList(all.getAggregatePrivileges()));
+    assertFalse(decl.contains(all));
+    assertFalse(aggr.contains(all));
+    // declared and aggregated privileges are the same for jcr:all
+    assertTrue(decl.containsAll(aggr));
+    // test individual built-in privileges are listed in the aggregates
+    assertTrue(aggr.remove(privilegeManager.getPrivilege(Privilege.JCR_READ)));
+    assertTrue(aggr.remove(privilegeManager.getPrivilege(Privilege.JCR_ADD_CHILD_NODES)));
+    assertTrue(aggr.remove(privilegeManager.getPrivilege(Privilege.JCR_REMOVE_CHILD_NODES)));
+    assertTrue(aggr.remove(privilegeManager.getPrivilege(Privilege.JCR_MODIFY_PROPERTIES)));
+    assertTrue(aggr.remove(privilegeManager.getPrivilege(Privilege.JCR_REMOVE_NODE)));
+    assertTrue(aggr.remove(privilegeManager.getPrivilege(Privilege.JCR_READ_ACCESS_CONTROL)));
+    assertTrue(aggr.remove(privilegeManager.getPrivilege(Privilege.JCR_MODIFY_ACCESS_CONTROL)));
+    assertTrue(aggr.remove(privilegeManager.getPrivilege(Privilege.JCR_LIFECYCLE_MANAGEMENT)));
+    assertTrue(aggr.remove(privilegeManager.getPrivilege(Privilege.JCR_LOCK_MANAGEMENT)));
+    assertTrue(aggr.remove(privilegeManager.getPrivilege(Privilege.JCR_NODE_TYPE_MANAGEMENT)));
+    assertTrue(aggr.remove(privilegeManager.getPrivilege(Privilege.JCR_RETENTION_MANAGEMENT)));
+    assertTrue(aggr.remove(privilegeManager.getPrivilege(Privilege.JCR_VERSION_MANAGEMENT)));
+    assertTrue(aggr.remove(privilegeManager.getPrivilege(Privilege.JCR_WRITE)));
+    assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_WRITE)));
+    assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_READ_NODES)));
+    assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_READ_PROPERTIES)));
+    assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_ADD_PROPERTIES)));
+    assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_ALTER_PROPERTIES)));
+    assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_REMOVE_PROPERTIES)));
+    assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT)));
+    assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.JCR_NODE_TYPE_DEFINITION_MANAGEMENT)));
+    assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.JCR_WORKSPACE_MANAGEMENT)));
+    assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_PRIVILEGE_MANAGEMENT)));
+    assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_USER_MANAGEMENT)));
+    assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_INDEX_DEFINITION_MANAGEMENT)));
+    // there may be no privileges left
+    assertTrue(aggr.isEmpty());
+}

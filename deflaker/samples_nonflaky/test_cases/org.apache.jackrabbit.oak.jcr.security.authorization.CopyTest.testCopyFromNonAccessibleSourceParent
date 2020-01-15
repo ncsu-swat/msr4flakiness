@@ -1,0 +1,14 @@
+/**
+ * @see <a href="https://issues.apache.org/jira/browse/OAK-2810">OAK-2810</a>
+ */
+@Test
+public void testCopyFromNonAccessibleSourceParent() throws Exception {
+    // deny read access to the parent of the source to be copied
+    deny(path, privilegesFromName(PrivilegeConstants.JCR_ALL));
+    // allow copying the node itself
+    Privilege[] readWrite = privilegesFromNames(new String[] { PrivilegeConstants.JCR_READ, PrivilegeConstants.REP_WRITE });
+    allow(childNPath, readWrite);
+    allow(targetPath, readWrite);
+    testSession.getWorkspace().copy(childNPath, destPath);
+    assertTrue(testSession.nodeExists(destPath));
+}

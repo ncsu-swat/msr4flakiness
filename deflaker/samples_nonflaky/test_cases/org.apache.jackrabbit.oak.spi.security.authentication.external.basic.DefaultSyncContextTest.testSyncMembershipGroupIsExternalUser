@@ -1,0 +1,20 @@
+@Test
+public void testSyncMembershipGroupIsExternalUser() throws Exception {
+    // sync the 'wrong' external group into the repository
+    ExternalIdentity externalIdentity = idp.listUsers().next();
+    sync(externalIdentity);
+    // create external user with an synced-ext-user as declared group
+    ExternalUser withWrongDeclaredGroup = new ExternalUserWithDeclaredGroup(externalIdentity.getExternalId());
+    try {
+        Authorizable a = syncCtx.createUser(withWrongDeclaredGroup);
+        root.commit();
+        syncCtx.syncMembership(withWrongDeclaredGroup, a, 1);
+        assertFalse(root.hasPendingChanges());
+    } finally {
+        Authorizable a = userManager.getAuthorizable(withWrongDeclaredGroup.getId());
+        if (a != null) {
+            a.remove();
+            root.commit();
+        }
+    }
+}

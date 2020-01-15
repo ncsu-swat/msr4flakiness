@@ -1,0 +1,21 @@
+@Test
+public void hasChildNode_InLimit() {
+    Set<String> preferred = ImmutableSet.of("jcr:content", "x");
+    CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/jcr:content", "/a/c", "/a/d", "/e", "/e/f"));
+    ChildNodeStateProvider p = new ChildNodeStateProvider(citr, "/a", preferred);
+    citr.reset();
+    assertTrue(p.hasChildNode("jcr:content"));
+    assertEquals("Unexpected number of reads to get jcr:content", 2, citr.getCount());
+    citr.reset();
+    assertFalse(p.hasChildNode("x"));
+    assertEquals("Unexpected number reads to conclude that preferred child 'x' is missing", 3, citr.getCount());
+    citr.reset();
+    assertTrue(p.hasChildNode("c"));
+    assertEquals("Unexpected number reads to get 'c'", 3, citr.getCount());
+    citr.reset();
+    assertTrue(p.hasChildNode("d"));
+    assertEquals("Unexpected number reads to get 'd'", 4, citr.getCount());
+    citr.reset();
+    assertFalse(p.hasChildNode("y"));
+    assertEquals("Unexpected number reads to conclude that non-preferred child 'x' is missing", 5, citr.getCount());
+}

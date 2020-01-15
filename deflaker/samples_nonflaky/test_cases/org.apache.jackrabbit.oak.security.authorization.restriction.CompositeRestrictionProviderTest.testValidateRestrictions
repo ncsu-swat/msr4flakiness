@@ -1,36 +1,5 @@
 @Test
 public void testValidateRestrictions() throws Exception {
-    Tree aceNode = TreeUtil.addChild(root.getTree("/"), "test", NT_REP_GRANT_ACE);
-    Tree rNode = TreeUtil.addChild(aceNode, REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
-    rNode.setProperty("boolean", true);
-    rNode.setProperty(PropertyStates.createProperty("longs", ImmutableList.of(vf.createValue(10), vf.createValue(290))));
-    rNode.setProperty(REP_GLOB, "*");
-    // empty array
-    rNode.setProperty(REP_NT_NAMES, ImmutableList.of(), Type.NAMES);
-    provider.validateRestrictions("/test", aceNode);
-    // remove mandatory restriction
-    rNode.removeProperty("boolean");
-    try {
-        provider.validateRestrictions("/test", aceNode);
-        fail("validation should detect missing mandatory restrictions");
-    } catch (AccessControlException e) {
-    // success
-    }
-    // set with wrong type
-    rNode.setProperty("boolean", "nt:base", Type.NAME);
-    try {
-        provider.validateRestrictions("/test", aceNode);
-        fail("validation should detect wrong restriction type");
-    } catch (AccessControlException e) {
-    // success
-    } finally {
-        rNode.setProperty("boolean", true);
-    }
-    rNode.setProperty(REP_GLOB, ImmutableList.of("*", "/jcr:content"), Type.STRINGS);
-    try {
-        provider.validateRestrictions("/test", aceNode);
-        fail("validation should detect wrong restriction type (multi vs single valued)");
-    } catch (AccessControlException e) {
-    // success
-    }
+    Tree aceTree = getAceTree(LONGS_RESTRICTION, MANDATORY_BOOLEAN_RESTRICTION);
+    provider.validateRestrictions("/test", aceTree);
 }

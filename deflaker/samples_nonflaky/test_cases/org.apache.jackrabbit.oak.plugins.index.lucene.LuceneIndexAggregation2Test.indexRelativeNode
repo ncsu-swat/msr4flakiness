@@ -1,0 +1,23 @@
+@Test
+public void indexRelativeNode() throws Exception {
+    setTraversalEnabled(false);
+    final String statement = "//element(*, test:Asset)[ " + "jcr:contains(., 'summer') " + "and jcr:contains(jcr:content/renditions/original, 'fox')" + "and jcr:contains(jcr:content/metadata/@format, 'image') " + "]";
+    Tree content = root.getTree("/").addChild("content");
+    List<String> expected = newArrayList();
+    Tree metadata = createAssetStructure(content, "tagged");
+    metadata.setProperty("tags", of("namespace:season/summer"), STRINGS);
+    metadata.setProperty("format", "image/jpeg", STRING);
+    Tree original = metadata.getParent().addChild("renditions").addChild("original");
+    original.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FILE);
+    original.addChild("jcr:content").setProperty(PropertyStates.createProperty(JcrConstants.JCR_MIMETYPE, "text/plain"));
+    original.addChild("jcr:content").setProperty(PropertyStates.createProperty("jcr:data", "fox jumps".getBytes()));
+    expected.add("/content/tagged");
+    root.commit();
+    assertQuery(statement, "xpath", expected);
+    // Update the reaggregated node and with that parent should be get updated
+    Tree originalContent = TreeUtil.getTree(root.getTree("/"), "/content/tagged/jcr:content/renditions/original/jcr:content");
+    originalContent.setProperty(PropertyStates.createProperty("jcr:data", "kiwi jumps".getBytes()));
+    root.commit();
+    assertQuery(statement, "xpath", Collections.<String>emptyList());
+    setTraversalEnabled(true);
+}

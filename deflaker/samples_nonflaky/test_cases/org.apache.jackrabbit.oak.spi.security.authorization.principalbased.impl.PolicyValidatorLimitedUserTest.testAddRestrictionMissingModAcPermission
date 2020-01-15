@@ -1,0 +1,16 @@
+@Test
+public void testAddRestrictionMissingModAcPermission() throws Exception {
+    Tree entry = createPolicyEntryTree(root, TEST_OAK_PATH, JCR_READ);
+    root.commit();
+    testRoot.refresh();
+    entry = testRoot.getTree(entry.getPath());
+    Tree restrictions = TreeUtil.addChild(entry, REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
+    restrictions.setProperty(REP_GLOB, "*/glob/*");
+    try {
+        testRoot.commit();
+        fail("CommitFailedException expected; type ACCESS; code 3");
+    } catch (CommitFailedException e) {
+        assertEquals(CommitFailedException.ACCESS, e.getType());
+        assertEquals(3, e.getCode());
+    }
+}

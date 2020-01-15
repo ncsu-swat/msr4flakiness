@@ -1,0 +1,23 @@
+@Test
+public void dirNameInException_Flush() throws Exception {
+    FailOnDemandBlobStore blobStore = new FailOnDemandBlobStore();
+    FileStore store = FileStoreBuilder.fileStoreBuilder(tempFolder.getRoot()).withMemoryMapping(false).withBlobStore(blobStore).build();
+    SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(store).build();
+    String indexPath = "/foo/bar";
+    int minFileSize = SegmentTestConstants.MEDIUM_LIMIT;
+    int blobSize = minFileSize + 1000;
+    builder = nodeStore.getRoot().builder();
+    builder.setProperty(FulltextIndexConstants.BLOB_SIZE, blobSize);
+    Directory dir = createDir(builder, false, indexPath);
+    IndexOutput o3 = dir.createOutput("test1.txt", IOContext.DEFAULT);
+    o3.writeBytes(randomBytes(minFileSize), minFileSize);
+    blobStore.startFailing();
+    try {
+        o3.flush();
+        fail();
+    } catch (IOException e) {
+        assertThat(e.getMessage(), containsString(indexPath));
+        assertThat(e.getMessage(), containsString("test1.txt"));
+    }
+    store.close();
+}

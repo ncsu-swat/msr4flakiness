@@ -1,0 +1,16 @@
+@Test
+public void testCanReadForTypeAccessControl() throws Exception {
+    String prinipalPath = getNamePathMapper().getOakPath(getTestSystemUser().getPath());
+    String policyPath = PathUtils.concat(prinipalPath, REP_PRINCIPAL_POLICY);
+    Tree tree = root.getTree(PathUtils.ROOT_PATH);
+    TreePermission tp = permissionProvider.getTreePermission(tree, TreePermission.EMPTY);
+    for (String elem : PathUtils.elements(policyPath)) {
+        tree = tree.getChild(elem);
+        tp = permissionProvider.getTreePermission(tree, tp);
+    }
+    assertFalse(tp.canRead());
+    setupPrincipalBasedAccessControl(getTestSystemUser().getPrincipal(), getTestSystemUser().getPath(), PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
+    root.commit();
+    permissionProvider.refresh();
+    assertTrue(tp.canRead());
+}

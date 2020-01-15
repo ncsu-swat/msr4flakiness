@@ -1,0 +1,13 @@
+@Test
+public void recursionEnabled() throws Exception {
+    Aggregate agFile = new Aggregate("nt:file", of(ni("*")), 5);
+    mapper.add("nt:file", agFile);
+    NodeBuilder nb = newNode("nt:file");
+    nb.child("a").child("c");
+    nb.child("b").setProperty(JCR_PRIMARYTYPE, "nt:file");
+    nb.child("b").child("b1").child("b2");
+    nb.child("c");
+    agFile.collectAggregates(nb.getNodeState(), col);
+    assertEquals(4, col.getNodePaths().size());
+    assertThat(col.getNodePaths(), hasItems("a", "b", "c", "b/b1"));
+}

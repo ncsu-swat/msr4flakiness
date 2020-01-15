@@ -1,0 +1,34 @@
+@Test
+public void testMembersInPrincipal() throws NotExecutableException, RepositoryException {
+    User auth = getTestUser(superuser);
+    Group newGroup = null;
+    Group newGroup2 = null;
+    try {
+        newGroup = userMgr.createGroup(createGroupId());
+        newGroup2 = userMgr.createGroup(createGroupId());
+        superuser.save();
+        newGroup.addMember(newGroup2);
+        superuser.save();
+        newGroup2.addMember(auth);
+        superuser.save();
+        GroupPrincipal ngPrincipal = (GroupPrincipal) newGroup.getPrincipal();
+        GroupPrincipal ng2Principal = (GroupPrincipal) newGroup2.getPrincipal();
+        assertFalse(ng2Principal.isMember(ngPrincipal));
+        // newGroup2 must be member of newGroup's principal
+        assertTrue(ngPrincipal.isMember(newGroup2.getPrincipal()));
+        // testuser must be member of newGroup2's and newGroup's principal (indirect)
+        assertTrue(ng2Principal.isMember(auth.getPrincipal()));
+        assertTrue(ngPrincipal.isMember(auth.getPrincipal()));
+    } finally {
+        if (newGroup != null) {
+            newGroup.removeMember(newGroup2);
+            newGroup.remove();
+            superuser.save();
+        }
+        if (newGroup2 != null) {
+            newGroup2.removeMember(auth);
+            newGroup2.remove();
+            superuser.save();
+        }
+    }
+}

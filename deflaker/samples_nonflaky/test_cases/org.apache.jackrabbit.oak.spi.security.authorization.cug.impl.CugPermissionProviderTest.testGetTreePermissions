@@ -1,0 +1,46 @@
+// --------------------------------------------------< getTreePermission >---
+/**
+ * @see PermissionProvider#getTreePermission(org.apache.jackrabbit.oak.api.Tree, org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission)
+ */
+@Test
+public void testGetTreePermissions() throws AccessDeniedException {
+    TreePermission rootTp = cugPermProvider.getTreePermission(root.getTree("/"), TreePermission.EMPTY);
+    assertTrue(rootTp instanceof EmptyCugTreePermission);
+    TreePermission contentTp = cugPermProvider.getTreePermission(root.getTree(SUPPORTED_PATH), rootTp);
+    assertTrue(contentTp instanceof CugTreePermission);
+    TreePermission aTp = cugPermProvider.getTreePermission(root.getTree("/content/a"), contentTp);
+    assertTrue(aTp instanceof CugTreePermission);
+    TreePermission bTp = cugPermProvider.getTreePermission(root.getTree("/content/a/b"), aTp);
+    assertTrue(bTp instanceof CugTreePermission);
+    TreePermission cTp = cugPermProvider.getTreePermission(root.getTree("/content/a/b/c"), bTp);
+    assertTrue(cTp instanceof CugTreePermission);
+    TreePermission aaTp = cugPermProvider.getTreePermission(root.getTree("/content/aa"), contentTp);
+    assertTrue(aaTp instanceof CugTreePermission);
+    TreePermission bbTp = cugPermProvider.getTreePermission(root.getTree("/content/aa/bb"), aaTp);
+    assertTrue(bbTp instanceof CugTreePermission);
+    TreePermission ccTp = cugPermProvider.getTreePermission(root.getTree("/content/aa/bb/cc"), bbTp);
+    assertTrue(ccTp instanceof CugTreePermission);
+    // false cug-policy node (wrong nt)
+    Tree aaTree = root.getTree("/content/aa");
+    TreeUtil.addChild(aaTree, CugConstants.REP_CUG_POLICY, NT_OAK_UNSTRUCTURED);
+    TreePermission aaTp2 = cugPermProvider.getTreePermission(root.getTree("/content/aa"), contentTp);
+    assertTrue(aaTp2 instanceof CugTreePermission);
+    TreePermission falseCugTp = cugPermProvider.getTreePermission(root.getTree("/content/aa/rep:cugPolicy"), aaTp2);
+    assertNotSame(TreePermission.EMPTY, falseCugTp);
+    // cug content
+    TreePermission cugTp = cugPermProvider.getTreePermission(root.getTree("/content/a/rep:cugPolicy"), aTp);
+    assertSame(TreePermission.NO_RECOURSE, cugTp);
+    // jcr:system special case
+    TreePermission jcrSystemTp = cugPermProvider.getTreePermission(root.getTree("/jcr:system"), rootTp);
+    assertTrue(jcrSystemTp instanceof EmptyCugTreePermission);
+    // paths that may not contain cugs anyway
+    assertSame(TreePermission.NO_RECOURSE, cugPermProvider.getTreePermission(root.getTree(NodeTypeConstants.NODE_TYPES_PATH), jcrSystemTp));
+    TreePermission unsupportedPathTp = cugPermProvider.getTreePermission(root.getTree(UNSUPPORTED_PATH), rootTp);
+    assertSame(TreePermission.NO_RECOURSE, unsupportedPathTp);
+    try {
+        cugPermProvider.getTreePermission(root.getTree(UNSUPPORTED_PATH + "/child"), unsupportedPathTp);
+        fail();
+    } catch (IllegalStateException e) {
+    // success
+    }
+}

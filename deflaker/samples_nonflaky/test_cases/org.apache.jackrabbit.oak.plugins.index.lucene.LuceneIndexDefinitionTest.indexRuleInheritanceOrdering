@@ -1,0 +1,11 @@
+@Test
+public void indexRuleInheritanceOrdering() throws Exception {
+    NodeBuilder rules = builder.child(INDEX_RULES);
+    rules.setProperty(OAK_CHILD_ORDER, ImmutableList.of("nt:hierarchyNode", "nt:base"), NAMES);
+    rules.child("nt:hierarchyNode").setProperty(FulltextIndexConstants.FIELD_BOOST, 2.0);
+    rules.child("nt:base").setProperty(FulltextIndexConstants.FIELD_BOOST, 3.0);
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    assertEquals(3.0, getRule(defn, "nt:base").boost, 0);
+    assertEquals(2.0, getRule(defn, "nt:hierarchyNode").boost, 0);
+    assertEquals(3.0, getRule(defn, "nt:query").boost, 0);
+}

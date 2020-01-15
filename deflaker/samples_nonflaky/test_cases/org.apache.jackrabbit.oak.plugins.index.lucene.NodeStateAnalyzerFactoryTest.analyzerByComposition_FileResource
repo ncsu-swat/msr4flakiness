@@ -1,0 +1,18 @@
+@Test
+public void analyzerByComposition_FileResource() throws Exception {
+    NodeBuilder nb = EMPTY_NODE.builder();
+    nb.child(ANL_TOKENIZER).setProperty(ANL_NAME, "whitespace");
+    NodeBuilder filters = nb.child(ANL_FILTERS);
+    // name is optional. Derived from nodeName
+    NodeBuilder stop = filters.child("stop");
+    stop.setProperty("words", "set1.txt, set2.txt");
+    createFileNode(stop, "set1.txt", newCharArraySet("foo", "bar"));
+    createFileNode(stop, "set2.txt", newCharArraySet("foo1", "bar1"));
+    TokenizerChain analyzer = (TokenizerChain) factory.createInstance(nb.getNodeState());
+    assertEquals(1, analyzer.getFilters().length);
+    // check the order
+    assertEquals(StopFilterFactory.class.getName(), analyzer.getFilters()[0].getClassArg());
+    StopFilterFactory sff = (StopFilterFactory) analyzer.getFilters()[0];
+    assertTrue(sff.getStopWords().contains("foo"));
+    assertTrue(sff.getStopWords().contains("foo1"));
+}

@@ -1,0 +1,19 @@
+@Test
+public void testGetEffectiveByPrincipal() throws Exception {
+    // grant testuser read-access control on testPrincipal-path but NOT on effective paths null and /oak:content
+    grant(testPrincipal, systemPrincipalPath, JCR_READ_ACCESS_CONTROL);
+    root.commit();
+    testRoot.refresh();
+    // read-access-control is only granted for the principalpolicy itself
+    assertPolicies(testAcMgr.getEffectivePolicies(ImmutableSet.of(systemPrincipal)), ImmutableACL.class, 1, 2);
+    // grant testuser read-access control on /oak:content
+    grant(testPrincipal, testContentJcrPath, JCR_READ_ACCESS_CONTROL);
+    root.commit();
+    testRoot.refresh();
+    assertPolicies(testAcMgr.getEffectivePolicies(ImmutableSet.of(systemPrincipal)), ImmutableACL.class, 1, 2);
+    // additionally grant testuser read-access control on null
+    grant(testPrincipal, null, JCR_READ_ACCESS_CONTROL);
+    root.commit();
+    testRoot.refresh();
+    assertPolicies(testAcMgr.getEffectivePolicies(ImmutableSet.of(systemPrincipal)), ImmutableACL.class, 1, 2);
+}

@@ -1,0 +1,15 @@
+@Test
+public void lockAndRefreshPolicy() throws Exception {
+    NodeState state = createNRTIndex();
+    LuceneIndexDefinition definition = new LuceneIndexDefinition(root, state, "/foo");
+    NRTIndex nrtIndex = nrtFactory.createIndex(definition);
+    NRTIndex mock = spy(nrtIndex);
+    doReturn(new FailingPolicy()).when(mock).getRefreshPolicy();
+    LuceneIndexNodeManager node = new LuceneIndexNodeManager("/foo", definition, Collections.emptyList(), mock);
+    try {
+        node.acquire();
+        fail();
+    } catch (Exception ignore) {
+    }
+    node.close();
+}

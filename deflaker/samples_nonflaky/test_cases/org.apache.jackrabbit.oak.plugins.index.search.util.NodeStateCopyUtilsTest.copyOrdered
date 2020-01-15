@@ -1,0 +1,21 @@
+@Test
+public void copyOrdered() throws Exception {
+    NodeBuilder testBuilder = EMPTY_NODE.builder();
+    Tree srcTree = TreeFactory.createTree(testBuilder);
+    srcTree.setOrderableChildren(true);
+    srcTree.setProperty("foo", "x");
+    srcTree.addChild("a").setOrderableChildren(true);
+    srcTree.addChild("a").setProperty("foo", "y");
+    srcTree.addChild("b").setOrderableChildren(true);
+    srcTree.addChild("b").setProperty("foo", "z");
+    Tree tree = TreeFactory.createTree(EMPTY_NODE.builder());
+    NodeStateCopyUtils.copyToTree(testBuilder.getNodeState(), tree);
+    assertEquals("x", tree.getProperty("foo").getValue(Type.STRING));
+    assertEquals(2, tree.getChildrenCount(100));
+    assertEquals("y", tree.getChild("a").getProperty("foo").getValue(Type.STRING));
+    assertEquals("z", tree.getChild("b").getProperty("foo").getValue(Type.STRING));
+    // Assert the order
+    Iterator<Tree> children = tree.getChildren().iterator();
+    assertEquals("a", children.next().getName());
+    assertEquals("b", children.next().getName());
+}

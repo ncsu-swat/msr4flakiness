@@ -1,0 +1,30 @@
+@Test
+public void concurrentRead() throws Exception {
+    Directory baseDir = new RAMDirectory();
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    CollectingExecutor executor = new CollectingExecutor();
+    IndexCopier c1 = new RAMIndexCopier(baseDir, executor, getWorkDir());
+    FileTrackingDirectory remote = new FileTrackingDirectory();
+    Directory wrapped = c1.wrapForRead("/foo", defn, remote, INDEX_DATA_CHILD_NAME);
+    byte[] t1 = writeFile(remote, "t1");
+    // 1. Trigger a read which should go to remote
+    readAndAssert(wrapped, "t1", t1);
+    assertEquals(1, c1.getScheduledForCopyCount());
+    assertEquals(1, remote.openedFiles.size());
+    assertEquals(1, executor.commands.size());
+    // 2. Trigger another read and this should also be
+    // served from remote
+    readAndAssert(wrapped, "t1", t1);
+    assertEquals(1, c1.getScheduledForCopyCount());
+    assertEquals(2, remote.openedFiles.size());
+    // Second read should not add a new copy task
+    assertEquals(1, executor.commands.size());
+    // 3. Perform copy
+    executor.executeAll();
+    remote.reset();
+    // 4. Now read again after copy is done
+    readAndAssert(wrapped, "t1", t1);
+    // Now read should be served from local and not from remote
+    assertEquals(0, remote.openedFiles.size());
+    assertEquals(0, c1.getScheduledForCopyCount());
+}

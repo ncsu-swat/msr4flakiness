@@ -1,0 +1,41 @@
+@Test
+public void cowReadDoneFromLocalIfFileExist() throws Exception {
+    final Set<String> readLocal = newHashSet();
+    Directory baseDir = new CloseSafeDir() {
+
+        @Override
+        public IndexInput openInput(String name, IOContext context) throws IOException {
+            readLocal.add(name);
+            return super.openInput(name, context);
+        }
+    };
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    IndexCopier copier = new RAMIndexCopier(baseDir, sameThreadExecutor(), getWorkDir());
+    final Set<String> readRemotes = newHashSet();
+    Directory remote = new RAMDirectory() {
+
+        @Override
+        public IndexInput openInput(String name, IOContext context) throws IOException {
+            readRemotes.add(name);
+            return super.openInput(name, context);
+        }
+    };
+    byte[] t1 = writeFile(remote, "t1");
+    Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME, IndexCopier.COWDirectoryTracker.NOOP);
+    // Read should be served from remote
+    readRemotes.clear();
+    readLocal.clear();
+    readAndAssert(local, "t1", t1);
+    assertEquals(newHashSet("t1"), readRemotes);
+    assertEquals(newHashSet(), readLocal);
+    // Now pull in the file t1 via CopyOnRead in baseDir
+    Directory localForRead = copier.wrapForRead("/foo", defn, remote, INDEX_DATA_CHILD_NAME);
+    readAndAssert(localForRead, "t1", t1);
+    // Read should be served from local
+    readRemotes.clear();
+    readLocal.clear();
+    readAndAssert(local, "t1", t1);
+    assertEquals(newHashSet(), readRemotes);
+    assertEquals(newHashSet("t1"), readLocal);
+    local.close();
+}

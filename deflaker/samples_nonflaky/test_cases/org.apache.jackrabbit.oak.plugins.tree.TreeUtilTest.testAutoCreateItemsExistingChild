@@ -1,0 +1,15 @@
+@Test
+public void testAutoCreateItemsExistingChild() throws Exception {
+    Tree definition = when(mock(Tree.class).getProperty(JCR_AUTOCREATED)).thenReturn(PropertyStates.createProperty(JCR_AUTOCREATED, true)).getMock();
+    Tree definitions = mockTree("/some/path/autoChild", true);
+    when(definitions.getChildren()).thenReturn(ImmutableList.of(definition));
+    Tree defWithAutoChild = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of(definitions)).getMock();
+    when(ntDef.getChild(REP_NAMED_CHILD_NODE_DEFINITIONS)).thenReturn(defWithAutoChild);
+    Tree defWithoutChildren = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of()).getMock();
+    when(ntDef.getChild(REP_NAMED_PROPERTY_DEFINITIONS)).thenReturn(defWithoutChildren);
+    when(child.hasChild("autoChild")).thenReturn(true);
+    TreeUtil.autoCreateItems(child, ntDef, typeRoot, "userId");
+    verify(child, times(1)).hasChild("autoChild");
+    verify(child, never()).setProperty(any(PropertyState.class));
+    verify(child, never()).addChild(anyString());
+}

@@ -1,0 +1,10 @@
+@Test
+public void testGetPrincipalsForGroupTree() throws Exception {
+    Authorizable group = getUserManager(root).createGroup("testGroup");
+    Authorizable a = spy(getUserManager(root).getAuthorizable(USER_ID));
+    when(a.getPath()).thenReturn(group.getPath());
+    UserManager um = when(mock(UserManager.class).getAuthorizable(USER_ID)).thenReturn(a).getMock();
+    UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(root, getNamePathMapper())).thenReturn(um).getMock();
+    ExternalGroupPrincipalProvider pp = new ExternalGroupPrincipalProvider(root, uc, getNamePathMapper(), ImmutableMap.of(idp.getName(), getAutoMembership()));
+    assertTrue(pp.getPrincipals(USER_ID).isEmpty());
+}

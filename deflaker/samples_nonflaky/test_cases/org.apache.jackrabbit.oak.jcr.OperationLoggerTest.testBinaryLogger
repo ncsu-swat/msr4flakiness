@@ -1,0 +1,18 @@
+public void testBinaryLogger() throws Exception {
+    Node node1 = testRootNode.addNode(nodeName1);
+    start();
+    byte[] data = "hello".getBytes();
+    Binary b = superuser.getValueFactory().createBinary(new ByteArrayInputStream(data));
+    node1.setProperty("foo", b);
+    stop();
+    boolean binaryLog = false;
+    for (ILoggingEvent e : logs.list) {
+        if (e.getLoggerName().startsWith(OPS_BINARY)) {
+            if (e.getMessage().contains("Created binary property")) {
+                assertEquals(Long.valueOf(data.length), e.getArgumentArray()[0]);
+                binaryLog = true;
+            }
+        }
+    }
+    assertTrue("Did not find binary upload log", binaryLog);
+}

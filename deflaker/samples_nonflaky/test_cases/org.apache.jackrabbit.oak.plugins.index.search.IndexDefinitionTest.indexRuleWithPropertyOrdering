@@ -1,0 +1,22 @@
+@Test
+public void indexRuleWithPropertyOrdering() throws Exception {
+    NodeBuilder rules = builder.child(INDEX_RULES);
+    rules.child("nt:folder");
+    TestUtil.child(rules, "nt:folder/properties/prop1").setProperty(PROP_NAME, "foo.*").setProperty(FulltextIndexConstants.PROP_IS_REGEX, true).setProperty(FulltextIndexConstants.FIELD_BOOST, 3.0);
+    TestUtil.child(rules, "nt:folder/properties/prop2").setProperty(PROP_NAME, ".*").setProperty(FulltextIndexConstants.PROP_IS_REGEX, true).setProperty(FulltextIndexConstants.FIELD_BOOST, 4.0);
+    rules.child("nt:folder").child(PROP_NODE).setProperty(OAK_CHILD_ORDER, ImmutableList.of("prop2", "prop1"), NAMES);
+    IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+    IndexingRule rule1 = defn.getApplicableIndexingRule(asState(newNode("nt:folder")));
+    assertNotNull(rule1);
+    assertTrue(rule1.isIndexed("prop1"));
+    assertTrue(rule1.isIndexed("fooProp"));
+    assertEquals(4.0f, rule1.getConfig("bazProp2").boost, 0);
+    // As prop2 is ordered before prop1 its regEx is evaluated first
+    // hence even with a specific regex of foo.* the defn used is from .*
+    assertEquals(4.0f, rule1.getConfig("fooProp").boost, 0);
+    // Order it correctly to get expected result
+    rules.child("nt:folder").child(PROP_NODE).setProperty(OAK_CHILD_ORDER, ImmutableList.of("prop1", "prop2"), NAMES);
+    defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+    rule1 = defn.getApplicableIndexingRule(asState(newNode("nt:folder")));
+    assertEquals(3.0f, rule1.getConfig("fooProp").boost, 0);
+}

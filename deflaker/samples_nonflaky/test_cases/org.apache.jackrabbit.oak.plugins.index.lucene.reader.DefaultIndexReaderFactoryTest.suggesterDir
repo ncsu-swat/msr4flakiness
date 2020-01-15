@@ -1,0 +1,17 @@
+@Test
+public void suggesterDir() throws Exception {
+    LuceneIndexWriterFactory factory = newDirectoryFactory();
+    enabledSuggestorForSomeProp();
+    defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
+    Document doc = newDoc("/content/en");
+    doc.add(new StringField(FieldNames.SUGGEST, "test", null));
+    writer.updateDocument("/content/en", doc);
+    writer.close(0);
+    LuceneIndexReaderFactory readerFactory = new DefaultIndexReaderFactory(mip, null);
+    List<LuceneIndexReader> readers = readerFactory.createReaders(defn, builder.getNodeState(), "/foo");
+    LuceneIndexReader reader = readers.get(0);
+    assertNotNull(reader.getReader());
+    assertNotNull(reader.getSuggestDirectory());
+    assertNotNull(reader.getLookup());
+}

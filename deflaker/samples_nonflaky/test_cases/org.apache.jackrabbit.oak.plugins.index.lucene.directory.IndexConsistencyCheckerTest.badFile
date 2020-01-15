@@ -1,0 +1,23 @@
+@Test
+public void badFile() throws Exception {
+    LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, idx.getNodeState(), "/fooIndex").build();
+    Directory dir = new OakDirectory(idx, ":data", defn, false);
+    createIndex(dir, 10);
+    NodeBuilder builder = rootState.builder();
+    NodeBuilder file = idx.getChildNode(":data").getChildNode("_0.cfe");
+    List<Blob> blobs = Lists.newArrayList(file.getProperty("jcr:data").getValue(Type.BINARIES));
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    IOUtils.copy(blobs.get(0).getNewStream(), baos);
+    byte[] bytes = baos.toByteArray();
+    // Flip the 3rd bit to make it corrupt
+    bytes[0] = (byte) (bytes[0] ^ (1 << 3));
+    blobs.set(0, new ArrayBasedBlob(bytes));
+    file.setProperty("jcr:data", blobs, Type.BINARIES);
+    builder.setChildNode("fooIndex", idx.getNodeState());
+    NodeState indexState = builder.getNodeState();
+    IndexConsistencyChecker checker = new IndexConsistencyChecker(indexState, "/fooIndex", temporaryFolder.getRoot());
+    Result result = checker.check(Level.FULL);
+    assertFalse(result.clean);
+    assertEquals(0, result.dirStatus.get(0).missingFiles.size());
+    assertFalse(result.dirStatus.get(0).status.clean);
+}

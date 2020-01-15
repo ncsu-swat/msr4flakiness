@@ -1,0 +1,18 @@
+@Test
+public void testSyncMembershipWithChangedGroups() throws Exception {
+    long nesting = 1;
+    syncConfig.user().setMembershipNestingDepth(nesting);
+    ExternalUser externalUser = idp.getUser(USER_ID);
+    sync(externalUser, SyncResult.Status.ADD);
+    Authorizable a = userManager.getAuthorizable(externalUser.getId());
+    assertDynamicMembership(a, externalUser, nesting);
+    // sync user with modified membership => must be reflected
+    // 1. empty set of declared groups
+    ExternalUser mod = new TestUserWithGroupRefs(externalUser, ImmutableSet.<ExternalIdentityRef>of());
+    syncContext.syncMembership(mod, a, nesting);
+    assertDynamicMembership(a, mod, nesting);
+    // 2. set with different groups that defined on IDP
+    mod = new TestUserWithGroupRefs(externalUser, ImmutableSet.<ExternalIdentityRef>of(idp.getGroup("a").getExternalId(), idp.getGroup("aa").getExternalId(), idp.getGroup("secondGroup").getExternalId()));
+    syncContext.syncMembership(mod, a, nesting);
+    assertDynamicMembership(a, mod, nesting);
+}

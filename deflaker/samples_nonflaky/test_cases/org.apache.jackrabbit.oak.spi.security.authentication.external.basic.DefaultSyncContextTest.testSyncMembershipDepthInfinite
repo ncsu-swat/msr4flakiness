@@ -1,0 +1,22 @@
+@Test
+public void testSyncMembershipDepthInfinite() throws Exception {
+    ExternalUser externalUser = idp.listUsers().next();
+    Authorizable a = syncCtx.createUser(externalUser);
+    syncCtx.syncMembership(externalUser, a, Long.MAX_VALUE);
+    assertTrue(root.hasPendingChanges());
+    root.commit();
+    for (ExternalIdentityRef ref : externalUser.getDeclaredGroups()) {
+        ExternalIdentity extGr = idp.getIdentity(ref);
+        assertNotNull(extGr);
+        for (ExternalIdentityRef inheritedGrRef : extGr.getDeclaredGroups()) {
+            Group g = userManager.getAuthorizable(inheritedGrRef.getId(), Group.class);
+            assertNotNull(g);
+            if (Iterables.contains(externalUser.getDeclaredGroups(), inheritedGrRef)) {
+                assertTrue(g.isDeclaredMember(a));
+            } else {
+                assertFalse(g.isDeclaredMember(a));
+            }
+            assertTrue(g.isMember(a));
+        }
+    }
+}

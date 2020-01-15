@@ -1,0 +1,14 @@
+@Test
+public void testPlanWithPropertyAndPrimaryTypeRestrictionsEnabled() throws Exception {
+    NodeBuilder builder = nodeState.builder();
+    builder.child("oak:index").child("solr").setProperty("propertyRestrictions", true).setProperty("primaryTypes", true);
+    nodeState = builder.getNodeState();
+    SelectorImpl selector = newSelector(nodeState, "a");
+    SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, null, null);
+    FilterImpl filter = new FilterImpl(selector, "select * from [nt:base] as a where jcr:primaryType = 'nt:unstructured')", new QueryEngineSettings());
+    filter.restrictProperty("jcr:primaryType", Operator.EQUAL, PropertyValues.newString("nt:unstructured"));
+    filter.restrictProperty("name", Operator.EQUAL, PropertyValues.newString("hello"));
+    List<QueryIndex.OrderEntry> sortOrder = new LinkedList<QueryIndex.OrderEntry>();
+    List<QueryIndex.IndexPlan> plans = solrQueryIndex.getPlans(filter, sortOrder, nodeState);
+    assertEquals(1, plans.size());
+}

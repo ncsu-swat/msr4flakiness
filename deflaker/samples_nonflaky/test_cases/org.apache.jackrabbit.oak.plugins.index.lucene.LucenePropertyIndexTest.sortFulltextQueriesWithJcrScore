@@ -1,0 +1,20 @@
+@Test
+public void sortFulltextQueriesWithJcrScore() throws Exception {
+    // Index Definition
+    Tree idx = createIndex("test1", of("propa"));
+    idx.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, true);
+    useV2(idx);
+    // create test data
+    Tree test = root.getTree("/").addChild("test");
+    root.commit();
+    test.addChild("a").setProperty("propa", "foo");
+    test.addChild("b").setProperty("propa", "foo");
+    test.addChild("c").setProperty("propa", "foo");
+    root.commit();
+    // Descending matches with lucene native sort
+    String query = "measure //*[jcr:contains(., 'foo' )] order by @jcr:score descending";
+    assertThat(measureWithLimit(query, XPATH, 1), containsString("scanCount: 1"));
+    // Ascending needs to be sorted by query engine
+    query = "measure //*[jcr:contains(., 'foo' )] order by @jcr:score";
+    assertThat(measureWithLimit(query, XPATH, 1), containsString("scanCount: 3"));
+}

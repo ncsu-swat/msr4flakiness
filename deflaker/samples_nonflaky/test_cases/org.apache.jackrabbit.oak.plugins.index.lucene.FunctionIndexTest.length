@@ -1,0 +1,20 @@
+@Test
+public void length() throws Exception {
+    Tree luceneIndex = createIndex("length", Collections.<String>emptySet());
+    luceneIndex.setProperty("excludedPaths", Lists.newArrayList("/jcr:system", "/oak:index"), Type.STRINGS);
+    Tree func = luceneIndex.addChild(FulltextIndexConstants.INDEX_RULES).addChild("nt:base").addChild(FulltextIndexConstants.PROP_NODE).addChild("lengthName");
+    func.setProperty(FulltextIndexConstants.PROP_FUNCTION, "fn:string-length(@value)");
+    Tree test = root.getTree("/").addChild("test");
+    for (int idx = 1; idx <= 1000; idx *= 10) {
+        Tree testNode = test.addChild("test" + idx);
+        testNode.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        testNode.setProperty("value", new byte[idx]);
+    }
+    root.commit();
+    String query = "select [jcr:path] from [nt:base] where length([value]) = 100";
+    assertThat(explain(query), containsString("lucene:length"));
+    assertQuery(query, Lists.newArrayList("/test/test100"));
+    String queryXPath = "/jcr:root//*[fn:string-length(@value) = 10]";
+    assertThat(explainXpath(queryXPath), containsString("lucene:length"));
+    assertQuery(queryXPath, "xpath", Lists.newArrayList("/test/test10"));
+}

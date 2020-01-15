@@ -1,0 +1,15 @@
+@Test
+public void testGetDefaultChildTypeFromResidualSns() {
+    Tree emptyDefinitions = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of()).getMock();
+    Tree named = when(mock(Tree.class).getChild("newChild")).thenReturn(emptyDefinitions).getMock();
+    when(ntDef.getChild(REP_NAMED_CHILD_NODE_DEFINITIONS)).thenReturn(named);
+    Tree def = mock(Tree.class);
+    PropertyState ps = PropertyStates.createProperty(JCR_DEFAULTPRIMARYTYPE, NT_RESOURCE, Type.NAME);
+    when(def.getProperty(JCR_DEFAULTPRIMARYTYPE)).thenReturn(ps);
+    PropertyState sns = PropertyStates.createProperty(JCR_SAMENAMESIBLINGS, true, Type.BOOLEAN);
+    when(def.getProperty(JCR_SAMENAMESIBLINGS)).thenReturn(sns);
+    Tree definitions = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of(def)).getMock();
+    when(ntDef.getChild(REP_RESIDUAL_CHILD_NODE_DEFINITIONS)).thenReturn(definitions);
+    assertEquals(NT_RESOURCE, TreeUtil.getDefaultChildType(typeRoot, child, "newChild"));
+    assertEquals(NT_RESOURCE, TreeUtil.getDefaultChildType(typeRoot, child, "newChild[4]"));
+}

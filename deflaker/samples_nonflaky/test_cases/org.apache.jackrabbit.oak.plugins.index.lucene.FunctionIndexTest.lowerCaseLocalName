@@ -1,0 +1,27 @@
+@Test
+public void lowerCaseLocalName() throws Exception {
+    Tree luceneIndex = createIndex("lowerLocalName", Collections.<String>emptySet());
+    luceneIndex.setProperty("excludedPaths", Lists.newArrayList("/jcr:system", "/oak:index"), Type.STRINGS);
+    Tree func = luceneIndex.addChild(FulltextIndexConstants.INDEX_RULES).addChild("nt:base").addChild(FulltextIndexConstants.PROP_NODE).addChild("lowerLocalName");
+    func.setProperty(FulltextIndexConstants.PROP_FUNCTION, "lower(localname())");
+    Tree test = root.getTree("/").addChild("test");
+    for (int idx = 0; idx < 3; idx++) {
+        Tree low = test.addChild("" + (char) ('a' + idx));
+        low.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        Tree up = test.addChild("" + (char) ('A' + idx));
+        up.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+    }
+    root.commit();
+    String query = "select [jcr:path] from [nt:base] where lower(localname()) = 'b'";
+    assertThat(explain(query), containsString("lucene:lowerLocalName"));
+    assertQuery(query, Lists.newArrayList("/test/b", "/test/B"));
+    String queryXPath = "/jcr:root//*[fn:lower-case(fn:local-name()) = 'b']";
+    assertThat(explainXpath(queryXPath), containsString("lucene:lowerLocalName"));
+    assertQuery(queryXPath, "xpath", Lists.newArrayList("/test/b", "/test/B"));
+    queryXPath = "/jcr:root//*[fn:lower-case(fn:local-name()) > 'b']";
+    assertThat(explainXpath(queryXPath), containsString("lucene:lowerLocalName"));
+    assertQuery(queryXPath, "xpath", Lists.newArrayList("/test/c", "/test/C", "/test"));
+    query = "select [jcr:path] from [nt:base] where lower(localname()) = 'B'";
+    assertThat(explain(query), containsString("lucene:lowerLocalName"));
+    assertQuery(query, Lists.<String>newArrayList());
+}

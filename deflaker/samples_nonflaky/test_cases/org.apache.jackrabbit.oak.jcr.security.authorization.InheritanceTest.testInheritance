@@ -1,0 +1,50 @@
+@Test
+public void testInheritance() throws Exception {
+    // give 'modify_properties' and 'remove_node' privilege on 'path'
+    Privilege[] privileges = privilegesFromNames(new String[] { Privilege.JCR_REMOVE_NODE, Privilege.JCR_MODIFY_PROPERTIES });
+    allow(path, privileges);
+    // give 'add-child-nodes', remove_child_nodes' on 'childNPath'
+    privileges = privilegesFromNames(new String[] { Privilege.JCR_ADD_CHILD_NODES, Privilege.JCR_REMOVE_CHILD_NODES });
+    allow(childNPath, privileges);
+    /*
+        since evaluation respects inheritance through the node
+        hierarchy, the following privileges must now be given at 'childNPath':
+        - jcr:read
+        - jcr:modifyProperties
+        - jcr:addChildNodes
+        - jcr:removeChildNodes
+        - jcr:removeNode
+        */
+    Privilege[] expectedPrivileges = privilegesFromNames(new String[] { Privilege.JCR_READ, Privilege.JCR_ADD_CHILD_NODES, Privilege.JCR_REMOVE_CHILD_NODES, Privilege.JCR_REMOVE_NODE, Privilege.JCR_MODIFY_PROPERTIES });
+    assertTrue(testAcMgr.hasPrivileges(childNPath, expectedPrivileges));
+    /*
+         ... permissions granted at childNPath:
+         - read
+         - set-property
+
+         BUT NOT:
+         - add-node
+         - remove.
+         */
+    String aActions = javax.jcr.Session.ACTION_SET_PROPERTY + ',' + javax.jcr.Session.ACTION_READ;
+    assertTrue(testSession.hasPermission(childNPath, aActions));
+    String dActions = javax.jcr.Session.ACTION_REMOVE + ',' + javax.jcr.Session.ACTION_ADD_NODE;
+    assertFalse(testSession.hasPermission(childNPath, dActions));
+    /*
+        ... permissions granted at any child item of child-path:
+        - read
+        - set-property
+        - add-node
+        - remove
+        */
+    String nonExistingItemPath = childNPath + "/anyItem";
+    assertTrue(testSession.hasPermission(nonExistingItemPath, aActions + ',' + dActions));
+    /* try adding a new child node -> must succeed. */
+    Node childN = testSession.getNode(childNPath);
+    String testPath = childN.addNode(nodeName2).getPath();
+    /* test privileges on the 'new' child node */
+    assertTrue(testAcMgr.hasPrivileges(testPath, expectedPrivileges));
+    /* repeat test after save. */
+    testSession.save();
+    assertTrue(testAcMgr.hasPrivileges(testPath, expectedPrivileges));
+}

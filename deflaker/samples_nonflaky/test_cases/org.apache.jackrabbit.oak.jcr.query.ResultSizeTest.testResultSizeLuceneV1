@@ -1,0 +1,18 @@
+public void testResultSizeLuceneV1() throws Exception {
+    Session session = superuser;
+    Node index = session.getRootNode().getNode("oak:index");
+    Node luceneGlobal = index.getNode("luceneGlobal");
+    luceneGlobal.setProperty("type", "disabled");
+    Node luceneV1 = index.addNode("luceneV1", "oak:QueryIndexDefinition");
+    luceneV1.setProperty("type", "lucene");
+    luceneV1.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V1.getVersion());
+    session.save();
+    try {
+        doTestResultSize(true);
+    } finally {
+        luceneV1.remove();
+        luceneGlobal.setProperty("type", "lucene");
+        luceneGlobal.setProperty("reindex", true);
+        session.save();
+    }
+}

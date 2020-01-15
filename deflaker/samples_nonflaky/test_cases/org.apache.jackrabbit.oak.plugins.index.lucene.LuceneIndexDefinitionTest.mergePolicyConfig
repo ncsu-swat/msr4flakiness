@@ -1,0 +1,35 @@
+@Test
+public void mergePolicyConfig() throws Exception {
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    assertNotNull(defn.getMergePolicy());
+    assertEquals(TieredMergePolicy.class, defn.getMergePolicy().getClass());
+    builder.setProperty(LuceneIndexConstants.MERGE_POLICY_NAME, "tiered");
+    defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    assertNotNull(defn.getMergePolicy());
+    assertEquals(TieredMergePolicy.class, defn.getMergePolicy().getClass());
+    builder.setProperty(LuceneIndexConstants.MERGE_POLICY_NAME, "logbyte");
+    defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    assertNotNull(defn.getMergePolicy());
+    assertEquals(LogByteSizeMergePolicy.class, defn.getMergePolicy().getClass());
+    builder.setProperty(LuceneIndexConstants.MERGE_POLICY_NAME, "logdoc");
+    defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    assertNotNull(defn.getMergePolicy());
+    assertEquals(LogDocMergePolicy.class, defn.getMergePolicy().getClass());
+    builder.setProperty(LuceneIndexConstants.MERGE_POLICY_NAME, "no");
+    defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    assertNotNull(defn.getMergePolicy());
+    assertEquals(NoMergePolicy.class, defn.getMergePolicy().getClass());
+    builder.setProperty(LuceneIndexConstants.MERGE_POLICY_NAME, "default");
+    defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    assertNotNull(defn.getMergePolicy());
+    assertEquals(TieredMergePolicy.class, defn.getMergePolicy().getClass());
+    builder.setProperty(LuceneIndexConstants.MERGE_POLICY_NAME, "mitigated");
+    defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    assertNotNull(defn.getMergePolicy());
+    assertEquals(CommitMitigatingTieredMergePolicy.class, defn.getMergePolicy().getClass());
+    // wrong mp name falls back to default
+    builder.setProperty(LuceneIndexConstants.MERGE_POLICY_NAME, "whoawhoa");
+    defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    assertNotNull(defn.getMergePolicy());
+    assertEquals(TieredMergePolicy.class, defn.getMergePolicy().getClass());
+}

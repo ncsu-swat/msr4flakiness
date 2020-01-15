@@ -1,0 +1,19 @@
+@Test
+public void testSyncGroupDisableMissingEnabled() throws Exception {
+    // configure to disable missing users
+    syncConfig.user().setDisableMissing(true);
+    // mark a regular repo group as external user from the test IDP
+    Group gr = userManager.createGroup("test" + UUID.randomUUID());
+    String groupId = gr.getID();
+    setExternalID(gr, idp.getName());
+    // test sync with 'keepmissing' = true
+    syncCtx.setKeepMissing(true);
+    SyncResult result = syncCtx.sync(groupId);
+    assertEquals(SyncResult.Status.MISSING, result.getStatus());
+    assertNotNull(userManager.getAuthorizable(groupId));
+    // test sync with 'keepmissing' = false
+    syncCtx.setKeepMissing(false);
+    result = syncCtx.sync(groupId);
+    assertEquals(SyncResult.Status.DELETE, result.getStatus());
+    assertNull(userManager.getAuthorizable(groupId));
+}

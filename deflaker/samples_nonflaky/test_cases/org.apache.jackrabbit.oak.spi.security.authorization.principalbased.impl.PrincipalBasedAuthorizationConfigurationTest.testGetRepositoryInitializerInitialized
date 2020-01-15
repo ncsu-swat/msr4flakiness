@@ -1,0 +1,15 @@
+@Test
+public void testGetRepositoryInitializerInitialized() {
+    Root r = getRootProvider().createReadOnlyRoot(root);
+    CompositeConfiguration<AuthorizationConfiguration> cc = (CompositeConfiguration) getSecurityProvider().getConfiguration(AuthorizationConfiguration.class);
+    PrincipalBasedAuthorizationConfiguration pbac = null;
+    for (AuthorizationConfiguration ac : cc.getConfigurations()) {
+        if (ac instanceof PrincipalBasedAuthorizationConfiguration) {
+            pbac = (PrincipalBasedAuthorizationConfiguration) ac;
+            break;
+        }
+    }
+    assertNotNull(pbac);
+    RepositoryInitializer ri = pbac.getRepositoryInitializer();
+    ri.initialize(new ReadOnlyBuilder(getTreeProvider().asNodeState(r.getTree("/"))));
+}

@@ -1,0 +1,27 @@
+// OAK-6775
+@Test
+public void suggestDirUseCOWOnlyWhenItGetUniqueFSFolder() throws Exception {
+    Closer closer = Closer.create();
+    try {
+        NodeBuilder builder = ns.getRoot().builder().child("foo");
+        LuceneIndexDefinition def = new LuceneIndexDefinition(ns.getRoot(), builder.getNodeState(), "/foo");
+        Directory dir = new DefaultDirectoryFactory(copier, null).newInstance(def, builder.child("foo"), INDEX_DATA_CHILD_NAME, false);
+        Directory suggestDir = new DefaultDirectoryFactory(copier, null).newInstance(def, builder.child("foo"), SUGGEST_DATA_CHILD_NAME, false);
+        closer.register(dir);
+        closer.register(suggestDir);
+        assertTrue("Data directory not COW-wrapped", dir instanceof CopyOnWriteDirectory);
+        assertFalse("Suggester directory COW-wrapped", suggestDir instanceof CopyOnWriteDirectory);
+        builder.child(STATUS_NODE).setProperty(PROP_UID, "some_random_string");
+        def = new LuceneIndexDefinition(ns.getRoot(), builder.getNodeState(), "/foo");
+        assertNotNull("Synthetic UID not read by definition", def.getUniqueId());
+        dir = new DefaultDirectoryFactory(copier, null).newInstance(def, builder.child("foo"), INDEX_DATA_CHILD_NAME, false);
+        Directory dir1 = new DefaultDirectoryFactory(copier, null).newInstance(def, builder.child("foo"), INDEX_DATA_CHILD_NAME, false);
+        suggestDir = new DefaultDirectoryFactory(copier, null).newInstance(def, builder.child("foo"), SUGGEST_DATA_CHILD_NAME, false);
+        closer.register(dir);
+        closer.register(suggestDir);
+        assertTrue("Data directory not COW-wrapped", dir instanceof CopyOnWriteDirectory);
+        assertTrue("Suggester directory not COW-wrapped", suggestDir instanceof CopyOnWriteDirectory);
+    } finally {
+        closer.close();
+    }
+}

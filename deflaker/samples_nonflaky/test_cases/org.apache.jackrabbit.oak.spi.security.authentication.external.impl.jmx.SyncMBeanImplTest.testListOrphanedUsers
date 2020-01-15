@@ -1,0 +1,11 @@
+@Test
+public void testListOrphanedUsers() throws Exception {
+    syncMBean.syncAllExternalUsers();
+    String[] result = syncMBean.listOrphanedUsers();
+    assertEquals(0, result.length);
+    sync(new TestIdentityProvider.TestUser("thirdUser", idp.getName()), idp);
+    sync(new TestIdentityProvider.TestGroup("g", idp.getName()), idp);
+    result = syncMBean.listOrphanedUsers();
+    assertEquals(2, result.length);
+    assertEquals(ImmutableSet.of("thirdUser", "g"), ImmutableSet.copyOf(result));
+}

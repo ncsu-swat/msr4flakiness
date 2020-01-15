@@ -1,0 +1,18 @@
+@Test
+public void testSyncForeignExternalGroup() throws Exception {
+    ExternalIdentity foreign = new TestIdentityProvider.ForeignExternalGroup();
+    SyncResult res = syncCtx.sync(foreign);
+    assertNotNull(res);
+    assertSame(SyncResult.Status.FOREIGN, res.getStatus());
+    // expect {@code SyncedIdentity} in accordance with {@code sync(String userId)},
+    // where the authorizable is found to be linked to a different IDP.
+    SyncedIdentity si = res.getIdentity();
+    assertNotNull(si);
+    assertEquals(foreign.getId(), si.getId());
+    ExternalIdentityRef ref = si.getExternalIdRef();
+    assertNotNull(ref);
+    assertEquals(foreign.getExternalId(), ref);
+    assertTrue(si.isGroup());
+    assertEquals(-1, si.lastSynced());
+    assertFalse(root.hasPendingChanges());
+}

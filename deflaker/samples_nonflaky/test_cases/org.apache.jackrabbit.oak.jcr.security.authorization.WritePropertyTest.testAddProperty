@@ -1,0 +1,56 @@
+@Test
+public void testAddProperty() throws Exception {
+    // grant 'testUser' ADD_PROPERTIES privileges at 'path'
+    Privilege[] privileges = privilegesFromNames(new String[] { "rep:addProperties" });
+    allow(path, privileges);
+    /*
+         testuser must now have
+         - ADD_PROPERTIES permission
+         - no other write permission
+        */
+    assertHasPrivilege(path, Privilege.JCR_MODIFY_PROPERTIES, false);
+    assertHasPrivilege(path, "rep:addProperties", true);
+    assertHasPrivilege(path, "rep:removeProperties", false);
+    assertHasPrivilege(path, "rep:alterProperties", false);
+    // set_property action for non-existing property is translated to "add_properties" permission
+    String propertyPath = path + "/newProperty";
+    assertTrue(testSession.hasPermission(propertyPath, Session.ACTION_SET_PROPERTY));
+    // creating the property must succeed
+    Node testN = testSession.getNode(path);
+    testN.setProperty("newProperty", "value");
+    testSession.save();
+    // now property exists -> 'set_property' actions is no longer granted
+    assertFalse(testSession.hasPermission(propertyPath, Session.ACTION_SET_PROPERTY));
+    assertFalse(testSession.hasPermission(propertyPath, Session.ACTION_REMOVE));
+    // modifying or removing the new property must fail
+    try {
+        testN.setProperty("newProperty", "modified");
+        testSession.save();
+        fail();
+    } catch (AccessDeniedException e) {
+    // success
+    }
+    try {
+        testN.getProperty("newProperty").setValue("modified");
+        testSession.save();
+        fail();
+    } catch (AccessDeniedException e) {
+    // success
+    }
+    try {
+        testN.setProperty("newProperty", (String) null);
+        testSession.save();
+        fail();
+    } catch (AccessDeniedException e) {
+        // success
+        testSession.refresh(false);
+    }
+    try {
+        testN.getProperty("newProperty").remove();
+        testSession.save();
+        fail();
+    } catch (AccessDeniedException e) {
+        // success
+        testSession.refresh(false);
+    }
+}

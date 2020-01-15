@@ -1,0 +1,15 @@
+@Test
+public void testIsExpiredSyncedGroup() throws Exception {
+    ExternalIdentity externalGroup = idp.listGroups().next();
+    sync(externalGroup);
+    Authorizable a = userManager.getAuthorizable(externalGroup.getId());
+    assertFalse(syncCtx.isExpired(a, syncConfig.group().getExpirationTime(), "any"));
+    assertTrue(syncCtx.isExpired(a, -1, "any"));
+    // create a ctx with a newer 'now'
+    DefaultSyncContext ctx = new DefaultSyncContext(syncConfig, idp, userManager, valueFactory);
+    long expTime = ctx.now - syncCtx.now - 1;
+    assertTrue(ctx.isExpired(a, expTime, "any"));
+    // remove last-sync property
+    a.removeProperty(DefaultSyncContext.REP_LAST_SYNCED);
+    assertTrue(syncCtx.isExpired(a, syncConfig.group().getExpirationTime(), "any"));
+}

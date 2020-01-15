@@ -1,0 +1,19 @@
+@Test
+public void testAddEntriesWithMultipleRestrictionsForSamePath() throws Exception {
+    assertTrue(emptyPolicy.addEntry(testJcrPath, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES), createGlobRestriction("/any*/glob"), ImmutableMap.of()));
+    assertTrue(emptyPolicy.addEntry(testJcrPath, privilegesFromNames(PrivilegeConstants.JCR_REMOVE_CHILD_NODES), ImmutableMap.of(), createMvRestrictions(REP_ITEM_NAMES, PropertyType.NAME, "removable")));
+    PrivilegeBitsProvider bitsProvider = new PrivilegeBitsProvider(root);
+    List<PrincipalPolicyImpl.EntryImpl> entries = emptyPolicy.getEntries();
+    assertEquals(2, entries.size());
+    PrincipalPolicyImpl.EntryImpl entry = entries.get(0);
+    assertEquals(testJcrPath, entry.getEffectivePath());
+    assertEquals(bitsProvider.getBits(PrivilegeConstants.JCR_ADD_CHILD_NODES), entry.getPrivilegeBits());
+    assertEquals(1, entry.getRestrictions().size());
+    assertEquals(REP_GLOB, entry.getRestrictions().iterator().next().getDefinition().getName());
+    entry = entries.get(1);
+    assertEquals(testJcrPath, entry.getEffectivePath());
+    assertEquals(bitsProvider.getBits(PrivilegeConstants.JCR_REMOVE_CHILD_NODES), entry.getPrivilegeBits());
+    assertEquals(bitsProvider.getBits(PrivilegeConstants.JCR_REMOVE_CHILD_NODES), entry.getPrivilegeBits());
+    assertEquals(1, entry.getRestrictions().size());
+    assertEquals(REP_ITEM_NAMES, entry.getRestrictions().iterator().next().getDefinition().getName());
+}

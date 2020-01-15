@@ -1,0 +1,30 @@
+@Test
+public void testInheritance2() throws Exception {
+    // give jcr:write privilege on 'path' and withdraw them on 'childNPath'
+    Privilege[] privileges = privilegesFromNames(new String[] { Privilege.JCR_WRITE });
+    allow(path, privileges);
+    deny(childNPath, privileges);
+    /*
+        since evaluation respects inheritance through the node
+        hierarchy, the jcr:write privilege must not be granted at childNPath
+        */
+    assertFalse(testAcMgr.hasPrivileges(childNPath, privileges));
+    /*
+         ... same for permissions at 'childNPath'
+         */
+    String actions = getActions(Session.ACTION_SET_PROPERTY, Session.ACTION_REMOVE, Session.ACTION_ADD_NODE);
+    String nonExistingItemPath = childNPath + "/anyItem";
+    assertFalse(testSession.hasPermission(nonExistingItemPath, actions));
+    // yet another level in the hierarchy
+    Node grandChild = superuser.getNode(childNPath).addNode(nodeName3);
+    superuser.save();
+    testSession.refresh(false);
+    String gcPath = grandChild.getPath();
+    // grant write privilege again
+    allow(gcPath, privileges);
+    assertTrue(testAcMgr.hasPrivileges(gcPath, privileges));
+    assertTrue(testSession.hasPermission(gcPath + "/anyProp", Session.ACTION_SET_PROPERTY));
+    // however: removing the grand-child nodes must not be allowed as
+    // remove_child_node privilege is missing on the direct ancestor.
+    assertFalse(testSession.hasPermission(gcPath, Session.ACTION_REMOVE));
+}

@@ -1,0 +1,17 @@
+@Test
+public void testRemoveSyncHandler() {
+    Dictionary<String, Object> enableProps = new Hashtable<>(ImmutableMap.<String, Object>of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, true));
+    Dictionary<String, Object> disableProps = new Hashtable<>(ImmutableMap.<String, Object>of(DefaultSyncConfigImpl.PARAM_USER_DYNAMIC_MEMBERSHIP, false));
+    DefaultSyncHandler sh = new DefaultSyncHandler();
+    BundleContext bundleContext = context.bundleContext();
+    ServiceRegistration registration1 = bundleContext.registerService(SyncHandler.class.getName(), sh, enableProps);
+    ServiceRegistration registration2 = bundleContext.registerService(SyncHandler.class.getName(), sh, enableProps);
+    ServiceRegistration registration3 = bundleContext.registerService(SyncHandler.class.getName(), sh, disableProps);
+    assertIsEnabled(externalPrincipalConfiguration, true);
+    registration2.unregister();
+    assertIsEnabled(externalPrincipalConfiguration, true);
+    registration1.unregister();
+    assertIsEnabled(externalPrincipalConfiguration, false);
+    registration3.unregister();
+    assertIsEnabled(externalPrincipalConfiguration, false);
+}

@@ -1,0 +1,15 @@
+@Test
+public void testJcrNodeTypesOutsideOfSystemIsValidated() throws Exception {
+    Tree n = TreeUtil.addChild(node, JCR_NODE_TYPES, NT_OAK_UNSTRUCTURED);
+    Tree cug = TreeUtil.addChild(n, REP_CUG_POLICY, NT_REP_CUG_POLICY);
+    cug.setProperty(REP_PRINCIPAL_NAMES, ImmutableList.of(EveryonePrincipal.NAME), Type.STRINGS);
+    try {
+        root.commit();
+        fail();
+    } catch (CommitFailedException e) {
+        assertTrue(e.isAccessControlViolation());
+        assertEquals(22, e.getCode());
+    } finally {
+        root.refresh();
+    }
+}

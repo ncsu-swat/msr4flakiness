@@ -1,0 +1,18 @@
+@Test
+public void deleteBlobsDespiteFileExplicitlyPurgedBeforeRestart() throws Exception {
+    BlobDeletionCallback bdc = adbc.getBlobDeletionCallback();
+    bdc.deleted("blobId1", Collections.singleton("/a"));
+    bdc.commitProgress(COMMIT_SUCCEDED);
+    clock.waitUntil(clock.getTime() + TimeUnit.MINUTES.toMillis(1));
+    createBlobCollector();
+    bdc = adbc.getBlobDeletionCallback();
+    bdc.deleted("blobId2", Collections.singleton("/b"));
+    bdc.commitProgress(COMMIT_SUCCEDED);
+    clock.waitUntil(clock.getTime() + TimeUnit.MINUTES.toMillis(1));
+    createBlobCollector();
+    bdc = adbc.getBlobDeletionCallback();
+    bdc.deleted("blobId3", Collections.singleton("/c"));
+    bdc.commitProgress(COMMIT_SUCCEDED);
+    adbc.purgeBlobsDeleted(clock.getTimeIncreasing(), blobStore);
+    verifyBlobsDeleted("blobId1", "blobId2", "blobId3");
+}

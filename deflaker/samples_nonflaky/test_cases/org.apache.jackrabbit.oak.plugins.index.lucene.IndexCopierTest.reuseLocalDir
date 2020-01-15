@@ -1,0 +1,30 @@
+/**
+ * Test for the case where local directory is opened already contains
+ * the index files and in such a case file should not be read from remote
+ */
+@Test
+public void reuseLocalDir() throws Exception {
+    Directory baseDir = new RAMDirectory();
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    IndexCopier c1 = new RAMIndexCopier(baseDir, sameThreadExecutor(), getWorkDir());
+    FileTrackingDirectory remote = new FileTrackingDirectory();
+    Directory wrapped = c1.wrapForRead("/foo", defn, remote, INDEX_DATA_CHILD_NAME);
+    byte[] t1 = writeFile(remote, "t1");
+    // 1. Read for the first time should be served from remote
+    readAndAssert(wrapped, "t1", t1);
+    assertEquals(1, remote.openedFiles.size());
+    // 2. Reuse the testDir and read again
+    Directory wrapped2 = c1.wrapForRead("/foo", defn, remote, INDEX_DATA_CHILD_NAME);
+    remote.reset();
+    // 3. Now read should be served from local
+    readAndAssert(wrapped2, "t1", t1);
+    assertEquals(0, remote.openedFiles.size());
+    // Now check if local file gets corrupted then read from remote
+    Directory wrapped3 = c1.wrapForRead("/foo", defn, remote, INDEX_DATA_CHILD_NAME);
+    remote.reset();
+    // 4. Corrupt the local copy
+    writeFile(baseDir, "t1");
+    // Now read would be done from remote
+    readAndAssert(wrapped3, "t1", t1);
+    assertEquals(1, remote.openedFiles.size());
+}

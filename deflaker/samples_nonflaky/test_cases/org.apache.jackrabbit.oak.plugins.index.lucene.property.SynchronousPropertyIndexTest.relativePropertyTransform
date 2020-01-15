@@ -1,0 +1,12 @@
+@Test
+public void relativePropertyTransform() throws Exception {
+    defnb.async("async", "nrt");
+    defnb.indexRule("nt:base").property("foo").sync();
+    addIndex(indexPath, defnb);
+    root.commit();
+    runAsyncIndex();
+    createPath("/a/jcr:content").setProperty("foo", "bar");
+    createPath("/b").setProperty("foo", "bar");
+    root.commit();
+    assertQuery("select * from [nt:base] where [jcr:content/foo] = 'bar'", singletonList("/a"));
+}

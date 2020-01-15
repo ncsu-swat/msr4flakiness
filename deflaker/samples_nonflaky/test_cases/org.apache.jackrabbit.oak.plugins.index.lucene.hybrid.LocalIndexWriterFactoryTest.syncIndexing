@@ -1,0 +1,13 @@
+@Test
+public void syncIndexing() throws Exception {
+    NodeState indexed = createAndPopulateAsyncIndex(FulltextIndexConstants.IndexingMode.SYNC);
+    builder = indexed.builder();
+    builder.child("b").setProperty("foo", "bar");
+    builder.child("c").setProperty("foo", "bar");
+    NodeState after = builder.getNodeState();
+    syncHook.processCommit(indexed, after, newCommitInfo());
+    LuceneDocumentHolder holder = getHolder();
+    assertNotNull(holder);
+    // 2 add none for delete
+    assertEquals(2, getIndexedDocList(holder, "/oak:index/fooIndex").size());
+}

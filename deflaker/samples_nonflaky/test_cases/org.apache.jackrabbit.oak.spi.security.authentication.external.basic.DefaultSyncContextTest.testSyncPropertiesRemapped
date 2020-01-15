@@ -1,0 +1,24 @@
+@Test
+public void testSyncPropertiesRemapped() throws Exception {
+    ExternalUser externalUser = idp.getUser(TestIdentityProvider.ID_SECOND_USER);
+    Authorizable a = syncCtx.createUser(externalUser);
+    // create exact mapping
+    Map<String, String> mapping = new HashMap<>();
+    Map<String, ?> extProps = externalUser.getProperties();
+    for (String propName : extProps.keySet()) {
+        mapping.put("a/" + propName, propName);
+    }
+    syncCtx.syncProperties(externalUser, a, mapping);
+    for (String propName : extProps.keySet()) {
+        String relPath = "a/" + propName;
+        assertTrue(a.hasProperty(relPath));
+        Object obj = extProps.get(propName);
+        Value[] vs = a.getProperty(relPath);
+        if (vs.length == 1) {
+            assertEquals(syncCtx.createValue(obj), a.getProperty(relPath)[0]);
+        } else {
+            Value[] expected = (obj instanceof Collection) ? syncCtx.createValues((Collection) obj) : syncCtx.createValues(Arrays.asList((Object[]) obj));
+            assertArrayEquals(expected, a.getProperty(relPath));
+        }
+    }
+}

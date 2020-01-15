@@ -1,0 +1,29 @@
+@Test
+public void deleteOldPostReindex() throws Exception {
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    IndexCopier c1 = new IndexCopier(sameThreadExecutor(), getWorkDir());
+    Directory remote = new CloseSafeDir();
+    Directory w1 = c1.wrapForRead(indexPath, defn, remote, INDEX_DATA_CHILD_NAME);
+    byte[] t1 = writeFile(remote, "t1");
+    byte[] t2 = writeFile(remote, "t2");
+    readAndAssert(w1, "t1", t1);
+    readAndAssert(w1, "t2", t2);
+    // t1 should now be added to testDir
+    File indexDir = c1.getIndexDir(defn, indexPath, INDEX_DATA_CHILD_NAME);
+    assertTrue(new File(indexDir, "t1").exists());
+    doReindex(builder);
+    defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    // Close old version
+    w1.close();
+    // Get a new one with updated reindexCount
+    Directory w2 = c1.wrapForRead(indexPath, defn, remote, INDEX_DATA_CHILD_NAME);
+    readAndAssert(w2, "t1", t1);
+    w2.close();
+    assertFalse("Old index directory should have been removed", indexDir.exists());
+    // Assert that new index file do exist and not get removed
+    File indexDir2 = c1.getIndexDir(defn, indexPath, INDEX_DATA_CHILD_NAME);
+    assertTrue(new File(indexDir2, "t1").exists());
+    // Check if parent directory is also removed i.e.
+    // index count should be 1 now
+    assertEquals(1, c1.getIndexRootDirectory().getLocalIndexes(indexPath).size());
+}

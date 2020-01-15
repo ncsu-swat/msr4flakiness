@@ -1,0 +1,26 @@
+@Test
+public void snsNewNameAlreadyExists() throws RepositoryException, IOException {
+    DocumentNodeStore nodeStore = migrate(new SourceDataCreator() {
+
+        @Override
+        public void create(Session session) throws RepositoryException {
+            Node parent = session.getRootNode().addNode("parent");
+            parent.addNode("child", "nt:folder");
+            parent.addNode("child", "nt:folder");
+            parent.addNode("child", "nt:folder");
+            parent.addNode("child_2_", "nt:folder");
+            parent.addNode("child_3_", "nt:folder");
+            parent.addNode("child_3_2", "nt:folder");
+            session.save();
+            parent.setPrimaryType("nt:folder");
+            session.save();
+        }
+    });
+    try {
+        NodeState parent = nodeStore.getRoot().getChildNode("parent");
+        Set<String> children = newHashSet(parent.getChildNodeNames());
+        assertEquals(of("child", "child_2_", "child_3_", "child_2_2", "child_3_2", "child_3_3"), children);
+    } finally {
+        nodeStore.dispose();
+    }
+}

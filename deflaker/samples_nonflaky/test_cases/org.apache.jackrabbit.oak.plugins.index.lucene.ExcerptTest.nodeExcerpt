@@ -1,0 +1,22 @@
+@Test
+public void nodeExcerpt() throws Exception {
+    Tree contentRoot = root.getTree("/").addChild("testRoot");
+    contentRoot.setProperty("foo", "is fox ifoxing");
+    contentRoot.setProperty("bar", "ifoxing fox");
+    root.commit();
+    String query = "SELECT [rep:excerpt],[rep:excerpt(.)] FROM [nt:base] WHERE CONTAINS(*, 'fox')";
+    Result result = executeQuery(query, SQL2, NO_BINDINGS);
+    Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
+    assertTrue(resultIter.hasNext());
+    ResultRow firstRow = resultIter.next();
+    PropertyValue nodeExcerpt;
+    String excerpt1, excerpt2;
+    nodeExcerpt = firstRow.getValue("rep:excerpt");
+    assertNotNull("rep:excerpt not evaluated", nodeExcerpt);
+    excerpt1 = nodeExcerpt.getValue(STRING);
+    assertTrue("rep:excerpt didn't evaluate correctly - got '" + excerpt1 + "'", "is <strong>fox</strong> ifoxing".equals(excerpt1) || "ifoxing <strong>fox</strong>".equals(excerpt1));
+    nodeExcerpt = firstRow.getValue("rep:excerpt(.)");
+    assertNotNull("rep:excerpt(.) not evaluated", nodeExcerpt);
+    excerpt2 = nodeExcerpt.getValue(STRING);
+    assertEquals("excerpt extracted via rep:excerpt not same as rep:excerpt(.)", excerpt1, excerpt2);
+}

@@ -1,0 +1,19 @@
+@Test(expected = CommitFailedException.class)
+public void testRepExternalIdType() throws Exception {
+    Root systemRoot = getSystemRoot();
+    Tree userTree = systemRoot.getTree(testUserPath);
+    java.util.Map<Type, Object> valMap = ImmutableMap.<Type, Object>of(Type.BOOLEAN, Boolean.TRUE, Type.LONG, new Long(1234), Type.NAME, "id");
+    for (Type t : valMap.keySet()) {
+        Object val = valMap.get(t);
+        try {
+            userTree.setProperty(REP_EXTERNAL_ID, val, t);
+            systemRoot.commit();
+            fail("Creating rep:externalId with type " + t + " must be detected.");
+        } catch (CommitFailedException e) {
+            // success
+            assertException(e, CONSTRAINT, 75);
+        } finally {
+            systemRoot.refresh();
+        }
+    }
+}

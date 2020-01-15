@@ -1,0 +1,14 @@
+@Test
+public void localIndexWriter() throws Exception {
+    NodeState indexed = createAndPopulateAsyncIndex(FulltextIndexConstants.IndexingMode.NRT);
+    builder = indexed.builder();
+    builder.child("b").setProperty("foo", "bar");
+    builder.child("c").setProperty("foo", "bar");
+    builder.child("a").remove();
+    NodeState after = builder.getNodeState();
+    syncHook.processCommit(indexed, after, newCommitInfo());
+    LuceneDocumentHolder holder = getHolder();
+    assertNotNull(holder);
+    // 2 add none for delete
+    assertEquals(2, getIndexedDocList(holder, "/oak:index/fooIndex").size());
+}

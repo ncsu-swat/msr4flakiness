@@ -1,0 +1,13 @@
+@Test
+public void multiIndexWithSimilarPaths() throws Exception {
+    LuceneIndexDefinition defn1 = LuceneIndexDefinition.newBuilder(root, idx.getNodeState(), "/content/a/en_us/oak:index/fooIndex").build();
+    LuceneIndexDefinition defn2 = LuceneIndexDefinition.newBuilder(root, idx.getNodeState(), "/content/b/en_us/oak:index/fooIndex").build();
+    FSDirectoryFactory factory = new FSDirectoryFactory(temporaryFolder.getRoot());
+    factory.newInstance(defn1, idx, ":data", false).close();
+    factory.newInstance(defn2, idx, ":data", false).close();
+    IndexRootDirectory idxDir = new IndexRootDirectory(temporaryFolder.getRoot());
+    List<LocalIndexDir> indexes = idxDir.getAllLocalIndexes();
+    assertEquals(2, indexes.size());
+    List<String> idxPaths = indexes.stream().map(LocalIndexDir::getJcrPath).collect(Collectors.toList());
+    assertThat(idxPaths, hasItems("/content/a/en_us/oak:index/fooIndex", "/content/b/en_us/oak:index/fooIndex"));
+}

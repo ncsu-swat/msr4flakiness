@@ -1,0 +1,32 @@
+/**
+ * @see <a href="https://issues.apache.org/jira/browse/OAK-2412">OAK-2412</a>
+ */
+@Test
+public void testEmptyGlobRestriction3() throws Exception {
+    Group group1 = getTestGroup();
+    Group group2 = getUserManager(superuser).createGroup(generateId("group2_"));
+    group2.addMember(testUser);
+    Group group3 = getUserManager(superuser).createGroup(generateId("group3_"));
+    superuser.save();
+    try {
+        assertTrue(group1.isDeclaredMember(testUser));
+        assertTrue(group2.isDeclaredMember(testUser));
+        assertFalse(group3.isDeclaredMember(testUser));
+        deny(path, group1.getPrincipal(), readPrivileges);
+        modify(path, group1.getPrincipal(), readPrivileges, true, createGlobRestriction(""));
+        deny(childNPath, group2.getPrincipal(), readPrivileges);
+        modify(childNPath, group2.getPrincipal(), readPrivileges, true, createGlobRestriction(""));
+        deny(childNPath2, group3.getPrincipal(), readPrivileges);
+        modify(childNPath2, group3.getPrincipal(), readPrivileges, true, createGlobRestriction(""));
+        // need to recreate testUser session to force subject being populated
+        // with membership that has been added _after_ the testSession creation.
+        Session userSession = getHelper().getRepository().login(creds);
+        assertTrue(canReadNode(userSession, path));
+        assertTrue(canReadNode(userSession, childNPath));
+        assertFalse(canReadNode(userSession, childNPath2));
+    } finally {
+        group2.remove();
+        group3.remove();
+        superuser.save();
+    }
+}

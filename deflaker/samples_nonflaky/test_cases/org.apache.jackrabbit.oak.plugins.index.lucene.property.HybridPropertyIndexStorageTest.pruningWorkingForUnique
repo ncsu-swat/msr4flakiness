@@ -1,0 +1,10 @@
+@Test
+public void pruningWorkingForUnique() throws Exception {
+    defnb.indexRule("nt:base").property("foo").unique();
+    newCallback().propertyUpdated("/a", "foo", pd("foo"), null, createProperty("foo", "bar"));
+    assertThat(query("foo", newString("bar")), containsInAnyOrder("/a"));
+    builder = builder.getNodeState().builder();
+    newCallback().propertyUpdated("/a", "foo", pd("foo"), createProperty("foo", "bar"), null);
+    // /b should not come as pruning is enabled
+    assertThat(query("foo", newString("bar")), empty());
+}

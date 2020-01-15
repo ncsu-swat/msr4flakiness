@@ -1,0 +1,15 @@
+@Test
+public void nodeTypeIndexing() throws Exception {
+    registerTestNodeTypes();
+    defnb.async("async", "nrt");
+    defnb.nodeTypeIndex();
+    defnb.indexRule("oak:TestSuperType").sync();
+    addIndex(indexPath, defnb);
+    root.commit();
+    runAsyncIndex();
+    createPath("/a", "oak:TestSuperType");
+    createPath("/b", "oak:TestTypeB");
+    root.commit();
+    assertQuery("select * from [oak:TestSuperType]", asList("/a", "/b"));
+    assertThat(explain("select * from [oak:TestSuperType]"), containsString(indexPath));
+}

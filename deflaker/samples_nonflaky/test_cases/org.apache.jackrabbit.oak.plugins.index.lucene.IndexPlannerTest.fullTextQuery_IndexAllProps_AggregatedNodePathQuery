@@ -1,0 +1,14 @@
+@Test
+public void fullTextQuery_IndexAllProps_AggregatedNodePathQuery() throws Exception {
+    NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("allProps"), "async");
+    // Index all props and then perform fulltext
+    defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
+    NodeBuilder agg = defn.child(FulltextIndexConstants.AGGREGATES).child("nt:base").child("include0");
+    agg.setProperty(FulltextIndexConstants.AGG_PATH, "jcr:content");
+    agg.setProperty(FulltextIndexConstants.AGG_RELATIVE_NODE, true);
+    // where contains('jcr:content/*', 'mountain OR valley') can be evaluated by index
+    // on nt:base by evaluating on '.' and then checking if node name is 'jcr:content'
+    FulltextIndexPlanner planner = createPlannerForFulltext(defn.getNodeState(), FullTextParser.parse("jcr:content/*", "mountain OR valley"));
+    // No plan for unindex property
+    assertNotNull(planner.getPlan());
+}

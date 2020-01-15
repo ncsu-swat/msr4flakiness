@@ -1,0 +1,18 @@
+@Test
+public void testSyncMembershipWithNesting() throws Exception {
+    long nesting = 1;
+    syncConfig.user().setMembershipNestingDepth(nesting);
+    ExternalUser externalUser = idp.getUser(USER_ID);
+    sync(externalUser, SyncResult.Status.ADD);
+    Authorizable a = userManager.getAuthorizable(externalUser.getId());
+    assertDynamicMembership(externalUser, nesting);
+    // verify that the membership is always reflected in the rep:externalPrincipalNames property
+    // 1. membership nesting  = -1
+    nesting = -1;
+    syncContext.syncMembership(externalUser, a, nesting);
+    assertDynamicMembership(a, externalUser, nesting);
+    // 2. membership nesting is > 0
+    nesting = Long.MAX_VALUE;
+    syncContext.syncMembership(externalUser, a, nesting);
+    assertDynamicMembership(a, externalUser, nesting);
+}

@@ -1,0 +1,20 @@
+/**
+ * the ADD_CHILD_NODES privileges assigned on a node to a specific principal
+ * grants the corresponding user the permission to add nodes below the
+ * target node but not 'at' the target node.
+ *
+ * @throws Exception If an error occurs.
+ */
+@Test
+public void testAddChildNodePrivilege() throws Exception {
+    /* add 'add_child_nodes' privilege for testSession at path. */
+    Privilege[] privileges = privilegesFromName(Privilege.JCR_ADD_CHILD_NODES);
+    allow(path, privileges);
+    /* test permissions. expected result:
+           - testSession cannot add child-nodes at 'path'
+           - testSession can add child-nodes below path
+         */
+    assertFalse(testSession.hasPermission(path, Session.ACTION_ADD_NODE));
+    assertTrue(testSession.hasPermission(path + "/anychild", Session.ACTION_ADD_NODE));
+    assertTrue(testSession.hasPermission(childNPath, Session.ACTION_ADD_NODE));
+}

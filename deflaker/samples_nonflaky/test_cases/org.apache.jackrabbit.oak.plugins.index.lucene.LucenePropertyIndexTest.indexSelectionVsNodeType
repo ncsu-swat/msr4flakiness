@@ -1,0 +1,23 @@
+@Test
+public void indexSelectionVsNodeType() throws Exception {
+    Tree luceneIndex = createIndex("test1", of("propa"));
+    // decrease cost of lucene property index
+    luceneIndex.setProperty(IndexConstants.ENTRY_COUNT_PROPERTY_NAME, 5L, Type.LONG);
+    // Decrease cost of node type index
+    Tree nodeTypeIndex = root.getTree("/").getChild("oak:index").getChild("nodetype");
+    nodeTypeIndex.setProperty(IndexConstants.ENTRY_COUNT_PROPERTY_NAME, 50L, Type.LONG);
+    nodeTypeIndex.setProperty(IndexConstants.KEY_COUNT_PROPERTY_NAME, 10L, Type.LONG);
+    Tree test = root.getTree("/").addChild("test");
+    test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+    List<String> paths = Lists.newArrayList();
+    for (int idx = 0; idx < 15; idx++) {
+        Tree a = test.addChild("n" + idx);
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        a.setProperty("propa", "foo");
+        paths.add("/test/n" + idx);
+    }
+    root.commit();
+    String propaQuery = "select [jcr:path] from [nt:unstructured] where [propa] = 'foo'";
+    assertThat(explain(propaQuery), containsString("lucene:test1"));
+    assertQuery(propaQuery, paths);
+}

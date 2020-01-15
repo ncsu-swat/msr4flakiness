@@ -1,0 +1,14 @@
+@Test
+public void testRequiresSyncExpiredSyncProperty() throws Exception {
+    login(new SimpleCredentials(USER_ID, new char[0])).close();
+    root.refresh();
+    final Calendar nowCal = Calendar.getInstance();
+    nowCal.setTimeInMillis(nowCal.getTimeInMillis() - 1000);
+    Value nowValue = getValueFactory().createValue(nowCal);
+    Authorizable a = userManager.getAuthorizable(USER_ID);
+    a.setProperty(DefaultSyncContext.REP_LAST_SYNCED, nowValue);
+    root.commit();
+    SyncedIdentity id = syncHandler.findIdentity(userManager, USER_ID);
+    assertNotNull("known authorizable should exist", id);
+    assertTrue("synced id should require sync", syncHandler.requiresSync(id));
+}

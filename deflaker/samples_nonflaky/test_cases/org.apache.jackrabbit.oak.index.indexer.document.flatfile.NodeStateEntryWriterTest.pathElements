@@ -1,0 +1,14 @@
+@Test
+public void pathElements() {
+    NodeStateEntryWriter nw = new NodeStateEntryWriter(blobStore);
+    NodeBuilder b1 = EMPTY_NODE.builder();
+    b1.setProperty("foo", "bar");
+    NodeStateEntry e1 = new NodeStateEntry(b1.getNodeState(), "/a/b/c/d");
+    String json = nw.asJson(e1.getNodeState());
+    List<String> pathElements = copyOf(elements(e1.getPath()));
+    String line = nw.toString(pathElements, json);
+    NodeStateEntryReader nr = new NodeStateEntryReader(blobStore);
+    NodeStateEntry r1 = nr.read(line);
+    assertTrue(r1.getNodeState().hasProperty("foo"));
+    assertEquals("/a/b/c/d", r1.getPath());
+}

@@ -1,0 +1,26 @@
+@Test
+public void sortQueriesWithStringAndLong() throws Exception {
+    Tree idx = createIndex(root.getTree("/"), "test1", ImmutableSet.of("foo", "bar", "baz"));
+    idx.setProperty(createProperty(ORDERED_PROP_NAMES, ImmutableSet.of("foo", "baz"), STRINGS));
+    Tree propIdx = idx.addChild(PROP_NODE).addChild("baz");
+    propIdx.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
+    root.commit();
+    int firstPropSize = 25;
+    List<String> values = LucenePropertyIndexTest.createStrings(firstPropSize);
+    List<Long> longValues = LucenePropertyIndexTest.createLongs(LucenePropertyIndexTest.NUMBER_OF_NODES);
+    List<LucenePropertyIndexTest.Tuple2> tuples = Lists.newArrayListWithCapacity(values.size());
+    Random r = new Random();
+    Tree libs = createPath("/libs");
+    Tree content = createPath("/content");
+    for (int i = 0; i < values.size(); i++) {
+        String val = values.get(r.nextInt(firstPropSize));
+        Tree base = (i % 2 == 0 ? libs : content);
+        Tree child = base.addChild("n" + i);
+        child.setProperty("foo", val);
+        child.setProperty("baz", longValues.get(i));
+        child.setProperty("bar", "baz");
+        tuples.add(new LucenePropertyIndexTest.Tuple2(val, longValues.get(i), child.getPath()));
+    }
+    root.commit();
+    assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] asc, [baz] desc", LucenePropertyIndexTest.getSortedPaths(tuples));
+}

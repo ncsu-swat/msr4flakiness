@@ -1,0 +1,15 @@
+@Test
+public void recheckDelay() throws Exception {
+    tracker = new BadIndexTracker(100);
+    tracker.setTicker(ticker);
+    tracker.markBadIndexForRead("foo", new Exception());
+    ticker.addTime(50, TimeUnit.MILLISECONDS);
+    assertTrue(tracker.isIgnoredBadIndex("foo"));
+    ticker.addTime(30, TimeUnit.MILLISECONDS);
+    assertTrue(tracker.isIgnoredBadIndex("foo"));
+    // Now cross the threshold
+    ticker.addTime(30, TimeUnit.MILLISECONDS);
+    assertFalse(tracker.isIgnoredBadIndex("foo"));
+    // However index is still considered bad
+    assertThat(tracker.getIndexPaths(), hasItem("foo"));
+}

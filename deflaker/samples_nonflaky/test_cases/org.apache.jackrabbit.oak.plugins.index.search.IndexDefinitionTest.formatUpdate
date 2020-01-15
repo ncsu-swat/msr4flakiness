@@ -1,0 +1,13 @@
+@Test
+public void formatUpdate() throws Exception {
+    NodeBuilder defnb = newFTIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo", "lucene", of(TYPENAME_STRING), of("foo", "Bar"), "async");
+    IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
+    assertTrue(defn.isOfOldFormat());
+    NodeBuilder updated = IndexDefinition.updateDefinition(defnb.getNodeState().builder());
+    IndexDefinition defn2 = new IndexDefinition(root, updated.getNodeState(), "/foo");
+    assertFalse(defn2.isOfOldFormat());
+    IndexingRule rule = defn2.getApplicableIndexingRule(asState(newNode("nt:base")));
+    assertNotNull(rule);
+    assertFalse(rule.getConfig("foo").index);
+    assertFalse(rule.getConfig("Bar").index);
+}

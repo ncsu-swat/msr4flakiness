@@ -1,0 +1,47 @@
+@Test
+public void unableToReadCountForJcrTitle() throws Exception {
+    try {
+        LuceneIndexStatistics.failReadingSyntheticallyFalliableField = true;
+        String indexPath = "/test";
+        IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder(child(builder, indexPath));
+        idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
+        idxBuilder.indexRule("nt:base").property("foo1").propertyIndex();
+        idxBuilder.indexRule("nt:base").property(SYNTHETICALLY_FALLIABLE_FIELD).propertyIndex();
+        idxBuilder.indexRule("nt:base").property("bar").propertyIndex();
+        NodeState defn = idxBuilder.build();
+        long numOfDocs = 100;
+        LuceneIndexDefinition idxDefn = new LuceneIndexDefinition(root, defn, indexPath);
+        Document doc = new Document();
+        doc.add(new StringField("foo1", "bar1", Field.Store.NO));
+        doc.add(new StringField(SYNTHETICALLY_FALLIABLE_FIELD, "failingField", Field.Store.NO));
+        Directory sampleDirectory = createSampleDirectory(numOfDocs, doc);
+        LuceneIndexNode node = createIndexNode(idxDefn, sampleDirectory);
+        FilterImpl filter = createFilter("nt:base");
+        filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+        QueryIndex.IndexPlan plan = planner.getPlan();
+        assertEquals(documentsPerValue(numOfDocs), plan.getEstimatedEntryCount());
+        filter = createFilter("nt:base");
+        filter.restrictProperty(SYNTHETICALLY_FALLIABLE_FIELD, Operator.EQUAL, PropertyValues.newString("bar"));
+        planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+        plan = planner.getPlan();
+        // falliable field's count couldn't be read - so, fallback to numDocs
+        assertEquals(numOfDocs + 1, plan.getEstimatedEntryCount());
+        filter = createFilter("nt:base");
+        filter.restrictProperty("foo1", Operator.EQUAL, PropertyValues.newString("bar"));
+        filter.restrictProperty(SYNTHETICALLY_FALLIABLE_FIELD, Operator.EQUAL, PropertyValues.newString("bar"));
+        planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+        plan = planner.getPlan();
+        // min() still comes into play even when one field's count couldn't be read
+        assertEquals(1, plan.getEstimatedEntryCount());
+        filter = createFilter("nt:base");
+        filter.restrictProperty("bar", Operator.EQUAL, PropertyValues.newString("bar"));
+        filter.restrictProperty(SYNTHETICALLY_FALLIABLE_FIELD, Operator.EQUAL, PropertyValues.newString("bar"));
+        planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+        plan = planner.getPlan();
+        // min() still comes into play even when one field's count couldn't be read
+        assertEquals(0, plan.getEstimatedEntryCount());
+    } finally {
+        LuceneIndexStatistics.failReadingSyntheticallyFalliableField = false;
+    }
+}

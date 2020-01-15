@@ -1,0 +1,18 @@
+@Test
+public void testMultiValuedPropUpdate() throws Exception {
+    Tree test = root.getTree("/").addChild("test");
+    String child = "child";
+    String mulValuedProp = "prop";
+    test.addChild(child).setProperty(mulValuedProp, of("foo", "bar"), Type.STRINGS);
+    root.commit();
+    assertQuery("/jcr:root//*[jcr:contains(@" + mulValuedProp + ", 'foo')]", "xpath", of("/test/" + child));
+    test.getChild(child).setProperty(mulValuedProp, new ArrayList<String>(), Type.STRINGS);
+    root.commit();
+    assertQuery("/jcr:root//*[jcr:contains(@" + mulValuedProp + ", 'foo')]", "xpath", new ArrayList<String>());
+    test.getChild(child).setProperty(mulValuedProp, of("bar"), Type.STRINGS);
+    root.commit();
+    assertQuery("/jcr:root//*[jcr:contains(@" + mulValuedProp + ", 'foo')]", "xpath", new ArrayList<String>());
+    test.getChild(child).removeProperty(mulValuedProp);
+    root.commit();
+    assertQuery("/jcr:root//*[jcr:contains(@" + mulValuedProp + ", 'foo')]", "xpath", new ArrayList<String>());
+}

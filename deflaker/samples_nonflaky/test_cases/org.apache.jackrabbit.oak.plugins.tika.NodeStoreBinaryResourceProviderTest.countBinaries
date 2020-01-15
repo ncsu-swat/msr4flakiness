@@ -1,0 +1,16 @@
+@Test
+public void countBinaries() throws Exception {
+    NodeBuilder builder = EMPTY_NODE.builder();
+    createFileNode(builder, "a", new IdBlob("hello", null), "text/plain");
+    createFileNode(builder, "b", new IdBlob("hello", "id1"), "text/plain");
+    createFileNode(builder.child("a2"), "c", new IdBlob("hello", "id2"), "text/foo").setProperty(JcrConstants.JCR_ENCODING, "bar");
+    NodeStore store = new MemoryNodeStore(builder.getNodeState());
+    BlobStore blobStore = new MemoryBlobStore();
+    NodeStoreBinaryResourceProvider extractor = new NodeStoreBinaryResourceProvider(store, blobStore);
+    assertEquals(2, extractor.getBinaries("/").size());
+    assertEquals(1, extractor.getBinaries("/a2").size());
+    BinaryResource bs = extractor.getBinaries("/a2").first().get();
+    assertEquals("text/foo", bs.getMimeType());
+    assertEquals("bar", bs.getEncoding());
+    assertEquals("id2", bs.getBlobId());
+}

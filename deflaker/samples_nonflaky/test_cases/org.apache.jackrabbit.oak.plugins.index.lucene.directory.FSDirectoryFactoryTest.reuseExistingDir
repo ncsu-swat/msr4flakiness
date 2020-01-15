@@ -1,0 +1,13 @@
+@Test
+public void reuseExistingDir() throws Exception {
+    LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(root, idx.getNodeState(), "/fooIndex").build();
+    FSDirectoryFactory factory = new FSDirectoryFactory(temporaryFolder.getRoot());
+    Directory dir = factory.newInstance(defn, idx, ":data", false);
+    File fsDir1 = ((FSDirectory) dir).getDirectory();
+    dir.close();
+    Directory dir2 = factory.newInstance(defn, idx, ":data", false);
+    File fsDir2 = ((FSDirectory) dir2).getDirectory();
+    dir2.close();
+    assertEquals(fsDir1, fsDir2);
+    assertEquals(1, temporaryFolder.getRoot().list(DirectoryFileFilter.DIRECTORY).length);
+}

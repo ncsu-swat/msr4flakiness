@@ -1,0 +1,32 @@
+@Test
+public void interrupt() throws Exception {
+    FileUtils.deleteDirectory(new File("target/cacheTest"));
+    PersistentCache cache = new PersistentCache("target/cacheTest,size=1,-compress");
+    try {
+        CacheMap<String, String> m1 = cache.openMap(0, "m1", null);
+        CacheMap<String, String> m2 = cache.openMap(0, "test", null);
+        // the cache file was opened once so far
+        assertEquals(1, cache.getOpenCount());
+        // we store 20 mb of data, to ensure not all data is kept in memory
+        String largeString = new String(new char[1024 * 1024]);
+        int count = 10;
+        for (int i = 0; i < count; i++) {
+            m1.put("x" + i, largeString);
+            m2.put("y" + i, largeString);
+        }
+        // interrupt the thread, which will cause the FileChannel
+        // to be closed in the next read operation
+        Thread.currentThread().interrupt();
+        // this will force at least one read operation,
+        // which should re-open the maps
+        for (int i = 0; i < count; i++) {
+            m1.get("x" + i);
+            m2.get("y" + i);
+        }
+        assertEquals(2, cache.getOpenCount());
+        // re-opening will clear the interrupt flag
+        assertFalse(Thread.interrupted());
+    } finally {
+        cache.close();
+    }
+}

@@ -1,0 +1,16 @@
+@Test
+public void testMoveUser() throws Exception {
+    String userId = getTestSystemUser().getID();
+    String srcJcrPath = getTestSystemUser().getPath();
+    String name = PathUtils.getName(srcJcrPath);
+    String destJcrPath = PathUtils.concat(PathUtils.getParentPath(srcJcrPath), name + "-moved");
+    assertTrue(root.move(getNamePathMapper().getOakPath(srcJcrPath), getNamePathMapper().getOakPath(destJcrPath)));
+    root.commit();
+    assertNull(getUserManager(root).getAuthorizableByPath(srcJcrPath));
+    Principal p = getPrincipalManager(root).getPrincipal(principal.getName());
+    assertNotNull(p);
+    assertTrue(p instanceof ItemBasedPrincipal);
+    assertEquals(destJcrPath, ((ItemBasedPrincipal) p).getPath());
+    PrincipalPolicyImpl policy = getPrincipalPolicyImpl(p, getAccessControlManager(root));
+    assertEquals(1, policy.size());
+}

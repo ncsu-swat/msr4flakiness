@@ -1,0 +1,18 @@
+@Test
+public void containsNot() throws Exception {
+    // see also OAK-3371
+    // "if we have only NOT CLAUSES we have to add a match all docs (*.*) for the
+    // query to work"
+    executeQuery("/jcr:root//*[jcr:contains(@a,'-test*')]", "xpath", false);
+    String planPrefix = "[nt:base] as [a] /* lucene:test-index(/oak:index/test-index) ";
+    assertXPathPlan("/jcr:root//*[@a]", planPrefix + "a:[* TO *]");
+    assertXPathPlan("/jcr:root//*[jcr:contains(., '*')]", planPrefix + ":fulltext:* ft:(\"*\")");
+    assertXPathPlan("/jcr:root//*[jcr:contains(@a,'*')]", planPrefix + "full:a:* ft:(a:\"*\")");
+    assertXPathPlan("/jcr:root//*[jcr:contains(@a,'hello -world')]", planPrefix + "+full:a:hello -full:a:world ft:(a:\"hello\" -a:\"world\")");
+    assertXPathPlan("/jcr:root//*[jcr:contains(@a,'test*')]", planPrefix + "full:a:test* ft:(a:\"test*\")");
+    assertXPathPlan("/jcr:root//*[jcr:contains(@a,'-test')]", planPrefix + "-full:a:test *:* ft:(-a:\"test\")");
+    assertXPathPlan("/jcr:root//*[jcr:contains(@a,'-test*')]", planPrefix + "-full:a:test* *:* ft:(-a:\"test*\")");
+    assertXPathPlan("/jcr:root//*[jcr:contains(., '-*')]", planPrefix + "-:fulltext:* *:* ft:(-\"*\")");
+    assertXPathPlan("/jcr:root//*[jcr:contains(., 'apple - pear')]", planPrefix + "+:fulltext:apple -:fulltext:pear ft:(\"apple\" \"-\" \"pear\")");
+    assertXPathPlan("/jcr:root/content//*[jcr:contains(., 'apple - pear')]", planPrefix + "-:fulltext:pear +:fulltext:apple +:ancestors:/content ft:(\"apple\" \"-\" \"pear\")");
+}

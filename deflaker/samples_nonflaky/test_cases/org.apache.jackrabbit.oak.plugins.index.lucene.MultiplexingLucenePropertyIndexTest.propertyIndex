@@ -1,0 +1,18 @@
+@Test
+public void propertyIndex() throws Exception {
+    String idxName = "multitest";
+    createIndex(root.getTree("/"), idxName, Collections.singleton("foo"));
+    root.commit();
+    createPath("/libs/a").setProperty("foo", "bar");
+    createPath("/libs/b").setProperty("foo", "bar2");
+    createPath("/content/a").setProperty("foo", "bar");
+    root.commit();
+    // There should be 2 index dir due to mount
+    assertEquals(2, getIndexDirNames(idxName).size());
+    String barQuery = "select [jcr:path] from [nt:base] where [foo] = 'bar'";
+    assertQuery(barQuery, of("/libs/a", "/content/a"));
+    Result result = executeQuery(barQuery, SQL2, NO_BINDINGS);
+    assertTrue(result.getRows().iterator().hasNext());
+    assertEquals(2, result.getSize(Result.SizePrecision.FAST_APPROXIMATION, 100));
+    assertQuery("select [jcr:path] from [nt:base] where [foo] = 'bar2'", of("/libs/b"));
+}

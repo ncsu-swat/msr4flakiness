@@ -1,0 +1,33 @@
+@Test
+public void avoidRedundantDiff() throws Exception {
+    IndexTracker tracker2 = new IndexTracker();
+    NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+    newLucenePropertyIndexDefinition(index, "lucene", ImmutableSet.of("foo"), "async");
+    NodeState before = builder.getNodeState();
+    builder.setProperty("foo", "bar");
+    NodeState after = builder.getNodeState();
+    NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+    tracker.update(indexed);
+    tracker2.update(indexed);
+    LuceneIndexNode indexNode = tracker.acquireIndexNode("/oak:index/lucene");
+    assertEquals(1, indexNode.getSearcher().getIndexReader().numDocs());
+    indexNode.release();
+    before = indexed;
+    builder = before.builder();
+    builder.child("a").setProperty("foo", "bar");
+    after = builder.getNodeState();
+    AsyncIndexInfoService service = mock(AsyncIndexInfoService.class);
+    when(service.hasIndexerUpdatedForAnyLane(any(NodeState.class), any(NodeState.class))).thenReturn(false);
+    tracker.setAsyncIndexInfoService(service);
+    indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+    tracker.update(indexed);
+    tracker2.update(indexed);
+    // As we falsely said no change has happened index state would remain same
+    indexNode = tracker.acquireIndexNode("/oak:index/lucene");
+    assertEquals(1, indexNode.getSearcher().getIndexReader().numDocs());
+    indexNode.release();
+    // While tracker2 does not use async service it sees the index change
+    indexNode = tracker2.acquireIndexNode("/oak:index/lucene");
+    assertEquals(2, indexNode.getSearcher().getIndexReader().numDocs());
+    indexNode.release();
+}

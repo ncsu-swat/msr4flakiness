@@ -1,0 +1,28 @@
+@Test
+public void testRelativePropertyNonExistence() throws Exception {
+    root = TestUtil.registerTestNodeType(builder).getNodeState();
+    NodeBuilder index = newLucenePropertyIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "lucene", ImmutableSet.of("foo"), null);
+    NodeBuilder rules = index.child(INDEX_RULES);
+    NodeBuilder propNode = rules.child(NT_TEST).child(FulltextIndexConstants.PROP_NODE);
+    propNode.child("bar").setProperty(FulltextIndexConstants.PROP_NAME, "jcr:content/bar").setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true).setProperty(FulltextIndexConstants.PROP_NULL_CHECK_ENABLED, true);
+    NodeState before = builder.getNodeState();
+    NodeBuilder a1 = createNodeWithType(builder, "a1", NT_TEST);
+    a1.child("jcr:content").setProperty("bar", "foo");
+    NodeBuilder b1 = createNodeWithType(builder, "b1", NT_TEST);
+    b1.child("jcr:content");
+    NodeState after = builder.getNodeState();
+    NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+    tracker = new IndexTracker();
+    tracker.update(indexed);
+    AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker);
+    FilterImpl filter = createFilter(NT_TEST);
+    filter.restrictProperty("jcr:content/bar", Operator.EQUAL, null);
+    assertFilter(filter, queryIndex, indexed, ImmutableList.of("/b1"));
+    builder.child("b1").child("jcr:content").setProperty("bar", "foo");
+    after = builder.getNodeState();
+    indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+    tracker.update(indexed);
+    filter = createFilter(NT_TEST);
+    filter.restrictProperty("jcr:content/bar", Operator.EQUAL, null);
+    assertFilter(filter, queryIndex, indexed, Collections.<String>emptyList());
+}

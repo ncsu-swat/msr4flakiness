@@ -1,0 +1,20 @@
+@Test
+public void nonUniqueIndex() throws Exception {
+    defnb.async("async", "nrt");
+    defnb.indexRule("nt:base").property("foo").propertyIndex().sync();
+    addIndex(indexPath, defnb);
+    root.commit();
+    runAsyncIndex();
+    createPath("/a").setProperty("foo", "bar");
+    root.commit();
+    assertQuery("select * from [nt:base] where [foo] = 'bar'", asList("/a"));
+    runAsyncIndex();
+    createPath("/b").setProperty("foo", "bar");
+    root.commit();
+    assertQuery("select * from [nt:base] where [foo] = 'bar'", asList("/a", "/b"));
+    // Do multiple runs which lead to path being returned from both property and lucene
+    // index. But the actual result should only contain unique paths
+    runAsyncIndex();
+    runAsyncIndex();
+    assertQuery("select * from [nt:base] where [foo] = 'bar'", asList("/a", "/b"));
+}

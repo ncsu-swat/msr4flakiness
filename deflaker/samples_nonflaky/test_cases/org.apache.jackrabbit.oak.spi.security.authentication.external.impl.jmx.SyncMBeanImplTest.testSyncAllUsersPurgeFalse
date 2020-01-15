@@ -1,0 +1,12 @@
+@Test
+public void testSyncAllUsersPurgeFalse() throws Exception {
+    // first sync external user|group into the repo that does't exist on the IDP (anymore)
+    sync(new TestIdentityProvider.TestUser("thirdUser", idp.getName()), idp);
+    sync(new TestIdentityProvider.TestGroup("g", idp.getName()), idp);
+    // syncAll with purge = false
+    String[] result = syncMBean.syncAllUsers(false);
+    assertResultMessages(result, ImmutableMap.of("thirdUser", "mis", "g", "mis"));
+    UserManager userManager = getUserManager();
+    assertNotNull(userManager.getAuthorizable("thirdUser"));
+    assertNotNull(userManager.getAuthorizable("g"));
+}

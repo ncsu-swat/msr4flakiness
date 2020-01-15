@@ -1,0 +1,59 @@
+// OAK-3576
+@Test
+public void skipDefaultOnlyUsingAugmentors() throws Exception {
+    // setup repo and index
+    NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
+    Tree props = createIndex(TestUtil.NT_TEST);
+    Tree prop = props.addChild("foo1");
+    prop.setProperty(FulltextIndexConstants.PROP_INDEX, true);
+    prop = props.addChild("foo2");
+    prop.setProperty(FulltextIndexConstants.PROP_NAME, "subChild/foo2");
+    prop.setProperty(FulltextIndexConstants.PROP_INDEX, true);
+    root.commit();
+    // setup augmentors
+    final AtomicInteger indexingCounter = new AtomicInteger(0);
+    factory.indexFieldProvider = new IndexFieldProvider() {
+
+        @NotNull
+        @Override
+        public Iterable<Field> getAugmentedFields(String path, NodeState document, NodeState indexDefinition) {
+            indexingCounter.incrementAndGet();
+            return IndexFieldProvider.DEFAULT.getAugmentedFields(path, document, indexDefinition);
+        }
+
+        @NotNull
+        @Override
+        public Set<String> getSupportedTypes() {
+            return Collections.singleton(TestUtil.NT_TEST);
+        }
+    };
+    final AtomicInteger queryingCounter = new AtomicInteger(0);
+    factory.fulltextQueryTermsProvider = new FulltextQueryTermsProvider() {
+
+        @Override
+        public Query getQueryTerm(String text, Analyzer analyzer, NodeState indexDefinition) {
+            queryingCounter.set(1);
+            return null;
+        }
+
+        @NotNull
+        @Override
+        public Set<String> getSupportedTypes() {
+            return Collections.singleton(TestUtil.NT_TEST);
+        }
+    };
+    // add content
+    Tree node1 = createNodeWithType(root.getTree("/"), "node1", TestUtil.NT_TEST);
+    node1.setProperty("foo1", "bar1");
+    node1.addChild("subChild").setProperty("foo2", "bar2");
+    root.commit();
+    // indexing assertions
+    assertEquals("Indexing augment should get called once", 1, indexingCounter.get());
+    assertEquals("No docs should get indexed (augmentor hasn't added any field)", 0, getSearcher().getIndexReader().numDocs());
+    String query = "EXPLAIN SELECT [jcr:path] from [" + TestUtil.NT_TEST + "] WHERE [foo1]='bar1'";
+    List<String> paths = executeQuery(query, SQL2);
+    assertTrue("indexed prop name shouldn't decide query plan (" + paths.get(0) + ")", paths.get(0).contains("/* no-index "));
+    query = "EXPLAIN SELECT [jcr:path] from [" + TestUtil.NT_TEST + "] WHERE [subChild/foo2]='bar2'";
+    paths = executeQuery(query, SQL2);
+    assertTrue("indexed prop name shouldn't decide query plan (" + paths.get(0) + ")", paths.get(0).contains("/* no-index "));
+}

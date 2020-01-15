@@ -1,0 +1,24 @@
+// OAK-2477
+@Test
+public void testSuggestFrequency() throws Exception {
+    int suggestFreq = 40;
+    // default config
+    NodeBuilder indexRoot = builder;
+    IndexDefinition idxDefn = new IndexDefinition(root, indexRoot.getNodeState(), "/foo");
+    assertEquals("Default config", 10, idxDefn.getSuggesterUpdateFrequencyMinutes());
+    // namespaced config shadows old method
+    indexRoot = builder.child("shadowConfigRoot");
+    indexRoot.setProperty(FulltextIndexConstants.SUGGEST_UPDATE_FREQUENCY_MINUTES, suggestFreq);
+    indexRoot.child(FulltextIndexConstants.SUGGESTION_CONFIG);
+    idxDefn = new IndexDefinition(root, indexRoot.getNodeState(), "/foo");
+    assertEquals("Namespaced config node should shadow global config", 10, idxDefn.getSuggesterUpdateFrequencyMinutes());
+    // config for backward config
+    indexRoot = builder.child("backwardCompatibilityRoot");
+    indexRoot.setProperty(FulltextIndexConstants.SUGGEST_UPDATE_FREQUENCY_MINUTES, suggestFreq);
+    idxDefn = new IndexDefinition(root, indexRoot.getNodeState(), "/foo");
+    assertEquals("Backward compatibility config", suggestFreq, idxDefn.getSuggesterUpdateFrequencyMinutes());
+    indexRoot = builder.child("indexRoot");
+    indexRoot.child(FulltextIndexConstants.SUGGESTION_CONFIG).setProperty(FulltextIndexConstants.SUGGEST_UPDATE_FREQUENCY_MINUTES, suggestFreq);
+    idxDefn = new IndexDefinition(root, indexRoot.getNodeState(), "/foo");
+    assertEquals("Set config", suggestFreq, idxDefn.getSuggesterUpdateFrequencyMinutes());
+}

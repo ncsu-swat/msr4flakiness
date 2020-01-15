@@ -1,0 +1,21 @@
+@Test
+public void invalidOrderAccess() {
+    Set<String> preferred = ImmutableSet.of("jcr:content");
+    CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/jcr:content", "/a/jcr:content/metadata", "/a/d", "/e"));
+    FlatFileStoreIterator fitr = new FlatFileStoreIterator(citr.iterator(), preferred);
+    NodeStateEntry a = fitr.next();
+    assertEquals("/a", a.getPath());
+    NodeState ns1 = a.getNodeState().getChildNode("jcr:content");
+    NodeStateEntry nse1 = fitr.next();
+    assertEquals("/a/jcr:content", nse1.getPath());
+    assertEquals(1, nse1.getNodeState().getChildNodeCount(100));
+    // Now move past /a/jcr:content
+    NodeStateEntry nse2 = fitr.next();
+    assertEquals("/a/jcr:content/metadata", nse2.getPath());
+    try {
+        // Now access from /a/jcr:content node should fail
+        ns1.getChildNodeCount(100);
+        fail("Access should have failed");
+    } catch (IllegalStateException ignore) {
+    }
+}

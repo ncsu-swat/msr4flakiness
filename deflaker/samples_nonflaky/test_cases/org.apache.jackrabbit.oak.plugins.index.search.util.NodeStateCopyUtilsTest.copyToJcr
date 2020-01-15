@@ -1,0 +1,23 @@
+@Test
+public void copyToJcr() throws Exception {
+    repository = new Jcr().with(new OpenSecurityProvider()).createRepository();
+    Tree srcTree = TreeFactory.createTree(builder);
+    srcTree.setOrderableChildren(true);
+    srcTree.setProperty("foo", "x");
+    srcTree.setProperty("foo", "x");
+    srcTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED, Type.NAME);
+    srcTree.addChild("a").setOrderableChildren(true);
+    srcTree.addChild("a").setProperty("foo", "y");
+    srcTree.addChild("a").setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED, Type.NAME);
+    srcTree.addChild("b").setOrderableChildren(true);
+    srcTree.addChild("b").setProperty("foo", "z");
+    srcTree.addChild("b").setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED, Type.NAME);
+    Session session = repository.login(null, null);
+    Node node = session.getRootNode();
+    Node test = node.addNode("test", NT_OAK_UNSTRUCTURED);
+    NodeStateCopyUtils.copyToNode(builder.getNodeState(), test);
+    session.save();
+    test = session.getNode("/test");
+    assertEquals("y", test.getProperty("a/foo").getString());
+    assertEquals("z", test.getProperty("b/foo").getString());
+}

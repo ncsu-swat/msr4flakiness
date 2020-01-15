@@ -1,0 +1,15 @@
+@Test
+public void nodeFullTextIndexed_Regex() throws Exception {
+    NodeBuilder rules = builder.child(INDEX_RULES);
+    rules.child("nt:folder");
+    TestUtil.child(rules, "nt:folder/properties/prop1").setProperty(PROP_NAME, ".*").setProperty(FulltextIndexConstants.PROP_ANALYZED, true).setProperty(FulltextIndexConstants.PROP_IS_REGEX, true);
+    IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+    IndexingRule rule = defn.getApplicableIndexingRule(asState(newNode("nt:folder")));
+    assertNotNull(rule);
+    assertFalse(rule.isNodeFullTextIndexed());
+    TestUtil.child(rules, "nt:folder/properties/prop1").setProperty(FulltextIndexConstants.PROP_NODE_SCOPE_INDEX, true);
+    defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+    rule = defn.getApplicableIndexingRule(asState(newNode("nt:folder")));
+    assertTrue(rule.isNodeFullTextIndexed());
+    assertTrue(rule.indexesAllNodesOfMatchingType());
+}

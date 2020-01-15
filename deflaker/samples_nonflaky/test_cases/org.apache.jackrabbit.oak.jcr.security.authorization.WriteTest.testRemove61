@@ -1,0 +1,26 @@
+@Test
+public void testRemove61() throws Exception {
+    Node subtree = superuser.getNode(childNPath).addNode(nodeName3);
+    superuser.save();
+    // add 'remove_child_nodes' and 'remove_node' privilege at 'path'
+    Privilege[] privs = privilegesFromNames(new String[] { Privilege.JCR_REMOVE_CHILD_NODES, Privilege.JCR_REMOVE_NODE });
+    allow(path, privs);
+    // ... but deny 'remove_node' at childNPath
+    Privilege[] rmNode = privilegesFromName(Privilege.JCR_REMOVE_NODE);
+    deny(childNPath, rmNode);
+    /*
+         expected result:
+         - subtree node can't be remove
+         */
+    String subtreePath = subtree.getPath();
+    assertFalse(testSession.hasPermission(subtreePath, Session.ACTION_REMOVE));
+    assertTrue(testAcMgr.hasPrivileges(subtreePath, privilegesFromNames(new String[] { Privilege.JCR_READ, Privilege.JCR_REMOVE_CHILD_NODES })));
+    assertFalse(testAcMgr.hasPrivileges(subtreePath, privilegesFromName(Privilege.JCR_REMOVE_NODE)));
+    try {
+        testSession.getNode(subtreePath).remove();
+        testSession.save();
+        fail("Removal must fail");
+    } catch (AccessDeniedException e) {
+    // success
+    }
+}

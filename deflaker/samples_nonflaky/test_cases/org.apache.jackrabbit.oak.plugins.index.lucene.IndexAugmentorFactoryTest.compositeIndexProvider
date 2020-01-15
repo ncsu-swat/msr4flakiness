@@ -1,0 +1,19 @@
+@Test
+public void compositeIndexProvider() {
+    final String typeA = "type:A";
+    final String typeB = "type:B";
+    final String typeC = "type:C";
+    final String typeD = "type:D";
+    context.registerInjectActivateService(indexAugmentorFactory);
+    new IdentifiableIndexFiledProvider("1", Sets.newHashSet(typeA, typeB));
+    new IdentifiableIndexFiledProvider("2", Sets.newHashSet(typeC));
+    new IdentifiableIndexFiledProvider("3", Sets.newHashSet(typeA, typeB));
+    // register an instance which would be unregistered before validation
+    IndexFieldProvider unreg = new IdentifiableIndexFiledProvider("4", Sets.newHashSet(typeD));
+    indexAugmentorFactory.unbindIndexFieldProvider(unreg);
+    validateComposedFields(typeA, "1", "3");
+    validateComposedFields(typeC, "2");
+    validateComposedFields(typeD);
+    MockOsgi.deactivate(indexAugmentorFactory, context.bundleContext(), Collections.EMPTY_MAP);
+    validateDeactivatedService();
+}

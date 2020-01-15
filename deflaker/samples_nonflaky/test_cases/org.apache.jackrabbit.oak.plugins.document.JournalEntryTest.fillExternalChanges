@@ -1,0 +1,28 @@
+@Test
+public void fillExternalChanges() throws Exception {
+    DocumentStore store = new MemoryDocumentStore();
+    JournalEntry entry = JOURNAL.newDocument(store);
+    Set<Path> paths = Sets.newHashSet();
+    addRandomPaths(paths);
+    entry.modified(paths);
+    Revision r1 = new Revision(1, 0, 1);
+    Revision r2 = new Revision(2, 0, 1);
+    Revision r3 = new Revision(3, 0, 1);
+    UpdateOp op = entry.asUpdateOp(r2);
+    assertTrue(store.create(JOURNAL, Collections.singletonList(op)));
+    StringSort sort = JournalEntry.newSorter();
+    StringSort inv = JournalEntry.newSorter();
+    JournalEntry.fillExternalChanges(sort, inv, r2, r3, store);
+    assertEquals(0, sort.getSize());
+    assertEquals(0, inv.getSize());
+    JournalEntry.fillExternalChanges(sort, inv, r1, r2, store);
+    assertEquals(paths.size(), sort.getSize());
+    assertEquals(0, inv.getSize());
+    sort.close();
+    sort = JournalEntry.newSorter();
+    JournalEntry.fillExternalChanges(sort, inv, r1, r3, store);
+    assertEquals(paths.size(), sort.getSize());
+    assertEquals(0, inv.getSize());
+    sort.close();
+    inv.close();
+}

@@ -1,0 +1,15 @@
+@Test
+public void testChangeWithInvalidRestriction() throws Exception {
+    Tree entry = createPolicyEntryTree(ImmutableSet.of(JCR_READ));
+    Tree restrictions = TreeUtil.addChild(entry, REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
+    restrictions.setProperty(REP_GLOB, "*/glob/*");
+    root.commit();
+    // modify restriction tree changing glob property with type-cardinality mismatch
+    restrictions.setProperty(REP_GLOB, ImmutableSet.of("test"), Type.STRINGS);
+    try {
+        root.commit();
+        failCommitFailedExcpected(35);
+    } catch (CommitFailedException e) {
+        assertCommitFailed(e, 35);
+    }
+}

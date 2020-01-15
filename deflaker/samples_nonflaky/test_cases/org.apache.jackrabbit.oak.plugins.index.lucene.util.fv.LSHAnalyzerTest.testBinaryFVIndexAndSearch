@@ -1,0 +1,35 @@
+@Test
+public void testBinaryFVIndexAndSearch() throws Exception {
+    LSHAnalyzer analyzer = new LSHAnalyzer();
+    Directory directory = new RAMDirectory();
+    IndexWriter writer = new IndexWriter(directory, new IndexWriterConfig(Version.LUCENE_47, analyzer));
+    DirectoryReader reader = null;
+    try {
+        List<Double> values = new LinkedList<>();
+        values.add(0.1d);
+        values.add(0.3d);
+        values.add(0.5d);
+        values.add(0.7d);
+        values.add(0.11d);
+        values.add(0.13d);
+        values.add(0.17d);
+        values.add(0.19d);
+        values.add(0.23d);
+        values.add(0.29d);
+        byte[] bytes = SimSearchUtils.toByteArray(values);
+        String fvString = SimSearchUtils.toDoubleString(bytes);
+        String fieldName = "fvs";
+        Document document = new Document();
+        document.add(new TextField(fieldName, fvString, Field.Store.YES));
+        writer.addDocument(document);
+        writer.commit();
+        reader = DirectoryReader.open(writer, false);
+        assertSimQuery(analyzer, fieldName, fvString, reader);
+    } finally {
+        if (reader != null) {
+            reader.close();
+        }
+        writer.close();
+        directory.close();
+    }
+}

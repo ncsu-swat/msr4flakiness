@@ -1,0 +1,14 @@
+@Test
+public void multipleUpdateForSamePath() throws Exception {
+    LuceneIndexDefinition idxDefn = getSyncIndexDefinition("/foo");
+    NRTIndex idx = indexFactory.createIndex(idxDefn);
+    LuceneIndexWriter writer = idx.getWriter();
+    Document document = new Document();
+    document.add(newPathField("/a/b"));
+    writer.updateDocument("/a/b", document);
+    assertEquals(1, idx.getPrimaryReaderForTest().numDocs());
+    writer.updateDocument("/a/b", document);
+    // Update for same path should not lead to deletion
+    assertEquals(2, idx.getPrimaryReaderForTest().numDocs());
+    assertEquals(0, idx.getPrimaryReaderForTest().numDeletedDocs());
+}

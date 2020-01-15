@@ -1,0 +1,13 @@
+@Test
+public void testSetPolicyRemovesAllChildNodes() throws Exception {
+    PrincipalPolicyImpl policy = setupPrincipalBasedAccessControl(validPrincipal, testJcrPath, JCR_READ);
+    Tree policyTree = root.getTree(policy.getOakPath()).getChild(REP_PRINCIPAL_POLICY);
+    TreeUtil.addChild(policyTree, "nonEntryChild", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+    policy.removeAccessControlEntry(policy.getEntries().get(0));
+    policy.addEntry(testJcrPath, privilegesFromNames(REP_READ_NODES));
+    acMgr.setPolicy(policy.getPath(), policy);
+    policyTree = root.getTree(policy.getOakPath()).getChild(REP_PRINCIPAL_POLICY);
+    assertFalse(policyTree.hasChild("nonEntryChild"));
+    policy = (PrincipalPolicyImpl) acMgr.getPolicies(validPrincipal)[0];
+    assertArrayEquals(privilegesFromNames(REP_READ_NODES), policy.getEntries().get(0).getPrivileges());
+}

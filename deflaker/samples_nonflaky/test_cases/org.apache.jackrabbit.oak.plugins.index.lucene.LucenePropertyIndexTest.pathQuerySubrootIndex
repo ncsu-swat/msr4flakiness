@@ -1,0 +1,30 @@
+// OAK-4517
+@Test
+public void pathQuerySubrootIndex() throws Exception {
+    Tree subTreeRoot = root.getTree("/").addChild("test");
+    Tree idx = createIndex(subTreeRoot, "test1", of("propa"));
+    idx.setProperty(createProperty(QUERY_PATHS, of("/test/a"), Type.STRINGS));
+    // Do not provide type information
+    root.commit();
+    subTreeRoot.addChild("a").setProperty("propa", 10);
+    subTreeRoot.addChild("a").addChild("b").setProperty("propa", 10);
+    subTreeRoot.addChild("a").addChild("b").addChild("c").setProperty("propa", 10);
+    subTreeRoot.addChild("c").setProperty("propa", 10);
+    root.commit();
+    String query = "select [jcr:path] from [nt:base] where [propa] = 10 AND ISDESCENDANTNODE('/test/a')";
+    String explanation = explain(query);
+    assertThat(explanation, containsString("lucene:test1"));
+    assertQuery(query, asList("/test/a/b", "/test/a/b/c"));
+    query = "select [jcr:path] from [nt:base] where [propa] = 10 AND ISDESCENDANTNODE('/test/a/b')";
+    explanation = explain(query);
+    assertThat(explanation, containsString("lucene:test1"));
+    assertQuery(query, asList("/test/a/b/c"));
+    query = "select [jcr:path] from [nt:base] where [propa] = 10 AND ISDESCENDANTNODE('/test')";
+    explanation = explain(query);
+    assertThat(explanation, not(containsString("lucene:test1")));
+    assertThat(explanation, containsString("/* no-index"));
+    query = "select [jcr:path] from [nt:base] where [propa] = 10 AND ISDESCENDANTNODE('/test/c')";
+    explanation = explain(query);
+    assertThat(explanation, not(containsString("lucene:test1")));
+    assertThat(explanation, containsString("/* no-index"));
+}

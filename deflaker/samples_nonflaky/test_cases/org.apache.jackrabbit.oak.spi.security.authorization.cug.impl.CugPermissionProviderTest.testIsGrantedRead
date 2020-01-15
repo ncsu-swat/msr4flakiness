@@ -1,0 +1,21 @@
+/**
+ * @see PermissionProvider#isGranted(org.apache.jackrabbit.oak.api.Tree, org.apache.jackrabbit.oak.api.PropertyState, long)
+ */
+@Test
+public void testIsGrantedRead() {
+    for (String p : NOT_READABLE_PATHS) {
+        Tree tree = root.getTree(p);
+        if (tree.exists()) {
+            assertFalse(cugPermProvider.isGranted(tree, null, Permissions.READ));
+            assertFalse(cugPermProvider.isGranted(tree, tree.getProperty(JCR_PRIMARYTYPE), Permissions.READ_PROPERTY));
+        }
+    }
+    for (String p : READABLE_PATHS) {
+        Tree tree = root.getTree(p);
+        if (tree.exists()) {
+            assertTrue(cugPermProvider.isGranted(tree, null, Permissions.READ));
+            assertTrue(cugPermProvider.isGranted(tree, null, Permissions.READ_NODE));
+            assertTrue(cugPermProvider.isGranted(tree, tree.getProperty(JCR_PRIMARYTYPE), Permissions.READ_PROPERTY));
+        }
+    }
+}

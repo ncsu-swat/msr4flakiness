@@ -1,0 +1,13 @@
+@Test
+public void multiLevelTyped() throws Exception {
+    Aggregate ag = new Aggregate("nt:base", of(ni("a"), ni("nt:resource", "d/*/*", false)));
+    NodeBuilder nb = newNode("nt:base");
+    nb.child("a").child("c");
+    nb.child("b");
+    nb.child("d").child("e").child("f").setProperty(JCR_PRIMARYTYPE, "nt:resource");
+    nb.child("d").child("e").child("f2");
+    nb.child("d").child("e2").child("f3").setProperty(JCR_PRIMARYTYPE, "nt:resource");
+    ag.collectAggregates(nb.getNodeState(), col);
+    assertEquals(3, col.getNodePaths().size());
+    assertThat(col.getNodePaths(), hasItems("a", "d/e/f", "d/e2/f3"));
+}

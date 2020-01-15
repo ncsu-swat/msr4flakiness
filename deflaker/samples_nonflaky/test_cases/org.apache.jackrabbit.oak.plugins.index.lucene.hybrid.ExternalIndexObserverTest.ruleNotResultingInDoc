@@ -1,0 +1,13 @@
+@Test
+public void ruleNotResultingInDoc() throws Exception {
+    Multimap<String, String> indexedPaths = HashMultimap.create();
+    indexedPaths.put("/a", "/oak:index/foo");
+    commitContext.set(LuceneDocumentHolder.NAME, new IndexedPaths(indexedPaths));
+    CommitInfo ci = newCommitInfo();
+    // Rule is of type nt:base but does not have any matching property definition
+    when(tracker.getIndexDefinition("/oak:index/foo")).thenReturn(createNRTIndex("nt:base"));
+    NodeBuilder nb = INITIAL_CONTENT.builder();
+    nb.child("a");
+    observer.contentChanged(nb.getNodeState(), ci);
+    verifyZeroInteractions(queue);
+}

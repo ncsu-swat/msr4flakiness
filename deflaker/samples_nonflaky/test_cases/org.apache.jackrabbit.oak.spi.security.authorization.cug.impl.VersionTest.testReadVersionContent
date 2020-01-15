@@ -1,0 +1,25 @@
+@Test
+public void testReadVersionContent() throws Exception {
+    IdentifierManager idMgr = new IdentifierManager(testRoot);
+    ReadOnlyVersionManager vMgr = ReadOnlyVersionManager.getInstance(testRoot, NamePathMapper.DEFAULT);
+    for (String path : readAccess) {
+        Tree t = testRoot.getTree(path);
+        assertTrue(path, t.exists());
+        PropertyState ps = t.getProperty(JCR_VERSIONHISTORY);
+        assertNotNull(ps);
+        String vhUUID = ps.getValue(Type.STRING);
+        assertEquals(vhUUID, ps.getValue(Type.STRING));
+        Tree versionHistory = vMgr.getVersionHistory(t);
+        assertNotNull(versionHistory);
+        assertTrue(versionHistory.exists());
+        assertTrue(versionHistory.getChild(JCR_ROOTVERSION).exists());
+        assertFalse(versionHistory.getParent().exists());
+        Tree vhTree = testRoot.getTree(versionHistory.getPath());
+        assertTrue(vhTree.exists());
+        String vhPath = idMgr.resolveUUID(vhUUID);
+        assertNotNull(vhPath);
+        assertEquals(versionHistory.getPath(), vhPath);
+        assertTrue(testRoot.getTree(vhPath).exists());
+        assertTrue(testRoot.getTree(vhPath + '/' + JCR_ROOTVERSION).exists());
+    }
+}

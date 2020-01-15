@@ -1,0 +1,24 @@
+@Test
+public void recursionEnabledWithLimitCheck() throws Exception {
+    int limit = 5;
+    Aggregate agFile = new Aggregate("nt:file", of(ni("*")), limit);
+    mapper.add("nt:file", agFile);
+    List<String> expectedPaths = Lists.newArrayList();
+    NodeBuilder nb = newNode("nt:file");
+    nb.child("a").child("c");
+    String path = "";
+    NodeBuilder fb = nb;
+    for (int i = 0; i < limit + 2; i++) {
+        String name = "f " + i;
+        path = PathUtils.concat(path, name);
+        fb = fb.child(name);
+        fb.setProperty(JCR_PRIMARYTYPE, "nt:file");
+        if (i < limit) {
+            expectedPaths.add(path);
+        }
+    }
+    expectedPaths.add("a");
+    agFile.collectAggregates(nb.getNodeState(), col);
+    assertEquals(expectedPaths.size(), col.getNodePaths().size());
+    assertThat(col.getNodePaths(), hasItems(toArray(expectedPaths, String.class)));
+}

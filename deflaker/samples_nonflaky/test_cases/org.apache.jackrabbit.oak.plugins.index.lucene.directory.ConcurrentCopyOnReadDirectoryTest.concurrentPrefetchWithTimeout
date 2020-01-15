@@ -1,0 +1,16 @@
+@Test
+public void concurrentPrefetchWithTimeout() throws Exception {
+    // setup one primary CoR and 2 subsequent ones to read. Each would run concurrently.
+    setupCopiers(2);
+    // don't unblock firstCor so that leeching CoRs time out
+    waitForLeechingCoRsToFinish();
+    // let it go now as leeching CoRs have finished
+    firstCoRBlocker.countDown();
+    assertNull("First CoR must not throw exception", firstCoRFutre.get());
+    IndexInput input = firstCoR.openInput("file", IOContext.READ);
+    assertFalse(firstCoR + " must not be reading from remote", input.toString().startsWith(REMOTE_INPUT_PREFIX));
+    for (Directory d : leechingCoRs) {
+        input = d.openInput("file", IOContext.READ);
+        assertTrue(d + " must be reading from remote", input.toString().startsWith(REMOTE_INPUT_PREFIX));
+    }
+}

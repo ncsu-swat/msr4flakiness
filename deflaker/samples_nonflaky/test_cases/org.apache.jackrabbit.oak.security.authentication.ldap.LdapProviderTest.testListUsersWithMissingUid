@@ -1,0 +1,18 @@
+/**
+ * Test case to reproduce OAK-3396 where an ldap user entry
+ * without a uid caused a NullpointerException in LdapIdentityProvider.createUser
+ */
+@Test
+public void testListUsersWithMissingUid() throws Exception {
+    // the ERRONEOUS_LDIF contains an entry without uid
+    InputStream erroneousDIF = LdapProviderTest.class.getResourceAsStream(ERRONEOUS_LDIF);
+    LDAP_SERVER.loadLdif(erroneousDIF);
+    Iterator<ExternalUser> users = idp.listUsers();
+    // without the LdapInvalidAttributeValueException a NPE would result here:
+    while (users.hasNext()) {
+        ExternalUser user = users.next();
+        // the 'Faulty Entry' of the ERRONEOUS_LDIF should be filtered out
+        // (by LdapIdentityProvider.listUsers.getNext())
+        assertTrue(!user.getPrincipalName().startsWith("cn=Faulty Entry"));
+    }
+}

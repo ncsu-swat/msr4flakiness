@@ -1,0 +1,15 @@
+@Test(expected = CommitFailedException.class)
+public void testRemovePolicyTree() throws Exception {
+    // grant read-ac access on principal policy
+    grant(testPrincipal, systemPrincipalPath, JCR_READ_ACCESS_CONTROL);
+    root.commit();
+    testRoot.refresh();
+    try {
+        testRoot.getTree(getPolicyPath()).remove();
+        testRoot.commit();
+    } catch (CommitFailedException e) {
+        assertEquals(CommitFailedException.ACCESS, e.getType());
+        assertEquals(0, e.getCode());
+        throw e;
+    }
+}

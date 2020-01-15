@@ -1,0 +1,22 @@
+// OAK-4517
+@Test
+public void pathExcludeSubrootIndex() throws Exception {
+    Tree subTreeRoot = root.getTree("/").addChild("test");
+    Tree idx = createIndex(subTreeRoot, "test1", of("propa"));
+    idx.setProperty(createProperty(PROP_EXCLUDED_PATHS, of("/a"), Type.STRINGS));
+    // Do not provide type information
+    root.commit();
+    subTreeRoot.addChild("a").setProperty("propa", 10);
+    subTreeRoot.addChild("a").addChild("b").setProperty("propa", 10);
+    subTreeRoot.addChild("c").setProperty("propa", 10);
+    root.commit();
+    String query = "select [jcr:path] from [nt:base] where [propa] = 10 AND ISDESCENDANTNODE('/test')";
+    assertThat(explain(query), containsString("lucene:test1"));
+    assertQuery(query, asList("/test/c"));
+    // Make some change and then check
+    subTreeRoot = root.getTree("/").getChild("test");
+    subTreeRoot.addChild("a").addChild("e").setProperty("propa", 10);
+    subTreeRoot.addChild("f").setProperty("propa", 10);
+    root.commit();
+    assertQuery(query, asList("/test/c", "/test/f"));
+}

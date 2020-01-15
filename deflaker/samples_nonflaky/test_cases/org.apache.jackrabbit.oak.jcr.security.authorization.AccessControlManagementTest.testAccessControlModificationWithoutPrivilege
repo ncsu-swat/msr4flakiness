@@ -1,0 +1,25 @@
+@Test
+public void testAccessControlModificationWithoutPrivilege() throws Exception {
+    // give 'testUser' ADD_CHILD_NODES|MODIFY_PROPERTIES| REMOVE_CHILD_NODES privileges at 'path'
+    Privilege[] privileges = privilegesFromNames(new String[] { Privilege.JCR_ADD_CHILD_NODES, Privilege.JCR_REMOVE_CHILD_NODES, Privilege.JCR_MODIFY_PROPERTIES });
+    JackrabbitAccessControlList tmpl = allow(path, privileges);
+    String policyPath = tmpl.getPath() + "/rep:policy";
+    // make sure the 'rep:policy' node has been created.
+    assertTrue(superuser.itemExists(policyPath));
+    /*
+         testuser must not have
+         - permission to modify AC items
+        */
+    try {
+        testAcMgr.setPolicy(tmpl.getPath(), tmpl);
+        fail("test user must not have MODIFY_AC privilege.");
+    } catch (AccessDeniedException e) {
+    // success
+    }
+    try {
+        testAcMgr.removePolicy(tmpl.getPath(), tmpl);
+        fail("test user must not have MODIFY_AC privilege.");
+    } catch (AccessDeniedException e) {
+    // success
+    }
+}

@@ -1,0 +1,14 @@
+@Test
+public void testGetPoliciesAfterManualCreation() throws Exception {
+    Tree n = root.getTree(SUPPORTED_PATH);
+    Tree cug = TreeUtil.addChild(n, REP_CUG_POLICY, NT_REP_CUG_POLICY);
+    AccessControlPolicy[] policies = cugAccessControlManager.getPolicies(SUPPORTED_PATH);
+    assertEquals(1, policies.length);
+    assertTrue(policies[0] instanceof CugPolicy);
+    CugPolicy cugPolicy = (CugPolicy) policies[0];
+    assertTrue(cugPolicy.getPrincipals().isEmpty());
+    cug.setProperty(REP_PRINCIPAL_NAMES, ImmutableList.of("unknownPrincipalName", EveryonePrincipal.NAME), Type.STRINGS);
+    policies = cugAccessControlManager.getPolicies(SUPPORTED_PATH);
+    cugPolicy = (CugPolicy) policies[0];
+    assertEquals(2, cugPolicy.getPrincipals().size());
+}

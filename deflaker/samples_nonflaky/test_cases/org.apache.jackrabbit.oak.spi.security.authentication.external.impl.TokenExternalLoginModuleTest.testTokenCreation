@@ -1,0 +1,20 @@
+@Test
+public void testTokenCreation() throws Exception {
+    Credentials creds = createTestCredentials();
+    assertTrue(credentialsSupport.setAttributes(creds, ImmutableMap.<String, Object>of(".token", "")));
+    String expectedUserId = credentialsSupport.getUserId(creds);
+    ContentSession cs = login(creds);
+    try {
+        assertEquals(expectedUserId, cs.getAuthInfo().getUserID());
+        Map<String, ?> attributes = credentialsSupport.getAttributes(creds);
+        String token = attributes.get(".token").toString();
+        assertFalse(token.isEmpty());
+        root.refresh();
+        User user = getUserManager(root).getAuthorizable(expectedUserId, User.class);
+        Tree tokenParent = root.getTree(user.getPath()).getChild(".tokens");
+        assertTrue(tokenParent.exists());
+        assertEquals(1, tokenParent.getChildrenCount(100));
+    } finally {
+        cs.close();
+    }
+}

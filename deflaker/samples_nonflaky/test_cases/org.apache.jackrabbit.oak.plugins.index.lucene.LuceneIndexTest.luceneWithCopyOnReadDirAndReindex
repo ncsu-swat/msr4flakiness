@@ -1,0 +1,48 @@
+@Test
+public void luceneWithCopyOnReadDirAndReindex() throws Exception {
+    NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+    NodeBuilder defnState = newLucenePropertyIndexDefinition(index, "lucene", ImmutableSet.of("foo", "foo2", "foo3"), null);
+    IndexDefinition definition = new IndexDefinition(root, defnState.getNodeState(), "/foo");
+    // 1. Create index in two increments
+    NodeState before = builder.getNodeState();
+    builder.setProperty("foo", "bar");
+    NodeState indexed = HOOK.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
+    IndexCopier copier = new IndexCopier(sameThreadExecutor(), new File(getIndexDir()));
+    tracker = new IndexTracker(copier);
+    tracker.update(indexed);
+    assertQuery(tracker, indexed, "foo", "bar");
+    assertEquals(0, copier.getInvalidFileCount());
+    builder = indexed.builder();
+    builder.setProperty("foo2", "bar2");
+    indexed = HOOK.processCommit(indexed, builder.getNodeState(), CommitInfo.EMPTY);
+    tracker.update(indexed);
+    assertQuery(tracker, indexed, "foo2", "bar2");
+    assertEquals(0, copier.getInvalidFileCount());
+    // 2. Reindex. This would create index with different index content
+    builder = indexed.builder();
+    builder.child(INDEX_DEFINITIONS_NAME).child("lucene").setProperty(REINDEX_PROPERTY_NAME, true);
+    indexed = HOOK.processCommit(indexed, builder.getNodeState(), CommitInfo.EMPTY);
+    tracker.update(indexed);
+    defnState = builder.child(INDEX_DEFINITIONS_NAME).child("lucene");
+    definition = new IndexDefinition(root, defnState.getNodeState(), "/foo");
+    assertQuery(tracker, indexed, "foo2", "bar2");
+    // If reindex case handled properly then invalid count should be zero
+    assertEquals(0, copier.getInvalidFileCount());
+    assertEquals(2, copier.getIndexRootDirectory().getLocalIndexes("/oak:index/lucene").size());
+    // 3. Update again. Now with close of previous reader
+    // orphaned directory must be removed
+    builder = indexed.builder();
+    builder.setProperty("foo3", "bar3");
+    indexed = HOOK.processCommit(indexed, builder.getNodeState(), CommitInfo.EMPTY);
+    tracker.update(indexed);
+    assertQuery(tracker, indexed, "foo3", "bar3");
+    assertEquals(0, copier.getInvalidFileCount());
+    List<LocalIndexDir> idxDirs = copier.getIndexRootDirectory().getLocalIndexes("/oak:index/lucene");
+    List<LocalIndexDir> nonEmptyDirs = Lists.newArrayList();
+    for (LocalIndexDir dir : idxDirs) {
+        if (!dir.isEmpty()) {
+            nonEmptyDirs.add(dir);
+        }
+    }
+    assertEquals(1, nonEmptyDirs.size());
+}

@@ -1,0 +1,18 @@
+@Test
+public void testSetPolicyPersisted() throws Exception {
+    CugPolicy cug = getApplicableCug(SUPPORTED_PATH);
+    cug.addPrincipals(EveryonePrincipal.getInstance());
+    cugAccessControlManager.setPolicy(SUPPORTED_PATH, cug);
+    root.commit();
+    Tree tree = root.getTree(SUPPORTED_PATH);
+    assertTrue(TreeUtil.isNodeType(tree, CugConstants.MIX_REP_CUG_MIXIN, root.getTree(NodeTypeConstants.NODE_TYPES_PATH)));
+    Tree cugTree = tree.getChild(CugConstants.REP_CUG_POLICY);
+    assertTrue(cugTree.exists());
+    assertEquals(CugConstants.NT_REP_CUG_POLICY, TreeUtil.getPrimaryTypeName(cugTree));
+    PropertyState prop = cugTree.getProperty(CugConstants.REP_PRINCIPAL_NAMES);
+    assertNotNull(prop);
+    assertTrue(prop.isArray());
+    assertEquals(Type.STRINGS, prop.getType());
+    assertEquals(1, prop.count());
+    assertEquals(EveryonePrincipal.NAME, prop.getValue(Type.STRING, 0));
+}

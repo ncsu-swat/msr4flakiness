@@ -1,0 +1,15 @@
+@Test
+public void analyzerByComposition_CharFilter() throws Exception {
+    NodeBuilder nb = EMPTY_NODE.builder();
+    nb.child(ANL_TOKENIZER).setProperty(ANL_NAME, "whitespace");
+    NodeBuilder filters = nb.child(ANL_CHAR_FILTERS);
+    filters.setProperty(OAK_CHILD_ORDER, ImmutableList.of("htmlStrip", "mapping"), NAMES);
+    filters.child("mapping").setProperty(ANL_NAME, "mapping");
+    // name is optional. Derived from nodeName
+    filters.child("htmlStrip");
+    TokenizerChain analyzer = (TokenizerChain) factory.createInstance(nb.getNodeState());
+    assertEquals(2, analyzer.getCharFilters().length);
+    // check the order
+    assertEquals(HTMLStripCharFilterFactory.class.getName(), analyzer.getCharFilters()[0].getClassArg());
+    assertEquals(MappingCharFilterFactory.class.getName(), analyzer.getCharFilters()[1].getClassArg());
+}

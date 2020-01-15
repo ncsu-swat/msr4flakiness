@@ -1,0 +1,11 @@
+@Test
+public void propertyIndexCostActualByDefault() throws Exception {
+    NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+    long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 100;
+    LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"), numofDocs);
+    FilterImpl filter = createFilter("nt:base");
+    filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+    FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+    QueryIndex.IndexPlan plan = planner.getPlan();
+    assertEquals(documentsPerValue(numofDocs), plan.getEstimatedEntryCount());
+}

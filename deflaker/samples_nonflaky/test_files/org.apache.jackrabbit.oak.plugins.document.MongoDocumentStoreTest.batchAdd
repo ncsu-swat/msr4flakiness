@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,110 +14,319 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.document.mongo;
+package org.apache.jackrabbit.oak.plugins.document;
 
-import java.util.Map;
-
-import com.mongodb.client.MongoCollection;
-
-import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
-import org.apache.jackrabbit.oak.plugins.document.Collection;
-import org.apache.jackrabbit.oak.plugins.document.Document;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
-import org.apache.jackrabbit.oak.plugins.document.JournalEntry;
-import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
-import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
-import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
-import org.junit.Test;
-
-import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.hasIndex;
-import static org.hamcrest.Matchers.hasItem;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+import com.google.common.collect.Lists;
+import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.mongodb.BasicDBObject;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.IndexOptions;
+
 /**
- * <code>MongoDocumentStoreTest</code>...
+ * Tests the document store.
  */
-public class MongoDocumentStoreTest extends AbstractMongoConnectionTest {
+public class MongoDocumentStoreTest {
 
-    private TestStore store;
+    private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentStoreTest.class);
 
-    @Override
-    public void setUpConnection() throws Exception {
-        mongoConnection = connectionFactory.getConnection();
-        MongoUtils.dropCollections(mongoConnection.getDBName());
-        DocumentMK.Builder builder = new DocumentMK.Builder();
-        store = new TestStore(mongoConnection, builder);
-        builder.setDocumentStore(store);
-        mk = builder.setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName()).open();
-    }
+    @Rule
+    public MongoConnectionFactory connectionFactory = new MongoConnectionFactory();
 
-    @Test
-    public void defaultIndexes() {
-        assertTrue(hasIndex(store.getDBCollection(Collection.NODES), Document.ID));
-        assertFalse(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.SD_TYPE));
-        assertTrue(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.SD_TYPE, NodeDocument.SD_MAX_REV_TIME_IN_SECS));
-        if (new MongoStatus(mongoConnection.getMongoClient(), mongoConnection.getDBName()).isVersion(3, 2)) {
-            assertTrue(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.DELETED_ONCE, NodeDocument.MODIFIED_IN_SECS));
-        } else {
-            assertTrue(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.DELETED_ONCE));
+//    private static final boolean MONGO_DB = true;
+//    private static final int NODE_COUNT = 2000;
+
+    private static final boolean MONGO_DB = false;
+    private static final int NODE_COUNT = 10;
+
+    DocumentStore openDocumentStore() {
+        if (MONGO_DB) {
+            MongoConnection c = connectionFactory.getConnection();
+            assertNotNull(c);
+            return new MongoDocumentStore(c.getMongoClient(), c.getDatabase(), new DocumentMK.Builder());
         }
-        assertTrue(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.HAS_BINARY_FLAG));
-        assertTrue(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.MODIFIED_IN_SECS, Document.ID));
-        assertFalse(hasIndex(store.getDBCollection(Collection.NODES), NodeDocument.MODIFIED_IN_SECS));
-        assertTrue(hasIndex(store.getDBCollection(Collection.JOURNAL), JournalEntry.MODIFIED));
+        return new MemoryDocumentStore();
+    }
+
+    void dropCollections() {
+        if (MONGO_DB) {
+            MongoUtils.dropCollections(connectionFactory.getConnection().getDatabase());
+        }
+    }
+
+    @Before
+    @After
+    public void cleanUp() {
+        dropCollections();
     }
 
     @Test
-    public void oak6423() throws Exception {
+    public void addGetAndRemove() throws Exception {
+        DocumentStore docStore = openDocumentStore();
+
+        UpdateOp updateOp = new UpdateOp("/", true);
+        Revision r1 = new Revision(0, 0, 0);
+        updateOp.setMapEntry("property1", r1, "value1");
+        updateOp.increment("property2", 1);
+        updateOp.set("property3", "value3");
+        docStore.createOrUpdate(Collection.NODES, updateOp);
+        NodeDocument doc = docStore.find(Collection.NODES, "/");
+        assertNotNull(doc);
+
+        Map<?, ?> property1 = (Map<?, ?>) doc.get("property1");
+        assertNotNull(property1);
+        String value1 = (String) property1.get(r1);
+        assertEquals("value1", value1);
+
+        Long value2 = (Long) doc.get("property2");
+        assertEquals(Long.valueOf(1), value2);
+
+        String value3 = (String) doc.get("property3");
+        assertEquals("value3", value3);
+
+        docStore.remove(Collection.NODES, "/");
+        doc = docStore.find(Collection.NODES, "/");
+        assertTrue(doc == null);
+    }
+
+    @Test
+    public void batchRemove() throws Exception {
+        DocumentStore docStore = openDocumentStore();
+        int nUpdates = 10;
+        Revision r1 = new Revision(0, 0, 0);
+        List<String> ids = Lists.newArrayList();
+        List<UpdateOp> updateOps = new ArrayList<UpdateOp>();
+        for (int i = 0; i < nUpdates; i++) {
+            String path = "/node" + i;
+            UpdateOp updateOp = new UpdateOp(path, true);
+            updateOp.setMapEntry("property1", r1, "value1");
+            updateOp.increment("property2", 1);
+            updateOp.set("property3", "value3");
+            updateOps.add(updateOp);
+            ids.add(updateOp.getId());
+        }
+        docStore.create(Collection.NODES, updateOps);
+
+        for(String id : ids){
+            assertNotNull(docStore.find(Collection.NODES, id));
+        }
+
+        docStore.remove(Collection.NODES, ids);
+        for(String id : ids){
+            assertNull(docStore.find(Collection.NODES, id));
+        }
+    }
+
+    @Test
+    public void batchAdd() throws Exception {
+        DocumentStore docStore = openDocumentStore();
+        Revision r1 = new Revision(0, 0, 0);
+        int nUpdates = 10;
+        List<UpdateOp> updateOps = new ArrayList<UpdateOp>();
+        for (int i = 0; i < nUpdates; i++) {
+            String path = "/node" + i;
+            UpdateOp updateOp = new UpdateOp(path, true);
+            updateOp.setMapEntry("property1", r1, "value1");
+            updateOp.increment("property2", 1);
+            updateOp.set("property3", "value3");
+            updateOps.add(updateOp);
+        }
+        docStore.create(Collection.NODES, updateOps);
+    }
+
+    @Test
+    public void addLotsOfNodes() throws Exception {
+        char[] nPrefix = new char[]{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'};
+        int nNodes = NODE_COUNT;
+
+        for (int nThreads = 1; nThreads < 32; nThreads = nThreads * 2) {
+            DocumentStore docStore = openDocumentStore();
+            dropCollections();
+
+            log("Adding and updating " + nNodes + " nodes in each " + nThreads + " threads");
+            long start = System.currentTimeMillis();
+
+            ExecutorService executor = Executors.newFixedThreadPool(nThreads);
+            for (int j = 0; j < nThreads; j++) {
+                executor.submit(new AddAndUpdateNodesTask(docStore, "node" + nPrefix[j], nNodes));
+            }
+            executor.shutdown();
+            executor.awaitTermination(1, TimeUnit.MINUTES);
+
+            long end = System.currentTimeMillis();
+            log("Done: " + (end - start) + "ms");
+
+        }
+    }
+
+    @Test
+    public void containsMapEntry() {
+        Revision r = new Revision(0, 0, 0);
+        Revision unknown = new Revision(0, 1, 0);
+        DocumentStore docStore = openDocumentStore();
+        UpdateOp op = new UpdateOp("/node", true);
+        op.setMapEntry("map", r, "value");
+        docStore.createOrUpdate(Collection.NODES, op);
+
+        op = new UpdateOp("/node", false);
+        op.set("prop", "value");
+        op.containsMapEntry("map", unknown, true);
+        // update if unknown-key exists -> must not succeed
+        assertNull(docStore.findAndUpdate(Collection.NODES, op));
+
+        op = new UpdateOp("/node", false);
+        op.set("prop", "value");
+        op.containsMapEntry("map", r, true);
+        // update if key exists -> must succeed
+        NodeDocument doc = docStore.findAndUpdate(Collection.NODES, op);
+        assertNotNull(doc);
+
+        doc = docStore.find(Collection.NODES, "/node");
+        assertNotNull(doc);
+        assertNotNull(doc.get("prop"));
+        assertEquals("value", doc.get("prop"));
+
+        op = new UpdateOp("/node", false);
+        op.set("prop", "other");
+        op.containsMapEntry("map", r, false);
+        // update if key does not exist -> must not succeed
+        assertNull(docStore.findAndUpdate(Collection.NODES, op));
+
+        // value must still be the same
+        doc = docStore.find(Collection.NODES, "/node");
+        assertNotNull(doc);
+        assertNotNull(doc.get("prop"));
+        assertEquals("value", doc.get("prop"));
+    }
+
+    @Test
+    public void queryWithLimit() throws Exception {
+        DocumentStore docStore = openDocumentStore();
+        DocumentNodeStore store = new DocumentMK.Builder()
+                .setDocumentStore(docStore).setAsyncDelay(0).getNodeStore();
+        Revision rev = Revision.newRevision(0);
+        List<UpdateOp> inserts = new ArrayList<UpdateOp>();
+        for (int i = 0; i < DocumentMK.MANY_CHILDREN_THRESHOLD * 2; i++) {
+            DocumentNodeState n = new DocumentNodeState(store, Path.fromString("/node-" + i),
+                    new RevisionVector(rev));
+            inserts.add(n.asOperation(rev));
+        }
+        docStore.create(Collection.NODES, inserts);
+        List<NodeDocument> docs = docStore.query(Collection.NODES,
+                Utils.getKeyLowerLimit(Path.ROOT),  Utils.getKeyUpperLimit(Path.ROOT),
+                DocumentMK.MANY_CHILDREN_THRESHOLD);
+        assertEquals(DocumentMK.MANY_CHILDREN_THRESHOLD, docs.size());
+        store.dispose();
+    }
+
+    @Test
+    @Ignore
+    public void batchInsert() throws Exception {
+        doInsert(NODE_COUNT, true);
+        doInsert(NODE_COUNT, false);
+    }
+
+    private void doInsert(int n, boolean batch) {
+        dropCollections();
+
         MongoConnection c = connectionFactory.getConnection();
         assertNotNull(c);
-        DocumentMK.Builder builder = new DocumentMK.Builder();
-        TestStore s = new TestStore(c, builder);
-        if (new MongoStatus(mongoConnection.getMongoClient(), mongoConnection.getDBName()).isVersion(3, 2)) {
-            assertFalse(hasIndex(s.getDBCollection(Collection.NODES), NodeDocument.DELETED_ONCE));
+        MongoCollection<BasicDBObject> collection = c.getDatabase()
+                .getCollection("batchInsertTest", BasicDBObject.class);
+        BasicDBObject index = new BasicDBObject();
+        index.put("_path", 1L);
+        IndexOptions options = new IndexOptions().unique(true);
+        collection.createIndex(index, options);
+
+        log("Inserting " + n + " batch? " + batch);
+        long start = System.currentTimeMillis();
+
+        if (batch) {
+            List<BasicDBObject> docs = new ArrayList<>();
+            for (int i = 0; i < n; i++) {
+                docs.add(new BasicDBObject("_path", "/a" + i));
+            }
+            collection.insertMany(docs);
         } else {
-            assertFalse(hasIndex(s.getDBCollection(Collection.NODES), NodeDocument.DELETED_ONCE, NodeDocument.MODIFIED_IN_SECS));
+            for (int i = 0; i < n; i++) {
+                collection.insertOne(new BasicDBObject("_path", "/a" + i));
+            }
+
         }
+
+        long end = System.currentTimeMillis();
+        log("Done: " + (end - start) + "ms");
+
+        dropCollections();
     }
 
-    @Test
-    public void getStats() throws Exception {
-        Map<String, String> info = mk.getNodeStore().getDocumentStore().getStats();
-        assertThat(info.keySet(), hasItem("nodes.count"));
-        assertThat(info.keySet(), hasItem("clusterNodes.count"));
-        assertThat(info.keySet(), hasItem("journal.count"));
-        assertThat(info.keySet(), hasItem("settings.count"));
+    private static void log(String s) {
+        LOG.info(s);
     }
 
-    @Test
-    public void readOnly() throws Exception {
-        // setup must have created nodes collection with index on _bin
-        MongoCollection<?> mc = mongoConnection.getDatabase()
-                .getCollection(NODES.toString());
-        assertTrue(hasIndex(mc, NodeDocument.HAS_BINARY_FLAG));
-        mk.dispose();
-        // remove the indexes
-        mongoConnection = connectionFactory.getConnection();
-        assertNotNull(mongoConnection);
-        mc = mongoConnection.getDatabase().getCollection(NODES.toString());
-        mc.dropIndexes();
-        // must be gone now
-        assertFalse(hasIndex(mc, NodeDocument.HAS_BINARY_FLAG));
+    /**
+     * Task to create / update nodes.
+     */
+    private static class AddAndUpdateNodesTask implements Runnable {
 
-        // start a new read-only DocumentNodeStore
-        mk = newBuilder(mongoConnection.getMongoClient(),
-                mongoConnection.getDBName()).setReadOnlyMode().open();
-        // must still not exist when started in read-only mode
-        assertFalse(hasIndex(mc, NodeDocument.HAS_BINARY_FLAG));
-    }
+        private final DocumentStore docStore;
+        private final String nodeName;
+        private final int nNodes;
 
-    static final class TestStore extends MongoDocumentStore {
-        TestStore(MongoConnection c, DocumentMK.Builder builder) {
-            super(c.getMongoClient(), c.getDatabase(), builder);
+        public AddAndUpdateNodesTask(DocumentStore docStore, String nodeName, int nNodes) {
+            this.docStore = docStore;
+            this.nodeName = nodeName;
+            this.nNodes = nNodes;
+        }
+
+        @Override
+        public void run() {
+            addNodes();
+            updateNodes();
+        }
+
+        private void addNodes() {
+            Revision r1 = new Revision(0, 0, 0);
+            for (int i = 0; i < nNodes; i++) {
+                String path = "/" + nodeName + i;
+                UpdateOp updateOp = new UpdateOp(path, true);
+                updateOp.setMapEntry("property1", r1, "value1");
+                updateOp.set("property3", "value3");
+                docStore.createOrUpdate(Collection.NODES, updateOp);
+            }
+        }
+
+        private void updateNodes() {
+            Revision r2 = new Revision(0, 1, 0);
+            for (int i = 0; i < nNodes; i++) {
+                String path = "/" + nodeName + i;
+                UpdateOp updateOp = new UpdateOp(path, false);
+                updateOp.setMapEntry("property1", r2, "value2");
+                updateOp.set("property4", "value4");
+                docStore.createOrUpdate(Collection.NODES, updateOp);
+            }
         }
     }
 }

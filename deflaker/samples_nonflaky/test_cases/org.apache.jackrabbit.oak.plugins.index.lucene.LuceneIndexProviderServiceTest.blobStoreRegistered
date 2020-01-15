@@ -1,0 +1,12 @@
+@Test
+public void blobStoreRegistered() throws Exception {
+    MockOsgi.activate(service, context.bundleContext(), getDefaultConfig());
+    LuceneIndexEditorProvider editorProvider = (LuceneIndexEditorProvider) context.getService(IndexEditorProvider.class);
+    assertNull(editorProvider.getBlobStore());
+    /* Register a blob store */
+    CachingFileDataStore ds = DataStoreUtils.createCachingFDS(folder.newFolder().getAbsolutePath(), folder.newFolder().getAbsolutePath());
+    context.registerService(GarbageCollectableBlobStore.class, new DataStoreBlobStore(ds));
+    reactivate();
+    editorProvider = (LuceneIndexEditorProvider) context.getService(IndexEditorProvider.class);
+    assertNotNull(editorProvider.getBlobStore());
+}

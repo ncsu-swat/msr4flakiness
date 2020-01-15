@@ -1,0 +1,15 @@
+@Test
+public void testFindPrincipalsSorted() throws Exception {
+    List<Principal> in = Arrays.asList(new PrincipalImpl("p3"), new PrincipalImpl("p1"), new PrincipalImpl("p2"));
+    ExternalGroupPrincipalProvider p = new ExternalGroupPrincipalProvider(root, getSecurityProvider().getConfiguration(UserConfiguration.class), NamePathMapper.DEFAULT, ImmutableMap.of(idp.getName(), getAutoMembership())) {
+
+        @NotNull
+        @Override
+        public Iterator<? extends Principal> findPrincipals(@Nullable String nameHint, int searchType) {
+            return in.iterator();
+        }
+    };
+    List<Principal> out = ImmutableList.copyOf(p.findPrincipals(null, false, PrincipalManager.SEARCH_TYPE_ALL, 0, -1));
+    Collections.sort(in, Comparator.comparing(Principal::getName));
+    assertEquals(in, out);
+}

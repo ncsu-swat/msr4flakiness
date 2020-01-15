@@ -1,0 +1,25 @@
+@Test
+public void testEnableAggregationFilter() throws Exception {
+    context.registerInjectActivateService(new FilterProviderImpl(), ImmutableMap.of("path", SUPPORTED_PATH));
+    context.registerInjectActivateService(new MountInfoProviderService(), ImmutableMap.of("mountedPaths", new String[] { "/etc", "/var/some/mount", UserConstants.DEFAULT_GROUP_PATH }));
+    context.registerInjectActivateService(pbac, ImmutableMap.of(Constants.PARAM_ENABLE_AGGREGATION_FILTER, true));
+    assertNotNull(context.getService(AggregationFilter.class));
+    context.registerInjectActivateService(new AuthorizationConfigurationImpl());
+    context.registerInjectActivateService(new AuthenticationConfigurationImpl());
+    context.registerInjectActivateService(new UserConfigurationImpl());
+    context.registerInjectActivateService(new PrivilegeConfigurationImpl());
+    context.registerInjectActivateService(new PrincipalConfigurationImpl());
+    context.registerInjectActivateService(new RootProviderService());
+    context.registerInjectActivateService(new TreeProviderService());
+    context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
+    context.registerInjectActivateService(new SecurityProviderRegistration(), ImmutableMap.of("requiredServicePids", new String[0]));
+    SecurityProvider securityProvider = context.getService(SecurityProvider.class);
+    assertNotNull(securityProvider);
+    AuthorizationConfiguration ac = securityProvider.getConfiguration(AuthorizationConfiguration.class);
+    assertTrue(ac instanceof CompositeAuthorizationConfiguration);
+    assertEquals(2, ((CompositeAuthorizationConfiguration) ac).getConfigurations().size());
+    PermissionProvider pp = ac.getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.of(getTestSystemUser().getPrincipal()));
+    assertTrue(pp instanceof PrincipalBasedPermissionProvider);
+    pp = ac.getPermissionProvider(root, adminSession.getWorkspaceName(), ImmutableSet.of(getTestUser().getPrincipal()));
+    assertTrue(pp instanceof PermissionProviderImpl);
+}

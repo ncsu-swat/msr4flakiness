@@ -1,0 +1,13 @@
+/**
+ * Test that the filter can deal with principals that have been accessed with a different {@code NamePathMapper}.
+ * This might actually occure with {@code AbstractAccessControlManager#hasPrivilege} and {@code AbstractAccessControlManager#getPrivileges},
+ * when a {@code PermissionProvider} is built from the principal set passed to the Jackrabbit API methods (and not from
+ * principals obtained on the system level when populating the {@code Subject}.
+ */
+@Test
+public void testCanHandlePathMapperMismatch() throws Exception {
+    Principal principal = getTestSystemUser().getPrincipal();
+    // create filter with a different NamePathMapper than was used to build the principal
+    Filter f = getFilterProvider().getFilter(getSecurityProvider(), root, NamePathMapper.DEFAULT);
+    assertTrue(f.canHandle(singleton(principal)));
+}

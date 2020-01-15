@@ -1,0 +1,13 @@
+@Test
+public void unableToReadCountForJcrTitle() throws Exception {
+    LuceneIndexStatistics.failReadingSyntheticallyFalliableField = true;
+    Document doc = new Document();
+    doc.add(new StringField("foo1", "bar1", Field.Store.NO));
+    doc.add(new StringField(SYNTHETICALLY_FALLIABLE_FIELD, "title", Field.Store.NO));
+    LuceneIndexStatistics stats = getStats(createSampleDirectory(doc));
+    assertEquals(3, stats.numDocs());
+    assertEquals(2, stats.getDocCountFor("foo"));
+    assertEquals(1, stats.getDocCountFor("foo1"));
+    assertEquals(-1, stats.getDocCountFor(SYNTHETICALLY_FALLIABLE_FIELD));
+    assertEquals(0, stats.getDocCountFor("bar"));
+}

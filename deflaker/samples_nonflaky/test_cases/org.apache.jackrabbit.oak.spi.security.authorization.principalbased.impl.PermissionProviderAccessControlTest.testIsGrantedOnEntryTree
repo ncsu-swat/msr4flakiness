@@ -1,0 +1,11 @@
+@Test
+public void testIsGrantedOnEntryTree() throws Exception {
+    setupPrincipalBasedAccessControl(testPrincipal, accessControlledPath, JCR_READ, JCR_READ_ACCESS_CONTROL);
+    root.commit();
+    permissionProvider.refresh();
+    Tree policyTree = root.getTree(PathUtils.concat(accessControlledPath, REP_PRINCIPAL_POLICY));
+    for (Tree child : policyTree.getChildren()) {
+        assertTrue(permissionProvider.isGranted(child, null, Permissions.READ | Permissions.READ_ACCESS_CONTROL));
+        assertFalse(permissionProvider.isGranted(child, null, Permissions.MODIFY_ACCESS_CONTROL));
+    }
+}

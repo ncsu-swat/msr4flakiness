@@ -1,0 +1,13 @@
+@Test
+public void testInitialSyncExternalUsers() throws Exception {
+    ExternalUser externalUser = idp.getUser(TestIdentityProvider.ID_TEST_USER);
+    String[] externalId = new String[] { externalUser.getExternalId().getString() };
+    String[] result = syncMBean.syncExternalUsers(externalId);
+    assertResultMessages(result, TestIdentityProvider.ID_TEST_USER, "add");
+    UserManager userManager = getUserManager();
+    User testUser = userManager.getAuthorizable(externalUser.getId(), User.class);
+    assertNotNull(testUser);
+    for (ExternalIdentityRef groupRef : externalUser.getDeclaredGroups()) {
+        assertNotNull(userManager.getAuthorizable(groupRef.getId()));
+    }
+}

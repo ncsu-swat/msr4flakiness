@@ -1,0 +1,31 @@
+@Test
+public void luceneWithFSDirectory() throws Exception {
+    // Issue is not reproducible with MemoryNodeBuilder and
+    // MemoryNodeState as they cannot determine change in childNode without
+    // entering
+    NodeStore nodeStore = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
+    tracker = new IndexTracker();
+    ((Observable) nodeStore).addObserver(new Observer() {
+
+        @Override
+        public void contentChanged(@NotNull NodeState root, @NotNull CommitInfo info) {
+            tracker.update(root);
+        }
+    });
+    builder = nodeStore.getRoot().builder();
+    // Also initialize the NodeType registry required for Lucene index to work
+    builder.setChildNode(JCR_SYSTEM, INITIAL_CONTENT.getChildNode(JCR_SYSTEM));
+    NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+    NodeBuilder idxb = newLucenePropertyIndexDefinition(index, "lucene", ImmutableSet.of("foo", "foo2"), null);
+    idxb.setProperty(PERSISTENCE_NAME, PERSISTENCE_FILE);
+    idxb.setProperty(PERSISTENCE_PATH, getIndexDir());
+    nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    builder = nodeStore.getRoot().builder();
+    builder.setProperty("foo", "bar");
+    NodeState indexed = nodeStore.merge(builder, HOOK, CommitInfo.EMPTY);
+    assertQuery(tracker, indexed, "foo", "bar");
+    builder = nodeStore.getRoot().builder();
+    builder.setProperty("foo2", "bar2");
+    indexed = nodeStore.merge(builder, HOOK, CommitInfo.EMPTY);
+    assertQuery(tracker, indexed, "foo2", "bar2");
+}

@@ -1,0 +1,16 @@
+@Test
+public void testSyncExternalUserExistingGroups() throws Exception {
+    syncConfig.user().setMembershipNestingDepth(1);
+    ExternalUser externalUser = idp.getUser(USER_ID);
+    DefaultSyncContext ctx = new DefaultSyncContext(syncConfig, idp, userManager, valueFactory);
+    ctx.sync(externalUser);
+    ctx.close();
+    Authorizable a = userManager.getAuthorizable(USER_ID);
+    assertSyncedMembership(userManager, a, externalUser);
+    syncContext.setForceUserSync(true);
+    syncConfig.user().setMembershipExpirationTime(-1);
+    syncContext.sync(externalUser);
+    Tree t = r.getTree(a.getPath());
+    assertFalse(t.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES));
+    assertSyncedMembership(userManager, a, externalUser);
+}

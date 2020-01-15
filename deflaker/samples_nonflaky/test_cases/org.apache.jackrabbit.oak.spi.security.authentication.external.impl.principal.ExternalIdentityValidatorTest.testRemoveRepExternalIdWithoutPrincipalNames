@@ -1,0 +1,15 @@
+@Test(expected = CommitFailedException.class)
+public void testRemoveRepExternalIdWithoutPrincipalNames() throws Exception {
+    Root systemRoot = getSystemRoot();
+    systemRoot.getTree(testUserPath).setProperty(REP_EXTERNAL_ID, "id");
+    systemRoot.commit();
+    root.refresh();
+    try {
+        root.getTree(testUserPath).removeProperty(REP_EXTERNAL_ID);
+        root.commit();
+        fail("Removal of rep:externalId must be detected in the default setup.");
+    } catch (CommitFailedException e) {
+        // success: verify nature of the exception
+        assertException(e, CONSTRAINT, 74);
+    }
+}

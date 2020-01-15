@@ -1,0 +1,16 @@
+@Test
+public void closeWithoutChange() throws Exception {
+    LuceneIndexWriterFactory factory = newDirectoryFactory();
+    LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
+    assertTrue(writer.close(0));
+    assertEquals(2, Iterables.size(getIndexDirNodes()));
+    assertFalse(builder.hasChildNode(indexDirName(roMount)));
+    assertEquals(0, numDocs(fooMount));
+    assertEquals(0, numDocs(defaultMount));
+    // delete all dir nodes first
+    getIndexDirNodes().stream().forEach(dirName -> builder.getChildNode(dirName).remove());
+    // empty index dir doesn't get created during normal indexing
+    writer = factory.newInstance(defn, builder, false);
+    assertFalse(writer.close(0));
+    assertEquals(0, Iterables.size(getIndexDirNodes()));
+}

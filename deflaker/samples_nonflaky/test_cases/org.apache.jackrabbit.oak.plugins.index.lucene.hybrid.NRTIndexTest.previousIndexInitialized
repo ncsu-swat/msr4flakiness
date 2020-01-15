@@ -1,0 +1,14 @@
+@Test
+public void previousIndexInitialized() throws Exception {
+    LuceneIndexDefinition idxDefn = getSyncIndexDefinition("/foo");
+    NRTIndex idx1 = indexFactory.createIndex(idxDefn);
+    LuceneIndexWriter w1 = idx1.getWriter();
+    Document d1 = new Document();
+    d1.add(newPathField("/a/b"));
+    w1.updateDocument("/a/b", d1);
+    NRTIndex idx2 = indexFactory.createIndex(idxDefn);
+    assertEquals(1, idx2.getReaders().size());
+    LuceneIndexWriter w2 = idx2.getWriter();
+    assertEquals(2, idx2.getReaders().size());
+    assertNotEquals(idx1.getIndexDir(), idx2.getIndexDir());
+}

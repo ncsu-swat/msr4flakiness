@@ -1,0 +1,14 @@
+@Test
+public void nonIndexedRequestedPropExcerpt() throws Exception {
+    Tree contentRoot = root.getTree("/").addChild("testRoot");
+    contentRoot.setProperty("foo", "fox");
+    contentRoot.setProperty("baz", "is fox ifoxing");
+    root.commit();
+    String query = "SELECT [rep:excerpt(baz)] FROM [nt:base] WHERE CONTAINS(*, 'fox')";
+    Result result = executeQuery(query, SQL2, NO_BINDINGS);
+    Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
+    assertTrue(resultIter.hasNext());
+    ResultRow firstRow = resultIter.next();
+    PropertyValue nodeExcerpt = firstRow.getValue("rep:excerpt(baz)");
+    assertNull("rep:excerpt(baz) if requested explicitly must be indexed to be evaluated", nodeExcerpt);
+}

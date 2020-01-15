@@ -1,0 +1,18 @@
+@Test
+public void testGetQueryTermWithPhraseTranslation() throws Exception {
+    Decoder decoder = mock(Decoder.class);
+    Translation translation = mock(Translation.class);
+    List<StructuredTranslation> translations = new LinkedList<>();
+    StructuredTranslation structuredTranslation = mock(StructuredTranslation.class);
+    when(structuredTranslation.getTranslationString()).thenReturn("fou bur");
+    translations.add(structuredTranslation);
+    when(translation.getStructuredTranslations()).thenReturn(translations);
+    when(decoder.decode(any(Sentence.class))).thenReturn(translation);
+    JoshuaConfiguration configuration = mock(JoshuaConfiguration.class);
+    when(decoder.getJoshuaConfiguration()).thenReturn(configuration);
+    Set<String> nodeTypes = new HashSet<>();
+    MTFulltextQueryTermsProvider mtFulltextQueryTermsProvider = new MTFulltextQueryTermsProvider(decoder, nodeTypes, -1);
+    Analyzer analyzer = mock(Analyzer.class);
+    NodeState indexDefinition = mock(NodeState.class);
+    mtFulltextQueryTermsProvider.getQueryTerm("foo bar", analyzer, indexDefinition);
+}

@@ -1,0 +1,25 @@
+@Test
+public void testQueryUserWithSpecialCharId() throws Exception {
+    List<String> ids = Lists.newArrayList("'", "]");
+    for (String id : ids) {
+        User user = null;
+        try {
+            user = userMgr.createUser(id, "pw");
+            superuser.save();
+            boolean found = false;
+            String query = "{\"condition\":[{\"named\":\"" + id + "\"}]}";
+            AuthorizableQueryManager queryManager = new AuthorizableQueryManager(userMgr, superuser.getValueFactory());
+            Iterator<Authorizable> it = queryManager.execute(query);
+            while (it.hasNext() && !found) {
+                Authorizable a = it.next();
+                found = id.equals(a.getID());
+            }
+            assertTrue(found);
+        } finally {
+            if (user != null) {
+                user.remove();
+                superuser.save();
+            }
+        }
+    }
+}

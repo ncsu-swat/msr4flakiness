@@ -1,0 +1,29 @@
+@Test
+public void executorPoolBehaviour() throws Exception {
+    MockOsgi.activate(service, context.bundleContext(), getDefaultConfig());
+    ExecutorService executor = service.getExecutorService();
+    final CountDownLatch latch1 = new CountDownLatch(1);
+    final CountDownLatch latch2 = new CountDownLatch(1);
+    Callable cb1 = new Callable() {
+
+        @Override
+        public Object call() throws Exception {
+            latch1.await();
+            return null;
+        }
+    };
+    Callable cb2 = new Callable() {
+
+        @Override
+        public Object call() throws Exception {
+            latch2.countDown();
+            return null;
+        }
+    };
+    executor.submit(cb1);
+    executor.submit(cb2);
+    // Even if one task gets stuck the other task must get completed
+    assertTrue("Second task not executed", latch2.await(1, TimeUnit.MINUTES));
+    latch1.countDown();
+    MockOsgi.deactivate(service, context.bundleContext());
+}

@@ -1,0 +1,10 @@
+@Test
+public void hasPathRestHasNoExplicitQueryPaths() throws Exception {
+    NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+    LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
+    FilterImpl filter = createFilter("nt:base");
+    filter.restrictPath("/test2", Filter.PathRestriction.ALL_CHILDREN);
+    filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+    FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+    assertNotNull(planner.getPlan());
+}

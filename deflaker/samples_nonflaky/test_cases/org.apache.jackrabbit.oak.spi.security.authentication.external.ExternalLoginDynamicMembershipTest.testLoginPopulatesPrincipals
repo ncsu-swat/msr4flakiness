@@ -1,0 +1,29 @@
+@Test
+public void testLoginPopulatesPrincipals() throws Exception {
+    ContentSession cs = null;
+    try {
+        cs = login(new SimpleCredentials(USER_ID, new char[0]));
+        Set<String> expectedExternal = new HashSet<>();
+        calcExpectedPrincipalNames(idp.getUser(USER_ID), syncConfig.user().getMembershipNestingDepth(), expectedExternal);
+        Set<Principal> principals = new HashSet<>(cs.getAuthInfo().getPrincipals());
+        root.refresh();
+        PrincipalManager principalManager = getPrincipalManager(root);
+        for (String pName : expectedExternal) {
+            Principal p = principalManager.getPrincipal(pName);
+            assertNotNull(p);
+            assertTrue(principals.remove(p));
+        }
+        UserManager uMgr = getUserManager(root);
+        User u = uMgr.getAuthorizable(USER_ID, User.class);
+        assertTrue(principals.remove(u.getPrincipal()));
+        Iterator<Group> it = u.memberOf();
+        assertFalse(it.hasNext());
+        assertTrue(principals.remove(EveryonePrincipal.getInstance()));
+        assertTrue(principals.isEmpty());
+    } finally {
+        if (cs != null) {
+            cs.close();
+        }
+        options.clear();
+    }
+}

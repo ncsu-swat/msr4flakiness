@@ -1,0 +1,13 @@
+@Test
+public void testGetGroupPrincipalsIgnoresNonGroupPrincipals() throws Exception {
+    UserConfiguration uc = spy(getUserConfiguration());
+    UserManager um = spy(getUserManager(root));
+    Principal p = new PrincipalImpl(USER_AUTO_MEMBERSHIP_GROUP_PRINCIPAL_NAME);
+    Group gr = when(mock(Group.class).getPrincipal()).thenReturn(p).getMock();
+    when(gr.isGroup()).thenReturn(true);
+    when(um.getAuthorizable(USER_AUTO_MEMBERSHIP_GROUP_ID)).thenReturn(gr);
+    when(uc.getUserManager(root, NamePathMapper.DEFAULT)).thenReturn(um);
+    ExternalGroupPrincipalProvider pp = new ExternalGroupPrincipalProvider(root, uc, NamePathMapper.DEFAULT, ImmutableMap.of(idp.getName(), getAutoMembership()));
+    Set<Principal> result = pp.getMembershipPrincipals(um.getAuthorizable(USER_ID).getPrincipal());
+    assertFalse(Iterables.contains(Iterables.transform(result, principal -> principal.getName()), USER_AUTO_MEMBERSHIP_GROUP_PRINCIPAL_NAME));
+}

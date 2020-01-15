@@ -1,0 +1,47 @@
+@Test
+public void indexAugmentorMismatchedNodeType() throws Exception {
+    // setup repo and index
+    NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
+    Tree props = createIndex(TestUtil.NT_TEST);
+    TestUtil.enableForFullText(props, "foo1");
+    root.commit();
+    // setup augmentors
+    final AtomicInteger indexingCounter1 = new AtomicInteger(0);
+    final AtomicInteger indexingCounter2 = new AtomicInteger(0);
+    factory.registerIndexFieldProvider(new IndexFieldProvider() {
+
+        @NotNull
+        @Override
+        public Iterable<Field> getAugmentedFields(String path, NodeState document, NodeState indexDefinition) {
+            indexingCounter1.incrementAndGet();
+            return IndexFieldProvider.DEFAULT.getAugmentedFields(path, document, indexDefinition);
+        }
+
+        @NotNull
+        @Override
+        public Set<String> getSupportedTypes() {
+            return Collections.singleton(JcrConstants.NT_BASE);
+        }
+    });
+    factory.registerIndexFieldProvider(new IndexFieldProvider() {
+
+        @NotNull
+        @Override
+        public Iterable<Field> getAugmentedFields(String path, NodeState document, NodeState indexDefinition) {
+            indexingCounter2.incrementAndGet();
+            return IndexFieldProvider.DEFAULT.getAugmentedFields(path, document, indexDefinition);
+        }
+
+        @NotNull
+        @Override
+        public Set<String> getSupportedTypes() {
+            return Collections.singleton(TestUtil.NT_TEST);
+        }
+    });
+    factory.useSuperBehavior = true;
+    // add content
+    createNodeWithType(root.getTree("/"), "node1", TestUtil.NT_TEST).setProperty("foo1", "bar1");
+    root.commit();
+    assertEquals("Mismatching node type should not let index augmentor called", 0, indexingCounter1.get());
+    assertEquals("Matching node type should get augmentor called", 1, indexingCounter2.get());
+}

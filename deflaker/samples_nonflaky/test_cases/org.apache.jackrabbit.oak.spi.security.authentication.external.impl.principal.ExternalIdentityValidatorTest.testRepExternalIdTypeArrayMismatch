@@ -1,0 +1,14 @@
+@Test(expected = CommitFailedException.class)
+public void testRepExternalIdTypeArrayMismatch() throws Exception {
+    NodeState ns = mock(NodeState.class);
+    PropertyState ps = when(mock(PropertyState.class).getName()).thenReturn(REP_EXTERNAL_ID).getMock();
+    Type type = Type.STRING;
+    when(ps.getType()).thenReturn(type);
+    when(ps.isArray()).thenReturn(true);
+    try {
+        Validator v = new ExternalIdentityValidatorProvider(ImmutableSet.of(SystemPrincipal.INSTANCE), true).getRootValidator(ns, ns, null);
+        v.propertyAdded(ps);
+    } catch (CommitFailedException e) {
+        assertException(e, CONSTRAINT, 75);
+    }
+}

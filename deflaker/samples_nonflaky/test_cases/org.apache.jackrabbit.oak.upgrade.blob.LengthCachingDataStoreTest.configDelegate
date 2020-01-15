@@ -1,0 +1,16 @@
+@Test
+public void configDelegate() throws Exception {
+    // 1. Store the config in a file
+    Properties p = new Properties();
+    p.setProperty("minRecordLength", "4972");
+    File configFile = tempFolder.newFile();
+    FileOutputStream fos = new FileOutputStream(configFile);
+    p.store(fos, null);
+    fos.close();
+    // 2. Configure the delegate and config file
+    LengthCachingDataStore fds = new LengthCachingDataStore();
+    fds.setDelegateClass(FileDataStore.class.getName());
+    fds.setDelegateConfigFilePath(configFile.getAbsolutePath());
+    fds.init(tempFolder.getRoot().getAbsolutePath());
+    assertEquals(4972, fds.getMinRecordLength());
+}

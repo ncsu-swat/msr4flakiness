@@ -1,0 +1,27 @@
+@Test
+public void testMayContainWithCug() throws Exception {
+    String cugPath = TreeUtil.addChild(root.getTree(SUPPORTED_PATH3), "child", NodeTypeConstants.NT_OAK_UNSTRUCTURED).getPath();
+    createCug(cugPath, EveryonePrincipal.getInstance());
+    root.commit();
+    Root readOnlyRoot = getRootProvider().createReadOnlyRoot(root);
+    TopLevelPaths tlp = new TopLevelPaths(readOnlyRoot);
+    for (String p : PATHS) {
+        assertEquals(p, Text.isDescendantOrEqual(p, cugPath), tlp.contains(p));
+    }
+    assertTrue(tlp.contains(Text.getAbsoluteParent(SUPPORTED_PATH3, 0)));
+    assertTrue(tlp.contains(cugPath));
+    CugPermissionProvider cugPermProvider = createCugPermissionProvider(ImmutableSet.of(SUPPORTED_PATH, SUPPORTED_PATH2, SUPPORTED_PATH3), getTestUser().getPrincipal(), EveryonePrincipal.getInstance());
+    Tree t = readOnlyRoot.getTree(ROOT_PATH);
+    TreePermission rootTp = cugPermProvider.getTreePermission(t, TreePermission.EMPTY);
+    assertTrue(rootTp instanceof EmptyCugTreePermission);
+    TreePermission tp = rootTp;
+    for (String segm : PathUtils.elements(cugPath)) {
+        t = t.getChild(segm);
+        tp = cugPermProvider.getTreePermission(t, tp);
+        assertCugPermission(tp, Text.isDescendantOrEqual(SUPPORTED_PATH3, t.getPath()));
+    }
+    for (String p : new String[] { SUPPORTED_PATH, SUPPORTED_PATH2, UNSUPPORTED_PATH }) {
+        tp = getTreePermission(readOnlyRoot, p, cugPermProvider);
+        assertSame(p, TreePermission.NO_RECOURSE, tp);
+    }
+}

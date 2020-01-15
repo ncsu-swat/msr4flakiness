@@ -1,0 +1,13 @@
+/**
+ * @see <a href="https://issues.apache.org/jira/browse/OAK-4362">OAK-4362</a>
+ */
+@Test
+public void testPurgeOrphanedUsersThrowingHandler2() throws Exception {
+    sync(new TestIdentityProvider.TestUser("thirdUser", idp.getName()), idp);
+    sync(new TestIdentityProvider.TestGroup("g", idp.getName()), idp);
+    String[] result = createThrowingSyncMBean(true).purgeOrphanedUsers();
+    assertResultMessages(result, ImmutableMap.of("thirdUser", "ERR", "g", "ERR"));
+    UserManager userManager = getUserManager();
+    assertNotNull(userManager.getAuthorizable("thirdUser"));
+    assertNotNull(userManager.getAuthorizable("g"));
+}

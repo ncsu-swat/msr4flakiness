@@ -1,0 +1,13 @@
+@Test
+public void testEffectivePolicyByPrincipal() throws Exception {
+    AccessControlPolicy[] effective = acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal));
+    assertEquals(1, effective.length);
+    assertTrue(effective[0] instanceof ImmutablePrincipalPolicy);
+    List<JackrabbitAccessControlEntry> entries = ((ImmutablePrincipalPolicy) effective[0]).getEntries();
+    assertEquals(2, entries.size());
+    assertTrue(entries.get(0) instanceof PrincipalAccessControlList.Entry);
+    assertEquals(validPrincipal, entries.get(0).getPrincipal());
+    assertArrayEquals(privilegesFromNames(JCR_READ, REP_WRITE), entries.get(0).getPrivileges());
+    assertEquals(jcrEffectivePath, ((PrincipalAccessControlList.Entry) entries.get(0)).getEffectivePath());
+    assertNull(((PrincipalAccessControlList.Entry) entries.get(1)).getEffectivePath());
+}

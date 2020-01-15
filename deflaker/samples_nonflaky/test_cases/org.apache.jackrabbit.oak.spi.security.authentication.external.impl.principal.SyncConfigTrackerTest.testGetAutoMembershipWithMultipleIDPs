@@ -1,0 +1,21 @@
+@Test
+public void testGetAutoMembershipWithMultipleIDPs() {
+    assertTrue(tracker.getAutoMembership().isEmpty());
+    String[] uam = new String[] { "g3", "g4" };
+    when(ref.getProperty(PARAM_NAME)).thenReturn("sh");
+    when(ref.getProperty(PARAM_USER_AUTO_MEMBERSHIP)).thenReturn(uam);
+    when(ref.getProperty(PARAM_USER_DYNAMIC_MEMBERSHIP)).thenReturn(true);
+    tracker.addingService(ref);
+    ServiceReference mappingRef = mock(ServiceReference.class);
+    when(mappingRef.getProperty(PARAM_IDP_NAME)).thenReturn("idp");
+    when(mappingRef.getProperty(PARAM_SYNC_HANDLER_NAME)).thenReturn("sh");
+    mappingTracker.addingService(mappingRef);
+    ServiceReference mappingRef2 = mock(ServiceReference.class);
+    when(mappingRef2.getProperty(PARAM_IDP_NAME)).thenReturn("idp2");
+    when(mappingRef2.getProperty(PARAM_SYNC_HANDLER_NAME)).thenReturn("sh");
+    mappingTracker.addingService(mappingRef2);
+    Map<String, String[]> automembership = tracker.getAutoMembership();
+    assertEquals(2, automembership.size());
+    assertArrayEquals(uam, automembership.get("idp"));
+    assertArrayEquals(uam, automembership.get("idp2"));
+}

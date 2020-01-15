@@ -1,0 +1,20 @@
+@Test
+public void customTikaConfig() throws Exception {
+    Tree idx = createFulltextIndex(root.getTree("/"), "test");
+    TestUtil.useV2(idx);
+    Tree test = root.getTree("/").addChild("test");
+    createFileNode(test, "text", "fox is jumping", "text/plain");
+    createFileNode(test, "xml", "<?xml version=\"1.0\" encoding=\"UTF-8\"?><msg>sky is blue</msg>", "application/xml");
+    root.commit();
+    assertQuery("select * from [nt:base] where CONTAINS(*, 'fox ')", asList("/test/text/jcr:content"));
+    assertQuery("select * from [nt:base] where CONTAINS(*, 'sky ')", asList("/test/xml/jcr:content"));
+    // Now disable extraction for application/xml and see that query
+    // does not return any result for that
+    idx = root.getTree("/oak:index/test");
+    String tikaConfig = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + "<properties>\n" + "  <detectors>\n" + "    <detector class=\"org.apache.tika.detect.DefaultDetector\"/>\n" + "  </detectors>\n" + "  <parsers>\n" + "    <parser class=\"org.apache.tika.parser.DefaultParser\"/>\n" + "    <parser class=\"org.apache.tika.parser.EmptyParser\">\n" + "      <mime>application/xml</mime>\n" + "    </parser>\n" + "  </parsers>\n" + "</properties>";
+    idx.addChild(LuceneIndexConstants.TIKA).addChild(LuceneIndexConstants.TIKA_CONFIG).addChild(JCR_CONTENT).setProperty(JCR_DATA, tikaConfig.getBytes());
+    idx.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+    root.commit();
+    assertQuery("select * from [nt:base] where CONTAINS(*, 'fox ')", asList("/test/text/jcr:content"));
+    assertQuery("select * from [nt:base] where CONTAINS(*, 'sky ')", Collections.<String>emptyList());
+}

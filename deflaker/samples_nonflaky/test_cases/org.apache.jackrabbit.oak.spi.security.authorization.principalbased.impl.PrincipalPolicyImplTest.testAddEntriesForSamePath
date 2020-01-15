@@ -1,0 +1,11 @@
+@Test
+public void testAddEntriesForSamePath() throws Exception {
+    assertTrue(emptyPolicy.addEntry(testJcrPath, privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES)));
+    assertTrue(emptyPolicy.addEntry(testJcrPath, privilegesFromNames(PrivilegeConstants.JCR_REMOVE_CHILD_NODES, PrivilegeConstants.JCR_REMOVE_NODE)));
+    List<PrincipalPolicyImpl.EntryImpl> entries = emptyPolicy.getEntries();
+    assertEquals(2, entries.size());
+    PrivilegeBitsProvider bitsProvider = new PrivilegeBitsProvider(root);
+    assertEquals(testJcrPath, entries.get(0).getEffectivePath());
+    assertEquals(bitsProvider.getBits(PrivilegeConstants.JCR_ADD_CHILD_NODES), entries.get(0).getPrivilegeBits());
+    assertEquals(bitsProvider.getBits(PrivilegeConstants.JCR_REMOVE_CHILD_NODES, PrivilegeConstants.JCR_REMOVE_NODE), entries.get(1).getPrivilegeBits());
+}

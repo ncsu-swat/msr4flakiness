@@ -1,0 +1,18 @@
+@Test
+public void testIndexedProperties() throws Exception {
+    SolrClient solrServer = TestUtils.createSolrServer();
+    try {
+        OakSolrConfiguration configuration = TestUtils.getTestConfiguration();
+        IndexUpdateCallback callback = mock(IndexUpdateCallback.class);
+        SolrIndexEditor solrIndexEditor = new SolrIndexEditor(solrServer, configuration, callback);
+        NodeState before = mock(NodeState.class);
+        NodeState after = mock(NodeState.class);
+        Iterable properties = (Iterable<PropertyState>) () -> Collections.singletonList(PropertyStates.createProperty("foo1", "bar")).iterator();
+        when(after.getProperties()).thenReturn(properties);
+        solrIndexEditor.leave(before, after);
+        QueryResponse queryResponse = solrServer.query(new SolrQuery("foo1:*"));
+        assertEquals(1, queryResponse.getResults().getNumFound());
+    } finally {
+        solrServer.close();
+    }
+}

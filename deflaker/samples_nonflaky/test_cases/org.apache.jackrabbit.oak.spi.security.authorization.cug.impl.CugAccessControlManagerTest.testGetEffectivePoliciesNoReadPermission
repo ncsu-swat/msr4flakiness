@@ -1,0 +1,10 @@
+@Test(expected = PathNotFoundException.class)
+public void testGetEffectivePoliciesNoReadPermission() throws Exception {
+    setupCugsAndAcls();
+    // test-user only has read-access on /content (no read-ac permission)
+    try (ContentSession cs = createTestSession()) {
+        Root r = cs.getLatestRoot();
+        CugAccessControlManager m = new CugAccessControlManager(r, NamePathMapper.DEFAULT, getSecurityProvider(), ImmutableSet.copyOf(SUPPORTED_PATHS), getExclude(), getRootProvider());
+        m.getEffectivePolicies("/content2");
+    }
+}

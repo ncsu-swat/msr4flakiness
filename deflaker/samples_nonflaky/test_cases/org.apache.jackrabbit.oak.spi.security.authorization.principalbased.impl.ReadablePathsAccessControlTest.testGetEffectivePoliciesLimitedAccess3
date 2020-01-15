@@ -1,0 +1,17 @@
+@Test
+public void testGetEffectivePoliciesLimitedAccess3() throws Exception {
+    String path = readablePaths.next();
+    setupPrincipalBasedAccessControl(testPrincipal, path, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
+    setupPrincipalBasedAccessControl(testPrincipal, getTestSystemUser().getPath(), PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
+    // default: grant read and read-ac at root node to make sure both policies are accessible
+    addDefaultEntry(PathUtils.ROOT_PATH, testPrincipal, PrivilegeConstants.JCR_READ_ACCESS_CONTROL, PrivilegeConstants.JCR_READ);
+    root.commit();
+    // test-session can read-ac at readable path and at principal-based policy
+    try (ContentSession cs = Subject.doAsPrivileged(getTestSubject(), (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null), null)) {
+        PrincipalBasedAccessControlManager testAcMgr = new PrincipalBasedAccessControlManager(getMgrProvider(cs.getLatestRoot()), getFilterProvider());
+        Set<AccessControlPolicy> effective = Sets.newHashSet(testAcMgr.getEffectivePolicies(path));
+        assertEquals(2, effective.size());
+        assertTrue(effective.remove(ReadPolicy.INSTANCE));
+        assertTrue(effective.iterator().next() instanceof ImmutablePrincipalPolicy);
+    }
+}

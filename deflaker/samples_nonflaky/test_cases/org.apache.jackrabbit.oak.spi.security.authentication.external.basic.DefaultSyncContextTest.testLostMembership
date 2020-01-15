@@ -1,0 +1,25 @@
+@Test
+public void testLostMembership() throws Exception {
+    // create a group in the repository which is marked as being external
+    // and associated with the test-IDP to setup the situation that a
+    // repository group is no longer listed in the IDP.
+    Group gr = createTestGroup();
+    setExternalID(gr, idp.getName());
+    // sync an external user from the IDP into the repo and make it member
+    // of the test group
+    SyncResult result = syncCtx.sync(idp.listUsers().next());
+    User user = userManager.getAuthorizable(result.getIdentity().getId(), User.class);
+    gr.addMember(user);
+    root.commit();
+    // enforce synchronization of the user and it's group membership
+    syncCtx.setForceUserSync(true);
+    syncConfig.user().setMembershipExpirationTime(-1);
+    // 1. membership nesting is < 0 => membership not synchronized
+    syncConfig.user().setMembershipNestingDepth(-1);
+    syncCtx.sync(user.getID()).getStatus();
+    assertTrue(gr.isDeclaredMember(user));
+    // 2. membership nesting is > 0 => membership gets synchronized
+    syncConfig.user().setMembershipNestingDepth(1);
+    assertEquals(SyncResult.Status.UPDATE, syncCtx.sync(user.getID()).getStatus());
+    assertFalse(gr.isDeclaredMember(user));
+}

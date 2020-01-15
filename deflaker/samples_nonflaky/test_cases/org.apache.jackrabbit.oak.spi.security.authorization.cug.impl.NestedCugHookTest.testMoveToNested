@@ -1,0 +1,15 @@
+@Test
+public void testMoveToNested() throws Exception {
+    createCug(root, SUPPORTED_PATH2, EveryonePrincipal.NAME);
+    createCug(root, SUPPORTED_PATH3, EveryonePrincipal.NAME);
+    Tree newTree = TreeUtil.addChild(root.getTree(SUPPORTED_PATH3), "child", NT_OAK_UNSTRUCTURED);
+    String path = newTree.getPath();
+    createCug(path, getTestGroupPrincipal());
+    root.commit();
+    String destPath = PathUtils.concat(SUPPORTED_PATH2, "moved");
+    root.move(path, destPath);
+    root.commit();
+    assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, SUPPORTED_PATH3, SUPPORTED_PATH2);
+    assertNestedCugs(root, getRootProvider(), SUPPORTED_PATH3, true);
+    assertNestedCugs(root, getRootProvider(), SUPPORTED_PATH2, true, destPath);
+}

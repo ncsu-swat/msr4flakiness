@@ -1,0 +1,43 @@
+@Test
+public void testReadAccessControlWithoutPrivilege() throws Exception {
+    // re-grant READ in order to have an ACL-node
+    Privilege[] privileges = privilegesFromName(Privilege.JCR_READ);
+    JackrabbitAccessControlList tmpl = allow(path, privileges);
+    String policyPath = tmpl.getPath() + "/rep:policy";
+    // make sure the 'rep:policy' node has been created.
+    assertTrue(superuser.itemExists(policyPath));
+    /*
+         Testuser must still have READ-only access only and must not be
+         allowed to view the acl-node nor any item in the subtree that
+         has been created.
+        */
+    assertFalse(testAcMgr.hasPrivileges(path, privilegesFromName(Privilege.JCR_READ_ACCESS_CONTROL)));
+    assertFalse(testSession.itemExists(policyPath));
+    assertFalse(testSession.nodeExists(policyPath));
+    try {
+        testSession.getNode(policyPath);
+        fail("Accessing the rep:policy node must throw PathNotFoundException.");
+    } catch (PathNotFoundException e) {
+    // ok.
+    }
+    try {
+        testAcMgr.getPolicies(tmpl.getPath());
+        fail("test user must not have READ_AC privilege.");
+    } catch (AccessDeniedException e) {
+    // success
+    }
+    try {
+        testAcMgr.getEffectivePolicies(tmpl.getPath());
+        fail("test user must not have READ_AC privilege.");
+    } catch (AccessDeniedException e) {
+    // success
+    }
+    for (NodeIterator aceNodes = superuser.getNode(policyPath).getNodes(); aceNodes.hasNext(); ) {
+        Node aceNode = aceNodes.nextNode();
+        String aceNodePath = aceNode.getPath();
+        assertFalse(testSession.nodeExists(aceNodePath));
+        for (PropertyIterator it = aceNode.getProperties(); it.hasNext(); ) {
+            assertFalse(testSession.propertyExists(it.nextProperty().getPath()));
+        }
+    }
+}

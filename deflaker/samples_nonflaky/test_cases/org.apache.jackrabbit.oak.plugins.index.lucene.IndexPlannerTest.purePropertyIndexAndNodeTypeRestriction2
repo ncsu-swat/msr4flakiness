@@ -1,0 +1,13 @@
+@Test
+public void purePropertyIndexAndNodeTypeRestriction2() throws Exception {
+    NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+    defn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+    defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
+    NodeBuilder foob = getNode(defn, "indexRules/nt:base/properties/foo");
+    foob.setProperty(FulltextIndexConstants.PROP_NODE_SCOPE_INDEX, true);
+    LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
+    FilterImpl filter = createFilter("nt:file");
+    FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+    // No plan should be result for a index with just a rule for nt:base
+    assertNull(planner.getPlan());
+}

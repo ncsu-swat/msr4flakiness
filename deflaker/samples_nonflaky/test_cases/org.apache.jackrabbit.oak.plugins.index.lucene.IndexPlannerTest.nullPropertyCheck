@@ -1,0 +1,10 @@
+@Test
+public void nullPropertyCheck() throws Exception {
+    NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+    LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
+    FilterImpl filter = createFilter("nt:base");
+    filter.restrictProperty("foo", Operator.EQUAL, null);
+    FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+    QueryIndex.IndexPlan plan = planner.getPlan();
+    assertNull("For null checks no plan should be returned", plan);
+}

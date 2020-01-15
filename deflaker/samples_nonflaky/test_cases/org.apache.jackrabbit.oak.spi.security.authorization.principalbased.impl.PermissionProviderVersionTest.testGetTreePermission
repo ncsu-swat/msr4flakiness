@@ -1,0 +1,15 @@
+@Test
+public void testGetTreePermission() {
+    Tree tree = getRootProvider().createReadOnlyRoot(root).getTree(PathUtils.ROOT_PATH);
+    TreePermission tp = permissionProvider.getTreePermission(tree, TreePermission.EMPTY);
+    for (String elem : PathUtils.elements(getVersionPath(TEST_OAK_PATH, false))) {
+        tree = tree.getChild(elem);
+        tp = permissionProvider.getTreePermission(tree, tp);
+    }
+    assertTrue(tp instanceof AbstractTreePermission);
+    AbstractTreePermission atp = (AbstractTreePermission) tp;
+    assertSame(TreeType.VERSION, atp.getType());
+    // tree must point to versionable node and NOT to the version tree
+    assertNotSame(tree, atp.getTree());
+    assertEquals(TEST_OAK_PATH, atp.getTree().getPath());
+}

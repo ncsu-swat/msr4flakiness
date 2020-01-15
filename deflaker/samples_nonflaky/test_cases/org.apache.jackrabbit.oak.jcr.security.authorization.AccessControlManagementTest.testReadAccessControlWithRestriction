@@ -1,0 +1,21 @@
+@Test
+public void testReadAccessControlWithRestriction() throws Exception {
+    /* give 'testUser' jcr:readAccessControl privileges at subtree below
+           path excluding the node at path itself. */
+    Privilege[] privileges = privilegesFromName(Privilege.JCR_READ_ACCESS_CONTROL);
+    allow(path, privileges, createGlobRestriction('/' + nodeName2));
+    /*
+         testuser must not be allowed to read AC content at the target node;
+         however, retrieving potential AC content at 'childPath' is granted.
+        */
+    assertFalse(testAcMgr.hasPrivileges(path, privileges));
+    assertFalse(testSession.nodeExists(path + "/rep:policy"));
+    try {
+        testAcMgr.getPolicies(path);
+        fail("AccessDeniedException expected");
+    } catch (AccessDeniedException e) {
+    // success.
+    }
+    assertTrue(testAcMgr.hasPrivileges(childNPath, privileges));
+    assertEquals(0, testAcMgr.getPolicies(childNPath).length);
+}

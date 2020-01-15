@@ -1,0 +1,21 @@
+/**
+ * @see <a href="https://issues.apache.org/jira/browse/OAK-2412">OAK-2412</a>
+ */
+@Test
+public void testEmptyGlobRestriction2() throws Exception {
+    Node grandchild = superuser.getNode(childNPath).addNode("child");
+    String ccPath = grandchild.getPath();
+    superuser.save();
+    // first deny access to 'path' (read-access is granted in the test setup)
+    deny(path, readPrivileges);
+    assertFalse(canReadNode(testSession, path));
+    assertFalse(canReadNode(testSession, childNPath));
+    assertFalse(canReadNode(testSession, ccPath));
+    assertFalse(testSession.propertyExists(childchildPPath));
+    allow(path, readPrivileges, createGlobRestriction(""));
+    assertTrue(canReadNode(testSession, path));
+    assertFalse(canReadNode(testSession, childNPath));
+    assertFalse(canReadNode(testSession, ccPath));
+    assertFalse(testSession.propertyExists(childchildPPath));
+    assertFalse(testSession.propertyExists(childNPath + '/' + JcrConstants.JCR_PRIMARYTYPE));
+}

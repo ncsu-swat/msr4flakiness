@@ -1,0 +1,116 @@
+// OAK-3576
+@Test
+public void nullBehavior() throws Exception {
+    // OAK-6833
+    assumeFalse(CIHelper.windows());
+    // setup repo and index
+    NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
+    Tree props = createIndex(TestUtil.NT_TEST);
+    TestUtil.enableForFullText(props, "foo");
+    root.commit();
+    Tree rootTree = root.getTree("/").addChild("test");
+    // Note: augmentor behavior is tested elsewhere... we are just checking if default works
+    int testIndex = 1;
+    // both query and index augmentors are null (no exception expected)
+    checkSimpleBehavior(rootTree, testIndex++);
+    // Set a very sad query augmentor
+    factory.fulltextQueryTermsProvider = new FulltextQueryTermsProvider() {
+
+        @Override
+        public Query getQueryTerm(String text, Analyzer analyzer, NodeState indexDefinition) {
+            return null;
+        }
+
+        @NotNull
+        @Override
+        public Set<String> getSupportedTypes() {
+            return FulltextQueryTermsProvider.DEFAULT.getSupportedTypes();
+        }
+    };
+    checkSimpleBehavior(rootTree, testIndex++);
+    // Set query augmentor... with null query
+    factory.fulltextQueryTermsProvider = new FulltextQueryTermsProvider() {
+
+        @Override
+        public Query getQueryTerm(String text, Analyzer analyzer, NodeState indexDefinition) {
+            return null;
+        }
+
+        @NotNull
+        @Override
+        public Set<String> getSupportedTypes() {
+            return Collections.singleton(TestUtil.NT_TEST);
+        }
+    };
+    checkSimpleBehavior(rootTree, testIndex++);
+    // Set query augmentor... with some query
+    factory.fulltextQueryTermsProvider = new FulltextQueryTermsProvider() {
+
+        @Override
+        public Query getQueryTerm(String text, Analyzer analyzer, NodeState indexDefinition) {
+            return new TermQuery(new Term("bar", "baz"));
+        }
+
+        @NotNull
+        @Override
+        public Set<String> getSupportedTypes() {
+            return Collections.singleton(TestUtil.NT_TEST);
+        }
+    };
+    checkSimpleBehavior(rootTree, testIndex++);
+    factory.fulltextQueryTermsProvider = null;
+    // Set a very sad index augmentor
+    factory.indexFieldProvider = IndexFieldProvider.DEFAULT;
+    checkSimpleBehavior(rootTree, testIndex++);
+    // Set index augmentor... with null fields
+    factory.indexFieldProvider = new IndexFieldProvider() {
+
+        @NotNull
+        @Override
+        public Iterable<Field> getAugmentedFields(String path, NodeState document, NodeState indexDefinition) {
+            return IndexFieldProvider.DEFAULT.getAugmentedFields(path, document, indexDefinition);
+        }
+
+        @NotNull
+        @Override
+        public Set<String> getSupportedTypes() {
+            return Collections.singleton(TestUtil.NT_TEST);
+        }
+    };
+    checkSimpleBehavior(rootTree, testIndex++);
+    // Set index augmentor... with some fields
+    factory.fulltextQueryTermsProvider = null;
+    factory.indexFieldProvider = new IndexFieldProvider() {
+
+        @NotNull
+        @Override
+        public Iterable<Field> getAugmentedFields(String path, NodeState document, NodeState indexDefinition) {
+            List<Field> fields = Lists.newArrayList();
+            fields.add(new StringField("bar", "baz", Field.Store.NO));
+            return fields;
+        }
+
+        @NotNull
+        @Override
+        public Set<String> getSupportedTypes() {
+            return Collections.singleton(TestUtil.NT_TEST);
+        }
+    };
+    checkSimpleBehavior(rootTree, testIndex++);
+    // setup composite query term provider with one returning null query
+    factory.registerQueryTermsProvider(new FulltextQueryTermsProvider() {
+
+        @Override
+        public Query getQueryTerm(String text, Analyzer analyzer, NodeState indexDefinition) {
+            return null;
+        }
+
+        @NotNull
+        @Override
+        public Set<String> getSupportedTypes() {
+            return Collections.singleton(TestUtil.NT_TEST);
+        }
+    });
+    factory.useSuperBehavior = true;
+    checkSimpleBehavior(rootTree, testIndex++);
+}

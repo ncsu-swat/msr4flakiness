@@ -1,0 +1,13 @@
+@Test
+public void newLines() {
+    NodeStateEntryWriter nw = new NodeStateEntryWriter(blobStore);
+    builder.setProperty("foo", 1);
+    builder.setProperty("foo2", Arrays.asList("a", "b"), Type.STRINGS);
+    builder.setProperty("foo3", "text with \n new line");
+    String line = nw.toString(new NodeStateEntry(builder.getNodeState(), "/a"));
+    NodeStateEntryReader nr = new NodeStateEntryReader(blobStore);
+    NodeStateEntry ne = nr.read(line);
+    assertEquals("/a", ne.getPath());
+    assertEquals("/a", NodeStateEntryWriter.getPath(line));
+    assertTrue(EqualsDiff.equals(ne.getNodeState(), builder.getNodeState()));
+}

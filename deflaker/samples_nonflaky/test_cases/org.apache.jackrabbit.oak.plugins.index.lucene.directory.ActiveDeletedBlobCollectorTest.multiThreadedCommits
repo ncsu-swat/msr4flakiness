@@ -1,0 +1,80 @@
+@Test
+public void multiThreadedCommits() throws Exception {
+    ExecutorService executorService = Executors.newFixedThreadPool(3);
+    File rootDirectory = new File(blobCollectionRoot.getRoot(), "b");
+    FileUtils.forceMkdir(rootDirectory);
+    adbc = new ActiveDeletedBlobCollectorImpl(clock, rootDirectory, executorService);
+    int numThreads = 4;
+    int numBlobsPerThread = 500;
+    List<Thread> threads = new ArrayList<>(numThreads);
+    final AtomicInteger threadIndex = new AtomicInteger(0);
+    for (; threadIndex.get() < numThreads; threadIndex.incrementAndGet()) {
+        threads.add(new Thread(new Runnable() {
+
+            private int thisThreadNum = threadIndex.get();
+
+            @Override
+            public void run() {
+                int blobCnt = 0;
+                while (blobCnt < numBlobsPerThread) {
+                    BlobDeletionCallback bdc = adbc.getBlobDeletionCallback();
+                    for (; blobCnt < numBlobsPerThread; ) {
+                        String id = "Thread" + thisThreadNum + "Blob" + blobCnt;
+                        bdc.deleted(id, Collections.singleton(id));
+                        blobCnt++;
+                        if (Math.random() > 0.5) {
+                            break;
+                        }
+                    }
+                    bdc.commitProgress(COMMIT_SUCCEDED);
+                    try {
+                        Thread.sleep(1);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }));
+    }
+    for (Thread t : threads) {
+        t.start();
+    }
+    for (Thread t : threads) {
+        t.join();
+    }
+    boolean timeout = executorService.awaitTermination(100, TimeUnit.MILLISECONDS);
+    assertFalse(timeout);
+    List<String> deletedChunks = new ArrayList<>(numThreads * numBlobsPerThread * 2);
+    for (int threadNum = 0; threadNum < numThreads; threadNum++) {
+        for (int blobCnt = 0; blobCnt < numBlobsPerThread; blobCnt++) {
+            String id = "Thread" + threadNum + "Blob" + blobCnt;
+            Iterators.addAll(deletedChunks, blobStore.resolveChunks(id));
+        }
+    }
+    // Blocking queue doesn't supply all the items immediately.
+    // So, we'd push "MARKER*" blob ids and purge until some marker blob
+    // gets purged. BUT, we'd time-out this activity in 3 seconds
+    long until = Clock.SIMPLE.getTime() + TimeUnit.SECONDS.toMillis(3);
+    List<String> markerChunks = Lists.newArrayList();
+    int i = 0;
+    while (Clock.SIMPLE.getTime() < until) {
+        // Push commit with a marker blob-id and wait for it to be purged
+        BlobDeletionCallback bdc = adbc.getBlobDeletionCallback();
+        String markerBlobId = "MARKER-" + (i++);
+        bdc.deleted(markerBlobId, Lists.newArrayList(markerBlobId));
+        bdc.commitProgress(COMMIT_SUCCEDED);
+        Iterators.addAll(markerChunks, blobStore.resolveChunks(markerBlobId));
+        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(5));
+        adbc.purgeBlobsDeleted(clock.getTimeIncreasing(), blobStore);
+        if (blobStore.markerChunkDeleted) {
+            break;
+        }
+    }
+    assertTrue("Timed out while waiting for marker chunk to be purged", blobStore.markerChunkDeleted);
+    // don't care how many marker blobs are purged
+    blobStore.deletedChunkIds.removeAll(markerChunks);
+    HashSet<String> list = new HashSet<>(deletedChunks);
+    list.removeAll(blobStore.deletedChunkIds);
+    assertTrue("size: " + list.size() + "; list: " + list.toString(), list.isEmpty());
+    assertThat(blobStore.deletedChunkIds, containsInAnyOrder(deletedChunks.toArray()));
+}

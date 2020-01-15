@@ -1,0 +1,15 @@
+@Test
+public void compactionCausesRefresh() throws Exception {
+    Session session = repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
+    try {
+        Node root = session.getRootNode();
+        root.addNode("one");
+        session.save();
+        addNode(repository, "two");
+        compact.call();
+        assertTrue(root.hasNode("one"));
+        assertTrue("Node two must be visible as compaction should cause the session to refresh", root.hasNode("two"));
+    } finally {
+        session.logout();
+    }
+}

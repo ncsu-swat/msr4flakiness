@@ -1,0 +1,17 @@
+@Test
+public void coalesce() throws Exception {
+    IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+    idxb.indexRule("nt:base").property("foo", null).function("lower(coalesce([jcr:content/foo2], coalesce([jcr:content/foo], localname())))");
+    Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+    idxb.build(idx);
+    root.commit();
+    Tree rootTree = root.getTree("/");
+    rootTree.addChild("a").addChild("jcr:content").setProperty("foo2", "BAR");
+    rootTree.addChild("b").addChild("jcr:content").setProperty("foo", "bAr");
+    Tree child = rootTree.addChild("c").addChild("jcr:content");
+    child.setProperty("foo", "bar");
+    child.setProperty("foo2", "bar1");
+    rootTree.addChild("bar");
+    root.commit();
+    assertPlanAndQuery("select * from [nt:base] where lower(coalesce([jcr:content/foo2], coalesce([jcr:content/foo], localname()))) = 'bar'", "lucene:test1(/oak:index/test1)", asList("/a", "/b", "/bar"));
+}

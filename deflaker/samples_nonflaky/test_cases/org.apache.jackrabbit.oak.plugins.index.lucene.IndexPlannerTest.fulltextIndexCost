@@ -1,0 +1,14 @@
+@Test
+public void fulltextIndexCost() throws Exception {
+    NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+    NodeBuilder defn = newLuceneIndexDefinition(index, "lucene", of(TYPENAME_STRING));
+    TestUtil.useV2(defn);
+    long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 1000;
+    LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"), numofDocs);
+    FilterImpl filter = createFilter("nt:base");
+    filter.setFullTextConstraint(FullTextParser.parse(".", "mountain"));
+    FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+    QueryIndex.IndexPlan plan = planner.getPlan();
+    assertNotNull(plan);
+    assertEquals(numofDocs, plan.getEstimatedEntryCount());
+}

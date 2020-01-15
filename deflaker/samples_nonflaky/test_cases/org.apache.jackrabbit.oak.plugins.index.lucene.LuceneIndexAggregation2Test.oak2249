@@ -1,0 +1,26 @@
+@Test
+public void oak2249() throws Exception {
+    setTraversalEnabled(false);
+    final String statement = "//element(*, test:Asset)[ " + "( " + "jcr:contains(., 'summer') " + "or " + "jcr:content/metadata/@tags = 'namespace:season/summer' " + ") and " + "jcr:contains(jcr:content/metadata/@format, 'image') " + "]";
+    Tree content = root.getTree("/").addChild("content");
+    List<String> expected = newArrayList();
+    Tree metadata = createAssetStructure(content, "tagged");
+    metadata.setProperty("tags", of("namespace:season/summer"), STRINGS);
+    metadata.setProperty("format", "image/jpeg", STRING);
+    expected.add("/content/tagged");
+    metadata = createAssetStructure(content, "titled");
+    metadata.setProperty("title", "Lorem summer ipsum", STRING);
+    metadata.setProperty("format", "image/jpeg", STRING);
+    expected.add("/content/titled");
+    metadata = createAssetStructure(content, "summer-node");
+    metadata.setProperty("format", "image/jpeg", STRING);
+    expected.add("/content/summer-node");
+    // the following is NOT expected
+    metadata = createAssetStructure(content, "winter-node");
+    metadata.setProperty("tags", of("namespace:season/winter"), STRINGS);
+    metadata.setProperty("title", "Lorem winter ipsum", STRING);
+    metadata.setProperty("format", "image/jpeg", STRING);
+    root.commit();
+    assertQuery(statement, "xpath", expected);
+    setTraversalEnabled(true);
+}

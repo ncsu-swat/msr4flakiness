@@ -1,0 +1,34 @@
+@Test
+public void analyzerWithStopWords() throws Exception {
+    NodeBuilder nb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "lucene", of(TYPENAME_STRING));
+    TestUtil.useV2(nb);
+    NodeState before = builder.getNodeState();
+    builder.setProperty("foo", "fox jumping");
+    NodeState after = builder.getNodeState();
+    NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+    tracker = new IndexTracker();
+    tracker.update(indexed);
+    AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker);
+    FilterImpl filter = createFilter("nt:base");
+    filter.setFullTextConstraint(new FullTextTerm(null, "fox jumping", false, false, null));
+    assertFilter(filter, queryIndex, indexed, ImmutableList.of("/"));
+    // No stop word configured so default analyzer would also check for 'was'
+    filter.setFullTextConstraint(new FullTextTerm(null, "fox was jumping", false, false, null));
+    assertFilter(filter, queryIndex, indexed, Collections.<String>emptyList());
+    // Change the default analyzer to use the default stopword set
+    // and trigger a reindex such that new analyzer is used
+    NodeBuilder anlnb = nb.child(ANALYZERS).child(ANL_DEFAULT);
+    anlnb.child(ANL_TOKENIZER).setProperty(ANL_NAME, "whitespace");
+    anlnb.child(ANL_FILTERS).child("stop");
+    nb.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+    before = after;
+    after = builder.getNodeState();
+    indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+    tracker.update(indexed);
+    queryIndex = new LucenePropertyIndex(tracker);
+    filter.setFullTextConstraint(new FullTextTerm(null, "fox jumping", false, false, null));
+    assertFilter(filter, queryIndex, indexed, ImmutableList.of("/"));
+    // Now this should get passed as the analyzer would ignore 'was'
+    filter.setFullTextConstraint(new FullTextTerm(null, "fox was jumping", false, false, null));
+    assertFilter(filter, queryIndex, indexed, ImmutableList.of("/"));
+}

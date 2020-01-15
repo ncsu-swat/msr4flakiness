@@ -1,0 +1,24 @@
+@Test
+public void listAll() throws Exception {
+    Directory buffered = createDir(builder, true);
+    writeFile(buffered, "file");
+    // must only show up after buffered is closed
+    Directory base = createDir(builder, false);
+    assertEquals(0, base.listAll().length);
+    base.close();
+    buffered.close();
+    base = createDir(builder, false);
+    assertEquals(Sets.newHashSet("file"), Sets.newHashSet(base.listAll()));
+    base.close();
+    buffered = createDir(builder, true);
+    buffered.deleteFile("file");
+    assertEquals(0, buffered.listAll().length);
+    // must only disappear after buffered is closed
+    base = createDir(builder, false);
+    assertEquals(Sets.newHashSet("file"), Sets.newHashSet(base.listAll()));
+    base.close();
+    buffered.close();
+    base = createDir(builder, false);
+    assertEquals(0, base.listAll().length);
+    base.close();
+}

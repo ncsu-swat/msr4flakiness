@@ -1,0 +1,26 @@
+@Test
+public void fillExternalChangesWithPath() throws Exception {
+    Revision r1 = new Revision(1, 0, 1);
+    Revision r2 = new Revision(2, 0, 1);
+    DocumentStore store = new MemoryDocumentStore();
+    JournalEntry entry = JOURNAL.newDocument(store);
+    entry.modified(p("/"));
+    entry.modified(p("/foo"));
+    entry.modified(p("/foo/a"));
+    entry.modified(p("/foo/b"));
+    entry.modified(p("/foo/c"));
+    entry.modified(p("/bar"));
+    entry.modified(p("/bar/a"));
+    entry.modified(p("/bar/b"));
+    entry.modified(p("/bar/c"));
+    UpdateOp op = entry.asUpdateOp(r2);
+    assertTrue(store.create(JOURNAL, Collections.singletonList(op)));
+    StringSort sort = JournalEntry.newSorter();
+    StringSort inv = JournalEntry.newSorter();
+    JournalEntry.fillExternalChanges(sort, inv, p("/foo"), r1, r2, store, e -> {
+    }, null, null);
+    assertEquals(4, sort.getSize());
+    assertEquals(0, inv.getSize());
+    sort.close();
+    inv.close();
+}

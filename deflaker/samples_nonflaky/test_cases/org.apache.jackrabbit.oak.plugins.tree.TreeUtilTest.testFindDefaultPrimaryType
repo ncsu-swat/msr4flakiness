@@ -1,0 +1,19 @@
+@Test
+public void testFindDefaultPrimaryType() {
+    Tree def = mock(Tree.class);
+    Tree definitions = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of(def)).getMock();
+    assertNull(TreeUtil.findDefaultPrimaryType(definitions, false));
+    assertNull(TreeUtil.findDefaultPrimaryType(definitions, true));
+    PropertyState ps = PropertyStates.createProperty(JCR_DEFAULTPRIMARYTYPE, NT_RESOURCE, Type.NAME);
+    when(def.getProperty(JCR_DEFAULTPRIMARYTYPE)).thenReturn(ps);
+    assertEquals(NT_RESOURCE, TreeUtil.findDefaultPrimaryType(definitions, false));
+    assertNull(TreeUtil.findDefaultPrimaryType(definitions, true));
+    PropertyState sns = PropertyStates.createProperty(JCR_SAMENAMESIBLINGS, false, Type.BOOLEAN);
+    when(def.getProperty(JCR_SAMENAMESIBLINGS)).thenReturn(sns);
+    assertEquals(NT_RESOURCE, TreeUtil.findDefaultPrimaryType(definitions, false));
+    assertNull(TreeUtil.findDefaultPrimaryType(definitions, true));
+    sns = PropertyStates.createProperty(JCR_SAMENAMESIBLINGS, true, Type.BOOLEAN);
+    when(def.getProperty(JCR_SAMENAMESIBLINGS)).thenReturn(sns);
+    assertEquals(NT_RESOURCE, TreeUtil.findDefaultPrimaryType(definitions, false));
+    assertEquals(NT_RESOURCE, TreeUtil.findDefaultPrimaryType(definitions, true));
+}

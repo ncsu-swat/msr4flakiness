@@ -1,0 +1,17 @@
+@Test
+public void addMultiJson() throws Exception {
+    LuceneDocumentHolder h1 = createHolder();
+    h1.add(true, LuceneDoc.forDelete("/oak:index/foo", "/a"));
+    h1.add(true, LuceneDoc.forDelete("/oak:index/foo", "/b"));
+    builder.addProperty(h1);
+    LuceneDocumentHolder h2 = createHolder();
+    h2.add(true, LuceneDoc.forDelete("/oak:index/bar", "/a"));
+    builder.addProperty(h2);
+    String json = builder.buildAsString();
+    LuceneJournalPropertyBuilder builder2 = new LuceneJournalPropertyBuilder(1000);
+    builder2.addSerializedProperty(json);
+    IndexedPaths indexedPaths = (IndexedPaths) builder2.build();
+    Multimap<String, String> map = createdIndexPathMap(indexedPaths);
+    assertThat(map.keySet(), containsInAnyOrder("/oak:index/foo", "/oak:index/bar"));
+    assertThat(map.get("/oak:index/foo"), containsInAnyOrder("/a", "/b"));
+}

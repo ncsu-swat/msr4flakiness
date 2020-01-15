@@ -1,0 +1,22 @@
+@Test
+public void testIsGrantedOnRestrictionTree() throws Exception {
+    PrincipalPolicyImpl policy = getPrincipalPolicyImpl(testPrincipal, getAccessControlManager(root));
+    Map<String, Value> restr = ImmutableMap.of(getNamePathMapper().getJcrName(REP_GLOB), getValueFactory(root).createValue(REP_RESTRICTIONS + "*"));
+    policy.addEntry(accessControlledPath, privilegesFromNames(JCR_READ_ACCESS_CONTROL), restr, ImmutableMap.of());
+    root.commit();
+    permissionProvider.refresh();
+    Tree policyTree = root.getTree(PathUtils.concat(accessControlledPath, REP_PRINCIPAL_POLICY));
+    for (Tree child : policyTree.getChildren()) {
+        assertFalse(permissionProvider.isGranted(child, null, Permissions.READ));
+        if (child.hasChild(REP_RESTRICTIONS)) {
+            Tree restrTree = child.getChild(REP_RESTRICTIONS);
+            assertTrue(permissionProvider.isGranted(restrTree, null, Permissions.READ_ACCESS_CONTROL));
+            assertFalse(permissionProvider.isGranted(restrTree, null, Permissions.READ));
+            assertFalse(permissionProvider.isGranted(restrTree, null, Permissions.READ_ACCESS_CONTROL | Permissions.MODIFY_ACCESS_CONTROL));
+            for (PropertyState ps : restrTree.getProperties()) {
+                assertTrue(permissionProvider.isGranted(restrTree, ps, Permissions.READ_ACCESS_CONTROL));
+            }
+            break;
+        }
+    }
+}

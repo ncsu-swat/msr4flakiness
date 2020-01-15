@@ -1,0 +1,14 @@
+@Test
+public void testInitialSyncAllExternalUsers() throws Exception {
+    String[] result = syncMBean.syncAllExternalUsers();
+    Map<String, String> expected = getExpectedUserResult("add", false);
+    assertResultMessages(result, expected);
+    UserManager userManager = getUserManager();
+    for (String id : expected.keySet()) {
+        ExternalIdentity ei = idp.getUser(id);
+        if (ei == null) {
+            ei = idp.getGroup(id);
+        }
+        assertSync(ei, userManager);
+    }
+}

@@ -1,0 +1,15 @@
+@Test
+public void testSyncGroupsForeign() throws Exception {
+    // sync user from foreign IDP into the repository
+    SyncResult res = sync(foreignIDP, "a", true);
+    assertNotNull(getUserManager().getAuthorizable("a"));
+    assertEquals(foreignIDP.getGroup("a").getExternalId(), res.getIdentity().getExternalIdRef());
+    // syncUsers with testIDP must detect the foreign status
+    String[] result = syncMBean.syncUsers(new String[] { "a" }, false);
+    assertResultMessages(result, "a", "for");
+    assertNotNull(getUserManager().getAuthorizable("a"));
+    // same expected with 'purge' set to true
+    result = syncMBean.syncUsers(new String[] { "a" }, true);
+    assertResultMessages(result, "a", "for");
+    assertNotNull(getUserManager().getAuthorizable("a"));
+}

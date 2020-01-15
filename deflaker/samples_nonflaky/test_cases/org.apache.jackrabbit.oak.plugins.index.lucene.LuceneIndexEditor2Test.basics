@@ -1,0 +1,14 @@
+@Test
+public void basics() throws Exception {
+    IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+    defnb.indexRule("nt:base").property("foo").propertyIndex();
+    NodeState defnState = defnb.build();
+    IndexDefinition defn = new IndexDefinition(root, defnState, indexPath);
+    LuceneIndexEditorContext ctx = newContext(defnState.builder(), defn, true);
+    EditorHook hook = createHook(ctx);
+    updateBefore(defnb);
+    NodeBuilder builder = before.builder();
+    builder.child("a").setProperty("foo", "bar");
+    hook.processCommit(root, builder.getNodeState(), CommitInfo.EMPTY);
+    assertThat(writer.docs.keySet(), containsInAnyOrder("/a"));
+}

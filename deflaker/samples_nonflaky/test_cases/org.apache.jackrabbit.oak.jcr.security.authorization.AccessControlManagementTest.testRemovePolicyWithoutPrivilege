@@ -1,0 +1,17 @@
+@Test
+public void testRemovePolicyWithoutPrivilege() throws Exception {
+    // re-grant READ in order to have an ACL-node
+    Privilege[] privileges = privilegesFromName(Privilege.JCR_READ);
+    AccessControlPolicy policy = allow(path, privileges);
+    /*
+         Testuser must still have READ-only access only and must not be
+         allowed to view the acl-node that has been created.
+        */
+    assertFalse(testAcMgr.hasPrivileges(path, privilegesFromName(Privilege.JCR_MODIFY_ACCESS_CONTROL)));
+    try {
+        testAcMgr.removePolicy(path, policy);
+        fail("Test user must not be allowed to remove the access control policy.");
+    } catch (AccessDeniedException e) {
+    // success
+    }
+}

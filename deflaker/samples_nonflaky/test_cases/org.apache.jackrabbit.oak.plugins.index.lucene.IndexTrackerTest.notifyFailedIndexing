@@ -1,0 +1,21 @@
+@Test
+public void notifyFailedIndexing() throws Exception {
+    createIndex("foo");
+    // 1. Create and populate index
+    NodeState before = builder.getNodeState();
+    builder.setProperty("foo", "bar");
+    NodeState after = builder.getNodeState();
+    NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+    tracker.update(indexed);
+    builder = indexed.builder();
+    indexed = corruptIndex("/oak:index/foo");
+    builder = indexed.builder();
+    builder.setProperty("foo", "bar2");
+    after = builder.getNodeState();
+    try {
+        hook.processCommit(before, after, CommitInfo.EMPTY);
+        fail("Indexing should have failed");
+    } catch (CommitFailedException ignore) {
+    }
+    assertTrue(corruptIndexHandler.getFailingIndexData("async").containsKey("/oak:index/foo"));
+}

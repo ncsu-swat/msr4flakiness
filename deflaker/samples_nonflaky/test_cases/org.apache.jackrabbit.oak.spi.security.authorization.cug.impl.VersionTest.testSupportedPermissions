@@ -1,0 +1,20 @@
+@Test
+public void testSupportedPermissions() throws Exception {
+    Tree versionable = addVersionContent("/content/a/b/c");
+    CugPermissionProvider pp = createCugPermissionProvider(ImmutableSet.of(SUPPORTED_PATH, SUPPORTED_PATH2));
+    Tree versionStorage = root.getTree(VersionConstants.VERSION_STORE_PATH);
+    assertEquals(Permissions.NO_PERMISSION, pp.supportedPermissions(versionStorage, null, Permissions.READ));
+    assertEquals(Permissions.NO_PERMISSION, pp.supportedPermissions(versionStorage.getParent(), null, Permissions.READ));
+    // tree with cug (access is granted)
+    Tree vh = versionManager.getVersionHistory(versionable);
+    assertEquals(Permissions.READ, pp.supportedPermissions(vh, null, Permissions.READ));
+    // tree with cug (but no access granted)
+    vh = versionManager.getVersionHistory(root.getTree("/content2"));
+    assertEquals(Permissions.READ, pp.supportedPermissions(vh, null, Permissions.READ));
+    // tree without cug
+    vh = versionManager.getVersionHistory(root.getTree(UNSUPPORTED_PATH));
+    assertEquals(Permissions.NO_PERMISSION, pp.supportedPermissions(vh, null, Permissions.READ));
+    // tree without cug
+    vh = versionManager.getVersionHistory(root.getTree(SUPPORTED_PATH));
+    assertEquals(Permissions.NO_PERMISSION, pp.supportedPermissions(vh, null, Permissions.READ));
+}

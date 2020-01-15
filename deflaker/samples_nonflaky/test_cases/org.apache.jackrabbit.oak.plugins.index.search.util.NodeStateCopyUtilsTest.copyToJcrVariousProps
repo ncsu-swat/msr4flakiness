@@ -1,0 +1,35 @@
+@Test
+public void copyToJcrVariousProps() throws Exception {
+    repository = new Jcr().with(new OpenSecurityProvider()).createRepository();
+    Calendar cal = ISO8601.parse(ISO8601.format(Calendar.getInstance()));
+    Tree srcTree = TreeFactory.createTree(builder);
+    srcTree.setOrderableChildren(true);
+    srcTree.setProperty("fooString", "x");
+    srcTree.setProperty("fooLong", 1L, Type.LONG);
+    srcTree.setProperty("fooPath", "/fooNode", Type.PATH);
+    srcTree.setProperty("fooName", "mix:title", Type.NAME);
+    srcTree.setProperty("fooDouble", 1.0, Type.DOUBLE);
+    srcTree.setProperty("fooDate", ISO8601.format(cal), Type.DATE);
+    srcTree.setProperty("fooBoolean", true, Type.BOOLEAN);
+    srcTree.setProperty("fooStrings", asList("a", "b"), Type.STRINGS);
+    srcTree.setProperty("fooBlob", new ArrayBasedBlob("foo".getBytes()), Type.BINARY);
+    srcTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED, Type.NAME);
+    srcTree.setProperty(JcrConstants.JCR_MIXINTYPES, asList("mix:mimeType", "mix:title"), Type.NAMES);
+    Session session = repository.login(null, null);
+    Node node = session.getRootNode();
+    Node test = node.addNode("test", NT_OAK_UNSTRUCTURED);
+    Node fooNode = node.addNode("fooNode", NT_OAK_UNSTRUCTURED);
+    NodeStateCopyUtils.copyToNode(builder.getNodeState(), test);
+    session.save();
+    test = session.getNode("/test");
+    assertEquals("x", test.getProperty("fooString").getString());
+    assertEquals("/fooNode", test.getProperty("fooPath").getNode().getPath());
+    assertEquals("mix:title", test.getProperty("fooName").getString());
+    assertEquals(1, test.getProperty("fooLong").getLong());
+    assertEquals(cal, test.getProperty("fooDate").getDate());
+    assertEquals("a", test.getProperty("fooStrings").getValues()[0].getString());
+    assertEquals("b", test.getProperty("fooStrings").getValues()[1].getString());
+    InputStream is = test.getProperty("fooBlob").getBinary().getStream();
+    String streamVal = IOUtils.toString(is, "UTF-8");
+    assertEquals("foo", streamVal);
+}

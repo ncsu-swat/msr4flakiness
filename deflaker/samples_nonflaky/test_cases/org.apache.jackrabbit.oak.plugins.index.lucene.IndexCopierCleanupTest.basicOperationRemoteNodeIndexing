@@ -1,0 +1,26 @@
+@Test
+public void basicOperationRemoteNodeIndexing() throws Exception {
+    writeFile(remote, "a");
+    remote.close();
+    Directory cor1 = copier.getCoRDir();
+    remote.deleteFile("a");
+    writeFile(remote, "b");
+    remote.close();
+    Directory cor2 = copier.getCoRDir();
+    cor1.close();
+    // CoR1 saw "a" and everything else ("b" due to CoR2) is newer. Nothing should get deleted
+    assertTrue(existsLocally("a"));
+    assertTrue(existsLocally("b"));
+    remote.deleteFile("b");
+    writeFile(remote, "c");
+    remote.close();
+    Directory cor3 = copier.getCoRDir();
+    cor2.close();
+    assertFalse(existsLocally("a"));
+    assertTrue(existsLocally("b"));
+    assertTrue(existsLocally("c"));
+    cor3.close();
+    assertFalse(existsLocally("a"));
+    assertFalse(existsLocally("b"));
+    assertTrue(existsLocally("c"));
+}

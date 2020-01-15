@@ -1,0 +1,31 @@
+@Test
+public void resumeCancelledPurge() throws Exception {
+    BlobDeletionCallback bdc = adbc.getBlobDeletionCallback();
+    for (int i = 0; i < 10; i++) {
+        String id = "Blob" + i;
+        bdc.deleted(id, Collections.singleton(id));
+    }
+    bdc.commitProgress(COMMIT_SUCCEDED);
+    Semaphore purgeBlocker = new Semaphore(0);
+    blobStore.callback = () -> purgeBlocker.acquireUninterruptibly();
+    Thread purgeThread = new Thread(() -> {
+        try {
+            adbc.purgeBlobsDeleted(clock.getTimeIncreasing(), blobStore);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    });
+    purgeThread.setDaemon(true);
+    // allow 5 deletes
+    purgeBlocker.release(10);
+    purgeThread.start();
+    waitFor(5000, () -> blobStore.deletedChunkIds.size() >= 10);
+    adbc.cancelBlobCollection();
+    // release all that's there... this is more than needed, btw.
+    purgeBlocker.release(22);
+    waitFor(5000, () -> blobStore.deletedChunkIds.size() >= 12);
+    waitFor(5000, () -> !purgeThread.isAlive());
+    adbc.purgeBlobsDeleted(clock.getTimeIncreasing(), blobStore);
+    // Resume can re-attempt to delete already deleted blobs. Hence, the need for for ">="
+    assertEquals("All blobs must get deleted", 20, blobStore.deletedChunkIds.size());
+}

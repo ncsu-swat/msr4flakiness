@@ -1,0 +1,12 @@
+@Test
+public void singleIndex() throws Exception {
+    LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(root, idx.getNodeState(), "/fooIndex").build();
+    FSDirectoryFactory factory = new FSDirectoryFactory(temporaryFolder.getRoot());
+    Directory dir = factory.newInstance(defn, idx, ":data", false);
+    dir.close();
+    IndexRootDirectory idxDir = new IndexRootDirectory(temporaryFolder.getRoot());
+    List<LocalIndexDir> indexes = idxDir.getAllLocalIndexes();
+    assertEquals(1, indexes.size());
+    assertEquals("/fooIndex", indexes.get(0).getJcrPath());
+    assertTrue(new File(indexes.get(0).dir, "data").exists());
+}

@@ -1,0 +1,11 @@
+@Test
+public void testAutoMembership() throws Exception {
+    Group gr = userManager.createGroup("group" + UUID.randomUUID());
+    r.commit();
+    syncConfig.user().setAutoMembership(gr.getID(), "non-existing-group");
+    SyncResult result = syncContext.sync(idp.getUser(USER_ID));
+    assertSame(SyncResult.Status.ADD, result.getStatus());
+    User u = userManager.getAuthorizable(USER_ID, User.class);
+    assertFalse(gr.isDeclaredMember(u));
+    assertFalse(gr.isMember(u));
+}

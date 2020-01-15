@@ -1,0 +1,19 @@
+@Test
+public void validIndexTest() throws Exception {
+    LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, idx.getNodeState(), "/fooIndex").build();
+    Directory dir = new OakDirectory(idx, ":data", defn, false);
+    createIndex(dir, 10);
+    dir = new OakDirectory(idx, ":data2" + MultiplexersLucene.INDEX_DIR_SUFFIX, defn, false);
+    createIndex(dir, 10);
+    NodeBuilder builder = rootState.builder();
+    builder.setChildNode("fooIndex", idx.getNodeState());
+    NodeState indexState = builder.getNodeState();
+    IndexConsistencyChecker checker = new IndexConsistencyChecker(indexState, "/fooIndex", temporaryFolder.getRoot());
+    Result result = checker.check(Level.BLOBS_ONLY);
+    assertTrue(result.clean);
+    checker = new IndexConsistencyChecker(indexState, "/fooIndex", temporaryFolder.getRoot());
+    result = checker.check(Level.FULL);
+    assertTrue(result.clean);
+    assertEquals(2, result.dirStatus.size());
+    dumpResult(result);
+}

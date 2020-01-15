@@ -1,0 +1,10 @@
+@Test
+public void testGetAggregatedPrivilegeNamesNestedWithCache() {
+    ImmutableSet<String> values = ImmutableSet.of(JCR_READ, JCR_ADD_CHILD_NODES);
+    when(pTree.getProperty(REP_AGGREGATES)).thenReturn(PropertyStates.createProperty(REP_AGGREGATES, values, Type.NAMES));
+    when(pTree.exists()).thenReturn(true);
+    when(privTree.getChild(KNOWN_PRIV_NAME)).thenReturn(pTree);
+    Iterable<String> result = bitsProvider.getAggregatedPrivilegeNames(KNOWN_PRIV_NAME);
+    Set<String> expected = ImmutableSet.copyOf(Iterables.concat(ImmutableSet.of(JCR_ADD_CHILD_NODES), bitsProvider.getAggregatedPrivilegeNames(JCR_READ)));
+    assertEquals(expected, ImmutableSet.copyOf(result));
+}

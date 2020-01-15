@@ -1,0 +1,11 @@
+@Test
+public void excludedBlobContentNotAccessed() throws Exception {
+    Tree idx = createFulltextIndex(root.getTree("/"), "test");
+    TestUtil.useV2(idx);
+    AccessStateProvidingBlob testBlob = new AccessStateProvidingBlob("<?xml version=\"1.0\" encoding=\"UTF-8\"?><msg>sky is blue</msg>");
+    Tree test = root.getTree("/").addChild("test");
+    createFileNode(test, "zip", testBlob, "application/zip");
+    root.commit();
+    assertFalse(testBlob.isStreamAccessed());
+    assertEquals(0, testBlob.readByteCount());
+}

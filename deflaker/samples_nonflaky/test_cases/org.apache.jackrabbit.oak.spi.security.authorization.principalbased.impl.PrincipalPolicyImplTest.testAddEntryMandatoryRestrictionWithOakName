@@ -1,0 +1,9 @@
+@Test(expected = AccessControlException.class)
+public void testAddEntryMandatoryRestrictionWithOakName() throws Exception {
+    RestrictionProvider restrictionProvider = when(mock(RestrictionProvider.class).getSupportedRestrictions(anyString())).thenReturn(ImmutableSet.of(new RestrictionDefinitionImpl("oak:mandatory", Type.LONG, true))).getMock();
+    MgrProvider mp = when(mock(MgrProvider.class).getRestrictionProvider()).thenReturn(restrictionProvider).getMock();
+    when(mp.getNamePathMapper()).thenReturn(getNamePathMapper());
+    PrincipalPolicyImpl plc = new PrincipalPolicyImpl(principal, POLICY_OAK_PATH, mp);
+    Map<String, Value> svRestrictions = ImmutableMap.of("oak:mandatory", getValueFactory(root).createValue(1));
+    plc.addEntry(testJcrPath, privilegesFromNames(PrivilegeConstants.JCR_VERSION_MANAGEMENT), svRestrictions, ImmutableMap.of());
+}

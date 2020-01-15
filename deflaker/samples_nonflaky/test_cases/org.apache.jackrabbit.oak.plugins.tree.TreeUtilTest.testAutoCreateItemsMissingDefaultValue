@@ -1,0 +1,12 @@
+@Test(expected = RepositoryException.class)
+public void testAutoCreateItemsMissingDefaultValue() throws Exception {
+    Tree definition = when(mock(Tree.class).getProperty(JCR_AUTOCREATED)).thenReturn(PropertyStates.createProperty(JCR_AUTOCREATED, true)).getMock();
+    Tree definitions = mockTree("/some/path/unknownProperty", true);
+    when(definitions.getChildren()).thenReturn(ImmutableList.of(definition));
+    Tree defWithExcludedProperties = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of(definitions)).getMock();
+    when(ntDef.getChild(REP_NAMED_PROPERTY_DEFINITIONS)).thenReturn(defWithExcludedProperties);
+    Tree defWithoutChildren = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of()).getMock();
+    when(ntDef.getChild(REP_NAMED_CHILD_NODE_DEFINITIONS)).thenReturn(defWithoutChildren);
+    when(child.hasProperty("unknownProperty")).thenReturn(false);
+    TreeUtil.autoCreateItems(child, ntDef, typeRoot, "userId");
+}

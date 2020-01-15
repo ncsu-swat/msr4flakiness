@@ -1,0 +1,16 @@
+@Test
+public void testSyncMembershipWithUserRef() throws Exception {
+    TestIdentityProvider.TestUser testuser = (TestIdentityProvider.TestUser) idp.getUser(ID_TEST_USER);
+    Set<ExternalIdentityRef> groupRefs = ImmutableSet.copyOf(testuser.getDeclaredGroups());
+    ExternalUser second = idp.getUser(ID_SECOND_USER);
+    testuser.withGroups(second.getExternalId());
+    assertFalse(Iterables.elementsEqual(groupRefs, testuser.getDeclaredGroups()));
+    sync(testuser, SyncResult.Status.ADD);
+    Authorizable a = userManager.getAuthorizable(ID_TEST_USER);
+    assertTrue(a.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES));
+    Value[] extPrincipalNames = a.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
+    assertEquals(Iterables.size(groupRefs), extPrincipalNames.length);
+    for (Value v : extPrincipalNames) {
+        assertNotEquals(second.getPrincipalName(), v.getString());
+    }
+}

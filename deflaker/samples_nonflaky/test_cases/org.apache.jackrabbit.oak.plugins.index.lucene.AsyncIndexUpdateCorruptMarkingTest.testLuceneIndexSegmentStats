@@ -1,0 +1,28 @@
+@Test
+public void testLuceneIndexSegmentStats() throws Exception {
+    IndexDefinitionBuilder idxb = new IndexDefinitionBuilder();
+    idxb.indexRule("nt:base").property("foo").analyzed().nodeScopeIndex().ordered().useInExcerpt().propertyIndex();
+    idxb.build(root.getTree("/oak:index").addChild("lucenePropertyIndex"));
+    // Add content and index it successfully
+    root.getTree("/").addChild("content").addChild("c1").setProperty("foo", "bar");
+    root.commit();
+    asyncIndexUpdate.run();
+    assertFalse("Indexing must succeed without us intervening", asyncIndexUpdate.isFailing());
+    // create some content and delete blobs such that the indexing run fails
+    deleteBlobs();
+    root.getTree("/content").addChild("c2").setProperty("foo", "bar");
+    root.commit();
+    // As blobs are deleted at this point index will be marked as bad.
+    asyncIndexUpdate.run();
+    assertTrue("Indexing must fail after blob deletion", asyncIndexUpdate.isFailing());
+    root.refresh();
+    assertNull("Corrupt flag must not be set immediately after failure", root.getTree("/oak:index/lucenePropertyIndex").getProperty("corrupt"));
+    // sleep to cross over corrupt interval and run indexing to maek corrupt
+    // 10ms buffer to definitely be ahead of corrupt interval
+    Thread.sleep(INDEX_CORRUPT_INTERVAL_IN_MILLIS + 10);
+    // after corrupt interval index will be marked as corrupt.
+    asyncIndexUpdate.run();
+    assertTrue("Indexing must continue to fail after blob deletion", asyncIndexUpdate.isFailing());
+    root.refresh();
+    assertNotNull("Corrupt flag must get set", root.getTree("/oak:index/lucenePropertyIndex").getProperty("corrupt"));
+}

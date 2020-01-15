@@ -1,0 +1,11 @@
+@Test
+public void testAddChildWithOrderableChildren() throws Exception {
+    Tree t = mock(Tree.class);
+    Tree parent = when(mockTree("/some/tree", true).addChild("name")).thenReturn(t).getMock();
+    when(ntDef.getProperty(JCR_HASORDERABLECHILDNODES)).thenReturn(PropertyStates.createProperty(JCR_HASORDERABLECHILDNODES, true, Type.BOOLEAN));
+    Tree defWithoutChildren = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of()).getMock();
+    when(ntDef.getChild(REP_NAMED_PROPERTY_DEFINITIONS)).thenReturn(defWithoutChildren);
+    when(ntDef.getChild(REP_NAMED_CHILD_NODE_DEFINITIONS)).thenReturn(defWithoutChildren);
+    TreeUtil.addChild(parent, "name", NT_OAK_UNSTRUCTURED, typeRoot, "userid");
+    verify(t, times(1)).setOrderableChildren(true);
+}

@@ -1,0 +1,47 @@
+@Test
+public void disabled() throws Exception {
+    NodeBuilder index = newLucenePropertyIndexDefinition(rootBuilder.child(INDEX_DEFINITIONS_NAME), "foo", ImmutableSet.of("foo"), null);
+    index.setProperty(IndexConstants.USE_IF_EXISTS, "/");
+    commit();
+    for (int i = 0; i < MANY; i++) {
+        rootBuilder.child("test").child("n" + i).setProperty("foo", "x" + i % 20);
+    }
+    commit();
+    FilterImpl f = createFilter(root, NT_BASE);
+    f.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("x10"));
+    IndexTracker tracker = new IndexTracker();
+    tracker.update(root);
+    LucenePropertyIndex luceneIndex = new LucenePropertyIndex(tracker);
+    IndexPlan plan = luceneIndex.getPlans(f, null, root).iterator().next();
+    assertTrue(plan.getCostPerExecution() != Double.POSITIVE_INFINITY);
+    assertEquals("/oak:index/foo", plan.getPlanName());
+    // now test with a node that doesn't exist
+    index = rootBuilder.child(INDEX_DEFINITIONS_NAME).child("foo");
+    index.setProperty(IndexConstants.USE_IF_EXISTS, "/doesNotExist");
+    index.setProperty("refresh", Boolean.TRUE);
+    commit();
+    // need to create a new one - otherwise the cached plan is used
+    tracker.update(root);
+    luceneIndex = new LucenePropertyIndex(tracker);
+    assertTrue(luceneIndex.getPlans(f, null, root).isEmpty());
+    // test with a property that does exist
+    index = rootBuilder.child(INDEX_DEFINITIONS_NAME).child("foo");
+    index.setProperty(IndexConstants.USE_IF_EXISTS, "/oak:index/@jcr:primaryType");
+    index.setProperty("refresh", Boolean.TRUE);
+    commit();
+    // need to create a new one - otherwise the cached plan is used
+    tracker.update(root);
+    luceneIndex = new LucenePropertyIndex(tracker);
+    plan = luceneIndex.getPlans(f, null, root).iterator().next();
+    assertTrue(plan.getCostPerExecution() != Double.POSITIVE_INFINITY);
+    assertEquals("/oak:index/foo", plan.getPlanName());
+    // test with a property that does not exist
+    index = rootBuilder.child(INDEX_DEFINITIONS_NAME).child("foo");
+    index.setProperty(IndexConstants.USE_IF_EXISTS, "/oak:index/@unknownProperty");
+    index.setProperty("refresh", Boolean.TRUE);
+    commit();
+    // need to create a new one - otherwise the cached plan is used
+    tracker.update(root);
+    luceneIndex = new LucenePropertyIndex(tracker);
+    assertTrue(luceneIndex.getPlans(f, null, root).isEmpty());
+}

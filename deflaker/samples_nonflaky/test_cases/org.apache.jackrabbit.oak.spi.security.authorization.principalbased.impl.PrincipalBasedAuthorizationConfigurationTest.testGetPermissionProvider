@@ -1,0 +1,14 @@
+@Test
+public void testGetPermissionProvider() throws Exception {
+    Filter filter = mock(Filter.class);
+    when(filter.canHandle(any(Set.class))).thenReturn(Boolean.TRUE);
+    when(filter.getOakPath(any(Principal.class))).thenReturn("/some/path");
+    FilterProvider fp = when(mock(FilterProvider.class).getFilter(any(SecurityProvider.class), any(Root.class), any(NamePathMapper.class))).thenReturn(filter).getMock();
+    PrincipalBasedAuthorizationConfiguration pbac = new PrincipalBasedAuthorizationConfiguration();
+    pbac.bindFilterProvider(fp);
+    pbac.setSecurityProvider(getSecurityProvider());
+    pbac.setRootProvider(getRootProvider());
+    Set<Principal> principals = ImmutableSet.of(getTestUser().getPrincipal());
+    PermissionProvider pp = pbac.getPermissionProvider(root, "wspName", principals);
+    assertTrue(pp instanceof PrincipalBasedPermissionProvider);
+}

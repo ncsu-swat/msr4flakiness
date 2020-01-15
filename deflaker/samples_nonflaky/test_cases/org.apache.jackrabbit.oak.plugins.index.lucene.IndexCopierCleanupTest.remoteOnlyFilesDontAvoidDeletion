@@ -1,0 +1,17 @@
+@Test
+public void remoteOnlyFilesDontAvoidDeletion() throws Exception {
+    writeFile(remote, "a");
+    for (String name : IndexCopier.REMOTE_ONLY) {
+        writeFile(remote, name);
+    }
+    remote.close();
+    // get files to get locally copied
+    copier.getCoRDir().close();
+    remote.deleteFile("a");
+    writeFile(remote, "b");
+    remote.close();
+    assertTrue(existsLocally("a"));
+    copier.getCoRDir().close();
+    assertFalse(existsLocally("a"));
+    assertTrue(existsLocally("b"));
+}

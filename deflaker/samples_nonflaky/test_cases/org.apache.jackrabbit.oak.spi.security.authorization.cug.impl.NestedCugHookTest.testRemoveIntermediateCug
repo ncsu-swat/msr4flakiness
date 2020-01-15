@@ -1,0 +1,13 @@
+@Test
+public void testRemoveIntermediateCug() throws Exception {
+    // create cugs
+    // - /content/a     : allow testGroup, deny everyone
+    // - /content/aa/bb : allow testGroup, deny everyone
+    // - /content/a/b/c : allow everyone,  deny testGroup (isolated)
+    // - /content2      : allow everyone,  deny testGroup (isolated)
+    setupCugsAndAcls();
+    // remove CUG at /content/a
+    assertTrue(removeCug("/content/a", true));
+    assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, "/content/aa/bb", "/content2", "/content/a/b/c");
+    assertFalse(root.getTree("/content/a").hasChild(REP_CUG_POLICY));
+}

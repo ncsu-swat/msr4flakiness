@@ -1,0 +1,18 @@
+@Test
+public void testStartChildInfoMvRestrictions() throws Exception {
+    init(false, ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
+    User user = getTestSystemUser();
+    Tree policyTree = createPolicyTree(user);
+    importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()), mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
+    importer.start(policyTree);
+    importer.startChildInfo(mockNodeInfo("entry", getJcrName(NT_REP_PRINCIPAL_ENTRY)), mockPropInfos("/effective/path", PrivilegeConstants.REP_WRITE));
+    ValueFactory vf = getValueFactory(root);
+    Value[] nameValues = new Value[] { vf.createValue(getJcrName("jcr:content"), PropertyType.NAME), vf.createValue(getJcrName("jcr:data"), PropertyType.NAME) };
+    importer.startChildInfo(mockNodeInfo(getJcrName(REP_RESTRICTIONS), getJcrName(NT_REP_RESTRICTIONS)), mockPropInfos(ImmutableMap.of(getJcrName(REP_ITEM_NAMES), nameValues, getJcrName(REP_GLOB), new Value[] { vf.createValue("/some/*/globbing") })));
+    importer.endChildInfo();
+    importer.endChildInfo();
+    importer.end(policyTree);
+    PrincipalPolicyImpl.EntryImpl entry = assertPolicy(getAccessControlManager(root).getPolicies(user.getPrincipal()), 1);
+    assertNotNull(entry.getRestrictions(getJcrName(REP_ITEM_NAMES)));
+    assertNotNull(entry.getRestriction(getJcrName(REP_GLOB)));
+}

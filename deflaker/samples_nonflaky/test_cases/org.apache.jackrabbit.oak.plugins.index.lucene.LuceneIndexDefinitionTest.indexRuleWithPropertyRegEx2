@@ -1,0 +1,15 @@
+@Test
+public void indexRuleWithPropertyRegEx2() throws Exception {
+    NodeBuilder rules = builder.child(INDEX_RULES);
+    rules.child("nt:folder");
+    TestUtil.child(rules, "nt:folder/properties/prop1").setProperty(PROP_NAME, ".*").setProperty(FulltextIndexConstants.PROP_IS_REGEX, true);
+    TestUtil.child(rules, "nt:folder/properties/prop2").setProperty(PROP_NAME, "metadata/.*").setProperty(FulltextIndexConstants.PROP_IS_REGEX, true).setProperty(FulltextIndexConstants.FIELD_BOOST, 4.0);
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    IndexingRule rule1 = defn.getApplicableIndexingRule(asState(newNode("nt:folder")));
+    assertNotNull(rule1);
+    assertTrue(rule1.isIndexed("prop1"));
+    assertTrue(rule1.isIndexed("prop2"));
+    assertFalse(rule1.isIndexed("jcr:content/prop1"));
+    assertTrue(rule1.isIndexed("metadata/foo"));
+    assertFalse(rule1.isIndexed("metadata/foo/bar"));
+}

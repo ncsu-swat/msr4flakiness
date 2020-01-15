@@ -1,0 +1,11 @@
+@Test
+public void docsAddedToQueue() throws Exception {
+    CommitInfo info = newCommitInfo();
+    CommitContext cc = (CommitContext) info.getInfo().get(CommitContext.NAME);
+    LuceneDocumentHolder holder = new LuceneDocumentHolder(collectingQueue, 500);
+    holder.add(false, LuceneDoc.forDelete("foo", "bar"));
+    cc.set(LuceneDocumentHolder.NAME, holder);
+    observer.contentChanged(EMPTY_NODE, info);
+    assertEquals(1, collectingQueue.getQueuedDocs().size());
+    assertNull(cc.get(LuceneDocumentHolder.NAME));
+}

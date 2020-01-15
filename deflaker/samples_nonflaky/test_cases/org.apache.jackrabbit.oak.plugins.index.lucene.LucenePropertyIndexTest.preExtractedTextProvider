@@ -1,0 +1,26 @@
+@Test
+public void preExtractedTextProvider() throws Exception {
+    Tree idx = createFulltextIndex(root.getTree("/"), "test");
+    TestUtil.useV2(idx);
+    root.commit();
+    AccessStateProvidingBlob testBlob = new AccessStateProvidingBlob("fox is jumping", "id1");
+    MapBasedProvider textProvider = new MapBasedProvider();
+    textProvider.write("id1", "lion");
+    editorProvider.getExtractedTextCache().setExtractedTextProvider(textProvider);
+    Tree test = root.getTree("/").addChild("test");
+    createFileNode(test, "text", testBlob, "text/plain");
+    root.commit();
+    // As its not a reindex case actual blob content would be accessed
+    assertTrue(testBlob.isStreamAccessed());
+    assertQuery("select * from [nt:base] where CONTAINS(*, 'fox ')", asList("/test/text/jcr:content"));
+    assertEquals(0, textProvider.accessCount);
+    testBlob.resetState();
+    // Lets trigger a reindex
+    root.getTree(idx.getPath()).setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+    root.commit();
+    // Now the content should be provided by the PreExtractedTextProvider
+    // and instead of fox its lion!
+    assertFalse(testBlob.isStreamAccessed());
+    assertQuery("select * from [nt:base] where CONTAINS(*, 'lion ')", asList("/test/text/jcr:content"));
+    assertEquals(1, textProvider.accessCount);
+}

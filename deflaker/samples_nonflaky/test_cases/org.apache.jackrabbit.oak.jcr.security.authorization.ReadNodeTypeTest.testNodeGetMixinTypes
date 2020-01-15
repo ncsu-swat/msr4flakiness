@@ -1,0 +1,15 @@
+/**
+ * @see <a href="https://issues.apache.org/jira/browse/OAK-2441">OAK-2441</a>
+ */
+public void testNodeGetMixinTypes() throws Exception {
+    superuser.getNode(path).addMixin(JcrConstants.MIX_REFERENCEABLE);
+    superuser.save();
+    assertTrue(testSession.propertyExists(path + '/' + JcrConstants.JCR_MIXINTYPES));
+    deny(path, privilegesFromName(PrivilegeConstants.REP_READ_PROPERTIES));
+    assertFalse(testSession.propertyExists(path + '/' + JcrConstants.JCR_MIXINTYPES));
+    Node n = testSession.getNode(path);
+    assertFalse(n.hasProperty(JcrConstants.JCR_MIXINTYPES));
+    int noMixins = superuser.getNode(path).getMixinNodeTypes().length;
+    NodeType[] mixins = n.getMixinNodeTypes();
+    assertEquals(noMixins, mixins.length);
+}

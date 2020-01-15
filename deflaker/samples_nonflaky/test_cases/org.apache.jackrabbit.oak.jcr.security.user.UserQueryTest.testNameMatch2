@@ -1,0 +1,50 @@
+/**
+ * The name matching condition must not only search for node-name and
+ * principal name but also needs to take the new rep:authoriableId into
+ * account that has been introduced as of Oak 1.0
+ *
+ * @see <a href="https://issues.apache.org/jira/browse/OAK-2243">OAK-2243</a>
+ */
+@Test
+public void testNameMatch2() throws RepositoryException {
+    // create a user with different id and principal name
+    User user = userMgr.createUser("moloch", null, new PrincipalImpl("MolochHorridus"), "reptiles");
+    String userPath = user.getPath();
+    // move it such that the node name doesn't reveal the id.
+    superuser.move(userPath, Text.getRelativeParent(userPath, 1) + "/thorny_dragon");
+    superuser.save();
+    authorizables.add(user);
+    // search for the authorizable ID
+    Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
+
+        public <T> void build(@NotNull QueryBuilder<T> builder) {
+            builder.setCondition(builder.nameMatches("moloch"));
+        }
+    });
+    assertTrue(result.hasNext());
+    Authorizable a = result.next();
+    assertEquals("moloch", a.getID());
+    assertFalse(result.hasNext());
+    // search for the principal name (basically just for backwards compatibility)
+    result = userMgr.findAuthorizables(new Query() {
+
+        public <T> void build(@NotNull QueryBuilder<T> builder) {
+            builder.setCondition(builder.nameMatches("MolochHorridus"));
+        }
+    });
+    assertTrue(result.hasNext());
+    a = result.next();
+    assertEquals("MolochHorridus", a.getPrincipal().getName());
+    assertFalse(result.hasNext());
+    // search for the node name
+    result = userMgr.findAuthorizables(new Query() {
+
+        public <T> void build(@NotNull QueryBuilder<T> builder) {
+            builder.setCondition(builder.nameMatches("thorny_dragon"));
+        }
+    });
+    assertTrue(result.hasNext());
+    a = result.next();
+    assertEquals("thorny_dragon", Text.getName(a.getPath()));
+    assertFalse(result.hasNext());
+}

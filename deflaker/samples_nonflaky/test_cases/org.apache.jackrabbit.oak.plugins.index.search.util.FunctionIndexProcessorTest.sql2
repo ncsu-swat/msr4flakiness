@@ -1,0 +1,16 @@
+@Test
+public void sql2() {
+    checkConvert("upper([data])", "function*upper*@data");
+    checkConvert("lower([test/data])", "function*lower*@test/data");
+    checkConvert("lower(name())", "function*lower*@:name");
+    checkConvert("lower(localname())", "function*lower*@:localname");
+    checkConvert("length([test/data])", "function*length*@test/data");
+    checkConvert("length(name())", "function*length*@:name");
+    checkConvert("lower(upper([test/data]))", "function*lower*upper*@test/data");
+    // the ']' character is escaped as ']]'
+    checkConvert("[strange[0]]]", "function*@strange[0]");
+    checkConvert("coalesce([jcr:content/foo2],[jcr:content/foo])", "function*coalesce*@jcr:content/foo2*@jcr:content/foo");
+    checkConvert("coalesce([jcr:content/foo2], lower([jcr:content/foo]))", "function*coalesce*@jcr:content/foo2*lower*@jcr:content/foo");
+    checkConvert("coalesce([jcr:content/foo2] , coalesce([jcr:content/foo],lower(name())))", "function*coalesce*@jcr:content/foo2*coalesce*@jcr:content/foo*lower*@:name");
+    checkConvert("coalesce(coalesce([jcr:content/foo2],[jcr:content/foo]), coalesce([a:b], [c:d]))", "function*coalesce*coalesce*@jcr:content/foo2*@jcr:content/foo*coalesce*@a:b*@c:d");
+}

@@ -1,0 +1,35 @@
+// OAK-3494
+@Test
+public void useParentDiff() throws Exception {
+    DiffCache cache = new MemoryDiffCache(new DocumentMK.Builder());
+    RevisionVector from = new RevisionVector(new Revision(1, 0, 1));
+    RevisionVector to = new RevisionVector(new Revision(2, 0, 1));
+    RevisionVector unjournalled = new RevisionVector(new Revision(3, 0, 1));
+    // Put one entry for (from, to, "/a/b")->["c1", "c2"] manually
+    DiffCache.Entry entry = cache.newEntry(from, to, false);
+    entry.append(p("/a/b"), "^\"c1\":{}^\"c2\":{}");
+    entry.done();
+    // NOTE: calling validateCacheUsage fills the cache with an empty diff for the path being validated.
+    // So, we need to make sure that each validation is done on a separate path.
+    // Cases that cache can answer (only c1 and c2 sub-trees are possibly changed)
+    validateCacheUsage(cache, from, to, "/a/b/c3", true);
+    validateCacheUsage(cache, from, to, "/a/b/c4/e/f/g", true);
+    // Cases that cache can't answer
+    // cached entry says that c1 sub-tree is changed
+    validateCacheUsage(cache, from, to, "/a/b/c1", false);
+    // cached entry says that c2 sub-tree is changed
+    validateCacheUsage(cache, from, to, "/a/b/c2/d", false);
+    // there is no cache entry for the whole hierarchy
+    validateCacheUsage(cache, from, to, "/c", false);
+    // Fill cache using journal
+    List<Path> paths = Lists.newArrayList(p("/content/changed"), p("/content/changed1/child1"));
+    StringSort sort = JournalEntry.newSorter();
+    add(sort, paths);
+    sort.sort();
+    JournalEntry.applyTo(sort, cache, Path.ROOT, from, to);
+    validateCacheUsage(cache, from, to, "/topUnchanged", true);
+    validateCacheUsage(cache, from, to, "/content/changed/unchangedLeaf", true);
+    validateCacheUsage(cache, from, to, "/content/changed1/child2", true);
+    // check against an unjournalled revision (essentially empty cache)
+    validateCacheUsage(cache, from, unjournalled, "/unjournalledPath", false);
+}

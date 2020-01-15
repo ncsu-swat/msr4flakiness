@@ -1,0 +1,14 @@
+@Test(expected = CommitFailedException.class)
+public void testAddExternalPrincipalNames() throws Exception {
+    Tree userTree = root.getTree(testUserPath);
+    try {
+        userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, ImmutableList.of("principalName"), Type.STRINGS);
+        root.commit();
+        fail("Creating rep:externalPrincipalNames must be detected.");
+    } catch (CommitFailedException e) {
+        // success
+        assertException(e, CONSTRAINT, 70);
+    } finally {
+        root.refresh();
+    }
+}

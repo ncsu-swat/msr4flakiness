@@ -1,0 +1,12 @@
+@Test
+public void fulltextCost() throws Exception {
+    NodeBuilder defnb = newLucenePropertyIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "lucene", of("foo"), "async");
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.getNodeState(), "/foo");
+    assertEquals(300, defn.getFulltextEntryCount(300));
+    assertEquals(IndexDefinition.DEFAULT_ENTRY_COUNT + 100, defn.getFulltextEntryCount(IndexDefinition.DEFAULT_ENTRY_COUNT + 100));
+    // Once count is explicitly defined then it would influence the cost
+    defnb.setProperty(IndexConstants.ENTRY_COUNT_PROPERTY_NAME, 100);
+    defn = new LuceneIndexDefinition(root, defnb.getNodeState(), "/foo");
+    assertEquals(100, defn.getFulltextEntryCount(300));
+    assertEquals(50, defn.getFulltextEntryCount(50));
+}

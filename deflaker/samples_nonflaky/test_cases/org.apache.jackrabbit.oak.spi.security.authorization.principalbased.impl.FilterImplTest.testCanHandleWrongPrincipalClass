@@ -1,0 +1,18 @@
+@Test
+public void testCanHandleWrongPrincipalClass() throws Exception {
+    Principal principal = getTestSystemUser().getPrincipal();
+    assertFalse(filter.canHandle(singleton((AdminPrincipal) () -> principal.getName())));
+    assertFalse(filter.canHandle(singleton((new ItemBasedPrincipal() {
+
+        @NotNull
+        @Override
+        public String getPath() throws RepositoryException {
+            return ((ItemBasedPrincipal) principal).getPath();
+        }
+
+        @Override
+        public String getName() {
+            return principal.getName();
+        }
+    }))));
+}

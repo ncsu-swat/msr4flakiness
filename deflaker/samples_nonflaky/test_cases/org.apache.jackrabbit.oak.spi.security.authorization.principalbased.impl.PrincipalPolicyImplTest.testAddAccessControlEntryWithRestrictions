@@ -1,0 +1,13 @@
+@Test
+public void testAddAccessControlEntryWithRestrictions() throws Exception {
+    ValueFactory vf = getValueFactory(root);
+    Map<String, Value> restr = ImmutableMap.of(getJcrName(REP_NODE_PATH), vf.createValue(testJcrPath), getJcrName(REP_GLOB), vf.createValue("string"));
+    assertTrue(emptyPolicy.addEntry(principal, privilegesFromNames(PrivilegeConstants.REP_USER_MANAGEMENT), true, restr, null));
+    List<PrincipalPolicyImpl.EntryImpl> entries = emptyPolicy.getEntries();
+    assertEquals(1, entries.size());
+    PrincipalPolicyImpl.EntryImpl entry = entries.get(0);
+    assertEquals(TEST_OAK_PATH, entry.getOakPath());
+    // effective-path restriction must be filtered out
+    assertNull(entry.getRestrictions(getJcrName(REP_NODE_PATH)));
+    assertNotNull(entry.getRestrictions(getJcrName(REP_GLOB)));
+}

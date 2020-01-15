@@ -1,0 +1,16 @@
+@Test
+public void syncIndexPaths() throws Exception {
+    IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+    defnb.indexRule("nt:base").property("foo").propertyIndex().sync();
+    String indexPath = "/oak:index/foo";
+    addIndex(indexPath, defnb);
+    PropertyIndexCleaner cleaner = new PropertyIndexCleaner(nodeStore, () -> asList("/oak:index/uuid", indexPath), asyncService, StatisticsProvider.NOOP);
+    // As index is yet not update it would not show up in sync index paths
+    assertThat(cleaner.getSyncIndexPaths(), empty());
+    NodeBuilder builder = nodeStore.getRoot().builder();
+    PropertyIndexUpdateCallback cb = newCallback(builder, indexPath);
+    propertyUpdated(cb, indexPath, "/a", "foo", "bar");
+    merge(builder);
+    // Post update it would show up
+    assertThat(cleaner.getSyncIndexPaths(), containsInAnyOrder(indexPath));
+}

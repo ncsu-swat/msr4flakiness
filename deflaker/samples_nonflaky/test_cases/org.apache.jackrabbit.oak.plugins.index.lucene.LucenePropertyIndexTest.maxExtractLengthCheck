@@ -1,0 +1,16 @@
+@Test
+public void maxExtractLengthCheck() throws Exception {
+    Tree idx = createFulltextIndex(root.getTree("/"), "test");
+    TestUtil.useV2(idx);
+    Tree test = root.getTree("/").addChild("test");
+    createFileNode(test, "text", "red brown fox was jumping", "text/plain");
+    root.commit();
+    assertQuery("select * from [nt:base] where CONTAINS(*, 'jumping')", asList("/test/text/jcr:content"));
+    assertQuery("select * from [nt:base] where CONTAINS(*, 'red')", asList("/test/text/jcr:content"));
+    idx = root.getTree("/oak:index/test");
+    idx.addChild(TIKA).setProperty(LuceneIndexConstants.TIKA_MAX_EXTRACT_LENGTH, 15);
+    idx.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+    root.commit();
+    assertQuery("select * from [nt:base] where CONTAINS(*, 'jumping')", Collections.<String>emptyList());
+    assertQuery("select * from [nt:base] where CONTAINS(*, 'red')", asList("/test/text/jcr:content"));
+}

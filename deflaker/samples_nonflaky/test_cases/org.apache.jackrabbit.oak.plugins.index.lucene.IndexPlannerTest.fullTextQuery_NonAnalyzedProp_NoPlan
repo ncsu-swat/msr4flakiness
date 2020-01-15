@@ -1,0 +1,16 @@
+@Test
+public void fullTextQuery_NonAnalyzedProp_NoPlan() throws Exception {
+    NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo", "bar"), "async");
+    // Index all props and then perform fulltext
+    defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
+    NodeBuilder foob = getNode(defn, "indexRules/nt:base/properties/foo");
+    foob.setProperty(FulltextIndexConstants.PROP_NAME, "foo");
+    NodeBuilder barb = getNode(defn, "indexRules/nt:base/properties/bar");
+    barb.setProperty(FulltextIndexConstants.PROP_NAME, "bar");
+    barb.setProperty(FulltextIndexConstants.PROP_ANALYZED, true);
+    // where contains('jcr:content/*', 'mountain OR valley') can be evaluated by index
+    // on nt:base by evaluating on '.' and then checking if node name is 'jcr:content'
+    FulltextIndexPlanner planner = createPlannerForFulltext(defn.getNodeState(), FullTextParser.parse("foo", "mountain OR valley"));
+    // No plan for unindex property
+    assertNull(planner.getPlan());
+}

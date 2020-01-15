@@ -1,0 +1,25 @@
+@Test
+public void asyncIndexerReindexAndPropertyIndexes() throws Exception {
+    defnb.async("async", "nrt");
+    defnb.indexRule("nt:base").property("foo").sync();
+    addIndex(indexPath, defnb);
+    root.commit();
+    createPath("/a").setProperty("foo", "bar");
+    root.commit();
+    Semaphore s = new Semaphore(0);
+    delayingEditorProvider.semaphore = s;
+    AtomicReference<Throwable> th = new AtomicReference<>();
+    Thread t = new Thread(this::runAsyncIndex);
+    t.setUncaughtExceptionHandler((t1, e) -> th.set(e));
+    t.start();
+    while (!s.hasQueuedThreads()) {
+        Thread.yield();
+    }
+    createPath("/b").setProperty("foo", "bar");
+    root.commit();
+    s.release(2);
+    t.join();
+    if (th.get() != null) {
+        throw new AssertionError(th.get());
+    }
+}

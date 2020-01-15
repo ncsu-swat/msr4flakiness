@@ -1,0 +1,60 @@
+@Test
+public void test() {
+    // the following is the same as:
+    // for (int size = 0; size < 100; size++)
+    for (int size : seq(0, 100)) {
+        for (int readBefore : seq(0, 30)) {
+            // every 3th time, use a timeout
+            final long testTimeout = size % 3 == 0 ? 100 : 0;
+            Iterable<Integer> s = seq(0, size);
+            PrefetchIterator<Integer> it = new PrefetchIterator<Integer>(s.iterator(), new PrefetchOptions() {
+
+                {
+                    min = 20;
+                    timeout = testTimeout;
+                    max = 30;
+                    size = -1;
+                }
+            });
+            for (int x : seq(0, readBefore)) {
+                boolean hasNext = it.hasNext();
+                if (!hasNext) {
+                    assertEquals(x, size);
+                    break;
+                }
+                String m = "s:" + size + " b:" + readBefore + " x:" + x;
+                assertTrue(m, hasNext);
+                assertEquals(m, x, it.next().intValue());
+            }
+            String m = "s:" + size + " b:" + readBefore;
+            int max = testTimeout <= 0 ? 20 : 30;
+            if (size > max && readBefore < size) {
+                assertEquals(m, -1, it.size());
+                // calling it twice must not change the result
+                assertEquals(m, -1, it.size());
+            } else {
+                assertEquals(m, size, it.size());
+                // calling it twice must not change the result
+                assertEquals(m, size, it.size());
+            }
+            for (int x : seq(readBefore, size)) {
+                m = "s:" + size + " b:" + readBefore + " x:" + x;
+                assertTrue(m, it.hasNext());
+                assertEquals(m, x, it.next().intValue());
+            }
+            assertFalse(it.hasNext());
+            try {
+                it.next();
+                fail();
+            } catch (NoSuchElementException e) {
+            // expected
+            }
+            try {
+                it.remove();
+                fail();
+            } catch (UnsupportedOperationException e) {
+            // expected
+            }
+        }
+    }
+}

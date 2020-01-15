@@ -1,0 +1,26 @@
+@Test
+public void indexOpenedBeforeFistCycle() throws Exception {
+    NodeState nrtIndex = createNRTIndex();
+    NodeState asyncIndex = nrtIndex.builder().setProperty("async", ImmutableList.of("async"), STRINGS).getNodeState();
+    NodeState nonAsyncIndex;
+    {
+        NodeBuilder builder = nrtIndex.builder();
+        builder.removeProperty("async");
+        nonAsyncIndex = builder.getNodeState();
+    }
+    assertNotNull("nrtIndex; Non existing /:async", LuceneIndexNodeManager.open("/foo", root, nrtIndex, readerFactory, nrtFactory));
+    assertNull("asyncIndex; Non existing /:async", LuceneIndexNodeManager.open("/foo", root, asyncIndex, readerFactory, nrtFactory));
+    assertNull("nonAsyncIndex; Non existing /:async", LuceneIndexNodeManager.open("/foo", root, nonAsyncIndex, readerFactory, nrtFactory));
+    // Fake an empty /:async - first indexing cycle isn't done yet
+    builder.child(":async");
+    root = builder.getNodeState();
+    assertNotNull("nrtIndex; empty /:async", LuceneIndexNodeManager.open("/foo", root, nrtIndex, readerFactory, nrtFactory));
+    assertNull("asyncIndex; empty /:async", LuceneIndexNodeManager.open("/foo", root, asyncIndex, readerFactory, nrtFactory));
+    assertNull("nonAsyncIndex; empty /:async", LuceneIndexNodeManager.open("/foo", root, nonAsyncIndex, readerFactory, nrtFactory));
+    // Fake async indexing cycle done with no data
+    builder.child(":async").setProperty("async", "some-random-id");
+    root = builder.getNodeState();
+    assertNull("nrtIndex; fake async cycle run", LuceneIndexNodeManager.open("/foo", root, nrtIndex, readerFactory, nrtFactory));
+    assertNull("asyncIndex; fake async cycle run", LuceneIndexNodeManager.open("/foo", root, asyncIndex, readerFactory, nrtFactory));
+    assertNull("nonAsyncIndex; fake async cycle run", LuceneIndexNodeManager.open("/foo", root, nonAsyncIndex, readerFactory, nrtFactory));
+}

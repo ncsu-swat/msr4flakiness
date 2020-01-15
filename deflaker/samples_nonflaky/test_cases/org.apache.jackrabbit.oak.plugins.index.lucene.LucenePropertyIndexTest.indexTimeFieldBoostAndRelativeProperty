@@ -1,0 +1,21 @@
+@Test
+public void indexTimeFieldBoostAndRelativeProperty() throws Exception {
+    // Index Definition
+    Tree index = root.getTree("/");
+    Tree indexDefn = createTestIndexNode(index, LuceneIndexConstants.TYPE_LUCENE);
+    useV2(indexDefn);
+    addPropertyDefn(indexDefn, "jcr:content/metadata/title", 4.0);
+    addPropertyDefn(indexDefn, "jcr:content/metadata/title2", 2.0);
+    addPropertyDefn(indexDefn, "propa", 1.0);
+    root.commit();
+    // create test data
+    Tree test = root.getTree("/").addChild("test");
+    usc(test, "a").setProperty("propa", "foo foo foo");
+    usc(test, "b").addChild("jcr:content").addChild("metadata").setProperty("title", "foo");
+    usc(test, "c").addChild("jcr:content").addChild("metadata").setProperty("title2", "foo");
+    root.commit();
+    String queryString = "//element(*, oak:Unstructured)[jcr:contains(., 'foo' )]";
+    // verify results ordering
+    // which should be /test/c (boost = 4.0), /test/a(boost = 2.0), /test/b (1.0)
+    assertOrderedQuery(queryString, asList("/test/b", "/test/c", "/test/a"), XPATH, true);
+}

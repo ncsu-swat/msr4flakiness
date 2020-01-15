@@ -1,0 +1,11 @@
+@Test
+public void pathResultAbsolutePath() throws Exception {
+    defnb.indexRule("nt:base").property("foo").sync();
+    propertyUpdated("/a", "foo", "bar");
+    String propertyName = "foo";
+    FilterImpl filter = createFilter();
+    filter.restrictProperty("foo", Operator.EQUAL, newString("bar"));
+    HybridPropertyIndexLookup lookup = new HybridPropertyIndexLookup(indexPath, builder.getNodeState());
+    Iterable<String> paths = lookup.query(filter, propertyName, filter.getPropertyRestriction(propertyName));
+    assertThat(ImmutableList.copyOf(paths), containsInAnyOrder("/a"));
+}

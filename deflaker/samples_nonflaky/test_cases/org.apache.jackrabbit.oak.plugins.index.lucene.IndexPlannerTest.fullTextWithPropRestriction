@@ -1,0 +1,32 @@
+@Test
+public void fullTextWithPropRestriction() throws Exception {
+    String indexPath = "/test";
+    IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder(child(builder, indexPath));
+    idxBuilder.indexRule("nt:base").property("foo").nodeScopeIndex().enclosingRule().property("foo1").propertyIndex().enclosingRule().property("foo2").analyzed();
+    NodeState defn = idxBuilder.build();
+    long numOfDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 1000;
+    LuceneIndexDefinition idxDefn = new LuceneIndexDefinition(root, defn, indexPath);
+    Document doc = new Document();
+    doc.add(new StringField("foo1", "bar1", Field.Store.NO));
+    Directory sampleDirectory = createSampleDirectory(numOfDocs, doc);
+    LuceneIndexNode node = createIndexNode(idxDefn, sampleDirectory);
+    // contains(., 'mountain') AND contains('foo2', 'hill')
+    FilterImpl filter = createFilter("nt:base");
+    filter.setFullTextConstraint(FullTextParser.parse(".", "mountain"));
+    filter.setFullTextConstraint(FullTextParser.parse("foo2", "hill"));
+    FulltextIndexPlanner planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+    QueryIndex.IndexPlan plan = planner.getPlan();
+    assertEquals(numOfDocs + 1, plan.getEstimatedEntryCount());
+    assertEquals(1.0, plan.getCostPerExecution(), 0);
+    assertEquals(1.0, plan.getCostPerEntry(), 0);
+    // contains(., 'mountain') AND [foo1]='bar' AND contains('foo2', 'hill')
+    filter = createFilter("nt:base");
+    filter.setFullTextConstraint(FullTextParser.parse(".", "mountain"));
+    filter.restrictProperty("foo1", Operator.EQUAL, PropertyValues.newString("bar"));
+    filter.setFullTextConstraint(FullTextParser.parse("foo2", "hill"));
+    planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+    plan = planner.getPlan();
+    assertEquals(1, plan.getEstimatedEntryCount());
+    assertEquals(1.0, plan.getCostPerExecution(), 0);
+    assertEquals(1.0, plan.getCostPerEntry(), 0);
+}

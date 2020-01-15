@@ -1,0 +1,13 @@
+@Test
+public void testGetTreePermissionFromNodeState() {
+    Tree tree = getRootProvider().createReadOnlyRoot(root).getTree(PathUtils.ROOT_PATH);
+    TreePermission tp = permissionProvider.getTreePermission(tree, TreePermission.EMPTY);
+    NodeState ns = getTreeProvider().asNodeState(tree);
+    for (String elem : PathUtils.elements(VERSION_STORE_PATH)) {
+        ns = ns.getChildNode(elem);
+        tp = permissionProvider.getTreePermission(elem, ns, (AbstractTreePermission) tp);
+        assertTrue(tp instanceof AbstractTreePermission);
+    }
+    AbstractTreePermission atp = (AbstractTreePermission) tp;
+    assertSame(TreeType.VERSION, atp.getType());
+}

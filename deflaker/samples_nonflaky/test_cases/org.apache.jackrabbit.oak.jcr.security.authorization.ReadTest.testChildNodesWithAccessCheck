@@ -1,0 +1,15 @@
+@Test
+public void testChildNodesWithAccessCheck() throws Exception {
+    Node nodeToDeny = superuser.getNode(path).addNode("nodeToDeny");
+    superuser.save();
+    // Deny access to one of the child node
+    deny(nodeToDeny.getPath(), privilegesFromName(PrivilegeConstants.JCR_READ));
+    NodeIterator it = testSession.getNode(path).getNodes();
+    Set<String> childNodeNames = new HashSet<String>();
+    while (it.hasNext()) {
+        Node n = it.nextNode();
+        childNodeNames.add(n.getName());
+    }
+    // Denied node should not show up in the child node names list
+    assertFalse(childNodeNames.contains("nodeToDeny"));
+}

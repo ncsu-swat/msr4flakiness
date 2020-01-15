@@ -1,0 +1,13 @@
+@Test
+public void worksWithIndexFormatV2Onwards() throws Exception {
+    NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+    NodeBuilder nb = newLuceneIndexDefinition(index, "lucene", of(TYPENAME_STRING));
+    // Dummy data node to ensure that LuceneIndexDefinition does not consider it
+    // as a fresh indexing case
+    nb.child(INDEX_DATA_CHILD_NAME);
+    LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, nb.getNodeState(), "/foo"));
+    FilterImpl filter = createFilter("nt:base");
+    filter.setFullTextConstraint(FullTextParser.parse(".", "mountain"));
+    FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+    assertNull(planner.getPlan());
+}

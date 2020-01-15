@@ -1,0 +1,23 @@
+@Test
+public void rangeQueriesWithString() throws Exception {
+    Tree idx = createIndex("test1", of("propa", "propb"));
+    idx.addChild(PROP_NODE).addChild("propa");
+    root.commit();
+    Tree test = root.getTree("/").addChild("test");
+    test.addChild("a").setProperty("propa", "a");
+    test.addChild("b").setProperty("propa", "b is b");
+    test.addChild("c").setProperty("propa", "c");
+    test.addChild("c").setProperty("propb", "e");
+    test.addChild("d").setProperty("propb", "f");
+    test.addChild("e").setProperty("propb", "g");
+    root.commit();
+    assertQuery("select [jcr:path] from [nt:base] where propa = 'a'", asList("/test/a"));
+    // Check that string props are not tokenized
+    assertQuery("select [jcr:path] from [nt:base] where propa = 'b is b'", asList("/test/b"));
+    assertQuery("select [jcr:path] from [nt:base] where propa in ('a', 'c')", asList("/test/a", "/test/c"));
+    assertQuery("select [jcr:path] from [nt:base] where [propb] >= 'f'", asList("/test/d", "/test/e"));
+    assertQuery("select [jcr:path] from [nt:base] where [propb] <= 'f'", asList("/test/c", "/test/d"));
+    assertQuery("select [jcr:path] from [nt:base] where [propb] > 'e'", asList("/test/d", "/test/e"));
+    assertQuery("select [jcr:path] from [nt:base] where [propb] < 'g'", asList("/test/c", "/test/d"));
+    assertQuery("select [jcr:path] from [nt:base] where propa is not null", asList("/test/a", "/test/b", "/test/c"));
+}

@@ -1,0 +1,31 @@
+public void testQueryLogger() throws Exception {
+    Node node1 = testRootNode.addNode(nodeName1);
+    // Log batch size is 100
+    for (int i = 0; i < 200; i++) {
+        node1.addNode("foo" + i, "oak:Unstructured").setProperty("foo", "bar");
+    }
+    superuser.save();
+    QueryManager qm = superuser.getWorkspace().getQueryManager();
+    start();
+    String stmt = "select * from [nt:base] where foo = 'bar'";
+    Query q = qm.createQuery(stmt, Query.JCR_SQL2);
+    QueryResult r = q.execute();
+    Iterators.size(r.getRows());
+    stop();
+    boolean queryStmtLog = false;
+    boolean queryIterationLog = false;
+    for (ILoggingEvent e : logs.list) {
+        if (OPS_QUERY.equals(e.getLoggerName())) {
+            if (e.getMessage().contains("Executed query")) {
+                assertEquals(stmt, e.getArgumentArray()[0]);
+                assertTrue(e.getArgumentArray()[1] instanceof Number);
+                queryStmtLog = true;
+            }
+            if (e.getMessage().contains("Iterated over")) {
+                queryIterationLog = true;
+            }
+        }
+    }
+    assertTrue("Did not find query log", queryStmtLog);
+    assertTrue("Did not find query iteration log", queryIterationLog);
+}

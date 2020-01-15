@@ -1,0 +1,13 @@
+@Test
+public void testGetEffectivePolicies() throws Exception {
+    AccessControlPolicy[] policies = cugAccessControlManager.getEffectivePolicies(SUPPORTED_PATH);
+    assertEquals(0, policies.length);
+    cugAccessControlManager.setPolicy(SUPPORTED_PATH, createCug(SUPPORTED_PATH));
+    root.commit();
+    policies = cugAccessControlManager.getEffectivePolicies(SUPPORTED_PATH);
+    assertEquals(1, policies.length);
+    AccessControlPolicy[] effectiveOnChild = cugAccessControlManager.getEffectivePolicies(SUPPORTED_PATH + "/subtree");
+    assertEquals(1, policies.length);
+    assertEquals(policies.length, effectiveOnChild.length);
+    assertEquals(((JackrabbitAccessControlPolicy) policies[0]).getPath(), ((JackrabbitAccessControlPolicy) effectiveOnChild[0]).getPath());
+}

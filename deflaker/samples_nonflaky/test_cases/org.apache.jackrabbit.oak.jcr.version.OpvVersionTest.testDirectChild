@@ -1,0 +1,16 @@
+public void testDirectChild() throws Exception {
+    // n1 : is not versionable -> copied to frozen node
+    assertTrue(frozen.hasNode(nodeName1));
+    Node frozenN1 = frozen.getNode(nodeName1);
+    assertEquals(NT_FROZENNODE, frozenN1.getPrimaryNodeType().getName());
+    assertTrue(frozenN1.hasNode(nodeName2));
+    assertTrue(frozenN1.hasNode(nodeName3));
+    // n1b is versionable -> only child of 'nt:versionedChild' is created in
+    // the frozen node with 'jcr:childVersionHistory' property referring to
+    // the version history of n1b
+    assertTrue(frozen.hasNode(siblingName));
+    Node frozenN1b = frozen.getNode(siblingName);
+    assertEquals(NT_VERSIONEDCHILD, frozenN1b.getPrimaryNodeType().getName());
+    Property childVh = frozenN1b.getProperty(JCR_CHILD_VERSION_HISTORY);
+    assertEquals(versionManager.getVersionHistory(testRoot + '/' + siblingName).getUUID(), childVh.getString());
+}

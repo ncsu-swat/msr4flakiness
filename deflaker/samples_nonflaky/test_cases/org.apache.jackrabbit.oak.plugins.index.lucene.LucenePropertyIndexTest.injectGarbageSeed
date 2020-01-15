@@ -1,0 +1,18 @@
+@Test
+public void injectGarbageSeed() throws Exception {
+    IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+    idxb.indexRule("nt:base").property("foo").propertyIndex();
+    Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+    idxb.build(idx);
+    root.commit();
+    long orignalSeed = NodeStateUtils.getNode(nodeStore.getRoot(), idx.getPath()).getProperty(PROP_RANDOM_SEED).getValue(Type.LONG);
+    // Update seed
+    idx.setProperty(PROP_RANDOM_SEED, "garbage");
+    root.commit();
+    NodeState idxState = NodeStateUtils.getNode(nodeStore.getRoot(), idx.getPath());
+    long defSeed = idxState.getProperty(PROP_RANDOM_SEED).getValue(Type.LONG);
+    long clonedSeed = idxState.getChildNode(INDEX_DEFINITION_NODE).getProperty(PROP_RANDOM_SEED).getValue(Type.LONG);
+    assertNotEquals("Random seed not updated", orignalSeed, defSeed);
+    assertNotEquals("Random seed updated to garbage", "garbage", defSeed);
+    assertTrue("Injected def (" + defSeed + ")and clone (" + clonedSeed + " seeds aren't same", defSeed == clonedSeed);
+}

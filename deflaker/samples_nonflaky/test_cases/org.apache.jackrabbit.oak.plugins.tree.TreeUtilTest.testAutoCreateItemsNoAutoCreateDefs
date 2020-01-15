@@ -1,0 +1,11 @@
+@Test
+public void testAutoCreateItemsNoAutoCreateDefs() throws Exception {
+    Tree noAutoCreate = when(mockTree("/definitions/definition/notAutoCreate", true).getProperty(JCR_AUTOCREATED)).thenReturn(PropertyStates.createProperty(JCR_AUTOCREATED, false)).getMock();
+    Tree defWithChildren = when(mockTree("/definitions/definition", true).getChildren()).thenReturn(ImmutableList.of(noAutoCreate)).getMock();
+    Tree definitions = when(mockTree("/definitions", true).getChildren()).thenReturn(ImmutableList.of(defWithChildren)).getMock();
+    when(ntDef.getChild(REP_NAMED_PROPERTY_DEFINITIONS)).thenReturn(definitions);
+    when(ntDef.getChild(REP_NAMED_CHILD_NODE_DEFINITIONS)).thenReturn(definitions);
+    TreeUtil.autoCreateItems(child, ntDef, typeRoot, "userId");
+    verify(child, never()).setProperty(any(PropertyState.class));
+    verify(child, never()).addChild(anyString());
+}

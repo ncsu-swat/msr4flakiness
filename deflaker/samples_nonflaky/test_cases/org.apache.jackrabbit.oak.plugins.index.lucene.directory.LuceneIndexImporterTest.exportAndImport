@@ -1,0 +1,36 @@
+@Test
+public void exportAndImport() throws Exception {
+    NodeState baseIndexState = idx.getNodeState();
+    LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, baseIndexState, "/oak:index/fooIndex").build();
+    LuceneIndexEditorContext.configureUniqueId(idx);
+    String dirName = ":data";
+    Directory dir = new OakDirectory(idx, dirName, defn, false);
+    createFile(dir, "foo.txt", "Test content");
+    dir.close();
+    String dir2Name = ":data2" + MultiplexersLucene.INDEX_DIR_SUFFIX;
+    Directory dir2 = new OakDirectory(idx, dir2Name, defn, false);
+    createFile(dir2, "foo.txt", "Test content");
+    dir2.close();
+    NodeBuilder builder = rootState.builder();
+    builder.child("oak:index").setChildNode("fooIndex", idx.getNodeState());
+    NodeState indexState = builder.getNodeState();
+    File out = temporaryFolder.newFolder();
+    LuceneIndexDumper dumper = new LuceneIndexDumper(indexState, "/oak:index/fooIndex", out);
+    dumper.dump();
+    LuceneIndexImporter importer = new LuceneIndexImporter();
+    NodeBuilder newIdxBuilder = indexState.builder().getChildNode("oak:index").getChildNode("fooIndex");
+    // Add a file to builder to check if existing hidden nodes are removed or not
+    Directory dir3 = new OakDirectory(newIdxBuilder, dirName, defn, false);
+    createFile(dir3, "foo2.txt", "Test content");
+    dir3.close();
+    importer.importIndex(rootState, newIdxBuilder, dumper.getIndexDir());
+    NodeState exportedIndexState = indexState.getChildNode("oak:index").getChildNode("fooIndex");
+    NodeState importedIndexState = newIdxBuilder.getNodeState();
+    assertDirectoryEquals(defn, exportedIndexState, importedIndexState, dirName);
+    // The uid must be different for imported directory
+    String exportedUid = exportedIndexState.getChildNode(STATUS_NODE).getString(PROP_UID);
+    String importedUid = importedIndexState.getChildNode(STATUS_NODE).getString(PROP_UID);
+    assertNotEquals(exportedUid, importedUid);
+    assertNotNull(exportedUid);
+    assertNotNull(importedUid);
+}

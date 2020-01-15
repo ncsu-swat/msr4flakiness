@@ -1,0 +1,18 @@
+@Test
+public void fullTextQuery_DisjointPropertyPaths() throws Exception {
+    NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo", "bar"), "async");
+    // Index all props and then perform fulltext
+    defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
+    NodeBuilder foob = getNode(defn, "indexRules/nt:base/properties/foo");
+    foob.setProperty(FulltextIndexConstants.PROP_NAME, "foo");
+    foob.setProperty(FulltextIndexConstants.PROP_ANALYZED, true);
+    NodeBuilder barb = getNode(defn, "indexRules/nt:base/properties/bar");
+    barb.setProperty(FulltextIndexConstants.PROP_NAME, "bar");
+    barb.setProperty(FulltextIndexConstants.PROP_ANALYZED, true);
+    FullTextExpression fooExp = FullTextParser.parse("metadata/bar", "mountain OR valley");
+    FullTextExpression barExp = FullTextParser.parse("jcr:content/foo", "mountain OR valley");
+    FullTextExpression exp = new FullTextAnd(Arrays.asList(fooExp, barExp));
+    FulltextIndexPlanner planner = createPlannerForFulltext(defn.getNodeState(), exp);
+    // No plan for unindex property
+    assertNull(planner.getPlan());
+}

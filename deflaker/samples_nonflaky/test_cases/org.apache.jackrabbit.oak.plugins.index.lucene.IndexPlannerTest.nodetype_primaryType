@@ -1,0 +1,24 @@
+@Test
+public void nodetype_primaryType() throws Exception {
+    TestUtil.registerNodeType(builder, testNodeTypeDefn);
+    root = builder.getNodeState();
+    IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+    defnb.nodeTypeIndex();
+    defnb.indexRule("oak:TestSuperType");
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.build(), "/foo");
+    LuceneIndexNode node = createIndexNode(defn);
+    FilterImpl filter = createFilter("oak:TestSuperType");
+    FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+    QueryIndex.IndexPlan plan = planner.getPlan();
+    assertNotNull(plan);
+    FulltextIndexPlanner.PlanResult r = pr(plan);
+    assertTrue(r.evaluateNodeTypeRestriction());
+    // As oak:TestSuperType is parent of oak:TestTypeA the child nodetypes should
+    // also be indexed
+    filter = createFilter("oak:TestTypeA");
+    planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+    plan = planner.getPlan();
+    assertNotNull(plan);
+    r = pr(plan);
+    assertTrue(r.evaluateNodeTypeRestriction());
+}

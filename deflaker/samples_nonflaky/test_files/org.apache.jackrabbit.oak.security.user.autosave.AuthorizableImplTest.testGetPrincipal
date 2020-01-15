@@ -14,205 +14,163 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.user.autosave;
+package org.apache.jackrabbit.oak.security.user;
 
-import com.google.common.collect.Iterators;
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.jcr.RepositoryException;
+
 import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.junit.After;
+import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
-public class AuthorizableImplTest extends AbstractAutoSaveTest {
+/**
+ * Implementation specific tests for {@code AuthorizableImpl} and subclasses.
+ */
+public class AuthorizableImplTest extends AbstractSecurityTest {
 
-    private Authorizable dlg;
-    private AuthorizableImpl a;
+    private UserManager userMgr;
+    private User testUser;
+    private Group testGroup;
 
-    @Before
+    private AuthorizableImpl authorizable;
+
     @Override
+    @Before
     public void before() throws Exception {
         super.before();
-        Authorizable u = mgrDlg.createUser("u", "u");
+
+        userMgr = getUserManager(root);
+        testUser = getTestUser();
+        testGroup = userMgr.createGroup("testGroup");
         root.commit();
 
-        dlg = spy(u);
-        assertFalse(dlg instanceof AuthorizableImpl);
-        a = new AuthorizableImpl(dlg, autosaveMgr);
+        authorizable = (AuthorizableImpl) testUser;
     }
 
-    @After
     @Override
     public void after() throws Exception {
         try {
             root.refresh();
-            Authorizable a = mgrDlg.getAuthorizable("u");
-            if (a != null) {
-                a.remove();
-                root.commit();
+            if (testGroup != null) {
+                testGroup.remove();
             }
+            root.commit();
         } finally {
             super.after();
         }
     }
 
+    /**
+     * @since OAK 1.0
+     */
     @Test
-    public void testGetDlg() throws RepositoryException {
-        assertSame(dlg, a.getDlg());
-        verify(autosaveMgr, never()).autosave();
+    public void testEqualAuthorizables() throws Exception {
+        Authorizable user = userMgr.getAuthorizable(testUser.getID());
+        Authorizable group = userMgr.getAuthorizable(testGroup.getID());
+
+        Map<Authorizable, Authorizable> equalAuthorizables = new HashMap();
+        equalAuthorizables.put(testUser, testUser);
+        equalAuthorizables.put(testGroup, testGroup);
+        equalAuthorizables.put(user, user);
+        equalAuthorizables.put(group, group);
+        equalAuthorizables.put(testUser, user);
+        equalAuthorizables.put(testGroup, group);
+
+        for (Map.Entry entry : equalAuthorizables.entrySet()) {
+            assertEquals(entry.getKey(), entry.getValue());
+            assertEquals(entry.getValue(), entry.getKey());
+        }
     }
 
+    /**
+     * @since OAK 1.0
+     */
     @Test
-    public void testGetMgr() throws RepositoryException {
-        assertSame(autosaveMgr, a.getMgr());
-        verify(autosaveMgr, never()).autosave();
+    public void testNotEqualAuthorizables() throws Exception {
+        UserManager otherUserManager = getUserConfiguration().getUserManager(root, getNamePathMapper());
+        Authorizable user = otherUserManager.getAuthorizable(testUser.getID());
+        Authorizable group = otherUserManager.getAuthorizable(testGroup.getID());
+
+        User differentId = userMgr.createUser(user.getID()+"_", null);
+
+        Map<Authorizable, Authorizable> notEqual = new HashMap();
+        notEqual.put(testUser, testGroup);
+        notEqual.put(user, group);
+        notEqual.put(testUser, user);
+        notEqual.put(testGroup, group);
+        notEqual.put(testUser, differentId);
+
+        for (Map.Entry entry : notEqual.entrySet()) {
+            assertFalse(entry.getKey().equals(entry.getValue()));
+            assertFalse(entry.getValue().equals(entry.getKey()));
+        }
     }
 
-    @Test
-    public void testGetId() throws Exception {
-        assertEquals(dlg.getID(), a.getID());
-        verify(dlg, times(2)).getID();
-        verify(autosaveMgr, never()).autosave();
-    }
-
-    @Test
-    public void testIsGroup() throws RepositoryException {
-        assertEquals(dlg.isGroup(), a.isGroup());
-        verify(dlg, times(2)).isGroup();
-        verify(autosaveMgr, never()).autosave();
-    }
-
-    @Test
-    public void testGetPrincipal() throws Exception {
-        assertEquals(dlg.getPrincipal(), a.getPrincipal());
-        verify(dlg, times(2)).getPrincipal();
-        verify(autosaveMgr, never()).autosave();
-    }
-
-    @Test
-    public void testDeclaredMemberOf() throws Exception {
-        assertTrue(Iterators.elementsEqual(dlg.declaredMemberOf(), a.declaredMemberOf()));
-        verify(dlg, times(2)).declaredMemberOf();
-        verify(autosaveMgr, never()).autosave();
-    }
-
-    @Test
-    public void testMemberOf() throws Exception {
-        assertTrue(Iterators.elementsEqual(dlg.memberOf(), a.memberOf()));
-        verify(dlg, times(2)).memberOf();
-        verify(autosaveMgr, never()).autosave();
-    }
-
-    @Test
-    public void testRemove() throws Exception {
-        a.remove();
-        verify(dlg, times(1)).remove();
-        verify(autosaveMgr, times(1)).autosave();
-    }
-
-    @Test
-    public void testGetPropertyNames() throws Exception {
-        assertTrue(Iterators.elementsEqual(dlg.getPropertyNames(), a.getPropertyNames()));
-        verify(dlg, times(2)).getPropertyNames();
-        verify(autosaveMgr, never()).autosave();
-    }
-
-    @Test
-    public void testGetPropertyNamesRelPath() throws Exception {
-        assertTrue(Iterators.elementsEqual(dlg.getPropertyNames("."), a.getPropertyNames(".")));
-        verify(dlg, times(2)).getPropertyNames(".");
-        verify(autosaveMgr, never()).autosave();
-    }
-
-    @Test
-    public void testHasProperty() throws Exception {
-        assertEquals(dlg.hasProperty("propName"), a.hasProperty("propName"));
-        verify(dlg, times(2)).hasProperty("propName");
-        verify(autosaveMgr, never()).autosave();
-    }
-
-    @Test
-    public void testSetProperty() throws Exception {
-        Value v = getValueFactory(root).createValue(23);
-        a.setProperty("propName", v);
-        verify(dlg, times(1)).setProperty("propName", v);
-        verify(autosaveMgr, times(1)).autosave();
-    }
-
-    @Test
-    public void testSetPropertyMv() throws Exception {
-        Value[] v = new Value[] {};
-        a.setProperty("propName", v);
-        verify(dlg, times(1)).setProperty("propName", v);
-        verify(autosaveMgr, times(1)).autosave();
-    }
-
-    @Test
-    public void testGetProperty() throws Exception {
-        assertNull(a.getProperty("propName"));
-        verify(dlg, times(1)).getProperty("propName");
-        verify(autosaveMgr, never()).autosave();
-    }
-
-    @Test
-    public void testRemoveProperty() throws Exception {
-        assertFalse(a.removeProperty("propName"));
-        verify(dlg, times(1)).removeProperty("propName");
-        verify(autosaveMgr, times(1)).autosave();
-    }
-
-    @Test
-    public void testGetPath() throws Exception {
-        assertEquals(dlg.getPath(), a.getPath());
-        verify(dlg, times(2)).getPath();
-        verify(autosaveMgr, never()).autosave();
-    }
-
-    @Test
-    public void testToString() throws Exception {
-        Authorizable dlg = getTestUser();
-        assertEquals(dlg.toString(), new AuthorizableImpl(dlg, autosaveMgr).toString());
-    }
-
+    /**
+     * @since OAK 1.0
+     */
     @Test
     public void testHashCode() throws Exception {
-        Authorizable dlg = getTestUser();
-        assertEquals(dlg.hashCode(), new AuthorizableImpl(dlg, autosaveMgr).hashCode());
+        Authorizable user = userMgr.getAuthorizable(testUser.getID());
+        Authorizable group = userMgr.getAuthorizable(testGroup.getID());
+
+        Map<Authorizable, Authorizable> sameHashCode = new HashMap();
+        sameHashCode.put(testUser, testUser);
+        sameHashCode.put(testGroup, testGroup);
+        sameHashCode.put(user, user);
+        sameHashCode.put(group, group);
+        sameHashCode.put(testUser, user);
+        sameHashCode.put(testGroup, group);
+
+        for (Map.Entry entry : sameHashCode.entrySet()) {
+            assertEquals(entry.getKey().hashCode(), entry.getValue().hashCode());
+        }
+
+        UserManager otherUserManager = getUserConfiguration().getUserManager(root, getNamePathMapper());
+        user = otherUserManager.getAuthorizable(testUser.getID());
+        group = otherUserManager.getAuthorizable(testGroup.getID());
+
+        Map<Authorizable, Authorizable> notSameHashCode = new HashMap();
+        notSameHashCode.put(testUser, testGroup);
+        notSameHashCode.put(user, group);
+        notSameHashCode.put(testUser, user);
+        notSameHashCode.put(testGroup, group);
+
+        for (Map.Entry entry : notSameHashCode.entrySet()) {
+            assertFalse(entry.getKey().hashCode() == entry.getValue().hashCode());
+        }
     }
 
     @Test
-    public void testEquals() throws Exception {
-        Authorizable dlg = getTestUser();
-        AuthorizableImpl wrapped = new AuthorizableImpl(dlg, autosaveMgr);
-        assertEquals(wrapped,  wrapped);
-        assertEquals(wrapped, new AuthorizableImpl(dlg, autosaveMgr));
-        assertEquals(wrapped, new UserImpl(getTestUser(), new AutoSaveEnabledManager(getUserManager(root), root)));
+    public void testGetTree() {
+        Tree t = root.getTree(authorizable.getPath());
+        assertEquals(t.getPath(), authorizable.getTree().getPath());
     }
 
-    @Test
-    public void testNotEquals() throws Exception {
-        Authorizable dlg = getTestUser();
-        AuthorizableImpl wrapped = new AuthorizableImpl(dlg, autosaveMgr);
-        assertNotEquals(wrapped, dlg);
-        assertNotEquals(wrapped, null);
+    @Test(expected = IllegalStateException.class)
+    public void testGetTreeNotExisting() {
+        root.getTree(authorizable.getPath()).remove();
 
-        Authorizable mock = mock(Authorizable.class);
-        assertNotEquals(wrapped, mock);
-
-        mock = mock(AuthorizableImpl.class);
-        assertNotEquals(wrapped, mock);
+        // getTree must throw
+        authorizable.getTree();
     }
-}
+
+    @Test(expected = RepositoryException.class)
+    public void testGetPrincipalNamePropertyMissing() throws Exception {
+        Tree t = root.getTree(authorizable.getPath());
+        t.removeProperty(UserConstants.REP_PRINCIPAL_NAME);
+
+        // getPrincipalName must throw
+        authorizable.getPrincipalName();
+    }}

@@ -1,0 +1,17 @@
+@Test
+public void testHasPrivilegeSystemUserWithReadAc() throws Exception {
+    // grant read-ac access on effective path and on principal policy
+    grant(testPrincipal, testContentJcrPath, JCR_READ_ACCESS_CONTROL);
+    grant(testPrincipal, systemPrincipalPath, JCR_READ_ACCESS_CONTROL);
+    root.commit();
+    testRoot.refresh();
+    // default model lacks jcr:nodeTypeManagement privilege -> not granted
+    assertFalse(testAcMgr.hasPrivileges(testContentJcrPath, ImmutableSet.of(systemPrincipal), privilegesFromNames(JCR_NODE_TYPE_MANAGEMENT)));
+    addDefaultEntry(testContentJcrPath, systemPrincipal, JCR_READ, JCR_NODE_TYPE_MANAGEMENT);
+    root.commit();
+    testRoot.refresh();
+    // once default model grants permissions as well -> granted
+    assertTrue(testAcMgr.hasPrivileges(testContentJcrPath, ImmutableSet.of(systemPrincipal), privilegesFromNames(JCR_NODE_TYPE_MANAGEMENT)));
+    // but combination read/nt-mgt is not granted because jcr:read is missing on principal-based setup.
+    assertFalse(testAcMgr.hasPrivileges(testContentJcrPath, ImmutableSet.of(systemPrincipal), privilegesFromNames(JCR_READ, JCR_NODE_TYPE_MANAGEMENT)));
+}

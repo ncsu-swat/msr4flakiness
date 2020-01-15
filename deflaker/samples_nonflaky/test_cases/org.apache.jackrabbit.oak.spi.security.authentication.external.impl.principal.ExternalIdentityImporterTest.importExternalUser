@@ -1,0 +1,17 @@
+@Test
+public void importExternalUser() throws Exception {
+    Repository repo = null;
+    Session s = null;
+    try {
+        repo = createRepo();
+        s = createSession(repo, false);
+        Node parent = doImport(s, UserConstants.DEFAULT_USER_PATH, XML_EXTERNAL_USER);
+        assertHasProperties(parent.getNode("t"), ExternalIdentityConstants.REP_EXTERNAL_ID, ExternalIdentityConstants.REP_LAST_SYNCED);
+        assertNotHasProperties(parent.getNode("t"), ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES);
+    } finally {
+        if (s != null) {
+            s.logout();
+        }
+        shutdown(repo);
+    }
+}

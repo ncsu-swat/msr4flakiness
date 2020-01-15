@@ -1,0 +1,13 @@
+@Test
+public void valuePattern() throws Exception {
+    defnb.indexRule("nt:base").property("foo").sync().valuePattern("(a.*|b)");
+    propertyUpdated("/a", "foo", "a");
+    propertyUpdated("/a1", "foo", "a1");
+    propertyUpdated("/b", "foo", "b");
+    propertyUpdated("/c", "foo", "c");
+    assertThat(query("foo", "a"), containsInAnyOrder("/a"));
+    assertThat(query("foo", "a1"), containsInAnyOrder("/a1"));
+    assertThat(query("foo", "b"), containsInAnyOrder("/b"));
+    // c should not be found as its excluded
+    assertThat(query("foo", "c"), empty());
+}

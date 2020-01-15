@@ -1,0 +1,18 @@
+@Test
+public void nodeTypeIndexedSync() throws Exception {
+    TestUtil.registerNodeType(builder, testNodeTypeDefn);
+    root = builder.getNodeState();
+    IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+    defnb.nodeTypeIndex();
+    defnb.indexRule("oak:TestSuperType").sync();
+    IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+    assertTrue(defn.hasSyncPropertyDefinitions());
+    IndexingRule ruleSuper = getRule(defn, "oak:TestSuperType");
+    assertNotNull(ruleSuper);
+    assertTrue(defn.isPureNodeTypeIndex());
+    assertTrue(ruleSuper.getConfig(JcrConstants.JCR_PRIMARYTYPE).propertyIndex);
+    assertTrue(ruleSuper.getConfig(JcrConstants.JCR_PRIMARYTYPE).sync);
+    assertTrue(ruleSuper.getConfig(JcrConstants.JCR_MIXINTYPES).propertyIndex);
+    assertTrue(ruleSuper.getConfig(JcrConstants.JCR_MIXINTYPES).sync);
+    assertTrue(ruleSuper.indexesAllNodesOfMatchingType());
+}

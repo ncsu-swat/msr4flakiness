@@ -1,0 +1,24 @@
+@Test
+public void testSyncCreateUser() throws Exception {
+    setUpJaasFactoryWithInjection();
+    UserManager userManager = getUserManager(root);
+    ContentSession cs = null;
+    try {
+        assertNull(userManager.getAuthorizable(USER_ID));
+        cs = login(new SimpleCredentials(USER_ID, new char[0]));
+        root.refresh();
+        Authorizable a = userManager.getAuthorizable(USER_ID);
+        assertNotNull(a);
+        ExternalUser user = idp.getUser(USER_ID);
+        assertNotNull(user);
+        for (String prop : user.getProperties().keySet()) {
+            assertTrue(a.hasProperty(prop));
+        }
+        assertEquals(TEST_CONSTANT_PROPERTY_VALUE, a.getProperty(TEST_CONSTANT_PROPERTY_NAME)[0].getString());
+    } finally {
+        if (cs != null) {
+            cs.close();
+        }
+        options.clear();
+    }
+}

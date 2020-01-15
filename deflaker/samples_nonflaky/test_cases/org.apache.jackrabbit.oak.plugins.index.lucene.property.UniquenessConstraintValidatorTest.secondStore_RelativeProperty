@@ -1,0 +1,10 @@
+@Test(expected = CommitFailedException.class)
+public void secondStore_RelativeProperty() throws Exception {
+    defnb.indexRule("nt:base").property("jcr:content/foo").unique();
+    updateRootState("/b/jcr:content", "foo", "bar");
+    updateRootState("/a/jcr:content", "foo", "bar");
+    PropertyIndexUpdateCallback callback = newCallback();
+    propertyUpdated(callback, "/a", "jcr:content/foo", "bar");
+    callback.getUniquenessConstraintValidator().setSecondStore((propertyRelativePath, value) -> singletonList("/b"));
+    callback.done();
+}

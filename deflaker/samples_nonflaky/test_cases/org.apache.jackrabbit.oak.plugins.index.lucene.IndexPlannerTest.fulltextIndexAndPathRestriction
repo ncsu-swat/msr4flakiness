@@ -1,0 +1,15 @@
+@Test
+public void fulltextIndexAndPathRestriction() throws Exception {
+    NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+    defn.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+    defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
+    NodeBuilder foob = getNode(defn, "indexRules/nt:base/properties/foo");
+    foob.setProperty(FulltextIndexConstants.PROP_NODE_SCOPE_INDEX, true);
+    LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
+    FilterImpl filter = createFilter("nt:base");
+    filter.restrictPath("/content", Filter.PathRestriction.ALL_CHILDREN);
+    FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+    // For case when a full text property is present then path restriction can be
+    // evaluated
+    assertNotNull(planner.getPlan());
+}

@@ -1,0 +1,15 @@
+@Test
+public void testStartChildInfoRepNodeRestriction() throws Exception {
+    init(true, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
+    User user = getTestSystemUser();
+    Tree policyTree = createPolicyTree(user);
+    importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()), mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
+    importer.start(policyTree);
+    importer.startChildInfo(mockNodeInfo("entry", getJcrName(NT_REP_PRINCIPAL_ENTRY)), mockPropInfos(null, PrivilegeConstants.REP_READ_PROPERTIES));
+    importer.startChildInfo(mockNodeInfo(getJcrName(REP_RESTRICTIONS), getJcrName(NT_REP_RESTRICTIONS)), mockPropInfos(ImmutableMap.of(getJcrName(REP_NODE_PATH), "/effective/path"), PropertyType.STRING));
+    importer.endChildInfo();
+    importer.endChildInfo();
+    importer.end(policyTree);
+    PrincipalPolicyImpl.EntryImpl entry = assertPolicy(getAccessControlManager(root).getPolicies(user.getPrincipal()), 1);
+    assertEquals("/effective/path", entry.getEffectivePath());
+}

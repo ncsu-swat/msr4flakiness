@@ -1,0 +1,13 @@
+@Test
+public void testGetPrincipalInheritedGroups() throws Exception {
+    ImmutableSet<ExternalIdentityRef> declared = ImmutableSet.<ExternalIdentityRef>copyOf(idp.getUser(USER_ID).getDeclaredGroups());
+    for (ExternalIdentityRef ref : declared) {
+        for (ExternalIdentityRef inheritedGroupRef : idp.getIdentity(ref).getDeclaredGroups()) {
+            if (declared.contains(inheritedGroupRef)) {
+                continue;
+            }
+            String inheritedPrincName = idp.getIdentity(inheritedGroupRef).getPrincipalName();
+            assertNull(principalProvider.getPrincipal(inheritedPrincName));
+        }
+    }
+}

@@ -1,0 +1,14 @@
+@Test
+public void tetChildChangedMissingMixin() {
+    NodeState rootState = spy(getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH)));
+    when(mockNodeState.getProperty(JcrConstants.JCR_PRIMARYTYPE)).thenReturn(createPrimaryTypeProperty(NT_REP_PRINCIPAL_POLICY));
+    NodeState child = mockNodeState(NT_OAK_UNSTRUCTURED);
+    when(child.hasChildNode(REP_PRINCIPAL_POLICY)).thenReturn(true);
+    when(child.getChildNode(REP_PRINCIPAL_POLICY)).thenReturn(mockNodeState);
+    try {
+        createRootValidator(rootState).childNodeChanged("any", child, child);
+        failCommitFailedExcpected(33);
+    } catch (CommitFailedException e) {
+        assertCommitFailed(e, 33);
+    }
+}

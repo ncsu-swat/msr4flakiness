@@ -1,0 +1,25 @@
+public void testMixTitleOnUnstructured() throws Exception {
+    Node n = testRootNode.addNode("unstructured", JcrConstants.NT_UNSTRUCTURED);
+    n.addMixin("mix:title");
+    superuser.save();
+    // create jcr:title property with type LONG => declaring NT is nt:unstructured
+    Property title = n.setProperty("jcr:title", 12345);
+    assertEquals(PropertyType.LONG, title.getType());
+    PropertyDefinition def = title.getDefinition();
+    assertEquals(JcrConstants.NT_UNSTRUCTURED, def.getDeclaringNodeType().getName());
+    assertEquals(PropertyType.UNDEFINED, def.getRequiredType());
+    // changing value to STRING => ValueFormatException expected
+    try {
+        title.setValue("str");
+        fail();
+    } catch (ValueFormatException e) {
+    // success
+    }
+    // re-setting property to STRING -> change definition => declaring NT is mix:title
+    n.setProperty("jcr:title", "str");
+    assertEquals(PropertyType.STRING, title.getType());
+    assertEquals(PropertyType.STRING, title.getValue().getType());
+    def = title.getDefinition();
+    assertEquals("mix:title", def.getDeclaringNodeType().getName());
+    assertEquals(PropertyType.STRING, def.getRequiredType());
+}

@@ -1,0 +1,28 @@
+@Test
+public void testSize() throws Exception {
+    NodeState root = InitialContentHelper.INITIAL_CONTENT;
+    SelectorImpl selector = newSelector(root, "a");
+    String sqlQuery = "select [jcr:path], [jcr:score] from [nt:base] as a where" + " contains([jcr:content/*], 'founded')";
+    SolrServerProvider solrServerProvider = mock(SolrServerProvider.class);
+    OakSolrConfigurationProvider configurationProvider = mock(OakSolrConfigurationProvider.class);
+    OakSolrConfiguration configuration = new DefaultSolrConfiguration() {
+
+        @Override
+        public boolean useForPropertyRestrictions() {
+            return true;
+        }
+    };
+    when(configurationProvider.getConfiguration()).thenReturn(configuration);
+    SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, configurationProvider, solrServerProvider);
+    FilterImpl filter = new FilterImpl(selector, sqlQuery, new QueryEngineSettings());
+    List<QueryIndex.IndexPlan> plans = solrQueryIndex.getPlans(filter, null, root);
+    for (QueryIndex.IndexPlan p : plans) {
+        Cursor cursor = solrQueryIndex.query(p, root);
+        assertNotNull(cursor);
+        long sizeExact = cursor.getSize(Result.SizePrecision.EXACT, 100000);
+        long sizeApprox = cursor.getSize(Result.SizePrecision.APPROXIMATION, 100000);
+        long sizeFastApprox = cursor.getSize(Result.SizePrecision.FAST_APPROXIMATION, 100000);
+        assertTrue(Math.abs(sizeExact - sizeApprox) < 10);
+        assertTrue(Math.abs(sizeExact - sizeFastApprox) > 10000);
+    }
+}

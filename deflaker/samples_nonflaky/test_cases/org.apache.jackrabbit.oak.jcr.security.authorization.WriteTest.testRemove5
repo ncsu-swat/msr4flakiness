@@ -1,0 +1,18 @@
+@Test
+public void testRemove5() throws Exception {
+    // add 'remove_node' privilege at 'childNPath'
+    Privilege[] rmNode = privilegesFromName(Privilege.JCR_REMOVE_NODE);
+    allow(childNPath, rmNode);
+    /*
+         expected result:
+         - node at childNPath can't be removed since REMOVE_CHILD_NODES is missing.
+         */
+    assertFalse(testSession.hasPermission(childNPath, Session.ACTION_REMOVE));
+    try {
+        testSession.getNode(childNPath).remove();
+        testSession.save();
+        fail("Removal must fail");
+    } catch (AccessDeniedException e) {
+    // success
+    }
+}

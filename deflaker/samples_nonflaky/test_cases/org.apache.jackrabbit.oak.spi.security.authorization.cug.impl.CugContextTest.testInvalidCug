@@ -1,0 +1,16 @@
+@Test
+public void testInvalidCug() throws Exception {
+    PropertyState ps = PropertyStates.createProperty(CugConstants.REP_PRINCIPAL_NAMES, ImmutableSet.of(getTestUser().getPrincipal().getName()), Type.STRINGS);
+    // cug at unsupported path -> context doesn't take supported paths into account.
+    Tree invalidCug = TreeUtil.addChild(root.getTree(UNSUPPORTED_PATH), CugConstants.REP_CUG_POLICY, CugConstants.NT_REP_CUG_POLICY);
+    invalidCug.setProperty(ps);
+    assertTrue(CugContext.INSTANCE.definesContextRoot(invalidCug));
+    assertTrue(CugContext.INSTANCE.definesTree(invalidCug));
+    assertTrue(CugContext.INSTANCE.definesProperty(invalidCug, invalidCug.getProperty(CugConstants.REP_PRINCIPAL_NAMES)));
+    // 'cug' with wrong node type -> detected as no-cug by context
+    invalidCug = TreeUtil.addChild(root.getTree(UNSUPPORTED_PATH), CugConstants.REP_CUG_POLICY, NT_OAK_UNSTRUCTURED);
+    invalidCug.setProperty(ps);
+    assertFalse(CugContext.INSTANCE.definesContextRoot(invalidCug));
+    assertFalse(CugContext.INSTANCE.definesTree(invalidCug));
+    assertFalse(CugContext.INSTANCE.definesProperty(invalidCug, invalidCug.getProperty(CugConstants.REP_PRINCIPAL_NAMES)));
+}

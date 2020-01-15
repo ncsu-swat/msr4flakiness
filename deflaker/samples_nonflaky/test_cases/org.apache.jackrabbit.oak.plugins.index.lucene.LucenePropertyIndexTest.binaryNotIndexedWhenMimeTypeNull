@@ -1,0 +1,13 @@
+@Test
+public void binaryNotIndexedWhenMimeTypeNull() throws Exception {
+    Tree idx = createFulltextIndex(root.getTree("/"), "test");
+    TestUtil.useV2(idx);
+    Tree test = root.getTree("/").addChild("test");
+    String path = createFileNode(test, "text", "red brown fox was jumping", "text/plain").getPath();
+    root.commit();
+    assertQuery("select * from [nt:base] where CONTAINS(*, 'jumping')", asList("/test/text/jcr:content"));
+    // Remove the mimeType property. Then binary would not be indexed and result would be empty
+    root.getTree(path).removeProperty(JcrConstants.JCR_MIMETYPE);
+    root.commit();
+    assertQuery("select * from [nt:base] where CONTAINS(*, 'jumping')", Collections.<String>emptyList());
+}

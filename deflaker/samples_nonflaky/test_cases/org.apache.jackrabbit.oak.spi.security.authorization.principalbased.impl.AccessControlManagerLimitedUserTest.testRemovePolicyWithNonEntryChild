@@ -1,0 +1,20 @@
+@Test
+public void testRemovePolicyWithNonEntryChild() throws Exception {
+    // clear all entries from policy
+    PrincipalPolicyImpl policy = getPrincipalPolicyImpl(systemPrincipal, getAccessControlManager(root));
+    for (AccessControlEntry entry : policy.getAccessControlEntries()) {
+        policy.removeAccessControlEntry(entry);
+    }
+    getAccessControlManager(root).setPolicy(policy.getPath(), policy);
+    // grant permission to read/modify policy
+    grant(testPrincipal, systemPrincipalPath, JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL);
+    root.commit();
+    testRoot.refresh();
+    // transiently add non-entry tree
+    Tree policyTree = testRoot.getTree(getPolicyPath());
+    assertFalse(policyTree.getChildren().iterator().hasNext());
+    TreeUtil.addChild(policyTree, "nonEntry", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+    policy = getPrincipalPolicyImpl(systemPrincipal, testAcMgr);
+    testAcMgr.removePolicy(policy.getPath(), policy);
+    testRoot.commit();
+}

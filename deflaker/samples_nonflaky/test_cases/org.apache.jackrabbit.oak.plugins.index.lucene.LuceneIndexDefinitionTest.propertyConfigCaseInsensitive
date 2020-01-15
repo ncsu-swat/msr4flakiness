@@ -1,0 +1,15 @@
+@Test
+public void propertyConfigCaseInsensitive() throws Exception {
+    NodeBuilder rules = builder.child(INDEX_RULES);
+    rules.child("nt:folder");
+    TestUtil.child(rules, "nt:folder/properties/foo").setProperty(PROP_NAME, "Foo").setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
+    TestUtil.child(rules, "nt:folder/properties/bar").setProperty(PROP_NAME, "BAR").setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    IndexingRule rule1 = defn.getApplicableIndexingRule(asState(newNode("nt:folder")));
+    assertNotNull(rule1);
+    assertTrue(rule1.isIndexed("Foo"));
+    assertTrue(rule1.isIndexed("foo"));
+    assertTrue(rule1.isIndexed("fOO"));
+    assertTrue(rule1.isIndexed("bar"));
+    assertFalse(rule1.isIndexed("baz"));
+}

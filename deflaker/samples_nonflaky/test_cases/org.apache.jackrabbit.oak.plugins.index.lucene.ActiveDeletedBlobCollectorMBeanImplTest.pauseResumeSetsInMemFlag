@@ -1,0 +1,13 @@
+@Test
+public void pauseResumeSetsInMemFlag() {
+    IndexPathService indexPathService = MockRegistrar.getIndexPathsService(indexPaths);
+    AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(newArrayList(new IndexMBeanInfoSupplier("foo-async", () -> STATUS_DONE, () -> 2L)));
+    ActiveDeletedBlobCollectorMBean bean = getTestBean(indexPathService, asyncIndexInfoService);
+    assertFalse("Bean should delegate the call correctly", bean.isActiveDeletionUnsafe());
+    bean.flagActiveDeletionUnsafeForCurrentState();
+    assertTrue("Active deleted blob collector isn't notified to stop marking", ActiveDeletedBlobCollectorFactory.NOOP.isActiveDeletionUnsafe());
+    assertTrue("Bean should delegate the call correctly", bean.isActiveDeletionUnsafe());
+    bean.flagActiveDeletionSafe();
+    assertFalse("Active deleted blob collector isn't notified to resume marking", ActiveDeletedBlobCollectorFactory.NOOP.isActiveDeletionUnsafe());
+    assertFalse("Bean should delegate the call correctly", bean.isActiveDeletionUnsafe());
+}

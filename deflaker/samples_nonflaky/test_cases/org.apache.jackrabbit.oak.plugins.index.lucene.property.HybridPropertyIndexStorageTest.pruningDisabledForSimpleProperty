@@ -1,0 +1,11 @@
+@Test
+public void pruningDisabledForSimpleProperty() throws Exception {
+    defnb.indexRule("nt:base").property("foo").sync();
+    newCallback().propertyUpdated("/a", "foo", pd("foo"), null, createProperty("foo", "bar"));
+    newCallback().propertyUpdated("/b", "foo", pd("foo"), null, createProperty("foo", "bar"));
+    assertThat(query("foo", newString("bar")), containsInAnyOrder("/a", "/b"));
+    builder = builder.getNodeState().builder();
+    newCallback().propertyUpdated("/b", "foo", pd("foo"), createProperty("foo", "bar"), null);
+    // /b would still come as pruning is disabled
+    assertThat(query("foo", newString("bar")), containsInAnyOrder("/a", "/b"));
+}

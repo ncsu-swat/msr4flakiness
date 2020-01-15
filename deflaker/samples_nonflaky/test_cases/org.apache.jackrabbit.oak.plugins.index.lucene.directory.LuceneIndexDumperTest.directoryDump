@@ -1,0 +1,25 @@
+@Test
+public void directoryDump() throws Exception {
+    LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, idx.getNodeState(), "/fooIndex").build();
+    long size = 0;
+    Directory dir = new OakDirectory(idx, ":data", defn, false);
+    createFile(dir, "foo.txt", "Test content");
+    size += DirectoryUtils.dirSize(dir);
+    Directory dir2 = new OakDirectory(idx, ":data2" + MultiplexersLucene.INDEX_DIR_SUFFIX, defn, false);
+    createFile(dir2, "foo.txt", "Test content");
+    size += DirectoryUtils.dirSize(dir2);
+    NodeBuilder builder = rootState.builder();
+    builder.setChildNode("fooIndex", idx.getNodeState());
+    NodeState indexState = builder.getNodeState();
+    File out = temporaryFolder.newFolder();
+    LuceneIndexDumper dumper = new LuceneIndexDumper(indexState, "/fooIndex", out);
+    dumper.dump();
+    File indexDir = dumper.getIndexDir();
+    assertNotNull(indexDir);
+    // 2 dir + 1 meta
+    assertEquals(3, indexDir.listFiles().length);
+    assertEquals(dumper.getSize(), size);
+    IndexMeta meta = new IndexMeta(new File(indexDir, INDEX_METADATA_FILE_NAME));
+    assertNotNull(meta.getFSNameFromJCRName(":data"));
+    assertNotNull(meta.getFSNameFromJCRName(":data2" + MultiplexersLucene.INDEX_DIR_SUFFIX));
+}

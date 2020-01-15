@@ -1,0 +1,13 @@
+@Test
+public void testGetDefaultChildTypeFromNamedWithSns() {
+    Tree def = mock(Tree.class);
+    Tree definitions = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of(def)).getMock();
+    PropertyState ps = PropertyStates.createProperty(JCR_DEFAULTPRIMARYTYPE, NT_RESOURCE, Type.NAME);
+    when(def.getProperty(JCR_DEFAULTPRIMARYTYPE)).thenReturn(ps);
+    PropertyState sns = PropertyStates.createProperty(JCR_SAMENAMESIBLINGS, true, Type.BOOLEAN);
+    when(def.getProperty(JCR_SAMENAMESIBLINGS)).thenReturn(sns);
+    Tree named = when(mock(Tree.class).getChild("newChild")).thenReturn(definitions).getMock();
+    when(ntDef.getChild(REP_NAMED_CHILD_NODE_DEFINITIONS)).thenReturn(named);
+    assertEquals(NT_RESOURCE, TreeUtil.getDefaultChildType(typeRoot, child, "newChild"));
+    assertEquals(NT_RESOURCE, TreeUtil.getDefaultChildType(typeRoot, child, "newChild[4]"));
+}

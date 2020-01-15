@@ -1,0 +1,14 @@
+@Test
+public void testCanHandlePopulatesCache() throws Exception {
+    Principal principal = getTestSystemUser().getPrincipal();
+    PrincipalProvider pp = when(mock(PrincipalProvider.class).getPrincipal(principal.getName())).thenReturn(principal).getMock();
+    PrincipalConfiguration pc = when(mock(PrincipalConfiguration.class).getPrincipalProvider(root, getNamePathMapper())).thenReturn(pp).getMock();
+    SecurityProvider sp = when(mock(SecurityProvider.class).getConfiguration(PrincipalConfiguration.class)).thenReturn(pc).getMock();
+    Filter filter = getFilterProvider().getFilter(sp, root, getNamePathMapper());
+    // call 'canHandle' twice
+    Set<Principal> set = singleton((SystemUserPrincipal) () -> principal.getName());
+    assertTrue(filter.canHandle(set));
+    assertTrue(filter.canHandle(set));
+    // principalprovider must only be hit once
+    verify(pp, times(1)).getPrincipal(principal.getName());
+}

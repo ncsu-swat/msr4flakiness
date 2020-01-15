@@ -1,0 +1,18 @@
+@Test
+public void testLostMembershipWithExpirationSet() throws Exception {
+    long expTime = 2;
+    syncConfig.user().setMembershipNestingDepth(1).setMembershipExpirationTime(expTime).setExpirationTime(expTime);
+    Group gr = createTestGroup();
+    setExternalID(gr, idp.getName());
+    SyncResult result = syncCtx.sync(idp.listUsers().next());
+    User user = (User) userManager.getAuthorizable(result.getIdentity().getId());
+    gr.addMember(user);
+    root.commit();
+    waitUntilExpired(user, root, expTime);
+    DefaultSyncContext newCtx = new DefaultSyncContext(syncConfig, idp, userManager, valueFactory);
+    result = newCtx.sync(user.getID());
+    root.commit();
+    assertSame(SyncResult.Status.UPDATE, result.getStatus());
+    gr = (Group) userManager.getAuthorizable(gr.getID());
+    assertFalse(gr.isDeclaredMember(userManager.getAuthorizable(user.getID())));
+}

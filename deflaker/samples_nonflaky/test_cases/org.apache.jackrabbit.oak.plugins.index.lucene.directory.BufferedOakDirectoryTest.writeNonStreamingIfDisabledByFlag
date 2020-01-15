@@ -1,0 +1,15 @@
+@Test
+public void writeNonStreamingIfDisabledByFlag() throws Exception {
+    boolean oldVal = BufferedOakDirectory.isEnableWritingSingleBlobIndexFile();
+    BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(false);
+    try (Directory multiBlobDir = createDir(builder, true)) {
+        OakIndexOutput multiBlobIndexOutput = (OakIndexOutput) multiBlobDir.createOutput("foo1", IOContext.DEFAULT);
+        assertTrue("OakBufferedIndexFile must be used", multiBlobIndexOutput.file instanceof OakBufferedIndexFile);
+    }
+    BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(true);
+    try (Directory multiBlobDir = createDir(builder, true)) {
+        OakIndexOutput multiBlobIndexOutput = (OakIndexOutput) multiBlobDir.createOutput("foo2", IOContext.DEFAULT);
+        assertTrue("OakStreamingIndexFile must be used", multiBlobIndexOutput.file instanceof OakStreamingIndexFile);
+    }
+    BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(oldVal);
+}

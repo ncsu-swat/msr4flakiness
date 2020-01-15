@@ -1,0 +1,16 @@
+@Test
+public void testLoginAfterSyncSetup5() throws Exception {
+    setup5.sync(USER_ID, false);
+    try (ContentSession cs = login(new SimpleCredentials(USER_ID, new char[0]))) {
+        // the login must not set any auto-membership principals to the subject
+        // as auto-membership is not configured on this setup.
+        Set<Principal> principals = cs.getAuthInfo().getPrincipals();
+        Set<Principal> expected = ImmutableSet.of(EveryonePrincipal.getInstance(), userManager.getAuthorizable(USER_ID).getPrincipal());
+        assertEquals(expected, principals);
+        assertFalse(principals.contains(new PrincipalImpl(NON_EXISTING_NAME)));
+        assertFalse(principals.contains(setup1.gr.getPrincipal()));
+        assertFalse(principals.contains(setup2.gr.getPrincipal()));
+        assertFalse(principals.contains(setup3.gr.getPrincipal()));
+        assertFalse(principals.contains(setup4.gr.getPrincipal()));
+    }
+}

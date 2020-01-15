@@ -1,0 +1,14 @@
+@Test
+public void testInitialSyncExternalGroup() throws Exception {
+    ExternalGroup externalGroup = idp.getGroup("a");
+    String[] externalId = new String[] { externalGroup.getExternalId().getString() };
+    String[] result = syncMBean.syncExternalUsers(externalId);
+    assertResultMessages(result, "a", "add");
+    UserManager userManager = getUserManager();
+    Group aGroup = userManager.getAuthorizable(externalGroup.getId(), Group.class);
+    assertNotNull(aGroup);
+    // membership of groups are not synced (unless imposed by user-sync with membership depth)
+    for (ExternalIdentityRef groupRef : externalGroup.getDeclaredGroups()) {
+        assertNull(userManager.getAuthorizable(groupRef.getId()));
+    }
+}

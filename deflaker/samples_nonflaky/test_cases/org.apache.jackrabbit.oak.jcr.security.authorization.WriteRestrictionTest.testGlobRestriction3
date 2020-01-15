@@ -1,0 +1,15 @@
+@Test
+public void testGlobRestriction3() throws Exception {
+    Privilege[] addNode = privilegesFromName(Privilege.JCR_ADD_CHILD_NODES);
+    // permissions defined @ path
+    // restriction: allows write to nodeName3 children
+    allow(path, repWritePrivileges, createGlobRestriction("/*/" + nodeName3));
+    // and grant add-node only at path (no glob restriction)
+    allow(path, addNode);
+    assertFalse(testAcMgr.hasPrivileges(path, repWritePrivileges));
+    assertTrue(testAcMgr.hasPrivileges(path, addNode));
+    assertFalse(testAcMgr.hasPrivileges(childNPath, repWritePrivileges));
+    assertTrue(testAcMgr.hasPrivileges(childNPath, addNode));
+    assertFalse(testAcMgr.hasPrivileges(childNPath2, repWritePrivileges));
+    assertTrue(testAcMgr.hasPrivileges(nodePath3, repWritePrivileges));
+}

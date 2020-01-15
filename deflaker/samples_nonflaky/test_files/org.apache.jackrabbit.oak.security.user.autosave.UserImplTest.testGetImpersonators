@@ -14,178 +14,135 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.user;
+package org.apache.jackrabbit.oak.security.user.autosave;
 
-import javax.jcr.Credentials;
-import javax.jcr.RepositoryException;
-
+import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.UUIDUtils;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.security.user.UserIdCredentials;
-import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
-import org.jetbrains.annotations.NotNull;
-import org.junit.After;
+import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.junit.Before;
 import org.junit.Test;
 
-import static javax.jcr.Property.JCR_PRIMARY_TYPE;
-import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.NT_REP_GROUP;
+import javax.jcr.RepositoryException;
+import java.security.Principal;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class UserImplTest extends AbstractSecurityTest {
+public class UserImplTest extends AbstractAutoSaveTest {
 
-    private User user;
+    private User dlg;
+    private UserImpl user;
+    private Impersonation impersonationMock = mock(Impersonation.class);
 
-    @Override
     @Before
+    @Override
     public void before() throws Exception {
         super.before();
-        user = getTestUser();
-    }
+        dlg = spy(getTestUser());
+        assertFalse(dlg instanceof UserImpl);
+        when(dlg.getImpersonation()).thenReturn(impersonationMock);
 
-    @Override
-    @After
-    public void after() throws Exception {
-        try {
-            root.refresh();
-        } finally {
-            super.after();
-        }
-    }
-
-    @NotNull
-    private User getAdminUser() throws Exception {
-        User admin = getUserManager(root).getAuthorizable(UserConstants.DEFAULT_ADMIN_ID, User.class);
-        assertNotNull(admin);
-        return admin;
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testCreateFromInvalidTree() throws Exception {
-        Tree t = when(mock(Tree.class).getProperty(JCR_PRIMARY_TYPE)).thenReturn(PropertyStates.createProperty(JCR_PRIMARY_TYPE, NT_REP_GROUP, Type.NAME)).getMock();
-        User u = new UserImpl("uid", t, (UserManagerImpl) getUserManager(root));
+        user = new UserImpl(dlg, autosaveMgr);
     }
 
     @Test
-    public void testIsAdmin() {
-        assertFalse(user.isAdmin());
+    public void testIsAdmin() throws Exception {
+        assertEquals(dlg.isAdmin(), user.isAdmin());
+        verify(dlg, times(2)).isAdmin();
+        verify(autosaveMgr, never()).autosave();
     }
 
     @Test
-    public void testAdministratorIsAdmin() throws Exception {
-        assertTrue(getAdminUser().isAdmin());
+    public void testIsSystemUser() throws Exception {
+        assertEquals(dlg.isSystemUser(), user.isSystemUser());
+        verify(dlg, times(2)).isSystemUser();
+        verify(autosaveMgr, never()).autosave();
     }
 
     @Test
-    public void testIsSystemUser() {
-        assertFalse(user.isSystemUser());
+    public void testGetCredentials() throws RepositoryException {
+        assertEquals(dlg.getCredentials().getClass().getName(), user.getCredentials().getClass().getName());
+        verify(dlg, times(2)).getCredentials();
+        verify(autosaveMgr, never()).autosave();
     }
 
     @Test
-    public void testIsGroup() {
-        assertFalse(user.isGroup());
+    public void testGetImpersonation() throws RepositoryException {
+        user.getImpersonation();
+        verify(dlg, times(2)).getImpersonation();
+        verify(autosaveMgr, never()).autosave();
     }
 
     @Test
-    public void testRemove() throws Exception {
-        String id = user.getID();
-        user.remove();
-        assertNull(getUserManager(root).getAuthorizable(id, User.class));
-    }
-
-    @Test(expected = RepositoryException.class)
-    public void testRemoveAdmin() throws Exception {
-        getAdminUser().remove();
-    }
-
-    @Test(expected = RepositoryException.class)
-    public void testChangePasswordToNull() throws Exception {
-        user.changePassword(null);
+    public void testChancePassword() throws Exception {
+        user.changePassword("newPw");
+        verify(dlg, times(1)).changePassword("newPw");
+        verify(autosaveMgr, times(1)).autosave();
     }
 
     @Test
-    public void testChangePassword() throws Exception {
-        String pwHash = root.getTree(user.getPath()).getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING);
-        assertTrue(PasswordUtil.isSame(pwHash, user.getID()));
-
-        user.changePassword("different");
-        String pwHash2 = root.getTree(user.getPath()).getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING);
-        assertTrue(PasswordUtil.isSame(pwHash2, "different"));
-    }
-
-    @Test(expected = RepositoryException.class)
-    public void testChangePasswordWithOldMismatch() throws Exception {
-        user.changePassword("different", "wrongOldPassword");
-    }
-
-    @Test
-    public void testChangePasswordWithOld() throws Exception {
-        String pwHash = root.getTree(user.getPath()).getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING);
-        assertTrue(PasswordUtil.isSame(pwHash, user.getID()));
-
-        user.changePassword("different", user.getID());
-
-        String pwHash2 = root.getTree(user.getPath()).getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING);
-        assertTrue(PasswordUtil.isSame(pwHash2, "different"));
+    public void testChancePasswordOldPw() throws Exception {
+        String oldpw = user.getID();
+        user.changePassword("newPw", oldpw);
+        verify(dlg, times(1)).changePassword("newPw", oldpw);
+        verify(autosaveMgr, times(1)).autosave();
     }
 
     @Test
     public void testDisable() throws Exception {
-        assertNull(user.getDisabledReason());
-        assertFalse(user.isDisabled());
-
-        user.disable("reason");
-        assertEquals("reason", user.getDisabledReason());
-        assertTrue(user.isDisabled());
-
-        user.disable(null);
-        assertNull(user.getDisabledReason());
-        assertFalse(user.isDisabled());
+        user.disable("disable");
+        verify(dlg, times(1)).disable("disable");
+        verify(autosaveMgr, times(1)).autosave();
     }
 
     @Test
-    public void testDisableNullReason() throws Exception {
-        assertNull(user.getDisabledReason());
-        assertFalse(user.isDisabled());
-
-        user.disable(null);
-
-        assertNull(user.getDisabledReason());
-        assertFalse(user.isDisabled());
-    }
-
-    @Test(expected = RepositoryException.class)
-    public void testDisableAdministrator() throws Exception {
-        getAdminUser().disable("reason");
+    public void testIsDisabled() throws Exception {
+        assertEquals(dlg.isDisabled(), user.isDisabled());
+        verify(dlg, times(2)).isDisabled();
+        verify(autosaveMgr, never()).autosave();
     }
 
     @Test
-    public void testGetCredentials() throws Exception {
-        Credentials creds = user.getCredentials();
-        assertTrue(creds instanceof CredentialsImpl);
-
-        CredentialsImpl cImpl = (CredentialsImpl) creds;
-        assertEquals(user.getID(), cImpl.getUserId());
-        assertTrue(PasswordUtil.isSame(cImpl.getPasswordHash(), user.getID()));
+    public void testGetDisabledReason() throws Exception {
+        assertEquals(dlg.getDisabledReason(), user.getDisabledReason());
+        verify(dlg, times(2)).getDisabledReason();
+        verify(autosaveMgr, never()).autosave();
     }
 
     @Test
-    public void testGetCredentialsUserWithoutPassword() throws Exception {
-        User u = getUserManager(root).createUser("u"+ UUIDUtils.generateUUID(), null);
+    public void testGetImpersonators() throws Exception {
+        user.getImpersonation().getImpersonators();
+        verify(impersonationMock, times(1)).getImpersonators();
+        verify(autosaveMgr, never()).autosave();
+    }
 
-        Credentials creds = u.getCredentials();
-        assertTrue(creds instanceof UserIdCredentials);
-        assertEquals(u.getID(), ((UserIdCredentials) creds).getUserId());
+    @Test
+    public void testGrantImpersonation() throws Exception {
+        Principal principal = new PrincipalImpl("any");
+        user.getImpersonation().grantImpersonation(principal);
+        verify(impersonationMock, times(1)).grantImpersonation(principal);
+        verify(autosaveMgr, times(1)).autosave();
+    }
+
+    @Test
+    public void testRevokeImpersonation() throws Exception {
+        Principal principal = new PrincipalImpl("any");
+        user.getImpersonation().revokeImpersonation(principal);
+        verify(impersonationMock, times(1)).revokeImpersonation(principal);
+        verify(autosaveMgr, times(1)).autosave();
+    }
+
+    @Test
+    public void testImpersonation() throws Exception {
+        user.getImpersonation().allows(SystemSubject.INSTANCE);
+        verify(impersonationMock, times(1)).allows(SystemSubject.INSTANCE);
+        verify(autosaveMgr, never()).autosave();
     }
 }

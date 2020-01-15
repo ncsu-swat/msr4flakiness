@@ -1,0 +1,19 @@
+@Test
+public void testFindPrincipalByType() {
+    for (Principal pcpl : adminPrincipals) {
+        if (pcpl.equals(everyone)) {
+            // special case covered by another test
+            continue;
+        }
+        assertTrue(principalMgr.hasPrincipal(pcpl.getName()));
+        if (isGroup(pcpl)) {
+            PrincipalIterator it = principalMgr.findPrincipals(pcpl.getName(), PrincipalManager.SEARCH_TYPE_GROUP);
+            // search must find at least a single matching group principal
+            assertTrue("findPrincipals does not find principal with filter " + pcpl.getName(), it.hasNext());
+        } else {
+            PrincipalIterator it = principalMgr.findPrincipals(pcpl.getName(), PrincipalManager.SEARCH_TYPE_NOT_GROUP);
+            // search must find at least a single matching non-group principal
+            assertTrue("findPrincipals does not find principal with filter '" + pcpl.getName() + "' and type " + PrincipalManager.SEARCH_TYPE_NOT_GROUP, it.hasNext());
+        }
+    }
+}

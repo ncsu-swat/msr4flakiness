@@ -1,0 +1,11 @@
+@Test
+public void testExcludedPrincipals() {
+    ConfigurationParameters params = ConfigurationParameters.of(CugConstants.PARAM_CUG_ENABLED, true, CugConstants.PARAM_CUG_SUPPORTED_PATHS, "/content");
+    CugConfiguration cc = createConfiguration(params);
+    List<Principal> excluded = ImmutableList.of(SystemPrincipal.INSTANCE, (AdminPrincipal) () -> "admin", (SystemUserPrincipal) () -> "systemUser");
+    for (Principal p : excluded) {
+        Set<Principal> principals = ImmutableSet.of(p, EveryonePrincipal.getInstance());
+        PermissionProvider pp = cc.getPermissionProvider(root, "default", principals);
+        assertSame(EmptyPermissionProvider.getInstance(), pp);
+    }
+}

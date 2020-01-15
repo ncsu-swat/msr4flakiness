@@ -1,0 +1,14 @@
+@Test
+public void nodeIndexed_WithIncludedPaths() throws Exception {
+    IndexDefinitionBuilder idxb = new IndexDefinitionBuilder();
+    idxb.indexRule("nt:base").property("foo").propertyIndex();
+    idxb.includedPaths("/content");
+    NodeState defn = idxb.build();
+    IndexDefinition idxDefn = new IndexDefinition(root, defn, "/oak:index/testIndex");
+    NodeBuilder builder = root.builder();
+    LuceneIndexer indexer = new LuceneIndexer(idxDefn, mock(LuceneIndexWriter.class), builder, mock(FulltextBinaryTextExtractor.class), mock(IndexingProgressReporter.class));
+    NodeState testNode = EMPTY_NODE.builder().setProperty("foo", "bar").getNodeState();
+    assertTrue(indexer.index(new NodeStateEntry(testNode, "/content/x")));
+    assertFalse(indexer.index(new NodeStateEntry(testNode, "/x")));
+    assertFalse(indexer.index(new NodeStateEntry(testNode, "/")));
+}

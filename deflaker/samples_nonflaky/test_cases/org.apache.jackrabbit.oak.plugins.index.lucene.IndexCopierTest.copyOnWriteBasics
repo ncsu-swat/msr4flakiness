@@ -1,0 +1,38 @@
+@Test
+public void copyOnWriteBasics() throws Exception {
+    Directory baseDir = new CloseSafeDir();
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    IndexCopier copier = new RAMIndexCopier(baseDir, sameThreadExecutor(), getWorkDir());
+    Directory remote = new RAMDirectory();
+    byte[] t1 = writeFile(remote, "t1");
+    // State of remote directory should set before wrapping as later
+    // additions would not be picked up given COW assume remote directory
+    // to be read only
+    Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME, IndexCopier.COWDirectoryTracker.NOOP);
+    assertEquals(newHashSet("t1"), newHashSet(local.listAll()));
+    assertEquals(t1.length, local.fileLength("t1"));
+    byte[] t2 = writeFile(local, "t2");
+    assertEquals(newHashSet("t1", "t2"), newHashSet(local.listAll()));
+    assertEquals(t2.length, local.fileLength("t2"));
+    assertTrue(local.fileExists("t1"));
+    assertTrue(local.fileExists("t2"));
+    assertTrue("t2 should be copied to remote", remote.fileExists("t2"));
+    readAndAssert(local, "t1", t1);
+    readAndAssert(local, "t2", t2);
+    local.deleteFile("t1");
+    assertEquals(newHashSet("t2"), newHashSet(local.listAll()));
+    local.deleteFile("t2");
+    assertEquals(newHashSet(), newHashSet(local.listAll()));
+    try {
+        local.fileLength("nonExistentFile");
+        fail();
+    } catch (FileNotFoundException ignore) {
+    }
+    try {
+        local.openInput("nonExistentFile", IOContext.DEFAULT);
+        fail();
+    } catch (FileNotFoundException ignore) {
+    }
+    local.close();
+    assertFalse(baseDir.fileExists("t2"));
+}

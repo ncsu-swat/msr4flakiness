@@ -1,0 +1,48 @@
+@Test
+public void fillExternalChanges2() throws Exception {
+    Revision r1 = new Revision(1, 0, 1);
+    Revision r2 = new Revision(2, 0, 1);
+    Revision r3 = new Revision(3, 0, 1);
+    Revision r4 = new Revision(4, 0, 1);
+    DocumentStore store = new MemoryDocumentStore();
+    JournalEntry entry = JOURNAL.newDocument(store);
+    entry.modified(p("/"));
+    entry.modified(p("/foo"));
+    UpdateOp op = entry.asUpdateOp(r2);
+    assertTrue(store.create(JOURNAL, Collections.singletonList(op)));
+    entry = JOURNAL.newDocument(store);
+    entry.modified(p("/"));
+    entry.modified(p("/bar"));
+    op = entry.asUpdateOp(r4);
+    assertTrue(store.create(JOURNAL, Collections.singletonList(op)));
+    StringSort sort = externalChanges(r1, r1, store);
+    assertEquals(0, sort.getSize());
+    sort.close();
+    sort = externalChanges(r1, r2, store);
+    assertEquals(Sets.newHashSet("/", "/foo"), Sets.newHashSet(sort));
+    sort.close();
+    sort = externalChanges(r1, r3, store);
+    assertEquals(Sets.newHashSet("/", "/foo", "/bar"), Sets.newHashSet(sort));
+    sort.close();
+    sort = externalChanges(r1, r4, store);
+    assertEquals(Sets.newHashSet("/", "/foo", "/bar"), Sets.newHashSet(sort));
+    sort.close();
+    sort = externalChanges(r2, r2, store);
+    assertEquals(0, sort.getSize());
+    sort.close();
+    sort = externalChanges(r2, r3, store);
+    assertEquals(Sets.newHashSet("/", "/bar"), Sets.newHashSet(sort));
+    sort.close();
+    sort = externalChanges(r2, r4, store);
+    assertEquals(Sets.newHashSet("/", "/bar"), Sets.newHashSet(sort));
+    sort.close();
+    sort = externalChanges(r3, r3, store);
+    assertEquals(0, sort.getSize());
+    sort.close();
+    sort = externalChanges(r3, r4, store);
+    assertEquals(Sets.newHashSet("/", "/bar"), Sets.newHashSet(sort));
+    sort.close();
+    sort = externalChanges(r4, r4, store);
+    assertEquals(0, sort.getSize());
+    sort.close();
+}

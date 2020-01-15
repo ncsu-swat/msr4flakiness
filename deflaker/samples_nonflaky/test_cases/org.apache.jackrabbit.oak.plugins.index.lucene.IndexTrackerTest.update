@@ -1,0 +1,19 @@
+@Test
+public void update() throws Exception {
+    NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+    newLucenePropertyIndexDefinition(index, "lucene", ImmutableSet.of("foo"), "async");
+    NodeState before = builder.getNodeState();
+    builder.setProperty("foo", "bar");
+    NodeState after = builder.getNodeState();
+    NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+    assertEquals(0, tracker.getIndexNodePaths().size());
+    tracker.update(indexed);
+    LuceneIndexNode indexNode = tracker.acquireIndexNode("/oak:index/lucene");
+    indexNode.release();
+    assertEquals(1, tracker.getIndexNodePaths().size());
+    tracker.refresh();
+    assertEquals(1, tracker.getIndexNodePaths().size());
+    tracker.update(indexed);
+    // Post refresh size should be 0 as all are closed
+    assertEquals(0, tracker.getIndexNodePaths().size());
+}

@@ -1,0 +1,17 @@
+@Test
+public void onlyPropertyFields() throws Exception {
+    Document document = new Document();
+    document.add(new StringField("foo", "manualBar", Field.Store.NO));
+    document.add(new StringField(":someHiddenField", "manualBar", Field.Store.NO));
+    document.add(new StringField(FieldNames.ANALYZED_FIELD_PREFIX + "foo", "manualBar", Field.Store.NO));
+    document.add(new StringField(FieldNames.FULLTEXT_RELATIVE_NODE + "foo", "manualBar", Field.Store.NO));
+    document.add(new StringField("foo_facet", "manualBar", Field.Store.NO));
+    Directory d = createSampleDirectory(document);
+    LuceneIndexStatistics stats = getStats(d);
+    assertEquals(3, stats.getDocCountFor("foo"));
+    assertEquals(0, stats.getDocCountFor("absent"));
+    assertEquals(-1, stats.getDocCountFor(":someHiddenField"));
+    assertEquals(-1, stats.getDocCountFor(FieldNames.ANALYZED_FIELD_PREFIX + "foo"));
+    assertEquals(-1, stats.getDocCountFor(FieldNames.FULLTEXT_RELATIVE_NODE + "foo"));
+    assertEquals(-1, stats.getDocCountFor("foo_facet"));
+}

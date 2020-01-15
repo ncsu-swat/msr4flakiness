@@ -1,0 +1,10 @@
+@Test
+public void unprocessedSyncQueuedDocs() throws Exception {
+    queue.enabled = true;
+    holder.add(true, LuceneDoc.forDelete("/oak:index/foo", "/a"));
+    holder.add(true, LuceneDoc.forDelete("/oak:index/foo", "/c"));
+    queue.enabled = false;
+    holder.add(true, LuceneDoc.forDelete("/oak:index/foo", "/b"));
+    queue.luceneDocs.get("/c").markProcessed();
+    assertThat(asMultiMap(holder.getSyncIndexedDocs()).values(), containsInAnyOrder("/a", "/b"));
+}

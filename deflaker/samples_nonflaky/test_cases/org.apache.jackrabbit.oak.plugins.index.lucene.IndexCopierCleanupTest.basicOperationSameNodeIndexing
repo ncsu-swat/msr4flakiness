@@ -1,0 +1,29 @@
+@Test
+public void basicOperationSameNodeIndexing() throws Exception {
+    Directory cow = copier.getCoWDir();
+    writeFile(cow, "a");
+    cow.close();
+    Directory cor1 = copier.getCoRDir();
+    cow = copier.getCoWDir();
+    cow.deleteFile("a");
+    writeFile(cow, "b");
+    cow.close();
+    Directory cor2 = copier.getCoRDir();
+    cor1.close();
+    // CoR1 saw "a" and everything else is newer. Nothing should get deleted
+    assertTrue(existsLocally("a"));
+    assertTrue(existsLocally("b"));
+    cow = copier.getCoWDir();
+    cow.deleteFile("b");
+    writeFile(cow, "c");
+    cow.close();
+    Directory cor3 = copier.getCoRDir();
+    cor2.close();
+    assertFalse(existsLocally("a"));
+    assertTrue(existsLocally("b"));
+    assertTrue(existsLocally("c"));
+    cor3.close();
+    assertFalse(existsLocally("a"));
+    assertFalse(existsLocally("b"));
+    assertTrue(existsLocally("c"));
+}

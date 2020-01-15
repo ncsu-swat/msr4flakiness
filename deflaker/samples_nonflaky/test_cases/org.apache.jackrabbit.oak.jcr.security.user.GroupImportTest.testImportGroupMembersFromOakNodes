@@ -1,0 +1,55 @@
+/**
+ * @since OAK 1.0 : Importing new rep:MembershipReferences structure
+ */
+@Test
+public void testImportGroupMembersFromOakNodes() throws Exception {
+    List<String> createdUsers = new LinkedList<String>();
+    Session s = getImportSession();
+    UserManager uMgr = getUserManager();
+    try {
+        for (int i = 0; i < 32; i++) {
+            String user = "testUser" + i;
+            if (uMgr.getAuthorizable(user) == null) {
+                uMgr.createUser(user, user);
+                createdUsers.add(user);
+            }
+        }
+        if (!uMgr.isAutoSave()) {
+            s.save();
+        }
+        doImport(getTargetPath(), "GroupImportTest-testImportGroupMembersFromOakNodes.xml");
+        if (!uMgr.isAutoSave()) {
+            s.save();
+        }
+        Authorizable authorizable = uMgr.getAuthorizable("testGroup");
+        assertNotNull("testGroup authorizable must exist", authorizable);
+        assertTrue("testGroup authorizable must be a group", authorizable.isGroup());
+        Group testGroup = (Group) authorizable;
+        for (int i = 0; i < 32; i++) {
+            String user = "testUser" + i;
+            assertTrue(user + " should be member of " + testGroup, testGroup.isMember(uMgr.getAuthorizable(user)));
+        }
+        authorizable = uMgr.getAuthorizable("shrimps");
+        assertNotNull("shrimps authorizable must exist", authorizable);
+        assertTrue("shrimps authorizable must be a group", authorizable.isGroup());
+        testGroup = (Group) authorizable;
+        for (int i = 0; i < 32; i++) {
+            String user = "testUser" + i;
+            assertTrue(user + " should be member of " + testGroup, testGroup.isMember(uMgr.getAuthorizable(user)));
+        }
+    } finally {
+        for (String user : createdUsers) {
+            Authorizable a = uMgr.getAuthorizable(user);
+            if (a != null && !a.isGroup()) {
+                a.remove();
+            }
+        }
+        for (NodeIterator it = s.getNode(getTargetPath()).getNodes(); it.hasNext(); ) {
+            Node n = it.nextNode();
+            if (!n.getDefinition().isProtected()) {
+                n.remove();
+            }
+        }
+        s.save();
+    }
+}

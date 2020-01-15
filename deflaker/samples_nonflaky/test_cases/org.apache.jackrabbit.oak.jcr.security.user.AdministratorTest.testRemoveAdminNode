@@ -1,0 +1,16 @@
+@Test
+public void testRemoveAdminNode() throws RepositoryException, NotExecutableException {
+    String adminId = admin.getID();
+    // access the node corresponding to the admin user and remove it
+    Node adminNode = superuser.getNode(admin.getPath());
+    try {
+        adminNode.remove();
+        // use session obtained from the node as usermgr may point to a dedicated
+        // system workspace different from the superusers workspace.
+        superuser.save();
+        fail("Admin user node cannot be removed.");
+    } catch (Exception e) {
+        // success -> get rid of possibly pending transient modifications
+        superuser.refresh(false);
+    }
+}

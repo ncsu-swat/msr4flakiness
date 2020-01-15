@@ -1,0 +1,25 @@
+@Test
+public void testTextFVIndexAndSearch() throws Exception {
+    String fieldName = "text";
+    String[] texts = new String[] { "0.1,0.3,0.5,0.7,0.11,0.13,0.17,0.19,0.23,0.29", "0.1 0.3 0.5 0.7 0.11 0.13 0.17 0.19 0.23 0.29" };
+    for (String text : texts) {
+        LSHAnalyzer analyzer = new LSHAnalyzer();
+        Directory directory = new RAMDirectory();
+        IndexWriter writer = new IndexWriter(directory, new IndexWriterConfig(Version.LUCENE_47, analyzer));
+        DirectoryReader reader = null;
+        try {
+            Document document = new Document();
+            document.add(new TextField(fieldName, text, Field.Store.YES));
+            writer.addDocument(document);
+            writer.commit();
+            reader = DirectoryReader.open(writer, false);
+            assertSimQuery(analyzer, fieldName, text, reader);
+        } finally {
+            if (reader != null) {
+                reader.close();
+            }
+            writer.close();
+            directory.close();
+        }
+    }
+}

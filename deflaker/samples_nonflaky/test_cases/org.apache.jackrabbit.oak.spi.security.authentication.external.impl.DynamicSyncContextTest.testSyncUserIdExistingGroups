@@ -1,0 +1,18 @@
+@Test
+public void testSyncUserIdExistingGroups() throws Exception {
+    ExternalUser externalUser = idp.getUser(USER_ID);
+    DefaultSyncContext ctx = new DefaultSyncContext(syncConfig, idp, userManager, valueFactory);
+    ctx.sync(externalUser);
+    ctx.close();
+    Authorizable user = userManager.getAuthorizable(externalUser.getId());
+    for (ExternalIdentityRef ref : externalUser.getDeclaredGroups()) {
+        Group gr = userManager.getAuthorizable(ref.getId(), Group.class);
+        assertTrue(gr.isMember(user));
+    }
+    syncContext.setForceUserSync(true);
+    syncContext.sync(externalUser.getId());
+    Authorizable a = userManager.getAuthorizable(USER_ID);
+    Tree t = r.getTree(a.getPath());
+    assertFalse(t.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES));
+    assertSyncedMembership(userManager, a, externalUser);
+}

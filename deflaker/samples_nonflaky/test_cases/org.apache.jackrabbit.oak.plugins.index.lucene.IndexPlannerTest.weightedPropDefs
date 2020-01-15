@@ -1,0 +1,58 @@
+@Test
+public void weightedPropDefs() throws Exception {
+    String indexPath = "/test";
+    IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder(child(builder, indexPath));
+    idxBuilder.indexRule("nt:base").property("foo").propertyIndex().weight(500).enclosingRule().property("foo1").propertyIndex().weight(20).enclosingRule().property("foo2").propertyIndex().weight(0).enclosingRule().property("foo3").propertyIndex();
+    NodeState defn = idxBuilder.build();
+    List<Document> docs = Lists.newArrayList();
+    Document doc;
+    for (int i = 0; i < 60; i++) {
+        doc = new Document();
+        doc.add(new StringField("foo1", "bar1" + i, Field.Store.NO));
+        docs.add(doc);
+    }
+    doc = new Document();
+    doc.add(new StringField("foo2", "bar2", Field.Store.NO));
+    docs.add(doc);
+    Directory sampleDirectory = createSampleDirectory(1000, docs);
+    LuceneIndexDefinition idxDefn = new LuceneIndexDefinition(root, defn, indexPath);
+    LuceneIndexNode node = createIndexNode(idxDefn, sampleDirectory);
+    // Query on "foo"
+    FilterImpl filter = createFilter("nt:base");
+    filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+    FulltextIndexPlanner planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+    QueryIndex.IndexPlan plan = planner.getPlan();
+    // scale down 1000 by 500 = 2
+    assertEquals(2, plan.getEstimatedEntryCount());
+    // Query on "foo1"
+    filter = createFilter("nt:base");
+    filter.restrictProperty("foo1", Operator.EQUAL, PropertyValues.newString("bar"));
+    planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+    plan = planner.getPlan();
+    // scale down 60 by 20 = 2
+    assertEquals(3, plan.getEstimatedEntryCount());
+    // Query on "foo" and "foo1"
+    filter = createFilter("nt:base");
+    filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+    filter.restrictProperty("foo1", Operator.EQUAL, PropertyValues.newString("bar"));
+    planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+    plan = planner.getPlan();
+    // min(2, 3)
+    assertEquals(2, plan.getEstimatedEntryCount());
+    // Query on "foo1" and "foo2"
+    filter = createFilter("nt:base");
+    filter.restrictProperty("foo1", Operator.EQUAL, PropertyValues.newString("bar"));
+    filter.restrictProperty("foo2", Operator.EQUAL, PropertyValues.newString("bar"));
+    planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+    plan = planner.getPlan();
+    // don't scale down 1 by 0 (foo1 would estimate 3)
+    assertEquals(1, plan.getEstimatedEntryCount());
+    // Query on "foo1" and "foo3"
+    filter = createFilter("nt:base");
+    filter.restrictProperty("foo1", Operator.EQUAL, PropertyValues.newString("bar"));
+    filter.restrictProperty("foo3", Operator.EQUAL, PropertyValues.newString("bar"));
+    planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+    plan = planner.getPlan();
+    // min(0, 3)
+    assertEquals(0, plan.getEstimatedEntryCount());
+}

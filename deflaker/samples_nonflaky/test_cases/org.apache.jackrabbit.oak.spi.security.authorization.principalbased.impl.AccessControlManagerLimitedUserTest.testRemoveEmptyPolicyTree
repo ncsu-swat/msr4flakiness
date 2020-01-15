@@ -1,0 +1,16 @@
+@Test(expected = CommitFailedException.class)
+public void testRemoveEmptyPolicyTree() throws Exception {
+    PrincipalPolicyImpl policy = getPrincipalPolicyImpl(systemPrincipal, getAccessControlManager(root));
+    for (AccessControlEntry entry : policy.getEntries()) {
+        policy.removeAccessControlEntry(entry);
+    }
+    getAccessControlManager(root).setPolicy(policy.getPath(), policy);
+    // grant permission to read policy
+    grant(testPrincipal, systemPrincipalPath, JCR_READ_ACCESS_CONTROL);
+    root.commit();
+    testRoot.refresh();
+    Tree policyTree = testRoot.getTree(getPolicyPath());
+    assertTrue(policyTree.exists());
+    policyTree.remove();
+    testRoot.commit();
+}

@@ -1,0 +1,29 @@
+@Test
+public void indexTimeFieldBoost() throws Exception {
+    // Index Definition
+    Tree idx = createIndex("test1", of("propa", "propb", "propc"));
+    idx.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, true);
+    Tree propNode = idx.addChild(PROP_NODE);
+    // property definition for index test1
+    Tree propA = propNode.addChild("propa");
+    propA.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_STRING);
+    propA.setProperty(FulltextIndexConstants.FIELD_BOOST, 2.0);
+    Tree propB = propNode.addChild("propb");
+    propB.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_STRING);
+    propB.setProperty(FulltextIndexConstants.FIELD_BOOST, 1.0);
+    Tree propC = propNode.addChild("propc");
+    propC.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_STRING);
+    propC.setProperty(FulltextIndexConstants.FIELD_BOOST, 4.0);
+    root.commit();
+    // create test data
+    Tree test = root.getTree("/").addChild("test");
+    root.commit();
+    test.addChild("a").setProperty("propa", "foo");
+    test.addChild("b").setProperty("propb", "foo");
+    test.addChild("c").setProperty("propc", "foo");
+    root.commit();
+    String queryString = "//* [jcr:contains(., 'foo' )]";
+    // verify results ordering
+    // which should be /test/c (boost = 4.0), /test/a(boost = 2.0), /test/b (1.0)
+    assertOrderedQuery(queryString, asList("/test/c", "/test/a", "/test/b"), XPATH, true);
+}

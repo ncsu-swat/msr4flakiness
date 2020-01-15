@@ -1,0 +1,39 @@
+@Test
+public void dontWarnWhileErrorsWhileDeletingBlobs() throws Exception {
+    LogCustomizer warnLogCustomizer = LogCustomizer.forLogger(ActiveDeletedBlobCollectorFactory.class.getName()).enable(Level.WARN).contains("Exception occurred while ").create();
+    BlobDeletionCallback bdc = adbc.getBlobDeletionCallback();
+    bdc.deleted("blobId1", Collections.singleton("/a"));
+    bdc.deleted("blobId2", Collections.singleton("/b"));
+    bdc.deleted("blobId3", Collections.singleton("/c"));
+    bdc.commitProgress(COMMIT_SUCCEDED);
+    List<String> externallyDeletedChunks = Lists.newArrayList(blobStore.resolveChunks("blobId2"));
+    blobStore.countDeleteChunks(externallyDeletedChunks, 0);
+    warnLogCustomizer.starting();
+    adbc.purgeBlobsDeleted(clock.getTimeIncreasing(), blobStore);
+    blobStore.deletedChunkIds.removeAll(externallyDeletedChunks);
+    verifyBlobsDeleted("blobId1", "blobId3");
+    assertEquals("No warn logs must show up: " + warnLogCustomizer.getLogs(), 0, warnLogCustomizer.getLogs().size());
+    warnLogCustomizer.finished();
+    bdc = adbc.getBlobDeletionCallback();
+    bdc.deleted("blobId4", Collections.singleton("/d"));
+    bdc.deleted("blobId5", Collections.singleton("/e"));
+    bdc.commitProgress(COMMIT_SUCCEDED);
+    blobStore.resetLists();
+    blobStore.failWithDSEForChunkIds.addAll(Lists.newArrayList(blobStore.resolveChunks("blobId4")));
+    warnLogCustomizer.starting();
+    adbc.purgeBlobsDeleted(clock.getTimeIncreasing(), blobStore);
+    verifyBlobsDeleted("blobId3", "blobId5");
+    assertEquals("No warn logs must show up", 0, warnLogCustomizer.getLogs().size());
+    warnLogCustomizer.finished();
+    bdc = adbc.getBlobDeletionCallback();
+    bdc.deleted("blobId6", Collections.singleton("/f"));
+    bdc.deleted("blobId7", Collections.singleton("/g"));
+    bdc.commitProgress(COMMIT_SUCCEDED);
+    blobStore.resetLists();
+    blobStore.failWithExceptionForChunkIds.addAll(Lists.newArrayList(blobStore.resolveChunks("blobId6")));
+    warnLogCustomizer.starting();
+    adbc.purgeBlobsDeleted(clock.getTimeIncreasing(), blobStore);
+    verifyBlobsDeleted("blobId5", "blobId7");
+    assertEquals("General exception must log a warn", 1, warnLogCustomizer.getLogs().size());
+    warnLogCustomizer.finished();
+}

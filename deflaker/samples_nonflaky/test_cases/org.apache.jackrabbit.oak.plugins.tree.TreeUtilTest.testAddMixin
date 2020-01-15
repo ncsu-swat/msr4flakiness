@@ -1,0 +1,11 @@
+@Test
+public void testAddMixin() throws Exception {
+    Tree defWithoutChildren = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of()).getMock();
+    when(ntDef.getProperty(JCR_ISMIXIN)).thenReturn(PropertyStates.createProperty(JCR_ISMIXIN, true, Type.BOOLEAN));
+    when(ntDef.getChild(REP_NAMED_PROPERTY_DEFINITIONS)).thenReturn(defWithoutChildren);
+    when(ntDef.getChild(REP_NAMED_CHILD_NODE_DEFINITIONS)).thenReturn(defWithoutChildren);
+    when(typeRoot.getChild(MIX_CREATED)).thenReturn(ntDef);
+    TreeUtil.addMixin(child, MIX_CREATED, typeRoot, "userId");
+    verify(child, times(1)).getProperty(JcrConstants.JCR_MIXINTYPES);
+    verify(child, times(1)).setProperty(JcrConstants.JCR_MIXINTYPES, Lists.newArrayList(MIX_LOCKABLE, MIX_VERSIONABLE, MIX_CREATED), Type.NAMES);
+}

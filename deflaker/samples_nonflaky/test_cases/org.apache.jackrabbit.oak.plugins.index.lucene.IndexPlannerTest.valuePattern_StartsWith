@@ -1,0 +1,17 @@
+@Test
+public void valuePattern_StartsWith() throws Exception {
+    IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+    defnb.indexRule("nt:base").property("foo").propertyIndex().valueExcludedPrefixes("/jobs");
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.build(), "/foo");
+    LuceneIndexNode node = createIndexNode(defn);
+    FilterImpl filter = createFilter("nt:base");
+    filter.restrictProperty("foo", Operator.GREATER_OR_EQUAL, PropertyValues.newString("/bar"));
+    filter.restrictProperty("foo", Operator.LESS_OR_EQUAL, PropertyValues.newString("/bar0"));
+    FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+    assertNotNull(planner.getPlan());
+    filter = createFilter("nt:base");
+    filter.restrictProperty("foo", Operator.GREATER_OR_EQUAL, PropertyValues.newString("/jobs"));
+    filter.restrictProperty("foo", Operator.LESS_OR_EQUAL, PropertyValues.newString("/jobs0"));
+    planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+    assertNull(planner.getPlan());
+}

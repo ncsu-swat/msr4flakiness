@@ -1,0 +1,20 @@
+@Test
+public void singleUniqueProperty() throws Exception {
+    defnb.indexRule("nt:base").property("foo").unique();
+    updateRootState("/a", "foo", "bar");
+    updateRootState("/b", "foo", "bar");
+    PropertyUpdateCallback callback = newCallback();
+    callback.propertyUpdated("/a", "foo", pd("foo"), null, createProperty("foo", "bar"));
+    callback.propertyUpdated("/b", "foo", pd("foo"), null, createProperty("foo", "bar"));
+    try {
+        callback.done();
+        fail();
+    } catch (CommitFailedException e) {
+        assertEquals(CONSTRAINT, e.getType());
+        assertEquals(30, e.getCode());
+        assertThat(e.getMessage(), containsString(indexPath));
+        assertThat(e.getMessage(), containsString("/a"));
+        assertThat(e.getMessage(), containsString("/b"));
+        assertThat(e.getMessage(), containsString("foo"));
+    }
+}

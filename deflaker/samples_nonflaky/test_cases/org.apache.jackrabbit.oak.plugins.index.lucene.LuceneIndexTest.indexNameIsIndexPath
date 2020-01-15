@@ -1,0 +1,13 @@
+@Test
+public void indexNameIsIndexPath() throws Exception {
+    NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+    newLucenePropertyIndexDefinition(index, "lucene", ImmutableSet.of("foo"), null);
+    NodeState before = builder.getNodeState();
+    builder.setProperty("foo", "bar");
+    NodeState after = builder.getNodeState();
+    NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+    String indexPath = "/oak:index/lucene";
+    IndexDefinition defn = new IndexDefinition(root, indexed.getChildNode("oak:index").getChildNode("lucene"), indexPath);
+    assertEquals(indexPath, defn.getIndexName());
+    assertEquals(indexPath, defn.getIndexPath());
+}

@@ -1,0 +1,13 @@
+@Test
+public void testMixedUserGroupPermissions() throws Exception {
+    /* explicitly withdraw MODIFY_PROPERTIES for the user */
+    deny(path, testUser.getPrincipal(), modPropPrivileges);
+    /* give MODIFY_PROPERTIES privilege for a Group the test-user is member of */
+    allow(path, testGroup.getPrincipal(), modPropPrivileges);
+    /*
+         since user-permissions overrule the group permissions, testuser must
+         not have set_property action / modify_properties privilege.
+         */
+    assertFalse(testSession.hasPermission(path, Session.ACTION_SET_PROPERTY));
+    assertFalse(testAcMgr.hasPrivileges(path, modPropPrivileges));
+}

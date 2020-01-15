@@ -1,0 +1,53 @@
+@Test
+public void testRemoveProperty() throws Exception {
+    // grant 'testUser' REMOVE_PROPERTIES privileges at 'path'
+    Privilege[] privileges = privilegesFromNames(new String[] { "rep:removeProperties" });
+    allow(path, privileges);
+    /*
+         testuser must now have
+         - REMOVE_PROPERTY_PROPERTIES permission
+         - no other write permission
+        */
+    assertHasPrivilege(path, Privilege.JCR_MODIFY_PROPERTIES, false);
+    assertHasPrivilege(path, "rep:addProperties", false);
+    assertHasPrivilege(path, "rep:removeProperties", true);
+    assertHasPrivilege(path, "rep:alterProperties", false);
+    // set_property action for non-existing property is translated to
+    // "add_properties" permission -> denied
+    String propertyPath = path + "/newProperty";
+    assertFalse(testSession.hasPermission(propertyPath, Session.ACTION_SET_PROPERTY));
+    // creating a new property must fail
+    Node testN = testSession.getNode(path);
+    try {
+        testN.setProperty("newProperty", "value");
+        testSession.save();
+        fail();
+    } catch (AccessDeniedException e) {
+        // success
+        testSession.refresh(false);
+    }
+    superuser.getNode(path).setProperty("newProperty", "value");
+    superuser.save();
+    testSession.refresh(false);
+    // now property exists -> 'set_property' actions is denied, 'remove' is granted
+    assertFalse(testSession.hasPermission(propertyPath, Session.ACTION_SET_PROPERTY));
+    assertTrue(testSession.hasPermission(propertyPath, Session.ACTION_REMOVE));
+    // modifying the new property must fail
+    try {
+        testN.setProperty("newProperty", "modified");
+        testSession.save();
+        fail();
+    } catch (AccessDeniedException e) {
+    // success
+    }
+    try {
+        testN.getProperty("newProperty").setValue("modified");
+        testSession.save();
+        fail();
+    } catch (AccessDeniedException e) {
+    // success
+    }
+    // removing the property must succeed
+    testN.getProperty("newProperty").remove();
+    testSession.save();
+}

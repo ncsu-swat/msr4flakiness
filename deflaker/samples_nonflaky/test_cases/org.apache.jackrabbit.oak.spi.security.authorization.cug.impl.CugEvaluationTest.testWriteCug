@@ -1,0 +1,16 @@
+@Test
+public void testWriteCug() throws Exception {
+    ContentSession cs = createTestSession2();
+    Root r = cs.getLatestRoot();
+    try {
+        // modify the existing cug
+        Tree tree = r.getTree("/content/a/rep:cugPolicy");
+        tree.setProperty(REP_PRINCIPAL_NAMES, ImmutableList.of(EveryonePrincipal.NAME, testGroupPrincipal.getName()), Type.STRINGS);
+        r.commit();
+        fail();
+    } catch (CommitFailedException e) {
+        assertTrue(e.isAccessViolation());
+    } finally {
+        r.refresh();
+    }
+}

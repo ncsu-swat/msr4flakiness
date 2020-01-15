@@ -1,0 +1,15 @@
+@Test
+public void readOnlyFileDataStore() throws Exception {
+    String[] args = { "--fds-path", temporaryFolder.getRoot().getAbsolutePath() };
+    try (BlobStoreFixture fixture = BlobStoreFixtureProvider.create(createFDSOptions(args))) {
+        try {
+            BlobStore blobStore = fixture.getBlobStore();
+            assertThat(blobStore, instanceOf(GarbageCollectableBlobStore.class));
+            assertThat(blobStore, instanceOf(TypedDataStore.class));
+            assertThat(blobStore, instanceOf(BlobTrackingStore.class));
+            fixture.getBlobStore().writeBlob(new ByteArrayInputStream("foo".getBytes()));
+            fail();
+        } catch (Exception ignore) {
+        }
+    }
+}

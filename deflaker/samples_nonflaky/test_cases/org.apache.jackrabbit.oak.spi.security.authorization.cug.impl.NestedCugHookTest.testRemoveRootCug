@@ -1,0 +1,15 @@
+@Test
+public void testRemoveRootCug() throws Exception {
+    // add cug at /
+    createCug(root, ROOT_PATH, EveryonePrincipal.NAME);
+    createCug("/content", getTestGroupPrincipal());
+    createCug("/content2", EveryonePrincipal.getInstance());
+    root.commit();
+    assertTrue(root.getTree(PathUtils.concat(ROOT_PATH, REP_CUG_POLICY)).remove());
+    root.commit();
+    assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, "/content", "/content2");
+    assertTrue(removeCug("/content", true));
+    assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, "/content2");
+    assertTrue(removeCug("/content2", true));
+    assertNestedCugs(root, getRootProvider(), ROOT_PATH, false);
+}

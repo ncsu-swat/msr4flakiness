@@ -1,0 +1,18 @@
+@Test
+public void injectRandomSeedDuringRefresh() throws Exception {
+    IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+    idxb.indexRule("nt:base").property("foo").propertyIndex();
+    Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+    idxb.build(idx);
+    root.commit();
+    long seed = new Random().nextLong();
+    // Push a change to get another indexing cycle run
+    idx.setProperty(PROP_RANDOM_SEED, seed);
+    idx.setProperty(PROP_REFRESH_DEFN, true);
+    root.commit();
+    NodeState idxState = NodeStateUtils.getNode(nodeStore.getRoot(), idx.getPath());
+    long defSeed = idxState.getProperty(PROP_RANDOM_SEED).getValue(Type.LONG);
+    long clonedSeed = idxState.getChildNode(INDEX_DEFINITION_NODE).getProperty(PROP_RANDOM_SEED).getValue(Type.LONG);
+    assertEquals("Random seed not updated", seed, defSeed);
+    assertTrue("Injected def (" + defSeed + ")and clone (" + clonedSeed + " seeds aren't same", defSeed == clonedSeed);
+}

@@ -1,0 +1,9 @@
+@Test
+public void testGetPrivileges() throws Exception {
+    try (ContentSession cs = Subject.doAsPrivileged(getTestSubject(), (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null), null)) {
+        PrincipalBasedAccessControlManager testAcMgr = new PrincipalBasedAccessControlManager(getMgrProvider(cs.getLatestRoot()), getFilterProvider());
+        Privilege[] expected = privilegesFromNames(JCR_READ);
+        assertArrayEquals(expected, testAcMgr.getPrivileges(readablePaths.next()));
+        assertArrayEquals(expected, testAcMgr.getPrivileges(readableChildPaths.next()));
+    }
+}

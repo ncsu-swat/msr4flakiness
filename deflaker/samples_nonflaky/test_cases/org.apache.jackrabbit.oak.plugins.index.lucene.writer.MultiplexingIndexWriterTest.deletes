@@ -1,0 +1,22 @@
+@Test
+public void deletes() throws Exception {
+    LuceneIndexWriterFactory factory = newDirectoryFactory();
+    LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
+    writer.updateDocument("/libs/config", newDoc("/libs/config"));
+    writer.updateDocument("/libs/install", newDoc("/libs/install"));
+    writer.updateDocument("/content", newDoc("/content"));
+    writer.updateDocument("/content/en", newDoc("/content/en"));
+    writer.close(0);
+    assertEquals(2, numDocs(fooMount));
+    assertEquals(2, numDocs(defaultMount));
+    writer = factory.newInstance(defn, builder, true);
+    writer.deleteDocuments("/libs/config");
+    writer.close(0);
+    assertEquals(1, numDocs(fooMount));
+    assertEquals(2, numDocs(defaultMount));
+    writer = factory.newInstance(defn, builder, true);
+    writer.deleteDocuments("/content");
+    writer.close(0);
+    assertEquals(1, numDocs(fooMount));
+    assertEquals(0, numDocs(defaultMount));
+}

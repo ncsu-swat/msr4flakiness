@@ -1,0 +1,22 @@
+/**
+ * @see org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider#isGranted(org.apache.jackrabbit.oak.plugins.tree.TreeLocation, long)
+ */
+@Test
+public void testIsGrantedNonExistingLocation() throws Exception {
+    ContentSession anonymous = login(new GuestCredentials());
+    try {
+        // additionally create a root that doesn't have access to the root node
+        Root anonymousRoot = anonymous.getLatestRoot();
+        for (Root r : new Root[] { anonymousRoot, root }) {
+            TreeLocation location = TreeLocation.create(r, "/path/to/non/existing/tree");
+            assertFalse(cugPermProvider.isGranted(location, Permissions.READ));
+            assertFalse(cugPermProvider.isGranted(location, Permissions.READ_NODE));
+            assertFalse(cugPermProvider.isGranted(location, Permissions.READ_PROPERTY));
+            assertFalse(cugPermProvider.isGranted(location, Permissions.ALL));
+            assertFalse(cugPermProvider.isGranted(location, Permissions.ADD_NODE));
+            assertFalse(cugPermProvider.isGranted(location, Permissions.READ_ACCESS_CONTROL));
+        }
+    } finally {
+        anonymous.close();
+    }
+}

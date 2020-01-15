@@ -1,0 +1,16 @@
+@Test
+public void testRemoveNodeWithPolicy() throws Exception {
+    /* allow READ/WRITE privilege for testUser at 'path' */
+    allow(path, testUser.getPrincipal(), readWritePrivileges);
+    /* allow READ/WRITE privilege for testUser at 'childPath' */
+    allow(childNPath, testUser.getPrincipal(), readWritePrivileges);
+    assertTrue(testSession.nodeExists(childNPath));
+    assertTrue(testSession.hasPermission(childNPath, Session.ACTION_REMOVE));
+    Node n = testSession.getNode(childNPath);
+    // removing the child node must succeed as both remove-node and
+    // remove-child-nodes are granted to testsession.
+    // the policy node underneath childNPath should silently be removed
+    // as the editing session has no knowledge about it's existence.
+    n.remove();
+    testSession.save();
+}

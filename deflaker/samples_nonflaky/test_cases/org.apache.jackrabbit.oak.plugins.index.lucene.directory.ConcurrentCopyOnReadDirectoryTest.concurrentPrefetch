@@ -1,0 +1,13 @@
+@Test
+public void concurrentPrefetch() throws Exception {
+    // setup one primary CoR and 2 subsequent ones to read. Each would run concurrently.
+    setupCopiers(2);
+    // let of go of CoR1 to finish its work
+    firstCoRBlocker.countDown();
+    assertNull("First CoR must not throw exception", firstCoRFutre.get());
+    waitForLeechingCoRsToFinish();
+    for (Directory d : Iterables.concat(Collections.singleton(firstCoR), leechingCoRs)) {
+        IndexInput input = d.openInput("file", IOContext.READ);
+        assertFalse(d + " must not be reading from remote", input.toString().startsWith(REMOTE_INPUT_PREFIX));
+    }
+}

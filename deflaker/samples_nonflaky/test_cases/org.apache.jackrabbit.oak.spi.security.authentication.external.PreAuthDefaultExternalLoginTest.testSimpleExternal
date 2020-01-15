@@ -1,0 +1,15 @@
+@Test
+public void testSimpleExternal() throws Exception {
+    // verify that authentication against the IDP succeeds with the given creds.
+    Credentials creds = new SimpleCredentials(TestIdentityProvider.ID_TEST_USER, new char[0]);
+    ExternalUser externalUser = idp.authenticate(creds);
+    assertNotNull(externalUser);
+    assertEquals(TestIdentityProvider.ID_TEST_USER, externalUser.getId());
+    // => repo login must also succeed and the user must be synced.
+    try (ContentSession cs = login(creds)) {
+        assertEquals(TestIdentityProvider.ID_TEST_USER, cs.getAuthInfo().getUserID());
+        root.refresh();
+        User u = getUserManager(root).getAuthorizable(TestIdentityProvider.ID_TEST_USER, User.class);
+        assertNotNull(u);
+    }
+}

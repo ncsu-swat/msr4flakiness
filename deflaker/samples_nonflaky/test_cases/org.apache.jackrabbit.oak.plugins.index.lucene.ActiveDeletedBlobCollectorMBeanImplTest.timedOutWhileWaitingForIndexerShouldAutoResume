@@ -1,0 +1,8 @@
+@Test
+public void timedOutWhileWaitingForIndexerShouldAutoResume() {
+    IndexPathService indexPathService = MockRegistrar.getIndexPathsService(indexPaths);
+    AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(newArrayList(new IndexMBeanInfoSupplier("foo-async", () -> STATUS_RUNNING, () -> 2L)));
+    ActiveDeletedBlobCollectorMBean bean = getTestBean(indexPathService, asyncIndexInfoService);
+    bean.flagActiveDeletionUnsafeForCurrentState();
+    assertFalse("Timing out on running indexer didn't resume marking blobs", bean.isActiveDeletionUnsafe());
+}

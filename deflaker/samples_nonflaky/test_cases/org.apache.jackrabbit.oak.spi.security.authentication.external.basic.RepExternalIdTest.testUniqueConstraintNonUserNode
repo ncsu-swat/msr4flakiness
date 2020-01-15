@@ -1,0 +1,15 @@
+@Test(expected = CommitFailedException.class)
+public void testUniqueConstraintNonUserNode() throws Exception {
+    try {
+        SyncResult res = syncCtx.sync(idp.getUser(USER_ID));
+        Tree nonUserTree = r.getTree("/");
+        nonUserTree.setProperty(DefaultSyncContext.REP_EXTERNAL_ID, res.getIdentity().getExternalIdRef().getString());
+        r.commit();
+        fail("Duplicate value for rep:externalId must be detected in the default setup.");
+    } catch (CommitFailedException e) {
+        // success: verify nature of the exception
+        assertException(e, CONSTRAINT, 30);
+    } finally {
+        r.refresh();
+    }
+}

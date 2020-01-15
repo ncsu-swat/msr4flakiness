@@ -1,0 +1,26 @@
+@Test
+public void dontWarnUnnecesarily() {
+    String oldVal = System.getProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM);
+    final LogCustomizer custom = LogCustomizer.forLogger(BufferedOakDirectory.class.getName()).contains("Ignoring configuration ").enable(Level.WARN).create();
+    custom.starting();
+    BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(true);
+    assertEquals("Don't warn unnecessarily", 0, custom.getLogs().size());
+    System.setProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM, "true");
+    reReadCommandLineParam();
+    assertEquals("Don't warn unnecessarily", 0, custom.getLogs().size());
+    BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(true);
+    assertEquals("Don't warn unnecessarily", 0, custom.getLogs().size());
+    System.clearProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM);
+    System.setProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM, "false");
+    reReadCommandLineParam();
+    assertEquals("Don't warn unnecessarily", 0, custom.getLogs().size());
+    BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(false);
+    assertEquals("Don't warn unnecessarily", 0, custom.getLogs().size());
+    System.clearProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM);
+    custom.finished();
+    if (oldVal == null) {
+        System.clearProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM);
+    } else {
+        System.setProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM, oldVal);
+    }
+}

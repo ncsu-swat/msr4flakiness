@@ -1,0 +1,11 @@
+@Test
+public void testGetPolicyMissingMixinType() throws Exception {
+    setupContentTrees(TEST_OAK_PATH);
+    PrincipalPolicyImpl policy = setupPrincipalBasedAccessControl(validPrincipal, testContentJcrPath, JCR_LOCK_MANAGEMENT);
+    addPrincipalBasedEntry(policy, PathUtils.ROOT_PATH, JCR_READ);
+    Tree policyTree = root.getTree(getNamePathMapper().getOakPath(policy.getPath()));
+    policyTree.removeProperty(JcrConstants.JCR_MIXINTYPES);
+    // don't commit as access controlled node without mixin is invalid
+    // read policy again -> princial policy must not be read due to missing mixin
+    assertEquals(0, acMgr.getPolicies(validPrincipal).length);
+}

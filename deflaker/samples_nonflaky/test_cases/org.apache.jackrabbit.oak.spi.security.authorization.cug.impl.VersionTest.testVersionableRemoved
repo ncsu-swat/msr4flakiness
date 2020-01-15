@@ -1,0 +1,18 @@
+@Test
+public void testVersionableRemoved() throws Exception {
+    // cug at /content/a/b/c grants access
+    Tree versionable = addVersionContent("/content/a/b/c");
+    Tree vh = checkNotNull(versionManager.getVersionHistory(versionable));
+    assertTrue(testRoot.getTree(vh.getPath()).exists());
+    versionable.remove();
+    root.commit();
+    // the cug-permission provider still supports the path as there exists
+    // a cug higher up in the hierarchy
+    // -> the parent cug takes effect now
+    CugPermissionProvider pp = createCugPermissionProvider(ImmutableSet.of(SUPPORTED_PATH, SUPPORTED_PATH2));
+    assertEquals(Permissions.READ, pp.supportedPermissions(vh, null, Permissions.READ));
+    assertFalse(pp.isGranted(vh, null, Permissions.READ));
+    // the vh associated with /content/a/b/c is no longer accessible
+    testRoot.refresh();
+    assertFalse(testRoot.getTree(vh.getPath()).exists());
+}

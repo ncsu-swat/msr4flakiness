@@ -1,0 +1,11 @@
+@Test
+public void secondStore_NodeExist_PropertyNotExist() throws Exception {
+    defnb.indexRule("nt:base").property("foo").unique();
+    NodeBuilder rootBuilder = root.builder();
+    rootBuilder.child("b");
+    root = rootBuilder.getNodeState();
+    PropertyIndexUpdateCallback callback = newCallback();
+    propertyUpdated(callback, "/a", "foo", "bar");
+    callback.getUniquenessConstraintValidator().setSecondStore((propertyRelativePath, value) -> singletonList("/b"));
+    callback.done();
+}

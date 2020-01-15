@@ -1,0 +1,24 @@
+@Test
+public void testAddEntryPrivilegeLookupThrowsRepositoryException() throws Exception {
+    PrivilegeManager privMgr = when(mock(PrivilegeManager.class).getPrivilege(anyString())).thenThrow(new RepositoryException()).getMock();
+    MgrProvider mp = when(mockMgrProvider().getPrivilegeManager()).thenReturn(privMgr).getMock();
+    NodeState policyState = mockNodeState(NT_REP_PRINCIPAL_POLICY);
+    when(policyState.getProperty(REP_PRINCIPAL_NAME)).thenReturn(PropertyStates.createProperty(REP_PRINCIPAL_NAME, "name"));
+    NodeState ns = mockNodeState(NT_OAK_UNSTRUCTURED);
+    when(ns.hasChildNode(REP_PRINCIPAL_POLICY)).thenReturn(true);
+    when(ns.getChildNode(REP_PRINCIPAL_POLICY)).thenReturn(policyState);
+    when(ns.getProperty(JCR_MIXINTYPES)).thenReturn(createMixinTypesProperty(MIX_REP_PRINCIPAL_BASED_MIXIN));
+    Validator v = createRootValidator(getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH)), mp);
+    v = v.childNodeChanged("any", ns, ns);
+    v = v.childNodeChanged(REP_PRINCIPAL_POLICY, policyState, policyState);
+    try {
+        NodeState entry = mockNodeState(NT_REP_PRINCIPAL_ENTRY);
+        when(entry.getProperty(REP_EFFECTIVE_PATH)).thenReturn(PropertyStates.createProperty(REP_EFFECTIVE_PATH, "/path", Type.PATH));
+        when(entry.getNames(REP_PRIVILEGES)).thenReturn(ImmutableList.of("privName"));
+        v.childNodeChanged("entryName", entry, entry);
+        fail("CommitFailedException type OAK code 13 expected.");
+    } catch (CommitFailedException e) {
+        assertEquals(CommitFailedException.OAK, e.getType());
+        assertEquals(13, e.getCode());
+    }
+}

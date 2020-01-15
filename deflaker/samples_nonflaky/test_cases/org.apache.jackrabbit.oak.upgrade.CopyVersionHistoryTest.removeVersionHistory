@@ -1,0 +1,23 @@
+@Test
+public void removeVersionHistory() throws RepositoryException, IOException {
+    final NodeStore targetNodeStore = SegmentNodeStoreBuilders.builder(new MemoryStore()).build();
+    migrate(new VersionCopySetup() {
+
+        @Override
+        public void setup(VersionCopyConfiguration config) {
+        }
+    }, targetNodeStore, PathUtils.ROOT_PATH);
+    migrate(new VersionCopySetup() {
+
+        @Override
+        public void setup(VersionCopyConfiguration config) {
+            config.setCopyVersions(null);
+            config.setCopyOrphanedVersions(null);
+        }
+    }, targetNodeStore, "/versionables");
+    repository = (RepositoryImpl) new Jcr(new Oak(targetNodeStore)).createRepository();
+    Session s = repository.login(AbstractRepositoryUpgradeTest.CREDENTIALS);
+    sessions.add(s);
+    assertMissingHistories(s, VERSIONABLES_OLD, VERSIONABLES_YOUNG);
+    assertNonVersionablePaths(s, VERSIONABLES_OLD, VERSIONABLES_YOUNG);
+}

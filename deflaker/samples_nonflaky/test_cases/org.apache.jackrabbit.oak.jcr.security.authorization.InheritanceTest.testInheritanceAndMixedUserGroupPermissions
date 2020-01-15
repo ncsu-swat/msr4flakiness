@@ -1,0 +1,18 @@
+@Test
+public void testInheritanceAndMixedUserGroupPermissions() throws Exception {
+    /* give MODIFY_PROPERTIES privilege for testGroup at 'path' */
+    allow(path, testGroup.getPrincipal(), modPropPrivileges);
+    /* withdraw MODIFY_PROPERTIES for the user at 'path' */
+    deny(path, testUser.getPrincipal(), modPropPrivileges);
+    /*
+         since user-permissions overrule the group permissions, testuser must
+         not have set_property action / modify_properties privilege.
+         */
+    assertFalse(testAcMgr.hasPrivileges(path, modPropPrivileges));
+    /*
+         give MODIFY_PROPERTIES privilege for everyone at 'childNPath'
+         -> user-privileges still overrule group privileges
+         */
+    allow(childNPath, testGroup.getPrincipal(), modPropPrivileges);
+    assertFalse(testAcMgr.hasPrivileges(childNPath, modPropPrivileges));
+}

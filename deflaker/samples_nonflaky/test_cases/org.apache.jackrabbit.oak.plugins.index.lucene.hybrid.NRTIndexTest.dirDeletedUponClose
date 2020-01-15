@@ -1,0 +1,20 @@
+@Test
+public void dirDeletedUponClose() throws Exception {
+    LuceneIndexDefinition idxDefn = getSyncIndexDefinition("/foo");
+    NRTIndex idx = indexFactory.createIndex(idxDefn);
+    LuceneIndexWriter writer = idx.getWriter();
+    File indexDir = idx.getIndexDir();
+    assertTrue(indexDir.exists());
+    idx.close();
+    assertFalse(indexDir.exists());
+    try {
+        idx.getReaders();
+        fail();
+    } catch (IllegalStateException ignore) {
+    }
+    try {
+        idx.getWriter();
+        fail();
+    } catch (IllegalStateException ignore) {
+    }
+}

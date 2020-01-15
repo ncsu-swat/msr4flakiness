@@ -1,0 +1,13 @@
+@Test
+public void testActivate() {
+    PrincipalBasedAuthorizationConfiguration pbac = getPrincipalBasedAuthorizationConfiguration();
+    BundleContext ctx = mock(BundleContext.class);
+    PrincipalBasedAuthorizationConfiguration.Configuration config = mock(PrincipalBasedAuthorizationConfiguration.Configuration.class);
+    when(config.configurationRanking()).thenReturn(50);
+    when(config.enableAggregationFilter()).thenReturn(true);
+    pbac.activate(ctx, config);
+    ConfigurationParameters params = pbac.getParameters();
+    assertEquals(50, params.get(PARAM_RANKING));
+    assertEquals(Boolean.TRUE, params.get(PARAM_ENABLE_AGGREGATION_FILTER));
+    verify(ctx, times(1)).registerService(anyString(), any(AggregationFilter.class), any(Hashtable.class));
+}

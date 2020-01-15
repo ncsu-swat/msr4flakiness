@@ -1,0 +1,15 @@
+@Test
+public void mappingFileData() throws Exception {
+    File root = tempFolder.getRoot();
+    File mappingFile = new File(root, "mapping.txt");
+    String text = "1000|foo\n2000|bar";
+    Files.write(text, mappingFile, Charset.defaultCharset());
+    LengthCachingDataStore fds = new LengthCachingDataStore();
+    fds.setDelegateClass(FileDataStore.class.getName());
+    fds.setMappingFilePath(mappingFile.getAbsolutePath());
+    fds.init(tempFolder.getRoot().getAbsolutePath());
+    DataRecord dr = fds.getRecord(new DataIdentifier("foo"));
+    assertNotNull(dr);
+    assertEquals(1000, dr.getLength());
+    assertEquals(2000, fds.getRecord(new DataIdentifier("bar")).getLength());
+}

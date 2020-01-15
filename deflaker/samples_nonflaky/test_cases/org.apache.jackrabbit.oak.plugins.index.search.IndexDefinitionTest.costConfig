@@ -1,0 +1,16 @@
+@Test
+public void costConfig() throws Exception {
+    NodeBuilder defnb = newFTPropertyIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo", "lucene", of("foo"), "async");
+    IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
+    assertEquals(1.0, defn.getCostPerEntry(), 0);
+    assertEquals(1.0, defn.getCostPerExecution(), 0);
+    assertEquals(IndexDefinition.DEFAULT_ENTRY_COUNT, defn.getEntryCount());
+    assertFalse(defn.isEntryCountDefined());
+    defnb.setProperty(FulltextIndexConstants.COST_PER_ENTRY, 2.0);
+    defnb.setProperty(FulltextIndexConstants.COST_PER_EXECUTION, 3.0);
+    defnb.setProperty(IndexConstants.ENTRY_COUNT_PROPERTY_NAME, 500);
+    IndexDefinition defn2 = new IndexDefinition(root, defnb.getNodeState(), "/foo");
+    assertEquals(2.0, defn2.getCostPerEntry(), 0);
+    assertEquals(3.0, defn2.getCostPerExecution(), 0);
+    assertEquals(500, defn2.getEntryCount());
+}

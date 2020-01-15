@@ -1,0 +1,18 @@
+@Test
+public void testChangeWithThrowingRestrictionValidation() throws Exception {
+    NodeState entryMock = mockNodeState(NT_REP_PRINCIPAL_ENTRY);
+    when(entryMock.getProperty(REP_EFFECTIVE_PATH)).thenReturn(PropertyStates.createProperty(REP_EFFECTIVE_PATH, "/path"));
+    NodeState restrictions = mockNodeState(NT_REP_RESTRICTIONS);
+    RestrictionProvider throwingRp = mock(RestrictionProvider.class);
+    doThrow(new RepositoryException()).when(throwingRp).validateRestrictions(anyString(), any(Tree.class));
+    MgrProvider mgrProvider = mockMgrProvider();
+    when(mgrProvider.getContext()).thenReturn(getConfig(AuthorizationConfiguration.class).getContext());
+    when(mgrProvider.getRestrictionProvider()).thenReturn(throwingRp);
+    try {
+        createRootValidator(entryMock, mgrProvider).childNodeChanged(REP_RESTRICTIONS, restrictions, restrictions);
+        failCommitFailedExcpected(13);
+    } catch (CommitFailedException e) {
+        assertTrue(e.isOfType(CommitFailedException.OAK));
+        assertEquals(13, e.getCode());
+    }
+}

@@ -1,0 +1,21 @@
+@Test
+public void testEffectivePolicyByPath() throws Exception {
+    String path = getNamePathMapper().getJcrPath(TEST_OAK_PATH);
+    AccessControlPolicy[] effective = acMgr.getEffectivePolicies(path);
+    assertEquals(2, effective.length);
+    for (AccessControlPolicy policy : effective) {
+        assertTrue(policy instanceof ImmutablePrincipalPolicy);
+        ImmutablePrincipalPolicy effectivePolicy = (ImmutablePrincipalPolicy) policy;
+        // filter expected entries: only entries that take effect at the target path should be taken into consideration
+        ImmutablePrincipalPolicy byPrincipal = (ImmutablePrincipalPolicy) acMgr.getEffectivePolicies(ImmutableSet.of(effectivePolicy.getPrincipal()))[0];
+        Set<JackrabbitAccessControlEntry> expected = ImmutableSet.copyOf(Iterables.filter(byPrincipal.getEntries(), entry -> {
+            String effectivePath = ((PrincipalAccessControlList.Entry) entry).getEffectivePath();
+            return effectivePath != null && Text.isDescendantOrEqual(effectivePath, path);
+        }));
+        assertEquals(expected.size(), effectivePolicy.size());
+        List<JackrabbitAccessControlEntry> entries = effectivePolicy.getEntries();
+        for (JackrabbitAccessControlEntry entry : expected) {
+            assertTrue(entries.contains(entry));
+        }
+    }
+}

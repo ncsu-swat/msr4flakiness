@@ -1,0 +1,15 @@
+@Test
+public void testConsistency() throws Exception {
+    File dump = temporaryFolder.newFolder();
+    File repoHome = temporaryFolder.newFolder();
+    Random rand = new Random();
+    String deletedBlobId = Iterables.get(blobsAdded, rand.nextInt(blobsAdded.size()));
+    blobsAdded.remove(deletedBlobId);
+    long count = setupDataStore.countDeleteChunks(ImmutableList.of(deletedBlobId), 0);
+    assertEquals(1, count);
+    setupDataStore.close();
+    testAllParams(dump, repoHome);
+    assertFileEquals(dump, "[id]", blobsAdded);
+    assertFileEquals(dump, "[ref]", Sets.union(blobsAdded, Sets.newHashSet(deletedBlobId)));
+    assertFileEquals(dump, "[consistency]", Sets.newHashSet(deletedBlobId));
+}

@@ -1,0 +1,38 @@
+@Test
+public void testDeniedReadOnSubTree() throws Exception {
+    // withdraw READ privilege to 'testUser' at 'path'
+    deny(childNPath, readPrivileges);
+    /*
+         testuser must now have
+         - READ-only permission at path
+         - READ-only permission for the child-props of path
+
+         testuser must not have
+         - any permission on child-node and all its subtree
+        */
+    // must still have read-access to path, ...
+    assertTrue(testSession.hasPermission(path, Session.ACTION_READ));
+    Node n = testSession.getNode(path);
+    // ... siblings of childN
+    testSession.getNode(childNPath2);
+    // ... and props of path
+    assertTrue(n.getProperties().hasNext());
+    // testSession must not have access to 'childNPath'
+    assertFalse(testSession.itemExists(childNPath));
+    try {
+        testSession.getNode(childNPath);
+        fail("Read access has been denied -> cannot retrieve child node.");
+    } catch (PathNotFoundException e) {
+    // ok.
+    }
+    /*
+        -> must not have access to subtree below 'childNPath'
+        */
+    assertFalse(testSession.itemExists(childchildPPath));
+    try {
+        testSession.getItem(childchildPPath);
+        fail("Read access has been denied -> cannot retrieve prop below child node.");
+    } catch (PathNotFoundException e) {
+    // ok.
+    }
+}

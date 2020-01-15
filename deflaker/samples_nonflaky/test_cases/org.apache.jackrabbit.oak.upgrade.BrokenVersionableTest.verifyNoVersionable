@@ -1,0 +1,16 @@
+@Test
+public void verifyNoVersionable() throws RepositoryException {
+    Session session = createAdminSession();
+    VersionManager vMgr = session.getWorkspace().getVersionManager();
+    try {
+        assertFalse(session.getNode("/versionable1").isNodeType(MIX_VERSIONABLE));
+        Node versionable2 = session.getNode("/versionable2");
+        assertTrue(versionable2.isNodeType(MIX_VERSIONABLE));
+        VersionHistory history = vMgr.getVersionHistory(versionable2.getPath());
+        VersionIterator versions = history.getAllVersions();
+        assertEquals("jcr:rootVersion", versions.nextVersion().getName());
+        assertFalse(versions.hasNext());
+    } finally {
+        session.logout();
+    }
+}

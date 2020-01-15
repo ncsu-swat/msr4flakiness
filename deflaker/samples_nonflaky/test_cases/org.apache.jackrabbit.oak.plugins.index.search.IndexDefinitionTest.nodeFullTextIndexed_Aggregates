@@ -1,0 +1,14 @@
+@Test
+public void nodeFullTextIndexed_Aggregates() throws Exception {
+    NodeBuilder rules = builder.child(INDEX_RULES);
+    rules.child("nt:folder");
+    TestUtil.child(rules, "nt:folder/properties/prop1").setProperty(PROP_NAME, "foo").setProperty(FulltextIndexConstants.PROP_ANALYZED, true);
+    NodeBuilder aggregates = builder.child(FulltextIndexConstants.AGGREGATES);
+    NodeBuilder aggFolder = aggregates.child("nt:folder");
+    aggFolder.child("i1").setProperty(FulltextIndexConstants.AGG_PATH, "*");
+    IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+    IndexingRule rule = defn.getApplicableIndexingRule(asState(newNode("nt:folder")));
+    assertNotNull(rule);
+    assertTrue(rule.isNodeFullTextIndexed());
+    assertTrue(rule.indexesAllNodesOfMatchingType());
+}

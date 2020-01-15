@@ -1,0 +1,15 @@
+public void testAdminPrincipalAsImpersonator() throws RepositoryException, NotExecutableException {
+    Principal adminPrincipal = new AdminPrincipal() {
+
+        @Override
+        public String getName() {
+            return "some-admin-name";
+        }
+    };
+    // admin cannot be add/remove to set of impersonators of 'u' but is
+    // always allowed to impersonate that user.
+    Impersonation impersonation = user.getImpersonation();
+    assertFalse(impersonation.grantImpersonation(adminPrincipal));
+    assertFalse(impersonation.revokeImpersonation(adminPrincipal));
+    assertTrue(impersonation.allows(buildSubject(adminPrincipal)));
+}

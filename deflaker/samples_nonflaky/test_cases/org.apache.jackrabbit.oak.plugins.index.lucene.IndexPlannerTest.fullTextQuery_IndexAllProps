@@ -1,0 +1,15 @@
+@Test
+public void fullTextQuery_IndexAllProps() throws Exception {
+    NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("allProps"), "async");
+    // Index all props and then perform fulltext
+    defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
+    NodeBuilder foob = getNode(defn, "indexRules/nt:base/properties/allProps");
+    foob.setProperty(FulltextIndexConstants.PROP_NAME, FulltextIndexConstants.REGEX_ALL_PROPS);
+    foob.setProperty(FulltextIndexConstants.PROP_ANALYZED, true);
+    foob.setProperty(FulltextIndexConstants.PROP_IS_REGEX, true);
+    FullTextExpression exp = FullTextParser.parse("bar", "mountain OR valley");
+    exp = new FullTextContains("bar", "mountain OR valley", exp);
+    FulltextIndexPlanner planner = createPlannerForFulltext(defn.getNodeState(), exp);
+    // No plan for unindex property
+    assertNotNull(planner.getPlan());
+}

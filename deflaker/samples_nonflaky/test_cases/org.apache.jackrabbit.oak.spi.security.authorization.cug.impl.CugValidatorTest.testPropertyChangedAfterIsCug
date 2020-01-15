@@ -1,0 +1,14 @@
+@Test
+public void testPropertyChangedAfterIsCug() throws Exception {
+    NodeState ns = mock(NodeState.class);
+    Validator validator = new CugValidatorProvider().getRootValidator(ns, ns, new CommitInfo("sid", "uid"));
+    try {
+        PropertyState before = PropertyStates.createProperty(JCR_PRIMARYTYPE, NT_OAK_UNSTRUCTURED);
+        PropertyState after = PropertyStates.createProperty(JCR_PRIMARYTYPE, NT_REP_CUG_POLICY);
+        validator.propertyChanged(before, after);
+        fail();
+    } catch (CommitFailedException e) {
+        assertTrue(e.isAccessControlViolation());
+        assertEquals(20, e.getCode());
+    }
+}

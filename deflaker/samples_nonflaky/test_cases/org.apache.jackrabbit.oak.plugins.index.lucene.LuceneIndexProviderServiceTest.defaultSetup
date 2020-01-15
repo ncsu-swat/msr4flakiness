@@ -1,0 +1,26 @@
+@Test
+public void defaultSetup() throws Exception {
+    MockOsgi.activate(service, context.bundleContext(), getDefaultConfig());
+    assertNotNull(context.getService(QueryIndexProvider.class));
+    assertNotNull(context.getService(Observer.class));
+    assertNotNull(context.getService(IndexEditorProvider.class));
+    LuceneIndexEditorProvider editorProvider = (LuceneIndexEditorProvider) context.getService(IndexEditorProvider.class);
+    assertNotNull(editorProvider.getIndexCopier());
+    assertNotNull(editorProvider.getIndexingQueue());
+    IndexCopier indexCopier = service.getIndexCopier();
+    assertNotNull("IndexCopier should be initialized as CopyOnRead is enabled by default", indexCopier);
+    assertTrue(indexCopier.isPrefetchEnabled());
+    assertFalse(IndexDefinition.isDisableStoredIndexDefinition());
+    assertNotNull("CopyOnRead should be enabled by default", context.getService(CopyOnReadStatsMBean.class));
+    assertNotNull(context.getService(CacheStatsMBean.class));
+    assertTrue(context.getService(Observer.class) instanceof BackgroundObserver);
+    assertEquals(InfoStream.NO_OUTPUT, InfoStream.getDefault());
+    assertEquals(1024, BooleanQuery.getMaxClauseCount());
+    assertNotNull(FieldUtils.readDeclaredField(service, "documentQueue", true));
+    assertNotNull(context.getService(JournalPropertyService.class));
+    assertNotNull(context.getService(IndexImporterProvider.class));
+    assertNotNull(WhiteboardUtils.getServices(wb, Runnable.class, (Predicate<Runnable>) r -> r instanceof PropertyIndexCleaner));
+    MockOsgi.deactivate(service, context.bundleContext());
+    IndexTracker tracker = (IndexTracker) FieldUtils.readDeclaredField(service, "tracker", true);
+    assertNotNull(tracker.getAsyncIndexInfoService());
+}

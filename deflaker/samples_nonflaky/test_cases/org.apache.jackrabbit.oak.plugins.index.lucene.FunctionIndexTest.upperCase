@@ -1,0 +1,22 @@
+@Test
+public void upperCase() throws Exception {
+    Tree luceneIndex = createIndex("upper", Collections.<String>emptySet());
+    Tree func = luceneIndex.addChild(FulltextIndexConstants.INDEX_RULES).addChild("nt:base").addChild(FulltextIndexConstants.PROP_NODE).addChild("upperName");
+    func.setProperty(FulltextIndexConstants.PROP_FUNCTION, "fn:upper-case(@name)");
+    Tree test = root.getTree("/").addChild("test");
+    test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+    List<String> paths = Lists.newArrayList();
+    for (int idx = 0; idx < 15; idx++) {
+        Tree a = test.addChild("n" + idx);
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        a.setProperty("name", "10% foo");
+        paths.add("/test/n" + idx);
+    }
+    root.commit();
+    String query = "select [jcr:path] from [nt:unstructured] where upper([name]) = '10% FOO'";
+    assertThat(explain(query), containsString("lucene:upper"));
+    assertQuery(query, paths);
+    query = "select [jcr:path] from [nt:unstructured] where upper([name]) like '10\\% FOO'";
+    assertThat(explain(query), containsString("lucene:upper"));
+    assertQuery(query, paths);
+}

@@ -1,0 +1,17 @@
+@Test
+public void workingIndexDirDoesNotCleanUpOnFailureOfMerge() throws Exception {
+    createIndex("working", "foo", false);
+    asyncIndexUpdate.run();
+    assertFalse("Indexing mustn't be failing", asyncIndexUpdate.isFailing());
+    copier.clearStats();
+    failOnDemandValidatorProvider.shouldFail = true;
+    root.getTree("/").addChild("test").addChild("a").setProperty("foo", "bar");
+    root.commit();
+    asyncIndexUpdate.run();
+    assertTrue("Indexing must fail", asyncIndexUpdate.isFailing());
+    Set<File> reindexingDirPaths = copier.getReindexingDirPaths();
+    assertEquals("No directories are reindexing.", 0, reindexingDirPaths.size());
+    assertEquals("Number of open directories aren't as expected", 1, copier.getDirPaths().size());
+    copier.getDirPaths().forEach((key, value) -> assertTrue(key + " must not get cleaned up on failure", value.exists()));
+    copier.getDirs().forEach((key, value) -> assertTrue("Writer for " + key + " must be closed", value.isClosed()));
+}

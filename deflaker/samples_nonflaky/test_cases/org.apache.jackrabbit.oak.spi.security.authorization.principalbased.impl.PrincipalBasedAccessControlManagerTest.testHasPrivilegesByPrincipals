@@ -1,0 +1,14 @@
+@Test
+public void testHasPrivilegesByPrincipals() throws Exception {
+    setupContentTrees(TEST_OAK_PATH);
+    setupPrincipalBasedAccessControl(validPrincipal, testContentJcrPath, JCR_NODE_TYPE_MANAGEMENT);
+    // setup default ac mgt only on subtree (testJcrPath)
+    addDefaultEntry(testJcrPath, validPrincipal, JCR_NODE_TYPE_MANAGEMENT);
+    root.commit();
+    // priv is only granted where both models are granting.
+    assertFalse(acMgr.hasPrivileges(testContentJcrPath, ImmutableSet.of(validPrincipal), privilegesFromNames(JCR_NODE_TYPE_MANAGEMENT)));
+    assertTrue(acMgr.hasPrivileges(testJcrPath, ImmutableSet.of(validPrincipal), privilegesFromNames(JCR_NODE_TYPE_MANAGEMENT)));
+    // set of principals not supported by principalbased-authorization => only default impl takes effect.
+    assertFalse(acMgr.hasPrivileges(testContentJcrPath, ImmutableSet.of(validPrincipal, EveryonePrincipal.getInstance()), privilegesFromNames(JCR_NODE_TYPE_MANAGEMENT)));
+    assertTrue(acMgr.hasPrivileges(testJcrPath, ImmutableSet.of(validPrincipal, EveryonePrincipal.getInstance()), privilegesFromNames(JCR_NODE_TYPE_MANAGEMENT)));
+}

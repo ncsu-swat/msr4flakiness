@@ -1,0 +1,13 @@
+@Test
+public void testNoPlanWithPropertyNotListedInUsedProperties() throws Exception {
+    NodeBuilder builder = nodeState.builder();
+    builder.child("oak:index").child("solr").setProperty("usedProperties", Collections.singleton("name"), Type.STRINGS).setProperty("propertyRestrictions", true);
+    nodeState = builder.getNodeState();
+    SelectorImpl selector = newSelector(nodeState, "a");
+    SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, null, null);
+    FilterImpl filter = new FilterImpl(selector, "select * from [nt:base] as a where foo = 'bar')", new QueryEngineSettings());
+    filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+    List<QueryIndex.OrderEntry> sortOrder = new LinkedList<QueryIndex.OrderEntry>();
+    List<QueryIndex.IndexPlan> plans = solrQueryIndex.getPlans(filter, sortOrder, nodeState);
+    assertEquals(0, plans.size());
+}

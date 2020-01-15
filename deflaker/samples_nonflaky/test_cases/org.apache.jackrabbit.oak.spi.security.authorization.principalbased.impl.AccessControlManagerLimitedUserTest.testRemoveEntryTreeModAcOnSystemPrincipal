@@ -1,0 +1,15 @@
+@Test(expected = CommitFailedException.class)
+public void testRemoveEntryTreeModAcOnSystemPrincipal() throws Exception {
+    // grant read-ac + mod-ac access on principal policy but not on target path
+    grant(testPrincipal, systemPrincipalPath, JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL);
+    root.commit();
+    testRoot.refresh();
+    try {
+        testRoot.getTree(getEntryPath()).remove();
+        testRoot.commit();
+    } catch (CommitFailedException e) {
+        assertEquals(CommitFailedException.ACCESS, e.getType());
+        assertEquals(3, e.getCode());
+        throw e;
+    }
+}

@@ -1,0 +1,18 @@
+/**
+ * @since OAK 1.0 : removal of node doesn't require remove permission on
+ * all child nodes (diff to jackrabbit core)
+ */
+@Test
+public void testRemoveNodeWithNonRemovableChild() throws Exception {
+    Node subtree = superuser.getNode(childNPath).addNode(nodeName3);
+    superuser.save();
+    /* allow READ/WRITE privilege for testUser at 'path' */
+    allow(path, testUser.getPrincipal(), readWritePrivileges);
+    /* deny WRITE privilege at child node. */
+    deny(subtree.getPath(), testUser.getPrincipal(), repWritePrivileges);
+    assertTrue(testSession.nodeExists(childNPath));
+    assertTrue(testSession.hasPermission(childNPath, Session.ACTION_REMOVE));
+    // removing the child node succeed even if subtree cannot be removed.
+    testSession.getNode(childNPath).remove();
+    testSession.save();
+}

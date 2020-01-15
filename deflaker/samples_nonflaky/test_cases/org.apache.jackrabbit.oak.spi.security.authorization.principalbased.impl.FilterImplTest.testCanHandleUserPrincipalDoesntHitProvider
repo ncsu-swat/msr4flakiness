@@ -1,0 +1,14 @@
+@Test
+public void testCanHandleUserPrincipalDoesntHitProvider() throws Exception {
+    Principal userPrincipal = getTestUser().getPrincipal();
+    PrincipalProvider pp = when(mock(PrincipalProvider.class).getPrincipal(userPrincipal.getName())).thenReturn(userPrincipal).getMock();
+    PrincipalConfiguration pc = when(mock(PrincipalConfiguration.class).getPrincipalProvider(root, getNamePathMapper())).thenReturn(pp).getMock();
+    SecurityProvider sp = when(mock(SecurityProvider.class).getConfiguration(PrincipalConfiguration.class)).thenReturn(pc).getMock();
+    Filter filter = getFilterProvider().getFilter(sp, root, getNamePathMapper());
+    // call 'canHandle' twice
+    Set<Principal> set = singleton(userPrincipal);
+    assertFalse(filter.canHandle(set));
+    assertFalse(filter.canHandle(set));
+    // for a non-system-user principal the principal resolution must never be triggered
+    verify(pp, never()).getPrincipal(userPrincipal.getName());
+}

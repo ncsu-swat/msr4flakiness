@@ -1,0 +1,24 @@
+@Test
+public void lengthName() throws Exception {
+    Tree luceneIndex = createIndex("lengthName", Collections.<String>emptySet());
+    luceneIndex.setProperty("excludedPaths", Lists.newArrayList("/jcr:system", "/oak:index"), Type.STRINGS);
+    Tree func = luceneIndex.addChild(FulltextIndexConstants.INDEX_RULES).addChild("nt:base").addChild(FulltextIndexConstants.PROP_NODE).addChild("lengthName");
+    func.setProperty(FulltextIndexConstants.PROP_ORDERED, true);
+    func.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
+    func.setProperty(FulltextIndexConstants.PROP_FUNCTION, "fn:string-length(fn:name())");
+    Tree test = root.getTree("/").addChild("test");
+    for (int idx = 1; idx < 1000; idx *= 10) {
+        Tree testNode = test.addChild("test" + idx);
+        testNode.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+    }
+    root.commit();
+    String query = "select [jcr:path] from [nt:base] where length(name()) = 6";
+    assertThat(explain(query), containsString("lucene:lengthName"));
+    assertQuery(query, Lists.newArrayList("/test/test10"));
+    String queryXPath = "/jcr:root//*[fn:string-length(fn:name()) = 7]";
+    assertThat(explainXpath(queryXPath), containsString("lucene:lengthName"));
+    assertQuery(queryXPath, "xpath", Lists.newArrayList("/test/test100"));
+    queryXPath = "/jcr:root//* order by fn:string-length(fn:name())";
+    assertThat(explainXpath(queryXPath), containsString("lucene:lengthName"));
+    assertQuery(queryXPath, "xpath", Lists.newArrayList("/test", "/test/test1", "/test/test10", "/test/test100"));
+}

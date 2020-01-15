@@ -1,0 +1,20 @@
+@Test
+public void deletedOnlyFilesForOlderVersion() throws Exception {
+    Directory baseDir = new CloseSafeDir();
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    IndexCopier copier = new RAMIndexCopier(baseDir, sameThreadExecutor(), getWorkDir());
+    // 1. Open a local and read t1 from remote
+    Directory remote1 = new RAMDirectory();
+    byte[] t1 = writeFile(remote1, "t1");
+    Directory local1 = copier.wrapForRead("/foo", defn, remote1, INDEX_DATA_CHILD_NAME);
+    readAndAssert(local1, "t1", t1);
+    // While local1 is open , open another local2 and read t2
+    Directory remote2 = new RAMDirectory();
+    byte[] t2 = writeFile(remote2, "t2");
+    Directory local2 = copier.wrapForRead("/foo", defn, remote2, INDEX_DATA_CHILD_NAME);
+    readAndAssert(local2, "t2", t2);
+    // Close local1
+    local1.close();
+    // t2 should still be readable
+    readAndAssert(local2, "t2", t2);
+}

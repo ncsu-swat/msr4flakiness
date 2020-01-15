@@ -1,0 +1,54 @@
+@Test
+public void testAccessControlModification() throws Exception {
+    // give 'testUser' READ_AC|MODIFY_AC privileges at 'path'
+    Privilege[] privileges = privilegesFromNames(new String[] { Privilege.JCR_READ_ACCESS_CONTROL, Privilege.JCR_MODIFY_ACCESS_CONTROL });
+    JackrabbitAccessControlList tmpl = allow(path, privileges);
+    /*
+         testuser must
+         - still have the inherited READ permission.
+         - must have permission to view AC items at 'path' (and below)
+         - must have permission to modify AC items at 'path'
+
+         testuser must not have
+         - permission to view AC items outside of the tree defined by path.
+        */
+    // make sure the 'rep:policy' node has been created.
+    assertTrue(superuser.itemExists(tmpl.getPath() + "/rep:policy"));
+    // test: MODIFY_AC granted at 'path'
+    assertTrue(testAcMgr.hasPrivileges(path, privilegesFromName(Privilege.JCR_MODIFY_ACCESS_CONTROL)));
+    // test if testuser can READ access control on the path and on the
+    // entire subtree that gets the policy inherited.
+    AccessControlPolicy[] policies = testAcMgr.getPolicies(path);
+    testAcMgr.getPolicies(childNPath);
+    // test: READ_AC privilege does not apply outside of the tree.
+    try {
+        testAcMgr.getPolicies(siblingPath);
+        fail("READ_AC privilege must not apply outside of the tree it has applied to.");
+    } catch (AccessDeniedException e) {
+    // success
+    }
+    // test: MODIFY_AC privilege does not apply outside of the tree.
+    assertFalse(testAcMgr.hasPrivileges(siblingPath, privilegesFromName(Privilege.JCR_MODIFY_ACCESS_CONTROL)));
+    // test if testuser can modify AC-items
+    // 1) add an ac-entry
+    AccessControlList acl = (AccessControlList) policies[0];
+    acl.addAccessControlEntry(testUser.getPrincipal(), repWritePrivileges);
+    testAcMgr.setPolicy(path, acl);
+    testSession.save();
+    assertTrue(testAcMgr.hasPrivileges(path, privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES)));
+    // 2) remove the policy
+    testAcMgr.removePolicy(path, policies[0]);
+    testSession.save();
+    // Finally: testuser removed the policy that granted him permission
+    // to modify the AC content. Since testuser removed the policy, it's
+    // privileges must be gone again...
+    try {
+        testAcMgr.getEffectivePolicies(childNPath);
+        fail("READ_AC privilege has been revoked -> must throw again.");
+    } catch (AccessDeniedException e) {
+    // success
+    }
+    // ... and since the ACE is stored with the policy all right except
+    // READ must be gone.
+    assertReadOnly(path);
+}

@@ -1,0 +1,18 @@
+// OAK-4068
+@Test
+public void defaultSuggestInterval() throws Exception {
+    final String nodeType = "nt:unstructured";
+    // initial data
+    createSuggestIndex(nodeType);
+    root.commit();
+    // wait for documented time before suggestions are refreshed
+    clock.waitUntil(clock.getTime() + TimeUnit.MINUTES.toMillis(10));
+    // get one more tick
+    clock.getTime();
+    // add a node... this should kick in a suggestions udpate too as enough time has passed
+    root.getTree("/").addChild("indexedNode").setProperty(JcrConstants.JCR_PRIMARYTYPE, nodeType, Type.NAME);
+    root.commit();
+    Set<String> suggestions = getSuggestions(nodeType, "indexedn");
+    assertEquals(1, suggestions.size());
+    assertEquals("indexedNode", suggestions.iterator().next());
+}

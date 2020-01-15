@@ -1,0 +1,15 @@
+// ~---------------------------------------< buckets >
+@Test
+public void bucketSwitch() throws Exception {
+    String propName = "foo";
+    defnb.indexRule("nt:base").property(propName).sync();
+    newCallback().propertyUpdated("/a", propName, pd(propName), null, createProperty(propName, "bar"));
+    assertThat(query(propName, newString("bar")), containsInAnyOrder("/a"));
+    switchBucket(propName);
+    newCallback().propertyUpdated("/b", propName, pd(propName), null, createProperty(propName, "bar"));
+    assertThat(query(propName, newString("bar")), containsInAnyOrder("/a", "/b"));
+    switchBucket(propName);
+    newCallback().propertyUpdated("/c", propName, pd(propName), null, createProperty(propName, "bar"));
+    // Now /a should not come as its in 3rd bucket and we only consider head and previous buckets
+    assertThat(query(propName, newString("bar")), containsInAnyOrder("/b", "/c"));
+}

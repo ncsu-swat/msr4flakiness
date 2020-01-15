@@ -1,0 +1,12 @@
+@Test
+public void testDefinesPropertyLocation() {
+    String[] propNames = new String[] { REP_PRINCIPAL_NAME, "prop1", "prop2" };
+    Tree policyTree = MockUtility.mockTree(REP_PRINCIPAL_POLICY, NT_REP_PRINCIPAL_POLICY, PathUtils.ROOT_PATH + REP_PRINCIPAL_POLICY, propNames);
+    Tree rootTree = MockUtility.mockTree(PathUtils.ROOT_NAME, NodeTypeConstants.NT_REP_ROOT, PathUtils.ROOT_PATH, propNames);
+    when(rootTree.getChild(REP_PRINCIPAL_POLICY)).thenReturn(policyTree);
+    Root r = when(mock(Root.class).getTree(PathUtils.ROOT_PATH)).thenReturn(rootTree).getMock();
+    for (String propName : propNames) {
+        assertTrue(CTX.definesLocation(TreeLocation.create(r, PathUtils.concat(policyTree.getPath(), propName))));
+        assertFalse(CTX.definesLocation(TreeLocation.create(r, PathUtils.concat(rootTree.getPath(), propName))));
+    }
+}

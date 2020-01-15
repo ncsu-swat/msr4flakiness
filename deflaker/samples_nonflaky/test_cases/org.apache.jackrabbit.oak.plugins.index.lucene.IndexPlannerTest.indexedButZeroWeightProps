@@ -1,0 +1,29 @@
+@Test
+public void indexedButZeroWeightProps() throws Exception {
+    IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+    defnb.indexRule("nt:base").property("foo").propertyIndex();
+    defnb.indexRule("nt:base").property("bar").propertyIndex().weight(0);
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.build(), "/foo");
+    LuceneIndexNode node = createIndexNode(defn);
+    FilterImpl filter = createFilter("nt:base");
+    filter.restrictProperty("bar", Operator.EQUAL, PropertyValues.newString("a"));
+    FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+    // Even though foo is indexed it would not be considered for a query involving just foo
+    assertNull(planner.getPlan());
+    filter = createFilter("nt:base");
+    filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("a"));
+    planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+    QueryIndex.IndexPlan plan1 = planner.getPlan();
+    assertNotNull(plan1);
+    filter = createFilter("nt:base");
+    filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("a"));
+    filter.restrictProperty("bar", Operator.EQUAL, PropertyValues.newString("a"));
+    planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+    QueryIndex.IndexPlan plan2 = planner.getPlan();
+    assertNotNull(plan2);
+    // Since, the index has no entries for "bar", estimated entry count for plan2 would be 0
+    assertEquals(0, plan2.getEstimatedEntryCount());
+    assertThat(plan2.getEstimatedEntryCount(), lessThan(plan1.getEstimatedEntryCount()));
+    assertTrue(pr(plan2).hasProperty("foo"));
+    assertTrue(pr(plan2).hasProperty("bar"));
+}

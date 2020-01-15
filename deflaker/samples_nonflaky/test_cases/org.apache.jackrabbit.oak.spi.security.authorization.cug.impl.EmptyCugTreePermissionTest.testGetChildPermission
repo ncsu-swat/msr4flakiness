@@ -1,0 +1,20 @@
+@Test
+public void testGetChildPermission() {
+    String name = Text.getName(SUPPORTED_PATH2);
+    NodeState ns = rootState.getChildNode(name);
+    TreePermission child = tp.getChildPermission(name, ns);
+    assertSame(TreePermission.NO_RECOURSE, child);
+    name = Text.getName(SUPPORTED_PATH);
+    ns = rootState.getChildNode(name);
+    child = tp.getChildPermission(name, ns);
+    assertCugPermission(child, true);
+    assertTrue(((CugTreePermission) child).isInCug());
+    TreePermission subtree = child.getChildPermission("subtree", ns.getChildNode("subtree"));
+    assertCugPermission(subtree, true);
+    assertTrue(((CugTreePermission) subtree).isInCug());
+    name = Text.getName(UNSUPPORTED_PATH);
+    ns = rootState.getChildNode(name);
+    TreePermission child2 = tp.getChildPermission(name, ns);
+    assertFalse(child2 instanceof EmptyCugTreePermission);
+    assertSame(child2, TreePermission.NO_RECOURSE);
+}

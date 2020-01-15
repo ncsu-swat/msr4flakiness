@@ -1,0 +1,40 @@
+@Test
+public void oak7246Description() throws Exception {
+    // Step 1
+    Directory cow1 = copier.getCoWDir();
+    writeFile(cow1, "a");
+    writeFile(cow1, "b");
+    cow1.close();
+    Directory remoteSnapshowCow1 = remote.snapshot();
+    // Step 2
+    Directory cow2 = copier.getCoWDir();
+    cow2.deleteFile("a");
+    cow2.deleteFile("b");
+    writeFile(cow2, "c");
+    writeFile(cow2, "d");
+    // Step 3
+    Directory cor1 = copier.getCoRDir(remoteSnapshowCow1);
+    // local listing
+    assertEquals(Sets.newHashSet("a", "b", "c", "d"), Sets.newHashSet(new SimpleFSDirectory(localFSDir).listAll()));
+    // reader listing
+    assertEquals(Sets.newHashSet("a", "b"), Sets.newHashSet(cor1.listAll()));
+    // Step 4
+    cow2.close();
+    Directory remoteSnapshotCow2 = remote.snapshot();
+    // Step 5
+    Directory cow3 = copier.getCoWDir();
+    cow3.deleteFile("c");
+    cow3.deleteFile("d");
+    writeFile(cow3, "e");
+    writeFile(cow3, "f");
+    // Step 6
+    Directory cor2 = copier.getCoRDir(remoteSnapshotCow2);
+    // local listing
+    assertEquals(Sets.newHashSet("a", "b", "c", "d", "e", "f"), Sets.newHashSet(new SimpleFSDirectory(localFSDir).listAll()));
+    // reader listing
+    assertEquals(Sets.newHashSet("c", "d"), Sets.newHashSet(cor2.listAll()));
+    // Step 7
+    cor1.close();
+    // nothing should get deleted as CoR1 sees "a", "b" and everything else is newer
+    assertEquals(Sets.newHashSet("a", "b", "c", "d", "e", "f"), Sets.newHashSet(new SimpleFSDirectory(localFSDir).listAll()));
+}

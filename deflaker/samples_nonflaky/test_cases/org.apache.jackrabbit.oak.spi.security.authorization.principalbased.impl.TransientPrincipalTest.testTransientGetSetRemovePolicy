@@ -1,0 +1,22 @@
+@Test
+public void testTransientGetSetRemovePolicy() throws Exception {
+    JackrabbitAccessControlPolicy[] policies = acMgr.getPolicies(principal);
+    assertEquals(0, policies.length);
+    PrincipalPolicyImpl policy = getApplicable();
+    acMgr.setPolicy(policy.getPath(), policy);
+    policies = acMgr.getPolicies(principal);
+    assertEquals(1, policies.length);
+    assertTrue(policies[0] instanceof PrincipalPolicyImpl);
+    policy = (PrincipalPolicyImpl) policies[0];
+    assertTrue(policy.isEmpty());
+    policy.addEntry(testContentJcrPath, privilegesFromNames(JCR_VERSION_MANAGEMENT));
+    acMgr.setPolicy(policy.getPath(), policy);
+    policies = acMgr.getPolicies(principal);
+    assertEquals(1, policies.length);
+    assertTrue(policies[0] instanceof PrincipalPolicyImpl);
+    policy = (PrincipalPolicyImpl) policies[0];
+    assertEquals(1, policy.size());
+    acMgr.removePolicy(policy.getPath(), policy);
+    policies = acMgr.getPolicies(principal);
+    assertEquals(0, policies.length);
+}

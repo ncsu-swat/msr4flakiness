@@ -1,0 +1,20 @@
+@Test
+public void applyTo() throws Exception {
+    DiffCache cache = new MemoryDiffCache(new DocumentMK.Builder());
+    List<Path> paths = Lists.newArrayList();
+    addRandomPaths(paths);
+    StringSort sort = JournalEntry.newSorter();
+    add(sort, paths);
+    RevisionVector from = new RevisionVector(new Revision(1, 0, 1));
+    RevisionVector to = new RevisionVector(new Revision(2, 0, 1));
+    sort.sort();
+    JournalEntry.applyTo(sort, cache, Path.ROOT, from, to);
+    for (Path p : paths) {
+        String changes = cache.getChanges(from, to, p, null);
+        assertNotNull("missing changes for " + p, changes);
+        for (String c : getChildren(changes)) {
+            assertTrue(paths.contains(new Path(p, c)));
+        }
+    }
+    sort.close();
+}

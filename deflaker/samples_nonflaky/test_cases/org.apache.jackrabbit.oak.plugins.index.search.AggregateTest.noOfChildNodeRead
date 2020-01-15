@@ -1,0 +1,24 @@
+@Test
+public void noOfChildNodeRead() throws Exception {
+    Aggregate ag = new Aggregate("nt:base", of(ni("a")));
+    NodeBuilder nb = newNode("nt:base");
+    nb.child("a");
+    for (int i = 0; i < 10; i++) {
+        nb.child("a" + i);
+    }
+    NodeState state = nb.getNodeState();
+    final AtomicInteger counter = new AtomicInteger();
+    Iterable<? extends ChildNodeEntry> countingIterator = Iterables.transform(state.getChildNodeEntries(), new Function<ChildNodeEntry, ChildNodeEntry>() {
+
+        @Override
+        public ChildNodeEntry apply(ChildNodeEntry input) {
+            counter.incrementAndGet();
+            return input;
+        }
+    });
+    NodeState mocked = spy(state);
+    doReturn(countingIterator).when(mocked).getChildNodeEntries();
+    ag.collectAggregates(mocked, col);
+    // Here at max a single call should happen for reading child nodes
+    assertThat(counter.get(), is(lessThanOrEqualTo(1)));
+}

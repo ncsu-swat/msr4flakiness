@@ -1,0 +1,20 @@
+@Test
+public void testReaggregate() throws Exception {
+    // Enable relative include for all child nodes of nt:folder
+    // So indexing would create fulltext field for each relative nodes
+    Aggregate agFolder = new Aggregate("nt:folder", of(ni("nt:file", "*", true)));
+    Aggregate agFile = new Aggregate("nt:file", of(ni(null, "jcr:content", true)));
+    mapper.add("nt:file", agFile);
+    mapper.add("nt:folder", agFolder);
+    NodeBuilder nb = newNode("nt:folder");
+    nb.child("a").child("c");
+    createFile(nb, "b", "hello world");
+    createFile(nb, "c", "hello world");
+    agFolder.collectAggregates(nb.getNodeState(), col);
+    assertEquals(4, col.getNodePaths().size());
+    assertThat(col.getNodePaths(), hasItems("b", "c", "b/jcr:content", "c/jcr:content"));
+    assertEquals(2, col.nodeResults.get("b/jcr:content").size());
+    // Check that a result is provided for relative node 'b'. Actual node provided
+    // is b/jcr:content
+    assertEquals(1, col.getRelativeNodeResults("b/jcr:content", "b").size());
+}

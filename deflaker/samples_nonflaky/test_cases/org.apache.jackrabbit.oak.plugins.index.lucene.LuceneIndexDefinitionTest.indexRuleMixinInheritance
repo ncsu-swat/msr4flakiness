@@ -1,0 +1,11 @@
+@Test
+public void indexRuleMixinInheritance() throws Exception {
+    NodeBuilder rules = builder.child(INDEX_RULES);
+    rules.child("mix:mimeType");
+    TestUtil.child(rules, "mix:mimeType/properties/jcr:mimeType").setProperty(FulltextIndexConstants.FIELD_BOOST, 3.0);
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    assertNotNull(defn.getApplicableIndexingRule(asState(newNode("nt:folder", "mix:mimeType"))));
+    assertNull(defn.getApplicableIndexingRule(asState(newNode("nt:folder"))));
+    // nt:resource > mix:mimeType
+    assertNotNull(defn.getApplicableIndexingRule(asState(newNode("nt:resource"))));
+}

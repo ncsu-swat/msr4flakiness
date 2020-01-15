@@ -1,0 +1,42 @@
+@Test
+public void testAddChildNodeAndSetProperty() throws Exception {
+    // give 'testUser' ADD_CHILD_NODES|MODIFY_PROPERTIES privileges at 'path'
+    Privilege[] privileges = privilegesFromNames(new String[] { Privilege.JCR_ADD_CHILD_NODES, Privilege.JCR_MODIFY_PROPERTIES });
+    allow(path, privileges);
+    /*
+         testuser must now have
+         - ADD_NODE permission for child node
+         - SET_PROPERTY permission for child props
+         - REMOVE permission for child-props
+         - READ-only permission for the node at 'path'
+
+         testuser must not have
+         - REMOVE permission for child node
+        */
+    String nonExChildPath = path + "/anyItem";
+    String actions = getActions(Session.ACTION_READ, Session.ACTION_ADD_NODE, Session.ACTION_SET_PROPERTY);
+    assertTrue(testSession.hasPermission(nonExChildPath, actions));
+    assertFalse(testSession.hasPermission(nonExChildPath, Session.ACTION_REMOVE));
+    Node testN = testSession.getNode(path);
+    // must be allowed to add child node
+    testN.addNode(nodeName4);
+    testSession.save();
+    // must be allowed to remove child-property
+    testSession.getProperty(childPPath).remove();
+    testSession.save();
+    // must be allowed to set child property again
+    testN.setProperty(Text.getName(childPPath), "othervalue");
+    testSession.save();
+    // must not be allowed to remove child nodes
+    try {
+        testSession.getNode(childNPath).remove();
+        testSession.save();
+        fail("test-user is not allowed to remove a node below " + path);
+    } catch (AccessDeniedException e) {
+    // success
+    }
+    // must have read-only access on 'testN' and it's sibling
+    assertTrue(testSession.hasPermission(path, Session.ACTION_READ));
+    assertFalse(testSession.hasPermission(path, getActions(Session.ACTION_ADD_NODE, Session.ACTION_SET_PROPERTY, Session.ACTION_REMOVE)));
+    assertReadOnly(siblingPath);
+}

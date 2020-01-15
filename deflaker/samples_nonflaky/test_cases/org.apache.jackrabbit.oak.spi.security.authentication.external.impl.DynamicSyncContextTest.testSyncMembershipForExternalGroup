@@ -1,0 +1,13 @@
+@Test
+public void testSyncMembershipForExternalGroup() throws Exception {
+    // a group that has declaredGroups
+    ExternalGroup externalGroup = idp.getGroup("a");
+    SyncContext ctx = new DefaultSyncContext(syncConfig, idp, userManager, valueFactory);
+    ctx.sync(externalGroup);
+    ctx.close();
+    r.commit();
+    Authorizable gr = userManager.getAuthorizable(externalGroup.getId());
+    syncContext.syncMembership(externalGroup, gr, 1);
+    assertFalse(gr.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES));
+    assertFalse(r.hasPendingChanges());
+}

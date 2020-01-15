@@ -1,0 +1,37 @@
+@Test
+public void testNoMoreThanThreeSolrRequests() throws Exception {
+    NodeState root = InitialContentHelper.INITIAL_CONTENT;
+    SelectorImpl selector = newSelector(root, "a");
+    String sqlQuery = "select [jcr:path], [jcr:score] from [nt:base] as a where" + " contains([jcr:content/*], 'founded')";
+    SolrClient solrServer = mock(SolrClient.class);
+    SolrServerProvider solrServerProvider = mock(SolrServerProvider.class);
+    when(solrServerProvider.getSearchingSolrServer()).thenReturn(solrServer);
+    OakSolrConfigurationProvider configurationProvider = mock(OakSolrConfigurationProvider.class);
+    OakSolrConfiguration configuration = new DefaultSolrConfiguration() {
+
+        @Override
+        public boolean useForPropertyRestrictions() {
+            return true;
+        }
+
+        @Override
+        public int getRows() {
+            return 10;
+        }
+    };
+    when(configurationProvider.getConfiguration()).thenReturn(configuration);
+    SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, configurationProvider, solrServerProvider);
+    FilterImpl filter = new FilterImpl(selector, sqlQuery, new QueryEngineSettings());
+    CountingResponse response = new CountingResponse(0);
+    when(solrServer.query(any(SolrParams.class))).thenReturn(response);
+    List<QueryIndex.IndexPlan> plans = solrQueryIndex.getPlans(filter, null, root);
+    for (QueryIndex.IndexPlan p : plans) {
+        Cursor cursor = solrQueryIndex.query(p, root);
+        assertNotNull(cursor);
+        while (cursor.hasNext()) {
+            IndexRow row = cursor.next();
+            assertNotNull(row);
+        }
+        assertEquals(3, response.getCounter());
+    }
+}

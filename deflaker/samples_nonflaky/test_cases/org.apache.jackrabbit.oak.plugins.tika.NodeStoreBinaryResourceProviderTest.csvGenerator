@@ -1,0 +1,15 @@
+@Test
+public void csvGenerator() throws Exception {
+    File csv = new File(temporaryFolder.getRoot(), "test.csv");
+    BlobStore blobStore = new MemoryBlobStore();
+    NodeBuilder builder = EMPTY_NODE.builder();
+    createFileNode(builder, "a", blobOf("foo", blobStore), "text/plain");
+    createFileNode(builder, "b", blobOf("hello", blobStore), "text/plain");
+    NodeStore store = new MemoryNodeStore(builder.getNodeState());
+    NodeStoreBinaryResourceProvider extractor = new NodeStoreBinaryResourceProvider(store, blobStore);
+    CSVFileGenerator generator = new CSVFileGenerator(csv);
+    generator.generate(extractor.getBinaries("/"));
+    CSVFileBinaryResourceProvider csvbrp = new CSVFileBinaryResourceProvider(csv, blobStore);
+    assertEquals(2, csvbrp.getBinaries("/").size());
+    csvbrp.close();
+}

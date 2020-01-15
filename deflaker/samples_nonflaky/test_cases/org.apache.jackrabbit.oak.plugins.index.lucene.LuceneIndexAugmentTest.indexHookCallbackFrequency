@@ -1,0 +1,44 @@
+// OAK-3576
+@Test
+public void indexHookCallbackFrequency() throws Exception {
+    // setup repo and index
+    NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
+    Tree props = createIndex(TestUtil.NT_TEST);
+    TestUtil.enablePropertyIndex(props, "foo1", false);
+    TestUtil.enablePropertyIndex(props, "foo2", false);
+    TestUtil.enablePropertyIndex(props, "subChild/foo3", false);
+    root.commit();
+    // setup index augmentor
+    final AtomicInteger counter = new AtomicInteger(0);
+    factory.indexFieldProvider = new IndexFieldProvider() {
+
+        @NotNull
+        @Override
+        public Iterable<Field> getAugmentedFields(String path, NodeState document, NodeState indexDefinition) {
+            counter.incrementAndGet();
+            return IndexFieldProvider.DEFAULT.getAugmentedFields(path, document, indexDefinition);
+        }
+
+        @NotNull
+        @Override
+        public Set<String> getSupportedTypes() {
+            return Collections.singleton(TestUtil.NT_TEST);
+        }
+    };
+    // add content
+    counter.set(0);
+    Tree test = root.getTree("/").addChild("test");
+    Tree node = createNodeWithType(test, "item", TestUtil.NT_TEST);
+    node.setProperty("foo1", "bar1");
+    node.setProperty("foo2", "bar2");
+    Tree subChild = node.addChild("subChild");
+    subChild.setProperty("foo3", "bar3");
+    root.commit();
+    assertEquals("Number of callbacks should be same as number of changed properties", 1, counter.get());
+    // change sub-property
+    counter.set(0);
+    subChild = root.getTree("/test/item/subChild");
+    subChild.setProperty("foo3", "bar4");
+    root.commit();
+    assertEquals("Sub child property change should make call backs for all indexed properties", 1, counter.get());
+}

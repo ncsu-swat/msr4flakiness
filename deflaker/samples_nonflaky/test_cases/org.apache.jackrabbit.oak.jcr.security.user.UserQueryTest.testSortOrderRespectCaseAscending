@@ -1,0 +1,23 @@
+/**
+ * @see <a href="https://issues.apache.org/jira/browse/OAK-2266">OAK-2266</a>
+ */
+@Test()
+public void testSortOrderRespectCaseAscending() throws Exception {
+    Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
+
+        public <T> void build(@NotNull QueryBuilder<T> builder) {
+            builder.setCondition(builder.exists("@continent"));
+            builder.setSortOrder("@continent", QueryBuilder.Direction.ASCENDING, false);
+        }
+    });
+    Iterator<String> continents = ImmutableList.of("Africa", "America", "africa", "australia").iterator();
+    String expected = continents.next();
+    while (result.hasNext()) {
+        Authorizable a = result.next();
+        String continent = a.getProperty("continent")[0].getString();
+        if (!continent.equals(expected)) {
+            expected = continents.next();
+            assertEquals(expected, continent);
+        }
+    }
+}

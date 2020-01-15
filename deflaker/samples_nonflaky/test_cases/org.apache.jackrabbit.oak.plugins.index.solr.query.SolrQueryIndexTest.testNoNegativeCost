@@ -1,0 +1,43 @@
+@Test
+public void testNoNegativeCost() throws Exception {
+    NodeState root = InitialContentHelper.INITIAL_CONTENT;
+    NodeBuilder builder = root.builder();
+    builder.child("oak:index").child("solr").setProperty("usedProperties", Collections.singleton("name"), Type.STRINGS).setProperty("propertyRestrictions", true).setProperty("type", "solr");
+    nodeState = builder.getNodeState();
+    SelectorImpl selector = newSelector(root, "a");
+    String query = "select * from [nt:base] as a where native('solr','select?q=searchKeywords:\"foo\"^20 text:\"foo\"^1 " + "description:\"foo\"^8 something:\"foo\"^3 headline:\"foo\"^5 title:\"foo\"^10 &q.op=OR'";
+    String sqlQuery = "select * from [nt:base] a where native('solr','" + query + "'";
+    SolrClient solrServer = mock(SolrClient.class);
+    SolrServerProvider solrServerProvider = mock(SolrServerProvider.class);
+    when(solrServerProvider.getSearchingSolrServer()).thenReturn(solrServer);
+    OakSolrConfigurationProvider configurationProvider = mock(OakSolrConfigurationProvider.class);
+    OakSolrConfiguration configuration = new DefaultSolrConfiguration() {
+
+        @Override
+        public boolean useForPropertyRestrictions() {
+            return true;
+        }
+
+        @Override
+        public int getRows() {
+            return 10;
+        }
+    };
+    when(configurationProvider.getConfiguration()).thenReturn(configuration);
+    SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, configurationProvider, solrServerProvider);
+    FilterImpl filter = new FilterImpl(selector, sqlQuery, new QueryEngineSettings());
+    filter.restrictProperty("native*solr", Operator.EQUAL, PropertyValues.newString(query));
+    CountingResponse response = new CountingResponse(0);
+    when(solrServer.query(any(SolrParams.class))).thenReturn(response);
+    List<QueryIndex.IndexPlan> plans = solrQueryIndex.getPlans(filter, null, nodeState);
+    for (QueryIndex.IndexPlan p : plans) {
+        double costPerEntry = p.getCostPerEntry();
+        assertTrue(costPerEntry >= 0);
+        double costPerExecution = p.getCostPerExecution();
+        assertTrue(costPerExecution >= 0);
+        long estimatedEntryCount = p.getEstimatedEntryCount();
+        assertTrue(estimatedEntryCount >= 0);
+        double c = p.getCostPerExecution() + estimatedEntryCount * p.getCostPerEntry();
+        assertTrue(c >= 0);
+    }
+}

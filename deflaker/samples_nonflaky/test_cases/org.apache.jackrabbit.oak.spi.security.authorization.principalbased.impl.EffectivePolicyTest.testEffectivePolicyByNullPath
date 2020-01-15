@@ -1,0 +1,13 @@
+@Test
+public void testEffectivePolicyByNullPath() throws Exception {
+    AccessControlPolicy[] effective = acMgr.getEffectivePolicies((String) null);
+    assertEquals(1, effective.length);
+    assertTrue(effective[0] instanceof ImmutablePrincipalPolicy);
+    assertEquals(validPrincipal, ((ImmutablePrincipalPolicy) effective[0]).getPrincipal());
+    List<JackrabbitAccessControlEntry> entries = ((ImmutablePrincipalPolicy) effective[0]).getEntries();
+    assertEquals(1, entries.size());
+    assertTrue(entries.get(0) instanceof PrincipalAccessControlList.Entry);
+    assertNull(((PrincipalAccessControlList.Entry) entries.get(0)).getEffectivePath());
+    assertEquals(validPrincipal, entries.get(0).getPrincipal());
+    assertArrayEquals(privilegesFromNames(JCR_NAMESPACE_MANAGEMENT), entries.get(0).getPrivileges());
+}

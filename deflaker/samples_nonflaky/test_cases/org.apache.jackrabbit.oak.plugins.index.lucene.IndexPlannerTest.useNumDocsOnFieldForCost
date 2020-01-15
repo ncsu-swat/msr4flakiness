@@ -1,0 +1,61 @@
+@Test
+public void useNumDocsOnFieldForCost() throws Exception {
+    NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo", "foo1", "foo2"), "async");
+    long numOfDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 1000;
+    LuceneIndexDefinition idxDefn = new LuceneIndexDefinition(root, defn.getNodeState(), "/test");
+    Document doc = new Document();
+    doc.add(new StringField("foo1", "bar1", Field.Store.NO));
+    Directory sampleDirectory = createSampleDirectory(numOfDocs, doc);
+    LuceneIndexNode node = createIndexNode(idxDefn, sampleDirectory);
+    // Query on "foo"
+    FilterImpl filter = createFilter("nt:base");
+    filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+    FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/test", filter, Collections.emptyList());
+    QueryIndex.IndexPlan plan = planner.getPlan();
+    assertEquals(documentsPerValue(numOfDocs), plan.getEstimatedEntryCount());
+    assertEquals(1.0, plan.getCostPerExecution(), 0);
+    assertEquals(1.0, plan.getCostPerEntry(), 0);
+    // Query on "foo" is not null
+    filter = createFilter("nt:base");
+    filter.restrictProperty("foo", Operator.NOT_EQUAL, null);
+    planner = new FulltextIndexPlanner(node, "/test", filter, Collections.emptyList());
+    plan = planner.getPlan();
+    assertEquals(numOfDocs, plan.getEstimatedEntryCount());
+    // Query on "foo" like x
+    filter = createFilter("nt:base");
+    filter.restrictProperty("foo", Operator.LIKE, PropertyValues.newString("bar%"));
+    planner = new FulltextIndexPlanner(node, "/test", filter, Collections.emptyList());
+    plan = planner.getPlan();
+    // weight of 3
+    assertEquals(numOfDocs / 3 + 1, plan.getEstimatedEntryCount());
+    // Query on "foo" > x
+    filter = createFilter("nt:base");
+    filter.restrictProperty("foo", Operator.GREATER_OR_EQUAL, PropertyValues.newString("bar"));
+    planner = new FulltextIndexPlanner(node, "/test", filter, Collections.emptyList());
+    plan = planner.getPlan();
+    // weight of 3
+    assertEquals(numOfDocs / 3 + 1, plan.getEstimatedEntryCount());
+    // Query on "foo1"
+    filter = createFilter("nt:base");
+    filter.restrictProperty("foo1", Operator.EQUAL, PropertyValues.newString("bar1"));
+    planner = new FulltextIndexPlanner(node, "/test", filter, Collections.emptyList());
+    plan = planner.getPlan();
+    assertEquals(1, plan.getEstimatedEntryCount());
+    assertEquals(1.0, plan.getCostPerExecution(), 0);
+    assertEquals(1.0, plan.getCostPerEntry(), 0);
+    // Query on "foo" and "foo1" should use minimum
+    filter = createFilter("nt:base");
+    filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+    filter.restrictProperty("foo1", Operator.EQUAL, PropertyValues.newString("bar1"));
+    planner = new FulltextIndexPlanner(node, "/test", filter, Collections.emptyList());
+    plan = planner.getPlan();
+    assertEquals(1, plan.getEstimatedEntryCount());
+    // Query on "foo" and "foo1" and "foo2" should give 0 as foo3 isn't there in any document
+    filter = createFilter("nt:base");
+    filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+    filter.restrictProperty("foo1", Operator.EQUAL, PropertyValues.newString("bar1"));
+    filter.restrictProperty("foo2", Operator.EQUAL, PropertyValues.newString("bar2"));
+    planner = new FulltextIndexPlanner(node, "/test", filter, Collections.emptyList());
+    plan = planner.getPlan();
+    assertEquals(0, plan.getEstimatedEntryCount());
+}

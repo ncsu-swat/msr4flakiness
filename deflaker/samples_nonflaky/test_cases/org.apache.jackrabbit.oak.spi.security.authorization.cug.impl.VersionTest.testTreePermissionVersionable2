@@ -1,0 +1,18 @@
+@Test
+public void testTreePermissionVersionable2() throws Exception {
+    Tree versionable = root.getTree("/content");
+    Tree vh = checkNotNull(versionManager.getVersionHistory(versionable));
+    CugPermissionProvider pp = createCugPermissionProvider(ImmutableSet.of(SUPPORTED_PATH, SUPPORTED_PATH2));
+    Tree t = root.getTree("/");
+    TreePermission tp = pp.getTreePermission(t, TreePermission.EMPTY);
+    String path = PathUtils.concat(vh.getPath(), "1.0", JCR_FROZENNODE, "aa");
+    for (String segm : PathUtils.elements(path)) {
+        t = t.getChild(segm);
+        tp = pp.getTreePermission(t, tp);
+        if (JCR_SYSTEM.equals(segm) || ReadOnlyVersionManager.isVersionStoreTree(t)) {
+            assertTrue(t.getPath(), tp instanceof EmptyCugTreePermission);
+        } else {
+            assertTrue(t.getPath(), tp instanceof CugTreePermission);
+        }
+    }
+}

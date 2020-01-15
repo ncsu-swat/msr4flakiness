@@ -1,0 +1,18 @@
+@Test
+public void testReadAccessControl() throws Exception {
+    /* give 'testUser' jcr:readAccessControl privileges at subtree below
+           path excluding the node at path itself. */
+    Privilege[] privileges = privilegesFromName(Privilege.JCR_READ_ACCESS_CONTROL);
+    allow(path, privileges);
+    /*
+         testuser must be allowed to read AC content at the target node...
+        */
+    assertTrue(testAcMgr.hasPrivileges(path, privileges));
+    assertTrue(testSession.nodeExists(path + "/rep:policy"));
+    testAcMgr.getPolicies(path);
+    /*
+         ... and the child node
+         */
+    assertTrue(testAcMgr.hasPrivileges(childNPath, privileges));
+    assertEquals(0, testAcMgr.getPolicies(childNPath).length);
+}

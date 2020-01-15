@@ -1,0 +1,14 @@
+@Test
+public void simplePropertyIndex() throws Exception {
+    defnb.noAsync();
+    defnb.indexRule("nt:base").property("foo").propertyIndex();
+    assertEquals(0, Iterables.size(query.getIndexedPaths("foo", "bar")));
+    NodeState before = builder.getNodeState();
+    builder.child("a").setProperty("foo", "bar");
+    builder.child("b").setProperty("foo", "bar");
+    NodeState after = builder.getNodeState();
+    EditorHook hook = new EditorHook(new IndexUpdateProvider(new LuceneIndexEditorProvider()));
+    NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+    tracker.update(indexed);
+    assertThat(query.getIndexedPaths("foo", "bar"), containsInAnyOrder("/a", "/b"));
+}

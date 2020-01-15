@@ -1,0 +1,12 @@
+@Test
+public void indexDefinitionBelowRoot() throws Exception {
+    Tree parent = root.getTree("/").addChild("test");
+    Tree idx = createIndex(parent, "test1", of("propa", "propb"));
+    idx.setProperty(FulltextIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+    idx.addChild(PROP_NODE).addChild("propa");
+    root.commit();
+    Tree test = parent.addChild("test2");
+    test.addChild("a").setProperty("propa", "a");
+    root.commit();
+    assertQuery("select [jcr:path] from [nt:base] as s where ISDESCENDANTNODE(s, '/test') and propa = 'a'", asList("/test/test2/a"));
+}

@@ -1,0 +1,16 @@
+@Test
+public void testCugExcludeExcludedDefault() {
+    context.registerInjectActivateService(cugExclude);
+    context.registerInjectActivateService(cugConfiguration, PROPERTIES);
+    // default exclusion
+    AdminPrincipal admin = () -> "name";
+    SystemUserPrincipal suPrincipal = () -> "name";
+    AuthorizationConfiguration config = context.getService(AuthorizationConfiguration.class);
+    for (Principal p : new Principal[] { SystemPrincipal.INSTANCE, admin, suPrincipal }) {
+        PermissionProvider permissionProvider = config.getPermissionProvider(root, wspName, ImmutableSet.of(p));
+        assertSame(EmptyPermissionProvider.getInstance(), permissionProvider);
+    }
+    // however, other principals must not be excluded
+    PermissionProvider permissionProvider = config.getPermissionProvider(root, wspName, ImmutableSet.of(new PrincipalImpl(EXCLUDED_PRINCIPAL_NAME)));
+    assertTrue(permissionProvider instanceof CugPermissionProvider);
+}

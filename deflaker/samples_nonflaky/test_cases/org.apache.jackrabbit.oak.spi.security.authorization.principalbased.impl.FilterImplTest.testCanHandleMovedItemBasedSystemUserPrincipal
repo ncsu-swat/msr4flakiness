@@ -1,0 +1,12 @@
+@Test
+public void testCanHandleMovedItemBasedSystemUserPrincipal() throws Exception {
+    Principal principal = getTestSystemUser().getPrincipal();
+    assertTrue(filter.canHandle(singleton(principal)));
+    String oakPath = filter.getOakPath(principal);
+    assertEquals(getNamePathMapper().getOakPath(getTestSystemUser().getPath()), oakPath);
+    String destPath = oakPath + "_moved";
+    root.move(oakPath, destPath);
+    Principal movedPrincipal = new TestPrincipal(principal.getName(), destPath);
+    assertTrue(filter.canHandle(singleton(movedPrincipal)));
+    assertEquals(destPath, filter.getOakPath(movedPrincipal));
+}

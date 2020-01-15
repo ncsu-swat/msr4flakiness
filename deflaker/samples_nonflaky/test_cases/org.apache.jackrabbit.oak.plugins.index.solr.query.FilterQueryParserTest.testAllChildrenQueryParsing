@@ -1,0 +1,22 @@
+@Test
+public void testAllChildrenQueryParsing() throws Exception {
+    String query = "select [jcr:path], [jcr:score], * from [nt:hierarchy] as a where isdescendantnode(a, '/')";
+    Filter filter = mock(Filter.class);
+    OakSolrConfiguration configuration = new DefaultSolrConfiguration() {
+
+        @Override
+        public boolean useForPathRestrictions() {
+            return true;
+        }
+    };
+    when(filter.getQueryStatement()).thenReturn(query);
+    Filter.PathRestriction pathRestriction = Filter.PathRestriction.ALL_CHILDREN;
+    when(filter.getPathRestriction()).thenReturn(pathRestriction);
+    when(filter.getPath()).thenReturn("/");
+    QueryIndex.IndexPlan plan = mock(QueryIndex.IndexPlan.class);
+    SolrQuery solrQuery = FilterQueryParser.getQuery(filter, plan, configuration);
+    assertNotNull(solrQuery);
+    String[] filterQueries = solrQuery.getFilterQueries();
+    assertTrue(Arrays.asList(filterQueries).contains(configuration.getFieldForPathRestriction(pathRestriction) + ":\\/"));
+    assertEquals("*:*", solrQuery.get("q"));
+}

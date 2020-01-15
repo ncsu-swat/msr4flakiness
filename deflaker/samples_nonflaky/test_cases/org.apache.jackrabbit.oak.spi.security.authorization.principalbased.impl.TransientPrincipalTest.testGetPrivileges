@@ -1,0 +1,10 @@
+@Test
+public void testGetPrivileges() throws Exception {
+    setupContentTrees(TEST_OAK_PATH);
+    assertEquals(0, acMgr.getPrivileges(testJcrPath, ImmutableSet.of(principal)).length);
+    // transient modifications => not respected by permission evaluation
+    PrincipalPolicyImpl policy = getApplicable();
+    policy.addEntry(testJcrPath, privilegesFromNames(JCR_LOCK_MANAGEMENT));
+    acMgr.setPolicy(policy.getPath(), policy);
+    assertEquals(0, acMgr.getPrivileges(testJcrPath, ImmutableSet.of(principal)).length);
+}

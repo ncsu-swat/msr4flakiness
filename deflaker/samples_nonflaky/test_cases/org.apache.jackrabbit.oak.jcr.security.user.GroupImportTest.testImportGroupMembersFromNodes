@@ -1,0 +1,43 @@
+@Test
+public void testImportGroupMembersFromNodes() throws Exception {
+    List<String> createdUsers = new LinkedList<String>();
+    Session s = getImportSession();
+    UserManager uMgr = getUserManager();
+    try {
+        String[] users = { "angi", "adi", "hansi", "lisi", "luzi", "susi", "pipi", "hari", "gabi", "eddi", "debbi", "cati", "admin", "anonymous" };
+        for (String user : users) {
+            if (uMgr.getAuthorizable(user) == null) {
+                uMgr.createUser(user, user);
+                createdUsers.add(user);
+            }
+        }
+        if (!uMgr.isAutoSave()) {
+            s.save();
+        }
+        doImport(getTargetPath(), "GroupImportTest-testImportGroupMembersFromNodes.xml");
+        if (!uMgr.isAutoSave()) {
+            s.save();
+        }
+        Authorizable aShrimps = uMgr.getAuthorizable("shrimps");
+        assertNotNull("Shrimps authorizable must exist", aShrimps);
+        assertTrue("Shrimps authorizable must be a group", aShrimps.isGroup());
+        Group gShrimps = (Group) aShrimps;
+        for (String user : users) {
+            assertTrue(user + " should be member of " + gShrimps, gShrimps.isMember(uMgr.getAuthorizable(user)));
+        }
+    } finally {
+        for (String user : createdUsers) {
+            Authorizable a = uMgr.getAuthorizable(user);
+            if (a != null && !a.isGroup()) {
+                a.remove();
+            }
+        }
+        for (NodeIterator it = s.getNode(getTargetPath()).getNodes(); it.hasNext(); ) {
+            Node n = it.nextNode();
+            if (!n.getDefinition().isProtected()) {
+                n.remove();
+            }
+        }
+        s.save();
+    }
+}

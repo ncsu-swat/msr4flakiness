@@ -1,0 +1,11 @@
+@Test
+public void simple() throws Exception {
+    assertCommand(combineLines("hello"), "{'print':'hello'}");
+    assertCommand(combineLines("false"), "{'print':false}");
+    assertCommand(combineLines("1", "2", "3"), "{'$x':[1, 2, 3]}", "{'for':'$x', 'do': [{'print': '$x'}]}");
+    assertCommand(combineLines("x1", "x2", "x3"), "{'$myFunction':[{'$y': 'x', '+': '$x'}, {'print':'$y'}]}", "{'$x':[1, 2, 3]}", "{'for':'$x', 'do': '$myFunction'}");
+    assertCommand(combineLines("2", "4", "8"), "{'$x':1}", "{'loop':[{'$x': '$x', '+':'$x'}, {'print': '$x'}, {'$break': true, 'if': '$x', '=': 8}]}");
+    assertCommand(combineLines("b", "d"), "{'$x':1}", "{'print':'a', 'if':'$x', '=':null}", "{'print':'b', 'if':'$x', '=':1}", "{'print':'c', 'if':null, '=':1}", "{'print':'d', 'if':null, '=':null}");
+    assertCommand(combineLines("10", "10"), "{'$x':1}", "{'$$x':10}", "{'print':'$1'}", "{'print':'$$x'}");
+    assertCommand(combineLines("1", "null", "1", "2", "a1"), "{'$x':1, '+':null}", "{'print':'$x'}", "{'$x':null, '+':null}", "{'print':'$x'}", "{'$x':null, '+':1}", "{'print':'$x'}", "{'$x':1, '+':1}", "{'print':'$x'}", "{'$x':'a', '+':'1'}", "{'print':'$x'}");
+}

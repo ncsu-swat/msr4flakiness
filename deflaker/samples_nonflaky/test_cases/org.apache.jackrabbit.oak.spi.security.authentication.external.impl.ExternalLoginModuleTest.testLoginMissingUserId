@@ -1,0 +1,16 @@
+@Test
+public void testLoginMissingUserId() throws Exception {
+    ExternalIdentityProvider idp = mock(ExternalIdentityProvider.class, withSettings().extraInterfaces(CredentialsSupport.class));
+    when(idp.getName()).thenReturn(DEFAULT_IDP_NAME);
+    when(((CredentialsSupport) idp).getUserId(any(Credentials.class))).thenReturn(null);
+    when(((CredentialsSupport) idp).getCredentialClasses()).thenReturn(ImmutableSet.of(GuestCredentials.class));
+    when(extIPMgr.getProvider(DEFAULT_IDP_NAME)).thenReturn(idp);
+    when(syncManager.getSyncHandler("syncHandler")).thenReturn(new DefaultSyncHandler(new DefaultSyncConfigImpl().setName("syncHandler")));
+    wb.register(ExternalIdentityProviderManager.class, extIPMgr, Collections.emptyMap());
+    wb.register(SyncManager.class, syncManager, Collections.emptyMap());
+    CallbackHandler cbh = createCallbackHandler(wb, getContentRepository(), getSecurityProvider(), new GuestCredentials());
+    loginModule.initialize(new Subject(), cbh, new HashMap<>(), ImmutableMap.of(PARAM_IDP_NAME, DEFAULT_IDP_NAME, PARAM_SYNC_HANDLER_NAME, "syncHandler"));
+    assertFalse(loginModule.login());
+    assertFalse(loginModule.commit());
+    assertFalse(loginModule.logout());
+}

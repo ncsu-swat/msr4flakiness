@@ -1,0 +1,17 @@
+@Test
+public void testVersionableRemoved2() throws Exception {
+    // cug at /content/a/b/c denies access
+    Tree versionable = root.getTree("/content/a");
+    Tree vh = checkNotNull(versionManager.getVersionHistory(versionable));
+    assertFalse(testRoot.getTree(vh.getPath()).exists());
+    versionable.remove();
+    root.commit();
+    // removing this versionable node removes the CUG in this tree
+    // -> the permission provider is no longer responsible
+    CugPermissionProvider pp = createCugPermissionProvider(ImmutableSet.of(SUPPORTED_PATH, SUPPORTED_PATH2));
+    assertEquals(Permissions.NO_PERMISSION, pp.supportedPermissions(vh, null, Permissions.READ));
+    assertFalse(pp.isGranted(vh, null, Permissions.READ));
+    // subsequently the deny of the former CUG is gone as well
+    testRoot.refresh();
+    assertTrue(testRoot.getTree(vh.getPath()).exists());
+}

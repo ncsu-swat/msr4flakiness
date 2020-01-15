@@ -1,0 +1,13 @@
+/**
+ * @see <a href="https://issues.apache.org/jira/browse/OAK-3775">OAK-3775</a>
+ */
+public void testIsNodeTypeNewNode() throws Exception {
+    superuser.getNode(path).addMixin(JcrConstants.MIX_REFERENCEABLE);
+    superuser.save();
+    deny(path, privilegesFromName(PrivilegeConstants.REP_READ_PROPERTIES));
+    testSession.getNode(path).remove();
+    Node newNode = testSession.getNode(testRoot).addNode(Text.getName(path));
+    assertTrue(newNode.isNodeType(superuser.getNode(path).getPrimaryNodeType().getName()));
+    assertTrue(newNode.isNodeType(testNodeType));
+    assertFalse(newNode.isNodeType(JcrConstants.MIX_REFERENCEABLE));
+}

@@ -1,0 +1,18 @@
+@Test
+public void readNonStreamingWhenMultipleBlobsExist() throws Exception {
+    boolean oldVal = BufferedOakDirectory.isEnableWritingSingleBlobIndexFile();
+    BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(false);
+    try (Directory multiBlobDir = createDir(builder, true)) {
+        IndexOutput multiBlobIndexOutput = multiBlobDir.createOutput("foo", IOContext.DEFAULT);
+        multiBlobIndexOutput.writeBytes(randomBytes(100), 0, 100);
+        multiBlobIndexOutput.flush();
+    }
+    // Enable feature... reader shouldn't care about the flag.
+    // Repo state needs to be used for that
+    BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(true);
+    try (Directory multiBlobDir = createDir(builder, true)) {
+        OakIndexInput multiBlobIndexInput = (OakIndexInput) multiBlobDir.openInput("foo", IOContext.DEFAULT);
+        assertTrue("OakBufferedIndexFile must be used", multiBlobIndexInput.file instanceof OakBufferedIndexFile);
+    }
+    BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(oldVal);
+}

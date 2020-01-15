@@ -1,0 +1,14 @@
+@Test
+public void testRemovePolicyMixinAlreadyRemoved() throws Exception {
+    ReadOnlyNodeTypeManager ntMgr = ReadOnlyNodeTypeManager.getInstance(root, NamePathMapper.DEFAULT);
+    CugPolicy cug = getApplicableCug(SUPPORTED_PATH);
+    cugAccessControlManager.setPolicy(SUPPORTED_PATH, cug);
+    root.commit();
+    Tree tree = root.getTree(SUPPORTED_PATH);
+    Set<String> mixins = Sets.newHashSet(TreeUtil.getNames(tree, NodeTypeConstants.JCR_MIXINTYPES));
+    mixins.remove(MIX_REP_CUG_MIXIN);
+    tree.setProperty(JcrConstants.JCR_MIXINTYPES, mixins, NAMES);
+    assertFalse(ntMgr.isNodeType(root.getTree(SUPPORTED_PATH), MIX_REP_CUG_MIXIN));
+    cugAccessControlManager.removePolicy(SUPPORTED_PATH, cug);
+    root.commit();
+}

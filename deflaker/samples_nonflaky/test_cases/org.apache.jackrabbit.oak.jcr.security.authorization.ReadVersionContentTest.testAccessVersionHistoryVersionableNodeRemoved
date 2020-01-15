@@ -1,0 +1,20 @@
+/**
+ * @since oak
+ */
+@Test
+public void testAccessVersionHistoryVersionableNodeRemoved() throws Exception {
+    superuser.getNode(versionablePath).remove();
+    superuser.save();
+    testSession.refresh(false);
+    assertTrue(testSession.nodeExists(path));
+    assertFalse(testSession.nodeExists(versionablePath));
+    // accessing the version history directly should still succeed as
+    // read permission is still granted on the tree defined by the parent.
+    VersionHistory history = (VersionHistory) testSession.getNode(vh.getPath());
+    history = (VersionHistory) testSession.getNodeByIdentifier(vh.getIdentifier());
+    history = (VersionHistory) testSession.getNodeByUUID(vh.getUUID());
+    // revoking read permission on the parent node -> version history
+    // must no longer be accessible
+    modify(path, Privilege.JCR_READ, false);
+    assertFalse(testSession.nodeExists(vh.getPath()));
+}

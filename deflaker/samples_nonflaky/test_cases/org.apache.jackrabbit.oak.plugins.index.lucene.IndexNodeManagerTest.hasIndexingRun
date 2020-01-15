@@ -1,0 +1,26 @@
+@Test
+public void hasIndexingRun() {
+    NodeState nrtIndex = createNRTIndex();
+    NodeState asyncIndex = nrtIndex.builder().setProperty("async", ImmutableList.of("async"), STRINGS).getNodeState();
+    NodeState nonAsyncIndex;
+    {
+        NodeBuilder builder = nrtIndex.builder();
+        builder.removeProperty("async");
+        nonAsyncIndex = builder.getNodeState();
+    }
+    assertFalse("nrtIndex; Non existing /:async", LuceneIndexNodeManager.hasAsyncIndexerRun(root, "/foo", nrtIndex));
+    assertFalse("asyncIndex; Non existing /:async", LuceneIndexNodeManager.hasAsyncIndexerRun(root, "/foo", asyncIndex));
+    assertFalse("nonAsyncIndex; Non existing /:async", LuceneIndexNodeManager.hasAsyncIndexerRun(root, "/foo", nonAsyncIndex));
+    // Fake an empty /:async - first indexing cycle isn't done yet
+    builder.child(":async");
+    root = builder.getNodeState();
+    assertFalse("nrtIndex; Empty /:async", LuceneIndexNodeManager.hasAsyncIndexerRun(root, "/foo", nrtIndex));
+    assertFalse("asyncIndex; Non existing /:async", LuceneIndexNodeManager.hasAsyncIndexerRun(root, "/foo", asyncIndex));
+    assertFalse("nonAsyncIndex; Non existing /:async", LuceneIndexNodeManager.hasAsyncIndexerRun(root, "/foo", nonAsyncIndex));
+    // Fake async indexing cycle done
+    builder.child(":async").setProperty("async", "some-random-id");
+    root = builder.getNodeState();
+    assertTrue("nrtIndex; fake async cycle run", LuceneIndexNodeManager.hasAsyncIndexerRun(root, "/foo", nrtIndex));
+    assertTrue("asyncIndex; fake async cycle run", LuceneIndexNodeManager.hasAsyncIndexerRun(root, "/foo", asyncIndex));
+    assertFalse("nonAsyncIndex; fake async cycle run", LuceneIndexNodeManager.hasAsyncIndexerRun(root, "/foo", nonAsyncIndex));
+}

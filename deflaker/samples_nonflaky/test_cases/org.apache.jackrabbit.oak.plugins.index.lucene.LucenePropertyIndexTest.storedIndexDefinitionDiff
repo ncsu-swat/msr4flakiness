@@ -1,0 +1,21 @@
+@Test
+public void storedIndexDefinitionDiff() throws Exception {
+    IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+    idxb.indexRule("nt:base").property("foo").propertyIndex();
+    Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+    idxb.build(idx);
+    idx.setProperty(PROP_RANDOM_SEED, new Random().nextLong());
+    root.commit();
+    AsyncIndexInfoService asyncService = new AsyncIndexInfoServiceImpl(nodeStore);
+    LuceneIndexInfoProvider indexInfoProvider = new LuceneIndexInfoProvider(nodeStore, asyncService, temporaryFolder.newFolder());
+    IndexInfo info = indexInfoProvider.getInfo("/oak:index/test1");
+    assertNotNull(info);
+    assertFalse(info.hasIndexDefinitionChangedWithoutReindexing());
+    assertNull(info.getIndexDefinitionDiff());
+    Tree idxTree = root.getTree("/oak:index/test1");
+    idxTree.setProperty("foo", "bar");
+    root.commit();
+    info = indexInfoProvider.getInfo("/oak:index/test1");
+    assertTrue(info.hasIndexDefinitionChangedWithoutReindexing());
+    assertNotNull(info.getIndexDefinitionDiff());
+}

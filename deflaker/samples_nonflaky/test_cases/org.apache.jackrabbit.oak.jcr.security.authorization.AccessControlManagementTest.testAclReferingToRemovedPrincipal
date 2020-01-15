@@ -1,0 +1,17 @@
+@Test
+public void testAclReferingToRemovedPrincipal() throws Exception {
+    JackrabbitAccessControlList acl = allow(path, repWritePrivileges);
+    String acPath = acl.getPath();
+    // remove the test user
+    testUser.remove();
+    superuser.save();
+    testUser = null;
+    // try to retrieve the acl again
+    Session s = getHelper().getSuperuserSession();
+    try {
+        AccessControlManager acMgr = getAccessControlManager(s);
+        acMgr.getPolicies(acPath);
+    } finally {
+        s.logout();
+    }
+}

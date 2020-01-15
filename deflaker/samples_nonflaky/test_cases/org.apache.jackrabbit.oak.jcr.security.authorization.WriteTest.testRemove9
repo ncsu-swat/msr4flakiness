@@ -1,0 +1,16 @@
+@Test
+public void testRemove9() throws Exception {
+    Privilege[] rmChildNodes = privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES);
+    Privilege[] rmNode = privilegesFromName(Privilege.JCR_REMOVE_NODE);
+    // add 'remove_child_nodes' at 'path and allow 'remove_node' at childNPath
+    allow(path, rmChildNodes);
+    allow(childNPath, rmNode);
+    /*
+         expected result:
+         - rep:policy node can still not be remove for it is access-control
+           content that requires jcr:modifyAccessControl privilege instead.
+         */
+    String policyPath = childNPath + "/rep:policy";
+    assertFalse(testSession.hasPermission(policyPath, Session.ACTION_REMOVE));
+    assertHasPrivileges(policyPath, new Privilege[] { rmChildNodes[0], rmNode[0] }, false);
+}

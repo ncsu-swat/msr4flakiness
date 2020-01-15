@@ -1,0 +1,22 @@
+@Test
+public void settingConfigDifferentFromCLIWarns() {
+    String oldVal = System.getProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM);
+    final LogCustomizer custom = LogCustomizer.forLogger(BufferedOakDirectory.class.getName()).contains("Ignoring configuration ").enable(Level.WARN).create();
+    custom.starting();
+    System.setProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM, "true");
+    reReadCommandLineParam();
+    BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(false);
+    assertEquals("Warn on conflicting config on CLI and set method", 1, custom.getLogs().size());
+    custom.finished();
+    custom.starting();
+    System.setProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM, "false");
+    reReadCommandLineParam();
+    BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(true);
+    assertEquals("Warn on conflicting config on CLI and set method", 1, custom.getLogs().size());
+    custom.finished();
+    if (oldVal == null) {
+        System.clearProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM);
+    } else {
+        System.setProperty(ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM, oldVal);
+    }
+}

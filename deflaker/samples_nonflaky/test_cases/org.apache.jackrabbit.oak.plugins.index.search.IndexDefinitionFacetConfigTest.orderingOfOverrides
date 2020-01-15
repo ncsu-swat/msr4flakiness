@@ -1,0 +1,20 @@
+@Test
+public void orderingOfOverrides() {
+    System.setProperty(PROP_SECURE_FACETS_VALUE_JVM_PARAM, "insecure");
+    System.setProperty(STATISTICAL_FACET_SAMPLE_SIZE_JVM_PARAM, "10");
+    NodeState nodeState;
+    SecureFacetConfiguration config;
+    int sampleSize;
+    nodeState = builder.child("config1").setProperty(PROP_SECURE_FACETS, "secure").getNodeState();
+    config = SecureFacetConfiguration.getInstance(RANDOM_SEED, nodeState);
+    assertEquals(MODE.SECURE, config.getMode());
+    assertEquals(-1, config.getStatisticalFacetSampleSize());
+    nodeState = builder.child("config2").setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_STATISTICAL).setProperty(PROP_STATISTICAL_FACET_SAMPLE_SIZE, 20).getNodeState();
+    config = SecureFacetConfiguration.getInstance(RANDOM_SEED, nodeState);
+    sampleSize = config.getStatisticalFacetSampleSize();
+    assertEquals(20, sampleSize);
+    nodeState = builder.child("config3").setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_STATISTICAL).getNodeState();
+    config = SecureFacetConfiguration.getInstance(RANDOM_SEED, nodeState);
+    sampleSize = config.getStatisticalFacetSampleSize();
+    assertEquals(10, sampleSize);
+}

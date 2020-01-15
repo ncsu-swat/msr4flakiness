@@ -1,0 +1,48 @@
+@Test
+public void cowPoolClosedWithTaskInQueue() throws Exception {
+    ExecutorService executorService = Executors.newFixedThreadPool(2);
+    Directory baseDir = new CloseSafeDir();
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    IndexCopier copier = new RAMIndexCopier(baseDir, executorService, getWorkDir());
+    final Set<String> toPause = Sets.newHashSet();
+    final CountDownLatch pauseCopyLatch = new CountDownLatch(1);
+    Directory remote = new CloseSafeDir() {
+
+        @Override
+        public IndexOutput createOutput(String name, IOContext context) throws IOException {
+            if (toPause.contains(name)) {
+                try {
+                    pauseCopyLatch.await();
+                } catch (InterruptedException ignore) {
+                }
+            }
+            return super.createOutput(name, context);
+        }
+    };
+    final Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME, IndexCopier.COWDirectoryTracker.NOOP);
+    toPause.add("t2");
+    byte[] t1 = writeFile(local, "t1");
+    byte[] t2 = writeFile(local, "t2");
+    byte[] t3 = writeFile(local, "t3");
+    byte[] t4 = writeFile(local, "t4");
+    final AtomicReference<Throwable> error = new AtomicReference<Throwable>();
+    Thread closer = new Thread(new Runnable() {
+
+        @Override
+        public void run() {
+            try {
+                local.close();
+            } catch (Throwable e) {
+                e.printStackTrace();
+                error.set(e);
+            }
+        }
+    });
+    closer.start();
+    copier.close();
+    executorService.shutdown();
+    executorService.awaitTermination(100, TimeUnit.MILLISECONDS);
+    pauseCopyLatch.countDown();
+    closer.join();
+    assertNotNull("Close should have thrown an exception", error.get());
+}

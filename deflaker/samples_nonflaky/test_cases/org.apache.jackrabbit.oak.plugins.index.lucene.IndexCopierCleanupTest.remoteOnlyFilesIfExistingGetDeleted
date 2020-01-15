@@ -1,0 +1,22 @@
+@Test
+public void remoteOnlyFilesIfExistingGetDeleted() throws Exception {
+    Directory cow = copier.getCoWDir();
+    writeFile(cow, "a");
+    for (String name : IndexCopier.REMOTE_ONLY) {
+        writeFile(cow, name);
+    }
+    cow.close();
+    remote.deleteFile("a");
+    writeFile(remote, "b");
+    remote.close();
+    assertTrue(existsLocally("a"));
+    for (String name : IndexCopier.REMOTE_ONLY) {
+        assertTrue(existsLocally(name));
+    }
+    copier.getCoRDir().close();
+    assertFalse(existsLocally("a"));
+    for (String name : IndexCopier.REMOTE_ONLY) {
+        assertFalse(existsLocally(name));
+    }
+    assertTrue(existsLocally("b"));
+}

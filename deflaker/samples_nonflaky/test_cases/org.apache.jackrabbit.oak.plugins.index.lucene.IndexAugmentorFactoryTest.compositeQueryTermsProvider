@@ -1,0 +1,22 @@
+@Test
+public void compositeQueryTermsProvider() {
+    final String typeA = "type:A";
+    final String typeB = "type:B";
+    final String typeC = "type:C";
+    final String typeD = "type:D";
+    final String typeE = "type:E";
+    context.registerInjectActivateService(indexAugmentorFactory);
+    new IdentifiableQueryTermsProvider("1", Sets.newHashSet(typeA, typeB));
+    new IdentifiableQueryTermsProvider("2", Sets.newHashSet(typeC));
+    new IdentifiableQueryTermsProvider("3", Sets.newHashSet(typeA, typeB));
+    new IdentifiableQueryTermsProvider(null, Sets.newHashSet(typeE));
+    // register an instance which would be unregistered before validation
+    FulltextQueryTermsProvider unreg = new IdentifiableQueryTermsProvider("4", Sets.newHashSet(typeD));
+    indexAugmentorFactory.unbindFulltextQueryTermsProvider(unreg);
+    validateComposedQueryTerms(typeA, "1", "3");
+    validateComposedQueryTerms(typeC, "2");
+    validateComposedQueryTerms(typeD);
+    validateComposedQueryTerms(typeE);
+    MockOsgi.deactivate(indexAugmentorFactory, context.bundleContext(), Collections.EMPTY_MAP);
+    validateDeactivatedService();
+}

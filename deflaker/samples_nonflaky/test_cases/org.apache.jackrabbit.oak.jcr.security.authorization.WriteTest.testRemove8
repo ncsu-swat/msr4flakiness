@@ -1,0 +1,18 @@
+public void testRemove8() throws Exception {
+    Privilege[] rmChildNodes = privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES);
+    Privilege[] rmNode = privilegesFromName(Privilege.JCR_REMOVE_NODE);
+    // add 'remove_child_nodes' at 'path
+    allow(path, rmChildNodes);
+    // deny 'remove_node' at 'path'
+    deny(path, rmNode);
+    // and allow 'remove_node' at childNPath
+    allow(childNPath, rmNode);
+    /*
+         expected result:
+         - remove permission must be granted at childNPath
+         */
+    assertTrue(testSession.hasPermission(childNPath, Session.ACTION_REMOVE));
+    assertTrue(testAcMgr.hasPrivileges(childNPath, new Privilege[] { rmChildNodes[0], rmNode[0] }));
+    testSession.getNode(childNPath).remove();
+    testSession.save();
+}

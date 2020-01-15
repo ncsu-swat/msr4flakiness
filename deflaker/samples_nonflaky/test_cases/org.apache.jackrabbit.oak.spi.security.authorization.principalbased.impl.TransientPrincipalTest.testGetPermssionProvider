@@ -1,0 +1,13 @@
+@Test
+public void testGetPermssionProvider() throws Exception {
+    PrincipalBasedAuthorizationConfiguration pbac = getPrincipalBasedAuthorizationConfiguration();
+    // with remapped namespaces
+    PermissionProvider pp = pbac.getPermissionProvider(root, root.getContentSession().getWorkspaceName(), ImmutableSet.of(principal));
+    assertSame(EmptyPermissionProvider.getInstance(), pp);
+    // with default ns-mapping as used to create permission provider
+    Principal transientWithDefaultNs = getConfig(UserConfiguration.class).getUserManager(root, NamePathMapper.DEFAULT).getAuthorizable(uid).getPrincipal();
+    pp = pbac.getPermissionProvider(root, root.getContentSession().getWorkspaceName(), ImmutableSet.of(transientWithDefaultNs));
+    // since permission provider is created with a read-only root the transient principal node does not exist and
+    // no evaluation will take place
+    assertSame(EmptyPermissionProvider.getInstance(), pp);
+}

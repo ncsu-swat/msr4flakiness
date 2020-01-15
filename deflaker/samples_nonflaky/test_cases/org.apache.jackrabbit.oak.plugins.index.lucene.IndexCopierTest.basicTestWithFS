@@ -1,0 +1,20 @@
+@Test
+public void basicTestWithFS() throws Exception {
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    IndexCopier c1 = new IndexCopier(sameThreadExecutor(), getWorkDir());
+    Directory remote = new RAMDirectory();
+    Directory wrapped = c1.wrapForRead("/foo", defn, remote, INDEX_DATA_CHILD_NAME);
+    byte[] t1 = writeFile(remote, "t1");
+    byte[] t2 = writeFile(remote, "t2");
+    assertEquals(2, wrapped.listAll().length);
+    assertTrue(wrapped.fileExists("t1"));
+    assertTrue(wrapped.fileExists("t2"));
+    assertEquals(t1.length, wrapped.fileLength("t1"));
+    assertEquals(t2.length, wrapped.fileLength("t2"));
+    readAndAssert(wrapped, "t1", t1);
+    // t1 should now be added to testDir
+    File indexDir = c1.getIndexDir(defn, "/foo", INDEX_DATA_CHILD_NAME);
+    assertTrue(new File(indexDir, "t1").exists());
+    TabularData td = c1.getIndexPathMapping();
+    assertEquals(1, td.size());
+}

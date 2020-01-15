@@ -1,0 +1,12 @@
+public void testChildInSubTree() throws Exception {
+    addIgnoredChild(testRootNode.getNode(nodeName1));
+    testRootNode.addMixin(JcrConstants.MIX_VERSIONABLE);
+    superuser.save();
+    // enforce the creation of the version (and the frozen node)
+    Version version = versionManager.checkpoint(testRoot);
+    Node frozen = version.getFrozenNode();
+    assertTrue(frozen.hasNode(nodeName1));
+    Node frozenChild = frozen.getNode(nodeName1);
+    assertTrue(frozenChild.hasNode(nodeName2));
+    assertFalse(frozenChild.hasNode(AccessControlConstants.REP_POLICY));
+}

@@ -1,0 +1,19 @@
+@Test
+public void testFiltering() throws Exception {
+    TokenStream stream = new WhitespaceTokenizer(Version.LUCENE_47, new StringReader("0.10 0.20 0.30 0.40"));
+    TruncateTokenFilter filter = new TruncateTokenFilter(stream, 3);
+    filter.reset();
+    List<String> expectedTokens = new LinkedList<>();
+    expectedTokens.add("0.1");
+    expectedTokens.add("0.2");
+    expectedTokens.add("0.3");
+    expectedTokens.add("0.4");
+    int i = 0;
+    while (filter.incrementToken()) {
+        CharTermAttribute charTermAttribute = filter.getAttribute(CharTermAttribute.class);
+        String token = new String(charTermAttribute.buffer(), 0, charTermAttribute.length());
+        assertEquals(expectedTokens.get(i), token);
+        i++;
+    }
+    filter.close();
+}

@@ -1,0 +1,14 @@
+@Test
+public void children() {
+    Set<String> preferred = ImmutableSet.of("jcr:content", "x");
+    CountingIterable<NodeStateEntry> citr = createList(preferred, asList("/a", "/a/jcr:content", "/a/c", "/a/d", "/e", "/e/f", "/g", "/h"));
+    ChildNodeStateProvider p = new ChildNodeStateProvider(citr, "/a", preferred);
+    assertEquals(asList("jcr:content", "c", "d"), copyOf(childNames(p.children())));
+    assertEquals(5, citr.getCount());
+    citr.reset();
+    p = new ChildNodeStateProvider(citr, "/e", preferred);
+    assertEquals(singletonList("f"), copyOf(childNames(p.children())));
+    assertEquals(7, citr.getCount());
+    p = new ChildNodeStateProvider(citr, "/g", preferred);
+    assertEquals(emptyList(), copyOf(childNames(p.children())));
+}

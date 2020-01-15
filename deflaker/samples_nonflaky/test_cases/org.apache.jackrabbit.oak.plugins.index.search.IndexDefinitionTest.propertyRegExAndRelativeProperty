@@ -1,0 +1,11 @@
+@Test
+public void propertyRegExAndRelativeProperty() throws Exception {
+    NodeBuilder defnb = newFTIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo", "lucene", of(TYPENAME_STRING), of("foo"), "async");
+    IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
+    assertTrue(defn.isOfOldFormat());
+    NodeBuilder updated = IndexDefinition.updateDefinition(defnb.getNodeState().builder());
+    IndexDefinition defn2 = new IndexDefinition(root, updated.getNodeState(), "/foo");
+    IndexingRule rule = defn2.getApplicableIndexingRule(asState(newNode("nt:base")));
+    assertNotNull(rule.getConfig("foo"));
+    assertNull("Property regex used should not allow relative properties", rule.getConfig("foo/bar"));
+}

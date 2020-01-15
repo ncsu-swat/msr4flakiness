@@ -1,0 +1,15 @@
+@Test
+public void testSyncPropertiesEmptyMapExistingProps() throws Exception {
+    ExternalUser externalUser = idp.getUser(TestIdentityProvider.ID_SECOND_USER);
+    Authorizable a = syncCtx.createUser(externalUser);
+    Value anyValue = valueFactory.createValue("any");
+    Map<String, ?> extProps = externalUser.getProperties();
+    for (String propName : extProps.keySet()) {
+        a.setProperty(propName, anyValue);
+    }
+    syncCtx.syncProperties(externalUser, a, ImmutableMap.<String, String>of());
+    for (String propName : extProps.keySet()) {
+        assertTrue(a.hasProperty(propName));
+        assertEquals(anyValue, a.getProperty(propName)[0]);
+    }
+}

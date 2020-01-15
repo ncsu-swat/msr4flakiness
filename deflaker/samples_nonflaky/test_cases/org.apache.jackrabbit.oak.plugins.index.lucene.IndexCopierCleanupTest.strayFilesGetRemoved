@@ -1,0 +1,26 @@
+@Test
+public void strayFilesGetRemoved() throws Exception {
+    DelayCopyingSimpleFSDirectory strayDir = new DelayCopyingSimpleFSDirectory(localFSDir);
+    writeFile(strayDir, "oldestStray");
+    // add "a" directly to remote
+    writeFile(remote, "a");
+    copier.getCoRDir().close();
+    // "a" is added to remote and hence local FS gets when CoR is opened
+    assertFalse(existsLocally("oldestStray"));
+    // "b" gets created locally by CoW
+    Directory cow = copier.getCoWDir();
+    writeFile(cow, "b");
+    writeFile(strayDir, "oldStray");
+    copier.getCoRDir().close();
+    // "oldStray" is newer than "b"
+    // hence, doesn't get removed yet
+    assertTrue(existsLocally("oldStray"));
+    // "c" gets created locally
+    cow = copier.getCoWDir();
+    writeFile(cow, "c");
+    // "newStray" is newer than "c"
+    writeFile(strayDir, "newStray");
+    copier.getCoRDir().close();
+    assertFalse(existsLocally("oldStray"));
+    assertTrue(existsLocally("newStray"));
+}

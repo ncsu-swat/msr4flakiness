@@ -1,0 +1,17 @@
+@Test
+public void testAddNestedCug() throws Exception {
+    // create cugs
+    // - /content/a     : allow testGroup, deny everyone
+    // - /content/aa/bb : allow testGroup, deny everyone
+    // - /content/a/b/c : allow everyone,  deny testGroup (isolated)
+    // - /content2      : allow everyone,  deny testGroup (isolated)
+    setupCugsAndAcls();
+    assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, "/content/a", "/content/aa/bb", "/content2");
+    assertNestedCugs(root, getRootProvider(), "/content/a", true, "/content/a/b/c");
+    // add CUG at /content after having created CUGs in the subtree
+    createCug("/content", EveryonePrincipal.getInstance());
+    root.commit();
+    assertNestedCugs(root, getRootProvider(), ROOT_PATH, false, "/content", "/content2");
+    assertNestedCugs(root, getRootProvider(), "/content", true, "/content/a", "/content/aa/bb");
+    assertNestedCugs(root, getRootProvider(), "/content/a", true, "/content/a/b/c");
+}

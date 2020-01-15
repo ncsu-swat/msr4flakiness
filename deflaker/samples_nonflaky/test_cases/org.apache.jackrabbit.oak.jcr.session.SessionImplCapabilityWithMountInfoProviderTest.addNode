@@ -1,0 +1,10 @@
+@Test
+public void addNode() throws Exception {
+    // unable to add nodes in the read-only mount
+    assertFalse("Must not be able to add a child not under the private mount root", adminSession.hasCapability("addNode", adminSession.getNode("/private"), new String[] { "foo" }));
+    assertFalse("Must not be able to add a child not under the private mount", adminSession.hasCapability("addNode", adminSession.getNode("/private/foo"), new String[] { "bar" }));
+    // able to add nodes outside the read-only mount
+    assertTrue("Must be able to add a child node under the root", adminSession.hasCapability("addNode", adminSession.getNode("/"), new String[] { "not-private" }));
+    // unable to add node at the root of the read-only mount ( even though it already exists )
+    assertFalse("Must not be able to add a child node in place of the private mount", adminSession.hasCapability("addNode", adminSession.getNode("/"), new String[] { "private" }));
+}

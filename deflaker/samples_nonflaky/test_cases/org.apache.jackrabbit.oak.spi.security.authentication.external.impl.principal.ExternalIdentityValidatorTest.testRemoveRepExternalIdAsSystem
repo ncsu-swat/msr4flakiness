@@ -1,0 +1,15 @@
+@Test(expected = CommitFailedException.class)
+public void testRemoveRepExternalIdAsSystem() throws Exception {
+    Root systemRoot = getSystemRoot();
+    try {
+        Tree userTree = systemRoot.getTree(externalUserPath);
+        userTree.removeProperty(REP_EXTERNAL_ID);
+        systemRoot.commit();
+        fail("Removing rep:externalId is not allowed if rep:externalPrincipalNames is present.");
+    } catch (CommitFailedException e) {
+        // success
+        assertException(e, CONSTRAINT, 73);
+    } finally {
+        systemRoot.refresh();
+    }
+}

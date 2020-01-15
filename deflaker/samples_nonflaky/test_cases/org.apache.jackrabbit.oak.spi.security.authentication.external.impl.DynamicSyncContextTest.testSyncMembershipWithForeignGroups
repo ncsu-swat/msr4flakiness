@@ -1,0 +1,16 @@
+@Test
+public void testSyncMembershipWithForeignGroups() throws Exception {
+    TestIdentityProvider.TestUser testuser = (TestIdentityProvider.TestUser) idp.getUser(ID_TEST_USER);
+    Set<ExternalIdentityRef> sameIdpGroups = ImmutableSet.copyOf(testuser.getDeclaredGroups());
+    TestIdentityProvider.ForeignExternalGroup foreignGroup = new TestIdentityProvider.ForeignExternalGroup();
+    testuser.withGroups(foreignGroup.getExternalId());
+    assertFalse(Iterables.elementsEqual(sameIdpGroups, testuser.getDeclaredGroups()));
+    sync(testuser, SyncResult.Status.ADD);
+    Authorizable a = userManager.getAuthorizable(ID_TEST_USER);
+    assertTrue(a.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES));
+    Value[] extPrincipalNames = a.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
+    assertEquals(Iterables.size(sameIdpGroups), extPrincipalNames.length);
+    for (Value v : extPrincipalNames) {
+        assertNotEquals(foreignGroup.getPrincipalName(), v.getString());
+    }
+}

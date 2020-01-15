@@ -1,0 +1,18 @@
+@Test
+public void testSingleDenyAfterAllAllowed() throws Exception {
+    /* add 'all' privilege for testSession at path. */
+    Privilege[] allPrivileges = privilegesFromName(Privilege.JCR_ALL);
+    allow(path, allPrivileges);
+    /* deny a single privilege */
+    Privilege[] lockPrivileges = privilegesFromName(Privilege.JCR_LOCK_MANAGEMENT);
+    deny(path, lockPrivileges);
+    /* test permissions. expected result:
+           - testSession cannot lock at 'path'
+           - testSession doesn't have ALL privilege at path
+         */
+    assertFalse(testAcMgr.hasPrivileges(path, allPrivileges));
+    assertFalse(testAcMgr.hasPrivileges(path, lockPrivileges));
+    List<Privilege> remainingprivs = new ArrayList<Privilege>(Arrays.asList(allPrivileges[0].getAggregatePrivileges()));
+    remainingprivs.remove(lockPrivileges[0]);
+    assertTrue(testAcMgr.hasPrivileges(path, remainingprivs.toArray(new Privilege[remainingprivs.size()])));
+}

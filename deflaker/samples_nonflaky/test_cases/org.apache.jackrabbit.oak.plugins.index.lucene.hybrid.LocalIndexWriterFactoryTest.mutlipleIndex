@@ -1,0 +1,16 @@
+@Test
+public void mutlipleIndex() throws Exception {
+    NodeState indexed = createAndPopulateTwoAsyncIndex(FulltextIndexConstants.IndexingMode.NRT);
+    builder = indexed.builder();
+    builder.child("b").setProperty("foo", "bar");
+    builder.child("c").setProperty("bar", "foo");
+    builder.child("a").remove();
+    NodeState after = builder.getNodeState();
+    syncHook.processCommit(indexed, after, newCommitInfo());
+    LuceneDocumentHolder holder = getHolder();
+    assertNotNull(holder);
+    // 1 add  - bar
+    assertEquals(1, getIndexedDocList(holder, "/oak:index/fooIndex").size());
+    // 1 add  - bar
+    assertEquals(1, getIndexedDocList(holder, "/oak:index/barIndex").size());
+}

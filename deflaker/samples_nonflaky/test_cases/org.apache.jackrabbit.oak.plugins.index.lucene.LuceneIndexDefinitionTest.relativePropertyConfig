@@ -1,0 +1,13 @@
+@Test
+public void relativePropertyConfig() throws Exception {
+    builder.child(PROP_NODE).child("foo1").child("bar").setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
+    builder.child(PROP_NODE).child("foo2").child("bar2").child("baz").setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
+    builder.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo", "foo1/bar", "foo2/bar2/baz"), STRINGS));
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    IndexingRule rule = defn.getApplicableIndexingRule(asState(newNode("nt:folder")));
+    assertNotNull(rule.getConfig("foo1/bar"));
+    assertEquals(PropertyType.DATE, rule.getConfig("foo1/bar").getType());
+    assertEquals(PropertyType.LONG, rule.getConfig("foo2/bar2/baz").getType());
+    assertTrue(rule.getConfig("foo1/bar").relative);
+    assertArrayEquals(new String[] { "foo2", "bar2" }, rule.getConfig("foo2/bar2/baz").ancestors);
+}

@@ -1,0 +1,19 @@
+@Test
+public void testSyncAllGroups() throws Exception {
+    // first sync external users into the repo
+    Map<String, String> expected = new HashMap<>();
+    Iterator<ExternalGroup> grIt = idp.listGroups();
+    while (grIt.hasNext()) {
+        ExternalGroup eg = grIt.next();
+        sync(idp, eg.getId(), true);
+        expected.put(eg.getId(), "upd");
+    }
+    // verify effect of syncAllUsers (which in this case are groups)
+    String[] result = syncMBean.syncAllUsers(false);
+    assertResultMessages(result, expected);
+    UserManager userManager = getUserManager();
+    for (String id : expected.keySet()) {
+        ExternalIdentity ei = idp.getGroup(id);
+        assertSync(ei, userManager);
+    }
+}

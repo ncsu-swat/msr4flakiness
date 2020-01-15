@@ -1,0 +1,30 @@
+// OAK-8097
+@Test
+public void copyToLocalBeforeWrite() throws Exception {
+    // storage backend (in-memory)
+    GarbageCollectableBlobStore blobStore = new MemoryBlobStore();
+    LuceneIndexDefinition def = new LuceneIndexDefinition(ns.getRoot(), ns.getRoot(), "/foo");
+    NodeBuilder builder = ns.getRoot().builder();
+    Directory dir = new DefaultDirectoryFactory(copier, blobStore).newInstance(def, builder.child("foo"), INDEX_DATA_CHILD_NAME, false);
+    // add some files
+    addFiles(dir);
+    // close
+    dir.close();
+    // get the directory size
+    File dirName = copier.getIndexDir(def, def.getIndexPath(), INDEX_DATA_CHILD_NAME);
+    long oldSize = FileUtils.sizeOfDirectory(dirName.getParentFile());
+    // delete all files from the local directory
+    FileUtils.deleteQuietly(dirName);
+    // check if empty
+    assertEquals(0, FileUtils.sizeOfDirectory(dirName.getParentFile()));
+    // open the directory again -
+    // this is to download the files from the blob store,
+    // and store them back to the local directory
+    dir = new DefaultDirectoryFactory(copier, blobStore).newInstance(def, builder.child("foo"), INDEX_DATA_CHILD_NAME, false);
+    // check if the directory size matches,
+    // if yes then all files are restored
+    long newSize = FileUtils.sizeOfDirectory(dirName.getParentFile());
+    assertEquals(oldSize, newSize);
+    // done
+    dir.close();
+}

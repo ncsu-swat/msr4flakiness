@@ -1,0 +1,13 @@
+@Test
+public void testGetEffectivePolicies() throws Exception {
+    PrincipalPolicyImpl policy = (PrincipalPolicyImpl) acMgr.getApplicablePolicies(validPrincipal)[0];
+    policy.addEntry(testContentJcrPath, privilegesFromNames(PrivilegeConstants.JCR_ALL));
+    acMgr.setPolicy(policy.getPath(), policy);
+    // transient changes => no effective policy
+    AccessControlPolicy[] effective = acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal));
+    assertEquals(0, effective.length);
+    // after commit => effective policy present
+    root.commit();
+    effective = acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal));
+    assertEffectivePolicy(effective, 1);
+}

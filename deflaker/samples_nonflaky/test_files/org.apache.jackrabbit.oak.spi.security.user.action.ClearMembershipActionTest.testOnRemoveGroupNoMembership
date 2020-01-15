@@ -14,92 +14,203 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.user.action;
+package org.apache.jackrabbit.oak.spi.security.user.action;
 
-import java.util.UUID;
+import java.security.Principal;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
+import javax.jcr.Value;
 
+import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.user.action.ClearMembershipAction;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.jetbrains.annotations.NotNull;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
 
-/**
- * Integration tests for {@link ClearMembershipAction} including a complete
- * security setup.
- */
-public class ClearMembershipActionTest extends AbstractSecurityTest {
+public class ClearMembershipActionTest {
 
-    private ClearMembershipAction action;
+    private final ClearMembershipAction action = new ClearMembershipAction();
 
-    private Group gr;
+    private final Root root = Mockito.mock(Root.class);
+    private final SecurityProvider securityProvider = Mockito.mock(SecurityProvider.class);
 
-    @Override
-    public void before() throws Exception {
-        super.before();
+    private final UserManager userManager = Mockito.mock(UserManager.class);
+    private final UserConfiguration userConfiguration = Mockito.mock(UserConfiguration.class);
 
-        gr = getUserManager(root).createGroup("gr" + UUID.randomUUID().toString());
-        root.commit();
+    private final User user = Mockito.mock(User.class);
+    private final TestGroup gr = new TestGroup();
 
-        action = new ClearMembershipAction();
-        action.init(getSecurityProvider(), ConfigurationParameters.EMPTY);
-    }
-
-    @Override
-    public void after() throws Exception {
-        try {
-            if (gr != null) {
-                gr.remove();
-                root.commit();
-            }
-        } finally {
-            super.after();
-        }
-    }
-
-    @Test
-    public void testOnCreateUser() throws Exception {
-        action.onCreate(getTestUser(), "pw", root, NamePathMapper.DEFAULT);
-        assertFalse(root.hasPendingChanges());
-    }
-
-    @Test
-    public void testOnCreateGroup() throws Exception {
-        action.onCreate(gr, root, NamePathMapper.DEFAULT);
-        assertFalse(root.hasPendingChanges());
-    }
-
-    @Test
-    public void testOnPwChange() throws Exception {
-        action.onPasswordChange(getTestUser(), "newPw", root, NamePathMapper.DEFAULT);
-        assertFalse(root.hasPendingChanges());
+    @Before
+    public void before() {
+        action.init(securityProvider, ConfigurationParameters.EMPTY);
     }
 
     @Test
     public void testOnRemoveUserNoMembership() throws Exception {
-        action.onRemove(getTestUser(), root, NamePathMapper.DEFAULT);
-        assertFalse(root.hasPendingChanges());
+        when(user.declaredMemberOf()).thenReturn(Collections.emptyIterator());
+        action.onRemove(user, root, NamePathMapper.DEFAULT);
     }
 
     @Test
     public void testOnRemoveGroupNoMembership() throws Exception {
         action.onRemove(gr, root, NamePathMapper.DEFAULT);
-        assertFalse(root.hasPendingChanges());
     }
 
     @Test
     public void testOnRemoveUserWithMembership() throws Exception {
-        User u = getTestUser();
-        gr.addMember(u);
-        root.commit();
+        when(user.declaredMemberOf()).thenReturn(Iterators.singletonIterator(gr));
 
-        action.onRemove(u, root, NamePathMapper.DEFAULT);
-        assertTrue(root.hasPendingChanges());
-        assertFalse(gr.isDeclaredMember(u));
+        action.onRemove(user, root, NamePathMapper.DEFAULT);
+        assertTrue(gr.removed.contains(user));
+    }
+
+    @Test
+    public void testOnRemoveGroupWithMembership() throws Exception {
+        Group memberGroup = Mockito.mock(Group.class);
+        when(memberGroup.declaredMemberOf()).thenReturn(Iterators.singletonIterator(gr));
+
+        action.onRemove(memberGroup, root, NamePathMapper.DEFAULT);
+        assertTrue(gr.removed.contains(memberGroup));
+    }
+
+
+    private static final class TestGroup implements Group {
+
+        Set<Authorizable> removed = new HashSet<>();
+
+        @NotNull
+        @Override
+        public Iterator<Authorizable> getDeclaredMembers() {
+            throw new UnsupportedOperationException();
+        }
+
+        @NotNull
+        @Override
+        public Iterator<Authorizable> getMembers() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean isDeclaredMember(@NotNull Authorizable authorizable) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean isMember(@NotNull Authorizable authorizable) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean addMember(@NotNull Authorizable authorizable) {
+            throw new UnsupportedOperationException();
+        }
+
+        @NotNull
+        @Override
+        public Set<String> addMembers(@NotNull String... strings) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean removeMember(@NotNull Authorizable authorizable) {
+            return removed.add(authorizable);
+        }
+
+        @NotNull
+        @Override
+        public Set<String> removeMembers(@NotNull String... strings) {
+            throw new UnsupportedOperationException();
+        }
+
+        @NotNull
+        @Override
+        public String getID() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean isGroup() {
+            throw new UnsupportedOperationException();
+        }
+
+        @NotNull
+        @Override
+        public Principal getPrincipal() {
+            throw new UnsupportedOperationException();
+        }
+
+        @NotNull
+        @Override
+        public Iterator<Group> declaredMemberOf() {
+            return Collections.emptyIterator();
+        }
+
+        @NotNull
+        @Override
+        public Iterator<Group> memberOf() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
+
+        @NotNull
+        @Override
+        public Iterator<String> getPropertyNames() {
+            throw new UnsupportedOperationException();
+        }
+
+        @NotNull
+        @Override
+        public Iterator<String> getPropertyNames(@NotNull String s) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean hasProperty(@NotNull String s) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void setProperty(@NotNull String s, Value value) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void setProperty(@NotNull String s, Value[] values) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Value[] getProperty(@NotNull String s) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean removeProperty(@NotNull String s) {
+            throw new UnsupportedOperationException();
+        }
+
+        @NotNull
+        @Override
+        public String getPath() {
+            throw new UnsupportedOperationException();
+        }
     }
 }

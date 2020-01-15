@@ -1,0 +1,14 @@
+// OAK-3328
+public void testIsCheckedOutOPVIgnore() throws RepositoryException {
+    Node test = testRootNode.addNode("test", JcrConstants.NT_UNSTRUCTURED);
+    String nodeTypeName = "testOpvIgnore";
+    NodeDefinitionTemplate nodeDefinition = createNodeDefinitionWithIgnoreOPVNode(nodeTypeName);
+    test.addMixin(JcrConstants.MIX_VERSIONABLE);
+    test.addMixin(nodeTypeName);
+    Node ignored = test.addNode(nodeDefinition.getName(), NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+    superuser.save();
+    VersionManager vMgr = superuser.getWorkspace().getVersionManager();
+    vMgr.checkin(test.getPath());
+    assertTrue(ignored.isCheckedOut());
+    assertTrue(vMgr.isCheckedOut(ignored.getPath()));
+}

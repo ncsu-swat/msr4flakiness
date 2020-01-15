@@ -1,0 +1,36 @@
+// OAK-3576
+@Test
+public void queryHook() throws Exception {
+    // setup repo and index
+    NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
+    Tree props = createIndex(TestUtil.NT_TEST);
+    TestUtil.enableForFullText(props, "foo");
+    root.commit();
+    // setup query augmentor
+    final String testSearchText = "search this text";
+    final String realSearchText = "bar";
+    factory.fulltextQueryTermsProvider = new FulltextQueryTermsProvider() {
+
+        @Override
+        public Query getQueryTerm(String text, Analyzer analyzer, NodeState indexDefinition) {
+            assertEquals("Full text term passed to provider isn't same as the one passed in query", testSearchText, text);
+            return new TermQuery(new Term(":fulltext", realSearchText));
+        }
+
+        @NotNull
+        @Override
+        public Set<String> getSupportedTypes() {
+            return Collections.singleton(TestUtil.NT_TEST);
+        }
+    };
+    // add content
+    Tree test = root.getTree("/").addChild("test");
+    Tree node = createNodeWithType(test, "item", TestUtil.NT_TEST);
+    node.setProperty("foo", realSearchText);
+    root.commit();
+    // query (testSearchText doesn't have 'bar'... our augment would search for :fulltext:bar
+    String query = "select [jcr:path] from [oak:TestNode] where CONTAINS(*, '" + testSearchText + "')";
+    List<String> paths = executeQuery(query, SQL2);
+    assertEquals("Augmented query wasn't used to search", 1, paths.size());
+    assertEquals("/test/item", paths.get(0));
+}

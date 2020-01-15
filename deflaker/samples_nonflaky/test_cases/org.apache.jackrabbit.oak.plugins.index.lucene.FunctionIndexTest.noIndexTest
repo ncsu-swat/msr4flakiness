@@ -1,0 +1,23 @@
+@Test
+public void noIndexTest() throws Exception {
+    Tree test = root.getTree("/").addChild("test");
+    for (int idx = 0; idx < 3; idx++) {
+        Tree low = test.addChild("" + (char) ('a' + idx));
+        low.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        Tree up = test.addChild("" + (char) ('A' + idx));
+        up.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+    }
+    root.commit();
+    String query = "select [jcr:path] from [nt:base] where lower(localname()) = 'b'";
+    assertThat(explain(query), containsString("traverse"));
+    assertQuery(query, Lists.newArrayList("/test/b", "/test/B"));
+    String queryXPath = "/jcr:root/test//*[fn:lower-case(fn:local-name()) = 'b']";
+    assertThat(explainXpath(queryXPath), containsString("traverse"));
+    assertQuery(queryXPath, "xpath", Lists.newArrayList("/test/b", "/test/B"));
+    queryXPath = "/jcr:root/test//*[fn:lower-case(fn:local-name()) > 'b']";
+    assertThat(explainXpath(queryXPath), containsString("traverse"));
+    assertQuery(queryXPath, "xpath", Lists.newArrayList("/test/c", "/test/C"));
+    query = "select [jcr:path] from [nt:base] where lower(localname()) = 'B'";
+    assertThat(explain(query), containsString("traverse"));
+    assertQuery(query, Lists.<String>newArrayList());
+}

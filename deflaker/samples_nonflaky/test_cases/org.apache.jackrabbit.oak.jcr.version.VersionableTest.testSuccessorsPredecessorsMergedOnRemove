@@ -1,0 +1,25 @@
+// OAK-5193
+public void testSuccessorsPredecessorsMergedOnRemove() throws Exception {
+    Node node = testRootNode.addNode(nodeName1, ntUnstructured);
+    node.addMixin(mixVersionable);
+    superuser.save();
+    VersionManager vm = superuser.getWorkspace().getVersionManager();
+    VersionHistory history = vm.getVersionHistory(node.getPath());
+    // 1.0
+    vm.checkpoint(node.getPath());
+    Version v11 = vm.checkpoint(node.getPath());
+    // 1.2
+    vm.checkpoint(node.getPath());
+    // 1.3
+    vm.checkpoint(node.getPath());
+    vm.restore(v11, true);
+    // 1.1
+    vm.checkpoint(node.getPath());
+    // 1.1.0
+    vm.checkpoint(node.getPath());
+    assertSuccessors(history, of("1.1.0", "1.2"), "1.1");
+    // 1.1.1
+    vm.checkpoint(node.getPath());
+    history.removeVersion("1.2");
+    assertSuccessors(history, of("1.1.0", "1.3"), "1.1");
+}

@@ -1,0 +1,19 @@
+@Test(expected = CommitFailedException.class)
+public void testExternalPrincipalNamesType() throws Exception {
+    Root systemRoot = getSystemRoot();
+    Tree userTree = systemRoot.getTree(testUserPath);
+    java.util.Map<Type, Object> valMap = ImmutableMap.<Type, Object>of(Type.BOOLEANS, ImmutableSet.of(Boolean.TRUE), Type.LONGS, ImmutableSet.of(new Long(1234)), Type.NAMES, ImmutableSet.of("id", "id2"));
+    for (Type t : valMap.keySet()) {
+        Object val = valMap.get(t);
+        try {
+            userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, val, t);
+            systemRoot.commit();
+            fail("Creating rep:externalPrincipalNames with type " + t + " must be detected.");
+        } catch (CommitFailedException e) {
+            // success
+            assertException(e, CONSTRAINT, 71);
+        } finally {
+            systemRoot.refresh();
+        }
+    }
+}

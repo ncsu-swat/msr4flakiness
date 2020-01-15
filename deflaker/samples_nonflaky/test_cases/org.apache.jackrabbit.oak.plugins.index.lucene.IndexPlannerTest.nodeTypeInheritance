@@ -1,0 +1,12 @@
+@Test
+public void nodeTypeInheritance() throws Exception {
+    // Index if for nt:hierarchyNode and query is for nt:folder
+    // as nt:folder extends nt:hierarchyNode we should get a plan
+    NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+    defn.setProperty(createProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:hierarchyNode"), STRINGS));
+    LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"));
+    FilterImpl filter = createFilter("nt:folder");
+    filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+    FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+    assertNotNull(planner.getPlan());
+}

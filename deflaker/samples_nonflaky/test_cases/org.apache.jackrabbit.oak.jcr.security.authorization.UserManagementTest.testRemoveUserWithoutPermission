@@ -1,0 +1,25 @@
+@Test
+public void testRemoveUserWithoutPermission() throws Exception {
+    createUser(userId);
+    UserManager testUserMgr = getUserManager(testSession);
+    // testSession has read-only access
+    try {
+        Authorizable a = testUserMgr.getAuthorizable(userId);
+        a.remove();
+        testSession.save();
+        fail("Test session doesn't have sufficient permission to remove a user.");
+    } catch (AccessDeniedException e) {
+    // success
+    }
+    // testSession has write permission but no user-mgt permission
+    // -> should still fail
+    modify("/", PrivilegeConstants.REP_WRITE, true);
+    try {
+        Authorizable a = testUserMgr.getAuthorizable(userId);
+        a.remove();
+        testSession.save();
+        fail("Test session doesn't have sufficient permission to remove a user.");
+    } catch (AccessDeniedException e) {
+    // success
+    }
+}

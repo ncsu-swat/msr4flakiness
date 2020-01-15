@@ -1,0 +1,16 @@
+@Test
+public void testEmbeddedSolrServerInitialization() throws Exception {
+    URI uri = getClass().getResource("/solr").toURI();
+    File file = new File(uri);
+    EmbeddedSolrServerConfiguration solrServerConfiguration = new EmbeddedSolrServerConfiguration(file.getAbsolutePath(), "oak");
+    EmbeddedSolrServerProvider embeddedSolrServerProvider = new EmbeddedSolrServerProvider(solrServerConfiguration);
+    SolrClient solrServer = embeddedSolrServerProvider.getSolrServer();
+    assertNotNull(solrServer);
+    try {
+        SolrPingResponse ping = solrServer.ping();
+        assertNotNull(ping);
+        assertEquals(0, ping.getStatus());
+    } finally {
+        solrServer.close();
+    }
+}

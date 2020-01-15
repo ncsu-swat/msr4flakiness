@@ -1,0 +1,15 @@
+@Test(expected = CommitFailedException.class)
+public void testExternalPrincipalNamesSingle() throws Exception {
+    Root systemRoot = getSystemRoot();
+    try {
+        Tree userTree = systemRoot.getTree(testUserPath);
+        userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, "id");
+        systemRoot.commit();
+        fail("Creating rep:externalPrincipalNames as single STRING property must be detected.");
+    } catch (CommitFailedException e) {
+        // success
+        assertException(e, CONSTRAINT, 71);
+    } finally {
+        systemRoot.refresh();
+    }
+}

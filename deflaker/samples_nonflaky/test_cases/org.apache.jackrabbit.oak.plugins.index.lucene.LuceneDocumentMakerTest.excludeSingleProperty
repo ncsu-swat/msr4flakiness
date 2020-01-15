@@ -1,0 +1,15 @@
+@Test
+public void excludeSingleProperty() throws Exception {
+    builder.indexRule("nt:base").property("foo").propertyIndex().analyzed().valueExcludedPrefixes("/jobs");
+    LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(root, builder.build(), "/foo").build();
+    LuceneDocumentMaker docMaker = new LuceneDocumentMaker(defn, defn.getApplicableIndexingRule("nt:base"), "/x");
+    NodeBuilder test = EMPTY_NODE.builder();
+    test.setProperty("foo", "bar");
+    assertNotNull(docMaker.makeDocument(test.getNodeState()));
+    test.setProperty("foo", "/jobs/a");
+    assertNull(docMaker.makeDocument(test.getNodeState()));
+    test.setProperty("foo", asList("/a", "/jobs/a"), Type.STRINGS);
+    assertNotNull(docMaker.makeDocument(test.getNodeState()));
+    test.setProperty("foo", asList("/jobs/a"), Type.STRINGS);
+    assertNull(docMaker.makeDocument(test.getNodeState()));
+}

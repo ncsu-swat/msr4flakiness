@@ -1,0 +1,20 @@
+@Test
+public void testTwoWildCards() throws Exception {
+    Node n = superuser.getNode(childNPath);
+    Node n100 = n.addNode("100");
+    Node n110 = n100.addNode("110");
+    Node n120 = n100.addNode("120");
+    Node n111 = n110.addNode("111");
+    Node n112 = n110.addNode("112");
+    Node n121 = n120.addNode("121");
+    Node n122 = n120.addNode("122");
+    deny(childNPath, privilegesFromName(Privilege.JCR_ALL), createGlobRestriction("/*/110/*"));
+    superuser.save();
+    assertTrue(canReadNode(testSession, n100.getPath()));
+    assertTrue(canReadNode(testSession, n110.getPath()));
+    assertFalse(canReadNode(testSession, n111.getPath()));
+    assertFalse(canReadNode(testSession, n112.getPath()));
+    assertTrue(canReadNode(testSession, n120.getPath()));
+    assertTrue(canReadNode(testSession, n121.getPath()));
+    assertTrue(canReadNode(testSession, n122.getPath()));
+}

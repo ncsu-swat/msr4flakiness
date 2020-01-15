@@ -1,0 +1,14 @@
+@Test
+public void testHasAllPrivileges2() throws Exception {
+    AccessControlManager acMgr = getAccessControlManager(root);
+    AccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/content/a");
+    acl.addAccessControlEntry(testGroupPrincipal, privilegesFromNames(PrivilegeConstants.JCR_ALL));
+    acMgr.setPolicy("/content/a", acl);
+    root.commit();
+    // testGroup
+    PermissionProvider pp = createPermissionProvider(testGroupPrincipal);
+    assertFalse(pp.hasPrivileges(root.getTree("/content"), PrivilegeConstants.JCR_ALL));
+    assertTrue(pp.hasPrivileges(root.getTree("/content/a"), PrivilegeConstants.JCR_ALL));
+    assertTrue(pp.hasPrivileges(root.getTree("/content/a/b"), PrivilegeConstants.JCR_ALL));
+    assertFalse(pp.hasPrivileges(root.getTree("/content/a/b/c"), PrivilegeConstants.JCR_ALL));
+}

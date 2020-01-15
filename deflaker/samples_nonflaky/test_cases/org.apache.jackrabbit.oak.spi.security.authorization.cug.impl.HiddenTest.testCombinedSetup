@@ -1,0 +1,27 @@
+@Test
+public void testCombinedSetup() throws Exception {
+    AccessControlManager acMgr = getAccessControlManager(root);
+    try {
+        AccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/");
+        acl.addAccessControlEntry(EveryonePrincipal.getInstance(), AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.JCR_READ));
+        acMgr.setPolicy("/", acl);
+        root.commit();
+        PermissionProvider combined = getConfig(AuthorizationConfiguration.class).getPermissionProvider(readOnlyRoot, root.getContentSession().getWorkspaceName(), ImmutableSet.<Principal>of(EveryonePrincipal.getInstance()));
+        assertFalse(combined.hasPrivileges(hiddenTree, PrivilegeConstants.JCR_READ));
+        assertTrue(combined.getPrivileges(hiddenTree).isEmpty());
+        assertTrue(combined.isGranted(hiddenTree, null, Permissions.ALL));
+        assertTrue(combined.isGranted(hiddenTree.getPath(), Permissions.getString(Permissions.ALL)));
+        Tree t = readOnlyRoot.getTree("/");
+        TreePermission tp = combined.getTreePermission(t, TreePermission.EMPTY);
+        for (String name : PathUtils.elements(hiddenTree.getPath())) {
+            t = t.getChild(name);
+            tp = combined.getTreePermission(t, tp);
+        }
+        assertTrue(tp.isGranted(Permissions.ALL));
+    } finally {
+        AccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/");
+        acl.addAccessControlEntry(EveryonePrincipal.getInstance(), AccessControlUtils.privilegesFromNames(acMgr, PrivilegeConstants.JCR_READ));
+        acMgr.removePolicy("/", acl);
+        root.commit();
+    }
+}

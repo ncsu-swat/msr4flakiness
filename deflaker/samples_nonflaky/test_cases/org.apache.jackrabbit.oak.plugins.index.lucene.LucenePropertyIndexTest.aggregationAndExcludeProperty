@@ -1,0 +1,30 @@
+@Test
+public void aggregationAndExcludeProperty() throws Exception {
+    NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
+    Tree idx = createIndex("test1", of("propa", "propb"));
+    Tree props = TestUtil.newRulePropTree(idx, TestUtil.NT_TEST);
+    Tree prop = props.addChild(TestUtil.unique("prop"));
+    prop.setProperty(FulltextIndexConstants.PROP_NAME, "jcr:title");
+    prop.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
+    Tree prop1 = props.addChild(TestUtil.unique("prop"));
+    prop1.setProperty(FulltextIndexConstants.PROP_NAME, "original/jcr:content/type");
+    prop1.setProperty(FulltextIndexConstants.PROP_EXCLUDE_FROM_AGGREGATE, true);
+    prop1.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
+    newNodeAggregator(idx).newRuleWithName(NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*")).newRuleWithName(TestUtil.NT_TEST, newArrayList("/*"));
+    root.commit();
+    Tree test = root.getTree("/").addChild("test");
+    Tree a = createNodeWithType(test, "a", TestUtil.NT_TEST);
+    Tree af = createFileNode(a, "original", "hello", "text/plain");
+    // Should be excluded
+    af.setProperty("type", "jpg");
+    // Should be included
+    af.setProperty("class", "image");
+    root.commit();
+    // hello and image would be index by aggregation but
+    // jpg should be exclude as there is a property defn to exclude it
+    assertQuery("select [jcr:path] from [oak:TestNode] where contains(*, 'hello')", asList("/test/a"));
+    assertQuery("select [jcr:path] from [oak:TestNode] where contains(*, 'image')", asList("/test/a"));
+    assertQuery("select [jcr:path] from [oak:TestNode] where contains(*, 'jpg')", Collections.<String>emptyList());
+    // Check that property index is being used
+    assertThat(explain("select [jcr:path] from [oak:TestNode] where [original/jcr:content/type] = 'foo'"), containsString("original/jcr:content/type:foo"));
+}

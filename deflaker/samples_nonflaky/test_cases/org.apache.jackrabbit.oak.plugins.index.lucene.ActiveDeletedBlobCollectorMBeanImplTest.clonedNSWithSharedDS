@@ -1,0 +1,59 @@
+@Test
+public void clonedNSWithSharedDS() throws Exception {
+    MemoryBlobStore bs = new MemoryBlobStore();
+    bs.setBlockSizeMin(48);
+    MemoryDocumentStore mds1 = new MemoryDocumentStore();
+    DocumentNodeStore dns1 = builderProvider.newBuilder().setDocumentStore(mds1).setBlobStore(bs).build();
+    // Create initial repo with InitialContent. It has enough data to create blobs
+    LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider();
+    ContentRepository repository = new Oak(dns1).with(new InitialContent()).with(new OpenSecurityProvider()).with(editorProvider).with(new PropertyIndexEditorProvider()).with(new NodeTypeIndexProvider()).createContentRepository();
+    ContentSession session = repository.login(null, null);
+    Root root = session.getLatestRoot();
+    TestUtil.createFulltextIndex(root.getTree("/"), "testIndex");
+    root.commit();
+    // pause active deletion
+    IndexPathService indexPathService = new IndexPathServiceImpl(dns1);
+    AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(newArrayList(new IndexMBeanInfoSupplier("foo-async", () -> STATUS_DONE, () -> 2L)));
+    ActiveDeletedBlobCollectorMBeanImpl bean = new ActiveDeletedBlobCollectorMBeanImpl(ActiveDeletedBlobCollectorFactory.NOOP, wb, dns1, indexPathService, asyncIndexInfoService, new MemoryBlobStore(), sameThreadExecutor());
+    bean.clock = clock;
+    bean.flagActiveDeletionUnsafeForCurrentState();
+    // we try here to create some churn and we want some files to get created at dns1
+    // BUT get deleted at dns2. "segments_1" is one such file.
+    // since our "creation" of churn is assumed, we should assert that dns1 has "segments_1"
+    // (and later dns2 doesn't have it)
+    root = session.getLatestRoot();
+    assertTrue("First pass indexing should generate segments_1", root.getTree("/oak:index/testIndex/:data/segments_1").exists());
+    // shutdown first instance
+    dns1.dispose();
+    // clone
+    MemoryDocumentStore mds2 = mds1.copy();
+    DocumentNodeStore dns2 = builderProvider.newBuilder().setDocumentStore(mds2).setBlobStore(bs).build();
+    // create some churn to delete some index files - using clone store
+    // we'd setup lucene editor with active deletion collector
+    DeletedFileTrackingADBC deletedFileTrackingADBC = new DeletedFileTrackingADBC(new File(temporaryFolder.getRoot(), "adbc-workdir"));
+    editorProvider = new LuceneIndexEditorProvider(null, null, new ExtractedTextCache(0, 0), null, Mounts.defaultMountInfoProvider(), deletedFileTrackingADBC, null, null);
+    repository = new Oak(dns2).with(new OpenSecurityProvider()).with(editorProvider).with(new PropertyIndexEditorProvider()).with(new NodeTypeIndexProvider()).createContentRepository();
+    session = repository.login(null, null);
+    root = session.getLatestRoot();
+    Tree rootTree = root.getTree("/");
+    for (int i = 0; i < 20; i++) {
+        Tree child = rootTree.addChild("a" + i);
+        for (int j = 0; j < 20; j++) {
+            child.setProperty("foo" + j, "bar" + j);
+        }
+    }
+    root.commit();
+    // since our index is not async, we are unable to track commit progress automatically.
+    // OR, iow, we need to play the rold of AsyncIndexUpdate explicitly
+    deletedFileTrackingADBC.blobDeletionCallback.commitProgress(COMMIT_SUCCEDED);
+    deletedFileTrackingADBC.purgeBlobsDeleted(Clock.SIMPLE.getTime() + TimeUnit.SECONDS.toMillis(1), bs);
+    root = session.getLatestRoot();
+    assertFalse("Churn created via dns2 should delete segments_1", root.getTree("/oak:index/testIndex/:data/segments_1").exists());
+    dns2.dispose();
+    // validate index using dns1 which should still have valid index data even
+    // after dns2's churn
+    dns1 = builderProvider.newBuilder().setDocumentStore(mds1).setBlobStore(bs).build();
+    IndexConsistencyChecker checker = new IndexConsistencyChecker(dns1.getRoot(), "/oak:index/testIndex", new File(temporaryFolder.getRoot(), "checker-workdir"));
+    IndexConsistencyChecker.Result result = checker.check(IndexConsistencyChecker.Level.BLOBS_ONLY);
+    assertFalse("Nodestore1 can't read blobs: " + result.missingBlobIds + " while reading index", result.missingBlobs);
+}

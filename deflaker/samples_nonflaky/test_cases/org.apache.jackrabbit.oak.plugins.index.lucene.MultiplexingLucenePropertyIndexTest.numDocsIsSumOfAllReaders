@@ -1,0 +1,27 @@
+@Test
+public void numDocsIsSumOfAllReaders() throws Exception {
+    NodeBuilder defnBuilder = newLucenePropertyIndexDefinition(builder, "test", ImmutableSet.of("foo"), "async");
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(initialContent, defnBuilder.getNodeState(), "/foo");
+    // 1. Have 2 reader created by writes in 2 diff mounts
+    DirectoryFactory directoryFactory = new DefaultDirectoryFactory(null, null);
+    DefaultIndexWriterFactory factory = new DefaultIndexWriterFactory(mip, directoryFactory, new LuceneIndexWriterConfig());
+    LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
+    Document doc = newDoc("/content/en");
+    doc.add(new StringField("foo", "bar", Field.Store.NO));
+    writer.updateDocument("/content/en", doc);
+    doc = newDoc("/libs/config");
+    doc.add(new StringField("foo", "baz", Field.Store.NO));
+    writer.updateDocument("/libs/config", doc);
+    writer.close(0);
+    // 2. Construct the readers
+    LuceneIndexReaderFactory readerFactory = new DefaultIndexReaderFactory(mip, null);
+    List<LuceneIndexReader> readers = readerFactory.createReaders(defn, builder.getNodeState(), "/foo");
+    LuceneIndexNodeManager node = new LuceneIndexNodeManager("foo", defn, readers, null);
+    // 3 Obtain the plan
+    FilterImpl filter = createFilter("nt:base");
+    filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+    FulltextIndexPlanner planner = new FulltextIndexPlanner(node.acquire(), "/foo", filter, Collections.<QueryIndex.OrderEntry>emptyList());
+    QueryIndex.IndexPlan plan = planner.getPlan();
+    // Count should be sum of both readers
+    assertEquals(IndexPlannerTest.documentsPerValue(2), plan.getEstimatedEntryCount());
+}

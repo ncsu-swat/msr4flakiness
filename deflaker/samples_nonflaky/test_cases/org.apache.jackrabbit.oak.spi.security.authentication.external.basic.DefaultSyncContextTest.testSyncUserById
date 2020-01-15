@@ -1,0 +1,13 @@
+@Test
+public void testSyncUserById() throws Exception {
+    ExternalIdentity externalId = idp.listUsers().next();
+    // no initial sync -> sync-by-id doesn't succeed
+    SyncResult result = syncCtx.sync(externalId.getId());
+    assertEquals(SyncResult.Status.NO_SUCH_AUTHORIZABLE, result.getStatus());
+    // force sync
+    syncCtx.sync(externalId);
+    // try again
+    syncCtx.setForceUserSync(true);
+    result = syncCtx.sync(externalId.getId());
+    assertEquals(SyncResult.Status.UPDATE, result.getStatus());
+}

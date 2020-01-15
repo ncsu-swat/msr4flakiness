@@ -1,0 +1,13 @@
+@Test
+public void testMembersUserLookupFails() throws Exception {
+    UserManager um = spy(getUserManager(root));
+    String userPath = um.getAuthorizable(USER_ID).getPath();
+    when(um.getAuthorizableByPath(userPath)).thenReturn(null);
+    UserConfiguration uc = when(mock(UserConfiguration.class).getUserManager(root, getNamePathMapper())).thenReturn(um).getMock();
+    ExternalGroupPrincipalProvider pp = new ExternalGroupPrincipalProvider(root, uc, getNamePathMapper(), ImmutableMap.of(idp.getName(), getAutoMembership()));
+    ExternalIdentityRef ref = idp.getUser(USER_ID).getDeclaredGroups().iterator().next();
+    String groupName = idp.getIdentity(ref).getPrincipalName();
+    Principal gp = pp.getPrincipal(groupName);
+    assertTrue(gp instanceof GroupPrincipal);
+    assertFalse(((GroupPrincipal) gp).members().hasMoreElements());
+}

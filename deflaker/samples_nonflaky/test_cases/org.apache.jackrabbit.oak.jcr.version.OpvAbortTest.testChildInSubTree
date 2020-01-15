@@ -1,0 +1,15 @@
+public void testChildInSubTree() throws Exception {
+    Node n = testRootNode.addNode(nodeName1).addNode(nodeName2);
+    n.addMixin("OpvAbortTest");
+    Node child = n.addNode("child", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+    superuser.save();
+    assertEquals(OnParentVersionAction.ABORT, child.getDefinition().getOnParentVersion());
+    try {
+        vMgr.checkpoint(testRootNode.getPath());
+        fail();
+    } catch (VersionException e) {
+    // success
+    } finally {
+        superuser.refresh(false);
+    }
+}

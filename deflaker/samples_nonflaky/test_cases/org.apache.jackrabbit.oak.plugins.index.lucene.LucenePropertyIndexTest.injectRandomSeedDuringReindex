@@ -1,0 +1,15 @@
+@Test
+public void injectRandomSeedDuringReindex() throws Exception {
+    IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+    idxb.indexRule("nt:base").property("foo").propertyIndex();
+    Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+    idxb.build(idx);
+    root.commit();
+    // Push a change to get another indexing cycle run
+    root.getTree("/").addChild("force-index-run");
+    root.commit();
+    NodeState idxState = NodeStateUtils.getNode(nodeStore.getRoot(), idx.getPath());
+    long defSeed = idxState.getProperty(PROP_RANDOM_SEED).getValue(Type.LONG);
+    long clonedSeed = idxState.getChildNode(INDEX_DEFINITION_NODE).getProperty(PROP_RANDOM_SEED).getValue(Type.LONG);
+    assertTrue("Injected def (" + defSeed + ")and clone (" + clonedSeed + " seeds aren't same", defSeed == clonedSeed);
+}

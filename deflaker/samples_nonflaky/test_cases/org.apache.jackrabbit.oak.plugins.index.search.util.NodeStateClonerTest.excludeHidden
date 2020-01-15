@@ -1,0 +1,15 @@
+@Test
+public void excludeHidden() throws Exception {
+    NodeBuilder builder = EMPTY_NODE.builder();
+    builder.child("a").child(":b").child("e");
+    builder.child("a").child("c").child(":d");
+    builder.child("a").setProperty("foo", "bar");
+    NodeState source = builder.getNodeState();
+    NodeState cloned = NodeStateCloner.cloneVisibleState(source);
+    assertFalse(NodeStateUtils.getNode(cloned, "/a/:b").exists());
+    assertFalse(NodeStateUtils.getNode(cloned, "/a/:b/e").exists());
+    assertFalse(NodeStateUtils.getNode(cloned, "/a/c/:d").exists());
+    assertTrue(NodeStateUtils.getNode(cloned, "/a/c").exists());
+    assertTrue(NodeStateUtils.getNode(cloned, "/a").hasProperty("foo"));
+    assertFalse(EqualsDiff.equals(source, cloned));
+}

@@ -1,0 +1,16 @@
+@Test
+public void testWriteAcl() throws Exception {
+    ContentSession cs = createTestSession2();
+    Root r = cs.getLatestRoot();
+    try {
+        Tree tree = r.getTree("/content/a/b/c");
+        tree.setProperty(JCR_MIXINTYPES, ImmutableList.of(MIX_REP_CUG_MIXIN, AccessControlConstants.MIX_REP_ACCESS_CONTROLLABLE), Type.NAMES);
+        tree.addChild(AccessControlConstants.REP_POLICY).setProperty(JCR_PRIMARYTYPE, AccessControlConstants.NT_REP_ACL, Type.NAME);
+        r.commit();
+        fail();
+    } catch (CommitFailedException e) {
+        assertTrue(e.isAccessViolation());
+    } finally {
+        r.refresh();
+    }
+}

@@ -1,0 +1,12 @@
+@Test
+public void testCanHandleMovedUnsupportedItemBasedSystemUserPrincipal() throws Exception {
+    Principal principal = getTestSystemUser().getPrincipal();
+    String srcPath = getNamePathMapper().getOakPath(getTestSystemUser().getPath());
+    String destPath = PathUtils.concat(DEFAULT_USER_PATH, DEFAULT_SYSTEM_RELATIVE_PATH, "moved");
+    Principal movedPrincipal = new TestPrincipal(principal.getName(), destPath);
+    root.move(srcPath, destPath);
+    assertFalse(filter.canHandle(singleton(movedPrincipal)));
+    root.move(destPath, srcPath);
+    assertTrue(filter.canHandle(singleton(principal)));
+    assertEquals(srcPath, filter.getOakPath(movedPrincipal));
+}

@@ -1,0 +1,12 @@
+@Test(expected = AccessControlException.class)
+public void testStartChildInfoUnsupportedRestrictions() throws Exception {
+    init(false, ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
+    User user = getTestSystemUser();
+    Tree policyTree = createPolicyTree(user);
+    importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()), mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
+    importer.start(policyTree);
+    importer.startChildInfo(mockNodeInfo("entry", getJcrName(NT_REP_PRINCIPAL_ENTRY)), mockPropInfos("/effective/path", PrivilegeConstants.REP_WRITE));
+    importer.startChildInfo(mockNodeInfo(getJcrName(REP_RESTRICTIONS), getJcrName(NT_REP_RESTRICTIONS)), mockPropInfos(ImmutableMap.of("unsupported", "x"), PropertyType.STRING));
+    // adding entry to policy must already throw the exception
+    importer.endChildInfo();
+}

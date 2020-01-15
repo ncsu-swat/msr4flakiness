@@ -1,0 +1,31 @@
+@Test
+public void dirtyAndElapsedTime() throws Exception {
+    clock.waitUntil(System.currentTimeMillis());
+    TimedRefreshPolicy policy = new TimedRefreshPolicy(clock, TimeUnit.SECONDS, 1);
+    policy.updated();
+    policy.refreshOnWriteIfRequired(refreshCallback);
+    refreshCallback.assertInvokedAndReset();
+    policy.refreshOnWriteIfRequired(refreshCallback);
+    refreshCallback.assertNotInvokedAndReset();
+    policy.updated();
+    // Given time has not elapsed it should still be false
+    // in both reader and writer mode
+    policy.refreshOnWriteIfRequired(refreshCallback);
+    refreshCallback.assertNotInvokedAndReset();
+    policy.refreshOnWriteIfRequired(refreshCallback);
+    refreshCallback.assertNotInvokedAndReset();
+    // Let the refresh delta time elapse
+    long refreshDelta = TimeUnit.SECONDS.toMillis(1) + 1;
+    clock.waitUntil(System.currentTimeMillis() + refreshDelta);
+    policy.refreshOnWriteIfRequired(refreshCallback);
+    refreshCallback.assertInvokedAndReset();
+    policy.refreshOnWriteIfRequired(refreshCallback);
+    refreshCallback.assertNotInvokedAndReset();
+    policy.updated();
+    // Do similar check for read
+    clock.waitUntil(clock.getTime() + refreshDelta);
+    policy.refreshOnReadIfRequired(refreshCallback);
+    refreshCallback.assertInvokedAndReset();
+    policy.refreshOnReadIfRequired(refreshCallback);
+    refreshCallback.assertNotInvokedAndReset();
+}

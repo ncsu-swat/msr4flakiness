@@ -1,0 +1,34 @@
+@Test
+public void iterator() {
+    assertEquals("empty list must be 0-sized", 0, Iterators.size(list.iterator()));
+    list.add(TEST_NODE_STATE_ENTRY);
+    assertEquals("single entry list must be 1-sized", 1, Iterators.size(list.iterator()));
+    assertEquals("single entry list must be 1-sized on separate iterators", 1, Iterators.size(list.iterator()));
+    list.add(TEST_NODE_STATE_ENTRY);
+    assertEquals("2 entries in list must be 2-sized", 2, Iterators.size(list.iterator()));
+    assertEquals("2 entries in list must be 2-sized on separate iterators", 2, Iterators.size(list.iterator()));
+    NodeIterator iter2 = list.iterator();
+    NodeIterator iter1 = list.iterator();
+    iter2.next();
+    assertEquals("2 entries in list must be 1-sized after consuming an item", 1, Iterators.size(iter2));
+    assertEquals("2 entries in list must be 2-sized even if some other iterator consumed an item", 2, Iterators.size(iter1));
+    list.add(TEST_NODE_STATE_ENTRY);
+    iter1 = list.iterator();
+    iter2 = list.iterator();
+    // move iter to point at node being removed below
+    iter1.next();
+    // move iter beyond node being removed - this should remain valid
+    iter2.next();
+    // move iter beyond node being removed - this should remain valid
+    iter2.next();
+    list.remove();
+    try {
+        iter1.next();
+        fail("Iterator state once removed from list can't be traversed");
+    } catch (IllegalStateException ise) {
+    // ignore
+    }
+    // this should work
+    assertEquals(TEST_NODE_STATE_ENTRY, iter2.next());
+    assertEquals("2 entries in list must be 1-sized after removal of an iterm", 2, Iterators.size(list.iterator()));
+}

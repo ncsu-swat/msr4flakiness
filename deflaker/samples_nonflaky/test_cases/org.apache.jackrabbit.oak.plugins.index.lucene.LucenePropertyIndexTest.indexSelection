@@ -1,0 +1,18 @@
+@Test
+public void indexSelection() throws Exception {
+    createIndex("test1", of("propa", "propb"));
+    createIndex("test2", of("propc"));
+    Tree test = root.getTree("/").addChild("test");
+    test.addChild("a").setProperty("propa", "foo");
+    test.addChild("b").setProperty("propa", "foo");
+    test.addChild("c").setProperty("propa", "foo2");
+    test.addChild("d").setProperty("propc", "foo");
+    test.addChild("e").setProperty("propd", "foo");
+    root.commit();
+    String propaQuery = "select [jcr:path] from [nt:base] where [propa] = 'foo'";
+    assertThat(explain(propaQuery), containsString("lucene:test1"));
+    assertThat(explain("select [jcr:path] from [nt:base] where [propc] = 'foo'"), containsString("lucene:test2"));
+    assertQuery(propaQuery, asList("/test/a", "/test/b"));
+    assertQuery("select [jcr:path] from [nt:base] where [propa] = 'foo2'", asList("/test/c"));
+    assertQuery("select [jcr:path] from [nt:base] where [propc] = 'foo'", asList("/test/d"));
+}

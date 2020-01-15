@@ -1,0 +1,11 @@
+@Test(expected = AccessDeniedException.class)
+public void testSetPolicyMissingModifyAccessControlOnEffectivePath2() throws Exception {
+    grant(testPrincipal, systemPrincipalPath, JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL);
+    grant(testPrincipal, testContentJcrPath, JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL);
+    root.commit();
+    testRoot.refresh();
+    PrincipalPolicyImpl policy = (PrincipalPolicyImpl) testAcMgr.getPolicies(systemPrincipal)[0];
+    policy.addEntry(null, privilegesFromNames(JCR_WORKSPACE_MANAGEMENT));
+    policy.addEntry(testJcrPath, privilegesFromNames(JCR_READ));
+    testAcMgr.setPolicy(policy.getPath(), policy);
+}

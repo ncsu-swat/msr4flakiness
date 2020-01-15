@@ -1,0 +1,14 @@
+@Test
+public void propertyIndexWithBatching() throws Exception {
+    String idxName = "multitest";
+    createIndex(root.getTree("/"), idxName, Collections.singleton("foo"));
+    root.commit();
+    int expectedSize = LuceneIndex.LUCENE_QUERY_BATCH_SIZE * 2 * 2;
+    for (int i = 0; i < LuceneIndex.LUCENE_QUERY_BATCH_SIZE * 2; i++) {
+        createPath("/libs/a" + i).setProperty("foo", "bar");
+        createPath("/content/a" + i).setProperty("foo", "bar");
+    }
+    root.commit();
+    assertEquals(2, getIndexDirNames(idxName).size());
+    assertResultSize("select [jcr:path] from [nt:base] where [foo] = 'bar'", SQL2, expectedSize);
+}

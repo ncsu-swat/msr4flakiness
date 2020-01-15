@@ -1,0 +1,36 @@
+@Test
+public void verifyCustomPrivilegeBits() throws Exception {
+    JackrabbitSession session = createAdminSession();
+    try {
+        Node privilegeRoot = session.getNode(PrivilegeConstants.PRIVILEGES_PATH);
+        Node testPrivilegeNode = privilegeRoot.getNode("test:privilege");
+        long l = getLong(testPrivilegeNode);
+        PrivilegeBits pb = readBits(testPrivilegeNode, PrivilegeConstants.REP_BITS);
+        Node testPrivilege2Node = privilegeRoot.getNode("test:privilege2");
+        long l2 = getLong(testPrivilege2Node);
+        PrivilegeBits pb2 = readBits(testPrivilege2Node, PrivilegeConstants.REP_BITS);
+        PrivilegeBits nextExpected;
+        if (l < l2) {
+            assertEquals(PrivilegeBits.NEXT_AFTER_BUILT_INS, pb);
+            assertEquals(pb.nextBits(), pb2);
+            nextExpected = pb2.nextBits();
+        } else {
+            assertEquals(PrivilegeBits.NEXT_AFTER_BUILT_INS, pb2);
+            assertEquals(pb2.nextBits(), pb);
+            nextExpected = pb.nextBits();
+        }
+        // make sure the next-value has been properly set
+        PrivilegeBits nextBits = readBits(privilegeRoot, PrivilegeConstants.REP_NEXT);
+        assertEquals(nextExpected, nextBits);
+        Node testAggregateNode = privilegeRoot.getNode("test:aggregate");
+        PrivilegeBits aggrPb = readBits(testAggregateNode, PrivilegeConstants.REP_BITS);
+        PrivilegeBits expected = PrivilegeBits.getInstance(PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ), pb).unmodifiable();
+        assertEquals(expected, aggrPb);
+        Node testAggregate2Node = privilegeRoot.getNode("test:aggregate2");
+        PrivilegeBits aggr2Pb = readBits(testAggregate2Node, PrivilegeConstants.REP_BITS);
+        PrivilegeBits expected2 = PrivilegeBits.getInstance(aggrPb, pb2).unmodifiable();
+        assertEquals(expected2, aggr2Pb);
+    } finally {
+        session.logout();
+    }
+}

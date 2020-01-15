@@ -1,0 +1,16 @@
+@Test
+public void missingFile() throws Exception {
+    LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, idx.getNodeState(), "/fooIndex").build();
+    Directory dir = new OakDirectory(idx, ":data", defn, false);
+    createIndex(dir, 10);
+    NodeBuilder builder = rootState.builder();
+    idx.getChildNode(":data").getChildNode("segments.gen").remove();
+    builder.setChildNode("fooIndex", idx.getNodeState());
+    NodeState indexState = builder.getNodeState();
+    IndexConsistencyChecker checker = new IndexConsistencyChecker(indexState, "/fooIndex", temporaryFolder.getRoot());
+    Result result = checker.check(Level.FULL);
+    assertFalse(result.clean);
+    assertEquals(1, result.dirStatus.get(0).missingFiles.size());
+    assertNull(result.dirStatus.get(0).status);
+    dumpResult(result);
+}

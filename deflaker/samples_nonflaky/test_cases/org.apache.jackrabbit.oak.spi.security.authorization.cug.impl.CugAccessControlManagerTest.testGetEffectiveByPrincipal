@@ -1,0 +1,19 @@
+@Test
+public void testGetEffectiveByPrincipal() throws Exception {
+    Principal p = getTestGroupPrincipal();
+    createCug(SUPPORTED_PATH, p);
+    createCug(SUPPORTED_PATH + "/subtree", p);
+    root.commit();
+    Principal na = new PrincipalImpl("testNA");
+    Set<Principal> pp = ImmutableSet.of(p, na);
+    AccessControlPolicy[] effective = cugAccessControlManager.getEffectivePolicies(pp);
+    assertEquals(2, effective.length);
+    AccessControlPolicy policy = effective[0];
+    assertTrue(policy instanceof CugPolicy);
+    assertEquals(Collections.singleton(p), ((CugPolicy) policy).getPrincipals());
+    assertEquals(SUPPORTED_PATH, ((CugPolicy) policy).getPath());
+    AccessControlPolicy policy2 = effective[1];
+    assertTrue(policy2 instanceof CugPolicy);
+    assertEquals(Collections.singleton(p), ((CugPolicy) policy2).getPrincipals());
+    assertEquals(SUPPORTED_PATH + "/subtree", ((CugPolicy) policy2).getPath());
+}

@@ -1,0 +1,14 @@
+@Test
+public void testEffectivePolicyByPathVerifiesPrincipals() throws Exception {
+    PrincipalManager principalMgr = mock(PrincipalManager.class);
+    when(principalMgr.getPrincipal(validPrincipal.getName())).thenReturn(null);
+    when(principalMgr.getPrincipal(validPrincipal2.getName())).thenReturn(new PrincipalImpl(validPrincipal2.getName()));
+    MgrProvider provider = mock(MgrProvider.class);
+    when(provider.getPrincipalManager()).thenReturn(principalMgr);
+    when(provider.getRoot()).thenReturn(root);
+    when(provider.getSecurityProvider()).thenReturn(securityProvider);
+    when(provider.getNamePathMapper()).thenReturn(getNamePathMapper());
+    PrincipalBasedAccessControlManager acm = new PrincipalBasedAccessControlManager(provider, getFilterProvider());
+    AccessControlPolicy[] effective = acm.getEffectivePolicies(getNamePathMapper().getJcrPath(TEST_OAK_PATH));
+    assertEquals(0, effective.length);
+}

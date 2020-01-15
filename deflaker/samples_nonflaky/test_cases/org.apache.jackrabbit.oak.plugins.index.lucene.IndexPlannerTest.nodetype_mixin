@@ -1,0 +1,16 @@
+@Test
+public void nodetype_mixin() throws Exception {
+    TestUtil.registerNodeType(builder, testNodeTypeDefn);
+    root = builder.getNodeState();
+    IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+    defnb.nodeTypeIndex();
+    defnb.indexRule("oak:TestMixA");
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.build(), "/foo");
+    LuceneIndexNode node = createIndexNode(defn);
+    FilterImpl filter = createFilter("oak:TestMixA");
+    FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+    QueryIndex.IndexPlan plan = planner.getPlan();
+    assertNotNull(plan);
+    FulltextIndexPlanner.PlanResult r = pr(plan);
+    assertTrue(r.evaluateNodeTypeRestriction());
+}

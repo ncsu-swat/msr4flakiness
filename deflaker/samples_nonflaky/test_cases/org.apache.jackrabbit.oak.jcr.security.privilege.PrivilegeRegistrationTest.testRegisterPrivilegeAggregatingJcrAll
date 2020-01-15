@@ -1,0 +1,15 @@
+@Test
+public void testRegisterPrivilegeAggregatingJcrAll() throws Exception {
+    privilegeManager.registerPrivilege("customPriv", false, null);
+    try {
+        privilegeManager.registerPrivilege("customPriv2", false, new String[] { "customPriv", Privilege.JCR_ALL });
+        fail("Aggregation containing jcr:all is invalid.");
+    } catch (RepositoryException e) {
+        // success
+        Throwable cause = e.getCause();
+        assertTrue(cause instanceof CommitFailedException);
+        assertEquals(53, ((CommitFailedException) cause).getCode());
+    } finally {
+        superuser.refresh(false);
+    }
+}

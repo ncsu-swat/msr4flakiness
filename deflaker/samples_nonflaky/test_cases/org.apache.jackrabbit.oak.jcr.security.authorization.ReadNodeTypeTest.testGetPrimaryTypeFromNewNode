@@ -1,0 +1,19 @@
+/**
+ * @see <a href="https://issues.apache.org/jira/browse/OAK-2488">OAK-2488</a>
+ */
+public void testGetPrimaryTypeFromNewNode() throws Exception {
+    deny(path, privilegesFromName(PrivilegeConstants.REP_READ_PROPERTIES));
+    testSession.getNode(path).remove();
+    Node newNode = testSession.getNode(testRoot).addNode(Text.getName(path));
+    if (newNode.hasProperty(JcrConstants.JCR_PRIMARYTYPE)) {
+        NodeType primaryType = newNode.getPrimaryNodeType();
+        assertEquals(newNode.getProperty(JcrConstants.JCR_PRIMARYTYPE).getString(), primaryType.getName());
+    } else {
+        try {
+            newNode.getPrimaryNodeType();
+            fail("Cannot read primary type from transient new node if access to property is not readable.");
+        } catch (RepositoryException e) {
+            assertTrue(e.getMessage().startsWith("Unable to retrieve primary type for Node"));
+        }
+    }
+}

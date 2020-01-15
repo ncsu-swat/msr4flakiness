@@ -1,0 +1,58 @@
+@Test
+public void copyInProgressStats() throws Exception {
+    Directory baseDir = new RAMDirectory();
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    final List<ListenableFuture<?>> submittedTasks = Lists.newArrayList();
+    ExecutorService executor = new ForwardingListeningExecutorService() {
+
+        @Override
+        protected ListeningExecutorService delegate() {
+            return MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor());
+        }
+
+        @Override
+        public void execute(Runnable command) {
+            submittedTasks.add(super.submit(command));
+        }
+    };
+    IndexCopier c1 = new RAMIndexCopier(baseDir, executor, getWorkDir());
+    final CountDownLatch copyProceed = new CountDownLatch(1);
+    final CountDownLatch copyRequestArrived = new CountDownLatch(1);
+    FileTrackingDirectory remote = new FileTrackingDirectory() {
+
+        @Override
+        public void copy(Directory to, String src, String dest, IOContext context) throws IOException {
+            copyRequestArrived.countDown();
+            try {
+                copyProceed.await();
+            } catch (InterruptedException e) {
+            }
+            super.copy(to, src, dest, context);
+        }
+    };
+    Directory wrapped = c1.wrapForRead("/foo", defn, remote, INDEX_DATA_CHILD_NAME);
+    byte[] t1 = writeFile(remote, "t1");
+    // 1. Trigger a read which should go to remote
+    readAndAssert(wrapped, "t1", t1);
+    copyRequestArrived.await();
+    assertEquals(1, c1.getCopyInProgressCount());
+    assertEquals(1, remote.openedFiles.size());
+    // 2. Trigger another read and this should also be
+    // served from remote
+    readAndAssert(wrapped, "t1", t1);
+    assertEquals(1, c1.getCopyInProgressCount());
+    assertEquals(IOUtils.humanReadableByteCount(t1.length), c1.getCopyInProgressSize());
+    assertEquals(1, c1.getCopyInProgressDetails().length);
+    System.out.println(Arrays.toString(c1.getCopyInProgressDetails()));
+    assertEquals(2, remote.openedFiles.size());
+    // 3. Perform copy
+    copyProceed.countDown();
+    Futures.allAsList(submittedTasks).get();
+    remote.reset();
+    // 4. Now read again after copy is done
+    readAndAssert(wrapped, "t1", t1);
+    // Now read should be served from local and not from remote
+    assertEquals(0, remote.openedFiles.size());
+    assertEquals(0, c1.getCopyInProgressCount());
+    executor.shutdown();
+}

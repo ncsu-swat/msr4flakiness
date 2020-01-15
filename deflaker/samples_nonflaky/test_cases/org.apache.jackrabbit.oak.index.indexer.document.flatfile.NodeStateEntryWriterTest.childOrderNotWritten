@@ -1,0 +1,14 @@
+@Test
+public void childOrderNotWritten() {
+    NodeStateEntryWriter nw = new NodeStateEntryWriter(blobStore);
+    NodeBuilder b1 = EMPTY_NODE.builder();
+    b1.setProperty("foo", "bar");
+    b1.setProperty(":childOrder", "bar");
+    b1.setProperty(":hidden", "bar");
+    NodeStateEntry e1 = new NodeStateEntry(b1.getNodeState(), "/a");
+    String line = nw.toString(e1);
+    NodeStateEntryReader nr = new NodeStateEntryReader(blobStore);
+    NodeStateEntry r1 = nr.read(line);
+    assertTrue(r1.getNodeState().hasProperty(":hidden"));
+    assertFalse(r1.getNodeState().hasProperty(":childOrder"));
+}

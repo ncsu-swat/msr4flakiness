@@ -1,0 +1,12 @@
+@Test
+public void reindexCaseWithSamePath() throws Exception {
+    LuceneIndexEditorContext.configureUniqueId(builder);
+    File f1 = dir.getIndexDir(getDefn(), "/a/b", "default");
+    LuceneIndexEditorContext.configureUniqueId(resetBuilder());
+    File f2 = dir.getIndexDir(getDefn(), "/a/b", "default");
+    assertNotEquals(f1, f2);
+    List<LocalIndexDir> dirs = dir.getLocalIndexes("/a/b");
+    // First one should be F2 as it got created later
+    assertEquals(f2.getParentFile().getAbsolutePath(), dirs.get(0).getFSPath());
+    assertTrue(dir.getLocalIndexes("/a/b/c").isEmpty());
+}

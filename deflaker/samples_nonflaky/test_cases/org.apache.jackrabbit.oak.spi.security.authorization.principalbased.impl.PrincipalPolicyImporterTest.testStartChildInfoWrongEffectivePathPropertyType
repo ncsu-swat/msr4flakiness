@@ -1,0 +1,15 @@
+@Test(expected = ConstraintViolationException.class)
+public void testStartChildInfoWrongEffectivePathPropertyType() throws Exception {
+    init(true, ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING);
+    User user = getTestSystemUser();
+    Tree policyTree = createPolicyTree(user);
+    importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()), mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
+    List<PropInfo> propInfos = mockPropInfos(null, PrivilegeConstants.JCR_REMOVE_CHILD_NODES);
+    // effective path with wrong type
+    TextValue tx = when(mock(TextValue.class).getString()).thenReturn("/effective/path").getMock();
+    PropInfo propInfo = mockPropInfo(getJcrName(REP_EFFECTIVE_PATH));
+    when(propInfo.getTextValue()).thenReturn(tx);
+    when(propInfo.getType()).thenReturn(PropertyType.STRING);
+    propInfos.add(propInfo);
+    importer.startChildInfo(mockNodeInfo("entry", getJcrName(NT_REP_PRINCIPAL_ENTRY)), propInfos);
+}

@@ -1,0 +1,15 @@
+@Test
+public void testModifiedServiceWithProperties() {
+    when(ref.getProperty(PARAM_SYNC_HANDLER_NAME)).thenReturn("testSH");
+    when(ref.getProperty(PARAM_IDP_NAME)).thenReturn("testIDP");
+    tracker.addingService(ref);
+    when(ref.getProperty(PARAM_SYNC_HANDLER_NAME)).thenReturn("testSH");
+    when(ref.getProperty(PARAM_IDP_NAME)).thenReturn("testIDP-2");
+    tracker.modifiedService(ref, service);
+    assertEquals(ImmutableSet.of("testIDP-2"), ImmutableSet.copyOf(tracker.getIdpNames("testSH")));
+    when(ref.getProperty(PARAM_SYNC_HANDLER_NAME)).thenReturn("testSH-3");
+    when(ref.getProperty(PARAM_IDP_NAME)).thenReturn("testIDP-3");
+    tracker.modifiedService(ref, service);
+    assertTrue(Iterables.isEmpty(tracker.getIdpNames("testSH")));
+    assertEquals(ImmutableSet.of("testIDP-3"), ImmutableSet.copyOf(tracker.getIdpNames("testSH-3")));
+}

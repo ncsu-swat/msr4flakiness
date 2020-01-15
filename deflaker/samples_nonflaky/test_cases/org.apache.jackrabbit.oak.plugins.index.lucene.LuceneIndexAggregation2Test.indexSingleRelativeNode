@@ -1,0 +1,14 @@
+@Test
+public void indexSingleRelativeNode() throws Exception {
+    setTraversalEnabled(false);
+    final String statement = "//element(*, test:Asset)[ " + "jcr:contains(firstLevelChild, 'summer') ]";
+    List<String> expected = newArrayList();
+    Tree content = root.getTree("/").addChild("content");
+    Tree page = content.addChild("pages");
+    page.setProperty(JCR_PRIMARYTYPE, NT_TEST_ASSET, NAME);
+    Tree child = page.addChild("firstLevelChild");
+    child.setProperty("tag", "summer is here", STRING);
+    root.commit();
+    expected.add("/content/pages");
+    assertQuery(statement, "xpath", expected);
+}

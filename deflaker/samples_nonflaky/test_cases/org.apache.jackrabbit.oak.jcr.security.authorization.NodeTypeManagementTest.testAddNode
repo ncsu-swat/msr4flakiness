@@ -1,0 +1,23 @@
+/**
+ * Test difference between common jcr:write privilege an rep:write privilege
+ * that includes the ability to set the primary node type upon child node
+ * creation.
+ */
+@Test
+public void testAddNode() throws Exception {
+    // with simple write privilege a child node can be added BUT no
+    // node type must be specified.
+    modify(childNode.getPath(), Privilege.JCR_WRITE, true);
+    addChildNode(false);
+    try {
+        addChildNode(true);
+        fail("Missing privilege jcr:nodeTypeManagement.");
+    } catch (AccessDeniedException e) {
+    // success
+    }
+    // adding jcr:nodeTypeManagement privilege will allow to use any
+    // variant of Node.addNode.
+    modify(childNode.getPath(), Privilege.JCR_NODE_TYPE_MANAGEMENT, true);
+    addChildNode(false);
+    addChildNode(true);
+}

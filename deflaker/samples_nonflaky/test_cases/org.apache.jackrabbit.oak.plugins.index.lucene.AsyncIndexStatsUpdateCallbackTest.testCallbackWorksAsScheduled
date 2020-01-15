@@ -1,0 +1,24 @@
+@Test
+public void testCallbackWorksAsScheduled() throws Exception {
+    luceneIndexEditorProvider.withAsyncIndexesSizeStatsUpdate(asyncIndexesSizeStatsUpdate);
+    IndexDefinitionBuilder idxb = new IndexDefinitionBuilder();
+    idxb.indexRule("nt:base").property("foo").analyzed().nodeScopeIndex().ordered().useInExcerpt().propertyIndex();
+    idxb.build(root.getTree("/oak:index").addChild("lucenePropertyIndex"));
+    // Add content and index it successfully
+    root.getTree("/").addChild("content").addChild("c1").setProperty("foo", "bar");
+    root.commit();
+    customLogger.starting();
+    asyncIndexUpdate.run();
+    List<String> logs = customLogger.getLogs();
+    assertTrue(logs.size() == 1);
+    root.getTree("/content").addChild("c2").setProperty("foo", "bar");
+    root.commit();
+    asyncIndexUpdate.run();
+    assertTrue(logs.size() == 1);
+    root.getTree("/content").addChild("c3").setProperty("foo", "bar");
+    root.commit();
+    Thread.sleep(2000);
+    asyncIndexUpdate.run();
+    assertTrue(logs.size() == 2);
+    validateLogs(logs);
+}

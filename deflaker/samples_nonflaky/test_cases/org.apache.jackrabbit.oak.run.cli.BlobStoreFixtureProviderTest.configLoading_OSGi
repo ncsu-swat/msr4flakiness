@@ -1,0 +1,15 @@
+@Test
+public void configLoading_OSGi() throws Exception {
+    Dictionary<String, Object> p = new Hashtable<String, Object>();
+    p.put("foo", "bar");
+    p.put("a", 1);
+    p.put("b", new int[] { 1, 2 });
+    File config = new File(temporaryFolder.getRoot(), "test.config");
+    try (OutputStream os = FileUtils.openOutputStream(config)) {
+        ConfigurationHandler.write(os, p);
+    }
+    Properties p2 = BlobStoreFixtureProvider.loadConfig(config.getAbsolutePath());
+    assertEquals("bar", p2.getProperty("foo"));
+    assertEquals(1, p2.get("a"));
+    assertArrayEquals(new int[] { 1, 2 }, (int[]) p2.get("b"));
+}

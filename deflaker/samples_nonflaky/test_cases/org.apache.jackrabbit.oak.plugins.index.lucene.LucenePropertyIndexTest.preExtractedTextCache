@@ -1,0 +1,40 @@
+@Test
+public void preExtractedTextCache() throws Exception {
+    Tree idx = createFulltextIndex(root.getTree("/"), "test");
+    TestUtil.useV2(idx);
+    root.commit();
+    AccessStateProvidingBlob testBlob = new AccessStateProvidingBlob("fox is jumping", "id1");
+    // 1. Check by adding blobs in diff commit and reset
+    // cache each time. In such case blob stream would be
+    // accessed as many times
+    Tree test = root.getTree("/").addChild("test");
+    createFileNode(test, "text", testBlob, "text/plain");
+    root.commit();
+    editorProvider.getExtractedTextCache().resetCache();
+    test = root.getTree("/").addChild("test");
+    createFileNode(test, "text2", testBlob, "text/plain");
+    root.commit();
+    assertTrue(testBlob.isStreamAccessed());
+    assertEquals(2, testBlob.accessCount);
+    // Reset all test state
+    testBlob.resetState();
+    editorProvider.getExtractedTextCache().resetCache();
+    // 2. Now add 2 nodes with same blob in same commit
+    // This time cache effect would come and blob would
+    // be accessed only once
+    test = root.getTree("/").addChild("test");
+    createFileNode(test, "text3", testBlob, "text/plain");
+    createFileNode(test, "text4", testBlob, "text/plain");
+    root.commit();
+    assertTrue(testBlob.isStreamAccessed());
+    assertEquals(1, testBlob.accessCount);
+    // Reset
+    testBlob.resetState();
+    // 3. Now just add another node with same blob with no cache
+    // reset. This time blob stream would not be accessed at all
+    test = root.getTree("/").addChild("test");
+    createFileNode(test, "text5", testBlob, "text/plain");
+    root.commit();
+    assertFalse(testBlob.isStreamAccessed());
+    assertEquals(0, testBlob.accessCount);
+}

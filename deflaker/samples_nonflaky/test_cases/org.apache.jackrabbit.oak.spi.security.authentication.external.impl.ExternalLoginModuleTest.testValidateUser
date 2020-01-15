@@ -1,0 +1,19 @@
+@Test
+public void testValidateUser() throws Exception {
+    when(extIPMgr.getProvider(DEFAULT_IDP_NAME)).thenReturn(new TestIdentityProvider());
+    when(syncManager.getSyncHandler("syncHandler")).thenReturn(new DefaultSyncHandler(new DefaultSyncConfigImpl().setName("syncHandler")));
+    wb.register(ExternalIdentityProviderManager.class, extIPMgr, Collections.emptyMap());
+    wb.register(SyncManager.class, syncManager, Collections.emptyMap());
+    Map<String, Object> sharedState = Maps.newHashMap();
+    sharedState.put(SHARED_KEY_PRE_AUTH_LOGIN, new PreAuthenticatedLogin("local"));
+    User u = getUserManager(root).createUser("local", null);
+    u.setProperty(REP_EXTERNAL_ID, getValueFactory().createValue("local;" + TestIdentityProvider.DEFAULT_IDP_NAME));
+    root.commit();
+    CallbackHandler cbh = createCallbackHandler(wb, getContentRepository(), getSecurityProvider(), null);
+    loginModule.initialize(new Subject(), cbh, sharedState, ImmutableMap.of(PARAM_IDP_NAME, DEFAULT_IDP_NAME, PARAM_SYNC_HANDLER_NAME, "syncHandler"));
+    assertFalse(loginModule.login());
+    root.refresh();
+    assertNull(getUserManager(root).getAuthorizable("local"));
+    assertFalse(loginModule.commit());
+    assertFalse(loginModule.logout());
+}

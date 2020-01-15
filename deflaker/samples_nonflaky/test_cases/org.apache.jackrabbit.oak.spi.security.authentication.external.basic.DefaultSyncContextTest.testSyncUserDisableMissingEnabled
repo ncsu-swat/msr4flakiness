@@ -1,0 +1,32 @@
+@Test
+public void testSyncUserDisableMissingEnabled() throws Exception {
+    // configure to disable missing users
+    syncConfig.user().setDisableMissing(true);
+    // mark a regular repo user as external user from the test IDP
+    User u = userManager.createUser("test" + UUID.randomUUID(), null);
+    String userId = u.getID();
+    setExternalID(u, idp.getName());
+    // test sync with 'keepmissing' = true
+    syncCtx.setKeepMissing(true);
+    SyncResult result = syncCtx.sync(userId);
+    assertEquals(SyncResult.Status.MISSING, result.getStatus());
+    assertNotNull(userManager.getAuthorizable(userId));
+    // test sync with 'keepmissing' = false
+    syncCtx.setKeepMissing(false);
+    result = syncCtx.sync(userId);
+    assertEquals(SyncResult.Status.DISABLE, result.getStatus());
+    Authorizable authorizable = userManager.getAuthorizable(userId);
+    assertNotNull(authorizable);
+    assertTrue(((User) authorizable).isDisabled());
+    // add external user back
+    addIDPUser(userId);
+    result = syncCtx.sync(userId);
+    assertEquals(SyncResult.Status.ENABLE, result.getStatus());
+    assertNotNull(userManager.getAuthorizable(userId));
+    assertFalse(((User) authorizable).isDisabled());
+    // sync again
+    syncCtx.setForceUserSync(true);
+    result = syncCtx.sync(userId);
+    assertEquals(SyncResult.Status.UPDATE, result.getStatus());
+    assertFalse(((User) authorizable).isDisabled());
+}

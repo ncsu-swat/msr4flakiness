@@ -1,0 +1,14 @@
+@Test
+public void testInitialSyncExternalUsersNoNesting() throws Exception {
+    syncConfig.user().setMembershipNestingDepth(-1);
+    ExternalUser externalUser = idp.getUser(TestIdentityProvider.ID_TEST_USER);
+    String[] externalId = new String[] { externalUser.getExternalId().getString() };
+    String[] result = syncMBean.syncExternalUsers(externalId);
+    assertResultMessages(result, TestIdentityProvider.ID_TEST_USER, "add");
+    UserManager userManager = getUserManager();
+    User testUser = userManager.getAuthorizable(externalUser.getId(), User.class);
+    assertNotNull(testUser);
+    for (ExternalIdentityRef groupRef : externalUser.getDeclaredGroups()) {
+        assertNull(userManager.getAuthorizable(groupRef.getId()));
+    }
+}

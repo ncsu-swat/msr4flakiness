@@ -1,0 +1,32 @@
+@Test
+public void unableToIterateFields() throws Exception {
+    try {
+        LuceneIndexStatistics.failReadingFields = true;
+        String indexPath = "/test";
+        IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder(child(builder, indexPath));
+        idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
+        idxBuilder.indexRule("nt:base").property("bar").propertyIndex();
+        NodeState defn = idxBuilder.build();
+        long numOfDocs = 100;
+        LuceneIndexDefinition idxDefn = new LuceneIndexDefinition(root, defn, indexPath);
+        LuceneIndexNode node = createIndexNode(idxDefn, numOfDocs);
+        FilterImpl filter = createFilter("nt:base");
+        filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        FulltextIndexPlanner planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+        QueryIndex.IndexPlan plan = planner.getPlan();
+        assertEquals(numOfDocs, plan.getEstimatedEntryCount());
+        filter = createFilter("nt:base");
+        filter.restrictProperty("bar", Operator.EQUAL, PropertyValues.newString("bar"));
+        planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+        plan = planner.getPlan();
+        assertEquals(numOfDocs, plan.getEstimatedEntryCount());
+        filter = createFilter("nt:base");
+        filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        filter.restrictProperty("bar", Operator.EQUAL, PropertyValues.newString("bar"));
+        planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+        plan = planner.getPlan();
+        assertEquals(numOfDocs, plan.getEstimatedEntryCount());
+    } finally {
+        LuceneIndexStatistics.failReadingFields = false;
+    }
+}

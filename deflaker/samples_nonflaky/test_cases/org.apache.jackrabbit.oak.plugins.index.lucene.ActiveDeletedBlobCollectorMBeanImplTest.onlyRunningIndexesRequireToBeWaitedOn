@@ -1,0 +1,26 @@
+@Test
+public void onlyRunningIndexesRequireToBeWaitedOn() {
+    IndexPathService indexPathService = MockRegistrar.getIndexPathsService(indexPaths);
+    final StatusSupplier statusSupplier = new StatusSupplier();
+    final AtomicLong returnExecCount = new AtomicLong(2L);
+    AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(newArrayList(new IndexMBeanInfoSupplier("foo-async", statusSupplier, returnExecCount::get)));
+    ActiveDeletedBlobCollectorMBean bean = getTestBean(indexPathService, asyncIndexInfoService);
+    long start = clock.getTime();
+    bean.flagActiveDeletionUnsafeForCurrentState();
+    long elapsed = clock.getTime() - start;
+    assertTrue("Non running index lane was polled for " + TimeUnit.MILLISECONDS.toSeconds(elapsed) + " seconds.", elapsed < TimeUnit.SECONDS.toMillis(5));
+    // running index with stalled exec count waits for 2 minutes
+    statusSupplier.status = STATUS_RUNNING;
+    start = clock.getTime();
+    bean.flagActiveDeletionUnsafeForCurrentState();
+    elapsed = clock.getTime() - start;
+    assertTrue("Running index lane without changing execCnt was polled for " + TimeUnit.MILLISECONDS.toSeconds(elapsed) + " seconds.", elapsed > TimeUnit.SECONDS.toMillis(120) && elapsed < TimeUnit.SECONDS.toMillis(125));
+    // running index with not stalled exec count doesn't wait
+    statusSupplier.status = STATUS_RUNNING;
+    asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(newArrayList(new IndexMBeanInfoSupplier("foo-async", statusSupplier, returnExecCount::incrementAndGet)));
+    bean = getTestBean(indexPathService, asyncIndexInfoService);
+    start = clock.getTime();
+    bean.flagActiveDeletionUnsafeForCurrentState();
+    elapsed = clock.getTime() - start;
+    assertTrue("Running index lane without changing execCnt was polled for " + TimeUnit.MILLISECONDS.toSeconds(elapsed) + " seconds.", elapsed < TimeUnit.SECONDS.toMillis(5));
+}

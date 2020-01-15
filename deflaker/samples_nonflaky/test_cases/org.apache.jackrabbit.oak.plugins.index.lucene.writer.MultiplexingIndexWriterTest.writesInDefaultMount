@@ -1,0 +1,32 @@
+@Test
+public void writesInDefaultMount() throws Exception {
+    LuceneIndexWriterFactory factory = newDirectoryFactory();
+    LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
+    // 1. Add entry in foo mount
+    writer.updateDocument("/libs/config", newDoc("/libs/config"));
+    writer.close(0);
+    // only mount foo must have indexed document
+    assertEquals(1, numDocs(fooMount));
+    assertEquals(0, numDocs(defaultMount));
+    // 2. Add entry in default mount
+    writer = factory.newInstance(defn, builder, true);
+    writer.updateDocument("/content", newDoc("/content"));
+    writer.close(0);
+    // both mounts must have 1 document each
+    assertEquals(1, numDocs(fooMount));
+    assertEquals(1, numDocs(defaultMount));
+    // 3. Add another entry in foo mount without reindexing
+    writer = factory.newInstance(defn, builder, false);
+    writer.updateDocument("/libs/config1", newDoc("/libs/config1"));
+    writer.close(0);
+    // only mount foo must have indexed document
+    assertEquals(2, numDocs(fooMount));
+    assertEquals(1, numDocs(defaultMount));
+    // 4. Add another entry in default mount without reindexing
+    writer = factory.newInstance(defn, builder, false);
+    writer.updateDocument("/content1", newDoc("/content1"));
+    writer.close(0);
+    // both mounts must have 1 document each
+    assertEquals(2, numDocs(fooMount));
+    assertEquals(2, numDocs(defaultMount));
+}

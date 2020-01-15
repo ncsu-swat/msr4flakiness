@@ -1,0 +1,23 @@
+@Test
+public void invalidSecureFacetSampleSize() {
+    int sampleSize;
+    NodeBuilder configBuilder = builder.child("config").setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_STATISTICAL);
+    NodeState nodeState = configBuilder.getNodeState();
+    configBuilder.setProperty(PROP_STATISTICAL_FACET_SAMPLE_SIZE, -10);
+    sampleSize = SecureFacetConfiguration.getInstance(RANDOM_SEED, nodeState).getStatisticalFacetSampleSize();
+    assertEquals(STATISTICAL_FACET_SAMPLE_SIZE_DEFAULT, sampleSize);
+    System.setProperty(STATISTICAL_FACET_SAMPLE_SIZE_JVM_PARAM, "10");
+    configBuilder.setProperty(PROP_STATISTICAL_FACET_SAMPLE_SIZE, -20);
+    nodeState = configBuilder.getNodeState();
+    sampleSize = SecureFacetConfiguration.getInstance(RANDOM_SEED, nodeState).getStatisticalFacetSampleSize();
+    assertEquals(10, sampleSize);
+    System.setProperty(STATISTICAL_FACET_SAMPLE_SIZE_JVM_PARAM, "-10");
+    configBuilder.setProperty(PROP_STATISTICAL_FACET_SAMPLE_SIZE, -20);
+    sampleSize = SecureFacetConfiguration.getInstance(RANDOM_SEED, nodeState).getStatisticalFacetSampleSize();
+    assertEquals(STATISTICAL_FACET_SAMPLE_SIZE_DEFAULT, sampleSize);
+    System.setProperty(STATISTICAL_FACET_SAMPLE_SIZE_JVM_PARAM, "-10");
+    configBuilder.setProperty(PROP_STATISTICAL_FACET_SAMPLE_SIZE, 10);
+    nodeState = configBuilder.getNodeState();
+    sampleSize = SecureFacetConfiguration.getInstance(RANDOM_SEED, nodeState).getStatisticalFacetSampleSize();
+    assertEquals(10, sampleSize);
+}

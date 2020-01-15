@@ -1,0 +1,19 @@
+@Test
+public void addAllSync() throws Exception {
+    ListMultimap<String, LuceneDoc> docs = ArrayListMultimap.create();
+    tracker = createTracker();
+    NodeState indexed = createAndPopulateAsyncIndex(FulltextIndexConstants.IndexingMode.SYNC);
+    tracker.update(indexed);
+    DocumentQueue queue = new DocumentQueue(2, tracker, sameThreadExecutor());
+    TopDocs td = doSearch("bar");
+    assertEquals(1, td.totalHits);
+    docs.get("/oak:index/fooIndex").add(createDoc("/a/c", "bar"));
+    queue.addAllSynchronously(docs.asMap());
+    td = doSearch("bar");
+    assertEquals(2, td.totalHits);
+    docs.clear();
+    docs.get("/oak:index/fooIndex").add(createDoc("/a/d", "bar"));
+    queue.addAllSynchronously(docs.asMap());
+    td = doSearch("bar");
+    assertEquals(3, td.totalHits);
+}

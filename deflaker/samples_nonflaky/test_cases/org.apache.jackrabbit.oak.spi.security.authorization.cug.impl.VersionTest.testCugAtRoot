@@ -1,0 +1,25 @@
+@Test
+public void testCugAtRoot() throws Exception {
+    Tree versionable = root.getTree(UNSUPPORTED_PATH);
+    String vhPath = checkNotNull(versionManager.getVersionHistory(versionable)).getPath();
+    try {
+        createCug(root, PathUtils.ROOT_PATH, EveryonePrincipal.NAME);
+        root.commit();
+        CugPermissionProvider pp = createCugPermissionProvider(ImmutableSet.of("/"));
+        Tree t = root.getTree("/");
+        TreePermission tp = pp.getTreePermission(t, TreePermission.EMPTY);
+        assertTrue(tp instanceof CugTreePermission);
+        for (String segm : PathUtils.elements(vhPath)) {
+            t = t.getChild(segm);
+            tp = pp.getTreePermission(t, tp);
+            assertTrue(tp instanceof CugTreePermission);
+        }
+    } finally {
+        root.getTree("/").removeProperty(JCR_MIXINTYPES);
+        Tree cug = root.getTree("/rep:cugPolicy");
+        if (cug.exists()) {
+            cug.remove();
+        }
+        root.commit();
+    }
+}

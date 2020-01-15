@@ -1,0 +1,20 @@
+@Test
+public void nodeTypeIndexed() throws Exception {
+    TestUtil.registerNodeType(builder, testNodeTypeDefn);
+    root = builder.getNodeState();
+    IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+    defnb.nodeTypeIndex();
+    defnb.indexRule("oak:TestSuperType");
+    IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+    assertFalse(defn.hasSyncPropertyDefinitions());
+    IndexingRule ruleSuper = getRule(defn, "oak:TestSuperType");
+    assertNotNull(ruleSuper);
+    assertTrue(defn.isPureNodeTypeIndex());
+    assertTrue(ruleSuper.getConfig(JcrConstants.JCR_PRIMARYTYPE).propertyIndex);
+    assertTrue(ruleSuper.getConfig(JcrConstants.JCR_MIXINTYPES).propertyIndex);
+    assertTrue(ruleSuper.indexesAllNodesOfMatchingType());
+    assertNotNull(getRule(defn, "oak:TestTypeA"));
+    assertTrue(getRule(defn, "oak:TestTypeA").indexesAllNodesOfMatchingType());
+    assertNotNull(getRule(defn, "oak:TestTypeB"));
+    assertNull(getRule(defn, "oak:TestMixA"));
+}

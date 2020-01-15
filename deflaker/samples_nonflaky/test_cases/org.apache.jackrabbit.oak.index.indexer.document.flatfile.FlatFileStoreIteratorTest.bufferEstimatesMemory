@@ -1,0 +1,12 @@
+@Test
+public void bufferEstimatesMemory() {
+    List<NodeStateEntry> nseList = Lists.newArrayList(new NodeStateEntry(EmptyNodeState.EMPTY_NODE, "/a", 20), new NodeStateEntry(EmptyNodeState.EMPTY_NODE, "/a/b", 30));
+    FlatFileStoreIterator fitr = new FlatFileStoreIterator(nseList.iterator(), ImmutableSet.of());
+    NodeStateEntry entry = fitr.next();
+    NodeState entryNS = entry.getNodeState();
+    assertEquals("/a", entry.getPath());
+    assertEquals("Fetching from iterator doesn't use buffer", 0, fitr.getBufferMemoryUsage());
+    entryNS.getChildNode("b");
+    assertEquals(1, fitr.getBufferSize());
+    assertEquals("Reaching child from node state should estimate 30 for /a/b", 30, fitr.getBufferMemoryUsage());
+}

@@ -1,0 +1,25 @@
+@Test
+public void uniquePropertyCommit_Async() throws Exception {
+    defnb.async("async", "nrt");
+    defnb.indexRule("nt:base").property("foo").propertyIndex().unique();
+    addIndex(indexPath, defnb);
+    root.commit();
+    createPath("/a").setProperty("foo", "bar");
+    root.commit();
+    runAsyncIndex();
+    // Remove the :property-index node to simulate bucket change
+    // This time commit would trigger a lucene query
+    NodeBuilder builder = nodeStore.getRoot().builder();
+    String propIdxStorePath = concat(indexPath, HybridPropertyIndexUtil.PROPERTY_INDEX);
+    NodeBuilder propIndex = TestUtil.child(builder, propIdxStorePath);
+    propIndex.remove();
+    nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    root.refresh();
+    createPath("/b").setProperty("foo", "bar");
+    try {
+        root.commit();
+        fail();
+    } catch (CommitFailedException e) {
+        assertEquals(CONSTRAINT, e.getType());
+    }
+}

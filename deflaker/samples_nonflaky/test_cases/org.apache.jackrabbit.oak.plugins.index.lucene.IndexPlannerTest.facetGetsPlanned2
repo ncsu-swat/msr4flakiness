@@ -1,0 +1,17 @@
+@Test
+public void facetGetsPlanned2() throws Exception {
+    IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+    defnb.indexRule("nt:base").property("foo").propertyIndex();
+    defnb.indexRule("nt:base").property("facet1").getBuilderTree().setProperty(FACETS, true);
+    defnb.indexRule("nt:base").property("rel/facet2").getBuilderTree().setProperty(FACETS, true);
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.build(), "/foo");
+    LuceneIndexNode node = createIndexNode(defn);
+    FilterImpl filter = createFilter("nt:base");
+    filter.restrictProperty(REP_FACET, Operator.EQUAL, PropertyValues.newString(REP_FACET + "(facet1)"));
+    filter.restrictProperty(REP_FACET, Operator.EQUAL, PropertyValues.newString(REP_FACET + "(rel/facet2)"));
+    // just so that the index can be picked..
+    filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+    FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+    QueryIndex.IndexPlan plan = planner.getPlan();
+    assertNotNull("Index supporting all facets should participate", plan);
+}

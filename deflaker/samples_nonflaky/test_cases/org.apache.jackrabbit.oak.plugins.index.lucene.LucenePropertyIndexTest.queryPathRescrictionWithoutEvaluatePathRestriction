@@ -1,0 +1,37 @@
+@Test
+public void queryPathRescrictionWithoutEvaluatePathRestriction() throws Exception {
+    Tree parent = root.getTree("/");
+    Tree idx = createIndex(parent, "test1", of());
+    idx.addChild(PROP_NODE).addChild("propa");
+    Tree test = parent.addChild("test");
+    test.addChild("a").addChild("c").addChild("d").setProperty("propa", "a");
+    test.addChild("b").addChild("c").addChild("d").setProperty("propa", "a");
+    parent = root.getTree("/").addChild("subRoot");
+    idx = createIndex(parent, "test1", of());
+    idx.addChild(PROP_NODE).addChild("propa");
+    test = parent.addChild("test");
+    test.addChild("a").addChild("c").addChild("d").setProperty("propa", "a");
+    test.addChild("b").addChild("c").addChild("d").setProperty("propa", "a");
+    root.commit();
+    queryIndexProvider.setShouldCount(true);
+    // Top level index
+    assertQuery("/jcr:root/test/a/c/d[@propa='a']", XPATH, asList("/test/a/c/d"));
+    assertEquals("Unexpected number of docs passed back to query engine", 1, queryIndexProvider.getCount());
+    queryIndexProvider.reset();
+    assertQuery("/jcr:root/test/a/c/*[@propa='a']", XPATH, asList("/test/a/c/d"));
+    assertEquals("Unexpected number of docs passed back to query engine", 1, queryIndexProvider.getCount());
+    queryIndexProvider.reset();
+    assertQuery("/jcr:root/test/a//*[@propa='a']", XPATH, asList("/test/a/c/d"));
+    assertEquals("Unexpected number of docs passed back to query engine", 1, queryIndexProvider.getCount());
+    queryIndexProvider.reset();
+    // Sub-root index
+    assertQuery("/jcr:root/subRoot/test/a/c/d[@propa='a']", XPATH, asList("/subRoot/test/a/c/d"));
+    assertEquals("Unexpected number of docs passed back to query engine", 1, queryIndexProvider.getCount());
+    queryIndexProvider.reset();
+    assertQuery("/jcr:root/subRoot/test/a/c/*[@propa='a']", XPATH, asList("/subRoot/test/a/c/d"));
+    assertEquals("Unexpected number of docs passed back to query engine", 1, queryIndexProvider.getCount());
+    queryIndexProvider.reset();
+    assertQuery("/jcr:root/subRoot/test/a//*[@propa='a']", XPATH, asList("/subRoot/test/a/c/d"));
+    assertEquals("Unexpected number of docs passed back to query engine", 1, queryIndexProvider.getCount());
+    queryIndexProvider.reset();
+}

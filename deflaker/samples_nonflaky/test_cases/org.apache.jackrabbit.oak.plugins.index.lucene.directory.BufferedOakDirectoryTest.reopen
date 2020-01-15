@@ -1,0 +1,22 @@
+@Test
+public void reopen() throws Exception {
+    Random rand = new Random(42);
+    Set<String> names = Sets.newHashSet();
+    Directory dir = createDir(builder, true);
+    for (int i = 0; i < 10 * DELETE_THRESHOLD_UNTIL_REOPEN; i++) {
+        String name = "file-" + i;
+        writeFile(dir, name);
+        if (rand.nextInt(20) != 0) {
+            dir.deleteFile(name);
+        } else {
+            // keep 5%
+            names.add(name);
+        }
+    }
+    assertEquals(names, Sets.newHashSet(dir.listAll()));
+    dir.close();
+    // open unbuffered and check list as well
+    dir = createDir(builder, false);
+    assertEquals(names, Sets.newHashSet(dir.listAll()));
+    dir.close();
+}

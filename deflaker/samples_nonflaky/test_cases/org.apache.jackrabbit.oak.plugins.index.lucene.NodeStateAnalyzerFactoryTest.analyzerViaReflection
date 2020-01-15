@@ -1,0 +1,15 @@
+@Test
+public void analyzerViaReflection() throws Exception {
+    NodeBuilder nb = EMPTY_NODE.builder();
+    nb.setProperty(ANL_CLASS, TestAnalyzer.class.getName());
+    TestAnalyzer analyzer = (TestAnalyzer) factory.createInstance(nb.getNodeState());
+    assertNotNull(analyzer);
+    assertEquals(LuceneIndexConstants.VERSION, analyzer.matchVersion);
+    nb.setProperty(LuceneIndexConstants.ANL_LUCENE_MATCH_VERSION, Version.LUCENE_31.toString());
+    analyzer = (TestAnalyzer) factory.createInstance(nb.getNodeState());
+    assertEquals("Version field not picked from config", Version.LUCENE_31, analyzer.matchVersion);
+    byte[] stopWords = newCharArraySet("foo", "bar");
+    createFileNode(nb, LuceneIndexConstants.ANL_STOPWORDS, stopWords);
+    analyzer = (TestAnalyzer) factory.createInstance(nb.getNodeState());
+    assertTrue("Configured stopword set not used", analyzer.getStopwordSet().contains("foo"));
+}

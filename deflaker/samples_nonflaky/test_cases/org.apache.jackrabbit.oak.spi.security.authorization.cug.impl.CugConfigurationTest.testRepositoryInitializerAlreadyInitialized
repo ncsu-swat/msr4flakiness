@@ -1,0 +1,17 @@
+@Test
+public void testRepositoryInitializerAlreadyInitialized() {
+    AuthorizationConfiguration ac = getConfig(AuthorizationConfiguration.class);
+    assertTrue(ac instanceof CompositeAuthorizationConfiguration);
+    AuthorizationConfiguration cugConfig = null;
+    for (AuthorizationConfiguration config : ((CompositeAuthorizationConfiguration) ac).getConfigurations()) {
+        if (config instanceof CugConfiguration) {
+            cugConfig = config;
+            break;
+        }
+    }
+    assertNotNull(cugConfig);
+    RepositoryInitializer ri = cugConfig.getRepositoryInitializer();
+    NodeBuilder rootBuilder = spy(getTreeProvider().asNodeState(root.getTree(PathUtils.ROOT_PATH)).builder());
+    ri.initialize(rootBuilder);
+    calls(1);
+}

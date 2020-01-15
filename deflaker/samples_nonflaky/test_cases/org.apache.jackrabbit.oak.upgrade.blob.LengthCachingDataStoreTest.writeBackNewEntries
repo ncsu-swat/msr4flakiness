@@ -1,0 +1,37 @@
+@Test
+public void writeBackNewEntries() throws Exception {
+    // 1. Add some entries to FDS
+    FileDataStore fds1 = new FileDataStore();
+    File fds1Dir = tempFolder.newFolder();
+    int minSize = fds1.getMinRecordLength();
+    fds1.init(fds1Dir.getAbsolutePath());
+    DataRecord dr1 = fds1.addRecord(byteStream(minSize + 10));
+    DataRecord dr2 = fds1.addRecord(byteStream(minSize + 100));
+    // 2. Try reading them so as to populate the new mappings
+    LengthCachingDataStore fds2 = new LengthCachingDataStore();
+    fds2.setDelegateClass(FileDataStore.class.getName());
+    fds2.init(fds1Dir.getAbsolutePath());
+    fds2.getRecord(new DataIdentifier(dr1.getIdentifier().toString()));
+    fds2.getRecord(new DataIdentifier(dr2.getIdentifier().toString()));
+    File mappingFile = fds2.getMappingFile();
+    // 3. Get the mappings pushed to file
+    fds2.close();
+    // 4. Open a new FDS pointing to new directory. Read should still work fine
+    // as they would be served by the mapping data
+    LengthCachingDataStore fds3 = new LengthCachingDataStore();
+    fds3.setDelegateClass(FileDataStore.class.getName());
+    fds3.setMappingFilePath(mappingFile.getAbsolutePath());
+    fds3.init(tempFolder.newFolder().getAbsolutePath());
+    fds3.setReadOnly(false);
+    assertEquals(dr1.getLength(), fds3.getRecord(dr1.getIdentifier()).getLength());
+    assertEquals(dr2.getLength(), fds3.getRecord(dr2.getIdentifier()).getLength());
+    DataRecord dr3 = fds3.addRecord(byteStream(minSize + 200));
+    // 5. Close again so see if update of existing file works
+    fds3.close();
+    LengthCachingDataStore fds4 = new LengthCachingDataStore();
+    fds4.setDelegateClass(FileDataStore.class.getName());
+    fds4.setMappingFilePath(mappingFile.getAbsolutePath());
+    fds4.init(tempFolder.newFolder().getAbsolutePath());
+    assertEquals(dr3.getLength(), fds4.getRecord(dr3.getIdentifier()).getLength());
+    assertEquals(dr2.getLength(), fds4.getRecord(dr2.getIdentifier()).getLength());
+}

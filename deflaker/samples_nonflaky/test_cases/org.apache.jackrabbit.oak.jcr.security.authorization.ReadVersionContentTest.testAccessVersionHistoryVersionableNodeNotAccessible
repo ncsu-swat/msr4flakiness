@@ -1,0 +1,29 @@
+/**
+ * @since oak
+ */
+@Test
+public void testAccessVersionHistoryVersionableNodeNotAccessible() throws Exception {
+    // revert read permission on the versionable node
+    modify(versionablePath, Privilege.JCR_READ, false);
+    // versionable node is not readable any more for test session.
+    assertFalse(testSession.nodeExists(versionablePath));
+    // access version history directly => should fail
+    try {
+        VersionHistory history = (VersionHistory) testSession.getNode(vh.getPath());
+        fail("Access to version history should be denied if versionable node is not accessible");
+    } catch (PathNotFoundException e) {
+    // success
+    }
+    try {
+        VersionHistory history = (VersionHistory) testSession.getNodeByIdentifier(vh.getIdentifier());
+        fail("Access to version history should be denied if versionable node is not accessible");
+    } catch (ItemNotFoundException e) {
+    // success
+    }
+    try {
+        VersionHistory history = (VersionHistory) testSession.getNodeByUUID(vh.getUUID());
+        fail("Access to version history should be denied if versionable node is not accessible");
+    } catch (ItemNotFoundException e) {
+    // success
+    }
+}

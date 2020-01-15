@@ -1,0 +1,28 @@
+@Test
+public void testSessionImportXML() throws Exception {
+    String parentPath = childNode.getPath();
+    try {
+        testSession.importXML(parentPath, getXmlForImport(), ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
+        testSession.save();
+        fail("Missing write privilege.");
+    } catch (AccessDeniedException e) {
+    // success
+    } finally {
+        testSession.refresh(false);
+    }
+    // with simple write privilege moving a node is not allowed.
+    modify(parentPath, Privilege.JCR_WRITE, true);
+    try {
+        testSession.importXML(parentPath, getXmlForImport(), ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
+        testSession.save();
+        fail("Missing privilege jcr:nodeTypeManagement.");
+    } catch (AccessDeniedException e) {
+    // success
+    } finally {
+        testSession.refresh(false);
+    }
+    // adding jcr:nodeTypeManagement privilege will grant permission to move.
+    modify(parentPath, REP_WRITE, true);
+    testSession.importXML(parentPath, getXmlForImport(), ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
+    testSession.save();
+}

@@ -1,0 +1,18 @@
+@Override
+@Test
+public void testGetPrincipalInheritedGroups() throws Exception {
+    ExternalUser externalUser = idp.getUser(USER_ID);
+    for (ExternalIdentityRef ref : externalUser.getDeclaredGroups()) {
+        ExternalIdentity externalGroup = idp.getIdentity(ref);
+        Principal grPrincipal = principalProvider.getPrincipal(externalGroup.getPrincipalName());
+        for (ExternalIdentityRef inheritedGroupRef : externalGroup.getDeclaredGroups()) {
+            String inheritedPrincName = idp.getIdentity(inheritedGroupRef).getPrincipalName();
+            Principal principal = principalProvider.getPrincipal(inheritedPrincName);
+            assertNotNull(principal);
+            assertTrue(principal instanceof GroupPrincipal);
+            GroupPrincipal inheritedGrPrincipal = (GroupPrincipal) principal;
+            assertTrue(inheritedGrPrincipal.isMember(new PrincipalImpl(externalUser.getPrincipalName())));
+            assertFalse(inheritedGrPrincipal.isMember(grPrincipal));
+        }
+    }
+}

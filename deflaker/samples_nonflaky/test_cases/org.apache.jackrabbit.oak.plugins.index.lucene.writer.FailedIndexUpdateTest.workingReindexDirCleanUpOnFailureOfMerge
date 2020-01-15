@@ -1,0 +1,14 @@
+@Test
+public void workingReindexDirCleanUpOnFailureOfMerge() throws Exception {
+    failOnDemandValidatorProvider.shouldFail = true;
+    createIndex("reindexing", "foo", false);
+    root.getTree("/").addChild("test").addChild("a").setProperty("foo", "bar");
+    root.commit();
+    asyncIndexUpdate.run();
+    assertTrue("Indexing must fail", asyncIndexUpdate.isFailing());
+    Set<File> reindexingDirPaths = copier.getReindexingDirPaths();
+    assertEquals(1, reindexingDirPaths.size());
+    File reindexingDir = reindexingDirPaths.iterator().next();
+    assertFalse("Reindexing directories must get cleaned up on failure", reindexingDir.exists());
+    copier.getDirs().forEach((key, value) -> assertTrue("Writer for " + key + " must be closed", value.isClosed()));
+}

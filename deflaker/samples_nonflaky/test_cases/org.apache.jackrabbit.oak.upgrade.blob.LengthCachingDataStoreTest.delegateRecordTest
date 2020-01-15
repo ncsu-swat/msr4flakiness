@@ -1,0 +1,18 @@
+@Test
+public void delegateRecordTest() throws Exception {
+    FileDataStore ds = new FileDataStore();
+    byte[] data = bytes(ds.getMinRecordLength() + 10);
+    ds.init(tempFolder.getRoot().getAbsolutePath());
+    DataRecord dr = ds.addRecord(new ByteArrayInputStream(data));
+    File mappingFile = new File(tempFolder.getRoot(), "mapping.txt");
+    String text = String.format("%s|%s", data.length, dr.getIdentifier().toString());
+    Files.write(text, mappingFile, Charset.defaultCharset());
+    LengthCachingDataStore fds = new LengthCachingDataStore();
+    fds.setDelegateClass(FileDataStore.class.getName());
+    fds.setMappingFilePath(mappingFile.getAbsolutePath());
+    fds.init(tempFolder.getRoot().getAbsolutePath());
+    DataRecord dr2 = fds.getRecordIfStored(dr.getIdentifier());
+    assertEquals(dr, dr2);
+    assertEquals(dr.getLength(), dr2.getLength());
+    assertTrue(supplier(dr).contentEquals(supplier(dr2)));
+}

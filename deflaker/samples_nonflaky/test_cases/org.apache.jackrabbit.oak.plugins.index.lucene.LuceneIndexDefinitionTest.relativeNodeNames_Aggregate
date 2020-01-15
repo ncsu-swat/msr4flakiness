@@ -1,0 +1,11 @@
+@Test
+public void relativeNodeNames_Aggregate() {
+    IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+    defnb.indexRule("nt:base").property("jcr:content/foo").propertyIndex();
+    defnb.aggregateRule("nt:base").include("jcr:content/metadata");
+    defnb.aggregateRule("nt:base").include("jcr:content/metadata/type/*");
+    defnb.aggregateRule("nt:base").include("*");
+    IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+    assertThat(defn.getRelativeNodeNames(), containsInAnyOrder("jcr:content", "metadata", "type"));
+    assertTrue(defn.indexesRelativeNodes());
+}

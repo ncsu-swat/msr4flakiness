@@ -1,0 +1,34 @@
+@Test
+public void invalidateOnly() throws Exception {
+    DocumentStore store = new MemoryDocumentStore();
+    JournalEntry invalidateEntry = JOURNAL.newDocument(store);
+    Set<Path> paths = Sets.newHashSet();
+    addRandomPaths(paths);
+    invalidateEntry.modified(paths);
+    Revision r1 = new Revision(1, 0, 1);
+    Revision r2 = new Revision(2, 0, 1);
+    Revision r3 = new Revision(3, 0, 1);
+    UpdateOp op = invalidateEntry.asUpdateOp(r1.asBranchRevision());
+    assertTrue(store.create(JOURNAL, singletonList(op)));
+    JournalEntry entry = JOURNAL.newDocument(store);
+    entry.invalidate(singleton(r1));
+    op = entry.asUpdateOp(r2);
+    assertTrue(store.create(JOURNAL, singletonList(op)));
+    StringSort sort = JournalEntry.newSorter();
+    StringSort inv = JournalEntry.newSorter();
+    JournalEntry.fillExternalChanges(sort, inv, r2, r3, store);
+    assertEquals(0, sort.getSize());
+    assertEquals(0, inv.getSize());
+    JournalEntry.fillExternalChanges(sort, inv, r1, r2, store);
+    assertEquals(1, sort.getSize());
+    assertEquals(paths.size(), inv.getSize());
+    inv.close();
+    sort.close();
+    sort = JournalEntry.newSorter();
+    inv = JournalEntry.newSorter();
+    JournalEntry.fillExternalChanges(sort, inv, r1, r3, store);
+    assertEquals(1, sort.getSize());
+    assertEquals(paths.size(), inv.getSize());
+    sort.close();
+    inv.close();
+}

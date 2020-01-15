@@ -1,0 +1,11 @@
+@Test
+public void testPropertiesCompletedSetsPolicy() throws Exception {
+    init(true, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
+    User user = getTestSystemUser();
+    Tree policyTree = createPolicyTree(user);
+    String oakPath = policyTree.getPath();
+    importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()), mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
+    importer.propertiesCompleted(policyTree);
+    assertTrue(root.getTree(oakPath).hasProperty(REP_PRINCIPAL_NAME));
+    assertPolicy(getAccessControlManager(root).getPolicies(user.getPrincipal()), 0);
+}

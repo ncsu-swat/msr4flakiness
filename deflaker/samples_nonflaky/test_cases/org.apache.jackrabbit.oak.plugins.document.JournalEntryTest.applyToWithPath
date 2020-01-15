@@ -1,0 +1,22 @@
+@Test
+public void applyToWithPath() throws Exception {
+    DiffCache cache = new MemoryDiffCache(new DocumentMK.Builder());
+    StringSort sort = JournalEntry.newSorter();
+    sort.add("/");
+    sort.add("/foo");
+    sort.add("/foo/a");
+    sort.add("/foo/b");
+    sort.add("/bar");
+    sort.add("/bar/a");
+    sort.add("/bar/b");
+    RevisionVector from = new RevisionVector(Revision.newRevision(1));
+    RevisionVector to = new RevisionVector(Revision.newRevision(1));
+    sort.sort();
+    JournalEntry.applyTo(sort, cache, p("/foo"), from, to);
+    assertNotNull(cache.getChanges(from, to, p("/foo"), null));
+    assertNotNull(cache.getChanges(from, to, p("/foo/a"), null));
+    assertNotNull(cache.getChanges(from, to, p("/foo/b"), null));
+    assertNull(cache.getChanges(from, to, p("/bar"), null));
+    assertNull(cache.getChanges(from, to, p("/bar/a"), null));
+    assertNull(cache.getChanges(from, to, p("/bar/b"), null));
+}

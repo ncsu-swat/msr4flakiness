@@ -1,0 +1,19 @@
+@Test
+public void failedWritesGetCleanedUp() throws Exception {
+    CloseSafeRemoteRAMDirectory oldRemote = remote.snapshot();
+    Directory failedWriter = copier.getCoWDir();
+    writeFile(failedWriter, "a");
+    failedWriter.close();
+    // actually, everything would've worked for 'failedWriter', but we restore 'remote' to old state
+    // to fake failed remote update
+    remote = oldRemote;
+    assertTrue(existsLocally("a"));
+    // Create some files that get sent to remote
+    Directory cow = copier.getCoWDir();
+    writeFile(cow, "b");
+    cow.close();
+    // reader that would invoke cleanup according to its view on close
+    Directory cor = copier.getCoRDir();
+    cor.close();
+    assertFalse(existsLocally("a"));
+}

@@ -1,0 +1,12 @@
+@Test
+public void uncommittedDeletionsMustNotBePurged() throws Exception {
+    BlobDeletionCallback bdc1 = adbc.getBlobDeletionCallback();
+    bdc1.deleted("blobId1", Collections.singleton("/a"));
+    bdc1.commitProgress(COMMIT_FAILED);
+    BlobDeletionCallback bdc2 = adbc.getBlobDeletionCallback();
+    bdc2.deleted("blobId2", Collections.singleton("/b"));
+    bdc2.commitProgress(COMMIT_SUCCEDED);
+    adbc.purgeBlobsDeleted(clock.getTimeIncreasing(), blobStore);
+    // blobId2 is committed later
+    verifyBlobsDeleted("blobId2");
+}

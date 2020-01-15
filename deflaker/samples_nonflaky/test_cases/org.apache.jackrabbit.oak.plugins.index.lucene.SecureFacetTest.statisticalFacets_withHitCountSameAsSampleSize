@@ -1,0 +1,16 @@
+@Test
+public void statisticalFacets_withHitCountSameAsSampleSize() throws Exception {
+    Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", session);
+    facetConfig.setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_STATISTICAL);
+    indexNode.setProperty(PROP_REFRESH_DEFN, true);
+    session.save();
+    createLargeDataset();
+    Map<String, Integer> facets = getFacets("/parent/par1");
+    assertEquals("Unexpected number of facets", actualAclPar1LabelCount.size(), facets.size());
+    for (Map.Entry<String, Integer> facet : actualAclPar1LabelCount.entrySet()) {
+        String facetLabel = facet.getKey();
+        int facetCount = facets.get(facetLabel);
+        float ratio = ((float) facetCount) / facet.getValue();
+        assertTrue("Facet count for label: " + facetLabel + " is outside of 10% margin of error. " + "Expected: " + facet.getValue() + "; Got: " + facetCount + "; Ratio: " + ratio, Math.abs(ratio - 1) < 0.1);
+    }
+}

@@ -1,0 +1,15 @@
+@Test
+public void testIsExpiredSyncedUser() throws Exception {
+    ExternalIdentity externalUser = idp.listUsers().next();
+    sync(externalUser);
+    Authorizable a = userManager.getAuthorizable(externalUser.getId());
+    assertFalse(syncCtx.isExpired(a, syncConfig.user().getExpirationTime(), "any"));
+    assertTrue(syncCtx.isExpired(a, -1, "any"));
+    // create a ctx with a newer 'now'
+    DefaultSyncContext ctx = new DefaultSyncContext(syncConfig, idp, userManager, valueFactory);
+    long expTime = ctx.now - syncCtx.now - 1;
+    assertTrue(ctx.isExpired(a, expTime, "any"));
+    // remove last-sync property
+    a.removeProperty(DefaultSyncContext.REP_LAST_SYNCED);
+    assertTrue(syncCtx.isExpired(a, syncConfig.user().getExpirationTime(), "any"));
+}

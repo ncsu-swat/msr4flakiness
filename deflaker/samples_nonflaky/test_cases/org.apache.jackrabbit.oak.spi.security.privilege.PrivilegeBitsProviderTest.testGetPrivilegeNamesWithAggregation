@@ -1,0 +1,15 @@
+@Test
+public void testGetPrivilegeNamesWithAggregation() {
+    Tree anotherPriv = Mockito.mock(Tree.class);
+    when(anotherPriv.exists()).thenReturn(true);
+    when(anotherPriv.getName()).thenReturn("name2");
+    when(anotherPriv.hasProperty(REP_AGGREGATES)).thenReturn(true);
+    when(anotherPriv.getProperty(REP_AGGREGATES)).thenReturn(PropertyStates.createProperty(REP_AGGREGATES, ImmutableList.of(KNOWN_PRIV_NAME), Type.NAMES));
+    PropertyState bits2 = PropertyStates.createProperty(REP_BITS, Long.valueOf(7500));
+    when(anotherPriv.getProperty(REP_BITS)).thenReturn(bits2);
+    when(privTree.getChildren()).thenReturn(ImmutableSet.of(pTree, anotherPriv));
+    // aggregation must be removed from the result set
+    Set<String> expected = ImmutableSet.of("name2");
+    Set<String> result = bitsProvider.getPrivilegeNames(PrivilegeBits.getInstance(PrivilegeBits.getInstance(bits), PrivilegeBits.getInstance(bits2)));
+    assertEquals(expected, result);
+}

@@ -1,0 +1,14 @@
+@Test
+public void testCanHandleRemoved() throws Exception {
+    Principal principal = getTestSystemUser().getPrincipal();
+    assertTrue(filter.canHandle(singleton(principal)));
+    root.getTree(filter.getOakPath(principal)).remove();
+    // using original principal again -> obtaining from cache without further validation
+    assertTrue(filter.canHandle(singleton(principal)));
+    // using SystemUserPrincipal without path -> obtaining from cache without further validation
+    assertTrue(filter.canHandle(singleton((SystemUserPrincipal) () -> principal.getName())));
+    // path mismatch -> lookup will reveal removed tree and adjust caches
+    assertFalse(filter.canHandle(singleton(new TestPrincipal(principal.getName(), null))));
+    // using original principal will no longer work
+    assertFalse(filter.canHandle(singleton(principal)));
+}

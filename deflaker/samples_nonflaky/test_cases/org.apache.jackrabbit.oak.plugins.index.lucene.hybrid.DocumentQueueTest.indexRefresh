@@ -1,0 +1,44 @@
+@Test
+public void indexRefresh() throws Exception {
+    tracker = createTracker();
+    NodeState indexed = createAndPopulateAsyncIndex(FulltextIndexConstants.IndexingMode.NRT);
+    tracker.update(indexed);
+    clock.waitUntil(refreshDelta);
+    DocumentQueue queue = new DocumentQueue(2, tracker, sameThreadExecutor());
+    TopDocs td = doSearch("bar");
+    assertEquals(1, td.totalHits);
+    addDoc(queue, "/a/b", "bar");
+    // First update would be picked as base time was zero which would now
+    // get initialized
+    td = doSearch("bar");
+    assertEquals(2, td.totalHits);
+    addDoc(queue, "/a/c", "bar");
+    // Now it would not update as refresh interval has not exceeded
+    td = doSearch("bar");
+    assertEquals(2, td.totalHits);
+    addDoc(queue, "/a/d", "bar");
+    // Get past the delta time
+    clock.waitUntil(clock.getTime() + refreshDelta + 1);
+    // Now it should show updated result
+    td = doSearch("bar");
+    assertEquals(4, td.totalHits);
+    // Phase 2 - Check affect of async index update cycle
+    // With that there should only be 2 copies of NRTIndex kept
+    indexed = doAsyncIndex(indexed, "a2", "bar");
+    tracker.update(indexed);
+    // Now result would be latest from async + last local
+    td = doSearch("bar");
+    assertEquals(5, td.totalHits);
+    // Now there would be to NRTIndex - previous and current
+    // so add to current and query again
+    addDoc(queue, "/a/e", "bar");
+    td = doSearch("bar");
+    assertEquals(6, td.totalHits);
+    // Now do another async update
+    indexed = doAsyncIndex(indexed, "a3", "bar");
+    tracker.update(indexed);
+    // Now total count would be 4
+    // 3 from async and 1 from current
+    td = doSearch("bar");
+    assertEquals(4, td.totalHits);
+}

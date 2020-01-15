@@ -1,0 +1,17 @@
+@Test
+public void indexingBasedOnMixinWithInheritence() throws Exception {
+    Tree idx = createIndex("test1", of("propa", "propb"));
+    Tree props = TestUtil.newRulePropTree(idx, "mix:mimeType");
+    Tree prop = props.addChild(TestUtil.unique("prop"));
+    prop.setProperty(FulltextIndexConstants.PROP_NAME, "jcr:mimeType");
+    prop.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
+    root.commit();
+    Tree test = root.getTree("/").addChild("test");
+    createNodeWithType(test, "a", "nt:resource").setProperty("jcr:mimeType", "a");
+    createNodeWithType(test, "b", "nt:resource").setProperty("jcr:mimeType", "c");
+    test.addChild("c").setProperty("jcr:mimeType", "a");
+    root.commit();
+    String propabQuery = "select [jcr:path] from [mix:mimeType] where [jcr:mimeType] = 'a'";
+    assertThat(explain(propabQuery), containsString("lucene:test1(/oak:index/test1)"));
+    assertQuery(propabQuery, asList("/test/a"));
+}

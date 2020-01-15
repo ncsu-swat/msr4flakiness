@@ -1,0 +1,11 @@
+@Test
+public void testSyncUserByIdUpdate() throws Exception {
+    ExternalIdentity externalId = idp.listUsers().next();
+    Authorizable a = userManager.createUser(externalId.getId(), null);
+    a.setProperty(DefaultSyncContext.REP_EXTERNAL_ID, valueFactory.createValue(externalId.getExternalId().getString()));
+    syncContext.setForceUserSync(true);
+    SyncResult result = syncContext.sync(externalId.getId());
+    assertEquals(SyncResult.Status.UPDATE, result.getStatus());
+    Tree t = r.getTree(a.getPath());
+    assertTrue(t.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES));
+}

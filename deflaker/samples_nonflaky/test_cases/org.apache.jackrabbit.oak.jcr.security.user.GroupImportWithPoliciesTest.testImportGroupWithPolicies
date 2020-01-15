@@ -1,0 +1,25 @@
+@Test
+public void testImportGroupWithPolicies() throws Exception {
+    Node target = getTargetNode();
+    doImport(getTargetPath(), xml, ImportUUIDBehavior.IMPORT_UUID_COLLISION_REMOVE_EXISTING);
+    assertTrue(getImportSession().hasPendingChanges());
+    Authorizable newGroup = getUserManager().getAuthorizable("g");
+    assertNotNull(newGroup);
+    assertTrue(newGroup.isGroup());
+    assertEquals("g", newGroup.getPrincipal().getName());
+    assertEquals("g", newGroup.getID());
+    Node n = getImportSession().getNode(newGroup.getPath());
+    assertTrue(n.isNew());
+    assertTrue(n.getParent().isSame(target));
+    assertEquals("g", n.getName());
+    assertEquals("g", n.getProperty(UserConstants.REP_PRINCIPAL_NAME).getString());
+    AccessControlList acl = AccessControlUtils.getAccessControlList(getImportSession(), newGroup.getPath());
+    assertNotNull(acl);
+    AccessControlEntry[] aces = acl.getAccessControlEntries();
+    assertEquals(1, aces.length);
+    assertEquals("administrators", aces[0].getPrincipal().getName());
+    assertEquals(PrivilegeConstants.JCR_READ, aces[0].getPrivileges()[0].getName());
+    // saving changes of the import -> must succeed. add mandatory
+    // props should have been created.
+    getImportSession().save();
+}

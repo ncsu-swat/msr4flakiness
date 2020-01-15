@@ -1,0 +1,16 @@
+@Test
+public void testGetPrivilegeSystemUserWithWithReadAc() throws Exception {
+    // grant read-ac access on effective path and on principal policy
+    grant(testPrincipal, null, JCR_READ_ACCESS_CONTROL);
+    grant(testPrincipal, systemPrincipalPath, JCR_READ_ACCESS_CONTROL);
+    root.commit();
+    testRoot.refresh();
+    // default model lacks jcr:nodeTypeManagement privilege -> not granted
+    assertArrayEquals(new Privilege[0], testAcMgr.getPrivileges(null, ImmutableSet.of(systemPrincipal)));
+    addDefaultEntry(null, systemPrincipal, JCR_NAMESPACE_MANAGEMENT, REP_PRIVILEGE_MANAGEMENT);
+    root.commit();
+    testRoot.refresh();
+    // once default model grants namespace-mgt privilege as well -> granted
+    // but not rep:privilegeMgt because the principal-based model doesn't grant that one
+    assertArrayEquals(privilegesFromNames(JCR_NAMESPACE_MANAGEMENT), testAcMgr.getPrivileges(null, ImmutableSet.of(systemPrincipal)));
+}

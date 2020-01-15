@@ -1,0 +1,20 @@
+@Test
+public void binaryExcerpt() throws Exception {
+    Tree contentRoot = root.getTree("/").addChild("testRoot");
+    String binaryText = "is fox foxing as a fox cub";
+    Blob blob = new ArrayBasedBlob(binaryText.getBytes());
+    TestUtil.createFileNode(contentRoot, "binaryNode", blob, "text/plain");
+    root.commit();
+    String query = "SELECT [rep:excerpt] FROM [nt:base] WHERE CONTAINS(*, 'fox')";
+    Result result = executeQuery(query, SQL2, NO_BINDINGS);
+    Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
+    assertTrue(resultIter.hasNext());
+    ResultRow firstRow = resultIter.next();
+    PropertyValue nodeExcerpt;
+    String excerpt;
+    nodeExcerpt = firstRow.getValue("rep:excerpt");
+    assertNotNull("rep:excerpt not evaluated", nodeExcerpt);
+    excerpt = nodeExcerpt.getValue(STRING);
+    String expected = binaryText.replaceAll(" fox ", " <strong>fox</strong> ");
+    assertTrue("rep:excerpt didn't evaluate correctly - got '" + excerpt + "'", excerpt.contains(expected));
+}

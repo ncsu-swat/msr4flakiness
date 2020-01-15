@@ -1,0 +1,25 @@
+@Test
+public void testSpecificTypePlusGenericRange() {
+    // both have the same q value (default of 1.0), but application/json is more specific
+    // see RFC 7231, Section 5.3.2
+    AcceptHeader ah = new AcceptHeader("application/json, */*");
+    Representation selected;
+    selected = ah.resolve(json);
+    assertEquals(json, selected);
+    selected = ah.resolve(html);
+    assertEquals(html, selected);
+    selected = ah.resolve(html);
+    assertEquals(html, selected);
+    selected = ah.resolve(json, html);
+    assertEquals(json, selected);
+    // OAK-8135
+    selected = ah.resolve(html, json);
+    assertEquals(json, selected);
+    // retry with q values
+    ah = new AcceptHeader("application/json; q=0.4, */*; q=0.5");
+    selected = ah.resolve(html, json);
+    assertEquals(html, selected);
+    ah = new AcceptHeader("application/json, */*; q=0.5");
+    selected = ah.resolve(html, json);
+    assertEquals(json, selected);
+}

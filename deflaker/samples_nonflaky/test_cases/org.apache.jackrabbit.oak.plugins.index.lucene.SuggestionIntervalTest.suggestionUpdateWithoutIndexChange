@@ -1,0 +1,22 @@
+// OAK-4066
+@Test
+public void suggestionUpdateWithoutIndexChange() throws Exception {
+    final String nodeType = "nt:unstructured";
+    createSuggestIndex(nodeType);
+    root.commit();
+    long currTime = clock.getTime();
+    long toTime = currTime + TimeUnit.MINUTES.toMillis(IndexDefinition.DEFAULT_SUGGESTER_UPDATE_FREQUENCY_MINUTES);
+    // add a node that get part in the index
+    root.getTree("/").addChild("indexedNode").setProperty(JcrConstants.JCR_PRIMARYTYPE, nodeType, Type.NAME);
+    root.commit();
+    // wait for suggestions refresh time
+    clock.waitUntil(toTime);
+    // get one more tick
+    clock.getTime();
+    // push a change which should not make any change in the index but yet should help update suggestions
+    root.getTree("/").addChild("some-non-index-change").setProperty(JcrConstants.JCR_PRIMARYTYPE, "oak:Unstructured", Type.NAME);
+    root.commit();
+    Set<String> suggestions = getSuggestions(nodeType, "indexedn");
+    assertEquals(1, suggestions.size());
+    assertEquals("indexedNode", suggestions.iterator().next());
+}

@@ -1,0 +1,9 @@
+@Test
+public void testFindPrincipalsWithParseException() throws Exception {
+    QueryEngine qe = mock(QueryEngine.class);
+    when(qe.executeQuery(anyString(), anyString(), any(Map.class), any(Map.class))).thenThrow(new ParseException("fail", 0));
+    Root r = when(mock(Root.class).getQueryEngine()).thenReturn(qe).getMock();
+    ExternalGroupPrincipalProvider pp = new ExternalGroupPrincipalProvider(r, getUserConfiguration(), getNamePathMapper(), Collections.emptyMap());
+    assertNull(pp.getPrincipal("a"));
+    assertFalse(pp.findPrincipals(PrincipalManager.SEARCH_TYPE_GROUP).hasNext());
+}

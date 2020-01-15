@@ -1,0 +1,20 @@
+@Test
+public void functionPropDef() throws Exception {
+    String indexPath = "/test";
+    IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder(child(builder, indexPath));
+    idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
+    Tree fooPD = idxBuilder.getBuilderTree().getChild("indexRules").getChild("nt:base").getChild("properties").getChild("foo");
+    fooPD.setProperty(PROP_FUNCTION, "lower([foo])");
+    NodeState defn = idxBuilder.build();
+    Document doc = new Document();
+    doc.add(new StringField(FunctionIndexProcessor.convertToPolishNotation("lower([foo])"), "bar1", Field.Store.NO));
+    Directory sampleDirectory = createSampleDirectory(2, doc);
+    LuceneIndexDefinition idxDefn = new LuceneIndexDefinition(root, defn, indexPath);
+    LuceneIndexNode node = createIndexNode(idxDefn, sampleDirectory);
+    // Query on and "foo"
+    FilterImpl filter = createFilter("nt:base");
+    filter.restrictProperty(FunctionIndexProcessor.convertToPolishNotation("lower([foo])"), Operator.EQUAL, PropertyValues.newString("foo1"));
+    FulltextIndexPlanner planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+    QueryIndex.IndexPlan plan = planner.getPlan();
+    assertEquals(1, plan.getEstimatedEntryCount());
+}

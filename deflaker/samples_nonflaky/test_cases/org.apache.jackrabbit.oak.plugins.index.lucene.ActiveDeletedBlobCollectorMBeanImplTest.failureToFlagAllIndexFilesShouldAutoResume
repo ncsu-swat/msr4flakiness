@@ -1,0 +1,17 @@
+@Test
+public void failureToFlagAllIndexFilesShouldAutoResume() {
+    IndexPathService indexPathService = MockRegistrar.getIndexPathsService(indexPaths);
+    AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(newArrayList(new IndexMBeanInfoSupplier("foo-async", () -> STATUS_DONE, () -> 2L)));
+    NodeStore failingNodeStore = new MemoryNodeStore() {
+
+        @NotNull
+        @Override
+        public synchronized NodeState merge(@NotNull NodeBuilder builder, @NotNull CommitHook commitHook, @NotNull CommitInfo info) throws CommitFailedException {
+            throw new CommitFailedException("TestFail", 1, "We must never merge");
+        }
+    };
+    ActiveDeletedBlobCollectorMBeanImpl bean = new ActiveDeletedBlobCollectorMBeanImpl(ActiveDeletedBlobCollectorFactory.NOOP, wb, failingNodeStore, indexPathService, asyncIndexInfoService, new MemoryBlobStore(), sameThreadExecutor());
+    bean.clock = clock;
+    bean.flagActiveDeletionUnsafeForCurrentState();
+    assertFalse("Failure to update head index files didn't resume marking blobs", bean.isActiveDeletionUnsafe());
+}

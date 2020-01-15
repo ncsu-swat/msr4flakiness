@@ -1,0 +1,17 @@
+@Test
+public void coalesceOrdering() throws Exception {
+    IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+    idxb.indexRule("nt:base").property("foo", null).function("coalesce([jcr:content/foo2], [jcr:content/foo])").ordered();
+    Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+    idxb.build(idx);
+    root.commit();
+    Tree rootTree = root.getTree("/");
+    rootTree.addChild("a").addChild("jcr:content").setProperty("foo2", "a");
+    rootTree.addChild("b").addChild("jcr:content").setProperty("foo", "b");
+    Tree child = rootTree.addChild("c").addChild("jcr:content");
+    child.setProperty("foo", "c");
+    child.setProperty("foo2", "a1");
+    root.commit();
+    assertOrderedPlanAndQuery("select * from [nt:base] order by coalesce([jcr:content/foo2], [jcr:content/foo])", "lucene:test1(/oak:index/test1)", asList("/a", "/c", "/b"));
+    assertOrderedPlanAndQuery("select * from [nt:base] order by coalesce([jcr:content/foo2], [jcr:content/foo]) DESC", "lucene:test1(/oak:index/test1)", asList("/b", "/c", "/a"));
+}

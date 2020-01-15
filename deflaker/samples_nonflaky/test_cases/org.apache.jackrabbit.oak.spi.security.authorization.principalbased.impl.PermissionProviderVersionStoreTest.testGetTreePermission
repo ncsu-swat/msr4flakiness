@@ -1,0 +1,14 @@
+@Test
+public void testGetTreePermission() {
+    Tree tree = getRootProvider().createReadOnlyRoot(root).getTree(PathUtils.ROOT_PATH);
+    TreePermission tp = permissionProvider.getTreePermission(tree, TreePermission.EMPTY);
+    for (String elem : PathUtils.elements(VERSION_STORE_PATH)) {
+        tree = tree.getChild(elem);
+        tp = permissionProvider.getTreePermission(tree, tp);
+    }
+    assertTrue(tp instanceof AbstractTreePermission);
+    AbstractTreePermission atp = (AbstractTreePermission) tp;
+    assertSame(TreeType.VERSION, atp.getType());
+    // must be 'regular' tree permission without extra versionable tree
+    assertSame(tree, atp.getTree());
+}

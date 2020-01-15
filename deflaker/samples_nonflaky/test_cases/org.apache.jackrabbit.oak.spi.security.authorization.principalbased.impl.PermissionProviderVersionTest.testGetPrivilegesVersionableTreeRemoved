@@ -1,0 +1,14 @@
+@Test
+public void testGetPrivilegesVersionableTreeRemoved() throws Exception {
+    String versionPath = getVersionPath(TEST_OAK_PATH, false);
+    String versionHPath = getVersionPath(TEST_OAK_PATH, true);
+    assertTrue(root.getTree(versionPath).exists());
+    root.getTree(TEST_OAK_PATH).remove();
+    root.commit();
+    permissionProvider.refresh();
+    Tree versionTree = root.getTree(versionPath);
+    assertTrue(versionTree.exists());
+    // permissions not affected (as long as no restrictions involved) due to the fact that permissions are not
+    // stored with the versionable node.
+    assertEquals(Sets.newHashSet(JCR_READ, JCR_VERSION_MANAGEMENT), permissionProvider.getPrivileges(versionTree));
+}

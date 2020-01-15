@@ -1,0 +1,12 @@
+@Test
+public void testGetPolicyWithNonAceChild() throws Exception {
+    setupContentTrees(TEST_OAK_PATH);
+    PrincipalPolicyImpl policy = setupPrincipalBasedAccessControl(validPrincipal, testContentJcrPath, JCR_RETENTION_MANAGEMENT);
+    addPrincipalBasedEntry(policy, PathUtils.ROOT_PATH, JCR_READ);
+    Tree policyTree = root.getTree(getNamePathMapper().getOakPath(policy.getPath())).getChild(REP_PRINCIPAL_POLICY);
+    TreeUtil.addChild(policyTree, "nonAceChild", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+    // don't commit as adding such child without extra mixins was invalid
+    // read policy again -> must only contain 2 entries and ignore the invalid child
+    policy = (PrincipalPolicyImpl) acMgr.getPolicies(validPrincipal)[0];
+    assertEquals(2, policy.size());
+}

@@ -1,0 +1,23 @@
+@Test
+public void testConsistencyWithDeleteTracker() throws Exception {
+    File dump = temporaryFolder.newFolder();
+    File repoHome = temporaryFolder.newFolder();
+    File trackerFolder = new File(repoHome, "blobids");
+    FileUtils.forceMkdir(trackerFolder);
+    File delTracker = new File(trackerFolder, "activedeletions.del");
+    Random rand = new Random();
+    String deletedBlobId = Iterables.get(blobsAdded, rand.nextInt(blobsAdded.size()));
+    blobsAdded.remove(deletedBlobId);
+    long count = setupDataStore.countDeleteChunks(ImmutableList.of(deletedBlobId), 0);
+    String activeDeletedBlobId = Iterables.get(blobsAdded, rand.nextInt(blobsAdded.size()));
+    blobsAdded.remove(activeDeletedBlobId);
+    count += setupDataStore.countDeleteChunks(ImmutableList.of(activeDeletedBlobId), 0);
+    assertEquals(2, count);
+    // artificially put the deleted id in the tracked .del file
+    FileIOUtils.writeStrings(Iterators.singletonIterator(activeDeletedBlobId), delTracker, false);
+    setupDataStore.close();
+    testAllParams(dump, repoHome);
+    assertFileEquals(dump, "[id]", blobsAdded);
+    assertFileEquals(dump, "[ref]", Sets.union(blobsAdded, Sets.newHashSet(deletedBlobId, activeDeletedBlobId)));
+    assertFileEquals(dump, "[consistency]", Sets.newHashSet(deletedBlobId));
+}

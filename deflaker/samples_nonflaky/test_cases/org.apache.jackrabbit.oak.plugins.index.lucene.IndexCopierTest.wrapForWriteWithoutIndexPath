@@ -1,0 +1,12 @@
+@Test
+public void wrapForWriteWithoutIndexPath() throws Exception {
+    Directory remote = new CloseSafeDir();
+    IndexCopier copier = new IndexCopier(sameThreadExecutor(), getWorkDir());
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    Directory dir = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME, IndexCopier.COWDirectoryTracker.NOOP);
+    byte[] t1 = writeFile(dir, "t1");
+    dir.close();
+    readAndAssert(remote, "t1", t1);
+    // Work dir must be empty post close
+    assertArrayEquals(FileUtils.EMPTY_FILE_ARRAY, copier.getIndexWorkDir().listFiles());
+}

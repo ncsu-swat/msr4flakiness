@@ -1,0 +1,20 @@
+// OAK-3328
+public void testWritePropertyWithIgnoreOPVAfterCheckIn() throws RepositoryException {
+    Node ignoreTestNode = testRootNode.addNode("ignoreTestNode", JcrConstants.NT_UNSTRUCTURED);
+    String ignoredPropertyName = "ignoredProperty";
+    NodeTypeTemplate mixinWithIgnoreProperty = createNodeTypeWithIgnoreOPVProperty(ignoredPropertyName);
+    Node node = ignoreTestNode.addNode("testNode", testNodeType);
+    node.addMixin(mixinWithIgnoreProperty.getName());
+    node.setProperty(ignoredPropertyName, "initial value");
+    node.addMixin(mixVersionable);
+    superuser.save();
+    VersionManager vMgr = superuser.getWorkspace().getVersionManager();
+    if (!node.isCheckedOut()) {
+        vMgr.checkout(node.getPath());
+    }
+    vMgr.checkin(node.getPath());
+    node.setProperty(ignoredPropertyName, "next value");
+    superuser.save();
+    Property ignoreProperty = node.getProperty(ignoredPropertyName);
+    assertEquals("next value", ignoreProperty.getString());
+}

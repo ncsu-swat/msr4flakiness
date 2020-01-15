@@ -1,0 +1,16 @@
+@Test(expected = AccessControlException.class)
+public void testRemovePolicyMissingEffectivePaths() throws Exception {
+    // grant permission to read/modify policy
+    grant(testPrincipal, systemPrincipalPath, JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL);
+    root.commit();
+    testRoot.refresh();
+    // first read policy
+    PrincipalPolicyImpl policy = getPrincipalPolicyImpl(systemPrincipal, testAcMgr);
+    // transiently remove rep:effectivePath properties from all entries.
+    Tree policyTree = testRoot.getTree(getPolicyPath());
+    for (Tree child : policyTree.getChildren()) {
+        child.removeProperty(REP_EFFECTIVE_PATH);
+    }
+    // removing policy must fail, because effective paths cannot be evaluated
+    testAcMgr.removePolicy(policy.getPath(), policy);
+}

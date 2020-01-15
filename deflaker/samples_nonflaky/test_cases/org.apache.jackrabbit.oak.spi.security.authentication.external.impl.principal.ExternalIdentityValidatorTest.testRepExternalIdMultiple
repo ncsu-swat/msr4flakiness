@@ -1,0 +1,15 @@
+@Test(expected = CommitFailedException.class)
+public void testRepExternalIdMultiple() throws Exception {
+    Root systemRoot = getSystemRoot();
+    try {
+        Tree userTree = systemRoot.getTree(testUserPath);
+        userTree.setProperty(REP_EXTERNAL_ID, ImmutableList.of("id", "id2"), Type.STRINGS);
+        systemRoot.commit();
+        fail("Creating rep:externalId as multiple STRING property must be detected.");
+    } catch (CommitFailedException e) {
+        // success
+        assertException(e, CONSTRAINT, 75);
+    } finally {
+        systemRoot.refresh();
+    }
+}

@@ -1,0 +1,16 @@
+@Test
+public void aggregateConfig2() throws Exception {
+    NodeBuilder aggregates = builder.child(FulltextIndexConstants.AGGREGATES);
+    NodeBuilder aggFolder = aggregates.child("nt:folder");
+    aggFolder.setProperty(FulltextIndexConstants.AGG_RECURSIVE_LIMIT, 42);
+    aggFolder.child("i1").setProperty(FulltextIndexConstants.AGG_PATH, "*");
+    aggFolder.child("i1").setProperty(FulltextIndexConstants.AGG_PRIMARY_TYPE, "nt:file");
+    aggFolder.child("i1").setProperty(FulltextIndexConstants.AGG_RELATIVE_NODE, true);
+    IndexDefinition defn = new IndexDefinition(root, builder.getNodeState(), "/foo");
+    Aggregate agg = defn.getAggregate("nt:folder");
+    assertNotNull(agg);
+    assertEquals(42, agg.reAggregationLimit);
+    assertEquals(1, agg.getIncludes().size());
+    assertEquals("nt:file", ((NodeInclude) agg.getIncludes().get(0)).primaryType);
+    assertTrue(((NodeInclude) agg.getIncludes().get(0)).relativeNode);
+}

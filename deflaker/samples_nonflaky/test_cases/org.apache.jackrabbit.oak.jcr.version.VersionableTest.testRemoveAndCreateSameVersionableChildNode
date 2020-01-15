@@ -1,0 +1,25 @@
+// OAK-1272
+public void testRemoveAndCreateSameVersionableChildNode() throws Exception {
+    // create parent
+    Node parentNode = testRootNode.addNode("parent");
+    parentNode.setPrimaryType(ntUnstructured);
+    parentNode.setProperty("name", "sample");
+    // create a versionable child
+    Node createdNode = parentNode.addNode("versionablechild", "nt:unstructured");
+    createdNode.addMixin(mixVersionable);
+    superuser.save();
+    VersionManager vm = superuser.getWorkspace().getVersionManager();
+    vm.checkin(testRootNode.getPath() + "/parent/versionablechild");
+    // delete and create exact same node
+    Node parent = testRootNode.getNode("parent");
+    // remove children
+    NodeIterator nodes = parent.getNodes();
+    while (nodes.hasNext()) {
+        Node childNode = nodes.nextNode();
+        childNode.remove();
+    }
+    // create again versionable child node
+    Node recreatedNode = parent.addNode("versionablechild", ntUnstructured);
+    recreatedNode.addMixin(mixVersionable);
+    superuser.save();
+}

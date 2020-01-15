@@ -1,0 +1,12 @@
+/**
+ * @see PermissionProvider#hasPrivileges(org.apache.jackrabbit.oak.api.Tree, String...)
+ */
+@Test
+public void testHasPrivilegesNonExistingVersionTree() {
+    Tree versionTree = mock(Tree.class, withSettings().extraInterfaces(TreeTypeAware.class, ReadOnly.class));
+    when(versionTree.exists()).thenReturn(false);
+    when(versionTree.getPath()).thenReturn(VersionConstants.VERSION_STORE_PATH + "/some/version");
+    when(versionTree.getProperty(JCR_PRIMARYTYPE)).thenReturn(PropertyStates.createProperty(JCR_PRIMARYTYPE, NT_VERSION, Type.NAME));
+    when(((TreeTypeAware) versionTree).getType()).thenReturn(TreeType.VERSION);
+    assertFalse(cugPermProvider.hasPrivileges(versionTree, PrivilegeConstants.JCR_READ));
+}

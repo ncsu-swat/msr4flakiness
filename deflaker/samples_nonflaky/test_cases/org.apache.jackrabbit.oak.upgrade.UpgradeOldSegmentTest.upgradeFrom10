@@ -1,0 +1,56 @@
+@Test
+public void upgradeFrom10() throws Exception {
+    File testFolder = new File(new File("target"), UpgradeOldSegmentTest.class.getSimpleName());
+    FileUtils.deleteDirectory(testFolder);
+    File oldRepo = new File(testFolder, "test-repo-1.0");
+    oldRepo.mkdirs();
+    try (InputStream in = UpgradeOldSegmentTest.class.getResourceAsStream("/test-repo-1.0.zip")) {
+        Util.unzip(in, oldRepo);
+    }
+    SegmentTarNodeStoreContainer newRepoContainer = new SegmentTarNodeStoreContainer();
+    OakUpgrade.main("segment-old:" + oldRepo.getPath(), newRepoContainer.getDescription());
+    Repository repo = new Jcr(newRepoContainer.open()).createRepository();
+    Session s = repo.login(new SimpleCredentials("admin", "admin".toCharArray()));
+    Node myType = s.getNode("/jcr:system/jcr:nodeTypes/test:MyType");
+    assertEquals(2, Iterators.size(myType.getNodes("jcr:propertyDefinition")));
+    NodeTypeManager ntMgr = s.getWorkspace().getNodeTypeManager();
+    assertTrue(ntMgr.hasNodeType("test:MyType"));
+    NodeType nt = ntMgr.getNodeType("test:MyType");
+    PropertyDefinition[] pDefs = nt.getDeclaredPropertyDefinitions();
+    assertEquals(2, pDefs.length);
+    for (PropertyDefinition pd : pDefs) {
+        String name = pd.getName();
+        if (name.equals("test:mandatory")) {
+            assertTrue(pd.isMandatory());
+        } else if (name.equals("test:optional")) {
+            assertFalse(pd.isMandatory());
+        } else {
+            fail("Unexpected property definition: " + name);
+        }
+    }
+    // flip mandatory flag for test:mandatory
+    String cnd = "<'test'='http://www.apache.org/jackrabbit/test'>\n" + "[test:MyType] > nt:unstructured\n" + " - test:mandatory (string)\n" + " - test:optional (string)";
+    CndImporter.registerNodeTypes(new StringReader(cnd), s, true);
+    myType = s.getNode("/jcr:system/jcr:nodeTypes/test:MyType");
+    assertEquals(2, Iterators.size(myType.getNodes("jcr:propertyDefinition")));
+    nt = ntMgr.getNodeType("test:MyType");
+    pDefs = nt.getDeclaredPropertyDefinitions();
+    assertEquals(2, pDefs.length);
+    for (PropertyDefinition pd : pDefs) {
+        String name = pd.getName();
+        if (name.equals("test:mandatory")) {
+            assertFalse(pd.isMandatory());
+        } else if (name.equals("test:optional")) {
+            assertFalse(pd.isMandatory());
+        } else {
+            fail("Unexpected property definition: " + name);
+        }
+    }
+    s.logout();
+    if (repo instanceof JackrabbitRepository) {
+        ((JackrabbitRepository) repo).shutdown();
+    }
+    newRepoContainer.close();
+    newRepoContainer.clean();
+    deleteRecursive(testFolder);
+}

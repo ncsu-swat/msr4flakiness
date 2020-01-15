@@ -1,0 +1,14 @@
+@Test
+public void testGetPermissionProviderUnsupportedPrincipals() throws Exception {
+    FilterProvider fp = when(mock(FilterProvider.class).getFilter(any(SecurityProvider.class), any(Root.class), any(NamePathMapper.class))).thenReturn(mock(Filter.class)).getMock();
+    PrincipalBasedAuthorizationConfiguration pbac = new PrincipalBasedAuthorizationConfiguration();
+    pbac.bindFilterProvider(fp);
+    pbac.setSecurityProvider(securityProvider);
+    pbac.setRootProvider(getRootProvider());
+    Set<Principal> principals = ImmutableSet.of(EveryonePrincipal.getInstance(), getTestUser().getPrincipal());
+    PermissionProvider pp = pbac.getPermissionProvider(root, "wspName", principals);
+    assertSame(EmptyPermissionProvider.getInstance(), pp);
+    principals = ImmutableSet.of(getTestSystemUser().getPrincipal());
+    pp = pbac.getPermissionProvider(root, "wspName", principals);
+    assertSame(EmptyPermissionProvider.getInstance(), pp);
+}

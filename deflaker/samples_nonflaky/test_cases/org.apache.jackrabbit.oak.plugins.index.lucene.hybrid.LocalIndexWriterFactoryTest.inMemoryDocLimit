@@ -1,0 +1,15 @@
+@Test
+public void inMemoryDocLimit() throws Exception {
+    NodeState indexed = createAndPopulateAsyncIndex(FulltextIndexConstants.IndexingMode.NRT);
+    editorProvider.setInMemoryDocsLimit(5);
+    editorProvider.setIndexingQueue(new DocumentQueue(1, tracker, sameThreadExecutor()));
+    builder = indexed.builder();
+    for (int i = 0; i < 10; i++) {
+        builder.child("b" + i).setProperty("foo", "bar");
+    }
+    NodeState after = builder.getNodeState();
+    syncHook.processCommit(indexed, after, newCommitInfo());
+    LuceneDocumentHolder holder = getHolder();
+    // 5 for in memory list and 1 in queue
+    assertEquals(5 + 1, getIndexedDocList(holder, "/oak:index/fooIndex").size());
+}

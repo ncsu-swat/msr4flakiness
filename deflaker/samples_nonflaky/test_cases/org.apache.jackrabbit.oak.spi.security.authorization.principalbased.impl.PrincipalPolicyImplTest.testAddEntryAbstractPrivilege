@@ -1,0 +1,11 @@
+@Test(expected = AccessControlException.class)
+public void testAddEntryAbstractPrivilege() throws Exception {
+    Privilege privilege = when(mock(Privilege.class).isAbstract()).thenReturn(true).getMock();
+    when(privilege.getName()).thenReturn("abstract");
+    PrivilegeManager privilegeManager = when(mock(PrivilegeManager.class).getPrivilege("abstract")).thenReturn(privilege).getMock();
+    MgrProvider mp = when(mock(MgrProvider.class).getPrivilegeManager()).thenReturn(privilegeManager).getMock();
+    when(mp.getNamePathMapper()).thenReturn(getNamePathMapper());
+    when(mp.getRestrictionProvider()).thenReturn(RestrictionProvider.EMPTY);
+    PrincipalPolicyImpl policy = new PrincipalPolicyImpl(principal, POLICY_OAK_PATH, mp);
+    policy.addEntry(testJcrPath, new Privilege[] { privilege });
+}

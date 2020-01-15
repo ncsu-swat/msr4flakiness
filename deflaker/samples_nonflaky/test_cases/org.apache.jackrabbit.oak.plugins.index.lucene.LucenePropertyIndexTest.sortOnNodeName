@@ -1,0 +1,41 @@
+@Test
+public void sortOnNodeName() throws Exception {
+    Tree rootTree = root.getTree("/").addChild("test");
+    IndexDefinitionBuilder fnNameFunctionIndex = new IndexDefinitionBuilder().noAsync();
+    IndexDefinitionBuilder.PropertyRule rule = fnNameFunctionIndex.indexRule("nt:base").property("nodeName", null).propertyIndex().ordered();
+    // setup function index on "fn:name()"
+    rule.function("fn:name()");
+    fnNameFunctionIndex.getBuilderTree().setProperty("tags", of("fnName"), STRINGS);
+    fnNameFunctionIndex.build(rootTree.addChild("oak:index").addChild("fnName"));
+    // same index as above except for function - "name()"
+    rule.function("name()");
+    fnNameFunctionIndex.getBuilderTree().setProperty("tags", of("name"), STRINGS);
+    fnNameFunctionIndex.build(rootTree.addChild("oak:index").addChild("name"));
+    List<String> expected = Lists.newArrayList("/test/oak:index");
+    for (int i = 0; i < 3; i++) {
+        String nodeName = "a" + i;
+        rootTree.addChild(nodeName);
+        expected.add("/test/" + nodeName);
+    }
+    Collections.sort(expected);
+    root.commit();
+    String query = "/jcr:root/test/* order by fn:name() option(index tag fnName)";
+    assertXpathPlan(query, "lucene:fnName(/test/oak:index/fnName)");
+    assertEquals(expected, executeQuery(query, XPATH));
+    query = "/jcr:root/test/* order by fn:name() ascending option(index tag fnName)";
+    assertXpathPlan(query, "lucene:fnName(/test/oak:index/fnName)");
+    assertEquals(expected, executeQuery(query, XPATH));
+    query = "/jcr:root/test/* order by fn:name() descending option(index tag fnName)";
+    assertXpathPlan(query, "lucene:fnName(/test/oak:index/fnName)");
+    assertEquals(Lists.reverse(expected), executeQuery(query, XPATH));
+    // order by fn:name() although function index is on "name()"
+    query = "/jcr:root/test/* order by fn:name() option(index tag name)";
+    assertXpathPlan(query, "lucene:name(/test/oak:index/name)");
+    assertEquals(expected, executeQuery(query, XPATH));
+    query = "/jcr:root/test/* order by fn:name() ascending option(index tag name)";
+    assertXpathPlan(query, "lucene:name(/test/oak:index/name)");
+    assertEquals(expected, executeQuery(query, XPATH));
+    query = "/jcr:root/test/* order by fn:name() descending option(index tag name)";
+    assertXpathPlan(query, "lucene:name(/test/oak:index/name)");
+    assertEquals(Lists.reverse(expected), executeQuery(query, XPATH));
+}

@@ -1,0 +1,12 @@
+@Test
+public void testSyncExternalGroupExisting() throws Exception {
+    // create an external external group that already has been synced into the repo
+    ExternalGroup externalGroup = idp.listGroups().next();
+    SyncContext ctx = new DefaultSyncContext(syncConfig, idp, userManager, valueFactory);
+    ctx.sync(externalGroup);
+    ctx.close();
+    // synchronizing using DynamicSyncContext must update the existing group
+    syncContext.setForceGroupSync(true);
+    SyncResult result = syncContext.sync(externalGroup);
+    assertSame(SyncResult.Status.UPDATE, result.getStatus());
+}

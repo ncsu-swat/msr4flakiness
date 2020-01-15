@@ -1,0 +1,24 @@
+@Test
+public void avoidNonStatusChanges() throws Exception {
+    NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+    newLucenePropertyIndexDefinition(index, "lucene", ImmutableSet.of("foo"), "async");
+    NodeState before = builder.getNodeState();
+    builder.setProperty("foo", "bar");
+    NodeState after = builder.getNodeState();
+    NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
+    indexed = ModifiedNodeState.squeeze(indexed);
+    tracker.update(indexed);
+    LuceneIndexNode indexNode = tracker.acquireIndexNode("/oak:index/lucene");
+    int indexNodeId = indexNode.getIndexNodeId();
+    indexNode.release();
+    before = indexed;
+    builder = before.builder();
+    TestUtil.child(builder, "/oak:index/lucene/:property-index").setProperty("foo", "bar");
+    after = builder.getNodeState();
+    indexed = ModifiedNodeState.squeeze(after);
+    tracker.update(indexed);
+    indexNode = tracker.acquireIndexNode("/oak:index/lucene");
+    int indexNodeId2 = indexNode.getIndexNodeId();
+    indexNode.release();
+    assertEquals(indexNodeId, indexNodeId2);
+}

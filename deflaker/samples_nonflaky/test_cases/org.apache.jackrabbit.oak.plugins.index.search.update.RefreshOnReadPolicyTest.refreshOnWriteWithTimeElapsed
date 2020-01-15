@@ -1,0 +1,13 @@
+@Test
+public void refreshOnWriteWithTimeElapsed() throws Exception {
+    clock.waitUntil(System.currentTimeMillis());
+    policy.refreshOnWriteIfRequired(refreshCallback);
+    refreshCallback.reset();
+    // Call again without change in time
+    policy.refreshOnWriteIfRequired(refreshCallback);
+    // This time callback should not be invoked
+    refreshCallback.assertNotInvokedAndReset();
+    clock.waitUntil(clock.getTime() + refreshDelta);
+    policy.refreshOnWriteIfRequired(refreshCallback);
+    refreshCallback.assertInvokedAndReset();
+}

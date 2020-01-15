@@ -1,0 +1,13 @@
+@Test
+public void statisticalFacetsWithHitCountLessThanSampleSize() throws Exception {
+    Node facetConfig = getOrCreateByPath(indexNode.getPath() + "/" + FACETS, "nt:unstructured", session);
+    facetConfig.setProperty(PROP_SECURE_FACETS, PROP_SECURE_FACETS_VALUE_STATISTICAL);
+    indexNode.setProperty(PROP_REFRESH_DEFN, true);
+    session.save();
+    createSmallDataset();
+    Map<String, Integer> facets = getFacets();
+    assertEquals("Unexpected number of facets", actualAclLabelCount.size(), facets.size());
+    // Since the hit count is less than sample size -> flow should have switched to secure facet count instead of statistical
+    // and thus the count should be exactly equal
+    assertEquals(actualAclLabelCount, facets);
+}

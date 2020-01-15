@@ -1,0 +1,25 @@
+@Test
+public void noReindexIfNoChange() throws Exception {
+    builder.includedPaths("/a", "/b");
+    builder.indexRule("nt:base").property("foo").ordered();
+    nodeBuilder = builder.build().builder();
+    nodeBuilder.setProperty(REINDEX_PROPERTY_NAME, false);
+    builder = new IndexDefinitionBuilder(nodeBuilder);
+    builder.includedPaths("/a", "/b");
+    assertFalse(builder.isReindexRequired());
+    NodeState state = builder.build();
+    assertFalse(state.getBoolean(REINDEX_PROPERTY_NAME));
+    NodeState baseState = builder.build();
+    nodeBuilder = baseState.builder();
+    builder = new IndexDefinitionBuilder(nodeBuilder);
+    builder.indexRule("nt:file");
+    assertTrue(builder.isReindexRequired());
+    state = builder.build();
+    assertTrue(state.getBoolean(REINDEX_PROPERTY_NAME));
+    builder = new IndexDefinitionBuilder(baseState.builder(), false);
+    builder.indexRule("nt:file");
+    assertTrue(builder.isReindexRequired());
+    state = builder.build();
+    assertTrue(builder.isReindexRequired());
+    assertFalse(state.getBoolean(REINDEX_PROPERTY_NAME));
+}

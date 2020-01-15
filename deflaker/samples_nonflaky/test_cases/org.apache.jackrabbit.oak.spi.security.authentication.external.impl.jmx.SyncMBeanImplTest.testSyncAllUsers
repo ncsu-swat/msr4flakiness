@@ -1,0 +1,17 @@
+@Test
+public void testSyncAllUsers() throws Exception {
+    // first sync external users into the repo
+    syncMBean.syncAllExternalUsers();
+    // verify effect of syncAllUsers
+    String[] result = syncMBean.syncAllUsers(false);
+    Map<String, String> expected = getExpectedUserResult("upd", true);
+    assertResultMessages(result, expected);
+    UserManager userManager = getUserManager();
+    for (String id : expected.keySet()) {
+        ExternalIdentity ei = idp.getUser(id);
+        if (ei == null) {
+            ei = idp.getGroup(id);
+        }
+        assertSync(ei, userManager);
+    }
+}

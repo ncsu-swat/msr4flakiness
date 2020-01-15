@@ -1,0 +1,23 @@
+@Test
+public void deletesOnClose() throws Exception {
+    Directory baseDir = new CloseSafeDir();
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    IndexCopier c1 = new RAMIndexCopier(baseDir, sameThreadExecutor(), getWorkDir());
+    Directory r1 = new DelayCopyingSimpleFSDirectory();
+    byte[] t1 = writeFile(r1, "t1");
+    byte[] t2 = writeFile(r1, "t2");
+    Directory w1 = c1.wrapForRead("/foo", defn, r1, INDEX_DATA_CHILD_NAME);
+    readAndAssert(w1, "t1", t1);
+    readAndAssert(w1, "t2", t2);
+    // t1 and t2 should now be present in local (base dir which back local)
+    assertTrue(baseDir.fileExists("t1"));
+    assertTrue(baseDir.fileExists("t2"));
+    Directory r2 = new RAMDirectory();
+    copy(r1, r2);
+    r2.deleteFile("t1");
+    Directory w2 = c1.wrapForRead("/foo", defn, r2, INDEX_DATA_CHILD_NAME);
+    // Close would trigger removal of file which are not present in remote
+    w2.close();
+    assertFalse("t1 should have been deleted", baseDir.fileExists("t1"));
+    assertTrue(baseDir.fileExists("t2"));
+}

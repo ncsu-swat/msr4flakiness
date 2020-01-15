@@ -1,0 +1,18 @@
+@Test
+public void deleteIncludingMount() throws Exception {
+    mip = Mounts.newBuilder().mount("foo", "/content/remote").build();
+    initializeMounts();
+    LuceneIndexWriterFactory factory = newDirectoryFactory();
+    LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
+    writer.updateDocument("/content/remote/a", newDoc("/content/remote/a"));
+    writer.updateDocument("/etc", newDoc("/etc"));
+    writer.updateDocument("/content", newDoc("/content"));
+    writer.close(0);
+    assertEquals(1, numDocs(fooMount));
+    assertEquals(2, numDocs(defaultMount));
+    writer = factory.newInstance(defn, builder, true);
+    writer.deleteDocuments("/content");
+    writer.close(0);
+    assertEquals(0, numDocs(fooMount));
+    assertEquals(1, numDocs(defaultMount));
+}

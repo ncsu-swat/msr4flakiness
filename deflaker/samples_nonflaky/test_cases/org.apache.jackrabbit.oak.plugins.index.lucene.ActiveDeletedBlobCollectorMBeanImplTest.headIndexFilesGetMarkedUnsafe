@@ -1,0 +1,11 @@
+@Test
+public void headIndexFilesGetMarkedUnsafe() throws Exception {
+    String indexPath = "/fooIndex";
+    createFakeIndex(indexPath);
+    IndexPathService indexPathService = MockRegistrar.getIndexPathsService(indexPaths);
+    AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(newArrayList(new IndexMBeanInfoSupplier("foo-async", () -> STATUS_DONE, () -> 2L)));
+    ActiveDeletedBlobCollectorMBean bean = getTestBean(indexPathService, asyncIndexInfoService);
+    bean.flagActiveDeletionUnsafeForCurrentState();
+    NodeState indexFile = getFakeIndexFile(indexPath);
+    assertTrue(indexFile.getBoolean(PROP_UNSAFE_FOR_ACTIVE_DELETION));
+}

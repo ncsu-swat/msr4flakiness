@@ -1,0 +1,30 @@
+@Test
+public void testTimeout() {
+    Iterable<Integer> s;
+    PrefetchIterator<Integer> it;
+    // long delay (10 ms per row)
+    final long testTimeout = 10;
+    s = seq(0, 100, 10);
+    it = new PrefetchIterator<Integer>(s.iterator(), new PrefetchOptions() {
+
+        {
+            min = 5;
+            timeout = testTimeout;
+            max = 10;
+            size = -1;
+        }
+    });
+    assertEquals(-1, it.size());
+    // no delay
+    s = seq(0, 100);
+    it = new PrefetchIterator<Integer>(s.iterator(), new PrefetchOptions() {
+
+        {
+            min = 5;
+            timeout = testTimeout;
+            max = 1000;
+            size = -1;
+        }
+    });
+    assertEquals(100, it.size());
+}

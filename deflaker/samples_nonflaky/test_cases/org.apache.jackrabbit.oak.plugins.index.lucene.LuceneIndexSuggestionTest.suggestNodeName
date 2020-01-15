@@ -1,0 +1,19 @@
+// OAK-3825
+@Test
+public void suggestNodeName() throws Exception {
+    final String nodeType = "nt:unstructured";
+    createSuggestIndex("lucene-suggest", nodeType, FulltextIndexConstants.PROPDEF_PROP_NODE_NAME);
+    root.addNode("indexedNode", nodeType);
+    session.save();
+    String suggQuery = createSuggestQuery(nodeType, "indexedn");
+    QueryManager queryManager = session.getWorkspace().getQueryManager();
+    QueryResult result = queryManager.createQuery(suggQuery, Query.JCR_SQL2).execute();
+    RowIterator rows = result.getRows();
+    String value = null;
+    while (rows.hasNext()) {
+        Row firstRow = rows.nextRow();
+        value = firstRow.getValue("suggestion").getString();
+        break;
+    }
+    assertEquals("Node name should be suggested", "indexedNode", value);
+}

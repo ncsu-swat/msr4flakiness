@@ -1,0 +1,12 @@
+@Test
+public void enableExtractedTextCaching() throws Exception {
+    Map<String, Object> config = getDefaultConfig();
+    config.put("extractedTextCacheSizeInMB", 11);
+    MockOsgi.activate(service, context.bundleContext(), config);
+    ExtractedTextCache textCache = service.getExtractedTextCache();
+    assertNotNull(textCache.getCacheStats());
+    assertNotNull(context.getService(CacheStatsMBean.class));
+    assertEquals(11 * FileUtils.ONE_MB, textCache.getCacheStats().getMaxTotalWeight());
+    MockOsgi.deactivate(service, context.bundleContext());
+    assertNull(context.getService(CacheStatsMBean.class));
+}

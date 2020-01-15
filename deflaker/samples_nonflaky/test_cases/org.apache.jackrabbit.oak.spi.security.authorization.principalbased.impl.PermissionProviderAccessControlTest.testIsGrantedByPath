@@ -1,0 +1,24 @@
+@Test
+public void testIsGrantedByPath() throws Exception {
+    setupPrincipalBasedAccessControl(testPrincipal, accessControlledPath, JCR_READ, JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL);
+    root.commit();
+    permissionProvider.refresh();
+    assertTrue(permissionProvider.isGranted(accessControlledPath, Permissions.getString(Permissions.READ | Permissions.READ_ACCESS_CONTROL | Permissions.MODIFY_ACCESS_CONTROL)));
+    assertFalse(permissionProvider.isGranted(accessControlledPath, Permissions.getString(Permissions.READ | Permissions.WRITE)));
+    String policyPath = PathUtils.concat(accessControlledPath, REP_PRINCIPAL_POLICY);
+    assertTrue(permissionProvider.isGranted(policyPath, Permissions.getString(Permissions.READ_PROPERTY | Permissions.READ_NODE | Permissions.READ_ACCESS_CONTROL | Permissions.MODIFY_ACCESS_CONTROL)));
+    for (Tree child : root.getTree(policyPath).getChildren()) {
+        String childPath = child.getPath();
+        String effectivePath = child.getProperty(REP_EFFECTIVE_PATH).getValue(STRING);
+        if (contentPath.equals(effectivePath)) {
+            assertTrue(permissionProvider.isGranted(childPath, Permissions.getString(Permissions.READ | Permissions.READ_ACCESS_CONTROL)));
+            assertFalse(permissionProvider.isGranted(childPath, Permissions.getString(Permissions.MODIFY_ACCESS_CONTROL)));
+        } else if (childPath.equals(effectivePath)) {
+            assertTrue(permissionProvider.isGranted(childPath, Permissions.getString(Permissions.READ | Permissions.READ_ACCESS_CONTROL)));
+            assertFalse(permissionProvider.isGranted(childPath, Permissions.getString(Permissions.READ | Permissions.MODIFY_ACCESS_CONTROL)));
+        } else if (child2Path.equals(effectivePath)) {
+            assertTrue(permissionProvider.isGranted(childPath, Permissions.getString(Permissions.READ | Permissions.READ_ACCESS_CONTROL)));
+            assertTrue(permissionProvider.isGranted(childPath, Permissions.getString(Permissions.READ | Permissions.MODIFY_ACCESS_CONTROL)));
+        }
+    }
+}

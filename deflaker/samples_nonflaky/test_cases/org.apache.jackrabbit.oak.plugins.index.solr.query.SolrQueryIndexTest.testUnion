@@ -1,0 +1,10 @@
+@Test
+public void testUnion() throws Exception {
+    SelectorImpl selector = mock(SelectorImpl.class);
+    SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, null, null);
+    String sqlQuery = "select [jcr:path], [jcr:score], [rep:excerpt] from [nt:hierarchyNode] as a where" + " isdescendantnode(a, '/content') and contains([jcr:content/*], 'founded') union select [jcr:path]," + " [jcr:score], [rep:excerpt] from [nt:hierarchyNode] as a where isdescendantnode(a, '/content') and " + "contains([jcr:content/jcr:title], 'founded') union select [jcr:path], [jcr:score], [rep:excerpt]" + " from [nt:hierarchyNode] as a where isdescendantnode(a, '/content') and " + "contains([jcr:content/jcr:description], 'founded') order by [jcr:score] desc";
+    FilterImpl filter = new FilterImpl(selector, sqlQuery, new QueryEngineSettings());
+    List<QueryIndex.OrderEntry> sortOrder = new LinkedList<QueryIndex.OrderEntry>();
+    List<QueryIndex.IndexPlan> plans = solrQueryIndex.getPlans(filter, sortOrder, nodeState);
+    assertEquals(0, plans.size());
+}

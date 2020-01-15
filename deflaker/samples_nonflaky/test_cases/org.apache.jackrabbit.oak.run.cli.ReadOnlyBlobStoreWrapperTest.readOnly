@@ -1,0 +1,17 @@
+@Test
+public void readOnly() throws Exception {
+    FileDataStore fds = new FileDataStore();
+    fds.setPath(temporaryFolder.getRoot().getAbsolutePath());
+    fds.init(null);
+    DataStoreBlobStore writableBS = new DataStoreBlobStore(fds);
+    BlobStore readOnly = ReadOnlyBlobStoreWrapper.wrap(writableBS);
+    try {
+        readOnly.writeBlob(new ByteArrayInputStream("foo".getBytes()));
+        fail();
+    } catch (Exception ignore) {
+    }
+    String blobId = writableBS.writeBlob(new ByteArrayInputStream("foo".getBytes()));
+    try (InputStream is = readOnly.getInputStream(blobId)) {
+        assertNotNull(is);
+    }
+}

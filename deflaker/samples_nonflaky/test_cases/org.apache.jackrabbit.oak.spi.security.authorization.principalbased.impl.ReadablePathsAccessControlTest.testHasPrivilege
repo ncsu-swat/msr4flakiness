@@ -1,0 +1,11 @@
+@Test
+public void testHasPrivilege() throws Exception {
+    try (ContentSession cs = Subject.doAsPrivileged(getTestSubject(), (PrivilegedExceptionAction<ContentSession>) () -> getContentRepository().login(null, null), null)) {
+        PrincipalBasedAccessControlManager testAcMgr = new PrincipalBasedAccessControlManager(getMgrProvider(cs.getLatestRoot()), getFilterProvider());
+        Set<Principal> principals = Collections.singleton(testPrincipal);
+        assertTrue(testAcMgr.hasPrivileges(readablePaths.next(), principals, privilegesFromNames(JCR_READ)));
+        assertTrue(testAcMgr.hasPrivileges(readablePaths.next(), principals, privilegesFromNames(REP_READ_PROPERTIES)));
+        assertTrue(testAcMgr.hasPrivileges(readableChildPaths.next(), principals, privilegesFromNames(REP_READ_NODES)));
+        assertTrue(testAcMgr.hasPrivileges(readableChildPaths.next(), principals, privilegesFromNames(REP_READ_NODES, REP_READ_PROPERTIES)));
+    }
+}

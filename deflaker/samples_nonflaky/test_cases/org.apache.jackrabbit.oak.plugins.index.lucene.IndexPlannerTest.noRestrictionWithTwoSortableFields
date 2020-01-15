@@ -1,0 +1,11 @@
+@Test
+public void noRestrictionWithTwoSortableFields() throws Exception {
+    NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo", "bar"), "async");
+    defn.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo", "bar"), STRINGS));
+    LuceneIndexDefinition definition = new LuceneIndexDefinition(root, defn.getNodeState(), "/test");
+    LuceneIndexNode node = createIndexNode(definition);
+    FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/test", createFilter("nt:base"), ImmutableList.of(new OrderEntry("foo", Type.LONG, OrderEntry.Order.ASCENDING), new OrderEntry("bar", Type.LONG, OrderEntry.Order.ASCENDING)));
+    assertNotNull(planner.getPlan());
+    assertEquals(1, planner.getPlan().getEstimatedEntryCount());
+    assertEquals(definition.getCostPerEntry() / 3, planner.getPlan().getCostPerEntry(), 0.0001);
+}

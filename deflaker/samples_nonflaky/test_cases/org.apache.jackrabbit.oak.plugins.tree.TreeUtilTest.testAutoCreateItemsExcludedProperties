@@ -1,0 +1,11 @@
+@Test
+public void testAutoCreateItemsExcludedProperties() throws Exception {
+    List<Tree> list = ImmutableList.of(mockTree("/some/path/" + REP_PRIMARY_TYPE, true), mockTree("/some/path/" + REP_MIXIN_TYPES, true));
+    Tree defWithExcludedProperties = when(mock(Tree.class).getChildren()).thenReturn(list).getMock();
+    when(ntDef.getChild(REP_NAMED_PROPERTY_DEFINITIONS)).thenReturn(defWithExcludedProperties);
+    Tree defWithoutChildren = when(mock(Tree.class).getChildren()).thenReturn(ImmutableList.of()).getMock();
+    when(ntDef.getChild(REP_NAMED_CHILD_NODE_DEFINITIONS)).thenReturn(defWithoutChildren);
+    TreeUtil.autoCreateItems(child, ntDef, typeRoot, "userId");
+    verify(child, never()).setProperty(any(PropertyState.class));
+    verify(child, never()).addChild(anyString());
+}

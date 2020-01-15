@@ -1,0 +1,11 @@
+@Test
+public void testGetEffectivePrincipalNoReadAcPermission() throws Exception {
+    setupCugsAndAcls();
+    // test-user only has read-access on /content (no read-ac permission)
+    try (ContentSession cs = createTestSession()) {
+        Root r = cs.getLatestRoot();
+        CugAccessControlManager m = new CugAccessControlManager(r, NamePathMapper.DEFAULT, getSecurityProvider(), ImmutableSet.copyOf(SUPPORTED_PATHS), getExclude(), getRootProvider());
+        AccessControlPolicy[] effective = m.getEffectivePolicies(ImmutableSet.of(getTestGroupPrincipal(), EveryonePrincipal.getInstance()));
+        assertEquals(0, effective.length);
+    }
+}

@@ -1,0 +1,29 @@
+@Test
+public void testRemoveMembership() throws RepositoryException {
+    String grId2 = createGroupId();
+    Group gr2 = null;
+    try {
+        gr2 = userMgr.createGroup(grId2);
+        gr2.addMember(user);
+        superuser.save();
+        Iterator<Group> groups = user.declaredMemberOf();
+        while (groups.hasNext()) {
+            Group group = groups.next();
+            group.removeMember(user);
+            superuser.save();
+        }
+        assertFalse(userMgr.getAuthorizable(group.getID(), Group.class).isDeclaredMember(user));
+        assertFalse(userMgr.getAuthorizable(grId2, Group.class).isDeclaredMember(user));
+        groups = user.declaredMemberOf();
+        while (groups.hasNext()) {
+            String id = groups.next().getID();
+            assertFalse(group.getID().equals(id));
+            assertFalse(grId2.equals(id));
+        }
+    } finally {
+        if (gr2 != null) {
+            gr2.remove();
+            superuser.save();
+        }
+    }
+}

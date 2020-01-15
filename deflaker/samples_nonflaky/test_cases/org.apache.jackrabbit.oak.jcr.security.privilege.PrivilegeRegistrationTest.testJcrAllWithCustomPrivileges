@@ -1,0 +1,16 @@
+/**
+ * @see <a href="https://issues.apache.org/jira/browse/OAK-2015">OAK-2015</a>
+ */
+@Test
+public void testJcrAllWithCustomPrivileges() throws Exception {
+    Node testNode = session.getRootNode().addNode("test");
+    String testPath = testNode.getPath();
+    AccessControlUtils.grantAllToEveryone(session, testPath);
+    session.save();
+    JackrabbitAccessControlManager acMgr = (JackrabbitAccessControlManager) session.getAccessControlManager();
+    Privilege[] allPrivileges = AccessControlUtils.privilegesFromNames(session, Privilege.JCR_ALL);
+    Set<Principal> principalSet = ImmutableSet.<Principal>of(EveryonePrincipal.getInstance());
+    assertTrue(acMgr.hasPrivileges(testPath, principalSet, allPrivileges));
+    privilegeManager.registerPrivilege("customPriv", false, null);
+    assertTrue(acMgr.hasPrivileges(testPath, principalSet, allPrivileges));
+}

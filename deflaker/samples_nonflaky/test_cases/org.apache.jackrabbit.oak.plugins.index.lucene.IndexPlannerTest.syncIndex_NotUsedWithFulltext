@@ -1,0 +1,17 @@
+@Test
+public void syncIndex_NotUsedWithFulltext() throws Exception {
+    IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+    defnb.indexRule("nt:base").property("foo").propertyIndex().sync();
+    defnb.indexRule("nt:base").property("bar").analyzed();
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.build(), "/foo");
+    LuceneIndexNode node = createIndexNode(defn, 100);
+    FilterImpl filter = createFilter("nt:base");
+    filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+    filter.setFullTextConstraint(FullTextParser.parse("bar", "mountain"));
+    FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, ImmutableList.of(new OrderEntry("bar", Type.LONG, OrderEntry.Order.ASCENDING)));
+    QueryIndex.IndexPlan plan = planner.getPlan();
+    assertNotNull(plan);
+    assertEquals(documentsPerValue(100), plan.getEstimatedEntryCount());
+    PropertyIndexResult hr = pr(plan).getPropertyIndexResult();
+    assertNull(hr);
+}

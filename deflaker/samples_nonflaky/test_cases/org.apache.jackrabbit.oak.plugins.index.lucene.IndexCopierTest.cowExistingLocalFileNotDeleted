@@ -1,0 +1,36 @@
+/**
+ * Checks for the case where if the file exist local before writer starts
+ * then those files do not get deleted even if deleted by writer via
+ * indexing process from 'baseDir' as they might be in use by existing open
+ * indexes
+ */
+@Test
+public void cowExistingLocalFileNotDeleted() throws Exception {
+    Directory baseDir = new CloseSafeDir();
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    IndexCopier copier = new RAMIndexCopier(baseDir, sameThreadExecutor(), getWorkDir());
+    Directory remote = new CloseSafeDir();
+    byte[] t1 = writeFile(remote, "t1");
+    byte[] t2 = writeFile(remote, "t2");
+    Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME, IndexCopier.COWDirectoryTracker.NOOP);
+    assertEquals(newHashSet("t1", "t2"), newHashSet(local.listAll()));
+    byte[] t3 = writeFile(local, "t3");
+    // Now pull in the file t1 via CopyOnRead in baseDir
+    Directory localForRead = copier.wrapForRead("/foo", defn, remote, INDEX_DATA_CHILD_NAME);
+    readAndAssert(localForRead, "t1", t1);
+    // File which was copied from remote should not be deleted from baseDir
+    // upon delete from local
+    assertTrue(baseDir.fileExists("t1"));
+    local.deleteFile("t1");
+    assertFalse("t1 should be deleted from remote", remote.fileExists("t1"));
+    assertFalse("t1 should be deleted from 'local' view also", local.fileExists("t1"));
+    assertTrue("t1 should not be deleted from baseDir", baseDir.fileExists("t1"));
+    // File which was created only via local SHOULD get removed from
+    // baseDir only upon close
+    assertTrue(baseDir.fileExists("t3"));
+    local.deleteFile("t3");
+    assertFalse("t1 should be deleted from remote", local.fileExists("t3"));
+    assertTrue("t1 should NOT be deleted from remote", baseDir.fileExists("t3"));
+    local.close();
+    assertFalse("t3 should also be deleted from local", baseDir.fileExists("t3"));
+}

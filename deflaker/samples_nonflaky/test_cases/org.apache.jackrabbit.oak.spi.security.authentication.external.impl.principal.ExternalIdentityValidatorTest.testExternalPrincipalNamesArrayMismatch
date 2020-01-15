@@ -1,0 +1,14 @@
+@Test(expected = CommitFailedException.class)
+public void testExternalPrincipalNamesArrayMismatch() throws Exception {
+    NodeState ns = mock(NodeState.class);
+    PropertyState ps = when(mock(PropertyState.class).getName()).thenReturn(REP_EXTERNAL_PRINCIPAL_NAMES).getMock();
+    Type type = Type.STRINGS;
+    when(ps.getType()).thenReturn(type);
+    when(ps.isArray()).thenReturn(false);
+    try {
+        Validator v = new ExternalIdentityValidatorProvider(ImmutableSet.of(SystemPrincipal.INSTANCE), true).getRootValidator(ns, ns, null);
+        v.propertyAdded(ps);
+    } catch (CommitFailedException e) {
+        assertException(e, CONSTRAINT, 71);
+    }
+}

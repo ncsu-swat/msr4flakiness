@@ -1,0 +1,21 @@
+@Test
+public void testLoginCommitUpdatesSubject() throws Exception {
+    when(extIPMgr.getProvider(DEFAULT_IDP_NAME)).thenReturn(new TestIdentityProvider());
+    when(syncManager.getSyncHandler("syncHandler")).thenReturn(new DefaultSyncHandler(new DefaultSyncConfigImpl().setName("syncHandler")));
+    wb.register(ExternalIdentityProviderManager.class, extIPMgr, Collections.emptyMap());
+    wb.register(SyncManager.class, syncManager, Collections.emptyMap());
+    Map<String, Object> sharedState = Maps.newHashMap();
+    sharedState.put(SHARED_KEY_PRE_AUTH_LOGIN, new PreAuthenticatedLogin(ID_TEST_USER));
+    sharedState.put(SHARED_KEY_ATTRIBUTES, Collections.singletonMap("att", "value"));
+    CallbackHandler cbh = createCallbackHandler(wb, getContentRepository(), getSecurityProvider(), null);
+    Subject subject = new Subject();
+    loginModule.initialize(subject, cbh, sharedState, ImmutableMap.of(PARAM_IDP_NAME, DEFAULT_IDP_NAME, PARAM_SYNC_HANDLER_NAME, "syncHandler"));
+    assertTrue(loginModule.login());
+    assertTrue(loginModule.commit());
+    AuthInfo authInfo = subject.getPublicCredentials(AuthInfo.class).iterator().next();
+    assertEquals("value", authInfo.getAttribute("att"));
+    root.refresh();
+    assertNotNull(getUserManager(root).getAuthorizable(ID_TEST_USER));
+    assertTrue(loginModule.logout());
+    assertTrue(subject.getPublicCredentials().isEmpty());
+}

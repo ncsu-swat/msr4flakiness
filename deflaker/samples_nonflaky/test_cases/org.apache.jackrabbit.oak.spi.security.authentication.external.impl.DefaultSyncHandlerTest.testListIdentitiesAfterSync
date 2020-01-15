@@ -1,0 +1,20 @@
+@Test
+public void testListIdentitiesAfterSync() throws Exception {
+    sync(USER_ID, false);
+    // membership-nesting is 1 => expect only 'USER_ID' plus the declared group-membership
+    Set<String> expected = Sets.newHashSet(USER_ID);
+    for (ExternalIdentityRef extRef : idp.getUser(USER_ID).getDeclaredGroups()) {
+        expected.add(extRef.getId());
+    }
+    Iterator<SyncedIdentity> identities = syncHandler.listIdentities(userManager);
+    while (identities.hasNext()) {
+        SyncedIdentity si = identities.next();
+        if (expected.contains(si.getId())) {
+            expected.remove(si.getId());
+            assertNotNull(si.getExternalIdRef());
+        } else {
+            fail("Sync handler returned unexpected identity: " + si);
+        }
+    }
+    assertTrue(expected.isEmpty());
+}

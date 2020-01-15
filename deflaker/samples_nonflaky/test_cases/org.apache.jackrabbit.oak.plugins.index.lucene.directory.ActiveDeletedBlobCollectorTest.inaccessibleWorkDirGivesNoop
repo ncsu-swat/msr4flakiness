@@ -1,0 +1,14 @@
+@Test
+public void inaccessibleWorkDirGivesNoop() throws Exception {
+    assumeFalse(CIHelper.windows());
+    File rootDir = blobCollectionRoot.getRoot();
+    File unwritableExistingRootFolder = new File(rootDir, "existingRoot");
+    FileUtils.forceMkdir(unwritableExistingRootFolder);
+    File unwritableNonExistingRootFolder = new File(unwritableExistingRootFolder, "existingRoot");
+    Path unwritableExistingPath = FileSystems.getDefault().getPath(unwritableExistingRootFolder.getPath());
+    Files.setPosixFilePermissions(unwritableExistingPath, Sets.newSet(PosixFilePermission.OWNER_READ, PosixFilePermission.GROUP_READ, PosixFilePermission.OTHERS_READ));
+    adbc = ActiveDeletedBlobCollectorFactory.newInstance(unwritableExistingRootFolder, sameThreadExecutor());
+    assertEquals("Unwritable existing root folder must have NOOP active blob collector", ActiveDeletedBlobCollectorFactory.NOOP, adbc);
+    adbc = ActiveDeletedBlobCollectorFactory.newInstance(unwritableNonExistingRootFolder, sameThreadExecutor());
+    assertEquals("Unwritable non-existing root folder must have NOOP active blob collector", ActiveDeletedBlobCollectorFactory.NOOP, adbc);
+}

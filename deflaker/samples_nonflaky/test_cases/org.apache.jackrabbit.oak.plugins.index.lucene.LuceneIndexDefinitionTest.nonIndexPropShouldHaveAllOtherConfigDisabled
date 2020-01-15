@@ -1,0 +1,20 @@
+@Test
+public void nonIndexPropShouldHaveAllOtherConfigDisabled() throws Exception {
+    NodeBuilder rules = builder.child(INDEX_RULES);
+    rules.child("nt:folder");
+    TestUtil.child(rules, "nt:folder/properties/prop1").setProperty(PROP_NAME, "foo").setProperty(FulltextIndexConstants.PROP_INDEX, false).setProperty(FulltextIndexConstants.PROP_USE_IN_SUGGEST, true).setProperty(FulltextIndexConstants.PROP_USE_IN_SPELLCHECK, true).setProperty(FulltextIndexConstants.PROP_NULL_CHECK_ENABLED, true).setProperty(FulltextIndexConstants.PROP_NOT_NULL_CHECK_ENABLED, true).setProperty(FulltextIndexConstants.PROP_USE_IN_EXCERPT, true).setProperty(FulltextIndexConstants.PROP_NODE_SCOPE_INDEX, true).setProperty(FulltextIndexConstants.PROP_ORDERED, true).setProperty(FulltextIndexConstants.PROP_ANALYZED, true);
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    IndexingRule rule = defn.getApplicableIndexingRule(asState(newNode("nt:folder")));
+    assertNotNull(rule);
+    PropertyDefinition pd = rule.getConfig("foo");
+    // Assert that all other config is false if the index=false for any property
+    assertFalse(pd.index);
+    assertFalse(pd.nodeScopeIndex);
+    assertFalse(pd.useInSuggest);
+    assertFalse(pd.useInSpellcheck);
+    assertFalse(pd.nullCheckEnabled);
+    assertFalse(pd.notNullCheckEnabled);
+    assertFalse(pd.stored);
+    assertFalse(pd.ordered);
+    assertFalse(pd.analyzed);
+}

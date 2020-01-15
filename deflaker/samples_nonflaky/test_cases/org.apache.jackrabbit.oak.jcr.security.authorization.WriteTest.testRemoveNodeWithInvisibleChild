@@ -1,0 +1,18 @@
+@Test
+public void testRemoveNodeWithInvisibleChild() throws Exception {
+    Node invisible = superuser.getNode(childNPath).addNode(nodeName3);
+    superuser.save();
+    /* allow READ/WRITE privilege for testUser at 'path' */
+    allow(path, testUser.getPrincipal(), readWritePrivileges);
+    /* deny READ privilege at invisible node. (removal is still granted) */
+    deny(invisible.getPath(), testUser.getPrincipal(), readPrivileges);
+    assertTrue(testSession.nodeExists(childNPath));
+    assertTrue(testSession.hasPermission(childNPath, Session.ACTION_REMOVE));
+    // removing the child node must succeed as both remove-node and
+    // remove-child-nodes are granted to testsession.
+    // the policy node underneath childNPath and the invisible child node
+    // should silently be removed as the editing session has no knowledge
+    // about it's existence.
+    testSession.getNode(childNPath).remove();
+    testSession.save();
+}

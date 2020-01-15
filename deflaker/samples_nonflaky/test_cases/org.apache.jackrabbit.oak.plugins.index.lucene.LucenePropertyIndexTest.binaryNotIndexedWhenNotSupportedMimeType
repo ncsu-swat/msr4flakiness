@@ -1,0 +1,12 @@
+@Test
+public void binaryNotIndexedWhenNotSupportedMimeType() throws Exception {
+    Tree idx = createFulltextIndex(root.getTree("/"), "test");
+    TestUtil.useV2(idx);
+    Tree test = root.getTree("/").addChild("test");
+    String path = createFileNode(test, "text", "red brown fox was jumping", "text/plain").getPath();
+    root.commit();
+    assertQuery("select * from [nt:base] where CONTAINS(*, 'jumping')", asList("/test/text/jcr:content"));
+    root.getTree(path).setProperty(JcrConstants.JCR_MIMETYPE, "foo/bar");
+    root.commit();
+    assertQuery("select * from [nt:base] where CONTAINS(*, 'jumping')", Collections.<String>emptyList());
+}

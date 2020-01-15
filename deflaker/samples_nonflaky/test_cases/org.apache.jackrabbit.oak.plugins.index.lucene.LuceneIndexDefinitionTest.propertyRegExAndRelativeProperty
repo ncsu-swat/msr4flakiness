@@ -1,0 +1,11 @@
+@Test
+public void propertyRegExAndRelativeProperty() throws Exception {
+    NodeBuilder defnb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "lucene", of(TYPENAME_STRING), of("foo"), "async");
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.getNodeState(), "/foo");
+    assertTrue(defn.isOfOldFormat());
+    NodeBuilder updated = IndexDefinition.updateDefinition(defnb.getNodeState().builder());
+    LuceneIndexDefinition defn2 = new LuceneIndexDefinition(root, updated.getNodeState(), "/foo");
+    IndexingRule rule = defn2.getApplicableIndexingRule(asState(newNode("nt:base")));
+    assertNotNull(rule.getConfig("foo"));
+    assertNull("Property regex used should not allow relative properties", rule.getConfig("foo/bar"));
+}

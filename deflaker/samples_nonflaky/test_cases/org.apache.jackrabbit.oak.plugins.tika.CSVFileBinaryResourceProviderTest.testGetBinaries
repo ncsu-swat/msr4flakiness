@@ -1,0 +1,20 @@
+@Test
+public void testGetBinaries() throws Exception {
+    StringBuilder sb = new StringBuilder();
+    CSVPrinter p = new CSVPrinter(sb, CSVFileBinaryResourceProvider.FORMAT);
+    // BLOB_ID, LENGTH, JCR_MIMETYPE, JCR_ENCODING, JCR_PATH
+    p.printRecord("a", 123, "text/plain", null, "/a");
+    p.printRecord("a2", 123, "text/plain", null, "/a/c");
+    p.printRecord("b", null, "text/plain", null, "/b");
+    p.printRecord(null, null, "text/plain", null, "/c");
+    File dataFile = temporaryFolder.newFile();
+    Files.write(sb, dataFile, Charsets.UTF_8);
+    CSVFileBinaryResourceProvider provider = new CSVFileBinaryResourceProvider(dataFile, new MemoryBlobStore());
+    Map<String, BinaryResource> binaries = provider.getBinaries("/").uniqueIndex(BinarySourceMapper.BY_BLOBID);
+    assertEquals(3, binaries.size());
+    assertEquals("a", binaries.get("a").getBlobId());
+    assertEquals("/a", binaries.get("a").getPath());
+    binaries = provider.getBinaries("/a").uniqueIndex(BinarySourceMapper.BY_BLOBID);
+    assertEquals(1, binaries.size());
+    provider.close();
+}

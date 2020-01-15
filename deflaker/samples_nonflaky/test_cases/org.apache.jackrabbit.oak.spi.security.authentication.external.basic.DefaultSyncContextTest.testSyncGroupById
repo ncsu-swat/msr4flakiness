@@ -1,0 +1,13 @@
+@Test
+public void testSyncGroupById() throws Exception {
+    ExternalIdentity externalId = idp.listGroups().next();
+    // no initial sync -> sync-by-id doesn't succeed
+    SyncResult result = syncCtx.sync(externalId.getId());
+    assertEquals(SyncResult.Status.NO_SUCH_AUTHORIZABLE, result.getStatus());
+    // force sync
+    syncCtx.sync(externalId);
+    // try again
+    syncCtx.setForceGroupSync(true);
+    result = syncCtx.sync(externalId.getId());
+    assertEquals(SyncResult.Status.UPDATE, result.getStatus());
+}

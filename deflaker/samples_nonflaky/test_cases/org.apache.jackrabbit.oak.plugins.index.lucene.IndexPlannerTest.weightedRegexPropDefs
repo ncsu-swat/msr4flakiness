@@ -1,0 +1,37 @@
+@Test
+public void weightedRegexPropDefs() throws Exception {
+    String indexPath = "/test";
+    IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder(child(builder, indexPath));
+    idxBuilder.indexRule("nt:base").property("foo").propertyIndex().enclosingRule().property("bar", "bar.*", true).propertyIndex().weight(20);
+    NodeState defn = idxBuilder.build();
+    List<Document> docs = Lists.newArrayList();
+    Document doc;
+    for (int i = 0; i < 60; i++) {
+        doc = new Document();
+        doc.add(new StringField("bar1", "foo1" + i, Field.Store.NO));
+        docs.add(doc);
+    }
+    for (int i = 0; i < 40; i++) {
+        doc = new Document();
+        doc.add(new StringField("bar2", "foo2" + i, Field.Store.NO));
+        docs.add(doc);
+    }
+    Directory sampleDirectory = createSampleDirectory(1000, docs);
+    LuceneIndexDefinition idxDefn = new LuceneIndexDefinition(root, defn, indexPath);
+    LuceneIndexNode node = createIndexNode(idxDefn, sampleDirectory);
+    // Query on and "bar1"
+    FilterImpl filter = createFilter("nt:base");
+    filter.restrictProperty("bar1", Operator.EQUAL, PropertyValues.newString("foo1"));
+    FulltextIndexPlanner planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+    QueryIndex.IndexPlan plan = planner.getPlan();
+    // scale down 60 by 20 = 3
+    assertEquals(3, plan.getEstimatedEntryCount());
+    // Query on and "bar1" and "bar2"
+    filter = createFilter("nt:base");
+    filter.restrictProperty("bar1", Operator.EQUAL, PropertyValues.newString("foo1"));
+    filter.restrictProperty("bar2", Operator.EQUAL, PropertyValues.newString("foo2"));
+    planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+    plan = planner.getPlan();
+    // min(3, 2)
+    assertEquals(2, plan.getEstimatedEntryCount());
+}

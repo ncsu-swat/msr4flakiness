@@ -1,0 +1,25 @@
+@Test
+public void testMultipleUpdates() throws Exception {
+    LMSEstimator lmsEstimator = new LMSEstimator();
+    Filter filter = mock(Filter.class);
+    FullTextExpression fte = new FullTextTerm("foo", "bar", false, false, "");
+    when(filter.getFullTextConstraint()).thenReturn(fte);
+    lmsEstimator.update(filter, 0);
+    long actualCount = 10;
+    long estimate = lmsEstimator.estimate(filter);
+    assertEquals(estimate, lmsEstimator.estimate(filter));
+    long diff = actualCount - estimate;
+    // update causes weights adjustment
+    lmsEstimator.update(filter, actualCount);
+    long estimate2 = lmsEstimator.estimate(filter);
+    assertEquals(estimate2, lmsEstimator.estimate(filter));
+    long diff2 = actualCount - estimate2;
+    // new estimate is more accurate than previous one
+    assertTrue(diff2 < diff);
+    // update doesn't cause weight adjustments therefore estimates stays unchanged
+    lmsEstimator.update(filter, actualCount);
+    long estimate3 = lmsEstimator.estimate(filter);
+    assertEquals(estimate3, lmsEstimator.estimate(filter));
+    long diff3 = actualCount - estimate3;
+    assertTrue(diff3 < diff2);
+}

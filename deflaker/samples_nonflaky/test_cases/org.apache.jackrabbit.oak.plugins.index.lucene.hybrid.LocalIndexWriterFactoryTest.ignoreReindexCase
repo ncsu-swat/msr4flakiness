@@ -1,0 +1,11 @@
+@Test
+public void ignoreReindexCase() throws Exception {
+    createIndexDefinition("fooIndex", FulltextIndexConstants.IndexingMode.NRT);
+    builder.child("a").setProperty("foo", "bar");
+    NodeState after = builder.getNodeState();
+    syncHook.processCommit(EMPTY_NODE, after, newCommitInfo());
+    // This is reindex case so nothing would be indexed
+    // So now holder should be present in context
+    assertNotNull(getHolder());
+    assertNotNull(getCommitAttribute(LuceneDocumentHolder.NAME));
+}

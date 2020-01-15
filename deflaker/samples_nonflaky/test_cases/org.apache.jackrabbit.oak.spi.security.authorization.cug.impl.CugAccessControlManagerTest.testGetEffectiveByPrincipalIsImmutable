@@ -1,0 +1,13 @@
+@Test(expected = AccessControlException.class)
+public void testGetEffectiveByPrincipalIsImmutable() throws Exception {
+    Principal p = getTestGroupPrincipal();
+    createCug(SUPPORTED_PATH, p);
+    root.commit();
+    Principal na = new PrincipalImpl("testNA");
+    Set<Principal> pp = ImmutableSet.of(p, na);
+    AccessControlPolicy[] effective = cugAccessControlManager.getEffectivePolicies(pp);
+    assertEquals(1, effective.length);
+    assertTrue(effective[0] instanceof CugPolicy);
+    // modifying policy must fail
+    ((CugPolicy) effective[0]).addPrincipals(EveryonePrincipal.getInstance());
+}

@@ -1,0 +1,16 @@
+// ------ END - Cost via doc count per field plan tests
+@Test
+public void facetGetsPlanned() throws Exception {
+    IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+    defnb.indexRule("nt:base").property("foo").propertyIndex();
+    defnb.indexRule("nt:base").property("facet").getBuilderTree().setProperty(FACETS, true);
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.build(), "/foo");
+    LuceneIndexNode node = createIndexNode(defn);
+    FilterImpl filter = createFilter("nt:base");
+    filter.restrictProperty(REP_FACET, Operator.EQUAL, PropertyValues.newString(REP_FACET + "(facet)"));
+    // just so that the index can be picked..
+    filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+    FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+    QueryIndex.IndexPlan plan = planner.getPlan();
+    assertNotNull("Index supporting facet should participate", plan);
+}

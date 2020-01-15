@@ -1,0 +1,19 @@
+@Test
+public void testSyncAllUsersForeign() throws Exception {
+    // first sync external users + groups from 2 different IDPs into the repo
+    // but set membership-nesting to 0
+    syncConfig.user().setMembershipNestingDepth(0);
+    sync(idp, TestIdentityProvider.ID_TEST_USER, false);
+    sync(idp, "a", true);
+    sync(foreignIDP, TestIdentityProvider.ID_SECOND_USER, false);
+    sync(foreignIDP, "aa", true);
+    // verify effect of syncAllUsers : foreign user/group must be ignored by the sync.
+    String[] result = syncMBean.syncAllUsers(false);
+    Map<String, String> expectedResults = ImmutableMap.of(TestIdentityProvider.ID_TEST_USER, "upd", "a", "upd");
+    assertResultMessages(result, expectedResults);
+    ExternalIdentity[] expectedIds = new ExternalIdentity[] { idp.getUser(TestIdentityProvider.ID_TEST_USER), foreignIDP.getUser(TestIdentityProvider.ID_SECOND_USER), idp.getGroup("a"), foreignIDP.getGroup("aa") };
+    UserManager userManager = getUserManager();
+    for (ExternalIdentity externalIdentity : expectedIds) {
+        assertSync(externalIdentity, userManager);
+    }
+}

@@ -1,0 +1,12 @@
+@Test
+public void testVersionableWithUnsupportedType() throws Exception {
+    Tree versionable = root.getTree("/content");
+    Tree vh = checkNotNull(versionManager.getVersionHistory(versionable));
+    Tree frozen = vh.getChild("1.0").getChild(JCR_FROZENNODE).getChild("a").getChild("b").getChild("c");
+    Tree invalidFrozen = frozen.addChild(REP_CUG_POLICY);
+    invalidFrozen.setProperty(JCR_PRIMARYTYPE, NT_REP_CUG_POLICY);
+    CugPermissionProvider pp = createCugPermissionProvider(ImmutableSet.of(SUPPORTED_PATH, SUPPORTED_PATH2));
+    TreePermission tp = getTreePermission(root, PathUtils.concat(vh.getPath(), "1.0", JCR_FROZENNODE, "a/b/c"), pp);
+    TreePermission tpForUnsupportedType = pp.getTreePermission(invalidFrozen, TreeType.VERSION, tp);
+    assertEquals(TreePermission.NO_RECOURSE, tpForUnsupportedType);
+}

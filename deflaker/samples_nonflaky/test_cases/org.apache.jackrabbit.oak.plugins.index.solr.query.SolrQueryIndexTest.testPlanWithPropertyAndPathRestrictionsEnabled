@@ -1,0 +1,14 @@
+@Test
+public void testPlanWithPropertyAndPathRestrictionsEnabled() throws Exception {
+    NodeBuilder builder = nodeState.builder();
+    builder.child("oak:index").child("solr").setProperty("pathRestrictions", true).setProperty("propertyRestrictions", true);
+    nodeState = builder.getNodeState();
+    SelectorImpl selector = newSelector(nodeState, "a");
+    SolrQueryIndex solrQueryIndex = new SolrQueryIndex(null, null, null);
+    FilterImpl filter = new FilterImpl(selector, "select * from [nt:base] as a where isdescendantnode(a, '/test')", new QueryEngineSettings());
+    filter.restrictPath("/test", Filter.PathRestriction.ALL_CHILDREN);
+    filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+    List<QueryIndex.OrderEntry> sortOrder = new LinkedList<QueryIndex.OrderEntry>();
+    List<QueryIndex.IndexPlan> plans = solrQueryIndex.getPlans(filter, sortOrder, nodeState);
+    assertEquals(1, plans.size());
+}

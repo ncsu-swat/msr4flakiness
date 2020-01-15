@@ -1,0 +1,17 @@
+@Test
+public void propExcerpt() throws Exception {
+    Tree contentRoot = root.getTree("/").addChild("testRoot");
+    contentRoot.setProperty("foo", "is fox ifoxing");
+    root.commit();
+    String query = "SELECT [rep:excerpt(foo)] FROM [nt:base] WHERE CONTAINS(*, 'fox')";
+    Result result = executeQuery(query, SQL2, NO_BINDINGS);
+    Iterator<? extends ResultRow> resultIter = result.getRows().iterator();
+    assertTrue(resultIter.hasNext());
+    ResultRow firstRow = resultIter.next();
+    PropertyValue nodeExcerpt;
+    String excerpt;
+    nodeExcerpt = firstRow.getValue("rep:excerpt(foo)");
+    assertNotNull("rep:excerpt(foo) not evaluated", nodeExcerpt);
+    excerpt = nodeExcerpt.getValue(STRING);
+    assertTrue("rep:excerpt(foo) didn't evaluate correctly - got '" + excerpt + "'", "is <strong>fox</strong> ifoxing".equals(excerpt));
+}

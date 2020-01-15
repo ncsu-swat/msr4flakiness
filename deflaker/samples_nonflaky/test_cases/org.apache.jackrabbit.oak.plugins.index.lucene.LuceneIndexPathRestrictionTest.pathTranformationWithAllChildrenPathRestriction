@@ -1,0 +1,28 @@
+@Test
+public void pathTranformationWithAllChildrenPathRestriction() throws Exception {
+    IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder(rootBuilder.child(IndexConstants.INDEX_DEFINITIONS_NAME).child("fooIndex")).noAsync().evaluatePathRestrictions();
+    idxBuilder.indexRule("nt:base").property("foo").propertyIndex();
+    idxBuilder.build();
+    commit();
+    NodeBuilder testRootBuilder = rootBuilder.child("test");
+    testRootBuilder.child("a").child("j:c").setProperty("foo", "bar");
+    testRootBuilder.child("b").setProperty("foo", "bar");
+    testRootBuilder.child("c").child("d").child("j:c").setProperty("foo", "bar");
+    commit();
+    FilterImpl f;
+    // /jcr:root/test//*[j:c/foo = 'bar'] -> foo:bar :ancestors:/test -> transform 1 level up
+    f = createFilter(root, NT_BASE);
+    f.restrictProperty("j:c/foo", Operator.EQUAL, PropertyValues.newString("bar"));
+    f.restrictPath("/test", Filter.PathRestriction.ALL_CHILDREN);
+    validateResult(f, of("/test/a", "/test/c/d"));
+    // /jcr:root/test//*[*/foo = 'bar'] -> foo:bar :ancestors:/test -> transform 1 level up
+    f = createFilter(root, NT_BASE);
+    f.restrictProperty("*/foo", Operator.EQUAL, PropertyValues.newString("bar"));
+    f.restrictPath("/test", Filter.PathRestriction.ALL_CHILDREN);
+    validateResult(f, of("/test/a", "/test/c/d"));
+    // /jcr:root/test//*[d/*/foo = 'bar'] -> foo:bar :ancestors:/test -> transform 2 level up
+    f = createFilter(root, NT_BASE);
+    f.restrictProperty("d/*/foo", Operator.EQUAL, PropertyValues.newString("bar"));
+    f.restrictPath("/test", Filter.PathRestriction.ALL_CHILDREN);
+    validateResult(f, of("/test/c"));
+}

@@ -1,0 +1,35 @@
+@Test
+public void testFindEveryone() {
+    Principal everyone = principalMgr.getEveryone();
+    assertTrue(principalMgr.hasPrincipal(everyone.getName()));
+    boolean containedInResult = false;
+    // untyped search -> everyone must be part of the result set
+    PrincipalIterator it = principalMgr.findPrincipals(everyone.getName());
+    while (it.hasNext()) {
+        Principal p = it.nextPrincipal();
+        if (p.getName().equals(everyone.getName())) {
+            containedInResult = true;
+        }
+    }
+    assertTrue(containedInResult);
+    // search group only -> everyone must be part of the result set
+    containedInResult = false;
+    it = principalMgr.findPrincipals(everyone.getName(), PrincipalManager.SEARCH_TYPE_GROUP);
+    while (it.hasNext()) {
+        Principal p = it.nextPrincipal();
+        if (p.getName().equals(everyone.getName())) {
+            containedInResult = true;
+        }
+    }
+    assertTrue(containedInResult);
+    // search non-group only -> everyone should not be part of the result set
+    containedInResult = false;
+    it = principalMgr.findPrincipals(everyone.getName(), PrincipalManager.SEARCH_TYPE_NOT_GROUP);
+    while (it.hasNext()) {
+        Principal p = it.nextPrincipal();
+        if (p.getName().equals(everyone.getName())) {
+            containedInResult = true;
+        }
+    }
+    assertFalse(containedInResult);
+}

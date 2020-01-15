@@ -1,0 +1,10 @@
+@Test
+public void skipTokenization() throws Exception {
+    NodeBuilder rules = builder.child(INDEX_RULES);
+    rules.child("nt:folder");
+    TestUtil.child(rules, "nt:folder/properties/prop2").setProperty(PROP_NAME, ".*").setProperty(FulltextIndexConstants.PROP_IS_REGEX, true).setProperty(FulltextIndexConstants.PROP_ANALYZED, true);
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    IndexingRule rule = defn.getApplicableIndexingRule(asState(newNode("nt:folder")));
+    assertFalse(rule.getConfig("foo").skipTokenization("foo"));
+    assertTrue(rule.getConfig(JcrConstants.JCR_UUID).skipTokenization(JcrConstants.JCR_UUID));
+}

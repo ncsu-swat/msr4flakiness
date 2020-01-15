@@ -1,0 +1,16 @@
+@Test
+public void testSyncUsersPurge() throws Exception {
+    sync(new TestIdentityProvider.TestUser("thirdUser", idp.getName()), idp);
+    sync(new TestIdentityProvider.TestGroup("gr", idp.getName()), idp);
+    UserManager userManager = getUserManager();
+    Authorizable[] authorizables = new Authorizable[] { userManager.getAuthorizable("thirdUser"), userManager.getAuthorizable("gr") };
+    for (Authorizable a : authorizables) {
+        String[] ids = new String[] { a.getID() };
+        String[] result = syncMBean.syncUsers(ids, false);
+        assertResultMessages(result, a.getID(), "mis");
+        assertNotNull(userManager.getAuthorizable(a.getID()));
+        result = syncMBean.syncUsers(ids, true);
+        assertResultMessages(result, a.getID(), "del");
+        assertNull(getUserManager().getAuthorizable(a.getID()));
+    }
+}

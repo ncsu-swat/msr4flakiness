@@ -1,0 +1,28 @@
+@Test
+public void selectWriteStrategyBasedOnFlagAndMode() throws Exception {
+    boolean oldVal = BufferedOakDirectory.isEnableWritingSingleBlobIndexFile();
+    BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(false);
+    try (Directory multiBlobDir = createDir(builder, true)) {
+        IndexOutput multiBlobIndexOutput = multiBlobDir.createOutput("foo", IOContext.DEFAULT);
+        multiBlobIndexOutput.writeBytes(randomBytes(100), 0, 100);
+        multiBlobIndexOutput.flush();
+    }
+    PropertyState jcrData = builder.getChildNode(":data").getChildNode("foo").getProperty("jcr:data");
+    assertTrue("multiple blobs not written", jcrData.isArray());
+    BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(true);
+    try (Directory multiBlobDir = createDir(builder, true)) {
+        IndexOutput multiBlobIndexOutput = multiBlobDir.createOutput("foo", IOContext.DEFAULT);
+        multiBlobIndexOutput.writeBytes(randomBytes(100), 0, 100);
+        multiBlobIndexOutput.flush();
+    }
+    jcrData = builder.getChildNode(":data").getChildNode("foo").getProperty("jcr:data");
+    assertFalse("multiple blobs written", jcrData.isArray());
+    try (Directory multiBlobDir = createDir(builder, false)) {
+        IndexOutput multiBlobIndexOutput = multiBlobDir.createOutput("foo", IOContext.DEFAULT);
+        multiBlobIndexOutput.writeBytes(randomBytes(100), 0, 100);
+        multiBlobIndexOutput.flush();
+    }
+    jcrData = builder.getChildNode(":data").getChildNode("foo").getProperty("jcr:data");
+    assertTrue("multiple blobs not written despite disabled buffered directory", jcrData.isArray());
+    BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(oldVal);
+}

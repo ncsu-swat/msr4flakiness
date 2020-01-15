@@ -1,0 +1,9 @@
+@Test
+public void valuePattern() throws Exception {
+    defnb.indexRule("nt:base").property("foo").sync().valueIncludedPrefixes("bar/");
+    newCallback().propertyUpdated("/a", "foo", pd("foo"), null, createProperty("foo", "bar/a"));
+    newCallback().propertyUpdated("/b", "foo", pd("foo"), null, createProperty("foo", "baz/a"));
+    assertThat(query("foo", newString("bar/a")), containsInAnyOrder("/a"));
+    // As baz pattern is excluded it should not be indexed
+    assertThat(query("foo", newString("baz/a")), empty());
+}

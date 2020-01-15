@@ -1,0 +1,15 @@
+@Test
+public void testCugPolicyWithDifferentName() throws Exception {
+    node.setProperty(JcrConstants.JCR_MIXINTYPES, ImmutableList.of(MIX_REP_CUG_MIXIN), Type.NAMES);
+    Tree cug = TreeUtil.addChild(node, "anotherName", NT_REP_CUG_POLICY);
+    cug.setProperty(REP_PRINCIPAL_NAMES, ImmutableList.of(EveryonePrincipal.NAME), Type.STRINGS);
+    try {
+        root.commit();
+        fail();
+    } catch (CommitFailedException e) {
+        assertTrue(e.isAccessControlViolation());
+        assertEquals(23, e.getCode());
+    } finally {
+        root.refresh();
+    }
+}

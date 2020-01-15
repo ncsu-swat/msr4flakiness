@@ -1,0 +1,13 @@
+@Test
+public void propertyIndexCostActualOverriddenByEntryCount() throws Exception {
+    NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+    long entryCount = IndexDefinition.DEFAULT_ENTRY_COUNT - 100;
+    defn.setProperty(IndexConstants.ENTRY_COUNT_PROPERTY_NAME, entryCount);
+    long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 100;
+    LuceneIndexNode node = createIndexNode(new LuceneIndexDefinition(root, defn.getNodeState(), "/foo"), numofDocs);
+    FilterImpl filter = createFilter("nt:base");
+    filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+    FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+    QueryIndex.IndexPlan plan = planner.getPlan();
+    assertEquals(entryCount, plan.getEstimatedEntryCount());
+}

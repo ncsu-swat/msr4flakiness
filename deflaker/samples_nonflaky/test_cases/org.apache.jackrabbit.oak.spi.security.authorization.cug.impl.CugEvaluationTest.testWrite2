@@ -1,0 +1,19 @@
+@Test
+public void testWrite2() throws Exception {
+    ContentSession cs = createTestSession2();
+    Root r = cs.getLatestRoot();
+    try {
+        PermissionProvider pp = createPermissionProvider(cs);
+        assertTrue(pp.isGranted(root.getTree("/content/writeTest"), null, Permissions.ADD_NODE));
+        assertTrue(pp.isGranted(root.getTree("/content/a/b/c/writeTest"), null, Permissions.ADD_NODE));
+        List<String> paths = ImmutableList.of("/content", "/content/a/b/c");
+        for (String p : paths) {
+            Tree content = r.getTree(p);
+            TreeUtil.addChild(content, "writeTest", NT_OAK_UNSTRUCTURED);
+            r.commit();
+        }
+    } finally {
+        r.refresh();
+        cs.close();
+    }
+}

@@ -1,0 +1,16 @@
+@Test
+public void uniquePropertyCommit() throws Exception {
+    defnb.async("async", "nrt");
+    defnb.indexRule("nt:base").property("foo").propertyIndex().unique();
+    addIndex(indexPath, defnb);
+    root.commit();
+    createPath("/a").setProperty("foo", "bar");
+    root.commit();
+    createPath("/b").setProperty("foo", "bar");
+    try {
+        root.commit();
+        fail();
+    } catch (CommitFailedException e) {
+        assertEquals(CONSTRAINT, e.getType());
+    }
+}

@@ -1,0 +1,11 @@
+// OAK-5238
+@Test
+public void copyOnWrite() throws Exception {
+    LuceneIndexDefinition def = new LuceneIndexDefinition(ns.getRoot(), ns.getRoot(), "/foo");
+    NodeBuilder builder = ns.getRoot().builder();
+    Directory dir = new DefaultDirectoryFactory(copier, null).newInstance(def, builder.child("foo"), INDEX_DATA_CHILD_NAME, false);
+    addFiles(dir);
+    writeTree(builder);
+    dir.close();
+    ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+}

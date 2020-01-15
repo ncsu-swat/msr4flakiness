@@ -1,0 +1,16 @@
+@Test
+public void testGetEffectivePoliciesRemovedPrincipal() throws Exception {
+    setupPrincipalBasedAccessControl(validPrincipal, null, JCR_WORKSPACE_MANAGEMENT);
+    root.commit();
+    String id = getTestSystemUser().getID();
+    Root latestRoot = adminSession.getLatestRoot();
+    getUserManager(latestRoot).getAuthorizable(validPrincipal).remove();
+    latestRoot.commit();
+    try {
+        assertEquals(0, acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal)).length);
+    } finally {
+        root.refresh();
+        getUserManager(root).createSystemUser(id, INTERMEDIATE_PATH);
+        root.commit();
+    }
+}

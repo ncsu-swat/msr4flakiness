@@ -1,0 +1,13 @@
+@Test
+public void customTikaMimeTypes() throws Exception {
+    NodeBuilder defnb = newFTIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo", "lucene", of(TYPENAME_STRING));
+    IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
+    assertEquals("application/test", defn.getTikaMappedMimeType("application/test"));
+    NodeBuilder app = defnb.child(FulltextIndexConstants.TIKA).child(FulltextIndexConstants.TIKA_MIME_TYPES).child("application");
+    app.child("test").setProperty(FulltextIndexConstants.TIKA_MAPPED_TYPE, "text/plain");
+    app.child("test2").setProperty(FulltextIndexConstants.TIKA_MAPPED_TYPE, "text/plain");
+    defn = new IndexDefinition(root, defnb.getNodeState(), "/foo");
+    assertEquals("text/plain", defn.getTikaMappedMimeType("application/test"));
+    assertEquals("text/plain", defn.getTikaMappedMimeType("application/test2"));
+    assertEquals("application/test-unmapped", defn.getTikaMappedMimeType("application/test-unmapped"));
+}

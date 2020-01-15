@@ -1,0 +1,25 @@
+@Test
+public void testSyncDoesNotEnableUsers() throws Exception {
+    // configure to remove missing users, check that sync does not mess with disabled status
+    syncConfig.user().setDisableMissing(false);
+    // test sync with 'keepmissing' = false
+    syncCtx.setKeepMissing(false);
+    ExternalUser user = idp.listUsers().next();
+    assertNotNull(user);
+    SyncResult result = syncCtx.sync(user);
+    assertEquals(SyncResult.Status.ADD, result.getStatus());
+    Authorizable authorizable = userManager.getAuthorizable(user.getId());
+    assertTrue(authorizable instanceof User);
+    User u = (User) authorizable;
+    // disable user
+    u.disable("disabled locally");
+    root.commit();
+    // sync
+    syncCtx.setForceUserSync(true);
+    result = syncCtx.sync(user.getId());
+    assertEquals(SyncResult.Status.UPDATE, result.getStatus());
+    authorizable = userManager.getAuthorizable(user.getId());
+    assertNotNull(authorizable);
+    assertTrue(authorizable instanceof User);
+    assertTrue(((User) authorizable).isDisabled());
+}

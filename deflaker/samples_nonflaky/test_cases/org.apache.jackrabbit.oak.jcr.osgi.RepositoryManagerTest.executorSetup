@@ -1,0 +1,19 @@
+@Test
+public void executorSetup() throws Exception {
+    registerRequiredServices();
+    context.registerInjectActivateService(new RepositoryManager());
+    Executor executor = context.getService(Executor.class);
+    assertNotNull("Repository initialization should have registered an Executor", executor);
+    final AtomicBoolean invoked = new AtomicBoolean();
+    final CountDownLatch latch = new CountDownLatch(1);
+    executor.execute(new Runnable() {
+
+        @Override
+        public void run() {
+            invoked.set(true);
+            latch.countDown();
+        }
+    });
+    latch.await(5, TimeUnit.SECONDS);
+    assertTrue(invoked.get());
+}

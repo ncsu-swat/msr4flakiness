@@ -1,0 +1,20 @@
+@Test
+public void simpleRepExcerpt() throws Exception {
+    createFullTextIndex(root.getTree("/"), "lucene");
+    root.commit();
+    Tree content = root.getTree("/").addChild("content");
+    content.setProperty("foo", "Lorem ipsum, dolor sit", STRING);
+    content.setProperty("bar", "dolor sit, luctus leo, ipsum", STRING);
+    root.commit();
+    String query = "SELECT [jcr:path],[rep:excerpt] from [nt:base] WHERE CONTAINS(*, 'ipsum')";
+    Result result = executeQuery(query, SQL2, NO_BINDINGS);
+    Iterator<? extends ResultRow> resultRows = result.getRows().iterator();
+    assertTrue(resultRows.hasNext());
+    ResultRow firstRow = result.getRows().iterator().next();
+    PropertyValue excerptValue = firstRow.getValue("rep:excerpt");
+    assertTrue("There is an excerpt expected for rep:excerpt", excerptValue != null && !"".equals(excerptValue.getValue(STRING)));
+    excerptValue = firstRow.getValue("rep:excerpt(.)");
+    assertTrue("There is an excerpt expected for rep:excerpt(.)", excerptValue != null && !"".equals(excerptValue.getValue(STRING)));
+    excerptValue = firstRow.getValue("rep:excerpt(bar)");
+    assertTrue("There is an excerpt expected for rep:excerpt(bar) ", excerptValue != null && !"".equals(excerptValue.getValue(STRING)));
+}

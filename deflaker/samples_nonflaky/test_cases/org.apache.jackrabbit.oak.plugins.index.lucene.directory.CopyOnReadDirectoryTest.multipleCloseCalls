@@ -1,0 +1,13 @@
+@Test
+public void multipleCloseCalls() throws Exception {
+    AtomicInteger executionCount = new AtomicInteger();
+    Executor e = r -> {
+        executionCount.incrementAndGet();
+        r.run();
+    };
+    IndexCopier c = new IndexCopier(sameThreadExecutor(), temporaryFolder.newFolder(), true);
+    Directory dir = new CopyOnReadDirectory(c, new RAMDirectory(), new RAMDirectory(), false, "foo", e);
+    dir.close();
+    dir.close();
+    assertEquals(1, executionCount.get());
+}

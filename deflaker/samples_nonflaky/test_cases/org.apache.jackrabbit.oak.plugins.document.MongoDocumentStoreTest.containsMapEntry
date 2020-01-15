@@ -1,0 +1,34 @@
+@Test
+public void containsMapEntry() {
+    Revision r = new Revision(0, 0, 0);
+    Revision unknown = new Revision(0, 1, 0);
+    DocumentStore docStore = openDocumentStore();
+    UpdateOp op = new UpdateOp("/node", true);
+    op.setMapEntry("map", r, "value");
+    docStore.createOrUpdate(Collection.NODES, op);
+    op = new UpdateOp("/node", false);
+    op.set("prop", "value");
+    op.containsMapEntry("map", unknown, true);
+    // update if unknown-key exists -> must not succeed
+    assertNull(docStore.findAndUpdate(Collection.NODES, op));
+    op = new UpdateOp("/node", false);
+    op.set("prop", "value");
+    op.containsMapEntry("map", r, true);
+    // update if key exists -> must succeed
+    NodeDocument doc = docStore.findAndUpdate(Collection.NODES, op);
+    assertNotNull(doc);
+    doc = docStore.find(Collection.NODES, "/node");
+    assertNotNull(doc);
+    assertNotNull(doc.get("prop"));
+    assertEquals("value", doc.get("prop"));
+    op = new UpdateOp("/node", false);
+    op.set("prop", "other");
+    op.containsMapEntry("map", r, false);
+    // update if key does not exist -> must not succeed
+    assertNull(docStore.findAndUpdate(Collection.NODES, op));
+    // value must still be the same
+    doc = docStore.find(Collection.NODES, "/node");
+    assertNotNull(doc);
+    assertNotNull(doc.get("prop"));
+    assertEquals("value", doc.get("prop"));
+}

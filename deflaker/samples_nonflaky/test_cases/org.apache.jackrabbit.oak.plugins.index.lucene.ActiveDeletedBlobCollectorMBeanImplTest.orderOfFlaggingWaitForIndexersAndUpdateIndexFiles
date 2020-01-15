@@ -1,0 +1,21 @@
+@Test
+public void orderOfFlaggingWaitForIndexersAndUpdateIndexFiles() {
+    final AtomicBoolean isPaused = new AtomicBoolean();
+    final AtomicBoolean hadWaitedForIndex = new AtomicBoolean();
+    IndexPathService indexPathService = mock(IndexPathService.class);
+    when(indexPathService.getIndexPaths()).then(mockObj -> {
+        assertTrue("Must wait for indexers before going to update index files", hadWaitedForIndex.get());
+        return indexPaths;
+    });
+    AsyncIndexInfoService asyncIndexInfoService = MockRegistrar.getAsyncIndexInfoService(newArrayList(new IndexMBeanInfoSupplier("foo-async", () -> {
+        assertTrue("Must pause before waiting for indexers", isPaused.get());
+        hadWaitedForIndex.set(true);
+        return STATUS_DONE;
+    }, () -> 2L)));
+    ActiveDeletedBlobCollectorMBeanImpl bean = new ActiveDeletedBlobCollectorMBeanImpl(new PauseNotifyingActiveDeletedBlobCollector(() -> {
+        isPaused.set(true);
+        return null;
+    }), wb, nodeStore, indexPathService, asyncIndexInfoService, new MemoryBlobStore(), sameThreadExecutor());
+    bean.clock = clock;
+    bean.flagActiveDeletionUnsafeForCurrentState();
+}

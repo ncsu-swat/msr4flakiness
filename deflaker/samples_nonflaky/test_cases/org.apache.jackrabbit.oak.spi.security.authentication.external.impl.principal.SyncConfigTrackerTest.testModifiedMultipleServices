@@ -1,0 +1,25 @@
+@Test
+public void testModifiedMultipleServices() {
+    // modify props not changed
+    when(ref.getProperty(PARAM_USER_DYNAMIC_MEMBERSHIP)).thenReturn(true);
+    tracker.addingService(ref);
+    tracker.modifiedService(ref, service);
+    assertTrue(tracker.isEnabled());
+    // props changd to 'enabled'
+    ServiceReference ref2 = mock(ServiceReference.class);
+    when(ref2.getProperty(PARAM_USER_DYNAMIC_MEMBERSHIP)).thenReturn(false);
+    tracker.addingService(ref2);
+    when(ref2.getProperty(PARAM_USER_DYNAMIC_MEMBERSHIP)).thenReturn(true);
+    tracker.modifiedService(ref2, service);
+    assertTrue(tracker.isEnabled());
+    // modify (prop = disabled) without having added it before
+    ServiceReference ref3 = mock(ServiceReference.class);
+    when(ref3.getProperty(PARAM_USER_DYNAMIC_MEMBERSHIP)).thenReturn(false);
+    tracker.modifiedService(ref3, service);
+    assertTrue(tracker.isEnabled());
+    // modify (prop = enabled) without having added it before
+    ServiceReference ref4 = mock(ServiceReference.class);
+    when(ref4.getProperty(PARAM_USER_DYNAMIC_MEMBERSHIP)).thenReturn(true);
+    tracker.modifiedService(ref4, service);
+    assertTrue(tracker.isEnabled());
+}

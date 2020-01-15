@@ -1,0 +1,12 @@
+@Test
+public void testSyncExternalToForeignLocalGroup() throws Exception {
+    ExternalGroup external = idp.listGroups().next();
+    syncCtx.sync(external);
+    Group gr = userManager.getAuthorizable(external.getId(), Group.class);
+    setExternalID(gr, "differentIDP");
+    SyncResult result = syncCtx.sync(external);
+    assertEquals(SyncResult.Status.FOREIGN, result.getStatus());
+    SyncedIdentity si = result.getIdentity();
+    assertNotNull(si);
+    assertEquals(external.getExternalId(), si.getExternalIdRef());
+}

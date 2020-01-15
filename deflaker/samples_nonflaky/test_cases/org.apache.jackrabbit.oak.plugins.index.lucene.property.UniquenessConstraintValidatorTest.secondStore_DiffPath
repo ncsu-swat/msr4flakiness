@@ -1,0 +1,10 @@
+@Test(expected = CommitFailedException.class)
+public void secondStore_DiffPath() throws Exception {
+    defnb.indexRule("nt:base").property("foo").unique();
+    updateRootState("/b", "foo", "bar");
+    updateRootState("/a", "foo", "bar");
+    PropertyIndexUpdateCallback callback = newCallback();
+    propertyUpdated(callback, "/a", "foo", "bar");
+    callback.getUniquenessConstraintValidator().setSecondStore((propertyRelativePath, value) -> singletonList("/b"));
+    callback.done();
+}

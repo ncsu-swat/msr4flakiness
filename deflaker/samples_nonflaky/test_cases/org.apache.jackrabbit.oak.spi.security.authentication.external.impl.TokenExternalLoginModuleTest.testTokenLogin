@@ -1,0 +1,15 @@
+@Test
+public void testTokenLogin() throws Exception {
+    Credentials creds = createTestCredentials();
+    assertTrue(credentialsSupport.setAttributes(creds, ImmutableMap.<String, Object>of(".token", "")));
+    String expectedUserId = credentialsSupport.getUserId(creds);
+    ContentSession cs = login(creds);
+    try {
+        String token = credentialsSupport.getAttributes(creds).get(".token").toString();
+        cs.close();
+        cs = login(new TokenCredentials(token));
+        assertEquals(expectedUserId, cs.getAuthInfo().getUserID());
+    } finally {
+        cs.close();
+    }
+}

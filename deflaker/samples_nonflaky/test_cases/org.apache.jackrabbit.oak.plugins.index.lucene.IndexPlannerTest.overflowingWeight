@@ -1,0 +1,32 @@
+@Test
+public void overflowingWeight() throws Exception {
+    String indexPath = "/test";
+    IndexDefinitionBuilder idxBuilder = new IndexDefinitionBuilder(child(builder, indexPath));
+    idxBuilder.indexRule("nt:base").property("foo").propertyIndex().weight(Integer.MAX_VALUE / 2).enclosingRule().property("foo1").propertyIndex();
+    NodeState defn = idxBuilder.build();
+    List<Document> docs = Lists.newArrayList();
+    Document doc;
+    for (int i = 0; i < 60; i++) {
+        doc = new Document();
+        doc.add(new StringField("foo1", "bar1" + i, Field.Store.NO));
+        docs.add(doc);
+    }
+    Directory sampleDirectory = createSampleDirectory(1000, docs);
+    LuceneIndexDefinition idxDefn = new LuceneIndexDefinition(root, defn, indexPath);
+    LuceneIndexNode node = createIndexNode(idxDefn, sampleDirectory);
+    // Query on and "foo"
+    FilterImpl filter = createFilter("nt:base");
+    filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("foo1"));
+    FulltextIndexPlanner planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+    QueryIndex.IndexPlan plan = planner.getPlan();
+    // scale down 1000 by INT_MAX/2 and ceil ~= 1.
+    assertEquals(1, plan.getEstimatedEntryCount());
+    // Query on and "foo" and "foo1"
+    filter = createFilter("nt:base");
+    filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+    filter.restrictProperty("foo1", Operator.EQUAL, PropertyValues.newString("bar1"));
+    planner = new FulltextIndexPlanner(node, indexPath, filter, Collections.emptyList());
+    plan = planner.getPlan();
+    // min(1, 60)
+    assertEquals(1, plan.getEstimatedEntryCount());
+}

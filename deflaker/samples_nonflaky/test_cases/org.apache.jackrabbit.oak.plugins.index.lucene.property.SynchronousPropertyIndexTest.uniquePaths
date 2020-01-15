@@ -1,0 +1,26 @@
+@Test
+public void uniquePaths() throws Exception {
+    defnb.async("async", "nrt");
+    defnb.indexRule("nt:base").property("foo").propertyIndex().unique();
+    addIndex(indexPath, defnb);
+    root.commit();
+    createPath("/a").setProperty("foo", "bar");
+    root.commit();
+    assertQuery("select * from [nt:base] where [foo] = 'bar'", singletonList("/a"));
+    runAsyncIndex();
+    createPath("/b").setProperty("foo", "bar2");
+    root.commit();
+    runAsyncIndex();
+    createPath("/c").setProperty("foo", "bar3");
+    root.commit();
+    assertQuery("select * from [nt:base] where [foo] = 'bar'", singletonList("/a"));
+    assertQuery("select * from [nt:base] where [foo] = 'bar2'", singletonList("/b"));
+    assertQuery("select * from [nt:base] where [foo] = 'bar3'", singletonList("/c"));
+    createPath("/d").setProperty("foo", "bar");
+    try {
+        root.commit();
+        fail();
+    } catch (CommitFailedException e) {
+        assertEquals(CONSTRAINT, e.getType());
+    }
+}

@@ -1,0 +1,27 @@
+@Test
+public void testTreePermission() throws Exception {
+    Tree t = getTree(ROOT_PATH);
+    TreePermission tp = permissionProvider.getTreePermission(t, TreePermission.EMPTY);
+    assertFalse(tp.isGranted(Permissions.READ));
+    assertFalse(tp.canRead());
+    assertFalse(tp.canRead(t.getProperty(JCR_PRIMARYTYPE)));
+    tp = permissionProvider.getTreePermission(t.getChild(JCR_SYSTEM), tp);
+    assertFalse(tp.isGranted(Permissions.READ_NODE));
+    assertFalse(tp.canReadProperties());
+    assertFalse(tp.canReadAll());
+    // readable paths
+    t = root.getTree(readablePaths.next());
+    tp = permissionProvider.getTreePermission(t, tp);
+    assertTrue(tp.isGranted(Permissions.READ));
+    assertFalse(tp.isGranted(Permissions.READ_ACCESS_CONTROL));
+    assertTrue(tp.canRead());
+    assertTrue(tp.canRead(t.getProperty(JCR_PRIMARYTYPE)));
+    assertFalse(tp.canReadProperties());
+    t = t.getChildren().iterator().next();
+    tp = permissionProvider.getTreePermission(t, tp);
+    assertTrue(tp.isGranted(Permissions.READ_NODE));
+    assertTrue(tp.isGranted(Permissions.READ_PROPERTY, t.getProperty(JCR_PRIMARYTYPE)));
+    assertFalse(tp.isGranted(Permissions.READ_PROPERTY | Permissions.MODIFY_PROPERTY, t.getProperty(JCR_PRIMARYTYPE)));
+    assertTrue(tp.canRead());
+    assertFalse(tp.canReadAll());
+}

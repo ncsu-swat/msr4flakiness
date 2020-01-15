@@ -1,0 +1,48 @@
+@Test
+public void cowCopyDoneOnCloseExceptionHandling() throws Exception {
+    final CollectingExecutor executor = new CollectingExecutor();
+    Directory baseDir = new CloseSafeDir();
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    IndexCopier copier = new RAMIndexCopier(baseDir, executor, getWorkDir());
+    Directory remote = new CloseSafeDir();
+    final Directory local = copier.wrapForWrite(defn, remote, false, INDEX_DATA_CHILD_NAME, IndexCopier.COWDirectoryTracker.NOOP);
+    byte[] t1 = writeFile(local, "t1");
+    assertTrue(local.fileExists("t1"));
+    assertFalse("t1 should NOT be copied to remote", remote.fileExists("t1"));
+    // Execute all job
+    executor.executeAll();
+    assertTrue("t1 should now be copied to remote", remote.fileExists("t1"));
+    byte[] t2 = writeFile(local, "t2");
+    assertFalse("t2 should NOT be copied to remote", remote.fileExists("t2"));
+    ExecutorService executorService = Executors.newFixedThreadPool(2);
+    final CountDownLatch copyLatch = new CountDownLatch(1);
+    Future<?> copyTasks = executorService.submit(new Callable<Object>() {
+
+        @Override
+        public Object call() throws Exception {
+            copyLatch.await();
+            executor.executeAll();
+            executor.enableImmediateExecution();
+            return null;
+        }
+    });
+    final CountDownLatch closeLatch = new CountDownLatch(1);
+    Future<?> closeTasks = executorService.submit(new Callable<Object>() {
+
+        @Override
+        public Object call() throws Exception {
+            closeLatch.await();
+            local.close();
+            return null;
+        }
+    });
+    closeLatch.countDown();
+    assertFalse("t2 should NOT be copied to remote", remote.fileExists("t2"));
+    // Let copy to proceed
+    copyLatch.countDown();
+    copyTasks.get();
+    // Now wait for close to finish
+    closeTasks.get();
+    assertTrue("t2 should now be copied to remote", remote.fileExists("t2"));
+    executorService.shutdown();
+}

@@ -1,0 +1,12 @@
+@Test
+public void marginIsRespected() throws Exception {
+    writeFile(remote, "a");
+    FileUtils.write(new File(localFSDir, "beyond-margin"), "beyond-margin-data", (Charset) null);
+    DelayCopyingSimpleFSDirectory.updateLastModified(localFSDir, "beyond-margin");
+    // Delay 1 more second to avoid FS time granularity
+    CLOCK.waitUntil(CLOCK.getTime() + SAFE_MARGIN_FOR_DELETION + MARGIN_BUFFER_FOR_FS_GRANULARITY);
+    FileUtils.write(new File(localFSDir, "within-margin"), "within-margin-data", (Charset) null);
+    DelayCopyingSimpleFSDirectory.updateLastModified(localFSDir, "within-margin");
+    copier.getCoRDir().close();
+    assertEquals(Sets.newHashSet("within-margin", "a"), Sets.newHashSet(new SimpleFSDirectory(localFSDir).listAll()));
+}

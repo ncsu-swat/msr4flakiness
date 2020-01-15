@@ -1,0 +1,11 @@
+@Test
+public void testPurgeOrphanedUsers() throws Exception {
+    syncMBean.syncAllExternalUsers();
+    sync(new TestIdentityProvider.TestUser("thirdUser", idp.getName()), idp);
+    sync(new TestIdentityProvider.TestGroup("g", idp.getName()), idp);
+    String[] result = syncMBean.purgeOrphanedUsers();
+    assertResultMessages(result, ImmutableMap.of("thirdUser", "del", "g", "del"));
+    UserManager userManager = getUserManager();
+    assertNull(userManager.getAuthorizable("thirdUser"));
+    assertNull(userManager.getAuthorizable("g"));
+}

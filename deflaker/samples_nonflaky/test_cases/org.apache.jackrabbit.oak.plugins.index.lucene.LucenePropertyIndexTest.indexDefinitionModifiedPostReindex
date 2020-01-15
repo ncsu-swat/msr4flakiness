@@ -1,0 +1,22 @@
+@Test
+public void indexDefinitionModifiedPostReindex() throws Exception {
+    IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+    idxb.indexRule("nt:base").property("foo").propertyIndex();
+    Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+    idxb.build(idx);
+    Tree rootTree = root.getTree("/");
+    rootTree.addChild("a").setProperty("foo", "bar");
+    rootTree.addChild("b").setProperty("bar", "bar");
+    root.commit();
+    String query = "select * from [nt:base] where [foo] = 'bar'";
+    assertPlanAndQuery(query, "lucene:test1(/oak:index/test1)", asList("/a"));
+    Tree barProp = root.getTree("/oak:index/test1/indexRules/nt:base/properties").addChild("bar");
+    barProp.setProperty("name", "bar");
+    barProp.setProperty("propertyIndex", true);
+    root.commit();
+    query = "select * from [nt:base] where [bar] = 'bar'";
+    assertThat(explain(query), not(containsString("lucene:test1(/oak:index/test1)")));
+    root.getTree("/oak:index/test1").setProperty(REINDEX_PROPERTY_NAME, true);
+    root.commit();
+    assertPlanAndQuery(query, "lucene:test1(/oak:index/test1)", asList("/b"));
+}

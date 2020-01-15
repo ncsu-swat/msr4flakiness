@@ -1,0 +1,15 @@
+@Test(expected = CommitFailedException.class)
+public void testAddExternalPrincipalNamesAsSystemMissingExternalId() throws Exception {
+    Root systemRoot = getSystemRoot();
+    try {
+        Tree userTree = systemRoot.getTree(testUserPath);
+        userTree.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, ImmutableList.of("principalName"), Type.STRINGS);
+        systemRoot.commit();
+        fail("Creating rep:externalPrincipalNames without rep:externalId must be detected.");
+    } catch (CommitFailedException e) {
+        // success
+        assertException(e, CONSTRAINT, 72);
+    } finally {
+        systemRoot.refresh();
+    }
+}

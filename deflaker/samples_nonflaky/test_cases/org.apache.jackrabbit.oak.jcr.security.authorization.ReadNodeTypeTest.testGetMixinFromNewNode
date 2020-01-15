@@ -1,0 +1,13 @@
+/**
+ * @see <a href="https://issues.apache.org/jira/browse/OAK-2488">OAK-2488</a>
+ */
+public void testGetMixinFromNewNode() throws Exception {
+    superuser.getNode(path).addMixin(JcrConstants.MIX_REFERENCEABLE);
+    superuser.save();
+    deny(path, privilegesFromName(PrivilegeConstants.REP_READ_PROPERTIES));
+    testSession.getNode(path).remove();
+    Node newNode = testSession.getNode(testRoot).addNode(Text.getName(path));
+    assertFalse(newNode.hasProperty(JcrConstants.JCR_MIXINTYPES));
+    NodeType[] mixins = newNode.getMixinNodeTypes();
+    assertEquals(0, mixins.length);
+}

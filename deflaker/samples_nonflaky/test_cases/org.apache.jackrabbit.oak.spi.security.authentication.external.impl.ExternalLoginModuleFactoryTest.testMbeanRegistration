@@ -1,0 +1,16 @@
+@Test
+public void testMbeanRegistration() throws Exception {
+    context.registerService(SyncManager.class, mock(SyncManager.class));
+    context.registerService(ExternalIdentityProviderManager.class, mock(ExternalIdentityProviderManager.class));
+    ExternalLoginModuleFactory factory = new ExternalLoginModuleFactory();
+    context.registerInjectActivateService(factory);
+    assertNull(getMBeanRegistration(factory));
+    factory.bindSecurityProvider(getSecurityProvider());
+    factory.bindContentRepository(getContentRepository());
+    Registration mbeanregistration = getMBeanRegistration(factory);
+    assertNotNull(mbeanregistration);
+    factory.unbindContentRepository(getContentRepository());
+    assertNull(getMBeanRegistration(factory));
+    factory.unbindSecurityProvider(getSecurityProvider());
+    assertNull(getMBeanRegistration(factory));
+}

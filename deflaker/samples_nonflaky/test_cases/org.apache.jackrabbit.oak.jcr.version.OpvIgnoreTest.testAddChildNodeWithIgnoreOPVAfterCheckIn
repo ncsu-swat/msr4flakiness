@@ -1,0 +1,18 @@
+// OAK-3328
+public void testAddChildNodeWithIgnoreOPVAfterCheckIn() throws RepositoryException {
+    Node ignoreTestNode = testRootNode.addNode("ignoreTestNode", JcrConstants.NT_UNSTRUCTURED);
+    String nodeTypeName = "testOpvIgnore";
+    NodeDefinitionTemplate nodeDefinition = createNodeDefinitionWithIgnoreOPVNode(nodeTypeName);
+    ignoreTestNode.addMixin(JcrConstants.MIX_VERSIONABLE);
+    ignoreTestNode.addMixin(nodeTypeName);
+    superuser.save();
+    VersionManager vMgr = superuser.getWorkspace().getVersionManager();
+    if (!ignoreTestNode.isCheckedOut()) {
+        vMgr.checkout(ignoreTestNode.getPath());
+    }
+    vMgr.checkin(ignoreTestNode.getPath());
+    Node expected = ignoreTestNode.addNode(nodeDefinition.getName(), NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+    superuser.save();
+    Node childNode = ignoreTestNode.getNode(nodeDefinition.getName());
+    assertTrue(expected.isSame(childNode));
+}

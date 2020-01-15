@@ -1,0 +1,17 @@
+@Test
+public void sortQueriesWithJcrScore() throws Exception {
+    Tree idx = createIndex("test1", of("propa", "n0", "n1", "n2"));
+    root.commit();
+    Tree test = root.getTree("/").addChild("test");
+    for (int i = 3; i > 0; i--) {
+        Tree child = test.addChild("n" + i);
+        child.setProperty("propa", "foo");
+    }
+    root.commit();
+    // Descending matches with lucene native sort
+    String query = "measure select [jcr:path] from [nt:base] where [propa] = 'foo' order by [jcr:score] desc";
+    assertThat(measureWithLimit(query, SQL2, 1), containsString("scanCount: 1"));
+    // Ascending needs to be sorted by query engine
+    query = "measure select [jcr:path] from [nt:base] where [propa] = 'foo' order by [jcr:score]";
+    assertThat(measureWithLimit(query, SQL2, 1), containsString("scanCount: 3"));
+}

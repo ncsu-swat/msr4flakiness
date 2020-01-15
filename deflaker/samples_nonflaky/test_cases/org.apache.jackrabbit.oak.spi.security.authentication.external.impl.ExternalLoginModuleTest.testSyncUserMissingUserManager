@@ -1,0 +1,19 @@
+@Test(expected = LoginException.class)
+public void testSyncUserMissingUserManager() throws LoginException {
+    when(extIPMgr.getProvider(DEFAULT_IDP_NAME)).thenReturn(new TestIdentityProvider());
+    when(syncManager.getSyncHandler("syncHandler")).thenReturn(new DefaultSyncHandler(new DefaultSyncConfigImpl().setName("syncHandler")));
+    wb.register(ExternalIdentityProviderManager.class, extIPMgr, Collections.emptyMap());
+    wb.register(SyncManager.class, syncManager, Collections.emptyMap());
+    UserConfiguration uc = mock(UserConfiguration.class);
+    SecurityProvider sp = when(mock(SecurityProvider.class).getConfiguration(UserConfiguration.class)).thenReturn(uc).getMock();
+    CallbackHandler cbh = createCallbackHandler(wb, getContentRepository(), sp, null);
+    Map<String, Object> sharedState = Maps.newHashMap();
+    sharedState.put(SHARED_KEY_PRE_AUTH_LOGIN, new PreAuthenticatedLogin(ID_TEST_USER));
+    loginModule.initialize(new Subject(), cbh, sharedState, ImmutableMap.of(PARAM_IDP_NAME, DEFAULT_IDP_NAME, PARAM_SYNC_HANDLER_NAME, "syncHandler"));
+    try {
+        loginModule.login();
+    } catch (LoginException e) {
+        assertTrue(e.getCause() instanceof SyncException);
+        throw e;
+    }
+}

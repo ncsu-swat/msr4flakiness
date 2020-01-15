@@ -1,0 +1,16 @@
+@Test
+public void nullPropertyCheck2() throws Exception {
+    root = registerTestNodeType(builder).getNodeState();
+    NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+    NodeBuilder rules = defn.child(INDEX_RULES);
+    TestUtil.child(rules, "oak:TestNode/properties/prop2").setProperty(FulltextIndexConstants.PROP_NAME, "foo").setProperty(FulltextIndexConstants.PROP_NULL_CHECK_ENABLED, true).setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, true);
+    LuceneIndexDefinition idxDefn = new LuceneIndexDefinition(root, builder.getNodeState().getChildNode("test"), "/foo");
+    LuceneIndexNode node = createIndexNode(idxDefn);
+    FilterImpl filter = createFilter(NT_TEST);
+    filter.restrictProperty("foo", Operator.EQUAL, null);
+    FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+    QueryIndex.IndexPlan plan = planner.getPlan();
+    assertNotNull("For null checks plan should be returned with nullCheckEnabled", plan);
+    FulltextIndexPlanner.PlanResult pr = (FulltextIndexPlanner.PlanResult) plan.getAttribute(FulltextIndex.ATTR_PLAN_RESULT);
+    assertNotNull(pr.getPropDefn(filter.getPropertyRestriction("foo")));
+}

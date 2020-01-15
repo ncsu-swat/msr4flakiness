@@ -1,0 +1,35 @@
+@Test
+public void remoteOnlyFilesNotCleanedIfUpdatedRecently() throws Exception {
+    // Create remote_only files (and a normal one)
+    Directory cow = copier.getCoWDir();
+    writeFile(cow, "a");
+    for (String name : IndexCopier.REMOTE_ONLY) {
+        writeFile(cow, name);
+    }
+    cow.close();
+    // delete all existing files and create a new normal one
+    remote.deleteFile("a");
+    for (String name : IndexCopier.REMOTE_ONLY) {
+        remote.deleteFile(name);
+    }
+    writeFile(remote, "b");
+    remote.close();
+    // get a CoR at this state (only sees "b" in list of files)
+    Directory cor = copier.getCoRDir();
+    // re-create remote_only files
+    cow = copier.getCoWDir();
+    for (String name : IndexCopier.REMOTE_ONLY) {
+        writeFile(cow, name);
+    }
+    cow.close();
+    assertTrue(existsLocally("a"));
+    for (String name : IndexCopier.REMOTE_ONLY) {
+        assertTrue(existsLocally(name));
+    }
+    cor.close();
+    assertFalse(existsLocally("a"));
+    for (String name : IndexCopier.REMOTE_ONLY) {
+        assertTrue(existsLocally(name));
+    }
+    assertTrue(existsLocally("b"));
+}

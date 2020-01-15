@@ -1,0 +1,64 @@
+@Test
+public void customScoreQuery() throws Exception {
+    NodeBuilder nb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "lucene", of(TYPENAME_STRING));
+    TestUtil.useV2(nb);
+    nb.setProperty(FulltextIndexConstants.PROP_SCORER_PROVIDER, "testScorer");
+    NodeState before = builder.getNodeState();
+    builder.child("a").setProperty("jcr:createdBy", "bar bar");
+    builder.child("b").setProperty("jcr:createdBy", "foo bar");
+    NodeState after = builder.getNodeState();
+    NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+    tracker = new IndexTracker();
+    tracker.update(indexed);
+    SimpleScorerFactory factory = new SimpleScorerFactory();
+    ScorerProvider provider = new ScorerProvider() {
+
+        String scorerName = "testScorer";
+
+        @Override
+        public String getName() {
+            return scorerName;
+        }
+
+        @Override
+        public CustomScoreQuery createCustomScoreQuery(Query query) {
+            return new ModifiedCustomScoreQuery(query);
+        }
+
+        class ModifiedCustomScoreQuery extends CustomScoreQuery {
+
+            private Query query;
+
+            public ModifiedCustomScoreQuery(Query query) {
+                super(query);
+                this.query = query;
+            }
+
+            @Override
+            public CustomScoreProvider getCustomScoreProvider(AtomicReaderContext context) {
+                return new CustomScoreProvider(context) {
+
+                    public float customScore(int doc, float subQueryScore, float valSrcScore) {
+                        AtomicReader atomicReader = context.reader();
+                        try {
+                            Document document = atomicReader.document(doc);
+                            // boosting docs created by foo
+                            String fieldValue = document.get("full:jcr:createdBy");
+                            if (fieldValue != null && fieldValue.contains("foo")) {
+                                valSrcScore *= 2.0;
+                            }
+                        } catch (IOException e) {
+                            return subQueryScore * valSrcScore;
+                        }
+                        return subQueryScore * valSrcScore;
+                    }
+                };
+            }
+        }
+    };
+    factory.providers.put(provider.getName(), provider);
+    AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker, factory);
+    FilterImpl filter = createFilter(NT_BASE);
+    filter.setFullTextConstraint(new FullTextTerm(null, "bar", false, false, null));
+    assertFilter(filter, queryIndex, indexed, asList("/b", "/a"), true);
+}

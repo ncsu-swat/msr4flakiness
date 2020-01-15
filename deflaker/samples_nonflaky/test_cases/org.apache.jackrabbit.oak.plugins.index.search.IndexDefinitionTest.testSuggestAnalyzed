@@ -1,0 +1,23 @@
+// OAK-2477
+@Test
+public void testSuggestAnalyzed() throws Exception {
+    // default config
+    NodeBuilder indexRoot = builder;
+    IndexDefinition idxDefn = new IndexDefinition(root, indexRoot.getNodeState(), "/foo");
+    assertFalse("Default config", idxDefn.isSuggestAnalyzed());
+    // namespaced config shadows old method
+    indexRoot = builder.child("shadowConfigRoot");
+    indexRoot.setProperty(FulltextIndexConstants.SUGGEST_ANALYZED, true);
+    indexRoot.child(FulltextIndexConstants.SUGGESTION_CONFIG);
+    idxDefn = new IndexDefinition(root, indexRoot.getNodeState(), "/foo");
+    assertFalse("Namespaced config node should shadow global config", idxDefn.isSuggestAnalyzed());
+    // config for backward config
+    indexRoot = builder.child("backwardCompatibilityRoot");
+    indexRoot.setProperty(FulltextIndexConstants.SUGGEST_ANALYZED, true);
+    idxDefn = new IndexDefinition(root, indexRoot.getNodeState(), "/foo");
+    assertTrue("Backward compatibility config", idxDefn.isSuggestAnalyzed());
+    indexRoot = builder.child("indexRoot");
+    indexRoot.child(FulltextIndexConstants.SUGGESTION_CONFIG).setProperty(FulltextIndexConstants.SUGGEST_ANALYZED, true);
+    idxDefn = new IndexDefinition(root, indexRoot.getNodeState(), "/foo");
+    assertTrue("Set config", idxDefn.isSuggestAnalyzed());
+}

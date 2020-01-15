@@ -1,0 +1,16 @@
+@Test
+public void testGetPrincipalMockedItemBasedProvider() throws Exception {
+    ItemBasedPrincipal principal = (ItemBasedPrincipal) getTestSystemUser().getPrincipal();
+    String oakPath = getNamePathMapper().getOakPath(principal.getPath());
+    PrincipalProvider pp = when(mock(PrincipalProvider.class).getItemBasedPrincipal(oakPath)).thenReturn(principal).getMock();
+    PrincipalConfiguration pc = when(mock(PrincipalConfiguration.class).getPrincipalProvider(root, getNamePathMapper())).thenReturn(pp).getMock();
+    SecurityProvider sp = when(mock(SecurityProvider.class).getConfiguration(PrincipalConfiguration.class)).thenReturn(pc).getMock();
+    Filter filter = getFilterProvider().getFilter(sp, root, getNamePathMapper());
+    // call 'getValidPrincipal' twice
+    Principal p = filter.getValidPrincipal(oakPath);
+    assertEquals(principal, p);
+    assertEquals(principal.getPath(), ((ItemBasedPrincipal) p).getPath());
+    assertEquals(principal, filter.getValidPrincipal(oakPath));
+    verify(pp, times(2)).getItemBasedPrincipal(oakPath);
+    verify(pp, never()).getPrincipal(principal.getName());
+}

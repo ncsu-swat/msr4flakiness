@@ -1,0 +1,20 @@
+@Test
+public void sampleBias() {
+    int size = 200;
+    int k = 20;
+    int[] counts = new int[size];
+    Random r = new Random(42);
+    int testCount = 100 * size;
+    for (int i = 0; i < testCount; i++) {
+        List<Integer> input = range(0, size - 1);
+        TapeSampling<Integer> res = new TapeSampling<>(r, input.iterator(), input.size(), k);
+        Iterator<Integer> it = res.getSamples();
+        while (it.hasNext()) {
+            counts[it.next()]++;
+        }
+    }
+    int expectedCount = testCount / (size / k);
+    for (int i = 0; i < size; i++) {
+        assertTrue(counts[i] > expectedCount * 0.9 && counts[i] < expectedCount * 1.1);
+    }
+}

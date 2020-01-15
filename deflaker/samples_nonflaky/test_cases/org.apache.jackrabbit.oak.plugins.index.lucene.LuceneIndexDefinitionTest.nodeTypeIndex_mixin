@@ -1,0 +1,16 @@
+@Test
+public void nodeTypeIndex_mixin() throws Exception {
+    TestUtil.registerNodeType(builder, testNodeTypeDefn);
+    root = builder.getNodeState();
+    IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+    defnb.nodeTypeIndex();
+    defnb.indexRule("oak:TestMixA");
+    IndexDefinition defn = IndexDefinition.newBuilder(root, defnb.build(), "/foo").build();
+    assertFalse(defn.hasSyncPropertyDefinitions());
+    assertNotNull(getRule(defn, "oak:TestTypeB"));
+    assertTrue(getRule(defn, "oak:TestTypeB").indexesAllNodesOfMatchingType());
+    assertNotNull(getRule(defn, "oak:TestMixA"));
+    assertTrue(getRule(defn, "oak:TestMixA").indexesAllNodesOfMatchingType());
+    assertNull(getRule(defn, "oak:TestTypeA"));
+    assertNull(getRule(defn, "oak:TestSuperType"));
+}

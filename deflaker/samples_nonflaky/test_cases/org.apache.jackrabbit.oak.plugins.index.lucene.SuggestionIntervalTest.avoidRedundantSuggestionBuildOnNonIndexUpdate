@@ -1,0 +1,23 @@
+// OAK-4066
+@Test
+public void avoidRedundantSuggestionBuildOnNonIndexUpdate() throws Exception {
+    final String nodeType = "nt:unstructured";
+    // initial content which also updates suggestions with "indexedNode"
+    Tree indexDef = createSuggestIndex(nodeType);
+    root.getTree("/").addChild("indexedNode").setProperty(JcrConstants.JCR_PRIMARYTYPE, nodeType);
+    root.commit();
+    String suggUpdateTime1 = getSuggestionLastUpdated(indexDef);
+    assertNotNull("Suggestions update timestamp couldn't be read", suggUpdateTime1);
+    long currTime = clock.getTime();
+    long toTime = currTime + TimeUnit.MINUTES.toMillis(IndexDefinition.DEFAULT_SUGGESTER_UPDATE_FREQUENCY_MINUTES);
+    // wait for suggestions refresh time
+    clock.waitUntil(toTime);
+    // get one more tick
+    clock.getTime();
+    // push a change which should not make any change in the index but would kick in suggestion logic
+    // YET, suggestion logic shouldn't do any change
+    root.getTree("/").addChild("some-non-index-change").setProperty(JcrConstants.JCR_PRIMARYTYPE, "oak:Unstructured");
+    root.commit();
+    String suggUpdateTime2 = getSuggestionLastUpdated(indexDef);
+    assertEquals("Suggestions shouldn't rebuild un-necessarily. Update times are different", suggUpdateTime1, suggUpdateTime2);
+}

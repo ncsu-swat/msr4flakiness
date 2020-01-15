@@ -1,0 +1,16 @@
+@Test
+public void fullTextQuery_IndexAllProps_NodePathQuery() throws Exception {
+    NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("allProps"), "async");
+    // Index all props and then perform fulltext
+    defn = LuceneIndexDefinition.updateDefinition(defn.getNodeState().builder());
+    NodeBuilder foob = getNode(defn, "indexRules/nt:base/properties/allProps");
+    foob.setProperty(FulltextIndexConstants.PROP_NAME, FulltextIndexConstants.REGEX_ALL_PROPS);
+    foob.setProperty(FulltextIndexConstants.PROP_ANALYZED, true);
+    foob.setProperty(FulltextIndexConstants.PROP_NODE_SCOPE_INDEX, true);
+    foob.setProperty(FulltextIndexConstants.PROP_IS_REGEX, true);
+    // where contains('jcr:content/*', 'mountain OR valley') can be evaluated by index
+    // on nt:base by evaluating on '.' and then checking if node name is 'jcr:content'
+    FulltextIndexPlanner planner = createPlannerForFulltext(defn.getNodeState(), FullTextParser.parse("jcr:content/*", "mountain OR valley"));
+    // No plan for unindex property
+    assertNotNull(planner.getPlan());
+}

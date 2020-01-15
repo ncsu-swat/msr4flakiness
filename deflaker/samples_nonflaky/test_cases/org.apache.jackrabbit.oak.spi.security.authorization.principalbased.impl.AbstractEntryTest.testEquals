@@ -1,0 +1,21 @@
+@Test
+public void testEquals() throws Exception {
+    assertNotEquals(entryA, entryB);
+    assertNotEquals(entryB, entryA);
+    assertEquals(entryA, entryA);
+    // equivalent entry -> equals
+    assertEquals(entryA, new TestEntry(entryA));
+    assertEquals(entryB, new TestEntry(entryB));
+    // different restrictions -> different hash
+    AbstractEntry differentRestriction = new TestEntry(entryA.getOakPath(), entryA.getPrincipal(), entryA.getPrivilegeBits(), restriction);
+    assertNotEquals(entryA, differentRestriction);
+    // different path -> different hash
+    AbstractEntry differentPath = new TestEntry(PathUtils.ROOT_PATH, entryA.getPrincipal(), entryA.getPrivilegeBits(), entryA.getRestrictions().toArray(new Restriction[0]));
+    assertNotEquals(entryA, differentPath);
+    // different path -> different hash
+    AbstractEntry differentPrincipal = new TestEntry(entryB.getOakPath(), EveryonePrincipal.getInstance(), entryB.getPrivilegeBits(), entryB.getRestrictions().toArray(new Restriction[0]));
+    assertNotEquals(entryB, differentPath);
+    // different path -> different hash
+    AbstractEntry differentPrivs = new TestEntry(entryB.getOakPath(), entryB.getPrincipal(), bitsProvider.getBits(PrivilegeConstants.JCR_READ), entryB.getRestrictions().toArray(new Restriction[0]));
+    assertNotEquals(entryB, differentPrivs);
+}

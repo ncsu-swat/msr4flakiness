@@ -1,0 +1,36 @@
+@Test
+public void upperCaseRelative() throws Exception {
+    Tree luceneIndex = createIndex("upper", Collections.<String>emptySet());
+    Tree func = luceneIndex.addChild(FulltextIndexConstants.INDEX_RULES).addChild("nt:base").addChild(FulltextIndexConstants.PROP_NODE).addChild("upperName");
+    func.setProperty(FulltextIndexConstants.PROP_FUNCTION, "upper([data/name])");
+    Tree test = root.getTree("/").addChild("test");
+    test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+    List<String> paths = Lists.newArrayList();
+    for (int idx = 0; idx < 15; idx++) {
+        Tree a = test.addChild("n" + idx);
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        Tree b = a.addChild("data");
+        b.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        b.setProperty("name", "foo");
+        paths.add("/test/n" + idx);
+    }
+    root.commit();
+    String query = "select [jcr:path] from [nt:unstructured] where upper([data/name]) = 'FOO'";
+    assertThat(explain(query), containsString("lucene:upper"));
+    assertQuery(query, paths);
+    String queryXPath = "/jcr:root//element(*, nt:unstructured)[fn:upper-case(data/@name) = 'FOO']";
+    assertThat(explainXpath(queryXPath), containsString("lucene:upper"));
+    assertQuery(queryXPath, "xpath", paths);
+    for (int idx = 0; idx < 15; idx++) {
+        Tree a = test.getChild("n" + idx);
+        Tree b = a.getChild("data");
+        b.setProperty("name", "bar");
+    }
+    root.commit();
+    query = "select [jcr:path] from [nt:unstructured] where upper([data/name]) = 'BAR'";
+    assertThat(explain(query), containsString("lucene:upper"));
+    assertQuery(query, paths);
+    queryXPath = "/jcr:root//element(*, nt:unstructured)[fn:upper-case(data/@name) = 'BAR']";
+    assertThat(explainXpath(queryXPath), containsString("lucene:upper"));
+    assertQuery(queryXPath, "xpath", paths);
+}

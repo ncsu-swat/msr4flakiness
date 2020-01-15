@@ -1,0 +1,19 @@
+@Test
+public void indexSelectionFulltextVsNodeType() throws Exception {
+    Tree nodeTypeIdx = root.getTree("/oak:index/nodetype");
+    nodeTypeIdx.setProperty(PropertyStates.createProperty(DECLARING_NODE_TYPES, of("nt:file"), NAMES));
+    nodeTypeIdx.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+    // Set the cost to highest to ensure that if Lucene index opts in then
+    // it always wins. In actual case Lucene index should not participate
+    // in such queries
+    nodeTypeIdx.setProperty(IndexConstants.ENTRY_COUNT_PROPERTY_NAME, Long.MAX_VALUE);
+    Tree luceneIndex = createFullTextIndex(root.getTree("/"), "lucene");
+    Tree test = root.getTree("/").addChild("test");
+    setNodeType(test, "nt:file");
+    setNodeType(test.addChild("a"), "nt:file");
+    setNodeType(test.addChild("b"), "nt:file");
+    setNodeType(test.addChild("c"), "nt:base");
+    root.commit();
+    String propabQuery = "/jcr:root//element(*, nt:file)";
+    assertThat(explainXpath(propabQuery), containsString("nodeType"));
+}

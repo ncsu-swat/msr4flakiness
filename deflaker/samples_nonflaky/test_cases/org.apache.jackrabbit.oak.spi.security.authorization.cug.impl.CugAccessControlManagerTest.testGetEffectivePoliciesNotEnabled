@@ -1,0 +1,12 @@
+@Test
+public void testGetEffectivePoliciesNotEnabled() throws Exception {
+    cugAccessControlManager.setPolicy(SUPPORTED_PATH, createCug(SUPPORTED_PATH));
+    root.commit();
+    ConfigurationParameters config = ConfigurationParameters.of(AuthorizationConfiguration.NAME, ConfigurationParameters.of(CugConstants.PARAM_CUG_SUPPORTED_PATHS, SUPPORTED_PATHS, CugConstants.PARAM_CUG_ENABLED, false));
+    CugAccessControlManager acMgr = new CugAccessControlManager(root, NamePathMapper.DEFAULT, CugSecurityProvider.newTestSecurityProvider(config), ImmutableSet.copyOf(SUPPORTED_PATHS), getExclude(), getRootProvider());
+    AccessControlPolicy[] policies = acMgr.getEffectivePolicies(SUPPORTED_PATH);
+    assertEquals(0, policies.length);
+    AccessControlPolicy[] effectiveOnChild = acMgr.getEffectivePolicies(SUPPORTED_PATH + "/subtree");
+    assertEquals(0, policies.length);
+    assertEquals(policies.length, effectiveOnChild.length);
+}

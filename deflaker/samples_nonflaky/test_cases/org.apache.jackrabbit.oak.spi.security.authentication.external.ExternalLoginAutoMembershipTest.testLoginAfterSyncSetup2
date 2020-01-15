@@ -1,0 +1,20 @@
+@Test
+public void testLoginAfterSyncSetup2() throws Exception {
+    setup2.sync(USER_ID, false);
+    try (ContentSession cs = login(new SimpleCredentials(USER_ID, new char[0]))) {
+        // the login must set the existing auto-membership principals to the subject
+        Set<Principal> principals = cs.getAuthInfo().getPrincipals();
+        assertTrue(principals.contains(setup2.gr.getPrincipal()));
+        assertFalse(principals.contains(new PrincipalImpl(NON_EXISTING_NAME)));
+        assertFalse(principals.contains(setup1.gr.getPrincipal()));
+        assertFalse(principals.contains(setup3.gr.getPrincipal()));
+        // however, the existing auto-membership group must _not_ have changed
+        // and the test user must not be a stored member of this group.
+        root.refresh();
+        UserManager uMgr = getUserManager(root);
+        User user = uMgr.getAuthorizable(USER_ID, User.class);
+        Group gr = uMgr.getAuthorizable(setup2.gr.getID(), Group.class);
+        assertFalse(gr.isDeclaredMember(user));
+        assertFalse(gr.isMember(user));
+    }
+}

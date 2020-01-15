@@ -1,0 +1,15 @@
+@Test
+public void sameReaderIfNoChange() throws Exception {
+    LuceneIndexDefinition idxDefn = getSyncIndexDefinition("/foo");
+    NRTIndex idx1 = indexFactory.createIndex(idxDefn);
+    LuceneIndexWriter w1 = idx1.getWriter();
+    Document d1 = new Document();
+    d1.add(newPathField("/a/b"));
+    w1.updateDocument("/a/b", d1);
+    List<LuceneIndexReader> readers = idx1.getReaders();
+    List<LuceneIndexReader> readers2 = idx1.getReaders();
+    assertSame(readers, readers2);
+    w1.updateDocument("/a/b", d1);
+    List<LuceneIndexReader> readers3 = idx1.getReaders();
+    assertNotSame(readers2, readers3);
+}

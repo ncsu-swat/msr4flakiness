@@ -1,0 +1,16 @@
+@Test
+public void nodeType_mixins() throws Exception {
+    registerTestNodeTypes();
+    defnb.async("async", "nrt");
+    defnb.nodeTypeIndex();
+    defnb.indexRule("oak:TestMixA").sync();
+    addIndex(indexPath, defnb);
+    root.commit();
+    runAsyncIndex();
+    createPath("/a", "oak:Unstructured", singletonList("oak:TestMixA"));
+    createPath("/b", "oak:TestTypeB");
+    createPath("/c", "oak:TestTypeA");
+    root.commit();
+    assertThat(explain("select * from [oak:TestMixA]"), containsString(indexPath));
+    assertQuery("select * from [oak:TestMixA]", asList("/a", "/b"));
+}

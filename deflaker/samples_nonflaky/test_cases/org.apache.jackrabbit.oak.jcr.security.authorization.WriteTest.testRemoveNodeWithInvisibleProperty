@@ -1,0 +1,18 @@
+@Test
+public void testRemoveNodeWithInvisibleProperty() throws Exception {
+    Node subtree = superuser.getNode(childNPath).addNode(nodeName3);
+    subtree.setProperty("invisible", 14);
+    superuser.save();
+    String subtreePath = subtree.getPath();
+    /* allow READ/WRITE privilege for testUser at 'path' */
+    allow(path, testUser.getPrincipal(), readWritePrivileges);
+    /* deny READ privilege at invisible property. (removal is still granted) */
+    deny(subtreePath, testUser.getPrincipal(), privilegesFromName(PrivilegeConstants.REP_READ_PROPERTIES));
+    assertTrue(testSession.nodeExists(childNPath));
+    assertTrue(testSession.hasPermission(childNPath, Session.ACTION_REMOVE));
+    assertTrue(testSession.nodeExists(subtreePath));
+    assertFalse(testSession.propertyExists(subtreePath + "/invisible"));
+    // removing the child node succeed even if there exists an invisible property
+    testSession.getNode(childNPath).remove();
+    testSession.save();
+}

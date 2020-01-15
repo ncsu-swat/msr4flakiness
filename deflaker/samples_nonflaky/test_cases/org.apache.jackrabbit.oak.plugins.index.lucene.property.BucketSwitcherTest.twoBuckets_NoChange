@@ -1,0 +1,34 @@
+/**
+ * Test the case where lastIndexedTo time does not change i.e. async indexer
+ * has not moved on between different run. In such a case the property index
+ * state should remain same and both head and previous bucket should not be
+ * changed
+ */
+@Test
+public void twoBuckets_NoChange() throws Exception {
+    builder.child("2").child("foo");
+    builder.child("1");
+    builder.setProperty(PROP_HEAD_BUCKET, "2");
+    builder.setProperty(PROP_PREVIOUS_BUCKET, "1");
+    NodeState state0 = builder.getNodeState();
+    assertTrue(bs.switchBucket(100));
+    assertEquals("3", builder.getString(PROP_HEAD_BUCKET));
+    assertEquals("2", builder.getString(PROP_PREVIOUS_BUCKET));
+    assertThat(copyOf(bs.getOldBuckets()), containsInAnyOrder("1"));
+    NodeState state1 = builder.getNodeState();
+    assertFalse(bs.switchBucket(100));
+    // No changed in async indexer state so current bucket state would remain
+    // as previous
+    assertEquals("3", builder.getString(PROP_HEAD_BUCKET));
+    assertEquals("2", builder.getString(PROP_PREVIOUS_BUCKET));
+    assertThat(copyOf(bs.getOldBuckets()), containsInAnyOrder("1"));
+    NodeState state2 = builder.getNodeState();
+    assertFalse(bs.switchBucket(100));
+    // Async indexer time still not changed. So head bucket remains same
+    assertEquals("3", builder.getString(PROP_HEAD_BUCKET));
+    assertEquals("2", builder.getString(PROP_PREVIOUS_BUCKET));
+    assertThat(copyOf(bs.getOldBuckets()), containsInAnyOrder("1"));
+    NodeState state3 = builder.getNodeState();
+    assertTrue(EqualsDiff.equals(state1, state2));
+    assertTrue(EqualsDiff.equals(state2, state3));
+}

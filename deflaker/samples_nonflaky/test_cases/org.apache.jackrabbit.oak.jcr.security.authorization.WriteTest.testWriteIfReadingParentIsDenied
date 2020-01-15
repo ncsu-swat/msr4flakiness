@@ -1,0 +1,13 @@
+@Test
+public void testWriteIfReadingParentIsDenied() throws Exception {
+    /* deny READ/WRITE privilege for testUser at 'path' */
+    deny(path, testUser.getPrincipal(), readWritePrivileges);
+    /* allow READ/WRITE privilege for testUser at 'childNPath' */
+    allow(childNPath, testUser.getPrincipal(), readWritePrivileges);
+    assertFalse(testSession.nodeExists(path));
+    // reading the node and it's definition must succeed.
+    assertTrue(testSession.nodeExists(childNPath));
+    Node n = testSession.getNode(childNPath);
+    n.addNode("someChild");
+    n.save();
+}

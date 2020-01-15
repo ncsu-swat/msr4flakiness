@@ -1,0 +1,23 @@
+@Test
+public void updateOldIndexDefinition() throws Exception {
+    IndexDefinitionBuilder idxb = new IndexDefinitionBuilder().noAsync();
+    idxb.indexRule("nt:base").property("foo").propertyIndex();
+    Tree idx = root.getTree("/").getChild("oak:index").addChild("test1");
+    idxb.build(idx);
+    Tree rootTree = root.getTree("/");
+    rootTree.addChild("a").setProperty("foo", "bar");
+    rootTree.addChild("b").setProperty("bar", "bar");
+    root.commit();
+    // Cannot use Tree api as it cannot read hidden tree
+    String clonedDefnPath = "/oak:index/test1/" + INDEX_DEFINITION_NODE;
+    assertTrue(NodeStateUtils.getNode(nodeStore.getRoot(), clonedDefnPath).exists());
+    NodeBuilder builder = nodeStore.getRoot().builder();
+    child(builder, clonedDefnPath).remove();
+    nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    root.rebase();
+    rootTree = root.getTree("/");
+    rootTree.addChild("c").setProperty("foo", "bar");
+    root.commit();
+    // Definition state should be recreated
+    assertTrue(NodeStateUtils.getNode(nodeStore.getRoot(), clonedDefnPath).exists());
+}

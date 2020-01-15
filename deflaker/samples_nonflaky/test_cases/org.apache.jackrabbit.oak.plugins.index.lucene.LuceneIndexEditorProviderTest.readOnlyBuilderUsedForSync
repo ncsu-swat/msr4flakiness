@@ -1,0 +1,15 @@
+@Test
+public void readOnlyBuilderUsedForSync() throws Exception {
+    LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider(null, null, null, null, Mounts.defaultMountInfoProvider());
+    editorProvider.setIndexingQueue(mock(DocumentQueue.class));
+    IndexUpdateCallback callback = new TestCallback("/oak:index/fooIndex", newCommitInfo(), false, false);
+    NodeBuilder defnBuilder = createIndexDefinition("fooIndex").builder();
+    Editor editor = editorProvider.getIndexEditor(TYPE_LUCENE, defnBuilder, root, callback);
+    LuceneIndexEditor luceneEditor = (LuceneIndexEditor) editor;
+    NodeBuilder builderFromContext = (NodeBuilder) FieldUtils.readField(luceneEditor.getContext(), "definitionBuilder", true);
+    try {
+        builderFromContext.setProperty("foo", "bar");
+        fail("Should have been read only builder");
+    } catch (UnsupportedOperationException ignore) {
+    }
+}

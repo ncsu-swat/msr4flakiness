@@ -1,0 +1,16 @@
+@Test
+public void testRemoveIfReadingParentIsDenied() throws Exception {
+    /* deny READ privilege for testUser at 'path' */
+    deny(path, testUser.getPrincipal(), readPrivileges);
+    /* allow WRITE privileges at path */
+    allow(path, testUser.getPrincipal(), repWritePrivileges);
+    /* allow READ/WRITE privilege for testUser at 'childNPath' */
+    allow(childNPath, testUser.getPrincipal(), readWritePrivileges);
+    assertFalse(testSession.nodeExists(path));
+    // reading the node and it's definition must succeed.
+    assertTrue(testSession.nodeExists(childNPath));
+    assertTrue(testSession.hasPermission(childNPath, Session.ACTION_REMOVE));
+    Node n = testSession.getNode(childNPath);
+    n.remove();
+    superuser.save();
+}

@@ -1,0 +1,19 @@
+@Test
+public void reuseOldIndexDefinition() throws Exception {
+    IndexTracker tracker = mock(IndexTracker.class);
+    LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider(null, tracker, null, null, Mounts.defaultMountInfoProvider());
+    editorProvider.setIndexingQueue(mock(DocumentQueue.class));
+    // Set up a different IndexDefinition which needs to be returned
+    // from tracker with a marker property
+    NodeBuilder testBuilder = createIndexDefinition("fooIndex").builder();
+    testBuilder.setProperty("foo", "bar");
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, testBuilder.getNodeState(), "/foo");
+    when(tracker.getIndexDefinition("/oak:index/fooIndex")).thenReturn(defn);
+    IndexUpdateCallback callback = new TestCallback("/oak:index/fooIndex", newCommitInfo(), false, false);
+    NodeBuilder defnBuilder = createIndexDefinition("fooIndex").builder();
+    Editor editor = editorProvider.getIndexEditor(TYPE_LUCENE, defnBuilder, root, callback);
+    LuceneIndexEditor luceneEditor = (LuceneIndexEditor) editor;
+    LuceneIndexEditorContext context = luceneEditor.getContext();
+    // Definition should reflect the marker property
+    assertEquals("bar", context.getDefinition().getDefinitionNodeState().getString("foo"));
+}

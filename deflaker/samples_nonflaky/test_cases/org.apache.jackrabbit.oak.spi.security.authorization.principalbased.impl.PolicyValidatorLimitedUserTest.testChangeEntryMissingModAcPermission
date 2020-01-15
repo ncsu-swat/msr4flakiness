@@ -1,0 +1,15 @@
+@Test
+public void testChangeEntryMissingModAcPermission() throws Exception {
+    Tree entry = createPolicyEntryTree(root, TEST_OAK_PATH, JCR_READ);
+    root.commit();
+    testRoot.refresh();
+    entry = testRoot.getTree(entry.getPath());
+    entry.setProperty(REP_PRIVILEGES, ImmutableSet.of(JCR_READ, JCR_WRITE), Type.NAMES);
+    try {
+        testRoot.commit();
+        fail("CommitFailedException expected; type ACCESS; code 3");
+    } catch (CommitFailedException e) {
+        assertEquals(CommitFailedException.ACCESS, e.getType());
+        assertEquals(3, e.getCode());
+    }
+}

@@ -1,0 +1,33 @@
+// OAK-6504
+@Test
+public void syncActiveDeletionWithBlobTracker() throws Exception {
+    createIndex("test1", of("propa"));
+    root.getTree("/oak:index/counter").remove();
+    root.commit();
+    asyncIndexUpdate.run();
+    long initialNumChunks = blobStore.numChunks;
+    root.getTree("/").addChild("test").setProperty("propa", "foo");
+    root.commit();
+    asyncIndexUpdate.run();
+    long firstCommitNumChunks = blobStore.numChunks;
+    // hack to purge file
+    adbc.purgeBlobsDeleted(0, blobStore);
+    long time = clock.getTimeIncreasing();
+    long hackPurgeNumChunks = blobStore.numChunks;
+    assertEquals("Hack purge must not purge any blob (first commit)", firstCommitNumChunks, hackPurgeNumChunks);
+    root.getTree("/").addChild("test").setProperty("propa", "foo1");
+    root.commit();
+    asyncIndexUpdate.run();
+    long secondCommitNumChunks = blobStore.numChunks;
+    // hack to purge file
+    adbc.purgeBlobsDeleted(0, blobStore);
+    hackPurgeNumChunks = blobStore.numChunks;
+    assertEquals("Hack purge must not purge any blob (second commit)", secondCommitNumChunks, hackPurgeNumChunks);
+    adbc.purgeBlobsDeleted(time, blobStore);
+    adbc.getBlobDeletionCallback();
+    long firstGCNumChunks = blobStore.numChunks;
+    assertTrue("First commit must create some chunks", firstCommitNumChunks > initialNumChunks);
+    assertTrue("First commit must create some chunks", secondCommitNumChunks > firstCommitNumChunks);
+    assertTrue("First GC should delete some chunks", firstGCNumChunks < secondCommitNumChunks);
+    assertTrackedDeleted(blobStore.getAllChunkIds(-1), blobStore);
+}

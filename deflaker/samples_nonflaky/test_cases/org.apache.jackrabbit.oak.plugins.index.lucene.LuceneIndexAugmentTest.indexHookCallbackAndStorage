@@ -1,0 +1,41 @@
+// OAK-3576
+@Test
+public void indexHookCallbackAndStorage() throws Exception {
+    final String propName = "subChild/foo";
+    // setup repo and index
+    NodeTypeRegistry.register(root, IOUtils.toInputStream(TestUtil.TEST_NODE_TYPE), "test nodeType");
+    Tree props = createIndex(TestUtil.NT_TEST);
+    TestUtil.enableForFullText(props, propName);
+    root.commit();
+    // setup index augmentor
+    factory.indexFieldProvider = new IndexFieldProvider() {
+
+        @NotNull
+        @Override
+        public Iterable<Field> getAugmentedFields(String path, NodeState document, NodeState indexDefinition) {
+            assertEquals("/test/item", path);
+            assertEquals(TestUtil.NT_TEST, document.getName(JcrConstants.JCR_PRIMARYTYPE));
+            assertEquals(IndexConstants.INDEX_DEFINITIONS_NODE_TYPE, indexDefinition.getName(JcrConstants.JCR_PRIMARYTYPE));
+            return Lists.<Field>newArrayList(new StringField("barbar", "1", Field.Store.NO));
+        }
+
+        @NotNull
+        @Override
+        public Set<String> getSupportedTypes() {
+            return Collections.singleton(TestUtil.NT_TEST);
+        }
+    };
+    // add content
+    Tree test = root.getTree("/").addChild("test");
+    Tree node = createNodeWithType(test, "item", TestUtil.NT_TEST).addChild("subChild");
+    node.setProperty("foo", "bar");
+    root.commit();
+    // Check document that made to the index
+    IndexSearcher searcher = getSearcher();
+    TopDocs docs = searcher.search(new TermQuery(new Term("barbar", "1")), 10);
+    ScoreDoc[] scoreDocs = docs.scoreDocs;
+    assertEquals("Number of results should be 1", 1, scoreDocs.length);
+    Document doc = searcher.doc(scoreDocs[0].doc);
+    String path = doc.get(":path");
+    assertEquals("/test/item", path);
+}

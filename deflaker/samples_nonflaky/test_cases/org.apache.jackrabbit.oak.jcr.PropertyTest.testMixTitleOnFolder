@@ -1,0 +1,19 @@
+public void testMixTitleOnFolder() throws Exception {
+    Node n = testRootNode.addNode("folder", JcrConstants.NT_FOLDER);
+    n.addMixin("mix:title");
+    superuser.save();
+    // create jcr:title property with type STRING (converted) => declaring NT is mix:title (and
+    Property title = n.setProperty("jcr:title", 12345);
+    assertEquals(PropertyType.STRING, title.getType());
+    PropertyDefinition def = title.getDefinition();
+    assertEquals("mix:title", def.getDeclaringNodeType().getName());
+    assertEquals(PropertyType.STRING, def.getRequiredType());
+    // set value to BINARY -> changes value but not definition (binary gets converted)
+    title.setValue(superuser.getValueFactory().createValue("abc", PropertyType.BINARY));
+    assertEquals(PropertyType.STRING, title.getType());
+    assertEquals(PropertyType.STRING, title.getValue().getType());
+    def = title.getDefinition();
+    assertEquals("mix:title", def.getDeclaringNodeType().getName());
+    assertEquals(PropertyType.STRING, def.getRequiredType());
+    superuser.save();
+}

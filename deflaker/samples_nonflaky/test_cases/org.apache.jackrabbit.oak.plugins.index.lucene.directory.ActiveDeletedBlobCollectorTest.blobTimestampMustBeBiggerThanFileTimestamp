@@ -1,0 +1,17 @@
+@Test
+public void blobTimestampMustBeBiggerThanFileTimestamp() throws Exception {
+    BlobDeletionCallback bdc1 = adbc.getBlobDeletionCallback();
+    bdc1.deleted("blobId1", Collections.singleton("/a"));
+    bdc1.commitProgress(COMMIT_SUCCEDED);
+    BlobDeletionCallback bdc2 = adbc.getBlobDeletionCallback();
+    bdc2.deleted("blobId2", Collections.singleton("/b"));
+    BlobDeletionCallback bdc3 = adbc.getBlobDeletionCallback();
+    bdc3.deleted("blobId3", Collections.singleton("/c"));
+    bdc3.commitProgress(COMMIT_SUCCEDED);
+    long time = clock.getTimeIncreasing();
+    clock.waitUntil(clock.getTime() + TimeUnit.MINUTES.toMillis(1));
+    bdc2.commitProgress(COMMIT_SUCCEDED);
+    adbc.purgeBlobsDeleted(time, blobStore);
+    // blobId2 is committed later
+    verifyBlobsDeleted("blobId1", "blobId3");
+}

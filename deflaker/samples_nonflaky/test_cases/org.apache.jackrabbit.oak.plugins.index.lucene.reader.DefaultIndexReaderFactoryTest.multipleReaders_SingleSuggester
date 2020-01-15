@@ -1,0 +1,21 @@
+@Test
+public void multipleReaders_SingleSuggester() throws Exception {
+    LuceneIndexWriterFactory factory = newDirectoryFactory();
+    enabledSuggestorForSomeProp();
+    defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
+    LuceneIndexWriter writer = factory.newInstance(defn, builder, true);
+    // Suggester field is only present for document in default mount
+    Document doc = newDoc("/content/en");
+    doc.add(new StringField(FieldNames.SUGGEST, "test", null));
+    writer.updateDocument("/content/en", doc);
+    writer.updateDocument("/libs/config", newDoc("/libs/config"));
+    writer.close(0);
+    LuceneIndexReaderFactory readerFactory = new DefaultIndexReaderFactory(mip, null);
+    List<LuceneIndexReader> readers = readerFactory.createReaders(defn, builder.getNodeState(), "/foo");
+    // Suggester should be present for all though it may be empty
+    for (LuceneIndexReader reader : readers) {
+        assertNotNull(reader.getReader());
+        assertNotNull(reader.getSuggestDirectory());
+        assertNotNull(reader.getLookup());
+    }
+}

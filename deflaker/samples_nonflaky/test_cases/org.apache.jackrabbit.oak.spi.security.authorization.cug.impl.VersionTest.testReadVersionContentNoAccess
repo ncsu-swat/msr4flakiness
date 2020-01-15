@@ -1,0 +1,15 @@
+@Test
+public void testReadVersionContentNoAccess() {
+    IdentifierManager idMgr = new IdentifierManager(testRoot);
+    for (String path : noReadAccess) {
+        String vhUUID = checkNotNull(TreeUtil.getString(root.getTree(path), JCR_VERSIONHISTORY));
+        String vhPath = PathUtils.concat(VERSION_STORE_PATH, versionManager.getVersionHistoryPath(vhUUID));
+        Tree vHistory = testRoot.getTree(vhPath);
+        assertFalse(vHistory.exists());
+        assertFalse(vHistory.getParent().exists());
+        assertFalse(vHistory.getChild(JCR_ROOTVERSION).exists());
+        assertFalse(testRoot.getTree(vhPath + '/' + JCR_ROOTVERSION).exists());
+        String vh = idMgr.resolveUUID(vhUUID);
+        assertNull(path, vh);
+    }
+}

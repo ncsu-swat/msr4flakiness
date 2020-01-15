@@ -1,0 +1,15 @@
+// ~---------------------------------< Node include recursive >
+@Test
+public void multiAggregateMapping() throws Exception {
+    Aggregate ag = new Aggregate("nt:base", of(ni("*")));
+    Aggregate agFile = new Aggregate("nt:file", of(ni("*"), ni("*/*")));
+    mapper.add("nt:file", agFile);
+    NodeBuilder nb = newNode("nt:base");
+    nb.child("a").child("c");
+    nb.child("b").setProperty(JCR_PRIMARYTYPE, "nt:file");
+    nb.child("b").child("b1").child("b2");
+    nb.child("c");
+    ag.collectAggregates(nb.getNodeState(), col);
+    assertEquals(5, col.getNodePaths().size());
+    assertThat(col.getNodePaths(), hasItems("a", "b", "c", "b/b1", "b/b1/b2"));
+}

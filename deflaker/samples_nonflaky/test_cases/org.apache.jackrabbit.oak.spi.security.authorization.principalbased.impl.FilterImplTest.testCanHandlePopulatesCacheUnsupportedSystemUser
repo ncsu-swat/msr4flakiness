@@ -1,0 +1,14 @@
+@Test
+public void testCanHandlePopulatesCacheUnsupportedSystemUser() throws Exception {
+    Principal unsupported = (SystemUserPrincipal) () -> "unsupported";
+    PrincipalProvider pp = when(mock(PrincipalProvider.class).getPrincipal(unsupported.getName())).thenReturn(unsupported).getMock();
+    PrincipalConfiguration pc = when(mock(PrincipalConfiguration.class).getPrincipalProvider(root, getNamePathMapper())).thenReturn(pp).getMock();
+    SecurityProvider sp = when(mock(SecurityProvider.class).getConfiguration(PrincipalConfiguration.class)).thenReturn(pc).getMock();
+    Filter filter = getFilterProvider().getFilter(sp, root, getNamePathMapper());
+    // call 'canHandle' twice
+    Set<Principal> set = singleton(unsupported);
+    assertFalse(filter.canHandle(set));
+    assertFalse(filter.canHandle(set));
+    // principalprovider must only be hit once
+    verify(pp, times(1)).getPrincipal(unsupported.getName());
+}

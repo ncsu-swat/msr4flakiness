@@ -1,0 +1,17 @@
+@Test
+public void syncIndex_uniqueAndRelative() throws Exception {
+    IndexDefinitionBuilder defnb = new IndexDefinitionBuilder();
+    defnb.indexRule("nt:base").property("foo").propertyIndex().unique();
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.build(), "/foo");
+    LuceneIndexNode node = createIndexNode(defn);
+    FilterImpl filter = createFilter("nt:base");
+    filter.restrictProperty("jcr:content/foo", Operator.EQUAL, PropertyValues.newString("bar"));
+    FulltextIndexPlanner planner = new FulltextIndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+    QueryIndex.IndexPlan plan = planner.getPlan();
+    assertNotNull(plan);
+    assertEquals(1, plan.getEstimatedEntryCount());
+    PropertyIndexResult hr = pr(plan).getPropertyIndexResult();
+    assertNotNull(hr);
+    assertEquals("foo", hr.propertyName);
+    assertEquals("jcr:content/foo", hr.pr.propertyName);
+}

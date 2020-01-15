@@ -1,0 +1,14 @@
+@Test
+public void copyUnordered() throws Exception {
+    builder.setProperty("foo", "x");
+    builder.child("a").setProperty("foo", "y");
+    builder.child("b").setProperty("foo", "z");
+    builder.child("a").child("c").setProperty("foo", "acx");
+    Tree tree = TreeFactory.createTree(EMPTY_NODE.builder());
+    NodeStateCopyUtils.copyToTree(builder.getNodeState(), tree);
+    assertEquals("x", tree.getProperty("foo").getValue(Type.STRING));
+    assertEquals(2, tree.getChildrenCount(100));
+    assertEquals("y", tree.getChild("a").getProperty("foo").getValue(Type.STRING));
+    assertEquals("z", tree.getChild("b").getProperty("foo").getValue(Type.STRING));
+    assertEquals("acx", tree.getChild("a").getChild("c").getProperty("foo").getValue(Type.STRING));
+}

@@ -1,0 +1,12 @@
+@Test
+public void testGetEffectivePrincipalDistributed() throws Exception {
+    // [/content/a : testgroup, /content/aa/bb : testgroup, /content/a/b/c : everyone, /content2: everyone]
+    setupCugsAndAcls();
+    AccessControlPolicy[] effective = cugAccessControlManager.getEffectivePolicies(ImmutableSet.of(getTestGroupPrincipal(), EveryonePrincipal.getInstance()));
+    assertEquals(4, effective.length);
+    AccessControlPolicy[] everyoneEffective = cugAccessControlManager.getEffectivePolicies(ImmutableSet.of(EveryonePrincipal.getInstance()));
+    assertEquals(2, everyoneEffective.length);
+    AccessControlPolicy[] testgroupEffective = cugAccessControlManager.getEffectivePolicies(ImmutableSet.of(getTestGroupPrincipal()));
+    assertEquals(2, testgroupEffective.length);
+    assertTrue(Sets.intersection(ImmutableSet.copyOf(everyoneEffective), ImmutableSet.copyOf(testgroupEffective)).isEmpty());
+}

@@ -1,0 +1,56 @@
+/**
+ * Test the interaction between COR and COW using same underlying directory
+ */
+@Test
+public void cowConcurrentAccess() throws Exception {
+    CollectingExecutor executor = new CollectingExecutor();
+    ExecutorService executorService = Executors.newFixedThreadPool(2);
+    executor.setForwardingExecutor(executorService);
+    Directory baseDir = new CloseSafeDir();
+    LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), indexPath);
+    IndexCopier copier = new RAMIndexCopier(baseDir, executor, getWorkDir(), true);
+    Directory remote = new CloseSafeDir();
+    byte[] f1 = writeFile(remote, "f1");
+    byte[] f1a = writeFile(remote, "f1a");
+    Directory cor1 = copier.wrapForRead(indexPath, defn, remote, INDEX_DATA_CHILD_NAME);
+    readAndAssert(cor1, "f1", f1);
+    readAndAssert(cor1, "f1a", f1a);
+    // Ensure that deletion task submitted to executor get processed immediately
+    executor.enableImmediateExecution();
+    cor1.close();
+    executor.enableDelayedExecution();
+    final CountDownLatch pauseCopyLatch = new CountDownLatch(1);
+    Directory remote2 = new FilterDirectory(remote) {
+
+        @Override
+        public IndexOutput createOutput(String name, IOContext context) throws IOException {
+            try {
+                pauseCopyLatch.await();
+            } catch (InterruptedException ignore) {
+            }
+            return super.createOutput(name, context);
+        }
+    };
+    // Start copying a file to remote via COW
+    Directory cow1 = copier.wrapForWrite(defn, remote2, false, INDEX_DATA_CHILD_NAME, IndexCopier.COWDirectoryTracker.NOOP);
+    byte[] f2 = writeFile(cow1, "f2");
+    // Before copy is done to remote lets delete f1 from remote and
+    // open a COR and close it such that it triggers delete of f1
+    remote.deleteFile("f1");
+    writeFile(remote, "f1b");
+    Directory cor2 = copier.wrapForRead(indexPath, defn, remote, INDEX_DATA_CHILD_NAME);
+    // Since we're talking of hypothetical stuck cow1 stuck and are running next CoW cycle on 'remote', let's
+    // update timestamps on file that cow1 created to maintain some temporal sanity
+    updateLastModified(cow1, "f2");
+    // Ensure that deletion task submitted to executor get processed immediately
+    executor.enableImmediateExecution();
+    cor2.close();
+    executor.enableDelayedExecution();
+    assertFalse(baseDir.fileExists("f1"));
+    assertFalse("f2 should not have been copied to remote so far", remote.fileExists("f2"));
+    assertTrue("f2 should exist", baseDir.fileExists("f2"));
+    pauseCopyLatch.countDown();
+    cow1.close();
+    assertTrue("f2 should exist", remote.fileExists("f2"));
+    executorService.shutdown();
+}

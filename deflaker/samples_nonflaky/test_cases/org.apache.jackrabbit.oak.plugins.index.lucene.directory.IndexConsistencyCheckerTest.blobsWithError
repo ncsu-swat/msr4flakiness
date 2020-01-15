@@ -1,0 +1,16 @@
+@Test
+public void blobsWithError() throws Exception {
+    FailingBlob failingBlob = new FailingBlob("foo");
+    idx.setProperty("foo", failingBlob);
+    idx.child(":index").setProperty("foo", failingBlob);
+    idx.child("b").setProperty("foo", Lists.newArrayList(failingBlob, failingBlob), Type.BINARIES);
+    NodeBuilder builder = EMPTY_NODE.builder();
+    builder.setChildNode("a", idx.getNodeState());
+    IndexConsistencyChecker checker = new IndexConsistencyChecker(builder.getNodeState(), "/a", temporaryFolder.getRoot());
+    Result result = checker.check(Level.BLOBS_ONLY);
+    assertFalse(result.clean);
+    assertTrue(result.missingBlobs);
+    assertFalse(result.blobSizeMismatch);
+    assertEquals(4, result.missingBlobIds.size());
+    dumpResult(result);
+}

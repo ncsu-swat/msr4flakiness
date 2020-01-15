@@ -1,0 +1,11 @@
+@Test
+public void testEndWithInvalidTree() throws Exception {
+    init(true, ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
+    User user = getTestSystemUser();
+    Tree policyTree = createPolicyTree(user);
+    importer.handlePropInfo(policyTree, mockPropInfo(user.getPrincipal()), mockPropertyDefinition(getJcrName(NT_REP_PRINCIPAL_POLICY)));
+    importer.propertiesCompleted(policyTree);
+    importer.end(mockTree("/another/path", true));
+    // end-call must have removed the policy due to the mismatch
+    assertFalse(root.getTree(policyTree.getPath()).exists());
+}

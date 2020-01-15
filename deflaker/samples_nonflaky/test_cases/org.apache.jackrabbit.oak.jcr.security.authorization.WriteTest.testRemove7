@@ -1,0 +1,30 @@
+@Test
+public void testRemove7() throws Exception {
+    Privilege[] rmChildNodes = privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES);
+    Privilege[] rmNode = privilegesFromName(Privilege.JCR_REMOVE_NODE);
+    // deny 'remove_child_nodes' at 'path'
+    deny(path, privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES));
+    // ... but allow 'remove_node' at childNPath
+    allow(childNPath, rmNode);
+    /*
+         expected result:
+         - node at childNPath can't be removed.
+         */
+    assertFalse(testSession.hasPermission(childNPath, Session.ACTION_REMOVE));
+    // additionally add remove_child_nodes privilege at 'childNPath'
+    allow(childNPath, rmChildNodes);
+    /*
+         expected result:
+         - node at childNPath still can't be removed.
+         - but both privileges (remove_node, remove_child_nodes) are present.
+         */
+    assertFalse(testSession.hasPermission(childNPath, javax.jcr.Session.ACTION_REMOVE));
+    assertTrue(testAcMgr.hasPrivileges(childNPath, new Privilege[] { rmChildNodes[0], rmNode[0] }));
+    try {
+        testSession.getNode(childNPath).remove();
+        testSession.save();
+        fail("Removal must fail");
+    } catch (AccessDeniedException e) {
+    // success
+    }
+}

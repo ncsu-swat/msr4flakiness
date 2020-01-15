@@ -1,0 +1,14 @@
+@Test
+public void testGetPrivilegesByPrincipals() throws Exception {
+    setupContentTrees(TEST_OAK_PATH);
+    setupPrincipalBasedAccessControl(validPrincipal, testContentJcrPath, JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE);
+    // grant different set of privs using the default ac mgt
+    addDefaultEntry(testContentJcrPath, validPrincipal, JCR_READ, JCR_REMOVE_NODE);
+    root.commit();
+    // only subset is is granted
+    assertPrivileges(acMgr.getPrivileges(testContentJcrPath, ImmutableSet.of(validPrincipal)), JCR_REMOVE_NODE);
+    assertPrivileges(acMgr.getPrivileges(testJcrPath, ImmutableSet.of(validPrincipal)), JCR_REMOVE_NODE);
+    // set of principals not supported by principalbased-authorization => only default impl takes effect.
+    assertPrivileges(acMgr.getPrivileges(testContentJcrPath, ImmutableSet.of(validPrincipal, EveryonePrincipal.getInstance())), JCR_READ, JCR_REMOVE_NODE);
+    assertPrivileges(acMgr.getPrivileges(testJcrPath, ImmutableSet.of(validPrincipal, EveryonePrincipal.getInstance())), JCR_READ, JCR_REMOVE_NODE);
+}
