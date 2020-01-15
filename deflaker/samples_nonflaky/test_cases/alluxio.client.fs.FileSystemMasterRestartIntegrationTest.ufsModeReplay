@@ -1,0 +1,14 @@
+@Test
+public void ufsModeReplay() throws Exception {
+    mFsMaster.updateUfsMode(new AlluxioURI(mFsMaster.getUfsAddress()), UfsMode.NO_ACCESS);
+    // Stop Alluxio.
+    mLocalAlluxioClusterResource.get().stopFS();
+    // Create the master using the existing journal.
+    try (FsMasterResource masterResource = createFileSystemMasterFromJournal()) {
+        FileSystemMaster fsMaster = masterResource.getRegistry().get(FileSystemMaster.class);
+        AlluxioURI alluxioFile = new AlluxioURI("/in_alluxio");
+        // Create file should throw an Exception even after restart
+        mThrown.expect(AccessControlException.class);
+        fsMaster.createFile(alluxioFile, CreateFileContext.defaults().setWriteType(WriteType.CACHE_THROUGH));
+    }
+}

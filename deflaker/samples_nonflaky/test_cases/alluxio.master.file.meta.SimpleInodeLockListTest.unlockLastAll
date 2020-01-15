@@ -1,0 +1,26 @@
+@Test
+public void unlockLastAll() {
+    mLockList.lockRootEdge(LockMode.READ);
+    mLockList.lockInode(mRootDir, LockMode.READ);
+    Inode prev = mRootDir;
+    for (Inode inode : Arrays.asList(mDirA, mDirB, mFileC)) {
+        mLockList.lockEdge(prev, inode.getName(), LockMode.READ);
+        mLockList.lockInode(inode, LockMode.READ);
+        prev = inode;
+    }
+    for (int i = 0; i < 3; i++) {
+        mLockList.unlockLastInode();
+        mLockList.unlockLastEdge();
+    }
+    mLockList.unlockLastInode();
+    mLockList.unlockLastEdge();
+    assertEquals(0, mLockList.numInodes());
+    assertEquals(LockMode.READ, mLockList.getLockMode());
+    mLockList.lockRootEdge(LockMode.READ);
+    mLockList.lockInode(mRootDir, LockMode.WRITE);
+    assertEquals(Arrays.asList(mRootDir), mLockList.getLockedInodes());
+    checkOnlyNodesReadLocked();
+    checkOnlyNodesWriteLocked(mRootDir);
+    checkOnlyIncomingEdgesReadLocked(mRootDir);
+    checkOnlyIncomingEdgesWriteLocked();
+}

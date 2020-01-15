@@ -1,0 +1,14 @@
+@Test
+public void openFile() throws Exception {
+    PersistenceTestUtils.pauseScheduler(mLocalAlluxioClusterResource);
+    PersistenceTestUtils.pauseChecker(mLocalAlluxioClusterResource);
+    URIStatus status = createAsyncFile();
+    checkFileInAlluxio(mUri, LEN);
+    PersistenceTestUtils.resumeScheduler(mLocalAlluxioClusterResource);
+    PersistenceTestUtils.waitForJobScheduled(mLocalAlluxioClusterResource, status.getFileId());
+    checkFileInAlluxio(mUri, LEN);
+    PersistenceTestUtils.resumeChecker(mLocalAlluxioClusterResource);
+    IntegrationTestUtils.waitForPersist(mLocalAlluxioClusterResource, mUri);
+    checkFileInAlluxio(mUri, LEN);
+    checkFileInUnderStorage(mUri, LEN);
+}

@@ -1,0 +1,14 @@
+@Test
+public void evictBlock1() throws Exception {
+    // run the evict job for full block mBlockId1
+    waitForJobToFinish(mJobMaster.run(new EvictConfig(mBlockId1, 1)));
+    CommonUtils.waitFor("block 1 to be evicted", () -> {
+        try {
+            return !AdjustJobTestUtils.hasBlock(mBlockId1, mWorker, mFsContext);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }, WaitForOptions.defaults().setTimeoutMs(5 * Constants.SECOND_MS));
+    // block 2 should not be evicted
+    Assert.assertTrue(AdjustJobTestUtils.hasBlock(mBlockId2, mWorker, mFsContext));
+}

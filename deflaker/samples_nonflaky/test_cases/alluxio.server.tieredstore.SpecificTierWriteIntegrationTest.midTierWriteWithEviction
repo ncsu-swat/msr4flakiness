@@ -1,0 +1,12 @@
+@Test
+public void midTierWriteWithEviction() throws Exception {
+    // Free space in second tier will be low watermark + data reserved in the first tier
+    // This is because we evict in anticipation of data coming from the first tier
+    long reservedTier1 = Math.round(CAPACITY_BYTES * (1 - LOW_WATERMARK));
+    long unreservedTier2 = Math.round(CAPACITY_BYTES * LOW_WATERMARK) - reservedTier1;
+    for (int i = 0; i < FILES_PER_TIER; i++) {
+        writeFileAndCheckUsage(1, 0, (i + 1) * FILE_SIZE, 0);
+    }
+    HeartbeatScheduler.schedule(HeartbeatContext.WORKER_SPACE_RESERVER);
+    writeFileAndCheckUsage(1, 0, unreservedTier2 + FILE_SIZE, CAPACITY_BYTES - unreservedTier2);
+}

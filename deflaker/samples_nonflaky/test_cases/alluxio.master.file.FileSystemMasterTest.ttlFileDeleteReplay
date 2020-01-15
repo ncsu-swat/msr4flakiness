@@ -1,0 +1,19 @@
+/**
+ * Tests that TTL delete of a file is not forgotten across restarts.
+ */
+@Test
+public void ttlFileDeleteReplay() throws Exception {
+    CreateFileContext context = CreateFileContext.defaults();
+    context.getOptions().setBlockSizeBytes(Constants.KB);
+    context.getOptions().setRecursive(true);
+    context.getOptions().setCommonOptions(FileSystemMasterCommonPOptions.newBuilder().setTtl(0));
+    long fileId = mFileSystemMaster.createFile(NESTED_FILE_URI, context).getFileId();
+    // Simulate restart.
+    stopServices();
+    startServices();
+    FileInfo fileInfo = mFileSystemMaster.getFileInfo(fileId);
+    assertEquals(fileInfo.getFileId(), fileId);
+    HeartbeatScheduler.execute(HeartbeatContext.MASTER_TTL_CHECK);
+    mThrown.expect(FileDoesNotExistException.class);
+    mFileSystemMaster.getFileInfo(fileId);
+}

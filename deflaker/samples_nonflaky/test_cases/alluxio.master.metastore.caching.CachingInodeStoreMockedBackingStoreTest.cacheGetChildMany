@@ -1,0 +1,16 @@
+@Test
+public void cacheGetChildMany() {
+    for (long inodeId = 1; inodeId < CACHE_SIZE * 2; inodeId++) {
+        MutableInodeFile child = MutableInodeFile.create(0, 0, "child" + inodeId, 0, CreateFileContext.defaults());
+        mStore.writeInode(child);
+        mStore.addChild(0, child);
+    }
+    for (int i = 0; i < 1000; i++) {
+        for (long inodeId = 1; inodeId < CACHE_SIZE * 2; inodeId++) {
+            assertTrue(mStore.getChild(0L, "child" + inodeId).isPresent());
+        }
+    }
+    // The workload is read-only, so we shouldn't need to write each edge to the backing store more
+    // than once.
+    verify(mBackingStore, atMost((int) CACHE_SIZE * 2)).addChild(anyLong(), any(), anyLong());
+}

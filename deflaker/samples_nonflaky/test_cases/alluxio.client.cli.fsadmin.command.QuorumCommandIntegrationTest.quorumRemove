@@ -1,0 +1,41 @@
+@Test
+public void quorumRemove() throws Exception {
+    mCluster = MultiProcessCluster.newBuilder(PortCoordination.QUORUM_SHELL_REMOVE).setClusterName("QuorumShellRemove").setNumMasters(5).setNumWorkers(0).addProperty(PropertyKey.MASTER_JOURNAL_TYPE, JournalType.EMBEDDED.toString()).addProperty(PropertyKey.MASTER_JOURNAL_FLUSH_TIMEOUT_MS, "5min").addProperty(PropertyKey.MASTER_EMBEDDED_JOURNAL_ELECTION_TIMEOUT, "750ms").addProperty(PropertyKey.MASTER_EMBEDDED_JOURNAL_HEARTBEAT_INTERVAL, "250ms").build();
+    mCluster.start();
+    String output;
+    try (FileSystemAdminShell shell = new FileSystemAdminShell(ServerConfiguration.global())) {
+        AlluxioURI testDir = new AlluxioURI("/testDir");
+        mCluster.getFileSystemClient().createDirectory(testDir);
+        // Verify cluster is reachable.
+        Assert.assertTrue(mCluster.getFileSystemClient().exists(testDir));
+        // Validate quorum state is updated as expected after shutting down 2 masters.
+        mCluster.stopMaster(0);
+        mCluster.stopMaster(1);
+        // Verify cluster is reachable.
+        Assert.assertTrue(mCluster.getFileSystemClient().exists(testDir));
+        // Wait for up to 2 election timeouts until quorum notices changes.
+        CommonUtils.waitFor("Quorum noticing change.", () -> {
+            try {
+                return mCluster.getJournalMasterClientForMaster().getQuorumInfo().getServerInfoList().stream().filter((info) -> info.getServerState() == QuorumServerState.UNAVAILABLE).collect(Collectors.toList()).size() == 2;
+            } catch (Exception e) {
+                return false;
+            }
+        }, WaitForOptions.defaults().setTimeoutMs(6 * (int) ServerConfiguration.getMs(PropertyKey.MASTER_EMBEDDED_JOURNAL_ELECTION_TIMEOUT)));
+        // Remove unavailable masters using shell.
+        for (QuorumServerInfo serverInfo : mCluster.getJournalMasterClientForMaster().getQuorumInfo().getServerInfoList()) {
+            if (serverInfo.getServerState() == QuorumServerState.UNAVAILABLE) {
+                mOutput.reset();
+                String serverAddress = String.format("%s:%d", serverInfo.getServerAddress().getHost(), serverInfo.getServerAddress().getRpcPort());
+                shell.run("journal", "quorum", "remove", "-domain", "MASTER", "-address", serverAddress);
+                output = mOutput.toString().trim();
+                Assert.assertEquals(String.format(QuorumRemoveCommand.OUTPUT_RESULT, serverAddress, JournalDomain.MASTER.name()), lastLine(output));
+            }
+        }
+        // Verify quorum size is resized down to 3 after removing 2 masters.
+        Assert.assertEquals(3, mCluster.getJournalMasterClientForMaster().getQuorumInfo().getServerInfoList().size());
+        mCluster.stopMaster(2);
+        // Verify cluster is reachable.
+        Assert.assertTrue(mCluster.getFileSystemClient().exists(testDir));
+    }
+    mCluster.notifySuccess();
+}

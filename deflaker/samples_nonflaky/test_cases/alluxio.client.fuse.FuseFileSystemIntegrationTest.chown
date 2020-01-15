@@ -1,0 +1,10 @@
+@Test
+public void chown() throws Exception {
+    String testFile = "/chownTestFile";
+    FileSystemTestUtils.createByteFile(sFileSystem, testFile, WritePType.MUST_CACHE, 10);
+    String userName = System.getProperty("user.name");
+    String groupName = AlluxioFuseUtils.getGroupName(userName);
+    ShellUtils.execCommand("chown", userName + ":" + groupName, sMountPoint + testFile);
+    Assert.assertEquals(userName, sFileSystem.getStatus(new AlluxioURI(testFile)).getOwner());
+    Assert.assertEquals(groupName, sFileSystem.getStatus(new AlluxioURI(testFile)).getGroup());
+}

@@ -1,0 +1,15 @@
+/**
+ * Reads a file with unknown length.
+ */
+@Test(timeout = 1000 * 60)
+public void fileLengthUnknown() throws Exception {
+    long lengthActual = CHUNK_SIZE * 1024 + CHUNK_SIZE / 3;
+    long checksumStart = 100;
+    long bytesToRead = lengthActual / 3;
+    try (DataReader reader = create(0, Long.MAX_VALUE)) {
+        long checksum = setReadResponses(mClient, lengthActual, checksumStart, bytesToRead - 1);
+        long checksumActual = checkChunks(reader, checksumStart, bytesToRead);
+        assertEquals(checksum, checksumActual);
+    }
+    validateReadRequestSent(mClient, 0, Long.MAX_VALUE, true, CHUNK_SIZE);
+}

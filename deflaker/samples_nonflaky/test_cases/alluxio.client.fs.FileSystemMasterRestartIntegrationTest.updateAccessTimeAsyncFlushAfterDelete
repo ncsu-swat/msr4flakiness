@@ -1,0 +1,30 @@
+/**
+ * Tests journal is not updated with access time asynchronously after delete.
+ */
+@Test
+public void updateAccessTimeAsyncFlushAfterDelete() throws Exception {
+    String parentName = "d1";
+    AlluxioURI parentPath = new AlluxioURI("/" + parentName);
+    long parentId = mFsMaster.createDirectory(parentPath, CreateDirectoryContext.mergeFrom(CreateDirectoryPOptions.newBuilder().setRecursive(true).setMode(new Mode((short) 0700).toProto())));
+    long oldAccessTime = mFsMaster.getFileInfo(parentId).getLastAccessTimeMs();
+    Thread.sleep(100);
+    mFsMaster.listStatus(parentPath, ListStatusContext.defaults());
+    long newAccessTime = mFsMaster.getFileInfo(parentId).getLastAccessTimeMs();
+    // time is changed in master
+    Assert.assertNotEquals(newAccessTime, oldAccessTime);
+    try (FsMasterResource masterResource = createFileSystemMasterFromJournal()) {
+        FileSystemMaster fsm = masterResource.getRegistry().get(FileSystemMaster.class);
+        long journaledAccessTime = fsm.getFileInfo(parentId).getLastAccessTimeMs();
+        // time is not flushed to journal
+        Assert.assertEquals(journaledAccessTime, oldAccessTime);
+        // delete the directory
+        mFsMaster.delete(parentPath, DeleteContext.defaults());
+    }
+    // Stop Alluxio.
+    mLocalAlluxioClusterResource.get().stopFS();
+    // Create the master using the existing journal.
+    try (FsMasterResource masterResource = createFileSystemMasterFromJournal()) {
+        FileSystemMaster fsm = masterResource.getRegistry().get(FileSystemMaster.class);
+        Assert.assertEquals(fsm.getFileId(parentPath), -1);
+    }
+}

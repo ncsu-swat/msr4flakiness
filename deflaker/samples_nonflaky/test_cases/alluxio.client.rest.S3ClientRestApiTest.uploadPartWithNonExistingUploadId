@@ -1,0 +1,18 @@
+@Test
+public void uploadPartWithNonExistingUploadId() throws Exception {
+    final String bucketName = "bucket";
+    createBucketRestCall(bucketName);
+    final String objectName = "object";
+    String objectKey = bucketName + AlluxioURI.SEPARATOR + objectName;
+    String result = initiateMultipartUploadRestCall(objectKey);
+    InitiateMultipartUploadResult multipartUploadResult = XML_MAPPER.readValue(result, InitiateMultipartUploadResult.class);
+    final long uploadId = Long.parseLong(multipartUploadResult.getUploadId());
+    final byte[] object = CommonUtils.randomAlphaNumString(DATA_SIZE).getBytes();
+    try {
+        putObjectTest(bucketName, objectName, object, uploadId + 1, 1);
+    } catch (AssertionError e) {
+        // Expected because of the wrong upload ID.
+        return;
+    }
+    Assert.fail("Upload part of an object with wrong upload ID should fail");
+}

@@ -1,0 +1,12 @@
+@Test
+public void setStateFail() throws Exception {
+    // set unmask
+    try (Closeable c = new ConfigurationRule(PropertyKey.SECURITY_AUTHORIZATION_PERMISSION_UMASK, "066", ServerConfiguration.global()).toResource()) {
+        String file = PathUtils.concatPath(TEST_DIR_URI, "testState1");
+        verifyCreateFile(TEST_USER_1, file, false);
+        SetAttributePOptions expect = getNonDefaultSetState();
+        mThrown.expect(AccessControlException.class);
+        mThrown.expectMessage(ExceptionMessage.PERMISSION_DENIED.getMessage(toExceptionMessage(TEST_USER_2.getUser(), Mode.Bits.WRITE, file, "testState1")));
+        verifySetState(TEST_USER_2, file, expect);
+    }
+}

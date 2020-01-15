@@ -1,0 +1,33 @@
+/**
+ * Tests renaming files concurrently to the same destination will only succeed once.
+ */
+@Test
+public void sameDstConcurrentRename() throws Exception {
+    int numThreads = CONCURRENCY_FACTOR;
+    final AlluxioURI[] srcs = new AlluxioURI[numThreads];
+    final AlluxioURI[] dsts = new AlluxioURI[numThreads];
+    for (int i = 0; i < numThreads; i++) {
+        srcs[i] = new AlluxioURI("/file" + i);
+        mFileSystem.createFile(srcs[i], sCreatePersistedFileOptions).close();
+        dsts[i] = new AlluxioURI("/renamed");
+    }
+    ConcurrentHashSet<Throwable> errors = concurrentRename(srcs, dsts);
+    // We should get an error for all but 1 rename.
+    assertErrorsSizeEquals(errors, numThreads - 1);
+    List<URIStatus> files = mFileSystem.listStatus(new AlluxioURI("/"));
+    // Store file names in a set to ensure the names are all unique.
+    Set<String> renamedFiles = new HashSet<>();
+    Set<String> originalFiles = new HashSet<>();
+    for (URIStatus file : files) {
+        if (file.getName().startsWith("renamed")) {
+            renamedFiles.add(file.getName());
+        }
+        if (file.getName().startsWith("file")) {
+            originalFiles.add(file.getName());
+        }
+    }
+    // One renamed file should exist, and numThreads - 1 original source files
+    Assert.assertEquals(numThreads, files.size());
+    Assert.assertEquals(1, renamedFiles.size());
+    Assert.assertEquals(numThreads - 1, originalFiles.size());
+}

@@ -1,0 +1,24 @@
+@Test(timeout = 10000)
+public void listingCacheAddRemoveEdges() throws Exception {
+    // Perform operations including adding and removing many files within a directory. This test has
+    // rooted out some bugs related to cache weight tracking.
+    MutableInodeDirectory bigDir = createInodeDir(1, 0);
+    mStore.writeNewInode(bigDir);
+    for (int i = 1000; i < 1000 + CACHE_SIZE; i++) {
+        MutableInodeDirectory subDir = createInodeDir(i, bigDir.getId());
+        mStore.addChild(bigDir.getId(), subDir);
+        mStore.removeChild(bigDir.getId(), subDir.getName());
+    }
+    List<MutableInodeDirectory> inodes = new ArrayList<>();
+    for (int i = 10; i < 10 + (CACHE_SIZE / 2); i++) {
+        MutableInodeDirectory otherDir = createInodeDir(i, 0);
+        inodes.add(otherDir);
+        mStore.writeNewInode(otherDir);
+    }
+    for (MutableInodeDirectory inode : inodes) {
+        for (int i = 0; i < 10; i++) {
+            assertEquals(0, Iterables.size(mStore.getChildIds(inode.getId())));
+        }
+        verify(mBackingStore, times(0)).getChildIds(inode.getId());
+    }
+}

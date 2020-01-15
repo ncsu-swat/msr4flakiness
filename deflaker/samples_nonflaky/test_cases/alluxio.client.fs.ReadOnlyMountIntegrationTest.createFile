@@ -1,0 +1,18 @@
+@Test
+public void createFile() throws IOException, AlluxioException {
+    CreateFilePOptions writeBoth = CreateFilePOptions.newBuilder().setWriteType(WritePType.CACHE_THROUGH).build();
+    AlluxioURI uri = new AlluxioURI(FILE_PATH + "_create");
+    try {
+        mFileSystem.createFile(uri, writeBoth).close();
+        Assert.fail("createFile should not succeed under a readonly mount.");
+    } catch (AccessControlException e) {
+        Assert.assertThat(e.getMessage(), containsString(ExceptionMessage.MOUNT_READONLY.getMessage(uri, MOUNT_PATH)));
+    }
+    uri = new AlluxioURI(SUB_FILE_PATH + "_create");
+    try {
+        mFileSystem.createFile(uri, writeBoth).close();
+        Assert.fail("createFile should not succeed under a readonly mount.");
+    } catch (AccessControlException e) {
+        Assert.assertThat(e.getMessage(), containsString(ExceptionMessage.MOUNT_READONLY.getMessage(uri, MOUNT_PATH)));
+    }
+}

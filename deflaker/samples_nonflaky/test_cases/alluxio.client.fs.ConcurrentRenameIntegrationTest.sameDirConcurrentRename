@@ -1,0 +1,26 @@
+/**
+ * Tests that many threads concurrently renaming the same directory will only succeed once.
+ */
+@Test
+public void sameDirConcurrentRename() throws Exception {
+    int numThreads = CONCURRENCY_FACTOR;
+    final AlluxioURI[] srcs = new AlluxioURI[numThreads];
+    final AlluxioURI[] dsts = new AlluxioURI[numThreads];
+    for (int i = 0; i < numThreads; i++) {
+        srcs[i] = new AlluxioURI("/dir");
+        dsts[i] = new AlluxioURI("/renamed" + i);
+    }
+    // Create the one source directory
+    mFileSystem.createDirectory(srcs[0]);
+    mFileSystem.createFile(new AlluxioURI("/dir/file"), sCreatePersistedFileOptions).close();
+    ConcurrentHashSet<Throwable> errors = concurrentRename(srcs, dsts);
+    // We should get an error for all but 1 rename
+    assertErrorsSizeEquals(errors, numThreads - 1);
+    // Only one renamed dir should exist
+    List<URIStatus> existingDirs = mFileSystem.listStatus(new AlluxioURI("/"));
+    Assert.assertEquals(1, existingDirs.size());
+    Assert.assertTrue(existingDirs.get(0).getName().startsWith("renamed"));
+    // The directory should contain the file
+    List<URIStatus> dirChildren = mFileSystem.listStatus(new AlluxioURI(existingDirs.get(0).getPath()));
+    Assert.assertEquals(1, dirChildren.size());
+}

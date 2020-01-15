@@ -1,0 +1,14 @@
+@Test
+public void deleteObject() throws Exception {
+    final String bucketName = "bucket-with-object-to-delete";
+    createBucketRestCall(bucketName);
+    final String objectName = "file";
+    AlluxioURI bucketUri = new AlluxioURI(AlluxioURI.SEPARATOR + bucketName);
+    AlluxioURI fileUri = new AlluxioURI(bucketUri.getPath() + AlluxioURI.SEPARATOR + objectName);
+    mFileSystemMaster.createFile(fileUri, CreateFileContext.defaults());
+    // Verify the directory is created for the new bucket, and file is created under it.
+    Assert.assertFalse(mFileSystemMaster.listStatus(bucketUri, ListStatusContext.defaults()).isEmpty());
+    deleteObjectRestCall(bucketName + AlluxioURI.SEPARATOR + objectName);
+    // Verify the object is deleted.
+    Assert.assertTrue(mFileSystemMaster.listStatus(bucketUri, ListStatusContext.defaults()).isEmpty());
+}

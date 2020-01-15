@@ -1,0 +1,28 @@
+@Test
+public void renameScheduleDelete() throws Exception {
+    PersistenceTestUtils.pauseScheduler(mLocalAlluxioClusterResource);
+    PersistenceTestUtils.pauseChecker(mLocalAlluxioClusterResource);
+    URIStatus status = createAsyncFile();
+    String ufsPath = status.getUfsPath();
+    AlluxioURI newUri = new AlluxioURI(PathUtils.uniqPath());
+    mFileSystem.createDirectory(newUri.getParent());
+    mFileSystem.rename(mUri, newUri);
+    String newUfsPath = mFileSystem.getStatus(newUri).getUfsPath();
+    checkFileNotInAlluxio(mUri);
+    checkFileNotInUnderStorage(ufsPath);
+    checkFileInAlluxio(newUri, LEN);
+    checkFileNotInUnderStorage(newUfsPath);
+    PersistenceTestUtils.resumeScheduler(mLocalAlluxioClusterResource);
+    PersistenceTestUtils.waitForJobScheduled(mLocalAlluxioClusterResource, status.getFileId());
+    mFileSystem.delete(newUri);
+    checkFileNotInAlluxio(mUri);
+    checkFileNotInUnderStorage(ufsPath);
+    checkFileNotInAlluxio(mUri);
+    checkFileNotInUnderStorage(newUfsPath);
+    PersistenceTestUtils.resumeChecker(mLocalAlluxioClusterResource);
+    PersistenceTestUtils.waitForJobComplete(mLocalAlluxioClusterResource, status.getFileId());
+    checkFileNotInAlluxio(mUri);
+    checkFileNotInUnderStorage(ufsPath);
+    checkFileNotInAlluxio(newUri);
+    checkFileNotInUnderStorage(newUfsPath);
+}

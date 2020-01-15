@@ -1,0 +1,39 @@
+@Test
+public void listParts() throws Exception {
+    final String bucket = "bucket";
+    final String bucketPath = AlluxioURI.SEPARATOR + bucket;
+    createBucketRestCall(bucket);
+    final String object = "object";
+    final String objectKey = bucket + AlluxioURI.SEPARATOR + object;
+    // Initiate multipart upload to get upload ID.
+    String result = initiateMultipartUploadRestCall(objectKey);
+    InitiateMultipartUploadResult multipartUploadResult = XML_MAPPER.readValue(result, InitiateMultipartUploadResult.class);
+    final long uploadId = Long.parseLong(multipartUploadResult.getUploadId());
+    // No parts are uploaded yet.
+    result = listPartsRestCall(objectKey, uploadId);
+    ListPartsResult listPartsResult = XML_MAPPER.readValue(result, ListPartsResult.class);
+    Assert.assertEquals(bucketPath, listPartsResult.getBucket());
+    Assert.assertEquals(object, listPartsResult.getKey());
+    Assert.assertEquals(Long.toString(uploadId), listPartsResult.getUploadId());
+    Assert.assertEquals(0, listPartsResult.getParts().size());
+    // Upload 2 parts.
+    String object1 = CommonUtils.randomAlphaNumString(DATA_SIZE);
+    String object2 = CommonUtils.randomAlphaNumString(DATA_SIZE);
+    createObject(objectKey, object1.getBytes(), uploadId, 1);
+    createObject(objectKey, object2.getBytes(), uploadId, 2);
+    result = listPartsRestCall(objectKey, uploadId);
+    listPartsResult = XML_MAPPER.readValue(result, ListPartsResult.class);
+    Assert.assertEquals(bucketPath, listPartsResult.getBucket());
+    Assert.assertEquals(object, listPartsResult.getKey());
+    Assert.assertEquals(Long.toString(uploadId), listPartsResult.getUploadId());
+    String tmpDir = S3RestUtils.getMultipartTemporaryDirForObject(bucketPath, object);
+    List<ListPartsResult.Part> parts = listPartsResult.getParts();
+    Assert.assertEquals(2, parts.size());
+    for (int partNumber = 1; partNumber <= parts.size(); partNumber++) {
+        ListPartsResult.Part part = parts.get(partNumber - 1);
+        Assert.assertEquals(partNumber, part.getPartNumber());
+        URIStatus status = mFileSystem.getStatus(new AlluxioURI(tmpDir + AlluxioURI.SEPARATOR + Integer.toString(partNumber)));
+        Assert.assertEquals(S3RestUtils.toS3Date(status.getLastModificationTimeMs()), part.getLastModified());
+        Assert.assertEquals(status.getLength(), part.getSize());
+    }
+}

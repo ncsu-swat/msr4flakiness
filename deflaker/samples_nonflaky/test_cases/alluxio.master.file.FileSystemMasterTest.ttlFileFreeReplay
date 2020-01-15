@@ -1,0 +1,17 @@
+/**
+ * Tests that TTL free of a file is not forgotten across restarts.
+ */
+@Test
+public void ttlFileFreeReplay() throws Exception {
+    long blockId = createFileWithSingleBlock(NESTED_FILE_URI);
+    assertEquals(1, mBlockMaster.getBlockInfo(blockId).getLocations().size());
+    // Set ttl & operation.
+    mFileSystemMaster.setAttribute(NESTED_FILE_URI, SetAttributeContext.mergeFrom(SetAttributePOptions.newBuilder().setCommonOptions(FileSystemOptions.commonDefaults(ServerConfiguration.global()).toBuilder().setTtl(0).setTtlAction(alluxio.grpc.TtlAction.FREE))));
+    // Simulate restart.
+    stopServices();
+    startServices();
+    Command heartbeat = mBlockMaster.workerHeartbeat(mWorkerId1, null, ImmutableMap.of("MEM", (long) Constants.KB), ImmutableList.of(blockId), ImmutableMap.of(), ImmutableMap.<String, StorageList>of(), mMetrics);
+    // Verify the muted Free command on worker1.
+    assertEquals(Command.newBuilder().setCommandType(CommandType.Nothing).build(), heartbeat);
+    assertEquals(0, mBlockMaster.getBlockInfo(blockId).getLocations().size());
+}

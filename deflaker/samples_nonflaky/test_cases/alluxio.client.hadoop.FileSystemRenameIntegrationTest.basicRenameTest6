@@ -1,0 +1,24 @@
+@Test
+public void basicRenameTest6() throws Exception {
+    // Rename /dirA to /dirB, /dirA/fileA should become /dirB/fileA
+    Path dirA = new Path("/dirA");
+    Path dirB = new Path("/dirB");
+    Path fileA = new Path("/dirA/fileA");
+    Path finalDst = new Path("/dirB/fileA");
+    sTFS.mkdirs(dirA);
+    create(sTFS, fileA);
+    Assert.assertTrue(sTFS.rename(dirA, dirB));
+    Assert.assertFalse(sTFS.exists(dirA));
+    Assert.assertFalse(sTFS.exists(fileA));
+    Assert.assertTrue(sTFS.exists(dirB));
+    Assert.assertTrue(sTFS.exists(finalDst));
+    Assert.assertFalse(sUfs.isDirectory(PathUtils.concatPath(sUfsRoot, "dirA")));
+    Assert.assertFalse(sUfs.isFile(PathUtils.concatPath(sUfsRoot, "dirA", "fileA")));
+    Assert.assertTrue(sUfs.isDirectory(PathUtils.concatPath(sUfsRoot, "dirB")));
+    Assert.assertTrue(sUfs.isFile(PathUtils.concatPath(sUfsRoot, "dirB", "fileA")));
+    cleanup(sTFS);
+    Assert.assertFalse(sTFS.exists(dirB));
+    Assert.assertFalse(sTFS.exists(finalDst));
+    Assert.assertFalse(sUfs.isDirectory(PathUtils.concatPath(sUfsRoot, "dirB")));
+    Assert.assertFalse(sUfs.isFile(PathUtils.concatPath(sUfsRoot, "dirB", "fileA")));
+}

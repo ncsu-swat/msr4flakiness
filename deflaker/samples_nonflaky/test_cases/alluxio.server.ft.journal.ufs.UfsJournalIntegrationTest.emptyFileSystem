@@ -1,0 +1,11 @@
+@Test
+public void emptyFileSystem() throws Exception {
+    Assert.assertEquals(0, mFileSystem.listStatus(mRootUri).size());
+    mLocalAlluxioCluster.stopFS();
+    try (FsMasterResource masterResource = createFsMasterFromJournal()) {
+        FileSystemMaster fsMaster = masterResource.getRegistry().get(FileSystemMaster.class);
+        long rootId = fsMaster.getFileId(mRootUri);
+        Assert.assertTrue(rootId != IdUtils.INVALID_FILE_ID);
+        Assert.assertEquals(0, fsMaster.listStatus(mRootUri, ListStatusContext.mergeFrom(ListStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.NEVER))).size());
+    }
+}

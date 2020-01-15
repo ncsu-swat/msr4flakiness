@@ -1,0 +1,65 @@
+/**
+ * Tests that taking and releasing many block locks concurrently won't cause a failure.
+ *
+ * This is done by creating 200 threads, 100 for each of 2 different block ids. Each thread locks
+ * and then unlocks its block 50 times. After this, it takes a final lock on its block before
+ * returning. At the end of the test, the internal state of the lock manager is validated.
+ */
+@Test(timeout = 10000)
+public void stress() throws Throwable {
+    final int numBlocks = 2;
+    final int threadsPerBlock = 100;
+    final int lockUnlocksPerThread = 50;
+    setMaxLocks(numBlocks);
+    final BlockLockManager manager = new BlockLockManager();
+    final List<Thread> threads = new ArrayList<>();
+    final CyclicBarrier barrier = new CyclicBarrier(numBlocks * threadsPerBlock);
+    // If there are exceptions, we will store them here.
+    final ConcurrentHashSet<Throwable> failedThreadThrowables = new ConcurrentHashSet<>();
+    Thread.UncaughtExceptionHandler exceptionHandler = new Thread.UncaughtExceptionHandler() {
+
+        public void uncaughtException(Thread th, Throwable ex) {
+            failedThreadThrowables.add(ex);
+        }
+    };
+    for (int blockId = 0; blockId < numBlocks; blockId++) {
+        final int finalBlockId = blockId;
+        for (int i = 0; i < threadsPerBlock; i++) {
+            Thread t = new Thread(new Runnable() {
+
+                @Override
+                public void run() {
+                    try {
+                        barrier.await();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                    // Lock and unlock the block lockUnlocksPerThread times.
+                    for (int j = 0; j < lockUnlocksPerThread; j++) {
+                        long lockId = manager.lockBlock(TEST_SESSION_ID, finalBlockId, BlockLockType.READ);
+                        assertTrue(manager.unlockBlockNoException(lockId));
+                    }
+                    // Lock the block one last time.
+                    manager.lockBlock(TEST_SESSION_ID, finalBlockId, BlockLockType.READ);
+                }
+            });
+            t.setUncaughtExceptionHandler(exceptionHandler);
+            threads.add(t);
+        }
+    }
+    Collections.shuffle(threads);
+    for (Thread t : threads) {
+        t.start();
+    }
+    for (Thread t : threads) {
+        t.join();
+    }
+    if (!failedThreadThrowables.isEmpty()) {
+        StringBuilder sb = new StringBuilder("Failed with the following errors:\n");
+        for (Throwable failedThreadThrowable : failedThreadThrowables) {
+            sb.append(Throwables.getStackTraceAsString(failedThreadThrowable));
+        }
+        Assert.fail(sb.toString());
+    }
+    manager.validate();
+}

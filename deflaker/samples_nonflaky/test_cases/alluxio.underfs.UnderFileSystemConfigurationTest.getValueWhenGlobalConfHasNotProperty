@@ -1,0 +1,20 @@
+@Test
+public void getValueWhenGlobalConfHasNotProperty() throws Exception {
+    // Set property in global configuration
+    try (Closeable c = new ConfigurationRule(PropertyKey.S3A_ACCESS_KEY, null, mConfiguration).toResource()) {
+        Random random = new Random();
+        boolean readOnly = random.nextBoolean();
+        boolean shared = random.nextBoolean();
+        UnderFileSystemConfiguration conf = UnderFileSystemConfiguration.defaults(mConfiguration).setReadOnly(readOnly).setShared(shared);
+        try {
+            conf.get(PropertyKey.S3A_ACCESS_KEY);
+            fail("this key should not exist");
+        } catch (Exception e) {
+        // expect to pass
+        }
+        UnderFileSystemConfiguration conf2 = conf.createMountSpecificConf(ImmutableMap.of(PropertyKey.S3A_ACCESS_KEY.toString(), "foo"));
+        assertEquals(readOnly, conf2.isReadOnly());
+        assertEquals(shared, conf2.isShared());
+        assertEquals("foo", conf2.get(PropertyKey.S3A_ACCESS_KEY));
+    }
+}

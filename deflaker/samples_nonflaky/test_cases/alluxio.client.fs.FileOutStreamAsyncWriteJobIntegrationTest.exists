@@ -1,0 +1,13 @@
+@Test
+public void exists() throws Exception {
+    PersistenceTestUtils.pauseScheduler(mLocalAlluxioClusterResource);
+    PersistenceTestUtils.pauseChecker(mLocalAlluxioClusterResource);
+    URIStatus status = createAsyncFile();
+    Assert.assertTrue(mFileSystem.exists(mUri));
+    PersistenceTestUtils.resumeScheduler(mLocalAlluxioClusterResource);
+    PersistenceTestUtils.waitForJobScheduled(mLocalAlluxioClusterResource, status.getFileId());
+    Assert.assertTrue(mFileSystem.exists(mUri));
+    PersistenceTestUtils.resumeChecker(mLocalAlluxioClusterResource);
+    IntegrationTestUtils.waitForPersist(mLocalAlluxioClusterResource, mUri);
+    Assert.assertTrue(mFileSystem.exists(mUri));
+}

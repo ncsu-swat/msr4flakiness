@@ -1,0 +1,13 @@
+@Test
+public void asyncWritePersistWithNoAutoPersist() throws Exception {
+    AlluxioURI filePath = new AlluxioURI(PathUtils.uniqPath());
+    createTwoBytesFile(filePath, Constants.NO_AUTO_PERSIST);
+    CommonUtils.sleepMs(1);
+    // check the file is completed but not persisted
+    URIStatus srcStatus = mFileSystem.getStatus(filePath);
+    assertEquals(PersistenceState.TO_BE_PERSISTED.toString(), srcStatus.getPersistenceState());
+    Assert.assertTrue(srcStatus.isCompleted());
+    mFileSystem.persist(filePath);
+    CommonUtils.sleepMs(1);
+    checkPersistStateAndWaitForPersist(filePath, 2);
+}

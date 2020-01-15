@@ -1,0 +1,9 @@
+@Test
+public void readPartialBlock() throws Exception {
+    mReader = UnderFileSystemBlockReader.create(mUnderFileSystemBlockMeta, 0, mAlluxioBlockStore, mUfsManager, mUfsInstreamManager);
+    ByteBuffer buffer = mReader.read(0, TEST_BLOCK_SIZE - 1);
+    Assert.assertTrue(BufferUtils.equalIncreasingByteBuffer(0, (int) TEST_BLOCK_SIZE - 1, buffer));
+    mReader.close();
+    // partial block should not be cached
+    Assert.assertNull(mAlluxioBlockStore.getTempBlockMeta(SESSION_ID, BLOCK_ID));
+}

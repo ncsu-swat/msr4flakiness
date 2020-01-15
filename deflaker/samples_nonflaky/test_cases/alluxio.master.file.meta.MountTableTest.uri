@@ -1,0 +1,45 @@
+/**
+ * Tests the different methods of the {@link MountTable} class with a URI.
+ */
+@Test
+public void uri() throws Exception {
+    // Test add()
+    addMount("alluxio://localhost:1234/mnt/foo", "file://localhost:5678/foo", 2);
+    addMount("alluxio://localhost:1234/mnt/bar", "file://localhost:5678/bar", 3);
+    try {
+        addMount("alluxio://localhost:1234/mnt/foo", "hdfs://localhost:5678/foo2", 4);
+        Assert.fail("Mount point added when it already exists");
+    } catch (FileAlreadyExistsException e) {
+        // Exception expected
+        Assert.assertEquals(ExceptionMessage.MOUNT_POINT_ALREADY_EXISTS.getMessage("/mnt/foo"), e.getMessage());
+    }
+    addMount("alluxio://localhost:1234/mnt/bar/baz", "hdfs://localhost:5678/baz", 5);
+    // Test resolve()
+    Assert.assertEquals(new AlluxioURI("file://localhost:5678/foo"), mMountTable.resolve(new AlluxioURI("alluxio://localhost:1234/mnt/foo")).getUri());
+    Assert.assertEquals(new AlluxioURI("file://localhost:5678/bar"), mMountTable.resolve(new AlluxioURI("alluxio://localhost:1234/mnt/bar")).getUri());
+    Assert.assertEquals(new AlluxioURI("file://localhost:5678/bar/y"), mMountTable.resolve(new AlluxioURI("alluxio://localhost:1234/mnt/bar/y")).getUri());
+    Assert.assertEquals(new AlluxioURI("hdfs://localhost:5678/baz"), mMountTable.resolve(new AlluxioURI("alluxio://localhost:1234/mnt/bar/baz")).getUri());
+    // Test getMountPoint()
+    Assert.assertEquals("/mnt/foo", mMountTable.getMountPoint(new AlluxioURI("alluxio://localhost:1234/mnt/foo")));
+    Assert.assertEquals("/mnt/bar", mMountTable.getMountPoint(new AlluxioURI("alluxio://localhost:1234/mnt/bar")));
+    Assert.assertEquals("/mnt/bar", mMountTable.getMountPoint(new AlluxioURI("alluxio://localhost:1234/mnt/bar/y")));
+    Assert.assertEquals("/mnt/bar/baz", mMountTable.getMountPoint(new AlluxioURI("alluxio://localhost:1234/mnt/bar/baz")));
+    Assert.assertEquals("/", mMountTable.getMountPoint(new AlluxioURI("alluxio://localhost:1234/mnt")));
+    Assert.assertEquals("/", mMountTable.getMountPoint(new AlluxioURI("alluxio://localhost:1234/")));
+    // Test isMountPoint()
+    Assert.assertTrue(mMountTable.isMountPoint(new AlluxioURI("alluxio://localhost:1234/")));
+    Assert.assertTrue(mMountTable.isMountPoint(new AlluxioURI("alluxio://localhost:1234/mnt/foo")));
+    Assert.assertFalse(mMountTable.isMountPoint(new AlluxioURI("alluxio://localhost:1234/mnt/foo/bar")));
+    Assert.assertFalse(mMountTable.isMountPoint(new AlluxioURI("alluxio://localhost:1234/mnt")));
+    Assert.assertFalse(mMountTable.isMountPoint(new AlluxioURI("alluxio://localhost:1234/mnt/foo2")));
+    Assert.assertFalse(mMountTable.isMountPoint(new AlluxioURI("alluxio://localhost:1234/mnt/foo3")));
+    Assert.assertTrue(mMountTable.isMountPoint(new AlluxioURI("alluxio://localhost:1234/mnt/bar")));
+    Assert.assertTrue(mMountTable.isMountPoint(new AlluxioURI("alluxio://localhost:1234/mnt/bar/baz")));
+    // Test delete()
+    Assert.assertFalse(deleteMount("alluxio://localhost:1234/mnt/bar"));
+    Assert.assertTrue(deleteMount("alluxio://localhost:1234/mnt/bar/baz"));
+    Assert.assertTrue(deleteMount("alluxio://localhost:1234/mnt/bar"));
+    Assert.assertTrue(deleteMount("alluxio://localhost:1234/mnt/foo"));
+    Assert.assertFalse(deleteMount("alluxio://localhost:1234/mnt/foo"));
+    Assert.assertFalse(deleteMount("alluxio://localhost:1234/"));
+}

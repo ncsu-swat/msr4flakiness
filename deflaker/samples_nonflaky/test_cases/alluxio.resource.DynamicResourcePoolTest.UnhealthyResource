@@ -1,0 +1,14 @@
+/**
+ * Tests the logic that invalid resource won't be acquired.
+ */
+@Test
+public void UnhealthyResource() throws Exception {
+    TestPool pool = new TestPool(DynamicResourcePool.Options.defaultOptions());
+    Resource resource = pool.acquire();
+    assertEquals(0, resource.mInteger.intValue());
+    resource.setInteger(Resource.INVALID_RESOURCE);
+    pool.release(resource);
+    resource = pool.acquire();
+    // The 0-th resource is not acquired because it is unhealthy.
+    assertEquals(1, resource.mInteger.intValue());
+}

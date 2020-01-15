@@ -1,0 +1,13 @@
+/**
+ * Tests that an exception is thrown when trying to validate a lock of a block via
+ * {@link BlockLockManager#validateLock(long, long, long)} with an incorrect session ID.
+ */
+@Test
+public void validateLockIdWithWrongSessionId() throws Exception {
+    long lockId = mLockManager.lockBlock(TEST_SESSION_ID, TEST_BLOCK_ID, BlockLockType.READ);
+    long wrongSessionId = TEST_SESSION_ID + 1;
+    mThrown.expect(InvalidWorkerStateException.class);
+    mThrown.expectMessage(ExceptionMessage.LOCK_ID_FOR_DIFFERENT_SESSION.getMessage(lockId, TEST_SESSION_ID, wrongSessionId));
+    // Validate an existing lockId with wrong session id, expect to see IOException
+    mLockManager.validateLock(wrongSessionId, TEST_BLOCK_ID, lockId);
+}

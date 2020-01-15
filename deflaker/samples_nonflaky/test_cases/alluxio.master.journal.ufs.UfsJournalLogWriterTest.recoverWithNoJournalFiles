@@ -1,0 +1,20 @@
+@Test
+public void recoverWithNoJournalFiles() throws Exception {
+    long startSN = 0x10;
+    UfsJournalLogWriter writer = new UfsJournalLogWriter(mJournal, startSN);
+    // Put stream into a bad state
+    long nextSN = writeJournalEntries(writer, startSN, 5);
+    DataOutputStream badOut = createMockDataOutputStream(writer);
+    Mockito.doThrow(new IOException(INJECTED_IO_ERROR_MESSAGE)).when(badOut).flush();
+    tryFlushAndExpectToFail(writer);
+    // Delete the file
+    UfsJournalSnapshot snapshot = UfsJournalSnapshot.getSnapshot(mJournal);
+    UfsJournalFile journalFile = snapshot.getLogs().get(0);
+    File file = new File(journalFile.getLocation().toString());
+    file.delete();
+    // Recover should fail since we deleted the file
+    mThrown.expect(RuntimeException.class);
+    mThrown.expectMessage("Cannot find any journal entry to recover from.");
+    writer.write(newEntry(nextSN));
+    writer.close();
+}

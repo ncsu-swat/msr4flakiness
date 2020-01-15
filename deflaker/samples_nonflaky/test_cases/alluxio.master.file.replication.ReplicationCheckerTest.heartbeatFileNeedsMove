@@ -1,0 +1,11 @@
+@Test
+public void heartbeatFileNeedsMove() throws Exception {
+    mFileContext.getOptions().setReplicationMin(1);
+    long blockId = createBlockHelper(TEST_FILE_1, mFileContext, "SSD");
+    addBlockLocationHelper(blockId, 1);
+    mReplicationChecker.heartbeat();
+    Map<Long, Pair<String, String>> expected = ImmutableMap.of(blockId, new Pair<>("host0", "SSD"));
+    Assert.assertEquals(EMPTY, mMockReplicationHandler.getEvictRequests());
+    Assert.assertEquals(EMPTY, mMockReplicationHandler.getReplicateRequests());
+    Assert.assertEquals(expected, mMockReplicationHandler.getMigrateRequests());
+}

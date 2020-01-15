@@ -1,0 +1,11 @@
+@Test
+public void tempBlockWritten() throws Exception {
+    DataBuffer buffer = newDataBuffer(CHUNK_SIZE);
+    long checksum = mPartialChecksum + getChecksum(buffer);
+    mWriteHandler.write(newFallbackInitRequest(PARTIAL_WRITTEN));
+    mWriteHandler.write(newWriteRequest(buffer));
+    mWriteHandler.onCompleted();
+    waitForResponses();
+    checkComplete(mResponseObserver);
+    checkWriteData(checksum, PARTIAL_WRITTEN + CHUNK_SIZE);
+}

@@ -1,0 +1,23 @@
+@Test
+public void pathExistsReadLock() throws Exception {
+    AlluxioURI uri = new AlluxioURI("/a/b/c");
+    mPath = new LockedInodePath(uri, mInodeStore, mInodeLockManager, mRootDir, LockPattern.READ);
+    assertEquals(uri, mPath.getUri());
+    assertEquals(4, mPath.size());
+    mPath.traverse();
+    assertTrue(mPath.fullPathExists());
+    assertEquals(mFileC, mPath.getInode());
+    assertEquals(mFileC, mPath.getInodeOrNull());
+    assertEquals(mFileC, mPath.getInodeFile());
+    assertEquals(mFileC, mPath.getLastExistingInode());
+    assertEquals(mDirB, mPath.getParentInodeDirectory());
+    assertEquals(mDirB, mPath.getParentInodeOrNull());
+    assertEquals(mDirB, mPath.getAncestorInode());
+    assertEquals(Arrays.asList(mRootDir, mDirA, mDirB, mFileC), mPath.getInodeList());
+    assertEquals(4, mPath.getExistingInodeCount());
+    assertEquals(LockPattern.READ, mPath.getLockPattern());
+    checkOnlyNodesReadLocked(mRootDir, mDirA, mDirB, mFileC);
+    checkOnlyNodesWriteLocked();
+    checkOnlyIncomingEdgesReadLocked(mRootDir, mDirA, mDirB, mFileC);
+    checkOnlyIncomingEdgesWriteLocked();
+}

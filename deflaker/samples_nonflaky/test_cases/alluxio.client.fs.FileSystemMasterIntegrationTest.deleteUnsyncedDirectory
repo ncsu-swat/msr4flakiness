@@ -1,0 +1,18 @@
+@Test
+public void deleteUnsyncedDirectory() throws Exception {
+    mFsMaster.createDirectory(new AlluxioURI("/testFolder"), CreateDirectoryContext.defaults().setWriteType(WriteType.CACHE_THROUGH));
+    mFsMaster.createDirectory(new AlluxioURI("/testFolder/child"), CreateDirectoryContext.defaults().setWriteType(WriteType.CACHE_THROUGH));
+    String ufs = ServerConfiguration.get(PropertyKey.MASTER_MOUNT_TABLE_ROOT_UFS);
+    Files.createDirectory(Paths.get(ufs, "testFolder", "ufsOnlyDir"));
+    try {
+        mFsMaster.delete(new AlluxioURI("/testFolder"), DeleteContext.mergeFrom(DeletePOptions.newBuilder().setUnchecked(false).setRecursive(true)));
+        Assert.fail("Expected deleting an out of sync directory to fail");
+    } catch (IOException e) {
+    // Expected
+    }
+    // Make sure the root folder still exists in Alluxio space.
+    mFsMaster.listStatus(new AlluxioURI("/testFolder"), ListStatusContext.mergeFrom(ListStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.NEVER)));
+    // The child was in sync, so it should be deleted both from Alluxio and the UFS.
+    mThrown.expect(FileDoesNotExistException.class);
+    mFsMaster.listStatus(new AlluxioURI("/testFolder/child"), ListStatusContext.mergeFrom(ListStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.ALWAYS)));
+}

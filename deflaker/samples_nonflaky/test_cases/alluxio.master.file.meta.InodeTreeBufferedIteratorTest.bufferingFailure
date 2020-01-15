@@ -1,0 +1,52 @@
+@Test
+public void bufferingFailure() {
+    final int creationTimeoutMs = 1000;
+    // How many dirs under root.
+    final int dirCount = 100;
+    // Exception message for the injected error during buffering.
+    final String excMsg = "Injected error.";
+    // Create and persist root inode.
+    MutableInode<?> rootInode = MutableInodeDirectory.create(0, -1, "root", CreateDirectoryContext.defaults());
+    mInodeStore.writeInode(rootInode);
+    // Randomly inject an mocked inode that fails buffering.
+    int failedInodeIdx = new Random().nextInt(dirCount);
+    for (int i = 1; i <= dirCount; i++) {
+        // Create and persist dir under root.
+        MutableInode<?> inodeDir = MutableInodeDirectory.create(i, 0, "dir-" + Integer.toString(i), CreateDirectoryContext.defaults());
+        mInodeStore.writeInode(inodeDir);
+        mInodeStore.addChild(rootInode.getId(), inodeDir);
+        // Create and persist file under new dir.
+        MutableInode inodeFile;
+        String inodeName = "file-" + Integer.toString(i);
+        long inodeFileId = i + dirCount + 1;
+        if (i == failedInodeIdx) {
+            // Add new file as failing inode.
+            inodeFile = Mockito.mock(MutableInodeFileDelegate.class);
+            Mockito.when(inodeFile.getId()).thenReturn(inodeFileId);
+            Mockito.when(inodeFile.isFile()).thenReturn(true);
+            Mockito.when(inodeFile.toJournalEntry()).thenThrow(new RuntimeException(excMsg));
+        } else {
+            // Add new regular inode.
+            inodeFile = MutableInodeFile.create(inodeFileId, inodeDir.getId(), inodeName, creationTimeoutMs, CreateFileContext.defaults());
+        }
+        mInodeStore.writeInode(inodeFile);
+        mInodeStore.addChild(inodeDir.getId(), inodeName, inodeFileId);
+    }
+    // Create iterator.
+    Iterator<Journal.JournalEntry> iterator = new InodeTreeBufferedIterator(mInodeStore, InodeDirectory.wrap(rootInode).asDirectory());
+    // Expect exception during enumeration.
+    boolean excThrown = false;
+    while (iterator.hasNext()) {
+        try {
+            iterator.next();
+        } catch (RuntimeException exc) {
+            // Validate injected exception type.
+            Assert.assertEquals(RuntimeException.class, exc.getCause().getClass());
+            // Validate injected exception message.
+            Assert.assertEquals(excMsg, exc.getCause().getMessage());
+            // Expected exception seen and validated.
+            excThrown = true;
+        }
+    }
+    Assert.assertTrue(excThrown);
+}

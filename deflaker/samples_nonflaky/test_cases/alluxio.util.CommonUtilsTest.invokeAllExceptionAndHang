@@ -1,0 +1,17 @@
+@Test
+public void invokeAllExceptionAndHang() throws Exception {
+    long start = System.currentTimeMillis();
+    RuntimeException testException = new RuntimeException("failed");
+    try {
+        CommonUtils.invokeAll(Arrays.asList(() -> {
+            Thread.sleep(10 * Constants.SECOND_MS);
+            return null;
+        }, () -> {
+            throw testException;
+        }), 5 * Constants.SECOND_MS);
+        fail("Expected an exception to be thrown");
+    } catch (ExecutionException e) {
+        assertSame(testException, e.getCause());
+    }
+    assertThat("invokeAll should exit early if one of the tasks throws an exception", System.currentTimeMillis() - start, Matchers.lessThan(2L * Constants.SECOND_MS));
+}

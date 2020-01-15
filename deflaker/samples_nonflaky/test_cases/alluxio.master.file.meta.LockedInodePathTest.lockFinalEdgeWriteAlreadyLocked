@@ -1,0 +1,17 @@
+@Test
+public void lockFinalEdgeWriteAlreadyLocked() throws Exception {
+    mInodeStore.removeChild(mRootDir.getId(), "a");
+    mPath = create("/a", LockPattern.WRITE_EDGE);
+    LockedInodePath writeLocked = mPath.lockFinalEdgeWrite();
+    assertFalse(writeLocked.fullPathExists());
+    assertEquals(Arrays.asList(mRootDir), writeLocked.getInodeList());
+    checkOnlyNodesReadLocked(mRootDir);
+    checkOnlyNodesWriteLocked();
+    checkOnlyIncomingEdgesReadLocked(mRootDir);
+    checkOnlyIncomingEdgesWriteLocked(mDirA);
+    writeLocked.close();
+    checkOnlyNodesReadLocked(mRootDir);
+    checkOnlyNodesWriteLocked();
+    checkOnlyIncomingEdgesReadLocked(mRootDir);
+    checkOnlyIncomingEdgesWriteLocked(mDirA);
+}

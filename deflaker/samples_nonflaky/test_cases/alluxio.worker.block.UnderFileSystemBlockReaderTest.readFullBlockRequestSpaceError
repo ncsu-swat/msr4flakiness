@@ -1,0 +1,10 @@
+@Test
+public void readFullBlockRequestSpaceError() throws Exception {
+    BlockStore errorThrowingBlockStore = spy(mAlluxioBlockStore);
+    doThrow(new WorkerOutOfSpaceException("Ignored")).when(errorThrowingBlockStore).requestSpace(anyLong(), anyLong(), anyLong());
+    mReader = UnderFileSystemBlockReader.create(mUnderFileSystemBlockMeta, 0, errorThrowingBlockStore, mUfsManager, mUfsInstreamManager);
+    ByteBuffer buffer = mReader.read(0, TEST_BLOCK_SIZE);
+    Assert.assertTrue(BufferUtils.equalIncreasingByteBuffer(0, (int) TEST_BLOCK_SIZE, buffer));
+    mReader.close();
+    Assert.assertNull(mAlluxioBlockStore.getTempBlockMeta(SESSION_ID, BLOCK_ID));
+}

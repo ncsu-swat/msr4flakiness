@@ -1,0 +1,26 @@
+@Test
+public void listFiles() throws Exception {
+    CreateFileContext options = CreateFileContext.mergeFrom(CreateFilePOptions.newBuilder().setBlockSizeBytes(64));
+    HashSet<Long> ids = new HashSet<>();
+    HashSet<Long> dirIds = new HashSet<>();
+    for (int i = 0; i < 10; i++) {
+        AlluxioURI dir = new AlluxioURI("/i" + i);
+        mFsMaster.createDirectory(dir, CreateDirectoryContext.defaults());
+        dirIds.add(mFsMaster.getFileId(dir));
+        for (int j = 0; j < 10; j++) {
+            ids.add(mFsMaster.createFile(dir.join("j" + j), options).getFileId());
+        }
+    }
+    HashSet<Long> listedIds = new HashSet<>();
+    HashSet<Long> listedDirIds = new HashSet<>();
+    List<FileInfo> infoList = mFsMaster.listStatus(new AlluxioURI("/"), ListStatusContext.defaults());
+    for (FileInfo info : infoList) {
+        long id = info.getFileId();
+        listedDirIds.add(id);
+        for (FileInfo fileInfo : mFsMaster.listStatus(new AlluxioURI(info.getPath()), ListStatusContext.defaults())) {
+            listedIds.add(fileInfo.getFileId());
+        }
+    }
+    Assert.assertEquals(ids, listedIds);
+    Assert.assertEquals(dirIds, listedDirIds);
+}

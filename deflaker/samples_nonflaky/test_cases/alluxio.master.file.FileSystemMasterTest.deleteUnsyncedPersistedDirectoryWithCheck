@@ -1,0 +1,23 @@
+/**
+ * Tests the {@link FileSystemMaster#delete(AlluxioURI, DeleteContext)} method for
+ * a directory with un-synced persistent entries with a sync check.
+ */
+@Test
+public void deleteUnsyncedPersistedDirectoryWithCheck() throws Exception {
+    AlluxioURI ufsMount = createPersistedDirectories(1);
+    mountPersistedDirectories(ufsMount);
+    loadPersistedDirectories(1);
+    // Add a file to the UFS.
+    Files.createFile(Paths.get(ufsMount.join(DIR_TOP_LEVEL).join(FILE_PREFIX + (DIR_WIDTH)).getPath()));
+    // delete top-level directory
+    try {
+        mFileSystemMaster.delete(new AlluxioURI(MOUNT_URI).join(DIR_TOP_LEVEL), DeleteContext.mergeFrom(DeletePOptions.newBuilder().setRecursive(true).setAlluxioOnly(false).setUnchecked(false)));
+        fail();
+    } catch (IOException e) {
+    // Expected
+    }
+    // Check all that could be deleted.
+    List<AlluxioURI> except = new ArrayList<>();
+    except.add(new AlluxioURI(MOUNT_URI).join(DIR_TOP_LEVEL));
+    checkPersistedDirectoriesDeleted(1, ufsMount, except);
+}

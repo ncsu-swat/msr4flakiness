@@ -1,0 +1,36 @@
+@Test
+public void objectOkResponse() throws Exception {
+    class Obj {
+
+        private final int mStatus;
+
+        private final String mMessage;
+
+        Obj(int status, String message) {
+            mStatus = status;
+            mMessage = message;
+        }
+
+        public int getStatus() {
+            return mStatus;
+        }
+
+        public String getMessage() {
+            return mMessage;
+        }
+    }
+    int status = 200;
+    String message = "OK";
+    final Obj object = new Obj(status, message);
+    Response response = RestUtils.call(new RestUtils.RestCallable<Obj>() {
+
+        @Override
+        public Obj call() throws Exception {
+            return object;
+        }
+    }, ServerConfiguration.global());
+    Assert.assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
+    Obj obj = (Obj) response.getEntity();
+    Assert.assertEquals(status, obj.getStatus());
+    Assert.assertEquals(message, obj.getMessage());
+}

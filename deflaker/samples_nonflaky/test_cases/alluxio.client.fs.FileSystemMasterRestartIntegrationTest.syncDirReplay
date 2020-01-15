@@ -1,0 +1,38 @@
+@Test
+public void syncDirReplay() throws Exception {
+    AlluxioURI dir = new AlluxioURI("/dir/");
+    // Add ufs nested file.
+    String ufs = ServerConfiguration.get(PropertyKey.MASTER_MOUNT_TABLE_ROOT_UFS);
+    Files.createDirectory(Paths.get(ufs, "dir"));
+    Files.createFile(Paths.get(ufs, "dir", "file"));
+    File ufsDir = new File(Paths.get(ufs, "dir").toString());
+    Assert.assertTrue(ufsDir.setReadable(true, false));
+    Assert.assertTrue(ufsDir.setWritable(true, false));
+    Assert.assertTrue(ufsDir.setExecutable(true, false));
+    // List dir with syncing
+    FileInfo info = mFsMaster.getFileInfo(dir, GetStatusContext.mergeFrom(GetStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.NEVER).setCommonOptions(FileSystemMasterCommonPOptions.newBuilder().setSyncIntervalMs(0).build())));
+    Assert.assertNotNull(info);
+    Assert.assertEquals("dir", info.getName());
+    // Retrieve the mode
+    int mode = info.getMode();
+    // Update mode of the ufs dir
+    Assert.assertTrue(ufsDir.setExecutable(false, false));
+    // List dir with syncing, should update the mode
+    info = mFsMaster.getFileInfo(dir, GetStatusContext.mergeFrom(GetStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.NEVER).setCommonOptions(FileSystemMasterCommonPOptions.newBuilder().setSyncIntervalMs(0).build())));
+    Assert.assertNotNull(info);
+    Assert.assertEquals("dir", info.getName());
+    Assert.assertNotEquals(mode, info.getMode());
+    // update the expected mode
+    mode = info.getMode();
+    // Stop Alluxio.
+    mLocalAlluxioClusterResource.get().stopFS();
+    // Create the master using the existing journal.
+    try (FsMasterResource masterResource = createFileSystemMasterFromJournal()) {
+        FileSystemMaster fsMaster = masterResource.getRegistry().get(FileSystemMaster.class);
+        // List what is in Alluxio, without syncing.
+        info = fsMaster.getFileInfo(dir, GetStatusContext.mergeFrom(GetStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.NEVER).setCommonOptions(FileSystemMasterCommonPOptions.newBuilder().setSyncIntervalMs(-1).build())));
+        Assert.assertNotNull(info);
+        Assert.assertEquals("dir", info.getName());
+        Assert.assertEquals(mode, info.getMode());
+    }
+}

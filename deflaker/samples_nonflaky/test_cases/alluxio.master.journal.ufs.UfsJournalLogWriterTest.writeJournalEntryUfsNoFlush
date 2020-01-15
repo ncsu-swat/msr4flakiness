@@ -1,0 +1,24 @@
+/**
+ * Writes journal entries while the UFS has no flush supported.
+ */
+@Test
+public void writeJournalEntryUfsNoFlush() throws Exception {
+    Mockito.when(mUfs.supportsFlush()).thenReturn(false);
+    long nextSN = 0x20;
+    UfsJournalLogWriter writer = new UfsJournalLogWriter(mJournal, nextSN);
+    for (int i = 0; i < 10; i++) {
+        writer.write(newEntry(nextSN));
+        nextSN++;
+        if (i % 5 == 0) {
+            writer.flush();
+        }
+    }
+    writer.close();
+    UfsJournalSnapshot snapshot = UfsJournalSnapshot.getSnapshot(mJournal);
+    Assert.assertTrue(snapshot.getCheckpoints().isEmpty());
+    // 0x20 - 0x21, 0x21 - 0x26, 0x26 - 0x2a
+    Assert.assertEquals(3, snapshot.getLogs().size());
+    Assert.assertEquals(UfsJournalFile.encodeLogFileLocation(mJournal, 0x20, 0x21), snapshot.getLogs().get(0).getLocation());
+    Assert.assertEquals(UfsJournalFile.encodeLogFileLocation(mJournal, 0x21, 0x26), snapshot.getLogs().get(1).getLocation());
+    Assert.assertEquals(UfsJournalFile.encodeLogFileLocation(mJournal, 0x26, 0x2a), snapshot.getLogs().get(2).getLocation());
+}

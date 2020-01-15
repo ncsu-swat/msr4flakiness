@@ -1,0 +1,16 @@
+@Test
+public void sitePropertiesNotLoadedInTest() throws Exception {
+    Properties props = new Properties();
+    props.setProperty(PropertyKey.LOGGER_TYPE.toString(), "TEST_LOGGER");
+    File propsFile = mFolder.newFile(Constants.SITE_PROPERTIES);
+    props.store(new FileOutputStream(propsFile), "ignored header");
+    // Avoid interference from system properties. Reset SITE_CONF_DIR to include the temp
+    // site-properties file
+    HashMap<String, String> sysProps = new HashMap<>();
+    sysProps.put(PropertyKey.LOGGER_TYPE.toString(), null);
+    sysProps.put(PropertyKey.SITE_CONF_DIR.toString(), mFolder.getRoot().getAbsolutePath());
+    try (Closeable p = new SystemPropertyRule(sysProps).toResource()) {
+        mConfiguration = ConfigurationTestUtils.defaults();
+        assertEquals(PropertyKey.LOGGER_TYPE.getDefaultValue(), mConfiguration.get(PropertyKey.LOGGER_TYPE));
+    }
+}

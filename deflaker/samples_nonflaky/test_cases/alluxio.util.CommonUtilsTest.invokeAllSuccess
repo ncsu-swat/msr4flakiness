@@ -1,0 +1,20 @@
+@Test
+public void invokeAllSuccess() throws Exception {
+    int numTasks = 5;
+    final CyclicBarrier b = new CyclicBarrier(numTasks);
+    final AtomicInteger completed = new AtomicInteger();
+    List<Callable<Void>> tasks = new ArrayList<>();
+    for (int i = 0; i < numTasks; i++) {
+        tasks.add(new Callable<Void>() {
+
+            @Override
+            public Void call() throws Exception {
+                b.await();
+                completed.incrementAndGet();
+                return null;
+            }
+        });
+    }
+    CommonUtils.invokeAll(tasks, 10 * Constants.SECOND_MS);
+    assertEquals(numTasks, completed.get());
+}

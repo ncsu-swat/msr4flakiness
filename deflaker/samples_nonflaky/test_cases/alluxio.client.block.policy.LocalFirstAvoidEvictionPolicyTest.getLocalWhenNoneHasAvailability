@@ -1,0 +1,13 @@
+/**
+ * Tests that local host is picked if none of the workers has enough availability.
+ */
+@Test
+public void getLocalWhenNoneHasAvailability() {
+    String localhostName = NetworkAddressUtils.getLocalHostName(1000);
+    BlockLocationPolicy policy = new LocalFirstAvoidEvictionPolicy(mConf);
+    List<BlockWorkerInfo> workers = new ArrayList<>();
+    workers.add(worker(Constants.GB, Constants.MB, "worker1", ""));
+    workers.add(worker(Constants.GB, Constants.MB, localhostName, ""));
+    GetWorkerOptions options = GetWorkerOptions.defaults().setBlockWorkerInfos(workers).setBlockInfo(new BlockInfo().setLength(Constants.GB));
+    assertEquals(localhostName, policy.getWorker(options).getHost());
+}

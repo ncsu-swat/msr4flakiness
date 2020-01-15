@@ -1,0 +1,16 @@
+/**
+ * Tests mounting a shadow Alluxio dir.
+ */
+@Test
+public void mountShadowDir() throws Exception {
+    AlluxioURI alluxioURI = new AlluxioURI("/hello");
+    AlluxioURI ufsURI = createTempUfsDir("ufs/hello/shadow");
+    mFileSystemMaster.mount(alluxioURI, ufsURI.getParent(), MountContext.defaults());
+    AlluxioURI shadowAlluxioURI = new AlluxioURI("/hello/shadow");
+    AlluxioURI notShadowAlluxioURI = new AlluxioURI("/hello/notshadow");
+    AlluxioURI shadowUfsURI = createTempUfsDir("ufs/hi");
+    AlluxioURI notShadowUfsURI = createTempUfsDir("ufs/notshadowhi");
+    mFileSystemMaster.mount(notShadowAlluxioURI, notShadowUfsURI, MountContext.defaults());
+    mThrown.expect(IOException.class);
+    mFileSystemMaster.mount(shadowAlluxioURI, shadowUfsURI, MountContext.defaults());
+}

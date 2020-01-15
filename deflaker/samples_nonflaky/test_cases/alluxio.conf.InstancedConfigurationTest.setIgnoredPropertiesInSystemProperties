@@ -1,0 +1,15 @@
+@Test
+public void setIgnoredPropertiesInSystemProperties() throws Exception {
+    Properties siteProps = new Properties();
+    File propsFile = mFolder.newFile(Constants.SITE_PROPERTIES);
+    siteProps.store(new FileOutputStream(propsFile), "tmp site properties file");
+    Map<String, String> sysProps = new HashMap<>();
+    sysProps.put(PropertyKey.LOGS_DIR.toString(), "/tmp/logs1");
+    sysProps.put(PropertyKey.SITE_CONF_DIR.toString(), mFolder.getRoot().getAbsolutePath());
+    sysProps.put(PropertyKey.TEST_MODE.toString(), "false");
+    try (Closeable p = new SystemPropertyRule(sysProps).toResource()) {
+        resetConf();
+        assertEquals(Source.SYSTEM_PROPERTY, mConfiguration.getSource(PropertyKey.LOGS_DIR));
+        assertEquals("/tmp/logs1", mConfiguration.get(PropertyKey.LOGS_DIR));
+    }
+}

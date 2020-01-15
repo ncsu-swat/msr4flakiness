@@ -1,0 +1,22 @@
+/**
+ * Make sure Pinning and Unpinning would recursively sync the directory if ufs sync is on.
+ */
+@Test
+public void pinDiscoverNewFiles() throws Exception {
+    String deeplyNestedDir = "/tmp/tmp2/tmp3";
+    // Create a dir
+    new File(ufsPath(deeplyNestedDir)).mkdirs();
+    // Write a file in UFS
+    FileWriter fileWriter = new FileWriter(ufsPath(PathUtils.concatPath(deeplyNestedDir, "/newfile")));
+    fileWriter.write("test");
+    fileWriter.close();
+    SetAttributePOptions attributeOption = SetAttributePOptions.newBuilder().setPinned(true).setCommonOptions(SYNC_ALWAYS).build();
+    GetStatusPOptions getStatusOption = GetStatusPOptions.newBuilder().setCommonOptions(SYNC_NEVER).build();
+    // Pin the dir
+    mFileSystem.setAttribute(new AlluxioURI("/mnt/tmp/"), attributeOption);
+    ServerConfiguration.set(PropertyKey.USER_FILE_METADATA_LOAD_TYPE, LoadMetadataType.NEVER.toString());
+    URIStatus dirStat = mFileSystem.getStatus(new AlluxioURI("/mnt/tmp/"), getStatusOption);
+    URIStatus fileStat = mFileSystem.getStatus(new AlluxioURI(PathUtils.concatPath("/mnt", deeplyNestedDir, "newfile")), getStatusOption);
+    Assert.assertTrue(dirStat.isPinned());
+    Assert.assertTrue(fileStat.isPinned());
+}

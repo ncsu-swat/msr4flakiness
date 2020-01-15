@@ -1,0 +1,24 @@
+@Test
+public void gainPrimacyAfterSuspend() throws Exception {
+    // Create a counting master implementation that counts how many journal entries it processed.
+    CountingDummyFileSystemMaster countingMaster = new CountingDummyFileSystemMaster();
+    mFollowerJournalSystem.createJournal(countingMaster);
+    // Suspend follower journal system.
+    mFollowerJournalSystem.suspend();
+    // Create entries on the leader journal context.
+    // These will be replicated to follower journal context.
+    final int entryCount = 10;
+    try (JournalContext journalContext = mLeaderJournalSystem.createJournal(new NoopMaster()).createJournalContext()) {
+        for (int i = 0; i < entryCount; i++) {
+            journalContext.append(alluxio.proto.journal.Journal.JournalEntry.newBuilder().setInodeLastModificationTime(File.InodeLastModificationTimeEntry.newBuilder().setId(i).build()).build());
+        }
+    }
+    // Assert that no entries applied by suspended journal system.
+    Assert.assertEquals(0, countingMaster.getApplyCount());
+    // Gain primacy in follower journal and validate it catches up.
+    mFollowerJournalSystem.gainPrimacy();
+    CommonUtils.waitFor("full state acquired after resume", () -> countingMaster.getApplyCount() == entryCount);
+    // Resuming should fail after becoming primary.
+    mThrown.expect(IllegalStateException.class);
+    mFollowerJournalSystem.resume();
+}

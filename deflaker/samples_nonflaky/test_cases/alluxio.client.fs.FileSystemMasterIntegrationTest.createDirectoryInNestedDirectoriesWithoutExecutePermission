@@ -1,0 +1,16 @@
+/**
+ * Tests creating a directory in a nested directory without execute permission.
+ */
+@Test(expected = IOException.class)
+public void createDirectoryInNestedDirectoriesWithoutExecutePermission() throws Exception {
+    // Assume the user is not root. This test doesn't work as root because root *is* allowed to
+    // create subdirectories even without execute permission on the parent directory.
+    assumeFalse(ShellUtils.execCommand("id", "-u").trim().equals("0"));
+    String ufs = ServerConfiguration.get(PropertyKey.MASTER_MOUNT_TABLE_ROOT_UFS);
+    String parentPath = Paths.get(ufs, "d1").toString();
+    FileUtils.createDir(parentPath);
+    FileUtils.changeLocalFilePermission(parentPath, new Mode((short) 0600).toString());
+    AlluxioURI path = new AlluxioURI(Paths.get("/d1", "d2", "d3", "d4").toString());
+    // this should fail
+    mFsMaster.createDirectory(path, CreateDirectoryContext.mergeFrom(CreateDirectoryPOptions.newBuilder().setRecursive(true).setMode(new Mode((short) 0755).toProto())).setWriteType(WriteType.CACHE_THROUGH));
+}

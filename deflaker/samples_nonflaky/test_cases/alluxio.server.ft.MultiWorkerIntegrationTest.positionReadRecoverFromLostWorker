@@ -1,0 +1,19 @@
+@Test
+@LocalAlluxioClusterResource.Config(confParams = { PropertyKey.Name.USER_SHORT_CIRCUIT_ENABLED, "false", PropertyKey.Name.USER_BLOCK_SIZE_BYTES_DEFAULT, "4MB", PropertyKey.Name.USER_NETWORK_READER_CHUNK_SIZE_BYTES, "64KB", PropertyKey.Name.WORKER_MEMORY_SIZE, "1GB" })
+public void positionReadRecoverFromLostWorker() throws Exception {
+    int offset = 1 * Constants.MB;
+    int length = 7 * Constants.MB;
+    int total = offset + length;
+    // creates a test file on one worker
+    AlluxioURI filePath = new AlluxioURI("/test");
+    FileSystem fs = mResource.get().getClient();
+    createFileOnWorker(total, filePath, mResource.get().getWorkerAddress());
+    try (FileInStream in = fs.openFile(filePath, OpenFilePOptions.getDefaultInstance())) {
+        byte[] buf = new byte[length];
+        replicateFileBlocks(filePath);
+        mResource.get().getWorkerProcess().stop();
+        int size = in.positionedRead(offset, buf, 0, length);
+        Assert.assertEquals(length, size);
+        Assert.assertTrue(BufferUtils.equalIncreasingByteArray(offset, size, buf));
+    }
+}

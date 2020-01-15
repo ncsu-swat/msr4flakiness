@@ -1,0 +1,19 @@
+/**
+ * Tests md5 checksum calculation with wildcard.
+ */
+@Test
+public void checksumWildCard() throws Exception {
+    FileSystemTestUtils.createByteFile(mFileSystem, "/testDir/testFileA", WritePType.MUST_CACHE, 10);
+    FileSystemTestUtils.createByteFile(mFileSystem, "/testDir2/testFileB", WritePType.MUST_CACHE, 10);
+    mFsShell.run("checksum", "/testDir*/testFile*");
+    String str = mOutput.toString();
+    String[] splitString = str.split("\\s+");
+    byte[] data = BufferUtils.getIncreasingByteArray(10);
+    try {
+        String expectedMd5 = DigestUtils.md5Hex(data);
+        Assert.assertEquals(splitString[1], expectedMd5);
+        Assert.assertEquals(splitString[3], expectedMd5);
+    } catch (Exception e) {
+        Assert.fail("md5cksum failure not expected: " + e.getMessage());
+    }
+}

@@ -1,0 +1,16 @@
+@Test
+public void longCapacity() throws IOException {
+    List<WorkerInfo> longInfoList = prepareLongInfoList();
+    Mockito.when(mBlockMasterClient.getWorkerReport(Mockito.any())).thenReturn(longInfoList);
+    try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        PrintStream printStream = new PrintStream(outputStream, true, "utf-8")) {
+        CapacityCommand capacityCommand = new CapacityCommand(mBlockMasterClient, printStream);
+        capacityCommand.generateCapacityReport(GetWorkerReportOptions.defaults());
+        String output = new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
+        // CHECKSTYLE.OFF: LineLengthExceed - Much more readable
+        List<String> expectedOutput = Arrays.asList("Capacity information for all workers: ", "    Total Capacity: 29.80GB", "        Tier: MEM  Size: 8.38GB", "        Tier: SSD  Size: 4768.37MB", "        Tier: HDD  Size: 1907.35MB", "        Tier: DOM  Size: 9.31GB", "        Tier: RAM  Size: 5.59GB", "    Used Capacity: 10.24GB", "        Tier: MEM  Size: 3051.76MB", "        Tier: SSD  Size: 286.10MB", "        Tier: HDD  Size: 1907.35MB", "        Tier: DOM  Size: 476.84MB", "        Tier: RAM  Size: 4768.37MB", "    Used Percentage: 34%", "    Free Percentage: 66%", "", "Worker Name      Last Heartbeat   Storage       Total            MEM           SSD           HDD           DOM           RAM           ", "216.239.33.96    542              capacity      18.63GB          4768.37MB     4768.37MB     -             9.31GB        -             ", "                                  used          953.67MB (5%)    190.73MB      286.10MB      -             476.84MB      -             ", "64.68.90.1       3123             capacity      11.18GB          3814.70MB     -             1907.35MB     -             5.59GB        ", "                                  used          9.31GB (83%)     2861.02MB     -             1907.35MB     -             4768.37MB     ");
+        // CHECKSTYLE.ON: LineLengthExceed
+        List<String> testOutput = Arrays.asList(output.split("\n"));
+        Assert.assertThat(testOutput, IsIterableContainingInOrder.contains(expectedOutput.toArray()));
+    }
+}

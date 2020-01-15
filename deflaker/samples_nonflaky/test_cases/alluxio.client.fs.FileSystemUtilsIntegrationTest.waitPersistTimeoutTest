@@ -1,0 +1,10 @@
+@Test
+public void waitPersistTimeoutTest() throws Exception {
+    String path = PathUtils.uniqPath();
+    AlluxioURI alluxioPath = new AlluxioURI(path);
+    FileSystemTestUtils.createByteFile(sFileSystem, path, WritePType.MUST_CACHE, 4096);
+    assertFalse("File cannot yet be persisted", sFileSystem.getStatus(alluxioPath).isPersisted());
+    mThrown.expect(TimeoutException.class);
+    // 1ms timeout
+    FileSystemUtils.persistAndWait(sFileSystem, alluxioPath, 0, 1);
+}

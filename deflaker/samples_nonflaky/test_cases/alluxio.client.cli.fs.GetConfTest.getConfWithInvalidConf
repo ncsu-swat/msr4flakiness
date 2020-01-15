@@ -1,0 +1,11 @@
+@Test
+public void getConfWithInvalidConf() throws Exception {
+    try (Closeable p = new SystemPropertyRule(ImmutableMap.of(PropertyKey.CONF_VALIDATION_ENABLED.toString(), "false", PropertyKey.ZOOKEEPER_ENABLED.toString(), "true")).toResource()) {
+        ServerConfiguration.reset();
+        ClientContext ctx = ClientContext.create(ServerConfiguration.global());
+        assertEquals(0, GetConf.getConf(ctx, PropertyKey.ZOOKEEPER_ENABLED.toString()));
+        assertEquals("true\n", mOutputStream.toString());
+    } finally {
+        ServerConfiguration.reset();
+    }
+}

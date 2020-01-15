@@ -1,0 +1,17 @@
+/**
+ * Tests that different sessions can concurrently grab block locks on different blocks.
+ */
+@Test
+public void differentSessionLockDifferentBlocks() throws Exception {
+    TieredBlockStoreTestUtils.cache(SESSION_ID1, BLOCK_ID1, BLOCK_SIZE, mTestDir1, mMetaManager, mEvictor);
+    TieredBlockStoreTestUtils.cache(SESSION_ID2, BLOCK_ID2, BLOCK_SIZE, mTestDir2, mMetaManager, mEvictor);
+    long lockId1 = mBlockStore.lockBlock(SESSION_ID1, BLOCK_ID1);
+    assertTrue(Sets.difference(mLockManager.getLockedBlocks(), Sets.newHashSet(BLOCK_ID1)).isEmpty());
+    long lockId2 = mBlockStore.lockBlock(SESSION_ID2, BLOCK_ID2);
+    assertNotEquals(lockId1, lockId2);
+    assertTrue(Sets.difference(mLockManager.getLockedBlocks(), Sets.newHashSet(BLOCK_ID1, BLOCK_ID2)).isEmpty());
+    mBlockStore.unlockBlock(lockId2);
+    assertTrue(Sets.difference(mLockManager.getLockedBlocks(), Sets.newHashSet(BLOCK_ID1)).isEmpty());
+    mBlockStore.unlockBlock(lockId1);
+    assertTrue(mLockManager.getLockedBlocks().isEmpty());
+}

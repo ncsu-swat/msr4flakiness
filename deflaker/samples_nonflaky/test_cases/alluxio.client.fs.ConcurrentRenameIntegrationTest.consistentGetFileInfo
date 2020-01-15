@@ -1,0 +1,62 @@
+/**
+ * Tests that getFileInfo (read operation) either returns the correct file info or fails if it
+ * has been renamed while the operation was waiting for the file lock.
+ */
+@Test
+public void consistentGetFileInfo() throws Exception {
+    final int iterations = CONCURRENCY_FACTOR;
+    final AlluxioURI file = new AlluxioURI("/file");
+    final AlluxioURI dst = new AlluxioURI("/dst");
+    final CyclicBarrier barrier = new CyclicBarrier(2);
+    // If there are exceptions, we will store them here.
+    final ConcurrentHashSet<Throwable> errors = new ConcurrentHashSet<>();
+    Thread.UncaughtExceptionHandler exceptionHandler = new Thread.UncaughtExceptionHandler() {
+
+        public void uncaughtException(Thread th, Throwable ex) {
+            errors.add(ex);
+        }
+    };
+    for (int i = 0; i < iterations; i++) {
+        // Don't want sleeping ufs behavior, so do not write to ufs
+        mFileSystem.createFile(file, CreateFilePOptions.newBuilder().setWriteType(WritePType.MUST_CACHE).build()).close();
+        Thread renamer = new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+                try {
+                    AuthenticatedClientUser.set(TEST_USER);
+                    barrier.await();
+                    mFileSystem.rename(file, dst);
+                    mFileSystem.delete(dst);
+                } catch (Exception e) {
+                    Assert.fail(e.getMessage());
+                }
+            }
+        });
+        renamer.setUncaughtExceptionHandler(exceptionHandler);
+        Thread reader = new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+                try {
+                    AuthenticatedClientUser.set(TEST_USER);
+                    barrier.await();
+                    URIStatus status = mFileSystem.getStatus(file);
+                    // If the uri status is successfully obtained, then the path should match
+                    Assert.assertEquals(file.getName(), status.getName());
+                } catch (AlluxioException e) {
+                // AlluxioException - if the file is renamed while the thread waits for the lock.
+                // FileDoesNotExistException - if the file is fully renamed before the getFileInfo call.
+                } catch (Exception e) {
+                    Assert.fail(e.getMessage());
+                }
+            }
+        });
+        reader.setUncaughtExceptionHandler(exceptionHandler);
+        renamer.start();
+        reader.start();
+        renamer.join();
+        reader.join();
+        Assert.assertTrue("Errors detected: " + errors, errors.isEmpty());
+    }
+}

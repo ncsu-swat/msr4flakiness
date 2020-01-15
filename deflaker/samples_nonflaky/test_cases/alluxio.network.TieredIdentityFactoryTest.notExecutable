@@ -1,0 +1,13 @@
+@Test
+public void notExecutable() throws Exception {
+    File script = mFolder.newFile();
+    FileUtils.writeStringToFile(script, "#!/bin/bash");
+    try (Closeable c = new ConfigurationRule(ImmutableMap.of(PropertyKey.LOCALITY_SCRIPT, script.getAbsolutePath()), mConfiguration).toResource()) {
+        try {
+            TieredIdentity identity = TieredIdentityFactory.create(mConfiguration);
+        } catch (RuntimeException e) {
+            assertThat(e.getMessage(), containsString(script.getAbsolutePath()));
+            assertThat(e.getMessage(), containsString("Permission denied"));
+        }
+    }
+}

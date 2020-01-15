@@ -1,0 +1,51 @@
+/**
+ * Tests when there are multiple readers reading the same file that is in UFS.
+ */
+@Test
+@LocalAlluxioClusterResource.Config(confParams = { PropertyKey.Name.USER_SHORT_CIRCUIT_ENABLED, "false", PropertyKey.Name.USER_BLOCK_SIZE_BYTES_DEFAULT, "10240", PropertyKey.Name.USER_FILE_BUFFER_BYTES, "128" })
+public void concurrentRemoteRead() throws Exception {
+    int blockSize = 10240;
+    final int bufferSize = 128;
+    final int length = blockSize * 2;
+    // Create files of varying size and write type to later read from
+    final AlluxioURI path = new AlluxioURI(mTestPath + "/largeFile");
+    FileSystemTestUtils.createByteFile(mFileSystem, path, CreateFilePOptions.newBuilder().setWriteType(WritePType.THROUGH).build(), length);
+    final int concurrency = 10;
+    final AtomicInteger count = new AtomicInteger(0);
+    ExecutorService service = Executors.newFixedThreadPool(concurrency * 2);
+    for (int i = 0; i < concurrency; ++i) {
+        service.submit(new Runnable() {
+
+            @Override
+            public void run() {
+                try (FileInStream is = mFileSystem.openFile(path, OpenFilePOptions.newBuilder().setReadType(ReadPType.CACHE).build())) {
+                    int start = 0;
+                    while (start < length) {
+                        byte[] buffer = new byte[bufferSize];
+                        int bytesRead = is.read(buffer, 0, bufferSize);
+                        Assert.assertTrue(BufferUtils.equalIncreasingByteArray(start, bytesRead, buffer));
+                        start = bytesRead + start;
+                    }
+                    count.incrementAndGet();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+                try (FileInStream is = mFileSystem.openFile(path, OpenFilePOptions.newBuilder().setReadType(ReadPType.CACHE).build())) {
+                    int start = 0;
+                    while (start < length) {
+                        byte[] buffer = new byte[bufferSize];
+                        int bytesRead = is.read(buffer, 0, bufferSize);
+                        Assert.assertTrue(BufferUtils.equalIncreasingByteArray(start, bytesRead, buffer));
+                        start = bytesRead + start;
+                    }
+                    count.incrementAndGet();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+    }
+    service.shutdown();
+    service.awaitTermination(Constants.MINUTE_MS, TimeUnit.MILLISECONDS);
+    Assert.assertEquals(concurrency * 2, count.get());
+}

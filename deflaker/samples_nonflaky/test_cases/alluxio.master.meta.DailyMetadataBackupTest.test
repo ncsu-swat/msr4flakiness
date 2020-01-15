@@ -1,0 +1,24 @@
+@Test
+public void test() throws Exception {
+    int fileToRetain = 1;
+    try (Closeable c = new ConfigurationRule(ImmutableMap.of(PropertyKey.MASTER_BACKUP_DIRECTORY, mBackupDir, PropertyKey.MASTER_DAILY_BACKUP_ENABLED, "true", PropertyKey.MASTER_DAILY_BACKUP_FILES_RETAINED, String.valueOf(fileToRetain)), ServerConfiguration.global()).toResource()) {
+        DailyMetadataBackup dailyBackup = new DailyMetadataBackup(mMetaMaster, mScheduler, mUfsManager);
+        dailyBackup.start();
+        int backUpFileNum = 0;
+        when(mUfs.listStatus(mBackupDir)).thenReturn(generateUfsStatuses(++backUpFileNum));
+        mScheduler.jumpAndExecute(1, TimeUnit.DAYS);
+        verify(mMetaMaster, times(backUpFileNum)).backup(any());
+        int deleteFileNum = getNumOfDeleteFile(backUpFileNum, fileToRetain);
+        verify(mUfs, times(deleteFileNum)).deleteFile(any());
+        when(mUfs.listStatus(mBackupDir)).thenReturn(generateUfsStatuses(++backUpFileNum));
+        mScheduler.jumpAndExecute(1, TimeUnit.DAYS);
+        verify(mMetaMaster, times(backUpFileNum)).backup(any());
+        deleteFileNum += getNumOfDeleteFile(backUpFileNum, fileToRetain);
+        verify(mUfs, times(deleteFileNum)).deleteExistingFile(any());
+        when(mUfs.listStatus(mBackupDir)).thenReturn(generateUfsStatuses(++backUpFileNum));
+        mScheduler.jumpAndExecute(1, TimeUnit.DAYS);
+        verify(mMetaMaster, times(backUpFileNum)).backup(any());
+        deleteFileNum += getNumOfDeleteFile(backUpFileNum, fileToRetain);
+        verify(mUfs, times(deleteFileNum)).deleteExistingFile(any());
+    }
+}

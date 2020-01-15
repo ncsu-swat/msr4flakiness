@@ -1,0 +1,17 @@
+@Test
+@LocalAlluxioClusterResource.Config(confParams = { PropertyKey.Name.JOB_MASTER_LOST_WORKER_INTERVAL, "10000000" })
+public void restartMasterAndReregisterWorker() throws Exception {
+    long jobId = mJobMaster.run(new SleepJobConfig(1));
+    JobTestUtils.waitForJobStatus(mJobMaster, jobId, Status.COMPLETED);
+    mJobMaster.stop();
+    mJobMaster.start(true);
+    CommonUtils.waitFor("Worker to register with restarted job master", () -> !mJobMaster.getWorkerInfoList().isEmpty(), WaitForOptions.defaults().setTimeoutMs(10 * Constants.SECOND_MS));
+    final long firstWorkerId = mJobMaster.getWorkerInfoList().get(0).getId();
+    mLocalAlluxioJobCluster.restartWorker();
+    CommonUtils.waitFor("Restarted worker to register with job master", () -> {
+        List<WorkerInfo> workerInfo = mJobMaster.getWorkerInfoList();
+        return !workerInfo.isEmpty() && workerInfo.get(0).getId() != firstWorkerId;
+    }, WaitForOptions.defaults().setTimeoutMs(10 * Constants.SECOND_MS));
+    // The restarted worker should replace the original worker since they have the same address.
+    assertEquals(1, mJobMaster.getWorkerInfoList().size());
+}

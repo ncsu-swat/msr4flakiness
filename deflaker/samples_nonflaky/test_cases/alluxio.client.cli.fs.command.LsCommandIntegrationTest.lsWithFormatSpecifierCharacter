@@ -1,0 +1,13 @@
+/**
+ * Tests ls command with a file where the file name includes a specifier character.
+ */
+@Test
+@LocalAlluxioClusterResource.Config(confParams = { PropertyKey.Name.SECURITY_AUTHORIZATION_PERMISSION_ENABLED, "false", PropertyKey.Name.SECURITY_AUTHENTICATION_TYPE, "NOSASL" })
+public void lsWithFormatSpecifierCharacter() throws IOException, AlluxioException {
+    String fileName = "/localhost%2C61764%2C1476207067267..meta.1476207073442.meta";
+    FileSystemTestUtils.createByteFile(mFileSystem, fileName, WritePType.MUST_CACHE, 10);
+    mFsShell.run("ls", "/");
+    // CHECKSTYLE.OFF: LineLengthExceed - Improve readability
+    checkOutput("             10   NOT_PERSISTED .+ .+ 100% /localhost%2C61764%2C1476207067267..meta.1476207073442.meta");
+// CHECKSTYLE.ON: LineLengthExceed
+}

@@ -1,0 +1,18 @@
+@Test(timeout = 10000)
+public void listDirSyncInterval() throws Exception {
+    ListStatusPOptions options = ListStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.NEVER).setCommonOptions(PSYNC_INTERVAL).build();
+    long startMs = System.currentTimeMillis();
+    List<URIStatus> statusList = mFileSystem.listStatus(new AlluxioURI(alluxioPath(ROOT_DIR)), options);
+    long startSize = statusList.size();
+    int index = 10;
+    while (true) {
+        writeUfsFile(ufsPath(NEW_FILE + index), 1);
+        statusList = mFileSystem.listStatus(new AlluxioURI(alluxioPath(ROOT_DIR)), options);
+        if (statusList.size() != startSize) {
+            break;
+        }
+        index++;
+    }
+    long endMs = System.currentTimeMillis();
+    Assert.assertTrue((endMs - startMs) >= INTERVAL_MS);
+}

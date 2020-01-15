@@ -1,0 +1,32 @@
+@Test
+public void listStatusRecursiveLoadMetadata() throws Exception {
+    final int files = 10;
+    List<FileInfo> infos;
+    // Test files in root directory.
+    for (int i = 0; i < files; i++) {
+        createFileWithSingleBlock(ROOT_URI.join("file" + String.format("%05d", i)));
+    }
+    FileUtils.createFile(Paths.get(mUnderFS).resolve("ufsfile1").toString());
+    // Test interaction between recursive and loadMetadata
+    infos = mFileSystemMaster.listStatus(ROOT_URI, ListStatusContext.mergeFrom(ListStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.ONCE).setRecursive(false)));
+    assertEquals(files + 1, infos.size());
+    FileUtils.createFile(Paths.get(mUnderFS).resolve("ufsfile2").toString());
+    infos = mFileSystemMaster.listStatus(ROOT_URI, ListStatusContext.mergeFrom(ListStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.ONCE).setRecursive(false)));
+    assertEquals(files + 1, infos.size());
+    infos = mFileSystemMaster.listStatus(ROOT_URI, ListStatusContext.mergeFrom(ListStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.ALWAYS).setRecursive(false)));
+    assertEquals(files + 2, infos.size());
+    // Test files in nested directory.
+    for (int i = 0; i < files; i++) {
+        createFileWithSingleBlock(NESTED_URI.join("file" + String.format("%05d", i)));
+    }
+    FileUtils.createFile(Paths.get(mUnderFS).resolve("nested/test/ufsnestedfile1").toString());
+    infos = mFileSystemMaster.listStatus(ROOT_URI, ListStatusContext.mergeFrom(ListStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.ONCE).setRecursive(true)));
+    // 2 sets of files, 2 files inserted at root, 2 directories nested and test,
+    // 1 file ufsnestedfile1
+    assertEquals(files + files + 2 + 2 + 1, infos.size());
+    FileUtils.createFile(Paths.get(mUnderFS).resolve("nested/test/ufsnestedfile2").toString());
+    infos = mFileSystemMaster.listStatus(ROOT_URI, ListStatusContext.mergeFrom(ListStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.ONCE).setRecursive(true)));
+    assertEquals(files + files + 2 + 2 + 1, infos.size());
+    infos = mFileSystemMaster.listStatus(ROOT_URI, ListStatusContext.mergeFrom(ListStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.ALWAYS).setRecursive(true)));
+    assertEquals(files + files + 2 + 2 + 2, infos.size());
+}

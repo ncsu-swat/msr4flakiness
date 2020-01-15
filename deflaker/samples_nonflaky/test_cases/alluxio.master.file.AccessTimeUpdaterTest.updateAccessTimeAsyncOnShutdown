@@ -1,0 +1,29 @@
+@Test
+public void updateAccessTimeAsyncOnShutdown() throws Exception {
+    mAccessTimeUpdater = new AccessTimeUpdater(mFileSystemMaster, mInodeTree, mContext.getJournalSystem(), 10 * Constants.SECOND_MS, 0, 0);
+    mAccessTimeUpdater.start(mScheduler);
+    String path = "/foo";
+    createInode(path, CreateFileContext.defaults());
+    JournalContext journalContext = mock(JournalContext.class);
+    when(journalContext.get()).thenReturn(journalContext);
+    when(mFileSystemMaster.createJournalContext()).thenReturn(journalContext);
+    long accessTime = CommonUtils.getCurrentMs() + 100L;
+    long inodeId;
+    try (LockedInodePath lockedInodes = mInodeTree.lockFullInodePath(new AlluxioURI(path), InodeTree.LockPattern.READ)) {
+        mAccessTimeUpdater.updateAccessTime(journalContext, lockedInodes.getInode(), accessTime);
+        inodeId = lockedInodes.getInode().getId();
+    }
+    // verify inode attribute is updated
+    assertEquals(accessTime, mInodeStore.get(inodeId).get().getLastAccessTimeMs());
+    mScheduler.jumpAndExecute(1, TimeUnit.SECONDS);
+    // verify journal entry is NOT logged yet
+    verify(journalContext, never()).append(any(Journal.JournalEntry.class));
+    // wait for the flush to complete
+    mContext.getJournalSystem().stop();
+    // / verify journal entry is logged after the flush interval
+    ArgumentCaptor<Journal.JournalEntry> captor = ArgumentCaptor.forClass(Journal.JournalEntry.class);
+    verify(journalContext).append(captor.capture());
+    assertTrue(captor.getValue().hasUpdateInode());
+    assertEquals(inodeId, captor.getValue().getUpdateInode().getId());
+    assertEquals(accessTime, captor.getValue().getUpdateInode().getLastAccessTimeMs());
+}

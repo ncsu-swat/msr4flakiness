@@ -1,0 +1,28 @@
+/**
+ * Tests the {@link TieredBlockStore#removeBlock(long, long)} method.
+ */
+@Test
+public void removeBlock() throws Exception {
+    TieredBlockStoreTestUtils.cache(SESSION_ID1, BLOCK_ID1, BLOCK_SIZE, mTestDir1, mMetaManager, mEvictor);
+    mBlockStore.removeBlock(SESSION_ID1, BLOCK_ID1);
+    assertFalse(mTestDir1.hasBlockMeta(BLOCK_ID1));
+    assertFalse(mBlockStore.hasBlockMeta(BLOCK_ID1));
+    assertFalse(FileUtils.exists(BlockMeta.commitPath(mTestDir1, BLOCK_ID1)));
+    // Remove block from specific Dir
+    TieredBlockStoreTestUtils.cache(SESSION_ID2, BLOCK_ID2, BLOCK_SIZE, mTestDir1, mMetaManager, mEvictor);
+    // Remove block from wrong Dir
+    mThrown.expect(BlockDoesNotExistException.class);
+    mThrown.expectMessage(ExceptionMessage.BLOCK_NOT_FOUND_AT_LOCATION.getMessage(BLOCK_ID2, mTestDir2.toBlockStoreLocation()));
+    mBlockStore.removeBlock(SESSION_ID2, BLOCK_ID2, mTestDir2.toBlockStoreLocation());
+    // Remove block from right Dir
+    mBlockStore.removeBlock(SESSION_ID2, BLOCK_ID2, mTestDir1.toBlockStoreLocation());
+    assertFalse(mTestDir1.hasBlockMeta(BLOCK_ID2));
+    assertFalse(mBlockStore.hasBlockMeta(BLOCK_ID2));
+    assertFalse(FileUtils.exists(BlockMeta.commitPath(mTestDir1, BLOCK_ID2)));
+    // Remove block from the specific tier
+    TieredBlockStoreTestUtils.cache(SESSION_ID2, BLOCK_ID2, BLOCK_SIZE, mTestDir1, mMetaManager, mEvictor);
+    mBlockStore.removeBlock(SESSION_ID2, BLOCK_ID2, BlockStoreLocation.anyDirInTier(mTestDir1.getParentTier().getTierAlias()));
+    assertFalse(mTestDir1.hasBlockMeta(BLOCK_ID2));
+    assertFalse(mBlockStore.hasBlockMeta(BLOCK_ID2));
+    assertFalse(FileUtils.exists(BlockMeta.commitPath(mTestDir1, BLOCK_ID2)));
+}

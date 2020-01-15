@@ -1,0 +1,24 @@
+@Test
+public void subsequentCatchups() throws Exception {
+    // Create a counting master implementation that counts how many journal entries it processed.
+    CountingDummyFileSystemMaster countingMaster = new CountingDummyFileSystemMaster();
+    mFollowerJournalSystem.createJournal(countingMaster);
+    // Suspend follower journal system.
+    mFollowerJournalSystem.suspend();
+    final int entryBatchCount = 5;
+    // Create 2 batches of entries on the leader journal context.
+    try (JournalContext journalContext = mLeaderJournalSystem.createJournal(new NoopMaster()).createJournalContext()) {
+        for (int i = 0; i < entryBatchCount * 2; i++) {
+            journalContext.append(alluxio.proto.journal.Journal.JournalEntry.newBuilder().setInodeLastModificationTime(File.InodeLastModificationTimeEntry.newBuilder().setId(i).build()).build());
+        }
+    }
+    Map<String, Long> backupSequences = new HashMap<>();
+    // Catch up follower journal system to first batch of entries.
+    backupSequences.put("FileSystemMaster", (long) entryBatchCount - 1);
+    mFollowerJournalSystem.catchup(backupSequences).waitTermination();
+    // Catch up follower journal system to second batch of entries.
+    backupSequences.put("FileSystemMaster", (long) (2 * entryBatchCount) - 1);
+    mFollowerJournalSystem.catchup(backupSequences).waitTermination();
+    // Verify master has caught up after advancing.
+    Assert.assertEquals(entryBatchCount * 2, countingMaster.getApplyCount());
+}

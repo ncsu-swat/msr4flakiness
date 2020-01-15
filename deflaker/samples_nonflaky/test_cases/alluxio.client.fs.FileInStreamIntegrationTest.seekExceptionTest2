@@ -1,0 +1,17 @@
+/**
+ * Tests {@link FileInStream#seek(long)}. Validate the expected exception for seeking a position
+ * that is past EOF.
+ */
+@Test
+public void seekExceptionTest2() throws Exception {
+    mThrown.expect(IllegalArgumentException.class);
+    for (int k = MIN_LEN; k <= MAX_LEN; k += DELTA) {
+        for (CreateFilePOptions op : getOptionSet()) {
+            String filename = mTestPath + "/file_" + k + "_" + op.hashCode();
+            AlluxioURI uri = new AlluxioURI(filename);
+            try (FileInStream is = mFileSystem.openFile(uri, FileSystemTestUtils.toOpenFileOptions(op))) {
+                is.seek(k + 1);
+            }
+        }
+    }
+}

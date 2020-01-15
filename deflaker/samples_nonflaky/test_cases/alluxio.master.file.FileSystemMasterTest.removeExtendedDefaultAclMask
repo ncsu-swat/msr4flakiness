@@ -1,0 +1,22 @@
+@Test
+public void removeExtendedDefaultAclMask() throws Exception {
+    mFileSystemMaster.createDirectory(NESTED_URI, CreateDirectoryContext.mergeFrom(CreateDirectoryPOptions.newBuilder().setRecursive(true)));
+    AclEntry newAcl = AclEntry.fromCliString("default:user:newuser:rwx");
+    // Add an ACL
+    addAcl(NESTED_URI, newAcl);
+    assertThat(getInfo(NESTED_URI).getDefaultAcl().getEntries(), hasItem(newAcl));
+    // Attempt to remove the ACL mask
+    AclEntry maskEntry = AclEntry.fromCliString("default:mask::rwx");
+    assertThat(getInfo(NESTED_URI).getDefaultAcl().getEntries(), hasItem(maskEntry));
+    try {
+        removeAcl(NESTED_URI, maskEntry);
+        fail("Expected removing the mask from an extended ACL to fail");
+    } catch (IOException e) {
+        assertThat(e.getMessage(), containsString("mask"));
+    }
+    // Remove the extended ACL
+    removeAcl(NESTED_URI, newAcl);
+    // Now we can add and remove a mask
+    addAcl(NESTED_URI, maskEntry);
+    removeAcl(NESTED_URI, maskEntry);
+}

@@ -1,0 +1,11 @@
+@Test
+public void zkConnectionPolicy_Session() throws Exception {
+    mCluster = MultiProcessCluster.newBuilder(PortCoordination.ZOOKEEPER_CONNECTION_POLICY_SESSION).setClusterName("ZookeeperConnectionPolicy_Session").setNumMasters(2).setNumWorkers(0).addProperty(PropertyKey.ZOOKEEPER_LEADER_CONNECTION_ERROR_POLICY, "SESSION").addProperty(PropertyKey.MASTER_JOURNAL_TYPE, JournalType.UFS.toString()).build();
+    mCluster.start();
+    int leaderIdx = getPrimaryMasterIndex();
+    mCluster.restartZk();
+    // Leader will retain its status under SESSION connection error policy.
+    int leaderIdx2 = getPrimaryMasterIndex();
+    assertEquals(leaderIdx, leaderIdx2);
+    mCluster.notifySuccess();
+}

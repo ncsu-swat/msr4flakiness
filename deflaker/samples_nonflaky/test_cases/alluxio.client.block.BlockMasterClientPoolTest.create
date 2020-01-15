@@ -1,0 +1,16 @@
+@Test
+public void create() throws Exception {
+    BlockMasterClient expectedClient = mock(BlockMasterClient.class);
+    PowerMockito.mockStatic(BlockMasterClient.Factory.class);
+    when(BlockMasterClient.Factory.create(any(MasterClientContext.class))).thenReturn(expectedClient);
+    BlockMasterClient client;
+    ClientContext clientContext = ClientContext.create(mConf);
+    MasterInquireClient masterInquireClient = MasterInquireClient.Factory.create(mConf, clientContext.getUserState());
+    MasterClientContext masterClientContext = MasterClientContext.newBuilder(clientContext).setMasterInquireClient(masterInquireClient).build();
+    try (BlockMasterClientPool pool = new BlockMasterClientPool(masterClientContext)) {
+        client = pool.acquire();
+        assertEquals(expectedClient, client);
+        pool.release(client);
+    }
+    verify(client).close();
+}

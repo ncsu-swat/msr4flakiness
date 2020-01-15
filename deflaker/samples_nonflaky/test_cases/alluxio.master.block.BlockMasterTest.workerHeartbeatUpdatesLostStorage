@@ -1,0 +1,23 @@
+@Test
+public void workerHeartbeatUpdatesLostStorage() throws Exception {
+    // Create two workers.
+    long worker1 = mBlockMaster.getWorkerId(NET_ADDRESS_1);
+    mBlockMaster.workerRegister(worker1, Arrays.asList("MEM", "SSD"), ImmutableMap.of("MEM", 100L, "SSD", 200L), ImmutableMap.of("MEM", 0L, "SSD", 0L), NO_BLOCKS_ON_LOCATION, NO_LOST_STORAGE, RegisterWorkerPOptions.getDefaultInstance());
+    long worker2 = mBlockMaster.getWorkerId(NET_ADDRESS_2);
+    mBlockMaster.workerRegister(worker2, Arrays.asList("MEM", "HDD"), ImmutableMap.of("MEM", 100L, "HDD", 300L), ImmutableMap.of("MEM", 0L, "HDD", 0L), NO_BLOCKS_ON_LOCATION, NO_LOST_STORAGE, RegisterWorkerPOptions.getDefaultInstance());
+    Map<String, StorageList> lostStorageOnWorker1 = new HashMap<>();
+    lostStorageOnWorker1.put("SSD", StorageList.newBuilder().addAllStorage(Arrays.asList("/ssd/one", "/ssd/two")).build());
+    Map<String, StorageList> lostStorageOnWorker2 = new HashMap<>();
+    lostStorageOnWorker2.put("HDD", StorageList.newBuilder().addStorage("/hdd/one").build());
+    mBlockMaster.workerHeartbeat(worker1, ImmutableMap.of("MEM", 100L, "SSD", 0L), ImmutableMap.of("MEM", 0L, "SSD", 0L), NO_BLOCKS, NO_BLOCKS_ON_LOCATION, lostStorageOnWorker1, mMetrics);
+    mBlockMaster.workerHeartbeat(worker2, ImmutableMap.of("MEM", 100L, "HDD", 200L), ImmutableMap.of("MEM", 0L, "HDD", 0L), NO_BLOCKS, NO_BLOCKS_ON_LOCATION, lostStorageOnWorker2, mMetrics);
+    // Two workers have lost storage paths
+    assertEquals(2, mBlockMaster.getWorkerLostStorage().size());
+    int lostStorageNum = 0;
+    for (WorkerLostStorageInfo info : mBlockMaster.getWorkerLostStorage()) {
+        for (StorageList list : info.getLostStorageMap().values()) {
+            lostStorageNum += list.getStorageList().size();
+        }
+    }
+    assertEquals(3, lostStorageNum);
+}

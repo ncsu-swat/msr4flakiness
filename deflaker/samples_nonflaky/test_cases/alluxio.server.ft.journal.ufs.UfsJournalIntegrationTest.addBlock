@@ -1,0 +1,16 @@
+/**
+ * Tests adding a block.
+ */
+@Test
+public void addBlock() throws Exception {
+    AlluxioURI uri = new AlluxioURI("/xyz");
+    CreateFilePOptions options = CreateFilePOptions.newBuilder().setBlockSizeBytes(64).setRecursive(true).build();
+    FileOutStream os = mFileSystem.createFile(uri, options);
+    for (int k = 0; k < 1000; k++) {
+        os.write(k);
+    }
+    os.close();
+    URIStatus status = mFileSystem.getStatus(uri);
+    mLocalAlluxioCluster.stopFS();
+    addBlockTestUtil(status);
+}

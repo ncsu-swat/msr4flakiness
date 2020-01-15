@@ -1,0 +1,14 @@
+@Test
+public void mountDeleteMount() throws Exception {
+    AlluxioURI alluxioPath = new AlluxioURI("/mnt");
+    AlluxioURI ufsPath = new AlluxioURI(mFolder.newFolder().getAbsolutePath());
+    mFs.mount(alluxioPath, ufsPath);
+    mFs.delete(alluxioPath, DeletePOptions.newBuilder().setRecursive(true).build());
+    mFs.mount(alluxioPath, ufsPath);
+    mCluster.restartMasters();
+    // need new client after restart
+    mFs = mCluster.getClient();
+    List<URIStatus> status = mFs.listStatus(new AlluxioURI("/"));
+    assertEquals(1, status.size());
+    assertTrue(status.get(0).isMountPoint());
+}

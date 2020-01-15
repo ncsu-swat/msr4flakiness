@@ -1,0 +1,12 @@
+@Test
+public void workerHeartbeatUpdatesMemoryCount() throws Exception {
+    // Create a worker.
+    long worker = mBlockMaster.getWorkerId(NET_ADDRESS_1);
+    Map<String, Long> initialUsedBytesOnTiers = ImmutableMap.of("MEM", 50L);
+    mBlockMaster.workerRegister(worker, Arrays.asList("MEM"), ImmutableMap.of("MEM", 100L), initialUsedBytesOnTiers, NO_BLOCKS_ON_LOCATION, NO_LOST_STORAGE, RegisterWorkerPOptions.getDefaultInstance());
+    // Update used bytes with a worker heartbeat.
+    Map<String, Long> newUsedBytesOnTiers = ImmutableMap.of("MEM", 50L);
+    mBlockMaster.workerHeartbeat(worker, null, newUsedBytesOnTiers, NO_BLOCKS, NO_BLOCKS_ON_LOCATION, NO_LOST_STORAGE, mMetrics);
+    WorkerInfo workerInfo = Iterables.getOnlyElement(mBlockMaster.getWorkerInfoList());
+    assertEquals(50, workerInfo.getUsedBytes());
+}

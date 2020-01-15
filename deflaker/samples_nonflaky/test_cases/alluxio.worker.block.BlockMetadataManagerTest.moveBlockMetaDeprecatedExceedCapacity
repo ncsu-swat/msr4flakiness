@@ -1,0 +1,14 @@
+/**
+ * Tests that an exception is thrown in the
+ * {@link BlockMetadataManager#moveBlockMeta(BlockMeta, BlockStoreLocation)} method when the
+ * capacity is exceeded.
+ */
+@Test
+public void moveBlockMetaDeprecatedExceedCapacity() throws Exception {
+    StorageDir dir = mMetaManager.getTier("HDD").getDir(0);
+    BlockMeta blockMeta = new BlockMeta(TEST_BLOCK_ID, 2000, dir);
+    dir.addBlockMeta(blockMeta);
+    mThrown.expect(WorkerOutOfSpaceException.class);
+    mThrown.expectMessage("does not have enough space");
+    mMetaManager.moveBlockMeta(blockMeta, new BlockStoreLocation("MEM", 0));
+}

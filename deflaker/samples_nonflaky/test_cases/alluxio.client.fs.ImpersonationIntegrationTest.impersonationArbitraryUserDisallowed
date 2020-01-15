@@ -1,0 +1,13 @@
+@Test
+@LocalAlluxioClusterResource.Config(confParams = { IMPERSONATION_GROUPS_CONFIG, "*" })
+public void impersonationArbitraryUserDisallowed() throws Exception {
+    String arbitraryUser = "arbitrary_user";
+    ServerConfiguration.set(PropertyKey.SECURITY_LOGIN_IMPERSONATION_USERNAME, arbitraryUser);
+    FileSystemContext context = FileSystemContext.create(createHdfsSubject(), ServerConfiguration.global());
+    FileSystem fs = mLocalAlluxioClusterResource.get().getClient(context);
+    fs.createFile(new AlluxioURI("/impersonation-test")).close();
+    List<URIStatus> listing = fs.listStatus(new AlluxioURI("/"));
+    Assert.assertEquals(1, listing.size());
+    URIStatus status = listing.get(0);
+    Assert.assertNotEquals(arbitraryUser, status.getOwner());
+}

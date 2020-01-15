@@ -1,0 +1,19 @@
+/**
+ * Tests that common options are propagated to async write request.
+ */
+@Test
+public void asyncWriteOptionPropagation() throws Exception {
+    Random rand = new Random();
+    FileSystemMasterCommonPOptions commonOptions = FileSystemMasterCommonPOptions.newBuilder().setTtl(rand.nextLong()).setTtlAction(TtlAction.values()[rand.nextInt(TtlAction.values().length)]).setSyncIntervalMs(rand.nextLong()).build();
+    OutStreamOptions options = new OutStreamOptions(CreateFilePOptions.newBuilder().setWriteType(WritePType.ASYNC_THROUGH).setBlockSizeBytes(BLOCK_LENGTH).setCommonOptions(commonOptions).build(), mClientContext, sConf);
+    // Verify that OutStreamOptions have captured the common options properly.
+    assertEquals(options.getCommonOptions(), commonOptions);
+    mTestStream = createTestStream(FILE_NAME, options);
+    mTestStream.write(BufferUtils.getIncreasingByteArray((int) (BLOCK_LENGTH * 1.5)));
+    mTestStream.close();
+    verify(mFileSystemMasterClient).completeFile(eq(FILE_NAME), any(CompleteFilePOptions.class));
+    // Verify that common options for OutStreamOptions are propagated to ScheduleAsyncPersistence.
+    ArgumentCaptor<CompleteFilePOptions> parameterCaptor = ArgumentCaptor.forClass(CompleteFilePOptions.class);
+    verify(mFileSystemMasterClient).completeFile(eq(FILE_NAME), parameterCaptor.capture());
+    assertEquals(parameterCaptor.getValue().getAsyncPersistOptions().getCommonOptions(), options.getCommonOptions());
+}

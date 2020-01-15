@@ -1,0 +1,18 @@
+/**
+ * Tests that if an exception is thrown by the underlying out stream, and the user is using
+ * {@link UnderStorageType#SYNC_PERSIST} for their under storage type, the error is recovered
+ * from by writing the data to the under storage out stream.
+ */
+@Test
+public void cacheWriteExceptionSyncPersist() throws IOException {
+    BlockOutStream stream = mock(BlockOutStream.class);
+    when(mBlockStore.getOutStream(anyLong(), anyLong(), any(OutStreamOptions.class))).thenReturn(stream);
+    when(stream.remaining()).thenReturn(BLOCK_LENGTH);
+    doThrow(new IOException("test error")).when(stream).write((byte) 7);
+    mTestStream.write(7);
+    mTestStream.write(8);
+    assertArrayEquals(new byte[] { 7, 8 }, mUnderStorageOutputStream.getWrittenData());
+    // The cache stream is written to only once - the FileInStream gives up on it after it throws
+    // the first exception.
+    verify(stream, times(1)).write(anyByte());
+}

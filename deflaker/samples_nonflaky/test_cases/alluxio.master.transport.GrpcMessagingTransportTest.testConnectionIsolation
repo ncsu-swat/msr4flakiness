@@ -1,0 +1,15 @@
+@Test
+public void testConnectionIsolation() throws Exception {
+    // Catalyst thread context for managing client/server.
+    ThreadContext connectionContext = createSingleThreadContext("ClientServerCtx");
+    // Create and bind transport server.
+    Address address = bindServer(connectionContext, mTransport.server(), new CopycatTransportTestListener());
+    Client transportClient = mTransport.client();
+    // Open 2 client connections to server.
+    Connection clientConnection1 = connectClient(connectionContext, transportClient, address);
+    Connection clientConnection2 = connectClient(connectionContext, transportClient, address);
+    // Close connection-1.
+    clientConnection1.close().get();
+    // Sent request over connection-2. Assert response present and null.
+    Assert.assertNull(sendRequest(clientConnection2, new DummyRequest("dummy")).get());
+}

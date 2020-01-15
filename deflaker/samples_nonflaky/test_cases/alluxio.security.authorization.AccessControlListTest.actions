@@ -1,0 +1,35 @@
+/**
+ * Tests setting and getting permitted actions.
+ */
+@Test
+public void actions() {
+    AccessControlList acl = new AccessControlList();
+    // owning user: rwx
+    // owning group: -rx
+    // other: ---
+    // named user: rwx
+    // named group: w-x
+    acl.setOwningUser(OWNING_USER);
+    acl.setOwningGroup(OWNING_GROUP);
+    acl.setEntry(new AclEntry.Builder().setType(AclEntryType.OWNING_USER).setSubject(OWNING_USER).addAction(AclAction.READ).addAction(AclAction.WRITE).addAction(AclAction.EXECUTE).build());
+    acl.setEntry(new AclEntry.Builder().setType(AclEntryType.OWNING_GROUP).setSubject(OWNING_GROUP).addAction(AclAction.READ).addAction(AclAction.EXECUTE).build());
+    acl.setEntry(new AclEntry.Builder().setType(AclEntryType.OTHER).build());
+    acl.setEntry(new AclEntry.Builder().setType(AclEntryType.NAMED_USER).setSubject(NAMED_USER).addAction(AclAction.READ).addAction(AclAction.WRITE).addAction(AclAction.EXECUTE).build());
+    acl.setEntry(new AclEntry.Builder().setType(AclEntryType.NAMED_GROUP).setSubject(NAMED_GROUP).addAction(AclAction.WRITE).addAction(AclAction.EXECUTE).build());
+    acl.updateMask();
+    // Verify mode.
+    // owning user
+    assertTrue(checkMode(acl, OWNING_USER, Collections.emptyList(), Mode.Bits.ALL));
+    // owning group
+    assertTrue(checkMode(acl, OTHER_USER, Lists.newArrayList(OWNING_GROUP), Mode.Bits.READ_EXECUTE));
+    assertFalse(checkMode(acl, OTHER_USER, Lists.newArrayList(OWNING_GROUP), Mode.Bits.WRITE));
+    // other
+    assertFalse(checkMode(acl, OTHER_USER, Collections.emptyList(), Mode.Bits.READ));
+    assertFalse(checkMode(acl, OTHER_USER, Collections.emptyList(), Mode.Bits.WRITE));
+    assertFalse(checkMode(acl, OTHER_USER, Collections.emptyList(), Mode.Bits.EXECUTE));
+    // named user
+    assertTrue(checkMode(acl, NAMED_USER, Collections.emptyList(), Mode.Bits.ALL));
+    // named group
+    assertTrue(checkMode(acl, OTHER_USER, Lists.newArrayList(NAMED_GROUP), Mode.Bits.WRITE_EXECUTE));
+    assertFalse(checkMode(acl, OTHER_USER, Lists.newArrayList(NAMED_GROUP), Mode.Bits.READ));
+}

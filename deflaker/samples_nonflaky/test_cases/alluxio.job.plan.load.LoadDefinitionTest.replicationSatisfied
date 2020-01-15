@@ -1,0 +1,14 @@
+@Test
+public void replicationSatisfied() throws Exception {
+    int numBlocks = 7;
+    int replication = 3;
+    createFileWithNoLocations(TEST_URI, numBlocks);
+    LoadConfig config = new LoadConfig(TEST_URI, replication);
+    Set<Pair<WorkerInfo, ArrayList<LoadTask>>> assignments = new LoadDefinition().selectExecutors(config, JOB_WORKERS, new SelectExecutorsContext(1, mJobServerContext));
+    // Check that we are loading the right number of blocks.
+    int totalBlockLoads = 0;
+    for (Pair<WorkerInfo, ArrayList<LoadTask>> assignment : assignments) {
+        totalBlockLoads += assignment.getSecond().size();
+    }
+    Assert.assertEquals(numBlocks * replication, totalBlockLoads);
+}

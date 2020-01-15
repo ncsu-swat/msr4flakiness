@@ -1,0 +1,18 @@
+@Test
+public void removeLastInodeImplicitlyLocked() throws Exception {
+    mPath = create("/a", LockPattern.WRITE_EDGE);
+    LockedInodePath pathC = mPath.lockDescendant(new AlluxioURI("/a/b/c"), LockPattern.READ);
+    assertTrue(pathC.fullPathExists());
+    pathC.removeLastInode();
+    assertFalse(pathC.fullPathExists());
+    assertEquals(Arrays.asList(mRootDir, mDirA, mDirB), pathC.getInodeList());
+    checkOnlyNodesReadLocked(mRootDir);
+    checkOnlyNodesWriteLocked(mDirA, mDirB);
+    checkOnlyIncomingEdgesReadLocked(mRootDir);
+    checkOnlyIncomingEdgesWriteLocked(mDirA, mDirB, mFileC);
+    pathC.close();
+    checkOnlyNodesReadLocked(mRootDir);
+    checkOnlyNodesWriteLocked(mDirA);
+    checkOnlyIncomingEdgesReadLocked(mRootDir);
+    checkOnlyIncomingEdgesWriteLocked(mDirA);
+}

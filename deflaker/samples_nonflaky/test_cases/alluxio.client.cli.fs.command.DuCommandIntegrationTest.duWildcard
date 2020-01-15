@@ -1,0 +1,11 @@
+@Test
+public void duWildcard() throws Exception {
+    FileSystemTestUtils.createByteFile(mFileSystem, "/testRoot/testDir1/testFileA", WritePType.MUST_CACHE, 10);
+    FileSystemTestUtils.createByteFile(mFileSystem, "/testRoot/testDir2/testFileB", WritePType.THROUGH, 20);
+    FileSystemTestUtils.createByteFile(mFileSystem, "/testRoot/testDir2/testNotIncludeFile", WritePType.MUST_CACHE, 30);
+    mFsShell.run("du", "/testRoot/*/testFile*");
+    String expected = "File Size     In Alluxio       Path\n" + "10            10 (100%)        /testRoot/testDir1/testFileA\n" + "20            0 (0%)           /testRoot/testDir2/testFileB\n";
+    mFsShell.run("du", "-h", "-s", "--memory", "/testRoot/*");
+    expected += "File Size     In Alluxio       In Memory        Path\n" + "10B           10B (100%)       10B (100%)       /testRoot/testDir1\n" + "50B           30B (60%)        30B (60%)        /testRoot/testDir2\n";
+    Assert.assertEquals(expected, mOutput.toString());
+}

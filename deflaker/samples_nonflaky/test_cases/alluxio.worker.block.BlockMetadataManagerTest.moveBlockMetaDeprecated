@@ -1,0 +1,20 @@
+/**
+ * Tests the {@link BlockMetadataManager#moveBlockMeta(BlockMeta, BlockStoreLocation)} method.
+ */
+@Test
+public void moveBlockMetaDeprecated() throws Exception {
+    StorageDir dir = mMetaManager.getTier("MEM").getDir(0);
+    TempBlockMeta tempBlockMeta = new TempBlockMeta(TEST_SESSION_ID, TEST_TEMP_BLOCK_ID, TEST_BLOCK_SIZE, dir);
+    mMetaManager.addTempBlockMeta(tempBlockMeta);
+    mMetaManager.commitTempBlockMeta(tempBlockMeta);
+    BlockMeta blockMeta = mMetaManager.getBlockMeta(TEST_TEMP_BLOCK_ID);
+    // Move to anywhere
+    mMetaManager.moveBlockMeta(blockMeta, BlockStoreLocation.anyTier());
+    // Move to tier HDD tier
+    blockMeta = mMetaManager.moveBlockMeta(blockMeta, BlockStoreLocation.anyDirInTier("HDD"));
+    assertEquals("HDD", blockMeta.getBlockLocation().tierAlias());
+    // Move to tier MEM and dir 0
+    blockMeta = mMetaManager.moveBlockMeta(blockMeta, new BlockStoreLocation("MEM", 0));
+    assertEquals("MEM", blockMeta.getBlockLocation().tierAlias());
+    assertEquals(0, blockMeta.getBlockLocation().dir());
+}

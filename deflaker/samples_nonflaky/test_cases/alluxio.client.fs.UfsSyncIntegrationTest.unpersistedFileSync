@@ -1,0 +1,17 @@
+@Test
+public void unpersistedFileSync() throws Exception {
+    ListStatusPOptions options = ListStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.NEVER).setCommonOptions(PSYNC_ALWAYS).build();
+    List<String> initialStatusList = mFileSystem.listStatus(new AlluxioURI(alluxioPath(ROOT_DIR)), options).stream().map(URIStatus::getName).collect(Collectors.toList());
+    // write a MUST_CACHE file
+    writeMustCacheFile(alluxioPath(NEW_FILE), 1);
+    // List the status with force sync.
+    List<String> syncStatusList = mFileSystem.listStatus(new AlluxioURI(alluxioPath(ROOT_DIR)), options).stream().map(URIStatus::getName).collect(Collectors.toList());
+    Set<String> initialSet = Sets.newHashSet(initialStatusList);
+    Set<String> syncSet = Sets.newHashSet(syncStatusList);
+    Assert.assertTrue(syncSet.size() > initialSet.size());
+    syncSet.removeAll(initialSet);
+    // only the MUST_CACHE file should remain.
+    Assert.assertTrue(syncSet.size() == 1);
+    String file = syncSet.iterator().next();
+    Assert.assertTrue(file.equals(new AlluxioURI(NEW_FILE).getName()));
+}

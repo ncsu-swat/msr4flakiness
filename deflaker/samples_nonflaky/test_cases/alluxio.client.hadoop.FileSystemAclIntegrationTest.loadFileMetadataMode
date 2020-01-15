@@ -1,0 +1,19 @@
+/**
+ * Tests the loaded file metadata from UFS having the same mode as that in the UFS.
+ */
+@Test
+public void loadFileMetadataMode() throws Exception {
+    // Skip non-local and non-HDFS-2 UFSs.
+    Assume.assumeTrue(UnderFileSystemUtils.isLocal(sUfs) || (UnderFileSystemUtils.isHdfs(sUfs) && HadoopClientTestUtils.isHadoop2x()));
+    List<Integer> permissionValues = Lists.newArrayList(0111, 0222, 0333, 0444, 0555, 0666, 0777, 0755, 0733, 0644, 0533, 0511);
+    for (int value : permissionValues) {
+        Path file = new Path("/loadFileMetadataMode" + value);
+        sTFS.delete(file, false);
+        // Create a file directly in UFS and set the corresponding mode.
+        String ufsPath = PathUtils.concatPath(sUfsRoot, file);
+        sUfs.create(ufsPath, CreateOptions.defaults(ServerConfiguration.global()).setOwner("testuser").setGroup("testgroup").setMode(new Mode((short) value))).close();
+        Assert.assertTrue(sUfs.isFile(PathUtils.concatPath(sUfsRoot, file)));
+        // Check the mode is consistent in Alluxio namespace once it's loaded from UFS to Alluxio.
+        Assert.assertEquals(new Mode((short) value).toString(), new Mode(sTFS.getFileStatus(file).getPermission().toShort()).toString());
+    }
+}

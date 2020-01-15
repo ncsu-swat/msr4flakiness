@@ -1,0 +1,16 @@
+@Test
+public void alluxioModeFingerprintUpdate() throws Exception {
+    GetStatusPOptions options = GetStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.ONCE).setCommonOptions(PSYNC_NEVER).build();
+    writeUfsFile(ufsPath(EXISTING_FILE), 10);
+    Assert.assertNotNull(mFileSystem.getStatus(new AlluxioURI(alluxioPath(EXISTING_FILE)), options));
+    // Set initial alluxio permissions
+    mFileSystem.setAttribute(new AlluxioURI(alluxioPath(EXISTING_FILE)), SetAttributePOptions.newBuilder().setMode(new Mode((short) 0777).toProto()).build());
+    URIStatus status = mFileSystem.getStatus(new AlluxioURI(alluxioPath(EXISTING_FILE)), options);
+    String startFingerprint = status.getUfsFingerprint();
+    // Change alluxio permissions
+    mFileSystem.setAttribute(new AlluxioURI(alluxioPath(EXISTING_FILE)), SetAttributePOptions.newBuilder().setMode(new Mode((short) 0655).toProto()).build());
+    status = mFileSystem.getStatus(new AlluxioURI(alluxioPath(EXISTING_FILE)), options);
+    String endFingerprint = status.getUfsFingerprint();
+    // Verify the fingerprints are different.
+    Assert.assertNotEquals(startFingerprint, endFingerprint);
+}

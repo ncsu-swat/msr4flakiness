@@ -1,0 +1,9 @@
+@Test
+public void getConfFromMaster() throws Exception {
+    // Prepare mock meta master client
+    RetryHandlingMetaMasterConfigClient client = Mockito.mock(RetryHandlingMetaMasterConfigClient.class);
+    Mockito.when(client.getConfiguration(any())).thenReturn(Configuration.fromProto(prepareGetConfigurationResponse()));
+    assertEquals(0, GetConf.getConfImpl(() -> client, ServerConfiguration.global(), "--master"));
+    String expectedOutput = "alluxio.logger.type=MASTER_LOGGER\n" + "alluxio.master.audit.logger.type=MASTER_AUDIT_LOGGER\n" + "alluxio.master.hostname=localhost\n" + "alluxio.master.mount.table.root.ufs=hdfs://localhost:9000\n" + "alluxio.master.rpc.port=19998\n" + "alluxio.master.web.port=19999\n";
+    assertEquals(expectedOutput, mOutputStream.toString());
+}

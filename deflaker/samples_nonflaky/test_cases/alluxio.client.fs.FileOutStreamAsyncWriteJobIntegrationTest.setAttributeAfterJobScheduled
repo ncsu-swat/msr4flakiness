@@ -1,0 +1,26 @@
+@Test
+public void setAttributeAfterJobScheduled() throws Exception {
+    PersistenceTestUtils.pauseChecker(mLocalAlluxioClusterResource);
+    URIStatus status = createAsyncFile();
+    PersistenceTestUtils.waitForJobScheduled(mLocalAlluxioClusterResource, status.getFileId());
+    String ufsPath = status.getUfsPath();
+    UnderFileSystem ufs = UnderFileSystem.Factory.create(ufsPath, ServerConfiguration.global());
+    mFileSystem.setAttribute(mUri, TEST_OPTIONS);
+    checkFileInAlluxio(mUri, LEN);
+    checkFileNotInUnderStorage(status.getUfsPath());
+    status = mFileSystem.getStatus(mUri);
+    Assert.assertEquals(ModeUtils.protoToShort(TEST_OPTIONS.getMode()), status.getMode());
+    Assert.assertEquals(COMMON_OPTIONS.getTtl(), status.getTtl());
+    Assert.assertEquals(COMMON_OPTIONS.getTtlAction(), status.getTtlAction());
+    PersistenceTestUtils.resumeChecker(mLocalAlluxioClusterResource);
+    IntegrationTestUtils.waitForPersist(mLocalAlluxioClusterResource, mUri);
+    checkFileInAlluxio(mUri, LEN);
+    checkFileInUnderStorage(mUri, LEN);
+    status = mFileSystem.getStatus(mUri);
+    Assert.assertEquals(ModeUtils.protoToShort(TEST_OPTIONS.getMode()), status.getMode());
+    Assert.assertEquals(COMMON_OPTIONS.getTtl(), status.getTtl());
+    Assert.assertEquals(COMMON_OPTIONS.getTtlAction(), status.getTtlAction());
+    // Skip checking mode for object stores
+    Assume.assumeFalse(ufs.isObjectStorage());
+    Assert.assertEquals(ModeUtils.protoToShort(TEST_OPTIONS.getMode()), ufs.getFileStatus(ufsPath).getMode());
+}

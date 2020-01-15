@@ -1,0 +1,19 @@
+/**
+ * This is a stress test of the heartbeat scheduler logic. It concurrently steps through the
+ * execution of multiple dummy executors.
+ */
+@Test
+public void concurrentHeartbeatThread() throws Exception {
+    List<FutureTask<Void>> tasks = new ArrayList<>();
+    // Start the threads.
+    for (int i = 0; i < NUMBER_OF_THREADS; i++) {
+        FutureTask<Void> task = new FutureTask<>(new DummyHeartbeatTestCallable(i));
+        Thread thread = new Thread(task);
+        thread.start();
+        tasks.add(task);
+    }
+    // Wait for the threads to finish.
+    for (FutureTask<Void> task : tasks) {
+        task.get();
+    }
+}

@@ -1,0 +1,21 @@
+@Test
+public void read() throws Exception {
+    final int n = 3;
+    String[] dirs = new String[] { REMOTE_DIR, LOCAL_DIR };
+    for (String dir : dirs) {
+        for (int i = 0; i < n; i++) {
+            AlluxioURI uri = new AlluxioURI(dir + i);
+            try (FileOutStream os = mFileSystem.createFile(uri, mWriteThrough)) {
+                os.write(TEST_BYTES);
+            }
+        }
+    }
+    checkCacheStatus(REMOTE_UNCACHED_FILE, false);
+    for (int i = 1; i < n; i++) {
+        checkCacheStatus(REMOTE_DIR + i, true);
+    }
+    checkCacheStatus(LOCAL_CACHED_FILE, true);
+    for (int i = 1; i < n; i++) {
+        checkCacheStatus(LOCAL_DIR + i, false);
+    }
+}

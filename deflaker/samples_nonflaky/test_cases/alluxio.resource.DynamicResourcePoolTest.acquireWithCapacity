@@ -1,0 +1,25 @@
+/**
+ * Tests the logic to acquire a resource when the pool is not full.
+ */
+@Test
+public void acquireWithCapacity() throws Exception {
+    TestPool pool = new TestPool(DynamicResourcePool.Options.defaultOptions());
+    List<Resource> resourceList = new ArrayList<>();
+    for (int i = 0; i < 3; i++) {
+        Resource resource = pool.acquire();
+        resourceList.add(resource);
+        assertEquals(i, resource.mInteger.intValue());
+    }
+    for (Resource resource : resourceList) {
+        pool.release(resource);
+    }
+    Set<Integer> resources = new HashSet<>();
+    for (int i = 0; i < 3; i++) {
+        Resource resource = pool.acquire();
+        resources.add(resource.mInteger);
+    }
+    // Make sure we are not creating new resources.
+    for (int i = 0; i < 3; i++) {
+        assertTrue(resources.contains(i));
+    }
+}

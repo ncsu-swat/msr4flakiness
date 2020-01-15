@@ -1,0 +1,17 @@
+@Test
+public void lostStorageWhenRestart() throws Exception {
+    File ssdDir = Files.createTempDir();
+    String ssdPath = ssdDir.getAbsolutePath();
+    File hddDir = Files.createTempDir();
+    String hddPath = hddDir.getAbsolutePath();
+    // Set to read only so worker storage paths cannot be initialize
+    ssdDir.setReadOnly();
+    startClusterWithWorkerStorage(ssdPath, hddPath);
+    FileUtils.deleteDirectory(hddDir);
+    // Make sure lost storage is detected and reported to master
+    Thread.sleep(10 * ServerConfiguration.getMs(PropertyKey.WORKER_BLOCK_HEARTBEAT_INTERVAL_MS));
+    checkLostStorageResults(ssdPath, hddPath);
+    mLocalAlluxioCluster.restartMasters();
+    mLocalAlluxioCluster.waitForWorkersRegistered(6 * Constants.SECOND_MS);
+    checkLostStorageResults(ssdPath, hddPath);
+}

@@ -1,0 +1,10 @@
+@Test
+public void ufsModeSetAttribute() throws Exception {
+    AlluxioURI alluxioFile = new AlluxioURI("/in_alluxio");
+    mFsMaster.createFile(alluxioFile, CreateFileContext.defaults().setWriteType(WriteType.CACHE_THROUGH));
+    mFsMaster.updateUfsMode(new AlluxioURI(mFsMaster.getUfsAddress()), UfsMode.READ_ONLY);
+    long opTimeMs = TEST_TIME_MS;
+    mFsMaster.completeFile(alluxioFile, CompleteFileContext.mergeFrom(CompleteFilePOptions.newBuilder().setUfsLength(0)).setOperationTimeMs(opTimeMs));
+    mThrown.expect(AccessControlException.class);
+    mFsMaster.setAttribute(alluxioFile, SetAttributeContext.mergeFrom(SetAttributePOptions.newBuilder().setMode(new Mode((short) 0777).toProto())));
+}

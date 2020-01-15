@@ -1,0 +1,17 @@
+@Test
+public void ufsModeSync() throws Exception {
+    GetStatusPOptions options = GetStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.NEVER).setCommonOptions(PSYNC_ALWAYS).build();
+    writeUfsFile(ufsPath(EXISTING_FILE), 10);
+    // Set the ufs permissions
+    File ufsFile = new File(ufsPath(EXISTING_FILE));
+    Assert.assertTrue(ufsFile.setReadable(true, false));
+    Assert.assertTrue(ufsFile.setWritable(true, false));
+    Assert.assertTrue(ufsFile.setExecutable(true, false));
+    URIStatus status = mFileSystem.getStatus(new AlluxioURI(alluxioPath(EXISTING_FILE)), options);
+    String startFingerprint = status.getUfsFingerprint();
+    // Update ufs permissions
+    Assert.assertTrue(ufsFile.setExecutable(false, false));
+    status = mFileSystem.getStatus(new AlluxioURI(alluxioPath(EXISTING_FILE)), options);
+    // Verify the fingerprints are different.
+    Assert.assertNotEquals(startFingerprint, status.getUfsFingerprint());
+}

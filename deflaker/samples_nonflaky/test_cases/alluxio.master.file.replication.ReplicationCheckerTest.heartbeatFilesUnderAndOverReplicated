@@ -1,0 +1,14 @@
+@Test
+public void heartbeatFilesUnderAndOverReplicated() throws Exception {
+    mFileContext.getOptions().setReplicationMin(2).setReplicationMax(-1);
+    long blockId1 = createBlockHelper(TEST_FILE_1, mFileContext, "");
+    mFileContext.getOptions().setReplicationMin(0).setReplicationMax(3);
+    long blockId2 = createBlockHelper(TEST_FILE_2, mFileContext, "");
+    addBlockLocationHelper(blockId1, 1);
+    addBlockLocationHelper(blockId2, 5);
+    mReplicationChecker.heartbeat();
+    Map<Long, Integer> expected1 = ImmutableMap.of(blockId1, 1);
+    Map<Long, Integer> expected2 = ImmutableMap.of(blockId2, 2);
+    Assert.assertEquals(expected2, mMockReplicationHandler.getEvictRequests());
+    Assert.assertEquals(expected1, mMockReplicationHandler.getReplicateRequests());
+}

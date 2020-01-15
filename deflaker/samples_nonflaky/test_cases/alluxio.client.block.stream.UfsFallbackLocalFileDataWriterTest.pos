@@ -1,0 +1,15 @@
+@Test(timeout = 1000 * 60)
+@Ignore("Flaky test")
+public void pos() throws Exception {
+    long blockSize = CHUNK_SIZE * 2 + CHUNK_SIZE / 3;
+    try (DataWriter writer = create(blockSize, CHUNK_SIZE)) {
+        byte[] data = new byte[1];
+        Future<WriteSummary> actualUfs = getUfsWrite(mClient);
+        for (long pos = 0; pos < blockSize; pos++) {
+            assertEquals(pos, writer.pos());
+            ByteBuf buf = Unpooled.wrappedBuffer(data);
+            writer.writeChunk(buf);
+        }
+        actualUfs.get();
+    }
+}

@@ -1,0 +1,18 @@
+@Test
+public void statDirectoryWildCard() throws IOException, AlluxioException {
+    String testDir = FileSystemShellUtilsTest.resetFileHierarchy(mFileSystem);
+    mFsShell.run("stat", testDir + "/*");
+    String res1 = mOutput.toString();
+    assertTrue(res1.contains(testDir + "/foo"));
+    assertTrue(res1.contains(testDir + "/bar"));
+    assertTrue(res1.contains(testDir + "/foobar4"));
+    assertFalse(res1.contains(testDir + "/foo/foobar1"));
+    assertFalse(res1.contains(testDir + "/bar/foobar3"));
+    mFsShell.run("stat", testDir + "/*/foo*");
+    String res2 = mOutput.toString();
+    res2 = res2.replace(res1, "");
+    assertTrue(res2.contains(testDir + "/foo/foobar1"));
+    assertTrue(res2.contains(testDir + "/foo/foobar2"));
+    assertTrue(res2.contains(testDir + "/bar/foobar3"));
+    assertFalse(res2.contains(testDir + "/foobar4"));
+}

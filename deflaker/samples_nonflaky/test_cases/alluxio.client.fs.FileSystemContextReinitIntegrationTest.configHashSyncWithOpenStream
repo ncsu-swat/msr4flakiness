@@ -1,0 +1,27 @@
+@Test
+public void configHashSyncWithOpenStream() throws Exception {
+    // Cannot use mLocalAlluxioClusterResource.get().getClient(mContext) here because the clients
+    // will be closed when restarting local masters, which in turn will close the contexts.
+    try (FileSystem client = FileSystem.Factory.create(mContext);
+        FileOutStream os = client.createFile(PATH_TO_UPDATE, CreateFilePOptions.newBuilder().setRecursive(true).build())) {
+        checkClusterConfBeforeUpdate();
+        checkPathConfBeforeUpdate();
+        updateClusterConf();
+        updatePathConf();
+        triggerSync();
+        try {
+            HeartbeatScheduler.await(mConfSyncHeartbeatThreadName, 1, TimeUnit.SECONDS);
+            Assert.fail("await should timeout");
+        } catch (RuntimeException e) {
+        // Expected timeout.
+        }
+        // Stream is open, so reinitialization should block until the stream is closed.
+        checkHash(false, false);
+        os.close();
+        // Stream is closed, reinitialization should not be blocked.
+        HeartbeatScheduler.await(mConfSyncHeartbeatThreadName);
+        checkClusterConfAfterUpdate();
+        checkPathConfAfterUpdate();
+        checkHash(true, true);
+    }
+}

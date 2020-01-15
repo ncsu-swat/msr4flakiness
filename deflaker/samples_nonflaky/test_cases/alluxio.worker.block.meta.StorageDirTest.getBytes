@@ -1,0 +1,31 @@
+/**
+ * Tests the {@link StorageDir#getCapacityBytes()}, the {@link StorageDir#getAvailableBytes()} and
+ * the {@link StorageDir#getCommittedBytes()} methods.
+ */
+@Test
+public void getBytes() throws Exception {
+    // Initial state
+    assertEquals(TEST_DIR_CAPACITY, mDir.getCapacityBytes());
+    assertEquals(TEST_DIR_CAPACITY, mDir.getAvailableBytes());
+    assertEquals(0, mDir.getCommittedBytes());
+    // Add a temp block
+    mDir.addTempBlockMeta(mTempBlockMeta);
+    assertEquals(TEST_DIR_CAPACITY, mDir.getCapacityBytes());
+    assertEquals(TEST_DIR_CAPACITY - TEST_TEMP_BLOCK_SIZE, mDir.getAvailableBytes());
+    assertEquals(0, mDir.getCommittedBytes());
+    // Add a committed block
+    mDir.addBlockMeta(mBlockMeta);
+    assertEquals(TEST_DIR_CAPACITY, mDir.getCapacityBytes());
+    assertEquals(TEST_DIR_CAPACITY - TEST_BLOCK_SIZE - TEST_TEMP_BLOCK_SIZE, mDir.getAvailableBytes());
+    assertEquals(TEST_BLOCK_SIZE, mDir.getCommittedBytes());
+    // Remove the temp block added
+    mDir.removeTempBlockMeta(mTempBlockMeta);
+    assertEquals(TEST_DIR_CAPACITY, mDir.getCapacityBytes());
+    assertEquals(TEST_DIR_CAPACITY - TEST_BLOCK_SIZE, mDir.getAvailableBytes());
+    assertEquals(TEST_BLOCK_SIZE, mDir.getCommittedBytes());
+    // Remove the committed block added
+    mDir.removeBlockMeta(mBlockMeta);
+    assertEquals(TEST_DIR_CAPACITY, mDir.getCapacityBytes());
+    assertEquals(TEST_DIR_CAPACITY, mDir.getAvailableBytes());
+    assertEquals(0, mDir.getCommittedBytes());
+}

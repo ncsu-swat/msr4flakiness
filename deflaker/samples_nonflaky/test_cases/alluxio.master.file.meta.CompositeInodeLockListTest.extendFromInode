@@ -1,0 +1,20 @@
+@Test
+public void extendFromInode() {
+    mBase.lockRootEdge(LockMode.READ);
+    mBase.lockInode(mRootDir, LockMode.READ);
+    mComposite = new CompositeInodeLockList(mBase);
+    assertEquals(LockMode.READ, mComposite.getLockMode());
+    assertEquals(Arrays.asList(mRootDir), mComposite.getLockedInodes());
+    mComposite.lockEdge(mRootDir, mDirA.getName(), LockMode.READ);
+    mComposite.lockInode(mDirA, LockMode.READ);
+    assertEquals(Arrays.asList(mRootDir, mDirA), mComposite.getLockedInodes());
+    assertEquals(2, mComposite.numInodes());
+    assertFalse(mComposite.isEmpty());
+    assertEquals(mRootDir, mComposite.get(0));
+    mComposite.lockEdge(mDirA, mDirB.getName(), LockMode.WRITE);
+    assertEquals(LockMode.WRITE, mComposite.getLockMode());
+    checkOnlyNodesReadLocked(mRootDir, mDirA);
+    checkOnlyNodesWriteLocked();
+    checkOnlyIncomingEdgesReadLocked(mRootDir, mDirA);
+    checkOnlyIncomingEdgesWriteLocked(mDirB);
+}

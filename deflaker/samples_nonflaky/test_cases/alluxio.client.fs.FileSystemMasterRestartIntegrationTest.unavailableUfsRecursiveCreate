@@ -1,0 +1,54 @@
+@Test
+public void unavailableUfsRecursiveCreate() throws Exception {
+    String ufsBase = "test://test";
+    UnderFileSystemFactory mockUfsFactory = Mockito.mock(UnderFileSystemFactory.class);
+    Mockito.when(mockUfsFactory.supportsPath(Matchers.anyString(), Matchers.any())).thenReturn(Boolean.FALSE);
+    Mockito.when(mockUfsFactory.supportsPath(Matchers.eq(ufsBase), Matchers.any())).thenReturn(Boolean.TRUE);
+    UnderFileSystem mockUfs = Mockito.mock(UnderFileSystem.class);
+    UfsDirectoryStatus ufsStatus = new UfsDirectoryStatus("test", "owner", "group", (short) 511);
+    Mockito.when(mockUfsFactory.create(Matchers.eq(ufsBase), Matchers.any())).thenReturn(mockUfs);
+    Mockito.when(mockUfs.isDirectory(ufsBase)).thenReturn(true);
+    Mockito.when(mockUfs.resolveUri(new AlluxioURI(ufsBase), "")).thenReturn(new AlluxioURI(ufsBase));
+    Mockito.when(mockUfs.resolveUri(new AlluxioURI(ufsBase), "/dir1")).thenReturn(new AlluxioURI(ufsBase + "/dir1"));
+    Mockito.when(mockUfs.getExistingDirectoryStatus(ufsBase)).thenReturn(ufsStatus);
+    Mockito.when(mockUfs.mkdirs(Matchers.eq(ufsBase + "/dir1"), Matchers.any())).thenThrow(new IOException("ufs unavailable"));
+    Mockito.when(mockUfs.getStatus(ufsBase)).thenReturn(ufsStatus);
+    UnderFileSystemFactoryRegistry.register(mockUfsFactory);
+    mFsMaster.mount(new AlluxioURI("/mnt"), new AlluxioURI(ufsBase), MountContext.defaults());
+    AlluxioURI root = new AlluxioURI("/mnt/");
+    AlluxioURI alluxioFile = new AlluxioURI("/mnt/dir1/dir2/file");
+    // Create a persisted Alluxio file (but no ufs file).
+    try {
+        mFsMaster.createFile(alluxioFile, CreateFileContext.mergeFrom(CreateFilePOptions.newBuilder().setRecursive(true)).setWriteType(WriteType.CACHE_THROUGH));
+        Assert.fail("persisted create should fail, when UFS is unavailable");
+    } catch (Exception e) {
+    // expected, ignore
+    }
+    List<FileInfo> files = mFsMaster.listStatus(root, ListStatusContext.defaults());
+    Assert.assertTrue(files.isEmpty());
+    try {
+        // should not exist
+        files = mFsMaster.listStatus(new AlluxioURI("/mnt/dir1/"), ListStatusContext.defaults());
+        Assert.fail("dir should not exist, when UFS is unavailable");
+    } catch (Exception e) {
+    // expected, ignore
+    }
+    try {
+        // should not exist
+        mFsMaster.delete(new AlluxioURI("/mnt/dir1/"), DeleteContext.mergeFrom(DeletePOptions.newBuilder().setRecursive(true)));
+        Assert.fail("cannot delete non-existing directory, when UFS is unavailable");
+    } catch (Exception e) {
+        // expected, ignore
+        files = null;
+    }
+    files = mFsMaster.listStatus(new AlluxioURI("/mnt/"), ListStatusContext.defaults());
+    Assert.assertTrue(files.isEmpty());
+    // Stop Alluxio.
+    mLocalAlluxioClusterResource.get().stopFS();
+    // Create the master using the existing journal.
+    try (FsMasterResource masterResource = MasterTestUtils.createLeaderFileSystemMasterFromJournal()) {
+        FileSystemMaster newFsMaster = masterResource.getRegistry().get(FileSystemMaster.class);
+        files = newFsMaster.listStatus(new AlluxioURI("/mnt/"), ListStatusContext.defaults());
+        Assert.assertTrue(files.isEmpty());
+    }
+}

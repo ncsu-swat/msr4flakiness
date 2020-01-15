@@ -1,0 +1,51 @@
+@Test
+public void quorumCommand() throws Exception {
+    mCluster = MultiProcessCluster.newBuilder(PortCoordination.QUORUM_SHELL).setClusterName("QuorumShell").setNumMasters(3).setNumWorkers(0).addProperty(PropertyKey.MASTER_JOURNAL_TYPE, JournalType.EMBEDDED.toString()).addProperty(PropertyKey.MASTER_JOURNAL_FLUSH_TIMEOUT_MS, "5min").addProperty(PropertyKey.MASTER_EMBEDDED_JOURNAL_ELECTION_TIMEOUT, "750ms").addProperty(PropertyKey.MASTER_EMBEDDED_JOURNAL_HEARTBEAT_INTERVAL, "250ms").build();
+    mCluster.start();
+    try (FileSystemAdminShell shell = new FileSystemAdminShell(ServerConfiguration.global())) {
+        String output;
+        // Validate quorum sub-commands are validated.
+        mOutput.reset();
+        shell.run("journal", "quorum", "nonexistentCommand");
+        output = mOutput.toString().trim();
+        Assert.assertEquals(QuorumCommand.description(), lastLine(output));
+        // Validate option counts are validated for "quorum info"
+        mOutput.reset();
+        shell.run("journal", "quorum", "info");
+        output = mOutput.toString().trim();
+        Assert.assertEquals(QuorumInfoCommand.description(), lastLine(output));
+        mOutput.reset();
+        shell.run("journal", "quorum", "info", "-op1", "val1", "-op2", "val2");
+        output = mOutput.toString().trim();
+        Assert.assertEquals(QuorumInfoCommand.description(), lastLine(output));
+        // Validate option counts are validated for "quorum", "remove"
+        mOutput.reset();
+        shell.run("journal", "quorum", "remove");
+        output = mOutput.toString().trim();
+        Assert.assertEquals(QuorumRemoveCommand.description(), lastLine(output));
+        mOutput.reset();
+        shell.run("journal", "quorum", "remove", "-op1", "val1");
+        output = mOutput.toString().trim();
+        Assert.assertEquals(QuorumRemoveCommand.description(), lastLine(output));
+        shell.run("journal", "quorum", "remove", "-op1", "val1", "-op2", "val2", "-op3", "val3");
+        output = mOutput.toString().trim();
+        Assert.assertEquals(QuorumRemoveCommand.description(), lastLine(output));
+        // Validate option validation works for "quorum info".
+        mOutput.reset();
+        shell.run("journal", "quorum", "info", "-domain", "UNKNOWN");
+        output = mOutput.toString().trim();
+        Assert.assertEquals(ExceptionMessage.INVALID_OPTION_VALUE.getMessage(QuorumInfoCommand.DOMAIN_OPTION_NAME, Arrays.toString(JournalDomain.values())), output);
+        // Validate option validation works for "journal quorum remove"
+        // Validate -domain is validated.
+        mOutput.reset();
+        shell.run("journal", "quorum", "remove", "-domain", "UNKNOWN", "-address", "host:0");
+        output = mOutput.toString().trim();
+        Assert.assertEquals(ExceptionMessage.INVALID_OPTION_VALUE.getMessage(QuorumInfoCommand.DOMAIN_OPTION_NAME, Arrays.toString(JournalDomain.values())), output);
+        // Validate -address is validated.
+        mOutput.reset();
+        shell.run("journal", "quorum", "remove", "-domain", "JOB_MASTER", "-address", "hostname:invalid_port");
+        output = mOutput.toString().trim();
+        Assert.assertEquals(ExceptionMessage.INVALID_ADDRESS_VALUE.getMessage(), output);
+    }
+    mCluster.notifySuccess();
+}

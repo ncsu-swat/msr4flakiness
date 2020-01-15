@@ -1,0 +1,18 @@
+@Test
+public void chooseClosestTier() throws Exception {
+    List<BlockWorkerInfo> workers = new ArrayList<>();
+    workers.add(worker(Constants.GB, "node2", "rack3"));
+    workers.add(worker(Constants.GB, "node3", "rack2"));
+    workers.add(worker(Constants.GB, "node4", "rack3"));
+    LocalFirstPolicy policy;
+    WorkerNetAddress chosen;
+    // local rack
+    policy = new LocalFirstPolicy(TieredIdentityFactory.fromString("node=node1,rack=rack2", sConf), sConf);
+    GetWorkerOptions options = GetWorkerOptions.defaults().setBlockWorkerInfos(workers).setBlockInfo(new BlockInfo().setLength(Constants.GB));
+    chosen = policy.getWorker(options);
+    assertEquals("rack2", chosen.getTieredIdentity().getTier(1).getValue());
+    // local node
+    policy = new LocalFirstPolicy(TieredIdentityFactory.fromString("node=node4,rack=rack3", sConf), sConf);
+    chosen = policy.getWorker(options);
+    assertEquals("node4", chosen.getTieredIdentity().getTier(0).getValue());
+}

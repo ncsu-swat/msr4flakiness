@@ -1,0 +1,13 @@
+@Test
+public void mountPointConflict() throws Exception {
+    GetStatusPOptions gsOptions = GetStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.NEVER).setCommonOptions(PSYNC_ALWAYS).build();
+    URIStatus status = mFileSystem.getStatus(new AlluxioURI("/"), gsOptions);
+    // add a UFS dir which conflicts with a mount point.
+    String fromRootUfs = status.getUfsPath() + "/mnt";
+    Assert.assertTrue(new File(fromRootUfs).mkdirs());
+    ListStatusPOptions options = ListStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.NEVER).setCommonOptions(PSYNC_ALWAYS).build();
+    List<URIStatus> rootListing = mFileSystem.listStatus(new AlluxioURI("/"), options);
+    Assert.assertEquals(1, rootListing.size());
+    Assert.assertEquals("mnt", rootListing.get(0).getName());
+    Assert.assertNotEquals(fromRootUfs, rootListing.get(0).getUfsPath());
+}

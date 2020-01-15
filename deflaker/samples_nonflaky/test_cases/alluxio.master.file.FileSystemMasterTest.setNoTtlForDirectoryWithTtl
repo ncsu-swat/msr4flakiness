@@ -1,0 +1,14 @@
+/**
+ * Tests that the original TTL is removed after setting it to {@link Constants#NO_TTL} for
+ * a directory.
+ */
+@Test
+public void setNoTtlForDirectoryWithTtl() throws Exception {
+    mFileSystemMaster.createDirectory(new AlluxioURI("/nested"), CreateDirectoryContext.mergeFrom(CreateDirectoryPOptions.newBuilder().setRecursive(true)));
+    mFileSystemMaster.createDirectory(NESTED_URI, CreateDirectoryContext.mergeFrom(CreateDirectoryPOptions.newBuilder().setCommonOptions(FileSystemMasterCommonPOptions.newBuilder().setTtl(0)).setRecursive(true)));
+    // After setting TTL to NO_TTL, the original TTL will be removed, and the file will not be
+    // deleted during next TTL check.
+    mFileSystemMaster.setAttribute(NESTED_URI, SetAttributeContext.mergeFrom(SetAttributePOptions.newBuilder().setCommonOptions(FileSystemMasterCommonPOptions.newBuilder().setTtl(Constants.NO_TTL))));
+    HeartbeatScheduler.execute(HeartbeatContext.MASTER_TTL_CHECK);
+    assertEquals(NESTED_URI.getName(), mFileSystemMaster.getFileInfo(NESTED_URI, GET_STATUS_CONTEXT).getName());
+}

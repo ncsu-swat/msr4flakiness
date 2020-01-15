@@ -1,0 +1,21 @@
+/**
+ * Tests check of writable mount points.
+ */
+@Test
+public void writableMount() throws Exception {
+    String mountPath = "/mnt/foo";
+    AlluxioURI alluxioUri = new AlluxioURI("alluxio://localhost:1234" + mountPath);
+    addMount(alluxioUri.toString(), "hdfs://localhost:5678/foo", IdUtils.INVALID_MOUNT_ID);
+    try {
+        mMountTable.checkUnderWritableMountPoint(alluxioUri);
+    } catch (AccessControlException e) {
+        Assert.fail("Default mount point should be writable.");
+    }
+    try {
+        String path = mountPath + "/sub/directory";
+        alluxioUri = new AlluxioURI("alluxio://localhost:1234" + path);
+        mMountTable.checkUnderWritableMountPoint(alluxioUri);
+    } catch (AccessControlException e) {
+        Assert.fail("Default mount point should be writable.");
+    }
+}

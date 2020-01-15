@@ -1,0 +1,14 @@
+@Test
+public void hadoopShouldLoadFileSystemWhenConfigured() throws Exception {
+    org.apache.hadoop.conf.Configuration conf = getConf();
+    URI uri = URI.create(Constants.HEADER + "localhost:19998/tmp/path.txt");
+    Map<PropertyKey, String> properties = new HashMap<>();
+    properties.put(PropertyKey.MASTER_HOSTNAME, uri.getHost());
+    properties.put(PropertyKey.MASTER_RPC_PORT, Integer.toString(uri.getPort()));
+    properties.put(PropertyKey.ZOOKEEPER_ENABLED, "false");
+    properties.put(PropertyKey.ZOOKEEPER_ADDRESS, null);
+    try (Closeable c = new ConfigurationRule(properties, mConfiguration).toResource()) {
+        final org.apache.hadoop.fs.FileSystem fs = org.apache.hadoop.fs.FileSystem.get(uri, conf);
+        assertTrue(fs instanceof FileSystem);
+    }
+}

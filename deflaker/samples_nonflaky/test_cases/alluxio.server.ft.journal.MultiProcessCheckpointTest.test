@@ -1,0 +1,27 @@
+@Test
+public void test() throws Exception {
+    MultiProcessCluster cluster = MultiProcessCluster.newBuilder(PortCoordination.CHECKPOINT).setClusterName("CheckpointTest").addProperty(PropertyKey.MASTER_JOURNAL_TYPE, JournalType.UFS.toString()).addProperty(PropertyKey.ZOOKEEPER_SESSION_TIMEOUT, "2sec").addProperty(PropertyKey.ZOOKEEPER_CONNECTION_TIMEOUT, "1sec").addProperty(PropertyKey.MASTER_METASTORE, "ROCKS").addProperty(PropertyKey.MASTER_JOURNAL_CHECKPOINT_PERIOD_ENTRIES, "100").addProperty(PropertyKey.MASTER_JOURNAL_LOG_SIZE_BYTES_MAX, "500").addProperty(PropertyKey.MASTER_JOURNAL_TAILER_SHUTDOWN_QUIET_WAIT_TIME_MS, "500").setNumMasters(2).setNumWorkers(0).build();
+    try {
+        cluster.start();
+        cluster.waitForAllNodesRegistered(20 * Constants.SECOND_MS);
+        String journal = cluster.getJournalDir();
+        FileSystem fs = cluster.getFileSystemClient();
+        int numFiles = 100;
+        for (int i = 0; i < numFiles; i++) {
+            fs.createFile(new AlluxioURI("/file" + i)).close();
+        }
+        MetaMasterClient meta = cluster.getMetaMasterClient();
+        assertEquals(numFiles + 1, meta.getMetrics().get("Master." + MasterMetrics.TOTAL_PATHS).getLongValue());
+        IntegrationTestUtils.waitForUfsJournalCheckpoint(Constants.FILE_SYSTEM_MASTER_NAME, new URI(journal));
+        cluster.stopMasters();
+        cluster.startMasters();
+        cluster.waitForAllNodesRegistered(20 * Constants.SECOND_MS);
+        fs = cluster.getFileSystemClient();
+        assertEquals(numFiles, fs.listStatus(new AlluxioURI("/")).size());
+        meta = cluster.getMetaMasterClient();
+        assertEquals(numFiles + 1, meta.getMetrics().get("Master." + MasterMetrics.TOTAL_PATHS).getLongValue());
+        cluster.notifySuccess();
+    } finally {
+        cluster.destroy();
+    }
+}

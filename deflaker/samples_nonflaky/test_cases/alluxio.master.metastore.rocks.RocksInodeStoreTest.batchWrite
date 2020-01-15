@@ -1,0 +1,12 @@
+@Test
+public void batchWrite() throws IOException {
+    RocksInodeStore store = new RocksInodeStore(mFolder.newFolder().getAbsolutePath());
+    WriteBatch batch = store.createWriteBatch();
+    for (int i = 1; i < 20; i++) {
+        batch.writeInode(MutableInodeDirectory.create(i, 0, "dir" + i, CreateDirectoryContext.defaults()));
+    }
+    batch.commit();
+    for (int i = 1; i < 20; i++) {
+        assertEquals("dir" + i, store.get(i).get().getName());
+    }
+}

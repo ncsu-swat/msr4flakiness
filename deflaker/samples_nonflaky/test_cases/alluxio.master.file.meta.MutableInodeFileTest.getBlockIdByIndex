@@ -1,0 +1,27 @@
+/**
+ * Tests the {@link MutableInodeFile#getBlockIdByIndex(int)} method.
+ */
+@Test
+public void getBlockIdByIndex() throws Exception {
+    MutableInodeFile inodeFile = createInodeFile(1);
+    List<Long> blockIds = new ArrayList<>();
+    final int NUM_BLOCKS = 3;
+    for (int i = 0; i < NUM_BLOCKS; i++) {
+        blockIds.add(inodeFile.getNewBlockId());
+    }
+    for (int i = 0; i < NUM_BLOCKS; i++) {
+        assertEquals(blockIds.get(i), (Long) inodeFile.getBlockIdByIndex(i));
+    }
+    try {
+        inodeFile.getBlockIdByIndex(-1);
+        Assert.fail();
+    } catch (BlockInfoException e) {
+        assertEquals(String.format("blockIndex -1 is out of range. File blocks: %d", NUM_BLOCKS), e.getMessage());
+    }
+    try {
+        inodeFile.getBlockIdByIndex(NUM_BLOCKS);
+        Assert.fail();
+    } catch (BlockInfoException e) {
+        assertEquals(String.format("blockIndex %d is out of range. File blocks: %d", NUM_BLOCKS, NUM_BLOCKS), e.getMessage());
+    }
+}

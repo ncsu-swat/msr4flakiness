@@ -1,0 +1,23 @@
+/**
+ * Tests that when moving a block from src location to dst, if the space of the dst location is
+ * currently taken by another block being locked, this move operation will fail until the lock
+ * released.
+ */
+@Test
+public void moveBlockMetaWithBlockLocked() throws Exception {
+    // Setup the src dir containing the block to move
+    TieredBlockStoreTestUtils.cache(SESSION_ID1, BLOCK_ID1, BLOCK_SIZE, mTestDir1, mMetaManager, mEvictor);
+    // Setup the dst dir whose space is totally taken by another block
+    TieredBlockStoreTestUtils.cache(SESSION_ID1, BLOCK_ID2, mTestDir2.getCapacityBytes(), mTestDir2, mMetaManager, mEvictor);
+    // session1 locks block2 first
+    long lockId = mBlockStore.lockBlock(SESSION_ID1, BLOCK_ID2);
+    // Expect an exception because no eviction plan is feasible
+    mThrown.expect(WorkerOutOfSpaceException.class);
+    mThrown.expectMessage(ExceptionMessage.NO_SPACE_FOR_BLOCK_MOVE_TIMEOUT.getMessage(mTestDir2.toBlockStoreLocation(), BLOCK_ID1, FREE_SPACE_TIMEOUT_MS));
+    mBlockStore.moveBlock(SESSION_ID1, BLOCK_ID1, mTestDir2.toBlockStoreLocation());
+    // Expect createBlockMeta to succeed after unlocking this block.
+    mBlockStore.unlockBlock(lockId);
+    mBlockStore.moveBlock(SESSION_ID1, BLOCK_ID1, mTestDir2.toBlockStoreLocation());
+    assertEquals(mTestDir1.getCapacityBytes(), mTestDir1.getAvailableBytes());
+    assertEquals(mTestDir2.getCapacityBytes() - BLOCK_SIZE, mTestDir2.getAvailableBytes());
+}

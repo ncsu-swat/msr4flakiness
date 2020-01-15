@@ -1,0 +1,15 @@
+/**
+ * Writes lots of chunks.
+ */
+@Test(timeout = 1000 * 60)
+public void writeFileManyChunks() throws Exception {
+    long checksumActual;
+    Future<Long> checksumExpected;
+    long length = CHUNK_SIZE * 30000 + CHUNK_SIZE / 3;
+    try (DataWriter writer = create(Long.MAX_VALUE)) {
+        checksumExpected = writeFile(writer, length, 10, length / 3);
+        checksumExpected.get();
+        checksumActual = verifyWriteRequests(mClient, 10, length / 3);
+    }
+    assertEquals(checksumExpected.get().longValue(), checksumActual);
+}

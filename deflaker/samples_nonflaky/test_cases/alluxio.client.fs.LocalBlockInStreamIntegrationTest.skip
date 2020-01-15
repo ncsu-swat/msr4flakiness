@@ -1,0 +1,23 @@
+/**
+ * Tests {@link alluxio.client.block.LocalBlockInStream#skip(long)}.
+ */
+@Test
+public void skip() throws Exception {
+    for (int k = MIN_LEN + DELTA; k <= MAX_LEN; k += DELTA) {
+        for (CreateFilePOptions op : getOptionSet()) {
+            AlluxioURI uri = new AlluxioURI(sTestPath + "/file_" + k + "_" + op.hashCode());
+            FileInStream is = sFileSystem.openFile(uri, sReadNoCache);
+            Assert.assertEquals(k / 2, is.skip(k / 2));
+            Assert.assertEquals(k / 2, is.read());
+            is.close();
+            is = sFileSystem.openFile(uri, sReadCachePromote);
+            int t = k / 3;
+            Assert.assertEquals(t, is.skip(t));
+            Assert.assertEquals(t, is.read());
+            Assert.assertEquals(t, is.skip(t));
+            Assert.assertEquals(2 * t + 1, is.read());
+            is.close();
+            Assert.assertTrue(sFileSystem.getStatus(uri).getInAlluxioPercentage() == 100);
+        }
+    }
+}

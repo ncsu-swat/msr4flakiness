@@ -1,0 +1,21 @@
+@Test
+@Ignore("https://alluxio.atlassian.net/browse/ALLUXIO-3059")
+public void monitorTest() {
+    InstancedConfiguration conf = new InstancedConfiguration(ConfigurationUtils.defaults());
+    long gcSleepInterval = conf.getMs(PropertyKey.JVM_MONITOR_SLEEP_INTERVAL_MS);
+    long warnThreshold = conf.getMs(PropertyKey.JVM_MONITOR_WARN_THRESHOLD_MS);
+    long infoThreshold = conf.getMs(PropertyKey.JVM_MONITOR_INFO_THRESHOLD_MS);
+    JvmPauseMonitor jvmPauseMonitor = new JvmPauseMonitor(gcSleepInterval, warnThreshold, infoThreshold);
+    jvmPauseMonitor.start();
+    List<String> list = Lists.newArrayList();
+    int i = 0;
+    while (true) {
+        list.add(String.valueOf(i++));
+        if (jvmPauseMonitor.getWarnTimeExceeded() != 0) {
+            jvmPauseMonitor.stop();
+            break;
+        }
+    }
+    assertNotEquals(jvmPauseMonitor.getWarnTimeExceeded(), 0);
+    assertNotEquals(jvmPauseMonitor.getTotalExtraTime(), 0);
+}

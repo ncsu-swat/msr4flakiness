@@ -1,0 +1,14 @@
+/**
+ * Tests that the async write invokes the expected client APIs.
+ */
+@Test
+public void asyncWrite() throws Exception {
+    OutStreamOptions options = OutStreamOptions.defaults(mClientContext).setBlockSizeBytes(BLOCK_LENGTH).setWriteType(WriteType.ASYNC_THROUGH);
+    mTestStream = createTestStream(FILE_NAME, options);
+    mTestStream.write(BufferUtils.getIncreasingByteArray((int) (BLOCK_LENGTH * 1.5)));
+    mTestStream.close();
+    // Verify that async persist request is sent with complete file request.
+    ArgumentCaptor<CompleteFilePOptions> parameterCaptor = ArgumentCaptor.forClass(CompleteFilePOptions.class);
+    verify(mFileSystemMasterClient).completeFile(eq(FILE_NAME), parameterCaptor.capture());
+    Assert.assertTrue(parameterCaptor.getValue().hasAsyncPersistOptions());
+}

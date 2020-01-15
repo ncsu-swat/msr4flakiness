@@ -1,0 +1,20 @@
+/**
+ * Tests that a new storage directory has metadata for a created block.
+ */
+@Test
+public void initializeMetaNoException() throws Exception {
+    File testDir = mFolder.newFolder();
+    int nBlock = 10;
+    long availableBytes = TEST_DIR_CAPACITY;
+    for (int blockId = 0; blockId < nBlock; blockId++) {
+        int blockSizeBytes = blockId + 1;
+        newBlockFile(testDir, String.valueOf(blockId), blockSizeBytes);
+        availableBytes -= blockSizeBytes;
+    }
+    mDir = newStorageDir(testDir);
+    assertEquals(TEST_DIR_CAPACITY, mDir.getCapacityBytes());
+    assertEquals(availableBytes, mDir.getAvailableBytes());
+    for (int blockId = 0; blockId < nBlock; blockId++) {
+        assertTrue(mDir.hasBlockMeta(blockId));
+    }
+}

@@ -1,0 +1,15 @@
+@Test
+public void containsWhenGlobalConfHasNotProperty() throws Exception {
+    // Unset property in global configuration
+    try (Closeable c = new ConfigurationRule(PropertyKey.S3A_ACCESS_KEY, null, mConfiguration).toResource()) {
+        Random random = new Random();
+        boolean readOnly = random.nextBoolean();
+        boolean shared = random.nextBoolean();
+        UnderFileSystemConfiguration conf = UnderFileSystemConfiguration.defaults(mConfiguration).setReadOnly(readOnly).setShared(shared);
+        assertFalse(conf.isSet(PropertyKey.S3A_ACCESS_KEY));
+        UnderFileSystemConfiguration conf2 = conf.createMountSpecificConf(ImmutableMap.of(PropertyKey.S3A_ACCESS_KEY.toString(), "foo"));
+        assertEquals(readOnly, conf2.isReadOnly());
+        assertEquals(shared, conf2.isShared());
+        assertTrue(conf2.isSet(PropertyKey.S3A_ACCESS_KEY));
+    }
+}

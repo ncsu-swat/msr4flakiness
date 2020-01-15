@@ -1,0 +1,18 @@
+/**
+ * Tests that many threads concurrently deleting the same file will only succeed once.
+ */
+@Test
+public void sameFileConcurrentDelete() throws Exception {
+    int numThreads = CONCURRENCY_FACTOR;
+    final AlluxioURI[] paths = new AlluxioURI[numThreads];
+    for (int i = 0; i < numThreads; i++) {
+        paths[i] = new AlluxioURI("/file");
+    }
+    // Create the single file
+    mFileSystem.createFile(paths[0], sCreatePersistedFileOptions).close();
+    List<Throwable> errors = ConcurrentFileSystemMasterUtils.unaryOperation(mFileSystem, ConcurrentFileSystemMasterUtils.UnaryOperation.DELETE, paths, LIMIT_MS);
+    // We should get an error for all but 1 delete
+    Assert.assertEquals(numThreads - 1, errors.size());
+    List<URIStatus> files = mFileSystem.listStatus(new AlluxioURI("/"));
+    Assert.assertEquals(0, files.size());
+}

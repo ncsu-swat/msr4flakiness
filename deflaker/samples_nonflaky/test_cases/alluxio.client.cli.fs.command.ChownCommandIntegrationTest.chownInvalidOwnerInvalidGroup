@@ -1,0 +1,11 @@
+@Test
+public void chownInvalidOwnerInvalidGroup() throws Exception {
+    FileSystemTestUtils.createByteFile(mFileSystem, "/testFile", WritePType.MUST_CACHE, 10);
+    String nonexistUser = "nonexistuser";
+    String nonexistGroup = "nonexistgroup";
+    String originalOwner = mFileSystem.getStatus(new AlluxioURI("/testFile")).getOwner();
+    String originalGroup = mFileSystem.getStatus(new AlluxioURI("/testFile")).getGroup();
+    String expectedCommandOutput = String.format("Could not update owner:group for /testFile to %s:%s", nonexistUser, nonexistGroup);
+    verifyCommandReturnValueAndOutput(-1, expectedCommandOutput, "chown", nonexistUser + ":" + nonexistGroup, "/testFile");
+    checkPathOwnerAndGroup("/testFile", originalOwner, originalGroup);
+}

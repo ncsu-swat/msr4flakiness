@@ -1,0 +1,31 @@
+@Test(timeout = 10000)
+public void insertValueTest() throws Exception {
+    // Fills cache until high watermark.
+    for (int key = 0; key < HIGH_WATERMARK; key++) {
+        assertEquals(key, mPool.size());
+        try (LockResource resource = mPool.get(key, LockMode.READ)) {
+            assertTrue(mPool.containsKey(key));
+            assertEquals(key + 1, mPool.size());
+        }
+    }
+    // Exceeds high watermark, will be evicted until low watermark.
+    try (LockResource r = mPool.get(HIGH_WATERMARK, LockMode.READ)) {
+        assertTrue(mPool.containsKey(HIGH_WATERMARK));
+        CommonUtils.waitFor("Pool size to go below low watermark", () -> mPool.size() <= LOW_WATERMARK);
+        assertEquals(LOW_WATERMARK, mPool.size());
+    }
+    // Fills cache until high watermark again.
+    for (int newLock = 1; newLock <= HIGH_WATERMARK - LOW_WATERMARK; newLock++) {
+        int key = HIGH_WATERMARK + newLock;
+        try (LockResource resource = mPool.get(key, LockMode.READ)) {
+            assertTrue(mPool.containsKey(key));
+            assertEquals(LOW_WATERMARK + newLock, mPool.size());
+        }
+    }
+    // Exceeds high watermark, will be evicted until low watermark.
+    try (LockResource r = mPool.get(2 * HIGH_WATERMARK, LockMode.READ)) {
+        assertTrue(mPool.containsKey(2 * HIGH_WATERMARK));
+        CommonUtils.waitFor("Pool size to go below low watermark", () -> mPool.size() <= LOW_WATERMARK);
+        assertEquals(LOW_WATERMARK, mPool.size());
+    }
+}

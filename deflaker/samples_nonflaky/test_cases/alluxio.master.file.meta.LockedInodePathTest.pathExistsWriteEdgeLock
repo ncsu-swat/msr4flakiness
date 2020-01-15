@@ -1,0 +1,19 @@
+@Test
+public void pathExistsWriteEdgeLock() throws Exception {
+    mPath = create("/a/b/c", LockPattern.WRITE_EDGE);
+    assertTrue(mPath.fullPathExists());
+    assertEquals(mFileC, mPath.getInode());
+    assertEquals(mFileC, mPath.getInodeOrNull());
+    assertEquals(mFileC, mPath.getInodeFile());
+    assertEquals(mFileC, mPath.getLastExistingInode());
+    assertEquals(mDirB, mPath.getParentInodeDirectory());
+    assertEquals(mDirB, mPath.getParentInodeOrNull());
+    assertEquals(mDirB, mPath.getAncestorInode());
+    assertEquals(Arrays.asList(mRootDir, mDirA, mDirB, mFileC), mPath.getInodeList());
+    assertEquals(4, mPath.getExistingInodeCount());
+    assertEquals(LockPattern.WRITE_EDGE, mPath.getLockPattern());
+    checkOnlyNodesReadLocked(mRootDir, mDirA, mDirB);
+    checkOnlyNodesWriteLocked(mFileC);
+    checkOnlyIncomingEdgesReadLocked(mRootDir, mDirA, mDirB);
+    checkOnlyIncomingEdgesWriteLocked(mFileC);
+}

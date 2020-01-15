@@ -1,0 +1,22 @@
+/**
+ * Tests that {@link BlockMetadataEvictorView#getTierViewsBelow(String)} returns the same
+ * TierViews as constructing by {@link BlockMetadataManager#getTiersBelow(String)}.
+ */
+@Test
+public void sameTierViewsBelow() {
+    String tierAlias = mMetaManager.getTiers().get(TEST_TIER_ORDINAL).getTierAlias();
+    List<StorageTierView> tierViews1 = mMetadataView.getTierViewsBelow(tierAlias);
+    // Do some operations on metadata
+    StorageDir dir = mMetaManager.getTiers().get(TEST_TIER_ORDINAL + 1).getDir(TEST_DIR);
+    BlockMeta blockMeta = new BlockMeta(TEST_BLOCK_ID, TEST_BLOCK_SIZE, dir);
+    try {
+        dir.addBlockMeta(blockMeta);
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+    List<StorageTier> tiers2 = mMetaManager.getTiersBelow(tierAlias);
+    assertEquals(tierViews1.size(), tiers2.size());
+    for (int i = 0; i < tierViews1.size(); i++) {
+        assertSameTierView((StorageTierEvictorView) tierViews1.get(i), new StorageTierEvictorView(tiers2.get(i), mMetadataView));
+    }
+}

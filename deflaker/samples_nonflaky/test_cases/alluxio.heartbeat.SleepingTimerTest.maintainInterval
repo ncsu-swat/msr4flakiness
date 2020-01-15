@@ -1,0 +1,13 @@
+/**
+ * Tests that the sleeping timer will attempt to run at the same interval, independently of how
+ * long the execution between ticks takes. For example, if the interval is 100ms and execution
+ * takes 80ms, the timer should sleep for only 20ms to maintain the regular interval of 100ms.
+ */
+@Test
+public void maintainInterval() throws Exception {
+    SleepingTimer stimer = new SleepingTimer(THREAD_NAME, INTERVAL_MS, mMockLogger, mFakeClock, mMockSleeper);
+    stimer.tick();
+    mFakeClock.addTimeMs(INTERVAL_MS / 3);
+    stimer.tick();
+    verify(mMockSleeper).sleep(Duration.ofMillis(INTERVAL_MS - (INTERVAL_MS / 3)));
+}

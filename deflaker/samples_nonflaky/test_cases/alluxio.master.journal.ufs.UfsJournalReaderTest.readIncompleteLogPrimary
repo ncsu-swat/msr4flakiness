@@ -1,0 +1,18 @@
+/**
+ * Reads incomplete logs in a primary master.
+ */
+@Test
+public void readIncompleteLogPrimary() throws Exception {
+    long endSN = 10;
+    buildCompletedLog(0, endSN);
+    buildIncompleteLog(endSN, endSN + 1);
+    try (JournalReader reader = mJournal.getReader(true)) {
+        int sn = 0;
+        while (reader.advance() != State.DONE) {
+            assertEquals(sn, reader.getEntry().getSequenceNumber());
+            sn++;
+        }
+        assertEquals(endSN + 1, sn);
+        assertEquals(sn, reader.getNextSequenceNumber());
+    }
+}

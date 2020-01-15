@@ -1,0 +1,23 @@
+@Test
+public void testBasic() throws Exception {
+    ArrayList<JobConfig> jobs = Lists.newArrayList();
+    TestPlanConfig child1 = new TestPlanConfig("1");
+    TestPlanConfig child2 = new TestPlanConfig("2");
+    jobs.add(child1);
+    jobs.add(child2);
+    CompositeConfig config = new CompositeConfig(jobs, true);
+    mWorkflowTracker.run(config, 0);
+    verify(mMockJobMaster).run(child1, 100);
+    WorkflowInfo info = mWorkflowTracker.getStatus(0, true);
+    assertEquals(Status.RUNNING, info.getStatus());
+    verify(mMockJobMaster, never()).run(child2, 101);
+    PlanInfo plan100 = new PlanInfo(100, child1, null);
+    plan100.setStatus(Status.COMPLETED);
+    mWorkflowTracker.onPlanStatusChange(plan100);
+    verify(mMockJobMaster).run(child2, 101);
+    assertEquals(Status.RUNNING, mWorkflowTracker.getStatus(0, true).getStatus());
+    PlanInfo plan101 = new PlanInfo(101, child2, null);
+    plan101.setStatus(Status.COMPLETED);
+    mWorkflowTracker.onPlanStatusChange(plan101);
+    assertEquals(Status.COMPLETED, mWorkflowTracker.getStatus(0, true).getStatus());
+}

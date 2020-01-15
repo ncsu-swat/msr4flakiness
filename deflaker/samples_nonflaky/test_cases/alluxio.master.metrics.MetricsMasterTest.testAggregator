@@ -1,0 +1,16 @@
+@Test
+public void testAggregator() {
+    mMetricsMaster.addAggregator(new SumInstancesAggregator("metricA", MetricsSystem.InstanceType.WORKER, "metricA"));
+    mMetricsMaster.addAggregator(new SumInstancesAggregator("metricB", MetricsSystem.InstanceType.WORKER, "metricB"));
+    List<Metric> metrics1 = Lists.newArrayList(Metric.from("worker.192_1_1_1.metricA", 10, MetricType.GAUGE), Metric.from("worker.192_1_1_1.metricB", 20, MetricType.GAUGE));
+    mMetricsMaster.workerHeartbeat("192_1_1_1", metrics1);
+    List<Metric> metrics2 = Lists.newArrayList(Metric.from("worker.192_1_1_2.metricA", 1, MetricType.GAUGE), Metric.from("worker.192_1_1_2.metricB", 2, MetricType.GAUGE));
+    mMetricsMaster.workerHeartbeat("192_1_1_2", metrics2);
+    assertEquals(11L, getGauge("metricA"));
+    assertEquals(22L, getGauge("metricB"));
+    // override metrics from hostname 192_1_1_2
+    List<Metric> metrics3 = Lists.newArrayList(Metric.from("worker.192_1_1_2.metricA", 3, MetricType.GAUGE));
+    mMetricsMaster.workerHeartbeat("192_1_1_2", metrics3);
+    assertEquals(13L, getGauge("metricA"));
+    assertEquals(22L, getGauge("metricB"));
+}

@@ -1,0 +1,18 @@
+@Test
+public void downgradeLastInode() {
+    mLockList.lockRootEdge(LockMode.READ);
+    mLockList.lockInode(mRootDir, LockMode.READ);
+    mLockList.lockEdge(mRootDir, mDirA.getName(), LockMode.READ);
+    mLockList.lockInode(mDirA, LockMode.WRITE);
+    mLockList.downgradeLastInode();
+    assertEquals(LockMode.READ, mLockList.getLockMode());
+    assertEquals(Arrays.asList(mRootDir, mDirA), mLockList.getLockedInodes());
+    mLockList.unlockLastInode();
+    mLockList.lockInode(mDirA, LockMode.WRITE);
+    assertEquals(LockMode.WRITE, mLockList.getLockMode());
+    assertEquals(Arrays.asList(mRootDir, mDirA), mLockList.getLockedInodes());
+    checkOnlyNodesReadLocked(mRootDir);
+    checkOnlyNodesWriteLocked(mDirA);
+    checkOnlyIncomingEdgesReadLocked(mRootDir, mDirA);
+    checkOnlyIncomingEdgesWriteLocked();
+}

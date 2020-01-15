@@ -1,0 +1,14 @@
+@Test
+public void fromScriptClasspath() throws Exception {
+    String customScriptName = "my-alluxio-locality.sh";
+    File dir = mFolder.newFolder("fromScriptClasspath");
+    Whitebox.invokeMethod(ClassLoader.getSystemClassLoader(), "addURL", dir.toURI().toURL());
+    File script = new File(dir, customScriptName);
+    setupScript("node=myhost,rack=myrack,custom=mycustom", script);
+    try (Closeable c = new ConfigurationRule(ImmutableMap.of(PropertyKey.LOCALITY_ORDER, "node,rack,custom", PropertyKey.LOCALITY_SCRIPT, customScriptName), mConfiguration).toResource()) {
+        TieredIdentity identity = TieredIdentityFactory.create(mConfiguration);
+        TieredIdentity expected = new TieredIdentity(Arrays.asList(new LocalityTier("node", "myhost"), new LocalityTier("rack", "myrack"), new LocalityTier("custom", "mycustom")));
+        assertEquals(expected, identity);
+    }
+    script.delete();
+}

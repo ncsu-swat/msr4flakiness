@@ -1,0 +1,15 @@
+@Test
+@LocalAlluxioClusterResource.Config(confParams = { PropertyKey.Name.MASTER_PERSISTENCE_INITIAL_INTERVAL_MS, "10s" })
+public void disallowIncompletePersist() throws Exception {
+    AlluxioURI path = new AlluxioURI("/" + CommonUtils.randomAlphaNumString(10));
+    // Create file, but do not complete
+    FileOutStream os = mFileSystem.createFile(path, CreateFilePOptions.newBuilder().setWriteType(WritePType.MUST_CACHE).setMode(TEST_MODE.toProto()).build());
+    // schedule an async persist
+    try (CloseableResource<FileSystemMasterClient> client = mFsContext.acquireMasterClientResource()) {
+        client.get().scheduleAsyncPersist(path, FileSystemOptions.scheduleAsyncPersistDefaults(ServerConfiguration.global()));
+        Assert.fail("Should not be able to schedule persistence for incomplete file");
+    } catch (Exception e) {
+        // expected
+        Assert.assertTrue("Failure expected to be about incomplete files", e.getMessage().toLowerCase().contains("incomplete"));
+    }
+}

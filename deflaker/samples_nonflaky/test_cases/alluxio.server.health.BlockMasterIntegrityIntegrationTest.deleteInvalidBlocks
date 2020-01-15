@@ -1,0 +1,17 @@
+@Test
+@LocalAlluxioClusterResource.Config(confParams = { PropertyKey.Name.MASTER_STARTUP_BLOCK_INTEGRITY_CHECK_ENABLED, "true" })
+public void deleteInvalidBlocks() throws Exception {
+    AlluxioURI uri = new AlluxioURI("/test");
+    int len = 10;
+    FileSystem fs = mCluster.getClient();
+    BlockWorker worker = mCluster.getWorkerProcess().getWorker(BlockWorker.class);
+    FileSystemTestUtils.createByteFile(fs, uri, WritePType.MUST_CACHE, len);
+    Assert.assertEquals(1, worker.getStoreMetaFull().getNumberOfBlocks());
+    removeFileMetadata(uri);
+    mCluster.stopWorkers();
+    mCluster.restartMasters();
+    // creates a new worker, so need to get the new BlockWorker
+    mCluster.startWorkers();
+    BlockWorker newWorker = mCluster.getWorkerProcess().getWorker(BlockWorker.class);
+    CommonUtils.waitFor("invalid blocks to be deleted", () -> newWorker.getStoreMetaFull().getNumberOfBlocks() == 0, WaitForOptions.defaults().setTimeoutMs(2000));
+}

@@ -1,0 +1,12 @@
+@Test
+public void copyToLocalRelativePathDir() throws Exception {
+    FileSystemTestUtils.createByteFile(mFileSystem, "/testFile", WritePType.MUST_CACHE, 10);
+    HashMap<String, String> sysProps = new HashMap<>();
+    sysProps.put("user.dir", mTestFolder.getRoot().getAbsolutePath());
+    try (Closeable p = new SystemPropertyRule(sysProps).toResource()) {
+        File localDir = mTestFolder.newFolder("localDir");
+        localDir.mkdir();
+        mFsShell.run("copyToLocal", "/testFile", "localDir");
+        Assert.assertEquals("Copied /testFile to file://" + mTestFolder.getRoot().getAbsolutePath() + "/localDir/testFile" + "\n", mOutput.toString());
+    }
+}

@@ -1,0 +1,14 @@
+@Test
+public void initiateMultipartUpload() throws Exception {
+    final String bucketName = "bucket";
+    createBucketRestCall(bucketName);
+    final String objectName = "object";
+    String objectKey = bucketName + AlluxioURI.SEPARATOR + objectName;
+    String result = initiateMultipartUploadRestCall(objectKey);
+    String multipartTempDir = S3RestUtils.getMultipartTemporaryDirForObject(AlluxioURI.SEPARATOR + bucketName, objectName);
+    URIStatus status = mFileSystem.getStatus(new AlluxioURI(multipartTempDir));
+    long tempDirId = status.getFileId();
+    InitiateMultipartUploadResult expected = new InitiateMultipartUploadResult(bucketName, objectName, Long.toString(tempDirId));
+    String expectedResult = XML_MAPPER.writeValueAsString(expected);
+    Assert.assertEquals(expectedResult, result);
+}

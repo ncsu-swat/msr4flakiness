@@ -1,0 +1,11 @@
+@Test
+public void cancel() throws Exception {
+    long jobId = startJob(new SleepJobConfig(10 * Constants.SECOND_MS));
+    // Sleep to make sure the run request and the cancel request are separated by a job worker
+    // heartbeat. If not, job service will not handle that case correctly.
+    CommonUtils.sleepMs(30);
+    Map<String, String> params = Maps.newHashMap();
+    params.put("jobId", Long.toString(jobId));
+    new TestCase(mHostname, mPort, getEndpoint(ServiceConstants.CANCEL), params, HttpMethod.POST, null).run();
+    waitForStatus(jobId, Status.CANCELED);
+}

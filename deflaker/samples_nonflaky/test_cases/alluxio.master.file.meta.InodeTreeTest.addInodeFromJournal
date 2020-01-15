@@ -1,0 +1,28 @@
+@Test
+public void addInodeFromJournal() throws Exception {
+    createPath(mTree, NESTED_FILE_URI, sNestedFileContext);
+    createPath(mTree, new AlluxioURI("/nested/test1/file1"), sNestedFileContext);
+    MutableInode<?> root = getInodeByPath("/");
+    MutableInode<?> nested = getInodeByPath("/nested");
+    MutableInode<?> test = getInodeByPath("/nested/test");
+    MutableInode<?> file = getInodeByPath("/nested/test/file");
+    MutableInode<?> test1 = getInodeByPath("/nested/test1");
+    MutableInode<?> file1 = getInodeByPath("/nested/test1/file1");
+    // reset the tree
+    mTree.processJournalEntry(root.toJournalEntry());
+    // re-init the root since the tree was reset above
+    mTree.getRoot();
+    try (LockedInodePath inodePath = mTree.lockFullInodePath(new AlluxioURI("/"), LockPattern.WRITE_INODE)) {
+        assertEquals(0, mTree.getDescendants(inodePath).getInodePathList().size());
+        mTree.processJournalEntry(nested.toJournalEntry());
+        verifyChildrenNames(mTree, inodePath, Sets.newHashSet("nested"));
+        mTree.processJournalEntry(test.toJournalEntry());
+        verifyChildrenNames(mTree, inodePath, Sets.newHashSet("nested", "test"));
+        mTree.processJournalEntry(test1.toJournalEntry());
+        verifyChildrenNames(mTree, inodePath, Sets.newHashSet("nested", "test", "test1"));
+        mTree.processJournalEntry(file.toJournalEntry());
+        verifyChildrenNames(mTree, inodePath, Sets.newHashSet("nested", "test", "test1", "file"));
+        mTree.processJournalEntry(file1.toJournalEntry());
+        verifyChildrenNames(mTree, inodePath, Sets.newHashSet("nested", "test", "test1", "file", "file1"));
+    }
+}

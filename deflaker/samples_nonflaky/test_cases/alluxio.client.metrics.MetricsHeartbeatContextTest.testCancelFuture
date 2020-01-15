@@ -1,0 +1,24 @@
+@Test
+public void testCancelFuture() {
+    Map<MasterInquireClient.ConnectDetails, MetricsHeartbeatContext> map = getContextMap();
+    assertTrue(map.isEmpty());
+    ScheduledFuture<?> future = Mockito.mock(ScheduledFuture.class);
+    when(future.cancel(any(Boolean.class))).thenReturn(true);
+    ClientContext ctx = ClientContext.create();
+    MasterInquireClient client = MasterInquireClient.Factory.create(ctx.getClusterConf(), ctx.getUserState());
+    MetricsHeartbeatContext.addHeartbeat(ctx, client);
+    assertFalse(map.isEmpty());
+    map.forEach((addr, heartbeat) -> {
+        ScheduledFuture<?> realFuture = Whitebox.getInternalState(heartbeat, "mMetricsMasterHeartbeatTask");
+        // Should be created and scheduled
+        assertNotNull(realFuture);
+        // Scheduled indefinitely
+        assertFalse(realFuture.isDone());
+        Whitebox.setInternalState(heartbeat, "mMetricsMasterHeartbeatTask", future);
+        // Cancel the real one once replaced with a mock.
+        realFuture.cancel(false);
+    });
+    MetricsHeartbeatContext.removeHeartbeat(ctx);
+    // Make sure the future is canceled afterwards
+    verify(future).cancel(false);
+}

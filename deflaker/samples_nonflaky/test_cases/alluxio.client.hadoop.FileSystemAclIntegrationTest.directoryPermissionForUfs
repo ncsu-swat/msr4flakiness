@@ -1,0 +1,23 @@
+/**
+ * Tests the directory permission propagation to UFS.
+ */
+@Test
+public void directoryPermissionForUfs() throws IOException {
+    // Skip non-local and non-HDFS UFSs.
+    Assume.assumeTrue(UnderFileSystemUtils.isLocal(sUfs) || UnderFileSystemUtils.isHdfs(sUfs));
+    Path dir = new Path("/root/directoryPermissionForUfsDir");
+    sTFS.mkdirs(dir);
+    FileStatus fs = sTFS.getFileStatus(dir);
+    String defaultOwner = fs.getOwner();
+    Short dirMode = fs.getPermission().toShort();
+    FileStatus parentFs = sTFS.getFileStatus(dir.getParent());
+    Short parentMode = parentFs.getPermission().toShort();
+    UfsStatus ufsStatus = sUfs.getDirectoryStatus(PathUtils.concatPath(sUfsRoot, dir));
+    Assert.assertEquals(defaultOwner, ufsStatus.getOwner());
+    Assert.assertEquals((int) dirMode, (int) ufsStatus.getMode());
+    Assert.assertEquals((int) parentMode, (int) sUfs.getDirectoryStatus(PathUtils.concatPath(sUfsRoot, dir.getParent())).getMode());
+    short newMode = (short) 0755;
+    FsPermission newPermission = new FsPermission(newMode);
+    sTFS.setPermission(dir, newPermission);
+    Assert.assertEquals((int) newMode, (int) sUfs.getDirectoryStatus(PathUtils.concatPath(sUfsRoot, dir)).getMode());
+}

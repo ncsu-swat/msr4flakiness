@@ -1,0 +1,16 @@
+/**
+ * Writes a file with file length matches what is given and verifies the checksum of the whole
+ * file.
+ */
+@Test(timeout = 1000 * 60)
+public void writeFileChecksumOfPartialFile() throws Exception {
+    long checksumActual;
+    Future<Long> checksumExpected;
+    long length = CHUNK_SIZE * 1024 + CHUNK_SIZE / 3;
+    try (DataWriter writer = create(length)) {
+        checksumExpected = writeFile(writer, length, 10, length / 3);
+        checksumExpected.get();
+        checksumActual = verifyWriteRequests(mClient, 10, length / 3);
+    }
+    assertEquals(checksumExpected.get().longValue(), checksumActual);
+}

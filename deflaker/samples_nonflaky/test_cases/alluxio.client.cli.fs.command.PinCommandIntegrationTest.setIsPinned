@@ -1,0 +1,20 @@
+/**
+ * Tests the "pin" and "unpin" commands. Creates a file and tests unpinning it, then pinning
+ * it and finally unpinning
+ */
+@Test
+public void setIsPinned() throws Exception {
+    AlluxioURI filePath = new AlluxioURI("/testFile");
+    FileSystemTestUtils.createByteFile(mFileSystem, filePath, WritePType.MUST_CACHE, 1);
+    // Ensure that the file exists
+    assertTrue(fileExists(filePath));
+    // Unpin an unpinned file
+    assertEquals(0, mFsShell.run("unpin", filePath.toString()));
+    assertFalse(mFileSystem.getStatus(filePath).isPinned());
+    // Pin the file
+    assertEquals(0, mFsShell.run("pin", filePath.toString()));
+    assertTrue(mFileSystem.getStatus(filePath).isPinned());
+    // Unpin the file
+    assertEquals(0, mFsShell.run("unpin", filePath.toString()));
+    assertFalse(mFileSystem.getStatus(filePath).isPinned());
+}

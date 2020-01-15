@@ -1,0 +1,15 @@
+/**
+ * Ensures that an exception is propagated successfully when unmounting a path.
+ */
+@Test
+public void unmountException() throws Exception {
+    AlluxioURI path = new AlluxioURI("/");
+    UnmountPOptions unmountOptions = UnmountPOptions.getDefaultInstance();
+    doThrow(EXCEPTION).when(mFileSystemMasterClient).unmount(path);
+    try {
+        mFileSystem.unmount(path, unmountOptions);
+        fail(SHOULD_HAVE_PROPAGATED_MESSAGE);
+    } catch (Exception e) {
+        assertSame(EXCEPTION, e);
+    }
+}

@@ -1,0 +1,20 @@
+/**
+ * Tests seeking through files only in the underfs.
+ */
+@Test
+public void seek() throws Exception {
+    String uniqPath = PathUtils.uniqPath();
+    for (int k = MIN_LEN + DELTA; k <= MAX_LEN; k += DELTA) {
+        AlluxioURI uri = new AlluxioURI(uniqPath + "/file_" + k);
+        FileSystemTestUtils.createByteFile(mFileSystem, uri, mWriteUnderStore, k);
+        FileInStream is = mFileSystem.openFile(uri, mReadCache);
+        Assert.assertEquals(0, is.read());
+        is.seek(k / 3);
+        Assert.assertEquals(k / 3, is.read());
+        is.seek(k / 2);
+        Assert.assertEquals(k / 2, is.read());
+        is.seek(k / 4);
+        Assert.assertEquals(k / 4, is.read());
+        is.close();
+    }
+}

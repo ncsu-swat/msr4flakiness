@@ -1,0 +1,23 @@
+@Test
+public void errorRenameTest3() throws Exception {
+    // Rename /fileA to /dirA/fileA should fail if /dirA/fileA exists
+    Path fileA = new Path("/fileA");
+    Path dirA = new Path("/dirA");
+    Path finalDst = new Path("/dirA/fileA");
+    create(sTFS, fileA);
+    create(sTFS, finalDst);
+    Assert.assertFalse(sTFS.rename(fileA, dirA));
+    Assert.assertTrue(sTFS.exists(fileA));
+    Assert.assertTrue(sTFS.exists(dirA));
+    Assert.assertTrue(sTFS.exists(finalDst));
+    Assert.assertTrue(sUfs.isFile(PathUtils.concatPath(sUfsRoot, "fileA")));
+    Assert.assertTrue(sUfs.isDirectory(PathUtils.concatPath(sUfsRoot, "dirA")));
+    Assert.assertTrue(sUfs.isFile(PathUtils.concatPath(sUfsRoot, "dirA", "fileA")));
+    cleanup(sTFS);
+    Assert.assertFalse(sTFS.exists(fileA));
+    Assert.assertFalse(sTFS.exists(dirA));
+    Assert.assertFalse(sTFS.exists(finalDst));
+    Assert.assertFalse(sUfs.isFile(PathUtils.concatPath(sUfsRoot, "fileA")));
+    Assert.assertFalse(sUfs.isDirectory(PathUtils.concatPath(sUfsRoot, "dirA")));
+    Assert.assertFalse(sUfs.isFile(PathUtils.concatPath(sUfsRoot, "dirA", "fileA")));
+}

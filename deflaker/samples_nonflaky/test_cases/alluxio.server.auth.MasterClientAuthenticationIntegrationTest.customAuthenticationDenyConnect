@@ -1,0 +1,11 @@
+@Test
+@LocalAlluxioClusterResource.Config(confParams = { PropertyKey.Name.SECURITY_AUTHENTICATION_TYPE, "CUSTOM", PropertyKey.Name.SECURITY_AUTHENTICATION_CUSTOM_PROVIDER_CLASS, NameMatchAuthenticationProvider.FULL_CLASS_NAME, PropertyKey.Name.SECURITY_LOGIN_USERNAME, "alluxio" })
+public void customAuthenticationDenyConnect() throws Exception {
+    UserState s = new TestUserState("no-alluxio", ServerConfiguration.global());
+    try (FileSystemMasterClient masterClient = FileSystemMasterClient.Factory.create(MasterClientContext.newBuilder(ClientContext.create(s.getSubject(), ServerConfiguration.global())).build())) {
+        Assert.assertFalse(masterClient.isConnected());
+        // Using no-alluxio as loginUser to connect to Master, the IOException will be thrown
+        mThrown.expect(UnauthenticatedException.class);
+        masterClient.connect();
+    }
+}

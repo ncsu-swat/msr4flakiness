@@ -1,0 +1,21 @@
+@Test
+public void heartbeat() throws Exception {
+    JobCommand.Builder command = JobCommand.newBuilder();
+    RunTaskCommand.Builder runTaskCommand = RunTaskCommand.newBuilder();
+    long jobId = 1;
+    runTaskCommand.setJobId(jobId);
+    long taskId = 2;
+    runTaskCommand.setTaskId(taskId);
+    JobConfig jobConfig = new TestPlanConfig("/test");
+    runTaskCommand.setJobConfig(ByteString.copyFrom(SerializationUtils.serialize(jobConfig)));
+    Serializable taskArgs = Lists.newArrayList(1);
+    runTaskCommand.setTaskArgs(ByteString.copyFrom(SerializationUtils.serialize(taskArgs)));
+    command.setRunTaskCommand(runTaskCommand);
+    Mockito.when(mJobMasterClient.heartbeat(any(JobWorkerHealth.class), eq(Lists.newArrayList()))).thenReturn(Lists.newArrayList(command.build()));
+    mCommandHandlingExecutor.heartbeat();
+    ExecutorService executorService = Whitebox.getInternalState(mCommandHandlingExecutor, "mCommandHandlingService");
+    executorService.shutdown();
+    Assert.assertTrue(executorService.awaitTermination(5000, TimeUnit.MILLISECONDS));
+    Mockito.verify(mTaskExecutorManager).getAndClearTaskUpdates();
+    Mockito.verify(mTaskExecutorManager).executeTask(Mockito.eq(jobId), Mockito.eq(taskId), Mockito.eq(runTaskCommand.build()), Mockito.any(RunTaskContext.class));
+}

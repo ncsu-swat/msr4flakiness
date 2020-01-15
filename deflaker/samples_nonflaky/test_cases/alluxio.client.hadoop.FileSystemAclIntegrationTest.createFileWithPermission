@@ -1,0 +1,17 @@
+@Test
+public void createFileWithPermission() throws Exception {
+    List<Integer> permissionValues = Lists.newArrayList(0111, 0222, 0333, 0444, 0555, 0666, 0777, 0755, 0733, 0644, 0533, 0511);
+    for (int value : permissionValues) {
+        Path file = new Path("/createfile" + value);
+        FsPermission permission = FsPermission.createImmutable((short) value);
+        FSDataOutputStream o = sTFS.create(file, permission, false, /* ignored */
+        10, /* ignored */
+        (short) 1, /* ignored */
+        512, /* ignored */
+        null);
+        o.writeBytes("Test Bytes");
+        o.close();
+        FileStatus fs = sTFS.getFileStatus(file);
+        Assert.assertEquals(permission, fs.getPermission());
+    }
+}

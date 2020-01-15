@@ -1,0 +1,18 @@
+@Test
+public void countBytes() throws Exception {
+    // Register two workers
+    long worker1 = mBlockMaster.getWorkerId(NET_ADDRESS_1);
+    long worker2 = mBlockMaster.getWorkerId(NET_ADDRESS_2);
+    List<String> tiers = Arrays.asList("MEM", "SSD");
+    Map<String, Long> worker1TotalBytesOnTiers = ImmutableMap.of("MEM", 10L, "SSD", 20L);
+    Map<String, Long> worker2TotalBytesOnTiers = ImmutableMap.of("MEM", 1000L, "SSD", 2000L);
+    Map<String, Long> worker1UsedBytesOnTiers = ImmutableMap.of("MEM", 1L, "SSD", 2L);
+    Map<String, Long> worker2UsedBytesOnTiers = ImmutableMap.of("MEM", 100L, "SSD", 200L);
+    mBlockMaster.workerRegister(worker1, tiers, worker1TotalBytesOnTiers, worker1UsedBytesOnTiers, NO_BLOCKS_ON_LOCATION, NO_LOST_STORAGE, RegisterWorkerPOptions.getDefaultInstance());
+    mBlockMaster.workerRegister(worker2, tiers, worker2TotalBytesOnTiers, worker2UsedBytesOnTiers, NO_BLOCKS_ON_LOCATION, NO_LOST_STORAGE, RegisterWorkerPOptions.getDefaultInstance());
+    // Check that byte counts are summed correctly.
+    assertEquals(3030, mBlockMaster.getCapacityBytes());
+    assertEquals(303L, mBlockMaster.getUsedBytes());
+    assertEquals(ImmutableMap.of("MEM", 1010L, "SSD", 2020L), mBlockMaster.getTotalBytesOnTiers());
+    assertEquals(ImmutableMap.of("MEM", 101L, "SSD", 202L), mBlockMaster.getUsedBytesOnTiers());
+}

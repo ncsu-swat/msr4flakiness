@@ -1,0 +1,29 @@
+/**
+ * Tests the {@link TieredBlockStore#freeSpace(long, long, BlockStoreLocation)} method.
+ */
+@Test
+public void freeSpaceThreadSafe() throws Exception {
+    int threadAmount = 10;
+    List<Runnable> runnables = new ArrayList<>();
+    Evictor evictor = mock(Evictor.class);
+    when(evictor.freeSpaceWithView(any(Long.class), any(BlockStoreLocation.class), any(BlockMetadataEvictorView.class), any(Mode.class))).thenAnswer((InvocationOnMock invocation) -> {
+        CommonUtils.sleepMs(20);
+        return new EvictionPlan(new ArrayList<>(), new ArrayList<>());
+    });
+    Field field = mBlockStore.getClass().getDeclaredField("mEvictor");
+    field.setAccessible(true);
+    field.set(mBlockStore, evictor);
+    for (int i = 0; i < threadAmount; i++) {
+        runnables.add(() -> {
+            try {
+                mBlockStore.freeSpace(SESSION_ID1, 0, new BlockStoreLocation("MEM", 0, BlockStoreLocation.ANY_MEDIUM));
+            } catch (Exception e) {
+                fail();
+            }
+        });
+    }
+    RetryPolicy retry = new CountingRetry(threadAmount);
+    while (retry.attempt()) {
+        ConcurrencyUtils.assertConcurrent(runnables, threadAmount);
+    }
+}

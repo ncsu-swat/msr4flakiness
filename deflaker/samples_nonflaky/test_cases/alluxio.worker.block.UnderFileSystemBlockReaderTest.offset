@@ -1,0 +1,9 @@
+@Test
+public void offset() throws Exception {
+    mReader = UnderFileSystemBlockReader.create(mUnderFileSystemBlockMeta, 0, mAlluxioBlockStore, mUfsManager, mUfsInstreamManager);
+    ByteBuffer buffer = mReader.read(2, TEST_BLOCK_SIZE - 2);
+    Assert.assertTrue(BufferUtils.equalIncreasingByteBuffer(2, (int) TEST_BLOCK_SIZE - 2, buffer));
+    mReader.close();
+    // partial block should not be cached
+    Assert.assertNull(mAlluxioBlockStore.getTempBlockMeta(SESSION_ID, BLOCK_ID));
+}

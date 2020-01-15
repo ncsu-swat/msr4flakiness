@@ -1,0 +1,10 @@
+@Test
+public void testRetentionTime() throws Exception {
+    long retentionMs = FormatUtils.parseTimeSize("24h");
+    PlanTracker tracker = new PlanTracker(10, retentionMs, -1, mMockWorkflowTracker);
+    assertEquals("tracker should be empty", 0, tracker.coordinators().size());
+    fillJobTracker(tracker, 10);
+    finishAllJobs(tracker);
+    mException.expect(ResourceExhaustedException.class);
+    addJob(tracker, 100);
+}

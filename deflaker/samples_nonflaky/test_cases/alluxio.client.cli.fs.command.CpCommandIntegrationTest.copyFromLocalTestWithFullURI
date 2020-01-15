@@ -1,0 +1,16 @@
+@Test
+public void copyFromLocalTestWithFullURI() throws Exception {
+    File testFile = generateFileContent("/srcFileURI", BufferUtils.getIncreasingByteArray(10));
+    String alluxioURI = "alluxio://" + mLocalAlluxioCluster.getHostname() + ":" + mLocalAlluxioCluster.getMasterRpcPort() + "/destFileURI";
+    String[] cmd = new String[] { "cp", "file://" + testFile.getPath(), alluxioURI };
+    // when
+    mFsShell.run(cmd);
+    String cmdOut = getCommandOutput(cmd);
+    // then
+    Assert.assertEquals(cmdOut, mOutput.toString());
+    AlluxioURI uri = new AlluxioURI("/destFileURI");
+    URIStatus status = mFileSystem.getStatus(uri);
+    Assert.assertEquals(10L, status.getLength());
+    byte[] read = readContent(uri, 10);
+    Assert.assertTrue(BufferUtils.equalIncreasingByteArray(10, read));
+}

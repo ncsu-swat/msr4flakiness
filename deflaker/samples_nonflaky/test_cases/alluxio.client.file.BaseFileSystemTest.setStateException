@@ -1,0 +1,15 @@
+/**
+ * Ensures that an exception is propagated successfully when setting the state.
+ */
+@Test
+public void setStateException() throws Exception {
+    AlluxioURI file = new AlluxioURI("/file");
+    SetAttributePOptions setAttributeOptions = FileSystemOptions.setAttributeClientDefaults(mFileContext.getPathConf(file));
+    doThrow(EXCEPTION).when(mFileSystemMasterClient).setAttribute(file, setAttributeOptions);
+    try {
+        mFileSystem.setAttribute(file, setAttributeOptions);
+        fail(SHOULD_HAVE_PROPAGATED_MESSAGE);
+    } catch (Exception e) {
+        assertSame(EXCEPTION, e);
+    }
+}

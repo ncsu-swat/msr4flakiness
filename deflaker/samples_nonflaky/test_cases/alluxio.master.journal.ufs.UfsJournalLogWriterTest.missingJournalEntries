@@ -1,0 +1,42 @@
+/**
+ * Tests that {@link UfsJournalLogWriter} can detect the failure in which some flushed journal
+ * entries are missing from the journal during recovery.
+ */
+@Test
+public void missingJournalEntries() throws Exception {
+    long startSN = 0x10;
+    long nextSN = startSN;
+    UfsJournalLogWriter writer = new UfsJournalLogWriter(mJournal, nextSN);
+    long truncateSize = 0;
+    long firstCorruptedEntrySeq = startSN + 4;
+    for (int i = 0; i < 5; i++) {
+        writer.write(newEntry(nextSN));
+        nextSN++;
+        if (i == 3) {
+            writer.flush();
+            UfsJournalSnapshot snapshot = UfsJournalSnapshot.getSnapshot(mJournal);
+            UfsJournalFile journalFile = snapshot.getCurrentLog(mJournal);
+            File file = new File(journalFile.getLocation().toString());
+            truncateSize = file.length();
+        }
+    }
+    writer.flush();
+    writer.write(newEntry(nextSN));
+    long seqOfFirstEntryToFlush = nextSN;
+    nextSN++;
+    Assert.assertNotNull(writer.getJournalOutputStream());
+    DataOutputStream badOut = createMockDataOutputStream(writer);
+    Mockito.doThrow(new IOException(INJECTED_IO_ERROR_MESSAGE)).when(badOut).write(Mockito.any(byte[].class), Mockito.anyInt(), Mockito.anyInt());
+    tryWriteAndExpectToFail(writer, nextSN);
+    UfsJournalSnapshot snapshot = UfsJournalSnapshot.getSnapshot(mJournal);
+    UfsJournalFile journalFile = snapshot.getCurrentLog(mJournal);
+    File file = new File(journalFile.getLocation().toString());
+    try (FileOutputStream fileOutputStream = new FileOutputStream(file, true);
+        FileChannel fileChannel = fileOutputStream.getChannel()) {
+        fileChannel.truncate(truncateSize);
+    }
+    mThrown.expect(RuntimeException.class);
+    mThrown.expectMessage(ExceptionMessage.JOURNAL_ENTRY_MISSING.getMessageWithUrl(RuntimeConstants.ALLUXIO_DEBUG_DOCS_URL, firstCorruptedEntrySeq, seqOfFirstEntryToFlush));
+    writer.write(newEntry(nextSN));
+    writer.close();
+}

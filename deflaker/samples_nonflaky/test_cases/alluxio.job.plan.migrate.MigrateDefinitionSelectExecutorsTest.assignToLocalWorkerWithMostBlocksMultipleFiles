@@ -1,0 +1,17 @@
+@Test
+public void assignToLocalWorkerWithMostBlocksMultipleFiles() throws Exception {
+    createDirectory("/dir");
+    // Should go to worker 0.
+    FileInfo info1 = createFileWithBlocksOnWorkers("/dir/src1", 0, 1, 2, 3, 0);
+    // Should go to worker 2.
+    FileInfo info2 = createFileWithBlocksOnWorkers("/dir/src2", 1, 1, 2, 2, 2);
+    // Should go to worker 0.
+    FileInfo info3 = createFileWithBlocksOnWorkers("/dir/src3", 2, 0, 0, 1, 1, 0);
+    setChildren("/dir", info1, info2, info3);
+    // Say the destination doesn't exist.
+    setPathToNotExist("/dst");
+    List<MigrateCommand> migrateCommandsWorker0 = Lists.newArrayList(new MigrateCommand("/dir/src1", "/dst/src1"), new MigrateCommand("/dir/src3", "/dst/src3"));
+    List<MigrateCommand> migrateCommandsWorker2 = Lists.newArrayList(new MigrateCommand("/dir/src2", "/dst/src2"));
+    Set<Pair<WorkerInfo, List<MigrateCommand>>> expected = ImmutableSet.of(new Pair<>(JOB_WORKERS.get(0), ImmutableList.of(migrateCommandsWorker0.get(0))), new Pair<>(JOB_WORKERS.get(0), ImmutableList.of(migrateCommandsWorker0.get(1))), new Pair<>(JOB_WORKERS.get(2), ImmutableList.of(migrateCommandsWorker2.get(0))));
+    Assert.assertEquals(expected, assignMigrates("/dir", "/dst"));
+}

@@ -1,0 +1,15 @@
+@Test
+public void notEnoughJobWorkersWithLocalBlockWorkers() throws Exception {
+    List<BlockWorkerInfo> blockWorkers = Arrays.asList(new BlockWorkerInfo(new WorkerNetAddress().setHost("host0"), 0, 0), new BlockWorkerInfo(new WorkerNetAddress().setHost("otherhost"), 0, 0));
+    Mockito.when(mMockBlockStore.getAllWorkers()).thenReturn(blockWorkers);
+    createFileWithNoLocations(TEST_URI, 1);
+    // set replication to 2
+    LoadConfig config = new LoadConfig(TEST_URI, 2);
+    try {
+        new LoadDefinition().selectExecutors(config, JOB_WORKERS, new SelectExecutorsContext(1, mJobServerContext));
+        Assert.fail();
+    } catch (Exception e) {
+        Assert.assertThat(e.getMessage(), CoreMatchers.containsString("Available workers without the block: [host0]"));
+        Assert.assertThat(e.getMessage(), CoreMatchers.containsString("The following workers could not be used because " + "they have no local job workers: [otherhost]"));
+    }
+}

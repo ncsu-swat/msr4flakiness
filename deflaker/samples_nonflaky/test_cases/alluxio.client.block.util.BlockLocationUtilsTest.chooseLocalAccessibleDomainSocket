@@ -1,0 +1,22 @@
+@Test
+public void chooseLocalAccessibleDomainSocket() throws Exception {
+    List<BlockWorkerInfo> workers = new ArrayList<>();
+    workers.add(worker(Constants.GB, "node2", "rack2"));
+    // create worker info with domain socket path
+    BlockWorkerInfo workerWithDomainSocket = worker(Constants.GB, "node3", "rack3");
+    String domainSocketPath = "/tmp/domain/uuid-node3";
+    workerWithDomainSocket.getNetAddress().setDomainSocketPath(domainSocketPath);
+    workers.add(workerWithDomainSocket);
+    // mock NettyUtils
+    PowerMockito.mockStatic(NettyUtils.class);
+    when(NettyUtils.isDomainSocketAccessible(eq(workerWithDomainSocket.getNetAddress()), any(AlluxioConfiguration.class))).thenReturn(true);
+    // choose worker with domain socket accessible ignoring rack
+    InstancedConfiguration conf = ConfigurationTestUtils.defaults();
+    conf.set(PropertyKey.WORKER_DATA_SERVER_DOMAIN_SOCKET_AS_UUID, true);
+    List<WorkerNetAddress> addresses = workers.stream().map(worker -> worker.getNetAddress()).filter(Objects::nonNull).collect(Collectors.toList());
+    Optional<Pair<WorkerNetAddress, Boolean>> chosen = BlockLocationUtils.nearest(TieredIdentityFactory.fromString("node=node1,rack=rack2", conf), addresses, conf);
+    assertTrue(chosen.isPresent());
+    assertTrue(chosen.get().getSecond());
+    assertEquals(domainSocketPath, chosen.get().getFirst().getDomainSocketPath());
+    assertEquals("node3", chosen.get().getFirst().getHost());
+}

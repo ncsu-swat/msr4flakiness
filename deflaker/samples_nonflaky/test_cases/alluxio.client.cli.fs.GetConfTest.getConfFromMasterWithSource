@@ -1,0 +1,11 @@
+@Test
+public void getConfFromMasterWithSource() throws Exception {
+    // Prepare mock meta master client
+    RetryHandlingMetaMasterConfigClient client = Mockito.mock(RetryHandlingMetaMasterConfigClient.class);
+    Mockito.when(client.getConfiguration(any())).thenReturn(Configuration.fromProto(prepareGetConfigurationResponse()));
+    assertEquals(0, GetConf.getConfImpl(() -> client, ServerConfiguration.global(), "--master", "--source"));
+    // CHECKSTYLE.OFF: LineLengthExceed - Much more readable
+    String expectedOutput = "alluxio.logger.type=MASTER_LOGGER (SYSTEM_PROPERTY)\n" + "alluxio.master.audit.logger.type=MASTER_AUDIT_LOGGER (SYSTEM_PROPERTY)\n" + "alluxio.master.hostname=localhost (SITE_PROPERTY (/alluxio/conf/alluxio-site.properties))\n" + "alluxio.master.mount.table.root.ufs=hdfs://localhost:9000 (SITE_PROPERTY (/alluxio/conf/alluxio-site.properties))\n" + "alluxio.master.rpc.port=19998 (DEFAULT)\n" + "alluxio.master.web.port=19999 (DEFAULT)\n";
+    // CHECKSTYLE.ON: LineLengthExceed
+    assertEquals(expectedOutput, mOutputStream.toString());
+}

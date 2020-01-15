@@ -1,0 +1,23 @@
+/**
+ * Tests the parent directory permission when mkdirs recursively.
+ */
+@Test
+public void parentDirectoryPermissionForUfs() throws IOException {
+    // Skip non-local and non-HDFS UFSs.
+    Assume.assumeTrue(UnderFileSystemUtils.isLocal(sUfs) || UnderFileSystemUtils.isHdfs(sUfs));
+    String path = "/root/parentDirectoryPermissionForUfsDir/parentDirectoryPermissionForUfsFile";
+    Path fileA = new Path(path);
+    Path dirA = fileA.getParent();
+    sTFS.mkdirs(dirA);
+    short parentMode = (short) 0700;
+    FsPermission newPermission = new FsPermission(parentMode);
+    sTFS.setPermission(dirA, newPermission);
+    create(sTFS, fileA);
+    Assert.assertEquals((int) parentMode, (int) sUfs.getDirectoryStatus(PathUtils.concatPath(sUfsRoot, dirA)).getMode());
+    // Rename from dirA to dirB, file and its parent permission should be in sync with the source
+    // dirA.
+    Path fileB = new Path("/root/dirB/fileB");
+    Path dirB = fileB.getParent();
+    sTFS.rename(dirA, dirB);
+    Assert.assertEquals((int) parentMode, (int) sUfs.getDirectoryStatus(PathUtils.concatPath(sUfsRoot, fileB.getParent())).getMode());
+}

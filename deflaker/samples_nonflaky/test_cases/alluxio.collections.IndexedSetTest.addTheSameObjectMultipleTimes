@@ -1,0 +1,25 @@
+/**
+ * Tests that the {@link IndexedSet} works correctly when adding the same object multiple times.
+ */
+@Test
+public void addTheSameObjectMultipleTimes() {
+    final ExpectedException exception = ExpectedException.none();
+    for (int i = 0; i < 3; i++) {
+        assertEquals(9, mSet.size());
+        assertEquals(3, mSet.getByField(mNonUniqueIntIndex, i).size());
+        for (Pair p : mSet.getByField(mNonUniqueIntIndex, i)) {
+            exception.expect(IllegalStateException.class);
+            exception.expectMessage("Adding more than one value to a unique index.");
+            mSet.add(p);
+        }
+        assertEquals(9, mSet.size());
+        assertEquals(3, mSet.getByField(mNonUniqueIntIndex, i).size());
+    }
+    try {
+        mSet.add(new Pair(1, 9L));
+    } catch (IllegalStateException e) {
+        fail();
+    }
+    assertEquals(10, mSet.size());
+    assertEquals(4, mSet.getByField(mNonUniqueIntIndex, 1).size());
+}

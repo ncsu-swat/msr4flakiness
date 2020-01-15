@@ -1,0 +1,17 @@
+/**
+ * Tests copying a list of files specified through a wildcard expression.
+ */
+@Test
+public void copyWildcard() throws Exception {
+    String testDir = FileSystemShellUtilsTest.resetFileHierarchy(mFileSystem);
+    int ret = mFsShell.run("cp", testDir + "/*/foo*", "/copy");
+    Assert.assertEquals(0, ret);
+    Assert.assertTrue(mFileSystem.exists(new AlluxioURI("/copy")));
+    Assert.assertTrue(mFileSystem.exists(new AlluxioURI("/copy/foobar1")));
+    Assert.assertTrue(mFileSystem.exists(new AlluxioURI("/copy/foobar2")));
+    Assert.assertTrue(mFileSystem.exists(new AlluxioURI("/copy/foobar3")));
+    Assert.assertFalse(mFileSystem.exists(new AlluxioURI("/copy/foobar4")));
+    Assert.assertTrue(equals(new AlluxioURI("/copy/foobar1"), new AlluxioURI(testDir + "/foo/foobar1")));
+    Assert.assertTrue(equals(new AlluxioURI("/copy/foobar2"), new AlluxioURI(testDir + "/foo/foobar2")));
+    Assert.assertTrue(equals(new AlluxioURI("/copy/foobar3"), new AlluxioURI(testDir + "/bar/foobar3")));
+}

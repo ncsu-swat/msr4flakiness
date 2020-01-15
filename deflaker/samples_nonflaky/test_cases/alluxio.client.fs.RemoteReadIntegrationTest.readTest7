@@ -1,0 +1,19 @@
+/**
+ * Tests the batch read API from a remote location when the data is only in the underlying
+ * storage.
+ */
+@Test
+public void readTest7() throws Exception {
+    String uniqPath = PathUtils.uniqPath();
+    for (int k = MIN_LEN + DELTA; k <= MAX_LEN; k += DELTA) {
+        AlluxioURI uri = new AlluxioURI(uniqPath + "/file_" + k);
+        FileSystemTestUtils.createByteFile(mFileSystem, uri, mWriteUnderStore, k);
+        FileInStream is = mFileSystem.openFile(uri, mReadNoCache);
+        byte[] ret = new byte[k];
+        Assert.assertEquals(k, is.read(ret));
+        Assert.assertTrue(BufferUtils.equalIncreasingByteArray(k, ret));
+        Assert.assertEquals(-1, is.read(ret));
+        is.close();
+        Assert.assertFalse(mFileSystem.getStatus(uri).getInAlluxioPercentage() == 100);
+    }
+}

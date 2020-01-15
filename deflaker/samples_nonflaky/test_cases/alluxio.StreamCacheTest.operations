@@ -1,0 +1,20 @@
+@Test
+public void operations() throws Exception {
+    StreamCache streamCache = new StreamCache(Constants.HOUR_MS);
+    FileInStream is = mock(FileInStream.class);
+    FileOutStream os = mock(FileOutStream.class);
+    Integer isId = streamCache.put(is);
+    Integer osId = streamCache.put(os);
+    Assert.assertSame(is, streamCache.getInStream(isId));
+    Assert.assertNull(streamCache.getInStream(osId));
+    Assert.assertNull(streamCache.getOutStream(isId));
+    Assert.assertSame(os, streamCache.getOutStream(osId));
+    Assert.assertSame(is, streamCache.invalidate(isId));
+    Assert.assertSame(os, streamCache.invalidate(osId));
+    Assert.assertNull(streamCache.invalidate(isId));
+    Assert.assertNull(streamCache.invalidate(osId));
+    Assert.assertNull(streamCache.getInStream(isId));
+    Assert.assertNull(streamCache.getOutStream(osId));
+    verify(is).close();
+    verify(os).close();
+}

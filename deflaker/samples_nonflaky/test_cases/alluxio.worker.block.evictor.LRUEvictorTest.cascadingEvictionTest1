@@ -1,0 +1,27 @@
+/**
+ * Tests the cascading eviction with the first tier filled and the second tier empty resulting in
+ * no eviction.
+ */
+@Test
+public void cascadingEvictionTest1() throws Exception {
+    // Two tiers, each dir in the second tier has more space than any dir in the first tier. Fill in
+    // the first tier, leave the second tier empty. Request space from the first tier, blocks should
+    // be moved from the first to the second tier without eviction.
+    int firstTierOrdinal = TieredBlockStoreTestUtils.TIER_ORDINAL[0];
+    long[] firstTierDirCapacity = TieredBlockStoreTestUtils.TIER_CAPACITY_BYTES[0];
+    int nDir = firstTierDirCapacity.length;
+    for (int i = 0; i < nDir; i++) {
+        cache(SESSION_ID, BLOCK_ID + i, firstTierDirCapacity[i], firstTierOrdinal, i);
+    }
+    BlockStoreLocation anyDirInFirstTier = BlockStoreLocation.anyDirInTier(TieredBlockStoreTestUtils.TIER_ALIAS[firstTierOrdinal]);
+    long smallestCapacity = firstTierDirCapacity[0];
+    for (int i = 0; i < nDir; i++) {
+        EvictionPlan plan = mEvictor.freeSpaceWithView(smallestCapacity, anyDirInFirstTier, mMetadataView);
+        assertTrue(EvictorTestUtils.validCascadingPlan(smallestCapacity, plan, mMetaManager));
+        assertEquals(0, plan.toEvict().size());
+        assertEquals(1, plan.toMove().size());
+        long blockId = plan.toMove().get(0).getBlockId();
+        assertEquals(BLOCK_ID + i, blockId);
+        access(blockId);
+    }
+}

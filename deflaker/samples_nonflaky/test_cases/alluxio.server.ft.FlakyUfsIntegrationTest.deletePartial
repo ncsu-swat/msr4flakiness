@@ -1,0 +1,35 @@
+@Test
+public void deletePartial() throws Exception {
+    mFs.createDirectory(new AlluxioURI("/dir"));
+    for (int i = 0; i < 100; i++) {
+        FileSystemTestUtils.createByteFile(mFs, "/dir/test" + i, 100, CreateFilePOptions.newBuilder().setWriteType(WritePType.CACHE_THROUGH).build());
+    }
+    String ufs = LOCAL_UFS_PATH;
+    // This will make the "/dir" directory out of sync so that the files are deleted individually.
+    java.nio.file.Files.createDirectory(Paths.get(ufs, "/dir/testunknown"));
+    try {
+        mFs.delete(new AlluxioURI("/dir"), DeletePOptions.newBuilder().setRecursive(true).build());
+        fail("Expected an exception to be thrown");
+    } catch (AlluxioException e) {
+    // expected
+    }
+    int deleted = 0;
+    for (int i = 0; i < 100; i++) {
+        if (!mFs.exists(new AlluxioURI("/dir/test" + i))) {
+            deleted++;
+        }
+    }
+    // It's a coin flip whether each delete succeeds. With extremely high likelihood, between 10 and
+    // 90 deletes should succeed.
+    assertThat(deleted, Matchers.greaterThan(10));
+    assertThat(deleted, Matchers.lessThan(90));
+    mFs.free(new AlluxioURI("/"), FreePOptions.newBuilder().setRecursive(true).build());
+    BlockMasterClient blockClient = BlockMasterClient.Factory.create(MasterClientContext.newBuilder(ClientContext.create(ServerConfiguration.global())).build());
+    CommonUtils.waitFor("data to be freed", () -> {
+        try {
+            return blockClient.getUsedBytes() == 0;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }, WaitForOptions.defaults().setTimeoutMs(10 * Constants.SECOND_MS));
+}

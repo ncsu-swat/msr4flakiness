@@ -1,0 +1,15 @@
+/**
+ * Tests -R option for chown.
+ */
+@Test
+public void chownRecursive() throws IOException, AlluxioException {
+    FileSystemTestUtils.createByteFile(mFileSystem, "/testDir/testFile", WritePType.MUST_CACHE, 10);
+    mFsShell.run("chown", "-R", TEST_USER_1.getUser(), "/testDir");
+    String owner = mFileSystem.getStatus(new AlluxioURI("/testDir/testFile")).getOwner();
+    Assert.assertEquals(TEST_USER_1.getUser(), owner);
+    owner = mFileSystem.getStatus(new AlluxioURI("/testDir")).getOwner();
+    Assert.assertEquals(TEST_USER_1.getUser(), owner);
+    mFsShell.run("chown", "-R", TEST_USER_2.getUser(), "/testDir");
+    owner = mFileSystem.getStatus(new AlluxioURI("/testDir/testFile")).getOwner();
+    Assert.assertEquals(TEST_USER_2.getUser(), owner);
+}

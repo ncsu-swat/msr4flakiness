@@ -1,0 +1,28 @@
+/**
+ * Tests the {@link BlockMetadataEvictorView#isBlockLocked(long)} and the
+ * {@link BlockMetadataEvictorView#isBlockPinned(long)} method.
+ */
+@Test
+public void isBlockPinnedOrLocked() {
+    long inode = BlockId.getFileId(TEST_BLOCK_ID);
+    // With no pinned and locked blocks
+    assertFalse(mMetadataView.isBlockLocked(TEST_BLOCK_ID));
+    assertFalse(mMetadataView.isBlockPinned(TEST_BLOCK_ID));
+    // Pin block by passing its inode to mMetadataView
+    HashSet<Long> pinnedInodes = new HashSet<>();
+    Collections.addAll(pinnedInodes, inode);
+    mMetadataView = new BlockMetadataEvictorView(mMetaManager, pinnedInodes, new HashSet<Long>());
+    assertFalse(mMetadataView.isBlockLocked(TEST_BLOCK_ID));
+    assertTrue(mMetadataView.isBlockPinned(TEST_BLOCK_ID));
+    // lock block
+    HashSet<Long> testBlockIdSet = new HashSet<>();
+    Collections.addAll(testBlockIdSet, TEST_BLOCK_ID);
+    Collections.addAll(pinnedInodes, TEST_BLOCK_ID);
+    mMetadataView = new BlockMetadataEvictorView(mMetaManager, new HashSet<Long>(), testBlockIdSet);
+    assertTrue(mMetadataView.isBlockLocked(TEST_BLOCK_ID));
+    assertFalse(mMetadataView.isBlockPinned(TEST_BLOCK_ID));
+    // Pin and lock block
+    mMetadataView = new BlockMetadataEvictorView(mMetaManager, pinnedInodes, testBlockIdSet);
+    assertTrue(mMetadataView.isBlockLocked(TEST_BLOCK_ID));
+    assertTrue(mMetadataView.isBlockPinned(TEST_BLOCK_ID));
+}

@@ -1,0 +1,27 @@
+/**
+ * Tests file and directory creation and deletion.
+ */
+@Test
+public void delete() throws Exception {
+    CreateDirectoryPOptions recMkdir = CreateDirectoryPOptions.newBuilder().setRecursive(true).build();
+    DeletePOptions recDelete = DeletePOptions.newBuilder().setRecursive(true).build();
+    for (int i = 0; i < 10; i++) {
+        String dirPath = "/i" + i;
+        mFileSystem.createDirectory(new AlluxioURI(dirPath), recMkdir);
+        for (int j = 0; j < 10; j++) {
+            CreateFilePOptions option = CreateFilePOptions.newBuilder().setBlockSizeBytes((i + j + 1) * 64).build();
+            String filePath = dirPath + "/j" + j;
+            mFileSystem.createFile(new AlluxioURI(filePath), option).close();
+            if (j >= 5) {
+                mFileSystem.delete(new AlluxioURI(filePath), recDelete);
+            }
+        }
+        if (i >= 5) {
+            mFileSystem.delete(new AlluxioURI(dirPath), recDelete);
+        }
+    }
+    mLocalAlluxioCluster.stopFS();
+    deleteTestUtil();
+    deleteFsMasterJournalLogs();
+    deleteTestUtil();
+}

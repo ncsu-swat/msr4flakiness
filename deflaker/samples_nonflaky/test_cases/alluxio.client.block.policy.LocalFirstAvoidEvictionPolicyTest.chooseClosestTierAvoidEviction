@@ -1,0 +1,14 @@
+@Test
+public void chooseClosestTierAvoidEviction() throws Exception {
+    List<BlockWorkerInfo> workers = new ArrayList<>();
+    workers.add(worker(Constants.GB, Constants.MB, "node2", "rack3"));
+    workers.add(worker(Constants.GB, 0, "node3", "rack2"));
+    workers.add(worker(Constants.GB, 0, "node4", "rack3"));
+    BlockLocationPolicy policy;
+    WorkerNetAddress chosen;
+    // local rack with enough availability
+    policy = new LocalFirstAvoidEvictionPolicy(mConf.getBytes(PropertyKey.USER_BLOCK_AVOID_EVICTION_POLICY_RESERVED_BYTES), TieredIdentityFactory.fromString("node=node2,rack=rack3", mConf), mConf);
+    GetWorkerOptions options = GetWorkerOptions.defaults().setBlockWorkerInfos(workers).setBlockInfo(new BlockInfo().setLength(Constants.GB));
+    chosen = policy.getWorker(options);
+    assertEquals("node4", chosen.getTieredIdentity().getTier(0).getValue());
+}

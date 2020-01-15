@@ -1,0 +1,13 @@
+@Test
+public void deleteDirectoryWithFilesTest2() throws Exception {
+    mFsMaster.createDirectory(new AlluxioURI("/testFolder"), CreateDirectoryContext.defaults());
+    long fileId = mFsMaster.createFile(new AlluxioURI("/testFolder/testFile"), CreateFileContext.defaults()).getFileId();
+    Assert.assertEquals(fileId, mFsMaster.getFileId(new AlluxioURI("/testFolder/testFile")));
+    try {
+        mFsMaster.delete(new AlluxioURI("/testFolder"), DeleteContext.defaults());
+        Assert.fail("Deleting a nonempty directory nonrecursively should fail");
+    } catch (DirectoryNotEmptyException e) {
+        Assert.assertEquals(ExceptionMessage.DELETE_NONEMPTY_DIRECTORY_NONRECURSIVE.getMessage("testFolder"), e.getMessage());
+    }
+    Assert.assertEquals(fileId, mFsMaster.getFileId(new AlluxioURI("/testFolder/testFile")));
+}

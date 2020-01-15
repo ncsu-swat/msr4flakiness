@@ -1,0 +1,11 @@
+@Test
+public void singleItem() {
+    MutableInode<?> rootInode = MutableInodeDirectory.create(0, -1, "root", CreateDirectoryContext.defaults());
+    mInodeStore.writeInode(rootInode);
+    Iterator<Journal.JournalEntry> iterator = new InodeTreeBufferedIterator(mInodeStore, InodeDirectory.wrap(rootInode).asDirectory());
+    Assert.assertTrue(iterator.hasNext());
+    Journal.JournalEntry rootJournalEntry = iterator.next();
+    Assert.assertTrue(rootJournalEntry.hasInodeDirectory());
+    Assert.assertEquals(0, rootJournalEntry.getInodeDirectory().getId());
+    Assert.assertFalse(iterator.hasNext());
+}

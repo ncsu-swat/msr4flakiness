@@ -1,0 +1,53 @@
+/**
+ * Tests {@link HdfsFileInputStream#readFully(long, byte[])}.
+ */
+@Test
+public void readFullyTest1() throws Exception {
+    byte[] buf = new byte[FILE_LEN];
+    mInMemInputStream.readFully(0, buf);
+    Assert.assertTrue(BufferUtils.equalIncreasingByteArray(FILE_LEN, buf));
+    Assert.assertEquals(0, mInMemInputStream.getPos());
+    createUfsInStream(ReadType.NO_CACHE);
+    Arrays.fill(buf, (byte) 0);
+    mUfsInputStream.readFully(0, buf);
+    Assert.assertTrue(BufferUtils.equalIncreasingByteArray(FILE_LEN, buf));
+    Assert.assertEquals(0, mUfsInputStream.getPos());
+    buf = new byte[FILE_LEN - 10];
+    Arrays.fill(buf, (byte) 0);
+    mInMemInputStream.readFully(10, buf);
+    Assert.assertTrue(BufferUtils.equalIncreasingByteArray(10, FILE_LEN - 10, buf));
+    Assert.assertEquals(0, mInMemInputStream.getPos());
+    Arrays.fill(buf, (byte) 0);
+    mUfsInputStream.readFully(10, buf);
+    Assert.assertTrue(BufferUtils.equalIncreasingByteArray(10, FILE_LEN - 10, buf));
+    Assert.assertEquals(0, mUfsInputStream.getPos());
+    Arrays.fill(buf, (byte) 0);
+    try {
+        mInMemInputStream.readFully(-1, buf);
+        Assert.fail("readFully() is expected to fail");
+    } catch (EOFException e) {
+    // this is expected
+    }
+    BufferUtils.equalConstantByteArray((byte) 0, FILE_LEN, buf);
+    try {
+        mUfsInputStream.readFully(-1, buf);
+        Assert.fail("readFully() is expected to fail");
+    } catch (EOFException e) {
+    // this is expected
+    }
+    BufferUtils.equalConstantByteArray((byte) 0, FILE_LEN, buf);
+    try {
+        mInMemInputStream.readFully(FILE_LEN, buf);
+        Assert.fail("readFully() is expected to fail");
+    } catch (EOFException e) {
+    // this is expected
+    }
+    BufferUtils.equalConstantByteArray((byte) 0, FILE_LEN, buf);
+    try {
+        mUfsInputStream.readFully(FILE_LEN, buf);
+        Assert.fail("readFully() is expected to fail");
+    } catch (EOFException e) {
+    // this is expected
+    }
+    BufferUtils.equalConstantByteArray((byte) 0, FILE_LEN, buf);
+}

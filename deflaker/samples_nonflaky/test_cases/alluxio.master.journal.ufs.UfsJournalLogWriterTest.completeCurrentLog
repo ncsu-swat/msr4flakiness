@@ -1,0 +1,15 @@
+/**
+ * A new journal writer completes the current log.
+ */
+@Test
+public void completeCurrentLog() throws Exception {
+    long startSN = 0x10;
+    long endSN = 0x20;
+    mJournal.getUfs().create(UfsJournalFile.encodeLogFileLocation(mJournal, startSN, UfsJournal.UNKNOWN_SEQUENCE_NUMBER).toString()).close();
+    new UfsJournalLogWriter(mJournal, 0x20).close();
+    UfsJournalSnapshot snapshot = UfsJournalSnapshot.getSnapshot(mJournal);
+    String expectedLog = URIUtils.appendPathOrDie(mJournal.getLogDir(), String.format("0x%x-0x%x", startSN, endSN)).toString();
+    Assert.assertEquals(1, snapshot.getLogs().size());
+    Assert.assertEquals(expectedLog, snapshot.getLogs().get(0).getLocation().toString());
+    Assert.assertTrue(UfsJournalSnapshot.getCurrentLog(mJournal) == null);
+}

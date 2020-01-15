@@ -1,0 +1,14 @@
+/**
+ * Encodes/decodes incomplete log file names.
+ */
+@Test
+public void incompleteLogFilename() throws Exception {
+    String location = UfsJournalFile.encodeLogFileLocation(mJournal, 0x10, UfsJournal.UNKNOWN_SEQUENCE_NUMBER).toString();
+    String expectedFilename = "0x10-0x" + Long.toHexString(UfsJournal.UNKNOWN_SEQUENCE_NUMBER);
+    Assert.assertEquals(URIUtils.appendPathOrDie(mJournal.getLogDir(), expectedFilename).toString(), location);
+    UfsJournalFile file = UfsJournalFile.decodeLogFile(mJournal, expectedFilename);
+    Assert.assertTrue(file.isIncompleteLog());
+    Assert.assertEquals(0x10, file.getStart());
+    Assert.assertEquals(UfsJournal.UNKNOWN_SEQUENCE_NUMBER, file.getEnd());
+    Assert.assertEquals(location, file.getLocation().toString());
+}

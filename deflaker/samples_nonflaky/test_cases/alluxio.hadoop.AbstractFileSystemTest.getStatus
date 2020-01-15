@@ -1,0 +1,10 @@
+@Test
+public void getStatus() throws Exception {
+    FileInfo fileInfo = new FileInfo().setLastModificationTimeMs(111L).setLastAccessTimeMs(123L).setFolder(false).setOwner("user1").setGroup("group1").setMode(00755);
+    Path path = new Path("/dir");
+    alluxio.client.file.FileSystem alluxioFs = mock(alluxio.client.file.FileSystem.class);
+    when(alluxioFs.getStatus(new AlluxioURI(HadoopUtils.getPathWithoutScheme(path)))).thenReturn(new URIStatus(fileInfo));
+    FileSystem alluxioHadoopFs = new FileSystem(alluxioFs);
+    FileStatus fileStatus = alluxioHadoopFs.getFileStatus(path);
+    assertFileInfoEqualsFileStatus(fileInfo, fileStatus);
+}

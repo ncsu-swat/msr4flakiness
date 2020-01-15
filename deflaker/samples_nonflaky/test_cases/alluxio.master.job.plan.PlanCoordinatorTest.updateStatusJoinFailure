@@ -1,0 +1,9 @@
+@Test
+public void updateStatusJoinFailure() throws Exception {
+    mockSelectExecutors(mWorkerInfo);
+    Mockito.when(mPlanDefinition.join(Mockito.eq(mJobconfig), Mockito.anyMapOf(WorkerInfo.class, Serializable.class))).thenThrow(new UnsupportedOperationException("test exception"));
+    PlanCoordinator planCoordinator = PlanCoordinator.create(mCommandManager, mJobServerContext, mWorkerInfoList, mJobId, mJobconfig, null);
+    setTasksWithStatuses(planCoordinator, Status.COMPLETED, Status.COMPLETED, Status.COMPLETED);
+    Assert.assertEquals(Status.FAILED, planCoordinator.getPlanInfoWire(true).getStatus());
+    Assert.assertEquals("test exception", planCoordinator.getPlanInfoWire(true).getErrorMessage());
+}

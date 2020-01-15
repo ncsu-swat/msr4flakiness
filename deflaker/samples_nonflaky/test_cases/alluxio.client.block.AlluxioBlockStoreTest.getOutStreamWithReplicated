@@ -1,0 +1,17 @@
+@Test
+public void getOutStreamWithReplicated() throws Exception {
+    File file = File.createTempFile("test", ".tmp");
+    CreateLocalBlockResponse response = CreateLocalBlockResponse.newBuilder().setPath(file.getAbsolutePath()).build();
+    when(mWorkerClient.createLocalBlock(any(StreamObserver.class))).thenAnswer(new Answer() {
+
+        public Object answer(InvocationOnMock invocation) {
+            StreamObserver<CreateLocalBlockResponse> observer = invocation.getArgumentAt(0, StreamObserver.class);
+            observer.onNext(response);
+            return mStreamObserver;
+        }
+    });
+    when(mMasterClient.getWorkerInfoList()).thenReturn(Lists.newArrayList(new alluxio.wire.WorkerInfo().setAddress(WORKER_NET_ADDRESS_LOCAL), new alluxio.wire.WorkerInfo().setAddress(WORKER_NET_ADDRESS_REMOTE)));
+    OutStreamOptions options = OutStreamOptions.defaults(mClientContext).setBlockSizeBytes(BLOCK_LENGTH).setLocationPolicy(new MockBlockLocationPolicy(Lists.newArrayList(WORKER_NET_ADDRESS_LOCAL, WORKER_NET_ADDRESS_REMOTE))).setWriteType(WriteType.MUST_CACHE).setReplicationMin(2);
+    BlockOutStream stream = mBlockStore.getOutStream(BLOCK_ID, BLOCK_LENGTH, options);
+    assertEquals(alluxio.client.block.stream.BlockOutStream.class, stream.getClass());
+}

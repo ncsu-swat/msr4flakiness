@@ -1,0 +1,13 @@
+/**
+ * Tests ls command with wildcard when security is not enabled.
+ */
+@Test
+@LocalAlluxioClusterResource.Config(confParams = { PropertyKey.Name.SECURITY_AUTHORIZATION_PERMISSION_ENABLED, "false", PropertyKey.Name.SECURITY_AUTHENTICATION_TYPE, "NOSASL" })
+public void lsWildcardNoAcl() throws Exception {
+    String testDir = FileSystemShellUtilsTest.resetFileHierarchy(mFileSystem);
+    mFsShell.run("ls", testDir + "/*/foo*");
+    checkOutput("             30   NOT_PERSISTED .+ .+ 100% /testDir/bar/foobar3", "             10   NOT_PERSISTED .+ .+ 100% /testDir/foo/foobar1", "             20   NOT_PERSISTED .+ .+ 100% /testDir/foo/foobar2");
+    mOutput.reset();
+    mFsShell.run("ls", testDir + "/*");
+    checkOutput("             30   NOT_PERSISTED .+ .+ 100% /testDir/bar/foobar3", "             10   NOT_PERSISTED .+ .+ 100% /testDir/foo/foobar1", "             20   NOT_PERSISTED .+ .+ 100% /testDir/foo/foobar2", "             40   NOT_PERSISTED .+ .+ 100% /testDir/foobar4");
+}

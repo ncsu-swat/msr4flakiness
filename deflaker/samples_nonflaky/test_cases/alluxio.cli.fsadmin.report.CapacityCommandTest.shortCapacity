@@ -1,0 +1,14 @@
+@Test
+public void shortCapacity() throws IOException {
+    List<WorkerInfo> shortInfoList = prepareShortInfoList();
+    Mockito.when(mBlockMasterClient.getWorkerReport(Mockito.any())).thenReturn(shortInfoList);
+    try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        PrintStream printStream = new PrintStream(outputStream, true, "utf-8")) {
+        CapacityCommand capacityCommand = new CapacityCommand(mBlockMasterClient, printStream);
+        capacityCommand.generateCapacityReport(GetWorkerReportOptions.defaults());
+        String output = new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
+        List<String> expectedOutput = Arrays.asList("Capacity information for all workers: ", "    Total Capacity: 14.90GB", "        Tier: RAM  Size: 14.90GB", "    Used Capacity: 5.12GB", "        Tier: RAM  Size: 5.12GB", "    Used Percentage: 34%", "    Free Percentage: 66%", "", "Worker Name      Last Heartbeat   Storage       RAM", "215.42.95.24     953              capacity      9.31GB", "                                  used          476.84MB (5%)", "29.53.5.124      6424122          capacity      5.59GB", "                                  used          4768.37MB (83%)");
+        List<String> testOutput = Arrays.asList(output.split("\n"));
+        Assert.assertThat(testOutput, IsIterableContainingInOrder.contains(expectedOutput.toArray()));
+    }
+}

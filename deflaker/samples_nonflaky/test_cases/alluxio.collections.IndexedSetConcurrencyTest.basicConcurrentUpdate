@@ -1,0 +1,50 @@
+@Test
+public void basicConcurrentUpdate() throws Exception {
+    List<Future<?>> futures = new ArrayList<>();
+    List<ConcurrentTask> addTasks = new ArrayList<>();
+    List<ConcurrentTask> removeTasks = new ArrayList<>();
+    int[] tasksNumbers = new int[3];
+    int totalTasksNumber = 0;
+    // Try to balance adds and removes
+    tasksNumbers[0] = 2 * ThreadLocalRandom.current().nextInt(MIN_TASKS, MAX_TASKS + 1);
+    totalTasksNumber += tasksNumbers[0];
+    // Add random number of each task type.
+    for (int i = 1; i < 3; i++) {
+        tasksNumbers[i] = ThreadLocalRandom.current().nextInt(MIN_TASKS, MAX_TASKS + 1);
+        totalTasksNumber += tasksNumbers[i];
+    }
+    CyclicBarrier barrier = new CyclicBarrier(totalTasksNumber);
+    // Add random number of each task type.
+    for (int i = 0; i < tasksNumbers[0]; i++) {
+        // Try to balance adds and removes
+        addTasks.add(new ConcurrentAdd(barrier));
+    }
+    for (int i = 0; i < tasksNumbers[1]; i++) {
+        removeTasks.add(new ConcurrentRemove(barrier));
+    }
+    for (int i = 0; i < tasksNumbers[2]; i++) {
+        removeTasks.add(new ConcurrentRemoveByField(barrier));
+    }
+    for (ConcurrentTask task : addTasks) {
+        futures.add(mThreadPool.submit(task));
+    }
+    for (ConcurrentTask task : removeTasks) {
+        futures.add(mThreadPool.submit(task));
+    }
+    SleepUtils.sleepMs(TEST_CASE_DURATION_MS);
+    mStopThreads.set(true);
+    for (Future<?> future : futures) {
+        future.get();
+    }
+    // Calculate how many elements have been added or removed.
+    long added = 0;
+    for (ConcurrentTask task : addTasks) {
+        added += task.getCount();
+    }
+    long removed = 0;
+    for (ConcurrentTask task : removeTasks) {
+        removed += task.getCount();
+    }
+    assertEquals(mIndexedSet.size(), added - removed);
+    verifySet();
+}

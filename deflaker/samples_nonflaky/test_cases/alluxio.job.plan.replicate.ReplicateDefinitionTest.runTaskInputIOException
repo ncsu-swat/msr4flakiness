@@ -1,0 +1,15 @@
+@Test
+public void runTaskInputIOException() throws Exception {
+    BlockInStream mockInStream = mock(BlockInStream.class);
+    BlockOutStream mockOutStream = mock(BlockOutStream.class);
+    BlockWorkerInfo localBlockWorker = new BlockWorkerInfo(LOCAL_ADDRESS, TEST_BLOCK_SIZE, 0);
+    doThrow(new IOException("test")).when(mockInStream).read(any(byte[].class), anyInt(), anyInt());
+    doThrow(new IOException("test")).when(mockInStream).read(any(byte[].class));
+    try {
+        runTaskReplicateTestHelper(Lists.newArrayList(localBlockWorker), mockInStream, mockOutStream);
+        fail("Expected the task to throw and IOException");
+    } catch (IOException e) {
+        assertEquals("test", e.getMessage());
+    }
+    verify(mockOutStream).cancel();
+}

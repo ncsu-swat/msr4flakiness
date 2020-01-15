@@ -1,0 +1,30 @@
+@Test
+public void unlockBlockTest1() throws Exception {
+    String uniqPath = PathUtils.uniqPath();
+    FileInStream is;
+    ByteBuffer buf;
+    int numOfFiles = 5;
+    int fileSize = WORKER_UNRESERVED_BYTES / numOfFiles;
+    List<AlluxioURI> files = new ArrayList<>();
+    for (int k = 0; k < numOfFiles; k++) {
+        FileSystemTestUtils.createByteFile(mFileSystem, uniqPath + k, fileSize, mWriteBoth);
+        files.add(new AlluxioURI(uniqPath + k));
+    }
+    for (int k = 0; k < numOfFiles; k++) {
+        URIStatus info = mFileSystem.getStatus(files.get(k));
+        is = mFileSystem.openFile(files.get(k), FileSystemTestUtils.toOpenFileOptions(mWriteBoth));
+        buf = ByteBuffer.allocate((int) info.getBlockSizeBytes());
+        Assert.assertTrue(info.getInAlluxioPercentage() == 100);
+        Assert.assertTrue(is.read(buf.array()) != -1);
+        is.close();
+    }
+    FileSystemTestUtils.createByteFile(mFileSystem, uniqPath + numOfFiles, fileSize, mWriteBoth);
+    files.add(new AlluxioURI(uniqPath + numOfFiles));
+    HeartbeatScheduler.execute(HeartbeatContext.WORKER_BLOCK_SYNC);
+    URIStatus info = mFileSystem.getStatus(files.get(0));
+    Assert.assertFalse(info.getInAlluxioPercentage() == 100);
+    for (int k = 1; k <= numOfFiles; k++) {
+        URIStatus in = mFileSystem.getStatus(files.get(k));
+        Assert.assertTrue(in.getInAlluxioPercentage() == 100);
+    }
+}

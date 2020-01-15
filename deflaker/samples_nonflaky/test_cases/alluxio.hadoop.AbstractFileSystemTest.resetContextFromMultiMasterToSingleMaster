@@ -1,0 +1,13 @@
+@Test
+public void resetContextFromMultiMasterToSingleMaster() throws Exception {
+    URI uri = URI.create(Constants.HEADER + "host1:19998,host2:19998,host3:19998/tmp/path.txt");
+    FileSystem fs = getHadoopFilesystem(org.apache.hadoop.fs.FileSystem.get(uri, getConf()));
+    assertFalse(fs.mFileSystem.getConf().getBoolean(PropertyKey.ZOOKEEPER_ENABLED));
+    assertEquals(3, ConfigurationUtils.getMasterRpcAddresses(fs.mFileSystem.getConf()).size());
+    assertEquals("host1:19998,host2:19998,host3:19998", fs.mFileSystem.getConf().get(PropertyKey.MASTER_RPC_ADDRESSES));
+    uri = URI.create(Constants.HEADER + "host:19998/tmp/path.txt");
+    fs = getHadoopFilesystem(org.apache.hadoop.fs.FileSystem.get(uri, getConf()));
+    assertFalse(fs.mFileSystem.getConf().getBoolean(PropertyKey.ZOOKEEPER_ENABLED));
+    assertEquals(PropertyKey.MASTER_JOURNAL_TYPE.getDefaultValue(), fs.mFileSystem.getConf().get(PropertyKey.MASTER_JOURNAL_TYPE));
+    assertEquals(1, ConfigurationUtils.getMasterRpcAddresses(fs.mFileSystem.getConf()).size());
+}

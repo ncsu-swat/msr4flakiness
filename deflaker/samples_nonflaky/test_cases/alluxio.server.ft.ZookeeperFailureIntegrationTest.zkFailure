@@ -1,0 +1,30 @@
+/*
+   * This test starts alluxio in HA mode, kills Zookeeper, waits for Alluxio to fail, then restarts
+   * Zookeeper. Alluxio should recover when Zookeeper is restarted.
+   */
+@Test
+public void zkFailure() throws Exception {
+    mCluster = MultiProcessCluster.newBuilder(PortCoordination.ZOOKEEPER_FAILURE).setClusterName("ZookeeperFailure").setNumMasters(2).setNumWorkers(1).addProperty(PropertyKey.MASTER_JOURNAL_TYPE, JournalType.UFS.toString()).build();
+    mCluster.start();
+    AlluxioOperationThread thread = new AlluxioOperationThread(mCluster.getFileSystemClient());
+    thread.start();
+    CommonUtils.waitFor("a successful operation to be performed", () -> thread.successes() > 0);
+    mCluster.stopZk();
+    long zkStopTime = System.currentTimeMillis();
+    // Wait until 3 different failures are encountered on the thread.
+    // PS: First failures could be related to worker capacity depending on process shutdown order,
+    // thus still leaving RPC server reachable.
+    AtomicInteger failureCounter = new AtomicInteger(3);
+    AtomicReference<Throwable> lastFailure = new AtomicReference<>(null);
+    CommonUtils.waitFor("operations to start failing", () -> failureCounter.getAndAdd((lastFailure.getAndSet(thread.getLatestFailure()) != lastFailure.get()) ? -1 : 0) <= 0);
+    assertFalse(rpcServiceAvailable());
+    LOG.info("First operation failed {}ms after stopping the Zookeeper cluster", System.currentTimeMillis() - zkStopTime);
+    final long successes = thread.successes();
+    mCluster.restartZk();
+    long zkStartTime = System.currentTimeMillis();
+    CommonUtils.waitFor("another successful operation to be performed", () -> thread.successes() > successes);
+    thread.interrupt();
+    thread.join();
+    LOG.info("Recovered after {}ms", System.currentTimeMillis() - zkStartTime);
+    mCluster.notifySuccess();
+}

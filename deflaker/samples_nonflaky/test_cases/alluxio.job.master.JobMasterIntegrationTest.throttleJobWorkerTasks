@@ -1,0 +1,22 @@
+@Test
+@LocalAlluxioClusterResource.Config(confParams = { PropertyKey.Name.JOB_MASTER_JOB_CAPACITY, "20" })
+public void throttleJobWorkerTasks() throws Exception {
+    mJobMaster.setTaskPoolSize(1);
+    long jobId0 = mJobMaster.run(new SleepJobConfig(1));
+    JobTestUtils.waitForJobStatus(mJobMaster, jobId0, Sets.newHashSet(Status.RUNNING, Status.COMPLETED));
+    long jobId1 = mJobMaster.run(new SleepJobConfig(50000));
+    JobTestUtils.waitForJobStatus(mJobMaster, jobId1, Status.RUNNING);
+    JobTestUtils.waitForJobStatus(mJobMaster, jobId0, Status.COMPLETED);
+    long jobId2 = mJobMaster.run(new SleepJobConfig(1));
+    long jobId3 = mJobMaster.run(new SleepJobConfig(1));
+    // wait a bit more to make sure other jobs aren't completing
+    CommonUtils.sleepMs(300);
+    assertEquals(Status.RUNNING, mJobMaster.getStatus(jobId1).getStatus());
+    assertEquals(Status.CREATED, mJobMaster.getStatus(jobId2).getStatus());
+    assertEquals(Status.CREATED, mJobMaster.getStatus(jobId3).getStatus());
+    assertEquals(1, mJobMaster.getAllWorkerHealth().get(0).getTaskPoolSize());
+    assertEquals(1, mJobMaster.getAllWorkerHealth().get(0).getNumActiveTasks());
+    mJobMaster.cancel(jobId1);
+    JobTestUtils.waitForJobStatus(mJobMaster, jobId2, Status.COMPLETED);
+    JobTestUtils.waitForJobStatus(mJobMaster, jobId3, Status.COMPLETED);
+}

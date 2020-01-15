@@ -1,0 +1,12 @@
+@Test
+public void setTtlWithFree() throws Exception {
+    String filePath = "/testFile";
+    FileSystemTestUtils.createByteFile(mFileSystem, filePath, WritePType.MUST_CACHE, 1);
+    Assert.assertEquals(Constants.NO_TTL, mFileSystem.getStatus(new AlluxioURI("/testFile")).getTtl());
+    AlluxioURI uri = new AlluxioURI("/testFile");
+    long ttl = 1000L;
+    Assert.assertEquals(0, mFsShell.run("setTtl", "-action", "free", filePath, String.valueOf(ttl)));
+    URIStatus status = mFileSystem.getStatus(uri);
+    Assert.assertEquals(ttl, status.getTtl());
+    Assert.assertEquals(TtlAction.FREE, status.getTtlAction());
+}

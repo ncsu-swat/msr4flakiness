@@ -1,0 +1,18 @@
+/**
+ * Tests that an exception is in the
+ * {@link FileSystemMaster#createFile(AlluxioURI, CreateFileContext)} with a
+ * TTL set in the {@link CreateFileContext} after the TTL check was done once.
+ */
+@Test
+public void ttlFileDelete() throws Exception {
+    CreateFileContext context = CreateFileContext.defaults();
+    context.getOptions().setBlockSizeBytes(Constants.KB);
+    context.getOptions().setRecursive(true);
+    context.getOptions().setCommonOptions(FileSystemMasterCommonPOptions.newBuilder().setTtl(0));
+    long fileId = mFileSystemMaster.createFile(NESTED_FILE_URI, context).getFileId();
+    FileInfo fileInfo = mFileSystemMaster.getFileInfo(fileId);
+    assertEquals(fileInfo.getFileId(), fileId);
+    HeartbeatScheduler.execute(HeartbeatContext.MASTER_TTL_CHECK);
+    mThrown.expect(FileDoesNotExistException.class);
+    mFileSystemMaster.getFileInfo(fileId);
+}

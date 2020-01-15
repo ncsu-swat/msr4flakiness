@@ -1,0 +1,23 @@
+@Test(timeout = TIMEOUT)
+public void onStateChange() {
+    AtomicInteger primaryCounter = new AtomicInteger(0);
+    AtomicInteger secondaryCounter = new AtomicInteger(0);
+    Scoped listener = mSelector.onStateChange(state -> {
+        if (state.equals(State.PRIMARY)) {
+            primaryCounter.incrementAndGet();
+        } else {
+            secondaryCounter.incrementAndGet();
+        }
+    });
+    for (int i = 0; i < 10; i++) {
+        mSelector.setState(State.PRIMARY);
+        mSelector.setState(State.SECONDARY);
+    }
+    assertEquals(10, primaryCounter.get());
+    assertEquals(10, secondaryCounter.get());
+    listener.close();
+    mSelector.setState(State.PRIMARY);
+    mSelector.setState(State.SECONDARY);
+    assertEquals(10, primaryCounter.get());
+    assertEquals(10, secondaryCounter.get());
+}

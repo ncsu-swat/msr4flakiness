@@ -1,0 +1,23 @@
+@Test
+public void updateAccessTimeImmediately() throws Exception {
+    mAccessTimeUpdater = new AccessTimeUpdater(mFileSystemMaster, mInodeTree, mContext.getJournalSystem(), 0, 0, 0);
+    mAccessTimeUpdater.start();
+    String path = "/foo";
+    JournalContext journalContext = mock(JournalContext.class);
+    when(journalContext.get()).thenReturn(journalContext);
+    createInode(path, CreateFileContext.defaults());
+    long accessTime = CommonUtils.getCurrentMs() + 100L;
+    long inodeId;
+    try (LockedInodePath lockedInodes = mInodeTree.lockFullInodePath(new AlluxioURI(path), InodeTree.LockPattern.READ)) {
+        mAccessTimeUpdater.updateAccessTime(journalContext, lockedInodes.getInode(), accessTime);
+        inodeId = lockedInodes.getInode().getId();
+    }
+    // verify journal entry is logged
+    ArgumentCaptor<Journal.JournalEntry> captor = ArgumentCaptor.forClass(Journal.JournalEntry.class);
+    verify(journalContext).append(captor.capture());
+    assertTrue(captor.getValue().hasUpdateInode());
+    assertEquals(inodeId, captor.getValue().getUpdateInode().getId());
+    assertEquals(accessTime, captor.getValue().getUpdateInode().getLastAccessTimeMs());
+    // verify inode attribute is updated
+    assertEquals(accessTime, mInodeStore.get(inodeId).get().getLastAccessTimeMs());
+}

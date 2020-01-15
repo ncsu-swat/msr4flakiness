@@ -1,0 +1,16 @@
+@Test
+public void pushWriteLockedEdge() {
+    mLockList.lockRootEdge(LockMode.WRITE);
+    assertEquals(LockMode.WRITE, mLockList.getLockMode());
+    assertTrue(mLockList.getLockedInodes().isEmpty());
+    mLockList.pushWriteLockedEdge(mRootDir, mDirA.getName());
+    assertEquals(LockMode.WRITE, mLockList.getLockMode());
+    assertEquals(Arrays.asList(mRootDir), mLockList.getLockedInodes());
+    mLockList.pushWriteLockedEdge(mDirA, mDirB.getName());
+    assertEquals(LockMode.WRITE, mLockList.getLockMode());
+    assertEquals(Arrays.asList(mRootDir, mDirA), mLockList.getLockedInodes());
+    checkOnlyNodesReadLocked(mRootDir, mDirA);
+    checkOnlyNodesWriteLocked();
+    checkOnlyIncomingEdgesReadLocked(mRootDir, mDirA);
+    checkOnlyIncomingEdgesWriteLocked(mDirB);
+}

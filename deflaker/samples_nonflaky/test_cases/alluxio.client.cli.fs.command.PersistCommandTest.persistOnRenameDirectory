@@ -1,0 +1,23 @@
+@Test
+@LocalAlluxioClusterResource.Config(confParams = { PropertyKey.Name.USER_FILE_WRITE_TYPE_DEFAULT, "MUST_CACHE", PropertyKey.Name.USER_FILE_PERSIST_ON_RENAME, "true" })
+public void persistOnRenameDirectory() throws Exception {
+    String testDir = FileSystemShellUtilsTest.resetFileHierarchy(mFileSystem);
+    String toPersist = testDir + "/foo";
+    String persisted = testDir + "/foo_persisted";
+    String doNotPersist = testDir + "/bar";
+    assertFalse(mFileSystem.getStatus(new AlluxioURI(testDir)).isPersisted());
+    assertFalse(mFileSystem.getStatus(new AlluxioURI(toPersist)).isPersisted());
+    assertFalse(mFileSystem.getStatus(new AlluxioURI(doNotPersist)).isPersisted());
+    int ret = mFsShell.run("mv", toPersist, persisted);
+    Assert.assertEquals(0, ret);
+    CommonUtils.waitFor("Directory to be persisted", () -> {
+        try {
+            return mFileSystem.getStatus(new AlluxioURI(persisted)).isPersisted();
+        } catch (Exception e) {
+            return false;
+        }
+    }, WaitForOptions.defaults().setTimeoutMs(10000));
+    assertFalse(mFileSystem.getStatus(new AlluxioURI(testDir + "/bar")).isPersisted());
+    checkFilePersisted(new AlluxioURI(persisted + "/foobar1"), 10);
+    checkFilePersisted(new AlluxioURI(persisted + "/foobar2"), 20);
+}

@@ -1,0 +1,13 @@
+@Test
+public void readAfterWrite() {
+    mLockList.lockRootEdge(LockMode.READ);
+    assertEquals(LockMode.READ, mLockList.getLockMode());
+    mLockList.lockInode(mRootDir, LockMode.WRITE);
+    assertEquals(LockMode.WRITE, mLockList.getLockMode());
+    mLockList.lockEdge(mRootDir, mDirA.getName(), LockMode.READ);
+    assertEquals(LockMode.WRITE, mLockList.getLockMode());
+    checkOnlyNodesReadLocked();
+    checkOnlyNodesWriteLocked(mRootDir);
+    checkOnlyIncomingEdgesReadLocked(mRootDir);
+    checkOnlyIncomingEdgesWriteLocked(mDirA);
+}

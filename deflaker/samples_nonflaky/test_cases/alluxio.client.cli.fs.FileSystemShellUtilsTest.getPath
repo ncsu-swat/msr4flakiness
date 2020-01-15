@@ -1,0 +1,29 @@
+@Test
+public void getPath() throws IOException, AlluxioException {
+    for (FsType fsType : FsType.values()) {
+        String rootDir = resetFsHierarchy(fsType);
+        List<String> tl1 = getPaths(rootDir + "/foo", fsType);
+        assertEquals(tl1.size(), 1);
+        assertEquals(tl1.get(0), rootDir + "/foo");
+        // Trailing slash
+        List<String> tl2 = getPaths(rootDir + "/foo/", fsType);
+        assertEquals(tl2.size(), 1);
+        assertEquals(tl2.get(0), rootDir + "/foo");
+        // Wildcard
+        List<String> tl3 = getPaths(rootDir + "/foo/*", fsType);
+        assertEquals(tl3.size(), 2);
+        assertEquals(tl3.get(0), rootDir + "/foo/foobar1");
+        assertEquals(tl3.get(1), rootDir + "/foo/foobar2");
+        // Trailing slash + wildcard
+        List<String> tl4 = getPaths(rootDir + "/foo/*/", fsType);
+        assertEquals(tl4.size(), 2);
+        assertEquals(tl4.get(0), rootDir + "/foo/foobar1");
+        assertEquals(tl4.get(1), rootDir + "/foo/foobar2");
+        // Multiple wildcards
+        List<String> tl5 = getPaths(rootDir + "/*/foo*", fsType);
+        assertEquals(tl5.size(), 3);
+        assertEquals(tl5.get(0), rootDir + "/bar/foobar3");
+        assertEquals(tl5.get(1), rootDir + "/foo/foobar1");
+        assertEquals(tl5.get(2), rootDir + "/foo/foobar2");
+    }
+}

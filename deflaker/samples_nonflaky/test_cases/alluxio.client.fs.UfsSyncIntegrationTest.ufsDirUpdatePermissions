@@ -1,0 +1,18 @@
+@Test
+public void ufsDirUpdatePermissions() throws Exception {
+    new File(ufsPath("/dir1")).mkdirs();
+    new File(ufsPath("/dir1/dir2")).mkdirs();
+    String fileA = "/dir1/dir2/fileA";
+    writeUfsFile(ufsPath(fileA), 1);
+    // Set the mode for the directory
+    FileUtils.changeLocalFilePermission(ufsPath("/dir1"), "rwxrwxrwx");
+    GetStatusPOptions options = GetStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.NEVER).setCommonOptions(PSYNC_ALWAYS).build();
+    URIStatus status = mFileSystem.getStatus(new AlluxioURI(alluxioPath("/dir1")), options);
+    Assert.assertNotNull(status);
+    Assert.assertEquals(FileUtils.translatePosixPermissionToMode(PosixFilePermissions.fromString("rwxrwxrwx")), status.getMode());
+    // Change the mode for the directory
+    FileUtils.changeLocalFilePermission(ufsPath("/dir1"), "rwxr-xr-x");
+    status = mFileSystem.getStatus(new AlluxioURI(alluxioPath("/dir1")), options);
+    Assert.assertNotNull(status);
+    Assert.assertEquals(FileUtils.translatePosixPermissionToMode(PosixFilePermissions.fromString("rwxr-xr-x")), status.getMode());
+}

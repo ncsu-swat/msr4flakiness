@@ -1,0 +1,22 @@
+/**
+ * Tests the {@link AlluxioURI#AlluxioURI(String)} constructor with query parameter.
+ */
+@Test
+public void basicConstructorQuery() {
+    /**
+     * Some encodings:
+     * '&' -> %26
+     * '=' -> %3D
+     * ' ' -> %20
+     * '%' -> %25
+     * '+' -> %2B
+     */
+    String queryPart = "k1=v1&k2= spaces &k3=%3D%20escapes %20%25%26%2B&!@#$^*()-_=[]{};\"'<>,./";
+    AlluxioURI uri = new AlluxioURI("hdfs://localhost/a?" + queryPart);
+    Map<String, String> queryMap = uri.getQueryMap();
+    assertEquals(4, queryMap.size());
+    assertEquals("v1", queryMap.get("k1"));
+    assertEquals(" spaces ", queryMap.get("k2"));
+    assertEquals("= escapes  %&+", queryMap.get("k3"));
+    assertEquals("[]{};\"'<>,./", queryMap.get("!@#$^*()-_"));
+}

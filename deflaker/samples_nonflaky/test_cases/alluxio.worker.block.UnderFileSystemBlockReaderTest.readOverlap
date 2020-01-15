@@ -1,0 +1,13 @@
+@Test
+public void readOverlap() throws Exception {
+    mReader = UnderFileSystemBlockReader.create(mUnderFileSystemBlockMeta, 2, mAlluxioBlockStore, mUfsManager, mUfsInstreamManager);
+    ByteBuffer buffer = mReader.read(2, TEST_BLOCK_SIZE - 2);
+    Assert.assertTrue(BufferUtils.equalIncreasingByteBuffer(2, (int) TEST_BLOCK_SIZE - 2, buffer));
+    buffer = mReader.read(0, TEST_BLOCK_SIZE - 2);
+    Assert.assertTrue(BufferUtils.equalIncreasingByteBuffer(0, (int) TEST_BLOCK_SIZE - 2, buffer));
+    buffer = mReader.read(3, TEST_BLOCK_SIZE);
+    Assert.assertTrue(BufferUtils.equalIncreasingByteBuffer(3, (int) TEST_BLOCK_SIZE - 3, buffer));
+    mReader.close();
+    // block should be cached as two reads covers the full block
+    checkTempBlock(0, TEST_BLOCK_SIZE);
+}

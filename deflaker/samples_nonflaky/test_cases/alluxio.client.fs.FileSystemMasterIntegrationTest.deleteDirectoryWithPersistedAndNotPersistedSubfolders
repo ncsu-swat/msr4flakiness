@@ -1,0 +1,9 @@
+@Test
+public void deleteDirectoryWithPersistedAndNotPersistedSubfolders() throws Exception {
+    mFsMaster.createDirectory(new AlluxioURI("/testFolder"), CreateDirectoryContext.defaults().setWriteType(WriteType.CACHE_THROUGH));
+    mFsMaster.createDirectory(new AlluxioURI("/testFolder/persisted"), CreateDirectoryContext.defaults().setWriteType(WriteType.CACHE_THROUGH));
+    mFsMaster.createDirectory(new AlluxioURI("/testFolder/inAlluxio1"), CreateDirectoryContext.defaults().setWriteType(WriteType.CACHE_THROUGH));
+    mFsMaster.createDirectory(new AlluxioURI("/testFolder/inAlluxio1/inAlluxio2"), CreateDirectoryContext.defaults().setWriteType(WriteType.CACHE_THROUGH));
+    mFsMaster.delete(new AlluxioURI("/testFolder"), DeleteContext.mergeFrom(DeletePOptions.newBuilder().setRecursive(true)));
+    Assert.assertEquals(IdUtils.INVALID_FILE_ID, mFsMaster.getFileId(new AlluxioURI("/testFolder")));
+}

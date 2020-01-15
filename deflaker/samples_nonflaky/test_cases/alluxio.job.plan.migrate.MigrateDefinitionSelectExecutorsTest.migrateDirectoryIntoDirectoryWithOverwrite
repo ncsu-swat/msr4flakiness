@@ -1,0 +1,17 @@
+@Test
+public void migrateDirectoryIntoDirectoryWithOverwrite() throws Exception {
+    createDirectory("/src");
+    FileInfo nested = createDirectory("/src/nested");
+    FileInfo moreNested = createDirectory("/src/nested/moreNested");
+    FileInfo file1 = createFileWithBlocksOnWorkers("/src/file1", 2);
+    FileInfo file2 = createFileWithBlocksOnWorkers("/src/nested/file2", 1);
+    FileInfo file3 = createFileWithBlocksOnWorkers("/src/nested/moreNested/file3", 1);
+    setChildren("/src", nested, file1);
+    setChildren("/src/nested", moreNested, file2);
+    setChildren("/src/nested/moreNested", file3);
+    createDirectory("/dst");
+    List<MigrateCommand> migrateCommandsWorker1 = Lists.newArrayList(new MigrateCommand("/src/nested/file2", "/dst/nested/file2"), new MigrateCommand("/src/nested/moreNested/file3", "/dst/nested/moreNested/file3"));
+    List<MigrateCommand> migrateCommandsWorker2 = Lists.newArrayList(new MigrateCommand("/src/file1", "/dst/file1"));
+    Set<Pair<WorkerInfo, List<MigrateCommand>>> expected = ImmutableSet.of(new Pair<>(JOB_WORKERS.get(1), ImmutableList.of(migrateCommandsWorker1.get(0))), new Pair<>(JOB_WORKERS.get(1), ImmutableList.of(migrateCommandsWorker1.get(1))), new Pair<>(JOB_WORKERS.get(2), ImmutableList.of(migrateCommandsWorker2.get(0))));
+    Assert.assertEquals(expected, assignMigrates(new MigrateConfig("/src", "/dst", "THROUGH", true, false)));
+}

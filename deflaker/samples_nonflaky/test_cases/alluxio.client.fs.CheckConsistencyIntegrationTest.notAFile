@@ -1,0 +1,13 @@
+/**
+ * Tests the {@link FileSystemMaster#checkConsistency(AlluxioURI, CheckConsistencyContext)} method
+ * when a file does not exist as a file in the under storage.
+ */
+@Test
+public void notAFile() throws Exception {
+    String ufsFile = mFileSystem.getStatus(FILE).getUfsPath();
+    UnderFileSystem ufs = UnderFileSystem.Factory.create(ufsFile, ServerConfiguration.global());
+    ufs.deleteFile(ufsFile);
+    ufs.mkdirs(ufsFile);
+    List<AlluxioURI> expected = Lists.newArrayList(FILE);
+    Assert.assertEquals(expected, mFileSystemMaster.checkConsistency(new AlluxioURI("/"), CheckConsistencyContext.defaults()));
+}

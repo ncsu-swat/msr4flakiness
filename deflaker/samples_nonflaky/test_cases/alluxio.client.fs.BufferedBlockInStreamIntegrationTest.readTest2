@@ -1,0 +1,21 @@
+/**
+ * Tests {@link alluxio.client.block.BufferedBlockInStream#read(byte[])}.
+ */
+@Test
+public void readTest2() throws IOException, AlluxioException {
+    for (int k = MIN_LEN; k <= MAX_LEN; k += DELTA) {
+        for (CreateFilePOptions op : getOptionSet()) {
+            AlluxioURI path = new AlluxioURI(sTestPath + "/file_" + k + "_" + op.hashCode());
+            FileInStream is = sFileSystem.openFile(path, FileSystemTestUtils.toOpenFileOptions(op));
+            byte[] ret = new byte[k];
+            Assert.assertEquals(k, is.read(ret));
+            Assert.assertTrue(BufferUtils.equalIncreasingByteArray(k, ret));
+            is.close();
+            is = sFileSystem.openFile(path, FileSystemTestUtils.toOpenFileOptions(op));
+            ret = new byte[k];
+            Assert.assertEquals(k, is.read(ret));
+            Assert.assertTrue(BufferUtils.equalIncreasingByteArray(k, ret));
+            is.close();
+        }
+    }
+}

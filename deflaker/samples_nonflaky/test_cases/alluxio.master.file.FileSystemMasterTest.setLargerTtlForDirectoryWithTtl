@@ -1,0 +1,12 @@
+/**
+ * Tests that a directory has not been deleted after the TTL has been reset to a valid value.
+ */
+@Test
+public void setLargerTtlForDirectoryWithTtl() throws Exception {
+    mFileSystemMaster.createDirectory(new AlluxioURI("/nested"), CreateDirectoryContext.mergeFrom(CreateDirectoryPOptions.newBuilder().setRecursive(true)));
+    mFileSystemMaster.createDirectory(NESTED_URI, CreateDirectoryContext.mergeFrom(CreateDirectoryPOptions.newBuilder().setCommonOptions(FileSystemMasterCommonPOptions.newBuilder().setTtl(0)).setRecursive(true)));
+    mFileSystemMaster.setAttribute(NESTED_URI, SetAttributeContext.mergeFrom(SetAttributePOptions.newBuilder().setCommonOptions(FileSystemMasterCommonPOptions.newBuilder().setTtl(Constants.HOUR_MS))));
+    HeartbeatScheduler.execute(HeartbeatContext.MASTER_TTL_CHECK);
+    // TTL is reset to 1 hour, the directory should not be deleted during last TTL check.
+    assertEquals(NESTED_URI.getName(), mFileSystemMaster.getFileInfo(NESTED_URI, GET_STATUS_CONTEXT).getName());
+}

@@ -1,0 +1,27 @@
+@Test
+public void invokeAllPropagatesException() throws Exception {
+    int numTasks = 5;
+    final AtomicInteger id = new AtomicInteger();
+    List<Callable<Void>> tasks = new ArrayList<>();
+    final Exception testException = new Exception("test message");
+    for (int i = 0; i < numTasks; i++) {
+        tasks.add(new Callable<Void>() {
+
+            @Override
+            public Void call() throws Exception {
+                int myId = id.incrementAndGet();
+                // The 3rd task throws an exception
+                if (myId == 3) {
+                    throw testException;
+                }
+                return null;
+            }
+        });
+    }
+    try {
+        CommonUtils.invokeAll(tasks, 2 * Constants.SECOND_MS);
+        fail("Expected an exception to be thrown");
+    } catch (ExecutionException e) {
+        assertSame(testException, e.getCause());
+    }
+}

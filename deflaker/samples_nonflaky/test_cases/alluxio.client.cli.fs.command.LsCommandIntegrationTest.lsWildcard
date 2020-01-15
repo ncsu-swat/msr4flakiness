@@ -1,0 +1,16 @@
+/**
+ * Tests ls command with wildcard when security is enabled.
+ */
+@Test
+@LocalAlluxioClusterResource.Config(confParams = { PropertyKey.Name.SECURITY_AUTHORIZATION_PERMISSION_ENABLED, "true", PropertyKey.Name.SECURITY_AUTHENTICATION_TYPE, "SIMPLE", PropertyKey.Name.SECURITY_GROUP_MAPPING_CLASS, "alluxio.security.group.provider.IdentityUserGroupsMapping", PropertyKey.Name.SECURITY_AUTHORIZATION_PERMISSION_SUPERGROUP, "test_user_lsWildcard" })
+public void lsWildcard() throws Exception {
+    FileSystem fs = mLocalAlluxioCluster.getClient(FileSystemContext.create(new TestUserState("test_user_lsWildcard", ServerConfiguration.global()).getSubject(), ServerConfiguration.global()));
+    String testDir = FileSystemShellUtilsTest.resetFileHierarchy(fs);
+    mFsShell.run("ls", testDir + "/*/foo*");
+    // CHECKSTYLE.OFF: LineLengthExceed - Improve readability
+    checkOutput("-rw-r--r--  test_user_lsWildcardtest_user_lsWildcard             30   NOT_PERSISTED .+ .+ 100% /testDir/bar/foobar3", "-rw-r--r--  test_user_lsWildcardtest_user_lsWildcard             10   NOT_PERSISTED .+ .+ 100% /testDir/foo/foobar1", "-rw-r--r--  test_user_lsWildcardtest_user_lsWildcard             20   NOT_PERSISTED .+ .+ 100% /testDir/foo/foobar2");
+    mOutput.reset();
+    mFsShell.run("ls", testDir + "/*");
+    checkOutput("-rw-r--r--  test_user_lsWildcardtest_user_lsWildcard             30   NOT_PERSISTED .+ .+ 100% /testDir/bar/foobar3", "-rw-r--r--  test_user_lsWildcardtest_user_lsWildcard             10   NOT_PERSISTED .+ .+ 100% /testDir/foo/foobar1", "-rw-r--r--  test_user_lsWildcardtest_user_lsWildcard             20   NOT_PERSISTED .+ .+ 100% /testDir/foo/foobar2", "-rw-r--r--  test_user_lsWildcardtest_user_lsWildcard             40   NOT_PERSISTED .+ .+ 100% /testDir/foobar4");
+// CHECKSTYLE.ON: LineLengthExceed
+}

@@ -1,0 +1,19 @@
+@Test
+@LocalAlluxioClusterResource.Config(confParams = { PropertyKey.Name.SECURITY_AUTHORIZATION_PERMISSION_ENABLED, "true", PropertyKey.Name.SECURITY_AUTHENTICATION_TYPE, "SIMPLE", PropertyKey.Name.SECURITY_GROUP_MAPPING_CLASS, "alluxio.security.group.provider.IdentityUserGroupsMapping", PropertyKey.Name.SECURITY_AUTHORIZATION_PERMISSION_SUPERGROUP, "test_user_extended" })
+public void lsWithExtendedAcl() throws IOException, AlluxioException {
+    int size = 50;
+    FileSystem fs = mLocalAlluxioCluster.getClient(FileSystemContext.create(new TestUserState("test_user_extended", ServerConfiguration.global()).getSubject(), ServerConfiguration.global()));
+    FileSystemTestUtils.createByteFile(fs, "/testRoot/testDir/testFileB", WritePType.MUST_CACHE, 20);
+    FileSystemTestUtils.createByteFile(fs, "/testRoot/testFile", WritePType.MUST_CACHE, size, size);
+    mFsShell.run("ls", "--sort", "path", "/testRoot");
+    // CHECKSTYLE.OFF: LineLengthExceed - Improve readability
+    checkOutput("drwxr-xr-x  test_user_extendedtest_user_extended              1   NOT_PERSISTED .+ .+ DIR /testRoot/testDir", "-rw-r--r--  test_user_extendedtest_user_extended             50   NOT_PERSISTED .+ .+ 100% /testRoot/testFile");
+    // CHECKSTYLE.ON: LineLengthExceed
+    mOutput.reset();
+    fs.setAcl(new AlluxioURI("/testRoot/testDir"), SetAclAction.MODIFY, Arrays.asList(AclEntry.fromCliString("default:user:nameduser:rwx")));
+    fs.setAcl(new AlluxioURI("/testRoot/testFile"), SetAclAction.MODIFY, Arrays.asList(AclEntry.fromCliString("user:nameduser:rwx")));
+    mFsShell.run("ls", "--sort", "path", "/testRoot");
+    // CHECKSTYLE.OFF: LineLengthExceed - Improve readability
+    checkOutput("drwxr-xr-x\\+ test_user_extendedtest_user_extended              1   NOT_PERSISTED .+ .+  DIR /testRoot/testDir", "-rw-r--r--\\+ test_user_extendedtest_user_extended             50   NOT_PERSISTED .+ .+ 100% /testRoot/testFile");
+// CHECKSTYLE.ON: LineLengthExceed
+}

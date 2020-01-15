@@ -1,0 +1,21 @@
+@Test
+public void deleteFile() throws IOException, AlluxioException {
+    AlluxioURI fileUri = new AlluxioURI(FILE_PATH);
+    try {
+        mFileSystem.delete(fileUri);
+        Assert.fail("deleteFile should not succeed under a readonly mount.");
+    } catch (AccessControlException e) {
+        Assert.assertThat(e.getMessage(), containsString(ExceptionMessage.MOUNT_READONLY.getMessage(fileUri, MOUNT_PATH)));
+    }
+    Assert.assertTrue(mFileSystem.exists(fileUri));
+    Assert.assertNotNull(mFileSystem.getStatus(fileUri));
+    fileUri = new AlluxioURI(SUB_FILE_PATH);
+    try {
+        mFileSystem.delete(fileUri);
+        Assert.fail("deleteFile should not succeed under a readonly mount.");
+    } catch (AccessControlException e) {
+        Assert.assertThat(e.getMessage(), containsString(ExceptionMessage.MOUNT_READONLY.getMessage(fileUri, MOUNT_PATH)));
+    }
+    Assert.assertTrue(mFileSystem.exists(fileUri));
+    Assert.assertNotNull(mFileSystem.getStatus(fileUri));
+}

@@ -1,0 +1,39 @@
+@Test
+public void mountPointNested() throws Exception {
+    String ufsPath = Files.createTempDir().getAbsolutePath();
+    mFileSystem.createDirectory(new AlluxioURI("/nested/mnt/"), CreateDirectoryPOptions.newBuilder().setRecursive(true).setWriteType(WritePType.CACHE_THROUGH).build());
+    mFileSystem.mount(new AlluxioURI("/nested/mnt/ufs"), new AlluxioURI(ufsPath));
+    // recursively sync (setAttribute enables recursive sync)
+    mFileSystem.setAttribute(new AlluxioURI("/"), SetAttributePOptions.newBuilder().setCommonOptions(PSYNC_ALWAYS.toBuilder().setTtl(55555)).setRecursive(true).build());
+    // Verify /nested/mnt/ dir has 1 mount point
+    ListStatusPOptions options = ListStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.NEVER).setCommonOptions(PSYNC_NEVER).build();
+    List<URIStatus> listing = mFileSystem.listStatus(new AlluxioURI("/nested/mnt/"), options);
+    Assert.assertEquals(1, listing.size());
+    Assert.assertEquals("ufs", listing.get(0).getName());
+    // Remove a directory in the parent UFS, which has a mount point descendant
+    URIStatus status = mFileSystem.getStatus(new AlluxioURI("/nested/mnt/"), GetStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.NEVER).setCommonOptions(PSYNC_NEVER).build());
+    Assert.assertTrue(new File(status.getUfsPath()).delete());
+    // recursively sync (setAttribute enables recursive sync)
+    mFileSystem.setAttribute(new AlluxioURI("/"), SetAttributePOptions.newBuilder().setCommonOptions(PSYNC_ALWAYS.toBuilder().setTtl(44444)).setRecursive(true).build());
+    // Verify /nested/mnt/ dir has 1 mount point
+    listing = mFileSystem.listStatus(new AlluxioURI("/nested/mnt/"), options);
+    Assert.assertEquals(1, listing.size());
+    Assert.assertEquals("ufs", listing.get(0).getName());
+    // Remove a directory in the parent UFS, which has a mount point descendant
+    status = mFileSystem.getStatus(new AlluxioURI("/nested/"), GetStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.NEVER).setCommonOptions(PSYNC_NEVER).build());
+    Assert.assertTrue(new File(status.getUfsPath()).delete());
+    // recursively sync (setAttribute enables recursive sync)
+    mFileSystem.setAttribute(new AlluxioURI("/"), SetAttributePOptions.newBuilder().setCommonOptions(PSYNC_ALWAYS.toBuilder().setTtl(44444)).setRecursive(true).build());
+    // Verify /nested/mnt/ dir has 1 mount point
+    listing = mFileSystem.listStatus(new AlluxioURI("/nested/mnt/"), options);
+    Assert.assertEquals(1, listing.size());
+    Assert.assertEquals("ufs", listing.get(0).getName());
+    // adding a file into the nested mount point
+    writeUfsFile(ufsPath + "/nestedufs", 1);
+    // recursively sync (setAttribute enables recursive sync)
+    mFileSystem.setAttribute(new AlluxioURI("/"), SetAttributePOptions.newBuilder().setCommonOptions(PSYNC_ALWAYS.toBuilder().setTtl(44444)).setRecursive(true).build());
+    // Verify /nested/mnt/ufs dir has 1 file
+    listing = mFileSystem.listStatus(new AlluxioURI("/nested/mnt/ufs"), options);
+    Assert.assertEquals(1, listing.size());
+    Assert.assertEquals("nestedufs", listing.get(0).getName());
+}

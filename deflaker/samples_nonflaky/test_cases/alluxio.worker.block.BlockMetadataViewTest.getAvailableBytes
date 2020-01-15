@@ -1,0 +1,21 @@
+/**
+ * Tests the {@link BlockMetadataEvictorView#getAvailableBytes(BlockStoreLocation)} method.
+ */
+@Test
+public void getAvailableBytes() {
+    BlockStoreLocation location;
+    // When location represents anyTier
+    location = BlockStoreLocation.anyTier();
+    assertEquals(mMetaManager.getAvailableBytes(location), mMetadataView.getAvailableBytes(location));
+    // When location represents one particular tier
+    for (StorageTier tier : mMetaManager.getTiers()) {
+        String tierAlias = tier.getTierAlias();
+        location = BlockStoreLocation.anyDirInTier(tierAlias);
+        assertEquals(mMetaManager.getAvailableBytes(location), mMetadataView.getAvailableBytes(location));
+        for (StorageDir dir : tier.getStorageDirs()) {
+            // When location represents one particular dir
+            location = dir.toBlockStoreLocation();
+            assertEquals(mMetaManager.getAvailableBytes(location), mMetadataView.getAvailableBytes(location));
+        }
+    }
+}

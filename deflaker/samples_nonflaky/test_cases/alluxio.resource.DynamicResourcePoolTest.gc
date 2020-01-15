@@ -1,0 +1,15 @@
+@Test
+public void gc() throws Exception {
+    ManualClock manualClock = new ManualClock();
+    TestPool pool = new TestPool(DynamicResourcePool.Options.defaultOptions().setGcIntervalMs(10).setInitialDelayMs(1), manualClock);
+    pool.setGcThresholdInSecs(1);
+    List<Resource> resourceList = new ArrayList<>();
+    resourceList.add(pool.acquire());
+    resourceList.add(pool.acquire());
+    pool.release(resourceList.get(0));
+    manualClock.addTimeMs(1001);
+    // Sleep 1 second to make sure the GC has run.
+    Thread.sleep(1000);
+    // Resource 0 is gc-ed.
+    assertEquals(2, pool.acquire().mInteger.intValue());
+}

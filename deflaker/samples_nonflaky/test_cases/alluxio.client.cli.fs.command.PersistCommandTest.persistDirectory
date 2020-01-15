@@ -1,0 +1,19 @@
+@Test
+public void persistDirectory() throws Exception {
+    // Set the default write type to MUST_CACHE, so that directories are not persisted by default
+    ServerConfiguration.set(PropertyKey.USER_FILE_WRITE_TYPE_DEFAULT, "MUST_CACHE");
+    String testDir = FileSystemShellUtilsTest.resetFileHierarchy(mFileSystem);
+    assertFalse(mFileSystem.getStatus(new AlluxioURI(testDir)).isPersisted());
+    assertFalse(mFileSystem.getStatus(new AlluxioURI(testDir + "/foo")).isPersisted());
+    assertFalse(mFileSystem.getStatus(new AlluxioURI(testDir + "/bar")).isPersisted());
+    int ret = mFsShell.run("persist", testDir);
+    Assert.assertEquals(0, ret);
+    assertTrue(mFileSystem.getStatus(new AlluxioURI(testDir)).isPersisted());
+    assertTrue(mFileSystem.getStatus(new AlluxioURI(testDir + "/foo")).isPersisted());
+    assertTrue(mFileSystem.getStatus(new AlluxioURI(testDir + "/bar")).isPersisted());
+    checkFilePersisted(new AlluxioURI(testDir + "/foo/foobar1"), 10);
+    checkFilePersisted(new AlluxioURI(testDir + "/foo/foobar2"), 20);
+    checkFilePersisted(new AlluxioURI(testDir + "/bar/foobar3"), 30);
+    checkFilePersisted(new AlluxioURI(testDir + "/foobar4"), 40);
+    ServerConfiguration.reset();
+}

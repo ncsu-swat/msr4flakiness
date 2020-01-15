@@ -1,0 +1,20 @@
+/**
+ * Tests {@link FileInStream#seek(long)}.
+ */
+@Test
+public void seek() throws Exception {
+    for (int k = MIN_LEN; k <= MAX_LEN; k += DELTA) {
+        for (CreateFilePOptions op : getOptionSet()) {
+            String filename = mTestPath + "/file_" + k + "_" + op.hashCode();
+            AlluxioURI uri = new AlluxioURI(filename);
+            FileInStream is = mFileSystem.openFile(uri, FileSystemTestUtils.toOpenFileOptions(op));
+            is.seek(k / 3);
+            Assert.assertEquals(BufferUtils.intAsUnsignedByteValue(k / 3), is.read());
+            is.seek(k / 2);
+            Assert.assertEquals(BufferUtils.intAsUnsignedByteValue(k / 2), is.read());
+            is.seek(k / 4);
+            Assert.assertEquals(BufferUtils.intAsUnsignedByteValue(k / 4), is.read());
+            is.close();
+        }
+    }
+}

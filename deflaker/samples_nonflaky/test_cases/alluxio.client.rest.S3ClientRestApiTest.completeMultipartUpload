@@ -1,0 +1,38 @@
+@Test
+public void completeMultipartUpload() throws Exception {
+    // Two temporary parts in the multipart upload, each part contains a random string,
+    // after completion, the object should contain the combination of the two strings.
+    final String bucketName = "bucket";
+    createBucketRestCall(bucketName);
+    final String objectName = "object";
+    String objectKey = bucketName + AlluxioURI.SEPARATOR + objectName;
+    // Initiate the multipart upload.
+    String result = initiateMultipartUploadRestCall(objectKey);
+    InitiateMultipartUploadResult multipartUploadResult = XML_MAPPER.readValue(result, InitiateMultipartUploadResult.class);
+    final long uploadId = Long.parseLong(multipartUploadResult.getUploadId());
+    // Upload parts.
+    String object1 = CommonUtils.randomAlphaNumString(DATA_SIZE);
+    String object2 = CommonUtils.randomAlphaNumString(DATA_SIZE);
+    createObject(objectKey, object1.getBytes(), uploadId, 1);
+    createObject(objectKey, object2.getBytes(), uploadId, 2);
+    // Verify that the two parts are uploaded to the temporary directory.
+    AlluxioURI tmpDir = new AlluxioURI(S3RestUtils.getMultipartTemporaryDirForObject(AlluxioURI.SEPARATOR + bucketName, objectName));
+    Assert.assertEquals(2, mFileSystem.listStatus(tmpDir).size());
+    // Complete the multipart upload.
+    result = completeMultipartUploadRestCall(objectKey, uploadId);
+    // Verify that the response is expected.
+    String expectedCombinedObject = object1 + object2;
+    MessageDigest md5 = MessageDigest.getInstance("MD5");
+    byte[] digest = md5.digest(expectedCombinedObject.getBytes());
+    String etag = Hex.encodeHexString(digest);
+    String objectPath = AlluxioURI.SEPARATOR + objectKey;
+    CompleteMultipartUploadResult completeMultipartUploadResult = new CompleteMultipartUploadResult(objectPath, bucketName, objectName, etag);
+    Assert.assertEquals(XML_MAPPER.writeValueAsString(completeMultipartUploadResult), result);
+    // Verify that the temporary directory is deleted.
+    Assert.assertFalse(mFileSystem.exists(tmpDir));
+    // Verify that the completed object is expected.
+    try (FileInStream is = mFileSystem.openFile(new AlluxioURI(objectPath))) {
+        String combinedObject = IOUtils.toString(is);
+        Assert.assertEquals(expectedCombinedObject, combinedObject);
+    }
+}

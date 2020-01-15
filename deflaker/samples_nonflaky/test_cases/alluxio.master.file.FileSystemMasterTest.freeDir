@@ -1,0 +1,16 @@
+/**
+ * Tests the {@link FileSystemMaster#free} method with a directory.
+ */
+@Test
+public void freeDir() throws Exception {
+    mNestedFileContext.setWriteType(WriteType.CACHE_THROUGH);
+    long blockId = createFileWithSingleBlock(NESTED_FILE_URI);
+    assertEquals(1, mBlockMaster.getBlockInfo(blockId).getLocations().size());
+    // free the dir
+    mFileSystemMaster.free(NESTED_FILE_URI.getParent(), FreeContext.mergeFrom(FreePOptions.newBuilder().setForced(true).setRecursive(true)));
+    // Update the heartbeat of removedBlockId received from worker 1.
+    Command heartbeat3 = mBlockMaster.workerHeartbeat(mWorkerId1, null, ImmutableMap.of("MEM", (long) Constants.KB), ImmutableList.of(blockId), ImmutableMap.of(), ImmutableMap.of(), mMetrics);
+    // Verify the muted Free command on worker1.
+    assertEquals(Command.newBuilder().setCommandType(CommandType.Nothing).build(), heartbeat3);
+    assertEquals(0, mBlockMaster.getBlockInfo(blockId).getLocations().size());
+}

@@ -1,0 +1,32 @@
+@Test
+public void multiClients() throws Exception {
+    TestPool pool = new TestPool(DynamicResourcePool.Options.defaultOptions().setMaxCapacity(1));
+    final Resource resource1 = pool.acquire();
+    assertEquals(0, resource1.mInteger.intValue());
+    class ReleaseThread extends Thread {
+
+        private TestPool mPool;
+
+        private Resource mResource;
+
+        ReleaseThread(TestPool pool, Resource resource) {
+            mPool = pool;
+            mResource = resource;
+        }
+
+        @Override
+        public void run() {
+            try {
+                // Sleep sometime to test wait logic.
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                return;
+            }
+            mPool.release(mResource);
+        }
+    }
+    ReleaseThread releaseThread = new ReleaseThread(pool, resource1);
+    releaseThread.start();
+    Resource resource2 = pool.acquire(2, TimeUnit.SECONDS);
+    assertEquals(0, resource2.mInteger.intValue());
+}

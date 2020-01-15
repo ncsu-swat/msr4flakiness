@@ -1,0 +1,11 @@
+@Test
+public void getWorkerDeterministically() {
+    DeterministicHashPolicy policy = (DeterministicHashPolicy) BlockLocationPolicy.Factory.create(DeterministicHashPolicy.class.getCanonicalName(), sConf);
+    String host = policy.getWorker(GetWorkerOptions.defaults().setBlockWorkerInfos(mWorkerInfos).setBlockInfo(new BlockInfo().setBlockId(1).setLength(2 * (long) Constants.GB))).getHost();
+    for (int i = 0; i < 10; i++) {
+        DeterministicHashPolicy p = (DeterministicHashPolicy) BlockLocationPolicy.Factory.create(DeterministicHashPolicy.class.getCanonicalName(), sConf);
+        // For the same block, always return the same worker.
+        assertEquals(host, p.getWorker(GetWorkerOptions.defaults().setBlockWorkerInfos(mWorkerInfos).setBlockInfo(new BlockInfo().setBlockId(1).setLength(2 * (long) Constants.GB))).getHost());
+        assertEquals(host, p.getWorker(GetWorkerOptions.defaults().setBlockWorkerInfos(mWorkerInfos).setBlockInfo(new BlockInfo().setBlockId(1).setLength(2 * (long) Constants.GB))).getHost());
+    }
+}

@@ -1,0 +1,15 @@
+/**
+ * Tests the {@link FileSystemMaster#checkConsistency(AlluxioURI, CheckConsistencyContext)} method
+ * when no files are consistent.
+ */
+@Test
+public void inconsistent() throws Exception {
+    String ufsDirectory = mFileSystem.getStatus(DIRECTORY).getUfsPath();
+    UnderFileSystem ufs = UnderFileSystem.Factory.create(ufsDirectory, ServerConfiguration.global());
+    ufs.deleteDirectory(ufsDirectory, DeleteOptions.defaults().setRecursive(true));
+    List<AlluxioURI> expected = Lists.newArrayList(FILE, DIRECTORY);
+    List<AlluxioURI> result = mFileSystemMaster.checkConsistency(new AlluxioURI("/"), CheckConsistencyContext.defaults());
+    Collections.sort(expected);
+    Collections.sort(result);
+    Assert.assertEquals(expected, result);
+}

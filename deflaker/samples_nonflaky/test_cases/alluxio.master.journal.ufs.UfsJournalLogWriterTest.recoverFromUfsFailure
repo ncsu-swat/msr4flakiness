@@ -1,0 +1,20 @@
+/**
+ * Tests that (1) {@link UfsJournalLogWriter#mJournalOutputStream} is reset when an exception
+ * is thrown, and (2) the {@link UfsJournalLogWriter} recovers during the next write. It should
+ * write out all entries, including the one that initially failed.
+ */
+@Test
+public void recoverFromUfsFailure() throws Exception {
+    long startSN = 0x10;
+    UfsJournalLogWriter writer = new UfsJournalLogWriter(mJournal, startSN);
+    final int numberOfEntriesWrittenBeforeFailure = 10;
+    long nextSN = writeJournalEntries(writer, startSN, numberOfEntriesWrittenBeforeFailure);
+    DataOutputStream badOut = createMockDataOutputStream(writer);
+    Mockito.doThrow(new IOException(INJECTED_IO_ERROR_MESSAGE)).when(badOut).write(Mockito.any(byte[].class), Mockito.anyInt(), Mockito.anyInt());
+    tryWriteAndExpectToFail(writer, nextSN);
+    // UfsJournalLogWriter will perform recovery before the write operation.
+    writer.write(newEntry(nextSN));
+    nextSN++;
+    writer.close();
+    checkJournalEntries(startSN, nextSN);
+}

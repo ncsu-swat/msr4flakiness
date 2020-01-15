@@ -1,0 +1,14 @@
+@Test
+public void journalDetachDb() throws Exception {
+    mClusterResource.start();
+    LocalAlluxioCluster mCluster = mClusterResource.get();
+    TableMaster tableMaster = mCluster.getLocalAlluxioMaster().getMasterProcess().getMaster(TableMaster.class);
+    tableMaster.attachDatabase(TestUdbFactory.TYPE, "connect", DB_NAME, DB_NAME, Collections.emptyMap());
+    tableMaster.detachDatabase(DB_NAME);
+    assertTrue(tableMaster.getAllDatabases().isEmpty());
+    mCluster.stopMasters();
+    TestDatabase.genTable(2, 2);
+    mCluster.startMasters();
+    TableMaster tableMasterRestart = mCluster.getLocalAlluxioMaster().getMasterProcess().getMaster(TableMaster.class);
+    assertTrue(tableMasterRestart.getAllDatabases().isEmpty());
+}

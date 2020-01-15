@@ -1,0 +1,15 @@
+/**
+ * Tests that the authentication callbacks do not match.
+ */
+@Test
+public void authenticateNameNotMatch() throws Exception {
+    mThrown.expect(AuthenticationException.class);
+    mThrown.expectMessage("Only allow the user starting with alluxio");
+    String authenticateId = "not-alluxio-1";
+    NameCallback ncb = new NameCallback(" authentication id: ");
+    ncb.setName(authenticateId);
+    PasswordCallback pcb = new PasswordCallback(" password: ", false);
+    pcb.setPassword("password".toCharArray());
+    Callback[] callbacks = new Callback[] { ncb, pcb, new AuthorizeCallback(authenticateId, authenticateId) };
+    mPlainServerCBHandler.handle(callbacks);
+}

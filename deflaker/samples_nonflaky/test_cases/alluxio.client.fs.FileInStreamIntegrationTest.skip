@@ -1,0 +1,19 @@
+/**
+ * Tests {@link FileInStream#skip(long)}.
+ */
+@Test
+public void skip() throws Exception {
+    for (int k = MIN_LEN; k <= MAX_LEN; k += DELTA) {
+        for (CreateFilePOptions op : getOptionSet()) {
+            String filename = mTestPath + "/file_" + k + "_" + op.hashCode();
+            AlluxioURI uri = new AlluxioURI(filename);
+            FileInStream is = mFileSystem.openFile(uri, FileSystemTestUtils.toOpenFileOptions(op));
+            Assert.assertEquals(k / 2, is.skip(k / 2));
+            Assert.assertEquals(BufferUtils.intAsUnsignedByteValue(k / 2), is.read());
+            Assert.assertEquals(k / 3, is.skip(k / 3));
+            // position is k / 2 (skip) + k / 3 (skip) + 1 (read)
+            Assert.assertEquals(BufferUtils.intAsUnsignedByteValue(k / 2 + k / 3 + 1), is.read());
+            is.close();
+        }
+    }
+}

@@ -1,0 +1,18 @@
+@Test
+public void removePath() throws Exception {
+    String ufsBase = "/a/b";
+    String alluxioBase = "/mnt" + ufsBase;
+    // Create ufs directories
+    Assert.assertTrue((new File(mLocalUfsPath + ufsBase)).mkdirs());
+    // 'base + /c' will be the first absent path
+    addAbsent(new AlluxioURI(alluxioBase + "/c/d"));
+    checkAbsentPaths(new AlluxioURI(alluxioBase + "/c"));
+    // Create additional ufs directories
+    Assert.assertTrue((new File(mLocalUfsPath + ufsBase + "/c/d")).mkdirs());
+    removeAbsent(new AlluxioURI(alluxioBase + "/c/d"));
+    Assert.assertFalse(mUfsAbsentPathCache.isAbsent(new AlluxioURI("/mnt/a/b/c/d")));
+    Assert.assertFalse(mUfsAbsentPathCache.isAbsent(new AlluxioURI("/mnt/a/b/c")));
+    Assert.assertFalse(mUfsAbsentPathCache.isAbsent(new AlluxioURI("/mnt/a/b")));
+    Assert.assertFalse(mUfsAbsentPathCache.isAbsent(new AlluxioURI("/mnt/a")));
+    Assert.assertFalse(mUfsAbsentPathCache.isAbsent(new AlluxioURI("/mnt/")));
+}

@@ -1,0 +1,16 @@
+/**
+ * Tests that seeking around a file cached locally works.
+ */
+@Test
+public void seekAroundLocalBlock() throws Exception {
+    String uniqPath = PathUtils.uniqPath();
+    // The number of bytes per remote block read should be set to 100 in the before function
+    FileSystemTestUtils.createByteFile(mFileSystem, uniqPath, 200, mWriteAlluxio);
+    FileInStream is = mFileSystem.openFile(new AlluxioURI(uniqPath), mReadNoCache);
+    Assert.assertEquals(0, is.read());
+    is.seek(199);
+    Assert.assertEquals(199, is.read());
+    is.seek(99);
+    Assert.assertEquals(99, is.read());
+    is.close();
+}

@@ -1,0 +1,51 @@
+/**
+ * Tests the cascading eviction with the first tier filled and the second tier empty resulting in
+ * no eviction.
+ */
+@Test
+public void cascadingEvictionTest1() throws Exception {
+    // Two tiers, each dir in the second tier has more space than any dir in the first tier. Fill in
+    // the first tier, leave the second tier empty. Request space from the first tier, blocks should
+    // be moved from the first to the second tier without eviction.
+    int firstTierOrdinal = TieredBlockStoreTestUtils.TIER_ORDINAL[0];
+    long[] firstTierDirCapacity = TieredBlockStoreTestUtils.TIER_CAPACITY_BYTES[0];
+    int nDir = firstTierDirCapacity.length;
+    Map<Long, Double> blockIdToCRF = new HashMap<>();
+    for (int i = 0; i < nDir; i++) {
+        cache(SESSION_ID, BLOCK_ID + i, firstTierDirCapacity[i], firstTierOrdinal, i);
+        // update CRF of blocks when blocks are committed
+        blockIdToCRF.put(BLOCK_ID + i, calculateAccessWeight(nDir - 1 - i));
+    }
+    // access blocks in the order: 10, 10, 11. Update CRF of all blocks
+    // during each access
+    for (int i = 0; i < nDir; i++) {
+        for (int j = 0; j <= i; j++) {
+            access(BLOCK_ID + j);
+            for (int k = 0; k < nDir; k++) {
+                if (k == j) {
+                    blockIdToCRF.put(BLOCK_ID + k, blockIdToCRF.get(BLOCK_ID + k) * calculateAccessWeight(1L) + 1.0);
+                } else {
+                    blockIdToCRF.put(BLOCK_ID + k, blockIdToCRF.get(BLOCK_ID + k) * calculateAccessWeight(1L));
+                }
+            }
+        }
+    }
+    List<Map.Entry<Long, Double>> blockCRF = getSortedCRF(blockIdToCRF);
+    BlockStoreLocation anyDirInFirstTier = BlockStoreLocation.anyDirInTier(TieredBlockStoreTestUtils.TIER_ALIAS[firstTierOrdinal]);
+    long smallestCapacity = firstTierDirCapacity[0];
+    // request smallest capacity and update access time on the moved block for nDir times, the dir
+    // to move blocks from should be in the same order as sorted blockCRF
+    for (int i = 0; i < nDir; i++) {
+        EvictionPlan plan = mEvictor.freeSpaceWithView(smallestCapacity, anyDirInFirstTier, mMetadataView);
+        assertTrue(EvictorTestUtils.validCascadingPlan(smallestCapacity, plan, mMetaManager));
+        assertEquals(0, plan.toEvict().size());
+        assertEquals(1, plan.toMove().size());
+        long blockId = plan.toMove().get(0).getBlockId();
+        long objectBlockId = blockCRF.get(i).getKey();
+        assertEquals(objectBlockId, blockId);
+        // update CRF of the chosen block in case that it is chosen again
+        for (int j = 0; j < nDir; j++) {
+            access(objectBlockId);
+        }
+    }
+}

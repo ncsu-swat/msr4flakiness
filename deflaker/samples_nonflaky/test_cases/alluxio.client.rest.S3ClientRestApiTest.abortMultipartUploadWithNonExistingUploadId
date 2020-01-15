@@ -1,0 +1,21 @@
+@Test
+public void abortMultipartUploadWithNonExistingUploadId() throws Exception {
+    final String bucketName = "bucket";
+    createBucketRestCall(bucketName);
+    final String objectName = "object";
+    String objectKey = bucketName + AlluxioURI.SEPARATOR + objectName;
+    String result = initiateMultipartUploadRestCall(objectKey);
+    InitiateMultipartUploadResult multipartUploadResult = XML_MAPPER.readValue(result, InitiateMultipartUploadResult.class);
+    AlluxioURI tmpDir = new AlluxioURI(S3RestUtils.getMultipartTemporaryDirForObject(AlluxioURI.SEPARATOR + bucketName, objectName));
+    Assert.assertTrue(mFileSystem.exists(tmpDir));
+    Assert.assertTrue(mFileSystem.getStatus(tmpDir).isFolder());
+    final long uploadId = Long.parseLong(multipartUploadResult.getUploadId());
+    try {
+        abortMultipartUploadRestCall(objectKey, uploadId + 1);
+    } catch (AssertionError e) {
+        // Expected since the upload ID does not exist, the temporary directory should still exist.
+        Assert.assertTrue(mFileSystem.exists(tmpDir));
+        return;
+    }
+    Assert.fail("Abort multipart upload with non-existing upload ID should fail");
+}

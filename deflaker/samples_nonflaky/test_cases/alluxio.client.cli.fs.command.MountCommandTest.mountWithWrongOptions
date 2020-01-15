@@ -1,0 +1,14 @@
+@Test
+public void mountWithWrongOptions() throws Exception {
+    ConfExpectingUnderFileSystemFactory factory = new ConfExpectingUnderFileSystemFactory("ufs", ImmutableMap.of("k1", "v1", "k2", "v2"));
+    try (Closeable closeable = new UnderFileSystemFactoryRegistryRule(factory).toResource()) {
+        AlluxioURI mountPoint = new AlluxioURI("/mnt");
+        String ufsPath = "ufs://" + mFolder.getRoot().getAbsolutePath();
+        // one property is wrong
+        Assert.assertEquals(-1, mFsShell.run("mount", "--option", "k1=not_v1", "--option", "k2=v2", mountPoint.toString(), ufsPath));
+        // one property is missing
+        Assert.assertEquals(-1, mFsShell.run("mount", "--option", "k1=v1", mountPoint.toString(), ufsPath));
+        // one property is unnecessary
+        Assert.assertEquals(-1, mFsShell.run("mount", "--option", "k1=v1", "--option", "k2=v2", "--option", "k3=v3", mountPoint.toString(), ufsPath));
+    }
+}

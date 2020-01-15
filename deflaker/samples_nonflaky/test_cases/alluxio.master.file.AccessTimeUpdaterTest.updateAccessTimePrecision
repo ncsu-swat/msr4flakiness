@@ -1,0 +1,34 @@
+@Test
+public void updateAccessTimePrecision() throws Exception {
+    mAccessTimeUpdater = new AccessTimeUpdater(mFileSystemMaster, mInodeTree, mContext.getJournalSystem(), 0, Constants.HOUR_MS, 0);
+    mAccessTimeUpdater.start();
+    String path = "/foo";
+    createInode(path, CreateFileContext.defaults());
+    JournalContext journalContext = mock(JournalContext.class);
+    when(journalContext.get()).thenReturn(journalContext);
+    when(mFileSystemMaster.createJournalContext()).thenReturn(journalContext);
+    long accessTime = CommonUtils.getCurrentMs() + 100L;
+    long inodeId;
+    try (LockedInodePath lockedInodes = mInodeTree.lockFullInodePath(new AlluxioURI(path), InodeTree.LockPattern.READ)) {
+        mAccessTimeUpdater.updateAccessTime(journalContext, lockedInodes.getInode(), accessTime);
+        inodeId = lockedInodes.getInode().getId();
+    }
+    // verify inode attribute is not updated
+    assertNotEquals(accessTime, mInodeStore.get(inodeId).get().getLastAccessTimeMs());
+    // verify journal entry is not logged yet
+    verify(journalContext, never()).append(any(Journal.JournalEntry.class));
+    long newAccessTime = CommonUtils.getCurrentMs() + 2 * Constants.HOUR_MS;
+    // update access time with a much later timestamp
+    try (LockedInodePath lockedInodes = mInodeTree.lockFullInodePath(new AlluxioURI(path), InodeTree.LockPattern.READ)) {
+        mAccessTimeUpdater.updateAccessTime(journalContext, lockedInodes.getInode(), newAccessTime);
+        inodeId = lockedInodes.getInode().getId();
+    }
+    // verify inode attribute is updated
+    assertEquals(newAccessTime, mInodeStore.get(inodeId).get().getLastAccessTimeMs());
+    // / verify journal entry is logged
+    ArgumentCaptor<Journal.JournalEntry> captor = ArgumentCaptor.forClass(Journal.JournalEntry.class);
+    verify(journalContext).append(captor.capture());
+    assertTrue(captor.getValue().hasUpdateInode());
+    assertEquals(inodeId, captor.getValue().getUpdateInode().getId());
+    assertEquals(newAccessTime, captor.getValue().getUpdateInode().getLastAccessTimeMs());
+}

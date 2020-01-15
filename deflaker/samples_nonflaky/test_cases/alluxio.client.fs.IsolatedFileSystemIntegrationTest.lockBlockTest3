@@ -1,0 +1,34 @@
+@Test
+public void lockBlockTest3() throws Exception {
+    String uniqPath = PathUtils.uniqPath();
+    FileInStream is;
+    ByteBuffer buf;
+    int numOfFiles = 5;
+    int fileSize = WORKER_UNRESERVED_BYTES / numOfFiles;
+    List<AlluxioURI> files = new ArrayList<>();
+    for (int k = 0; k < numOfFiles; k++) {
+        FileSystemTestUtils.createByteFile(mFileSystem, uniqPath + k, fileSize, mWriteBoth);
+        files.add(new AlluxioURI(uniqPath + k));
+    }
+    for (int k = 0; k < numOfFiles; k++) {
+        URIStatus info = mFileSystem.getStatus(files.get(k));
+        Assert.assertTrue(info.getInAlluxioPercentage() == 100);
+        is = mFileSystem.openFile(files.get(k), FileSystemTestUtils.toOpenFileOptions(mWriteBoth));
+        buf = ByteBuffer.allocate((int) info.getBlockSizeBytes());
+        int r = is.read(buf.array());
+        if (k < numOfFiles - 1) {
+            Assert.assertTrue(r != -1);
+        }
+        is.close();
+    }
+    FileSystemTestUtils.createByteFile(mFileSystem, uniqPath + numOfFiles, fileSize, mWriteBoth);
+    files.add(new AlluxioURI(uniqPath + numOfFiles));
+    HeartbeatScheduler.execute(HeartbeatContext.WORKER_BLOCK_SYNC);
+    int numFilesCached = 0;
+    for (int k = 0; k <= numOfFiles; k++) {
+        if (mFileSystem.getStatus(files.get(k)).getInAlluxioPercentage() == 100) {
+            numFilesCached++;
+        }
+    }
+    Assert.assertEquals(numOfFiles, numFilesCached);
+}

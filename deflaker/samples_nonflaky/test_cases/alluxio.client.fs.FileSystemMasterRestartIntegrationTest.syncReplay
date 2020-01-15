@@ -1,0 +1,34 @@
+@Test
+public void syncReplay() throws Exception {
+    AlluxioURI root = new AlluxioURI("/");
+    AlluxioURI alluxioFile = new AlluxioURI("/in_alluxio");
+    // Create a persisted Alluxio file (but no ufs file).
+    mFsMaster.createFile(alluxioFile, CreateFileContext.defaults().setWriteType(WriteType.CACHE_THROUGH));
+    mFsMaster.completeFile(alluxioFile, CompleteFileContext.mergeFrom(CompleteFilePOptions.newBuilder().setUfsLength(0)).setOperationTimeMs(TEST_TIME_MS));
+    // List what is in Alluxio, without syncing.
+    List<FileInfo> files = mFsMaster.listStatus(root, ListStatusContext.mergeFrom(ListStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.NEVER).setCommonOptions(FileSystemMasterCommonPOptions.newBuilder().setSyncIntervalMs(-1))));
+    Assert.assertEquals(1, files.size());
+    Assert.assertEquals(alluxioFile.getName(), files.get(0).getName());
+    // Add ufs only paths
+    String ufs = ServerConfiguration.get(PropertyKey.MASTER_MOUNT_TABLE_ROOT_UFS);
+    Files.createDirectory(Paths.get(ufs, "ufs_dir"));
+    Files.createFile(Paths.get(ufs, "ufs_file"));
+    // List with syncing, which will remove alluxio only path, and add ufs only paths.
+    files = mFsMaster.listStatus(root, ListStatusContext.mergeFrom(ListStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.NEVER).setCommonOptions(FileSystemMasterCommonPOptions.newBuilder().setSyncIntervalMs(0))));
+    Assert.assertEquals(2, files.size());
+    Set<String> filenames = files.stream().map(FileInfo::getName).collect(Collectors.toSet());
+    Assert.assertTrue(filenames.contains("ufs_dir"));
+    Assert.assertTrue(filenames.contains("ufs_file"));
+    // Stop Alluxio.
+    mLocalAlluxioClusterResource.get().stopFS();
+    // Create the master using the existing journal.
+    try (FsMasterResource masterResource = createFileSystemMasterFromJournal()) {
+        FileSystemMaster fsMaster = masterResource.getRegistry().get(FileSystemMaster.class);
+        // List what is in Alluxio, without syncing. Should match the last state.
+        files = fsMaster.listStatus(root, ListStatusContext.mergeFrom(ListStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.NEVER).setCommonOptions(FileSystemMasterCommonPOptions.newBuilder().setSyncIntervalMs(-1))));
+        Assert.assertEquals(2, files.size());
+        filenames = files.stream().map(FileInfo::getName).collect(Collectors.toSet());
+        Assert.assertTrue(filenames.contains("ufs_dir"));
+        Assert.assertTrue(filenames.contains("ufs_file"));
+    }
+}

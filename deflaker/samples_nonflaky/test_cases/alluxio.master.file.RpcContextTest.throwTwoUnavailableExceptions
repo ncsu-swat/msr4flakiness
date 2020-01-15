@@ -1,0 +1,16 @@
+@Test
+public void throwTwoUnavailableExceptions() throws Throwable {
+    Exception bdcException = new UnavailableException("block deletion context exception");
+    Exception jcException = new UnavailableException("journal context exception");
+    doThrow(bdcException).when(mMockBDC).close();
+    doThrow(jcException).when(mMockJC).close();
+    try {
+        mRpcContext.close();
+        fail("Expected an exception to be thrown");
+    } catch (UnavailableException e) {
+        assertEquals(jcException, e);
+        // journal context is closed first, so the block deletion context exception should be
+        // suppressed.
+        assertEquals(bdcException, e.getSuppressed()[0]);
+    }
+}

@@ -1,0 +1,20 @@
+/**
+ * Tests concurrent deletes within a folder do not block on each other.
+ */
+@Test
+public void folderConcurrentDelete() throws Exception {
+    final int numThreads = CONCURRENCY_FACTOR;
+    AlluxioURI[] paths = new AlluxioURI[numThreads];
+    AlluxioURI dir = new AlluxioURI("/dir");
+    mFileSystem.createDirectory(dir);
+    for (int i = 0; i < numThreads; i++) {
+        paths[i] = dir.join("/file" + i);
+        mFileSystem.createFile(paths[i], sCreatePersistedFileOptions).close();
+    }
+    List<Throwable> errors = ConcurrentFileSystemMasterUtils.unaryOperation(mFileSystem, ConcurrentFileSystemMasterUtils.UnaryOperation.DELETE, paths, LIMIT_MS);
+    if (!errors.isEmpty()) {
+        Assert.fail("Encountered " + errors.size() + " errors, the first one is " + errors.get(0));
+    }
+    List<URIStatus> files = mFileSystem.listStatus(dir);
+    Assert.assertEquals(0, files.size());
+}

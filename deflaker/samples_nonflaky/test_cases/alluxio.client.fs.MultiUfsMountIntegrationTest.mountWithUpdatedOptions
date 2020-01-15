@@ -1,0 +1,19 @@
+@Test
+public void mountWithUpdatedOptions() throws Exception {
+    MountPOptions options3 = MountPOptions.newBuilder().putAllProperties(UFS_CONF3).build();
+    mFileSystem.mount(mMountPoint3, new AlluxioURI(mUfsUri3), options3);
+    Map<String, MountPointInfo> mountTable = mFileSystem.getMountTable();
+    Assert.assertTrue(mountTable.containsKey(MOUNT_POINT3));
+    MountPointInfo mountPointInfo3 = mountTable.get(MOUNT_POINT3);
+    Assert.assertEquals(mUfsUri3, mountPointInfo3.getUfsUri());
+    Assert.assertEquals(UFS_CONF3.size(), mountPointInfo3.getProperties().size());
+    Assert.assertTrue(mountPointInfo3.getProperties().containsKey(PropertyKey.Name.S3A_ACCESS_KEY));
+    Assert.assertNotEquals(UFS_CONF3.get(PropertyKey.Name.S3A_ACCESS_KEY), mountPointInfo3.getProperties().get(PropertyKey.Name.S3A_ACCESS_KEY));
+    MountPOptions options4 = MountPOptions.newBuilder().putAllProperties(UFS_CONF2).build();
+    UnderFileSystemFactoryRegistry.register(new ConfExpectingUnderFileSystemFactory("ufs3", UFS_CONF2));
+    mFileSystem.updateMount(mMountPoint3, options4);
+    mountTable = mFileSystem.getMountTable();
+    Assert.assertTrue(mountTable.containsKey(MOUNT_POINT3));
+    MountPointInfo mountPointInfo4 = mountTable.get(MOUNT_POINT3);
+    Assert.assertEquals(UFS_CONF2, mountPointInfo4.getProperties());
+}

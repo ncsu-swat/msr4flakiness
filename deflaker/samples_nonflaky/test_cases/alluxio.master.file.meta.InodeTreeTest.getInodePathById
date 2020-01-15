@@ -1,0 +1,13 @@
+@Test
+public void getInodePathById() throws Exception {
+    try (LockedInodePath rootPath = mTree.lockFullInodePath(0, LockPattern.READ)) {
+        assertEquals(0, rootPath.getInode().getId());
+    }
+    List<Inode> created = createPath(mTree, NESTED_FILE_URI, sNestedFileContext);
+    for (Inode inode : created) {
+        long id = inode.getId();
+        try (LockedInodePath inodePath = mTree.lockFullInodePath(id, LockPattern.READ)) {
+            assertEquals(id, inodePath.getInode().getId());
+        }
+    }
+}

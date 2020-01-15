@@ -1,0 +1,15 @@
+@Test
+public void generateJobConfig() {
+    TransformAction action = TransformAction.Parser.parse("write(hive).option(hive.num.files, 12)");
+    assertEquals(WriteAction.class, action.getClass());
+    WriteAction writeAction = (WriteAction) action;
+    HiveLayout from = TableTestUtils.createLayout("/from");
+    HiveLayout to = TableTestUtils.createLayout("/to");
+    JobConfig job = writeAction.generateJobConfig(from, to);
+    assertEquals(CompactConfig.class, job.getClass());
+    CompactConfig compact = (CompactConfig) job;
+    assertEquals("hive", compact.getDatabaseType());
+    assertEquals("/from", compact.getInput());
+    assertEquals("/to", compact.getOutput());
+    assertEquals(12, compact.getNumFiles());
+}

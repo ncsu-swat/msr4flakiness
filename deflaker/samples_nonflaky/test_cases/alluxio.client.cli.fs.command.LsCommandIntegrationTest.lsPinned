@@ -1,0 +1,14 @@
+/**
+ * Tests ls -p command when security is not enabled.
+ */
+@Test
+@LocalAlluxioClusterResource.Config(confParams = { PropertyKey.Name.SECURITY_AUTHORIZATION_PERMISSION_ENABLED, "false", PropertyKey.Name.SECURITY_AUTHENTICATION_TYPE, "NOSASL" })
+public void lsPinned() throws Exception {
+    createFiles(null);
+    AlluxioURI fileURI1 = new AlluxioURI("/testRoot/testDir/testFileB");
+    AlluxioURI fileURI2 = new AlluxioURI("/testRoot/testFileA");
+    mFileSystem.setAttribute(fileURI1, SetAttributePOptions.newBuilder().setPinned(true).build());
+    mFileSystem.setAttribute(fileURI2, SetAttributePOptions.newBuilder().setPinned(true).build());
+    mFsShell.run("ls", "-pR", "/testRoot");
+    checkOutput("             20   NOT_PERSISTED .+ .+ 100% /testRoot/testDir/testFileB", "             10   NOT_PERSISTED .+ .+ 100% /testRoot/testFileA");
+}

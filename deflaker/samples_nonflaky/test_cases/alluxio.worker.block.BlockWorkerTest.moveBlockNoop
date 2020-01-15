@@ -1,0 +1,18 @@
+/**
+ * Tests the {@link BlockWorker#moveBlock(long, long, String)} method no-ops if the block is
+ * already at the destination location.
+ */
+@Test
+public void moveBlockNoop() throws Exception {
+    long blockId = mRandom.nextLong();
+    long sessionId = mRandom.nextLong();
+    String tierAlias = "MEM";
+    BlockStoreLocation location = BlockStoreLocation.anyDirInTier(tierAlias);
+    BlockStoreLocation existingLocation = mock(BlockStoreLocation.class);
+    when(existingLocation.belongsTo(location)).thenReturn(true);
+    BlockMeta meta = mock(BlockMeta.class);
+    when(meta.getBlockLocation()).thenReturn(existingLocation);
+    when(mBlockStore.getBlockMeta(eq(sessionId), eq(blockId), anyLong())).thenReturn(meta);
+    mBlockWorker.moveBlock(sessionId, blockId, tierAlias);
+    verify(mBlockStore, times(0)).moveBlock(sessionId, blockId, location);
+}

@@ -1,0 +1,18 @@
+@Test
+public void deleteNonEmptyBucket() throws Exception {
+    final String bucketName = "non-empty-bucket";
+    createBucketRestCall(bucketName);
+    AlluxioURI uri = new AlluxioURI(AlluxioURI.SEPARATOR + bucketName);
+    AlluxioURI fileUri = new AlluxioURI(uri.getPath() + "/file");
+    mFileSystemMaster.createFile(fileUri, CreateFileContext.defaults());
+    // Verify the directory is created for the new bucket, and file is created under it.
+    Assert.assertFalse(mFileSystemMaster.listStatus(uri, ListStatusContext.defaults()).isEmpty());
+    try {
+        // Delete a non-empty bucket should fail.
+        deleteBucketRestCall(bucketName);
+    } catch (AssertionError e) {
+        // expected
+        return;
+    }
+    Assert.fail("delete a non-empty bucket should fail");
+}

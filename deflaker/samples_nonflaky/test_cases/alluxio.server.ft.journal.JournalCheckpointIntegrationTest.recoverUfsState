@@ -1,0 +1,12 @@
+@Test
+public void recoverUfsState() throws Exception {
+    FileSystemMasterClient client = new RetryHandlingFileSystemMasterClient(MasterClientContext.newBuilder(ClientContext.create(ServerConfiguration.global())).build());
+    client.updateUfsMode(new AlluxioURI(""), UpdateUfsModePOptions.newBuilder().setUfsMode(UfsPMode.READ_ONLY).build());
+    backupAndRestore();
+    try {
+        mCluster.getClient().createDirectory(new AlluxioURI("/test"), CreateDirectoryPOptions.newBuilder().setWriteType(WritePType.THROUGH).build());
+        fail("Expected an exception to be thrown");
+    } catch (AccessControlException e) {
+    // Expected
+    }
+}

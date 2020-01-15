@@ -1,0 +1,12 @@
+@Test
+public void freeAfterFilePersisted() throws Exception {
+    URIStatus status = createAsyncFile();
+    IntegrationTestUtils.waitForPersist(mLocalAlluxioClusterResource, mUri);
+    mFileSystem.free(mUri);
+    IntegrationTestUtils.waitForBlocksToBeFreed(mLocalAlluxioClusterResource.get().getWorkerProcess().getWorker(BlockWorker.class), status.getBlockIds().toArray(new Long[status.getBlockIds().size()]));
+    status = mFileSystem.getStatus(mUri);
+    // file persisted, free is no more a no-op
+    Assert.assertEquals(0, status.getInMemoryPercentage());
+    checkFileInAlluxio(mUri, LEN);
+    checkFileInUnderStorage(mUri, LEN);
+}

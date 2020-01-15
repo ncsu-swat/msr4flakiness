@@ -1,0 +1,20 @@
+@Test
+public void clusterRestartSync() throws Exception {
+    ListStatusPOptions listStatusPOptions = ListStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.NEVER).setCommonOptions(PSYNC_LARGE_INTERVAL).build();
+    List<URIStatus> statusList = mFileSystem.listStatus(new AlluxioURI(alluxioPath(EXISTING_DIR)), listStatusPOptions);
+    Assert.assertNotNull(statusList);
+    Assert.assertEquals(0, statusList.size());
+    mLocalAlluxioClusterResource.get().stopMasters();
+    mLocalAlluxioClusterResource.get().startMasters();
+    List<URIStatus> statusListAfterRestart = mFileSystem.listStatus(new AlluxioURI(alluxioPath(EXISTING_DIR)), listStatusPOptions);
+    Assert.assertNotNull(statusListAfterRestart);
+    Assert.assertEquals(0, statusListAfterRestart.size());
+    writeUfsFile(ufsPath(NEW_FILE_UNDER_DIR), 1);
+    List<URIStatus> statusListAgain = mFileSystem.listStatus(new AlluxioURI(alluxioPath(EXISTING_DIR)), listStatusPOptions);
+    Assert.assertNotNull(statusListAgain);
+    Assert.assertEquals(0, statusListAgain.size());
+    Thread.sleep(LARGE_INTERVAL_MS);
+    List<URIStatus> statusListAfterSleeping = mFileSystem.listStatus(new AlluxioURI(alluxioPath(EXISTING_DIR)), listStatusPOptions);
+    Assert.assertNotNull(statusListAfterSleeping);
+    Assert.assertEquals(1, statusListAfterSleeping.size());
+}

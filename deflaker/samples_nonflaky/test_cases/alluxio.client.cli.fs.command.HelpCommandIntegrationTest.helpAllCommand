@@ -1,0 +1,19 @@
+/**
+ * Tests help command without given command.
+ */
+@Test
+public void helpAllCommand() throws IOException {
+    Assert.assertEquals(0, mFsShell.run("help"));
+    final Map<String, Command> commands = FileSystemShellUtils.loadCommands(FileSystemContext.create(ServerConfiguration.global()));
+    String expected = "";
+    SortedSet<String> sortedCmds = new TreeSet<>(commands.keySet());
+    for (String cmd : sortedCmds) {
+        Command command = commands.get(cmd);
+        StringWriter stringWriter = new StringWriter();
+        PrintWriter printWriter = new PrintWriter(stringWriter);
+        HelpCommand.printCommandInfo(command, printWriter);
+        printWriter.close();
+        expected += stringWriter.toString() + "\n";
+    }
+    Assert.assertEquals(expected, mOutput.toString());
+}

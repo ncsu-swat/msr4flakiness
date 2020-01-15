@@ -1,0 +1,10 @@
+@Test
+public void wrongTieredStorageLevel() throws Exception {
+    try (Closeable p = new SystemPropertyRule(ImmutableMap.of("alluxio.master.tieredstore.global.levels", "1", "alluxio.worker.tieredstore.levels", "2")).toResource()) {
+        resetConf();
+        mConfiguration.validate();
+        fail("Should have thrown a runtime exception when setting an unknown tier level");
+    } catch (RuntimeException e) {
+        assertTrue(e.getMessage().contains(String.format("%s tiers on worker (configured by %s), larger than global %s tiers " + "(configured by %s) ", 2, PropertyKey.WORKER_TIERED_STORE_LEVELS, 1, PropertyKey.MASTER_TIERED_STORE_GLOBAL_LEVELS)));
+    }
+}

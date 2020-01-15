@@ -1,0 +1,14 @@
+@Test
+public void addNextFinalInode() throws Exception {
+    mPath = create("/a/missing", LockPattern.WRITE_EDGE);
+    assertFalse(mPath.fullPathExists());
+    InodeFile missingInode = inodeFile(10, mDirA.getId(), "missing");
+    mInodeStore.addChild(mDirA.getId(), missingInode);
+    mPath.addNextInode(missingInode);
+    assertTrue(mPath.fullPathExists());
+    assertEquals(Arrays.asList(mRootDir, mDirA, missingInode), mPath.getInodeList());
+    checkOnlyNodesReadLocked(mRootDir, mDirA);
+    checkOnlyNodesWriteLocked();
+    checkOnlyIncomingEdgesReadLocked(mRootDir, mDirA);
+    checkOnlyIncomingEdgesWriteLocked(missingInode);
+}

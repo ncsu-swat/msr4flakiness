@@ -1,0 +1,24 @@
+@Test
+public void persistPartial() throws Exception {
+    String filePath1 = "/testPersistPartial/testFile1";
+    String filePath2 = "/testPersistPartial/testFile2";
+    String filePath3 = "/testPersistPartial/testFile3";
+    FileSystemTestUtils.createByteFile(mFileSystem, filePath1, WritePType.MUST_CACHE, 10);
+    FileSystemTestUtils.createByteFile(mFileSystem, filePath2, WritePType.MUST_CACHE, 20);
+    FileSystemTestUtils.createByteFile(mFileSystem, filePath3, WritePType.MUST_CACHE, 30);
+    assertFalse(mFileSystem.getStatus(new AlluxioURI(filePath1)).isPersisted());
+    assertFalse(mFileSystem.getStatus(new AlluxioURI(filePath2)).isPersisted());
+    assertFalse(mFileSystem.getStatus(new AlluxioURI(filePath3)).isPersisted());
+    // Persist testFile1 first.
+    int ret = mFsShell.run("persist", "/testPersistPartial/testFile1");
+    Assert.assertEquals(0, ret);
+    checkFilePersisted(new AlluxioURI(filePath1), 10);
+    assertFalse(mFileSystem.getStatus(new AlluxioURI(filePath2)).isPersisted());
+    assertFalse(mFileSystem.getStatus(new AlluxioURI(filePath3)).isPersisted());
+    // Persist entire directory.
+    ret = mFsShell.run("persist", "/testPersistPartial");
+    Assert.assertEquals(0, ret);
+    checkFilePersisted(new AlluxioURI(filePath1), 10);
+    checkFilePersisted(new AlluxioURI(filePath2), 20);
+    checkFilePersisted(new AlluxioURI(filePath3), 30);
+}

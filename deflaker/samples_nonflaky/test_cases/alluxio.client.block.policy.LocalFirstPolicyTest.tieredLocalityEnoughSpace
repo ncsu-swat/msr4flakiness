@@ -1,0 +1,13 @@
+@Test
+public void tieredLocalityEnoughSpace() throws Exception {
+    List<BlockWorkerInfo> workers = new ArrayList<>();
+    // Local node doesn't have enough space
+    workers.add(worker(Constants.MB, "node2", "rack3"));
+    workers.add(worker(Constants.GB, "node3", "rack2"));
+    // Local rack has enough space
+    workers.add(worker(Constants.GB, "node4", "rack3"));
+    LocalFirstPolicy policy = new LocalFirstPolicy(TieredIdentityFactory.fromString("node=node2,rack=rack3", sConf), sConf);
+    GetWorkerOptions options = GetWorkerOptions.defaults().setBlockWorkerInfos(workers).setBlockInfo(new BlockInfo().setLength(Constants.GB));
+    WorkerNetAddress chosen = policy.getWorker(options);
+    assertEquals(workers.get(2).getNetAddress(), chosen);
+}

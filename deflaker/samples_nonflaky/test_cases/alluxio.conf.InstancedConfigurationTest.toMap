@@ -1,0 +1,26 @@
+@Test
+public void toMap() throws Exception {
+    // Create a nested property to test
+    String testKeyName = "alluxio.extensions.dir";
+    PropertyKey nestedKey = PropertyKey.SECURITY_LOGIN_USERNAME;
+    String nestedValue = String.format("${%s}.test", testKeyName);
+    mConfiguration.set(nestedKey, nestedValue);
+    Map<String, String> resolvedMap = mConfiguration.toMap();
+    // Test if the value of the created nested property is correct
+    assertEquals(mConfiguration.get(PropertyKey.fromString(testKeyName)), resolvedMap.get(testKeyName));
+    String nestedResolvedValue = String.format("%s.test", resolvedMap.get(testKeyName));
+    assertEquals(nestedResolvedValue, resolvedMap.get(nestedKey.toString()));
+    // Test if the values in the resolvedMap is resolved
+    String resolvedValue1 = String.format("%s/extensions", resolvedMap.get("alluxio.home"));
+    assertEquals(resolvedValue1, resolvedMap.get(testKeyName));
+    String resolvedValue2 = String.format("%s/logs", resolvedMap.get("alluxio.work.dir"));
+    assertEquals(resolvedValue2, resolvedMap.get("alluxio.logs.dir"));
+    // Test if the resolvedMap include all kinds of properties
+    assertTrue(resolvedMap.containsKey("alluxio.debug"));
+    assertTrue(resolvedMap.containsKey("alluxio.fuse.fs.name"));
+    assertTrue(resolvedMap.containsKey("alluxio.master.journal.folder"));
+    assertTrue(resolvedMap.containsKey("alluxio.proxy.web.port"));
+    assertTrue(resolvedMap.containsKey("alluxio.security.authentication.type"));
+    assertTrue(resolvedMap.containsKey("alluxio.user.block.master.client.pool.size.max"));
+    assertTrue(resolvedMap.containsKey("alluxio.worker.bind.host"));
+}

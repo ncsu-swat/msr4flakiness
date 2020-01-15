@@ -1,0 +1,34 @@
+/**
+ * Tests renaming files concurrently under directories with a shared path prefix.
+ */
+@Test
+public void sharedPrefixDirConcurrentRename() throws Exception {
+    int numThreads = CONCURRENCY_FACTOR;
+    final AlluxioURI[] srcs = new AlluxioURI[numThreads];
+    final AlluxioURI[] dsts = new AlluxioURI[numThreads];
+    AlluxioURI dir1 = new AlluxioURI("/root/dir1");
+    AlluxioURI dir2 = new AlluxioURI("/root/parent/dir2");
+    AlluxioURI dst = new AlluxioURI("/dst");
+    mFileSystem.createDirectory(dir1, sCreatePersistedDirOptions);
+    mFileSystem.createDirectory(dir2, sCreatePersistedDirOptions);
+    mFileSystem.createDirectory(dst, sCreatePersistedDirOptions);
+    for (int i = 0; i < numThreads; i++) {
+        // Dir1 has even files, dir2 has odd files.
+        srcs[i] = i % 2 == 0 ? dir1.join("file" + i) : dir2.join("file" + i);
+        dsts[i] = dst.join("renamed" + i);
+        mFileSystem.createFile(srcs[i], sCreatePersistedFileOptions).close();
+    }
+    ConcurrentHashSet<Throwable> errors = concurrentRename(srcs, dsts);
+    // We should get no errors.
+    assertErrorsSizeEquals(errors, 0);
+    List<URIStatus> dir1Files = mFileSystem.listStatus(dir1);
+    List<URIStatus> dir2Files = mFileSystem.listStatus(dir2);
+    List<URIStatus> dstFiles = mFileSystem.listStatus(dst);
+    Assert.assertEquals(0, dir1Files.size());
+    Assert.assertEquals(0, dir2Files.size());
+    Assert.assertEquals(numThreads, dstFiles.size());
+    Collections.sort(dstFiles, new ConcurrentFileSystemMasterUtils.IntegerSuffixedPathComparator());
+    for (int i = 0; i < numThreads; i++) {
+        Assert.assertEquals(dsts[i].getName(), dstFiles.get(i).getName());
+    }
+}

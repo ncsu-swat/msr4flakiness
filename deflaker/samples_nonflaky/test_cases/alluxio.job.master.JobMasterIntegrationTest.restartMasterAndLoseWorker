@@ -1,0 +1,11 @@
+@Test
+public void restartMasterAndLoseWorker() throws Exception {
+    long jobId = mJobMaster.run(new SleepJobConfig(1));
+    JobTestUtils.waitForJobStatus(mJobMaster, jobId, Status.COMPLETED);
+    mJobMaster.stop();
+    mJobMaster.start(true);
+    CommonUtils.waitFor("Worker to register with restarted job master", () -> !mJobMaster.getWorkerInfoList().isEmpty(), WaitForOptions.defaults().setTimeoutMs(10 * Constants.SECOND_MS));
+    mJobWorker.stop();
+    CommonUtils.sleepMs(WORKER_TIMEOUT_MS + LOST_WORKER_INTERVAL_MS);
+    assertTrue(mJobMaster.getWorkerInfoList().isEmpty());
+}

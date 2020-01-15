@@ -1,0 +1,27 @@
+/**
+ * Test for {@link FileSystem#setOwner(Path, String, String)} with HDFS UFS. It will test
+ * changing both owner and group of file using TFS and propagate the change to UFS.
+ */
+@Test
+public void changeNonexistentOwnerAndGroupForHdfs() throws Exception {
+    // Skip non-HDFS UFSs.
+    Assume.assumeTrue(UnderFileSystemUtils.isHdfs(sUfs));
+    Path fileC = new Path("/chownfileC-hdfs");
+    final String testOwner = "test-user1";
+    final String testGroup = "test-group1";
+    create(sTFS, fileC);
+    FileStatus fs = sTFS.getFileStatus(fileC);
+    String defaultOwner = fs.getOwner();
+    String defaultGroup = fs.getGroup();
+    Assert.assertEquals(defaultOwner, sUfs.getFileStatus(PathUtils.concatPath(sUfsRoot, fileC)).getOwner());
+    // Group can different because HDFS user to group mapping can be different from that in Alluxio.
+    Assert.assertNotEquals(defaultOwner, testOwner);
+    Assert.assertNotEquals(defaultGroup, testGroup);
+    sTFS.setOwner(fileC, testOwner, testGroup);
+    fs = sTFS.getFileStatus(fileC);
+    Assert.assertEquals(testOwner, fs.getOwner());
+    Assert.assertEquals(testGroup, fs.getGroup());
+    UfsStatus ufsStatus = sUfs.getFileStatus(PathUtils.concatPath(sUfsRoot, fileC));
+    Assert.assertEquals(testOwner, ufsStatus.getOwner());
+    Assert.assertEquals(testGroup, ufsStatus.getGroup());
+}

@@ -1,0 +1,19 @@
+/**
+ * Tests {@link AccessControlList#checkPermission(String, List, AclAction)}.
+ */
+@Test
+public void checkPermission() {
+    AccessControlList acl = new AccessControlList();
+    setPermissions(acl);
+    assertTrue(checkMode(acl, OWNING_USER, Collections.emptyList(), Mode.Bits.ALL));
+    assertTrue(checkMode(acl, NAMED_USER, Collections.emptyList(), Mode.Bits.READ_EXECUTE));
+    assertFalse(checkMode(acl, NAMED_USER, Collections.emptyList(), Mode.Bits.WRITE));
+    assertTrue(checkMode(acl, OTHER_USER, Lists.newArrayList(OWNING_GROUP), Mode.Bits.READ_EXECUTE));
+    assertFalse(checkMode(acl, OTHER_USER, Lists.newArrayList(OWNING_GROUP), Mode.Bits.WRITE));
+    assertTrue(checkMode(acl, OTHER_USER, Lists.newArrayList(NAMED_GROUP), Mode.Bits.READ));
+    assertFalse(checkMode(acl, OTHER_USER, Lists.newArrayList(NAMED_GROUP), Mode.Bits.WRITE));
+    assertFalse(checkMode(acl, OTHER_USER, Lists.newArrayList(NAMED_GROUP), Mode.Bits.EXECUTE));
+    assertTrue(checkMode(acl, OTHER_USER, Lists.newArrayList(OTHER_GROUP), Mode.Bits.EXECUTE));
+    assertFalse(checkMode(acl, OTHER_USER, Lists.newArrayList(OTHER_GROUP), Mode.Bits.READ));
+    assertFalse(checkMode(acl, OTHER_USER, Lists.newArrayList(OTHER_GROUP), Mode.Bits.WRITE));
+}

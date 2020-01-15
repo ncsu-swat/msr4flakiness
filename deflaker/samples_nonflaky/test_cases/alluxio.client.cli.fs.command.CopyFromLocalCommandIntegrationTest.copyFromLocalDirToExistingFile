@@ -1,0 +1,15 @@
+@Test
+public void copyFromLocalDirToExistingFile() throws IOException, AlluxioException {
+    // Copy a directory from local to a file which exists in Alluxio filesystem. This case should
+    // fail.
+    File localDir = new File(mLocalAlluxioCluster.getAlluxioHome() + "/localDir");
+    File innerDir = new File(mLocalAlluxioCluster.getAlluxioHome() + "/localDir/innerDir");
+    localDir.mkdir();
+    innerDir.mkdir();
+    generateFileContent("/localDir/srcFile", BufferUtils.getIncreasingByteArray(10));
+    mFileSystem.createFile(new AlluxioURI("/dstFile")).close();
+    int ret = mFsShell.run("copyFromLocal", localDir.getPath(), "/dstFile");
+    Assert.assertEquals(-1, ret);
+    Assert.assertFalse(mFileSystem.getStatus(new AlluxioURI("/dstFile")).isFolder());
+    Assert.assertFalse(mFileSystem.exists(new AlluxioURI("/dstFile/innerDir")));
+}

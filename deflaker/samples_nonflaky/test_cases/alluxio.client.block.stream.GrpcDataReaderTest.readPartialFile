@@ -1,0 +1,16 @@
+/**
+ * Reads part of a file and checks the checksum of the part that is read.
+ */
+@Test(timeout = 1000 * 60)
+public void readPartialFile() throws Exception {
+    long length = CHUNK_SIZE * 1024 + CHUNK_SIZE / 3;
+    long offset = 10;
+    long checksumStart = 100;
+    long bytesToRead = length / 3;
+    try (DataReader reader = create(offset, length)) {
+        long checksum = setReadResponses(mClient, length, checksumStart, bytesToRead - 1);
+        long checksumActual = checkChunks(reader, checksumStart, bytesToRead);
+        assertEquals(checksum, checksumActual);
+    }
+    validateReadRequestSent(mClient, offset, length, true, CHUNK_SIZE);
+}

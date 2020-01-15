@@ -1,0 +1,12 @@
+@Test
+public void syncCacheFirstBlock() throws Exception {
+    String filename = mTestPath + "/file_" + MAX_LEN + "_" + mWriteUnderStore.hashCode();
+    AlluxioURI uri = new AlluxioURI(filename);
+    FileInStream is = mFileSystem.openFile(uri, OpenFilePOptions.newBuilder().setReadType(ReadPType.CACHE).build());
+    URIStatus status = mFileSystem.getStatus(uri);
+    byte[] data = new byte[(int) status.getBlockSizeBytes() + 1];
+    is.read(data);
+    status = mFileSystem.getStatus(uri);
+    Assert.assertFalse(status.getFileBlockInfos().get(0).getBlockInfo().getLocations().isEmpty());
+    is.close();
+}

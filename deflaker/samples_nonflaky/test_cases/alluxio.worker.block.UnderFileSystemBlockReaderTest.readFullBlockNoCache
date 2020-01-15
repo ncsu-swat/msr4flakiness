@@ -1,0 +1,10 @@
+@Test
+public void readFullBlockNoCache() throws Exception {
+    mUnderFileSystemBlockMeta = new UnderFileSystemBlockMeta(SESSION_ID, BLOCK_ID, mOpenUfsBlockOptions.toBuilder().setNoCache(true).build());
+    mReader = UnderFileSystemBlockReader.create(mUnderFileSystemBlockMeta, 0, mAlluxioBlockStore, mUfsManager, mUfsInstreamManager);
+    ByteBuffer buffer = mReader.read(0, TEST_BLOCK_SIZE);
+    // read should succeed even if error is thrown when caching
+    Assert.assertTrue(BufferUtils.equalIncreasingByteBuffer(0, (int) TEST_BLOCK_SIZE, buffer));
+    mReader.close();
+    Assert.assertNull(mAlluxioBlockStore.getTempBlockMeta(SESSION_ID, BLOCK_ID));
+}

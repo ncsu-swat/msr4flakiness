@@ -1,0 +1,23 @@
+@Test
+public void reserveCorrectAmountsOfSpace() throws Exception {
+    BlockWorker blockWorker = mock(BlockWorker.class);
+    BlockStoreMeta storeMeta = mock(BlockStoreMeta.class);
+    when(blockWorker.getStoreMeta()).thenReturn(storeMeta);
+    Map<String, Long> capacityBytesOnTiers = ImmutableMap.of("MEM", 400L, "HDD", 1000L);
+    Map<String, Long> usedCapacityBytesOnTiers = ImmutableMap.of("MEM", 390L, "HDD", 800L);
+    when(storeMeta.getCapacityBytesOnTiers()).thenReturn(capacityBytesOnTiers);
+    when(storeMeta.getUsedBytesOnTiers()).thenReturn(usedCapacityBytesOnTiers);
+    String tmpFolderPath = mTempFolder.newFolder().getAbsolutePath();
+    // Create two tiers named "MEM" and "HDD" with aliases 0 and 1.
+    TieredBlockStoreTestUtils.setupConfWithMultiTier(tmpFolderPath, new int[] { 0, 1 }, new String[] { "MEM", "HDD" }, new String[][] { new String[] { "/a" }, new String[] { "/b" } }, new long[][] { new long[] { 0 }, new long[] { 0 } }, new String[][] { new String[] { "MEM" }, new String[] { "HDD" } }, "/");
+    try (Closeable c = new ConfigurationRule(ImmutableMap.of(PropertyKey.WORKER_TIERED_STORE_LEVEL0_HIGH_WATERMARK_RATIO, "0.81", PropertyKey.WORKER_TIERED_STORE_LEVEL0_LOW_WATERMARK_RATIO, "0.8", PropertyKey.WORKER_TIERED_STORE_LEVEL1_HIGH_WATERMARK_RATIO, "0.71", PropertyKey.WORKER_TIERED_STORE_LEVEL1_LOW_WATERMARK_RATIO, "0.7"), ServerConfiguration.global()).toResource()) {
+        SpaceReserver spaceReserver = new SpaceReserver(blockWorker);
+        mExecutorService.submit(new HeartbeatThread(HeartbeatContext.WORKER_SPACE_RESERVER, spaceReserver, 0, ServerConfiguration.global(), mUserState));
+        // Run the space reserver once.
+        HeartbeatScheduler.execute(HeartbeatContext.WORKER_SPACE_RESERVER);
+        // 400 * 0.2 = 80
+        verify(blockWorker).freeSpace(Sessions.MIGRATE_DATA_SESSION_ID, 80L, "MEM");
+        // 400 * 0.2 + 1000 * 0.3 = 380
+        verify(blockWorker).freeSpace(Sessions.MIGRATE_DATA_SESSION_ID, 380L, "HDD");
+    }
+}

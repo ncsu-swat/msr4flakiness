@@ -1,0 +1,15 @@
+/**
+ * Tests the {@link FileSystemMaster#checkConsistency(AlluxioURI, CheckConsistencyContext)} method
+ * when a file is not the correct size.
+ */
+@Test
+public void incorrectFileSize() throws Exception {
+    String ufsFile = mFileSystem.getStatus(FILE).getUfsPath();
+    UnderFileSystem ufs = UnderFileSystem.Factory.create(ufsFile, ServerConfiguration.global());
+    ufs.deleteFile(ufsFile);
+    OutputStream out = ufs.create(ufsFile);
+    out.write(1);
+    out.close();
+    List<AlluxioURI> expected = Lists.newArrayList(FILE);
+    Assert.assertEquals(expected, mFileSystemMaster.checkConsistency(new AlluxioURI("/"), CheckConsistencyContext.defaults()));
+}

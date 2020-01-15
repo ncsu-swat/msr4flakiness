@@ -1,0 +1,53 @@
+/**
+ * Tests single byte reads from the underfs concurrently.
+ */
+@Test
+public void concurrentUfsRead() throws Exception {
+    String uniqPath = PathUtils.uniqPath();
+    final AlluxioURI uri = new AlluxioURI(uniqPath + "/file_" + MAX_LEN);
+    FileSystemTestUtils.createByteFile(mFileSystem, uri, mWriteUnderStore, MAX_LEN);
+    ExecutorService executorService = Executors.newFixedThreadPool(100);
+    final AtomicInteger count = new AtomicInteger(0);
+    final Random random = new Random();
+    int expectedCount = 100;
+    for (int i = 0; i < expectedCount; i++) {
+        final int index = i;
+        executorService.submit(new Runnable() {
+
+            @Override
+            public void run() {
+                try {
+                    // Add some randomness here to avoid opening too many connections too fast.
+                    Thread.sleep(random.nextInt(100));
+                    FileInStream is = mFileSystem.openFile(uri, mReadCache);
+                    // Sleep here so that we can make sure the file is not cached too fast.
+                    Thread.sleep(100);
+                    byte[] ret = new byte[MAX_LEN];
+                    int value = is.read();
+                    int cnt = 0;
+                    while (value != -1) {
+                        Assert.assertTrue(value >= 0);
+                        Assert.assertTrue(value < 256);
+                        ret[cnt++] = (byte) value;
+                        value = is.read();
+                    }
+                    is.close();
+                    Assert.assertEquals(cnt, MAX_LEN);
+                    Assert.assertTrue(BufferUtils.equalIncreasingByteArray(MAX_LEN, ret));
+                    while (mFileSystem.getStatus(uri).getInAlluxioPercentage() < 100) {
+                        Thread.sleep(1000);
+                    }
+                    Assert.assertEquals(100, mFileSystem.getStatus(uri).getInAlluxioPercentage());
+                    count.incrementAndGet();
+                } catch (Throwable e) {
+                    LOG.error("Failed to read file {}.", index, e);
+                }
+            }
+        });
+    }
+    executorService.shutdown();
+    executorService.awaitTermination(Constants.MINUTE_MS * 5, TimeUnit.MILLISECONDS);
+    // There can be some errors due because SASL handsake failure or opening the connections too
+    // fast. If that happens, consider loosing the condition a bit.
+    Assert.assertTrue(expectedCount >= count.get() - 1);
+}

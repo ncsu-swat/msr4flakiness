@@ -1,0 +1,40 @@
+@Test
+public void renameScheduleSetAttribute() throws Exception {
+    PersistenceTestUtils.pauseScheduler(mLocalAlluxioClusterResource);
+    PersistenceTestUtils.pauseChecker(mLocalAlluxioClusterResource);
+    URIStatus status = createAsyncFile();
+    String ufsPath = status.getUfsPath();
+    UnderFileSystem ufs = UnderFileSystem.Factory.create(ufsPath, ServerConfiguration.global());
+    AlluxioURI newUri = new AlluxioURI(PathUtils.uniqPath());
+    mFileSystem.createDirectory(newUri.getParent());
+    mFileSystem.rename(mUri, newUri);
+    String newUfsPath = mFileSystem.getStatus(newUri).getUfsPath();
+    checkFileNotInAlluxio(mUri);
+    checkFileNotInUnderStorage(ufsPath);
+    checkFileInAlluxio(newUri, LEN);
+    checkFileNotInUnderStorage(newUfsPath);
+    PersistenceTestUtils.resumeScheduler(mLocalAlluxioClusterResource);
+    PersistenceTestUtils.waitForJobScheduled(mLocalAlluxioClusterResource, status.getFileId());
+    mFileSystem.setAttribute(newUri, TEST_OPTIONS);
+    checkFileNotInAlluxio(mUri);
+    checkFileNotInUnderStorage(ufsPath);
+    checkFileInAlluxio(newUri, LEN);
+    checkFileNotInUnderStorage(newUfsPath);
+    status = mFileSystem.getStatus(newUri);
+    Assert.assertEquals(ModeUtils.protoToShort(TEST_OPTIONS.getMode()), status.getMode());
+    Assert.assertEquals(COMMON_OPTIONS.getTtl(), status.getTtl());
+    Assert.assertEquals(COMMON_OPTIONS.getTtlAction(), status.getTtlAction());
+    PersistenceTestUtils.resumeChecker(mLocalAlluxioClusterResource);
+    IntegrationTestUtils.waitForPersist(mLocalAlluxioClusterResource, newUri);
+    checkFileNotInAlluxio(mUri);
+    checkFileNotInUnderStorage(ufsPath);
+    checkFileInAlluxio(newUri, LEN);
+    checkFileInUnderStorage(newUri, LEN);
+    status = mFileSystem.getStatus(newUri);
+    Assert.assertEquals(ModeUtils.protoToShort(TEST_OPTIONS.getMode()), status.getMode());
+    Assert.assertEquals(COMMON_OPTIONS.getTtl(), status.getTtl());
+    Assert.assertEquals(COMMON_OPTIONS.getTtlAction(), status.getTtlAction());
+    // Skip checking mode for object stores
+    Assume.assumeFalse(ufs.isObjectStorage());
+    Assert.assertEquals(ModeUtils.protoToShort(TEST_OPTIONS.getMode()), ufs.getFileStatus(newUfsPath).getMode());
+}

@@ -1,0 +1,11 @@
+@Test
+public void flushToBackingStore() throws Exception {
+    for (long inodeId = 10; inodeId < 10 + CACHE_SIZE / 2; inodeId++) {
+        MutableInodeDirectory dir = createInodeDir(inodeId, 0);
+        mStore.addChild(0, dir);
+    }
+    assertEquals(0, Iterables.size(mBackingStore.getChildren(0L)));
+    mStore.mEdgeCache.flush();
+    mStore.mInodeCache.flush();
+    assertEquals(CACHE_SIZE / 2, Iterables.size(mBackingStore.getChildren(0L)));
+}

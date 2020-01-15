@@ -1,0 +1,28 @@
+@Test
+public void listAndDeleteLargeDirectory() throws Exception {
+    int numSubdirs = 100;
+    AlluxioURI testDir = new AlluxioURI("/testDir");
+    mFileSystem.createDirectory(testDir);
+    for (int i = 0; i < numSubdirs; i++) {
+        mFileSystem.createDirectory(new AlluxioURI("/testDir/" + i));
+    }
+    Thread deleteThread = new Thread(() -> {
+        for (int i = 0; i < numSubdirs; i++) {
+            try {
+                mFileSystem.delete(new AlluxioURI("/testDir/" + i));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+    });
+    deleteThread.start();
+    int prevCount = numSubdirs;
+    while (deleteThread.isAlive()) {
+        // This should not throw an exception, even with concurrent deletes happening.
+        int count = mFileSystem.listStatus(testDir).size();
+        // Number of files should only decrease.
+        assertThat(count, Matchers.lessThanOrEqualTo(prevCount));
+        prevCount = count;
+    }
+    deleteThread.join();
+}

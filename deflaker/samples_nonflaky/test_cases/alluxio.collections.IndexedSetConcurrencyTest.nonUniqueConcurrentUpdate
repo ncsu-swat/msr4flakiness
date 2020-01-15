@@ -1,0 +1,41 @@
+/**
+ * Use the mSizeIndex as primary index, test the correctness of using non-unique index as primary
+ * index.
+ */
+@Test
+public void nonUniqueConcurrentUpdate() throws Exception {
+    mIndexedSet = new IndexedSet<>(mSizeIndex, mIdIndex);
+    List<Future<?>> futures = new ArrayList<>();
+    int[] tasksNumbers = new int[5];
+    int totalTasksNumber = 0;
+    // Try to balance adds and removes
+    tasksNumbers[0] = 4 * ThreadLocalRandom.current().nextInt(MIN_TASKS, MAX_TASKS + 1);
+    totalTasksNumber += tasksNumbers[0];
+    // Add random number of each task type.
+    for (int i = 1; i < 5; i++) {
+        tasksNumbers[i] = ThreadLocalRandom.current().nextInt(MIN_TASKS, MAX_TASKS + 1);
+        totalTasksNumber += tasksNumbers[i];
+    }
+    CyclicBarrier barrier = new CyclicBarrier(totalTasksNumber);
+    for (int i = 0; i < tasksNumbers[0]; i++) {
+        futures.add(mThreadPool.submit(new ConcurrentAdd(barrier)));
+    }
+    for (int i = 0; i < tasksNumbers[1]; i++) {
+        futures.add(mThreadPool.submit(new ConcurrentRemove(barrier)));
+    }
+    for (int i = 0; i < tasksNumbers[2]; i++) {
+        futures.add(mThreadPool.submit(new ConcurrentRemoveByField(barrier)));
+    }
+    for (int i = 0; i < tasksNumbers[3]; i++) {
+        futures.add(mThreadPool.submit(new ConcurrentRemoveByIterator(barrier)));
+    }
+    for (int i = 0; i < tasksNumbers[4]; i++) {
+        futures.add(mThreadPool.submit(new ConcurrentClear(barrier)));
+    }
+    SleepUtils.sleepMs(TEST_CASE_DURATION_MS);
+    mStopThreads.set(true);
+    for (Future<?> future : futures) {
+        future.get();
+    }
+    verifySet();
+}

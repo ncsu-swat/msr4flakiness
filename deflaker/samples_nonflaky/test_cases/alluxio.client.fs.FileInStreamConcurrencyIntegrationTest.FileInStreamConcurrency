@@ -1,0 +1,13 @@
+/**
+ * Tests the concurrent read of {@link FileInStream}.
+ */
+@Test
+public void FileInStreamConcurrency() throws Exception {
+    String uniqPath = PathUtils.uniqPath();
+    FileSystemTestUtils.createByteFile(sFileSystem, uniqPath, BLOCK_SIZE * 2, sWriteAlluxio);
+    List<Thread> threads = new ArrayList<>();
+    for (int i = 0; i < sNumReadThreads; i++) {
+        threads.add(new Thread(new FileRead(new AlluxioURI(uniqPath))));
+    }
+    ConcurrencyUtils.assertConcurrent(threads, 100);
+}

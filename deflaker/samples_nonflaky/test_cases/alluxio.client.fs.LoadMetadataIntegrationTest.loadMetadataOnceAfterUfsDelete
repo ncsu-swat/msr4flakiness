@@ -1,0 +1,16 @@
+@Test
+public void loadMetadataOnceAfterUfsDelete() throws Exception {
+    GetStatusPOptions options = GetStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.ONCE).build();
+    // create dirB in UFS
+    Assert.assertTrue(new File(mLocalUfsPath + "/dir1/dirA/dirB").mkdirs());
+    checkGetStatus("/mnt/dir1/dirA/dirB/file", options, false, true);
+    checkGetStatus("/mnt/dir1/dirA/dirB/file", options, false, false);
+    // delete dirB in UFS
+    Assert.assertTrue(new File(mLocalUfsPath + "/dir1/dirA/dirB").delete());
+    // 'ONCE' should not be affected if UFS is changed
+    checkGetStatus("/mnt/dir1/dirA/dirB/file", options, false, false);
+    // force load metadata with 'ALWAYS'
+    checkGetStatus("/mnt/dir1/dirA/dirB", GetStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.ALWAYS).build(), false, true);
+    // 'ONCE' should still not load metadata, since the ancestor is absent
+    checkGetStatus("/mnt/dir1/dirA/dirB/file", options, false, false);
+}

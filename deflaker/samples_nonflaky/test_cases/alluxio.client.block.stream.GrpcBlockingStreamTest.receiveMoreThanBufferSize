@@ -1,0 +1,17 @@
+/**
+ * Checks receive responses more than buffer size in order.
+ */
+@Test
+public void receiveMoreThanBufferSize() throws Exception {
+    WriteResponse[] responses = Stream.generate(() -> WriteResponse.newBuilder().build()).limit(BUFFER_SIZE * 2).toArray(WriteResponse[]::new);
+    EXECUTOR.submit(() -> {
+        for (WriteResponse response : responses) {
+            mResponseObserver.onNext(response);
+        }
+    });
+    Thread.sleep(SHORT_TIMEOUT);
+    for (WriteResponse response : responses) {
+        WriteResponse actualResponse = mStream.receive(TIMEOUT);
+        assertEquals(response, actualResponse);
+    }
+}

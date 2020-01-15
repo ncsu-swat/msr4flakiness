@@ -1,0 +1,25 @@
+/**
+ * Checks send after stream is ready.
+ */
+@Test
+public void sendAfterStreamReady() throws Exception {
+    when(mRequestObserver.isReady()).thenReturn(false);
+    doAnswer((args) -> {
+        mOnReadyHandler = args.getArgumentAt(0, Runnable.class);
+        return null;
+    }).when(mRequestObserver).setOnReadyHandler(any(Runnable.class));
+    mResponseObserver.beforeStart(mRequestObserver);
+    EXECUTOR.submit(() -> {
+        try {
+            // notify ready after a short period of time
+            Thread.sleep(SHORT_TIMEOUT);
+            when(mRequestObserver.isReady()).thenReturn(true);
+            mOnReadyHandler.run();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    });
+    WriteRequest request = WriteRequest.newBuilder().build();
+    mStream.send(request, TIMEOUT);
+    verify(mRequestObserver).onNext(request);
+}

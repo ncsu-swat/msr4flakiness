@@ -1,0 +1,17 @@
+@Test
+public void basic() throws Exception {
+    PortReservationRule rule = new PortReservationRule();
+    for (int attempt = 0; attempt < 20; attempt++) {
+        int port;
+        try (Closeable c = rule.toResource()) {
+            port = rule.getPort();
+            assertFalse("Port should be locked, so we cannot re-lock", PortRegistry.INSTANCE.lockPort(port));
+        }
+        if (PortRegistry.INSTANCE.lockPort(port)) {
+            // Successfully locked after closing the rule.
+            return;
+        }
+    // Another process could have taken the port, retry.
+    }
+    fail("Failed to lock port after closing the port rule");
+}

@@ -1,0 +1,16 @@
+/**
+ * Validates the expected exception for seeking a negative position.
+ */
+@Test
+public void seekExceptionTest1() throws Exception {
+    mThrown.expect(IllegalArgumentException.class);
+    mThrown.expectMessage(String.format(PreconditionMessage.ERR_SEEK_NEGATIVE.toString(), -1));
+    String uniqPath = PathUtils.uniqPath();
+    for (int k = MIN_LEN; k <= MAX_LEN; k += DELTA) {
+        AlluxioURI uri = new AlluxioURI(uniqPath + "/file_" + k);
+        FileSystemTestUtils.createByteFile(mFileSystem, uri, mWriteUnderStore, k);
+        try (FileInStream is = mFileSystem.openFile(uri, mReadNoCache)) {
+            is.seek(-1);
+        }
+    }
+}

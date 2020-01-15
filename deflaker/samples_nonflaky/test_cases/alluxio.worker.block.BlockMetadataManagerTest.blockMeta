@@ -1,0 +1,37 @@
+/**
+ * Tests the different operations for metadata of a block, such as adding a temporary block or
+ * committing a block.
+ */
+@Test
+public void blockMeta() throws Exception {
+    StorageDir dir = mMetaManager.getTier("HDD").getDir(0);
+    TempBlockMeta tempBlockMeta = new TempBlockMeta(TEST_SESSION_ID, TEST_TEMP_BLOCK_ID, TEST_BLOCK_SIZE, dir);
+    // Empty storage
+    assertFalse(mMetaManager.hasTempBlockMeta(TEST_TEMP_BLOCK_ID));
+    assertFalse(mMetaManager.hasBlockMeta(TEST_TEMP_BLOCK_ID));
+    // Add temp block
+    mMetaManager.addTempBlockMeta(tempBlockMeta);
+    assertTrue(mMetaManager.hasTempBlockMeta(TEST_TEMP_BLOCK_ID));
+    assertFalse(mMetaManager.hasBlockMeta(TEST_TEMP_BLOCK_ID));
+    // Get temp block
+    assertEquals(tempBlockMeta, mMetaManager.getTempBlockMeta(TEST_TEMP_BLOCK_ID));
+    // Abort temp block
+    mMetaManager.abortTempBlockMeta(tempBlockMeta);
+    assertFalse(mMetaManager.hasTempBlockMeta(TEST_TEMP_BLOCK_ID));
+    assertFalse(mMetaManager.hasBlockMeta(TEST_TEMP_BLOCK_ID));
+    // Add temp block with previous block id
+    mMetaManager.addTempBlockMeta(tempBlockMeta);
+    assertTrue(mMetaManager.hasTempBlockMeta(TEST_TEMP_BLOCK_ID));
+    assertFalse(mMetaManager.hasBlockMeta(TEST_TEMP_BLOCK_ID));
+    // Commit temp block
+    mMetaManager.commitTempBlockMeta(tempBlockMeta);
+    assertFalse(mMetaManager.hasTempBlockMeta(TEST_TEMP_BLOCK_ID));
+    assertTrue(mMetaManager.hasBlockMeta(TEST_TEMP_BLOCK_ID));
+    // Get block
+    BlockMeta blockMeta = mMetaManager.getBlockMeta(TEST_TEMP_BLOCK_ID);
+    assertEquals(TEST_TEMP_BLOCK_ID, blockMeta.getBlockId());
+    // Remove block
+    mMetaManager.removeBlockMeta(blockMeta);
+    assertFalse(mMetaManager.hasTempBlockMeta(TEST_TEMP_BLOCK_ID));
+    assertFalse(mMetaManager.hasBlockMeta(TEST_TEMP_BLOCK_ID));
+}

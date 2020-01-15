@@ -1,0 +1,12 @@
+@Test
+public void deleteBeforeJobScheduled() throws Exception {
+    PersistenceTestUtils.pauseScheduler(mLocalAlluxioClusterResource);
+    URIStatus status = createAsyncFile();
+    mFileSystem.delete(mUri);
+    checkFileNotInAlluxio(mUri);
+    checkFileNotInUnderStorage(status.getUfsPath());
+    PersistenceTestUtils.resumeScheduler(mLocalAlluxioClusterResource);
+    PersistenceTestUtils.waitForJobComplete(mLocalAlluxioClusterResource, status.getFileId());
+    checkFileNotInAlluxio(mUri);
+    checkFileNotInUnderStorage(status.getUfsPath());
+}

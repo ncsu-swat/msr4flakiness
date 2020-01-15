@@ -1,0 +1,17 @@
+@Test
+public void create() throws Exception {
+    AlluxioConfiguration conf = ConfigurationTestUtils.defaults();
+    FileSystemMasterClient expectedClient = Mockito.mock(FileSystemMasterClient.class);
+    PowerMockito.mockStatic(FileSystemMasterClient.Factory.class);
+    Mockito.when(FileSystemMasterClient.Factory.create(Mockito.any(MasterClientContext.class))).thenReturn(expectedClient);
+    FileSystemMasterClient client;
+    ClientContext clientContext = ClientContext.create(conf);
+    MasterInquireClient masterInquireClient = MasterInquireClient.Factory.create(conf, clientContext.getUserState());
+    MasterClientContext masterClientContext = MasterClientContext.newBuilder(clientContext).setMasterInquireClient(masterInquireClient).build();
+    try (FileSystemMasterClientPool pool = new FileSystemMasterClientPool(masterClientContext)) {
+        client = pool.acquire();
+        assertEquals(expectedClient, client);
+        pool.release(client);
+    }
+    Mockito.verify(client).close();
+}

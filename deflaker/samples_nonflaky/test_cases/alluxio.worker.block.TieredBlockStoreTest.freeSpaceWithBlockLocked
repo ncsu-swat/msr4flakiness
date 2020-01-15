@@ -1,0 +1,19 @@
+/**
+ * Tests that when free the space of a location, if the space of the target location is currently
+ * taken by another block being locked, this freeSpace operation will fail until the lock
+ * released.
+ */
+@Test
+public void freeSpaceWithBlockLocked() throws Exception {
+    TieredBlockStoreTestUtils.cache(SESSION_ID1, BLOCK_ID1, BLOCK_SIZE, mTestDir1, mMetaManager, mEvictor);
+    // session1 locks a block first
+    long lockId = mBlockStore.lockBlock(SESSION_ID1, BLOCK_ID1);
+    // Expect an empty eviction plan is feasible
+    mThrown.expect(WorkerOutOfSpaceException.class);
+    mThrown.expectMessage(ExceptionMessage.NO_EVICTION_PLAN_TO_FREE_SPACE.getMessage(mTestDir1.getCapacityBytes(), mTestDir1.toBlockStoreLocation().tierAlias()));
+    mBlockStore.freeSpace(SESSION_ID1, mTestDir1.getCapacityBytes(), mTestDir1.toBlockStoreLocation());
+    // Expect freeSpace to succeed after unlock this block.
+    mBlockStore.unlockBlock(lockId);
+    mBlockStore.freeSpace(SESSION_ID1, mTestDir1.getCapacityBytes(), mTestDir1.toBlockStoreLocation());
+    assertEquals(mTestDir1.getCapacityBytes(), mTestDir1.getAvailableBytes());
+}

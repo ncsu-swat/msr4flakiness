@@ -1,0 +1,11 @@
+@Test
+public void deleteDirectoryWithDirectories() throws Exception {
+    mFsMaster.createDirectory(new AlluxioURI("/testFolder"), CreateDirectoryContext.defaults());
+    mFsMaster.createDirectory(new AlluxioURI("/testFolder/testFolder2"), CreateDirectoryContext.defaults());
+    long fileId = mFsMaster.createFile(new AlluxioURI("/testFolder/testFile"), CreateFileContext.defaults()).getFileId();
+    long fileId2 = mFsMaster.createFile(new AlluxioURI("/testFolder/testFolder2/testFile2"), CreateFileContext.defaults()).getFileId();
+    Assert.assertEquals(fileId, mFsMaster.getFileId(new AlluxioURI("/testFolder/testFile")));
+    Assert.assertEquals(fileId2, mFsMaster.getFileId(new AlluxioURI("/testFolder/testFolder2/testFile2")));
+    mFsMaster.delete(new AlluxioURI("/testFolder"), DeleteContext.mergeFrom(DeletePOptions.newBuilder().setRecursive(true)));
+    Assert.assertEquals(IdUtils.INVALID_FILE_ID, mFsMaster.getFileId(new AlluxioURI("/testFolder/testFolder2/testFile2")));
+}

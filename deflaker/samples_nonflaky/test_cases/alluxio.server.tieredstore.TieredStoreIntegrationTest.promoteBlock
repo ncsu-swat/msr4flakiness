@@ -1,0 +1,44 @@
+/**
+ * Tests the promotion of a file.
+ */
+@Test
+public void promoteBlock() throws Exception {
+    AlluxioURI uri1 = new AlluxioURI("/file1");
+    AlluxioURI uri2 = new AlluxioURI("/file2");
+    AlluxioURI uri3 = new AlluxioURI("/file3");
+    FileSystemTestUtils.createByteFile(mFileSystem, uri1, WritePType.CACHE_THROUGH, MEM_CAPACITY_BYTES / 3);
+    FileSystemTestUtils.createByteFile(mFileSystem, uri2, WritePType.CACHE_THROUGH, MEM_CAPACITY_BYTES / 2);
+    FileSystemTestUtils.createByteFile(mFileSystem, uri3, WritePType.CACHE_THROUGH, MEM_CAPACITY_BYTES / 2);
+    HeartbeatScheduler.execute(HeartbeatContext.WORKER_BLOCK_SYNC);
+    AlluxioURI toPromote;
+    int toPromoteLen;
+    URIStatus file1Info = mFileSystem.getStatus(uri1);
+    URIStatus file2Info = mFileSystem.getStatus(uri2);
+    URIStatus file3Info = mFileSystem.getStatus(uri3);
+    // We know some file will not be in memory, but not which one since we do not want to make
+    // any assumptions on the eviction policy
+    if (file1Info.getInAlluxioPercentage() < 100) {
+        toPromote = uri1;
+        toPromoteLen = (int) file1Info.getLength();
+        Assert.assertEquals(100, file2Info.getInAlluxioPercentage());
+        Assert.assertEquals(100, file3Info.getInAlluxioPercentage());
+    } else if (file2Info.getInMemoryPercentage() < 100) {
+        toPromote = uri2;
+        toPromoteLen = (int) file2Info.getLength();
+        Assert.assertEquals(100, file1Info.getInAlluxioPercentage());
+        Assert.assertEquals(100, file3Info.getInAlluxioPercentage());
+    } else {
+        toPromote = uri3;
+        toPromoteLen = (int) file3Info.getLength();
+        Assert.assertEquals(100, file1Info.getInAlluxioPercentage());
+        Assert.assertEquals(100, file2Info.getInAlluxioPercentage());
+    }
+    FileInStream is = mFileSystem.openFile(toPromote, OpenFilePOptions.newBuilder().setReadType(ReadPType.CACHE_PROMOTE).build());
+    byte[] buf = new byte[toPromoteLen];
+    int len = is.read(buf);
+    is.close();
+    HeartbeatScheduler.schedule(HeartbeatContext.WORKER_BLOCK_SYNC);
+    HeartbeatScheduler.await(HeartbeatContext.WORKER_BLOCK_SYNC, 10, TimeUnit.SECONDS);
+    Assert.assertEquals(toPromoteLen, len);
+    Assert.assertEquals(100, mFileSystem.getStatus(toPromote).getInAlluxioPercentage());
+}

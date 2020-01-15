@@ -1,0 +1,16 @@
+/**
+ * Tests that reading a file the whole way through with the STORE ReadType will recache it.
+ */
+@Test
+public void completeFileReadTriggersRecache() throws Exception {
+    String uniqPath = PathUtils.uniqPath();
+    int len = 2;
+    AlluxioURI uri = new AlluxioURI(uniqPath);
+    FileSystemTestUtils.createByteFile(mFileSystem, uri, mWriteUnderStore, len);
+    FileInStream is = mFileSystem.openFile(uri, mReadCache);
+    for (int i = 0; i < len; ++i) {
+        Assert.assertEquals(i, is.read());
+    }
+    is.close();
+    IntegrationTestUtils.waitForFileCached(mFileSystem, uri, 1000);
+}

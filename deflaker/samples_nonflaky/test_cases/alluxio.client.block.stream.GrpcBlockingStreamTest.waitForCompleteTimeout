@@ -1,0 +1,23 @@
+/**
+ * Checks waitForComplete fails after times out.
+ */
+@Test
+public void waitForCompleteTimeout() throws Exception {
+    WriteResponse[] responses = Stream.generate(() -> WriteResponse.newBuilder().build()).limit(BUFFER_SIZE * 2).toArray(WriteResponse[]::new);
+    EXECUTOR.submit(() -> {
+        for (WriteResponse response : responses) {
+            mResponseObserver.onNext(response);
+        }
+        try {
+            Thread.sleep(TIMEOUT);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        mResponseObserver.onCompleted();
+    });
+    WriteResponse actualResponse = mStream.receive(SHORT_TIMEOUT);
+    assertEquals(responses[0], actualResponse);
+    mThrown.expect(DeadlineExceededException.class);
+    mThrown.expectMessage(containsString(TEST_MESSAGE));
+    mStream.waitForComplete(SHORT_TIMEOUT);
+}

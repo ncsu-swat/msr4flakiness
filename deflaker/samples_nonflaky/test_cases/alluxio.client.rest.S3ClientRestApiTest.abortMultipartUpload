@@ -1,0 +1,16 @@
+@Test
+public void abortMultipartUpload() throws Exception {
+    final String bucketName = "bucket";
+    createBucketRestCall(bucketName);
+    final String objectName = "object";
+    String objectKey = bucketName + AlluxioURI.SEPARATOR + objectName;
+    String result = initiateMultipartUploadRestCall(objectKey);
+    InitiateMultipartUploadResult multipartUploadResult = XML_MAPPER.readValue(result, InitiateMultipartUploadResult.class);
+    AlluxioURI tmpDir = new AlluxioURI(S3RestUtils.getMultipartTemporaryDirForObject(AlluxioURI.SEPARATOR + bucketName, objectName));
+    Assert.assertTrue(mFileSystem.exists(tmpDir));
+    Assert.assertTrue(mFileSystem.getStatus(tmpDir).isFolder());
+    final long uploadId = Long.parseLong(multipartUploadResult.getUploadId());
+    HttpURLConnection connection = abortMultipartUploadRestCall(objectKey, uploadId);
+    Assert.assertEquals(Response.Status.NO_CONTENT.getStatusCode(), connection.getResponseCode());
+    Assert.assertFalse(mFileSystem.exists(tmpDir));
+}

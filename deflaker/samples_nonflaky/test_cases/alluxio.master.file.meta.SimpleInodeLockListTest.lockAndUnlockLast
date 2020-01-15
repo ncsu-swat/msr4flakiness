@@ -1,0 +1,21 @@
+@Test
+public void lockAndUnlockLast() {
+    mLockList.lockRootEdge(LockMode.READ);
+    mLockList.lockInode(mRootDir, LockMode.READ);
+    mLockList.lockEdge(mRootDir, mDirA.getName(), LockMode.READ);
+    mLockList.lockInode(mDirA, LockMode.WRITE);
+    mLockList.unlockLastInode();
+    assertEquals(Arrays.asList(mRootDir), mLockList.getLockedInodes());
+    assertEquals(LockMode.READ, mLockList.getLockMode());
+    mLockList.unlockLastEdge();
+    assertEquals(LockMode.READ, mLockList.getLockMode());
+    mLockList.lockEdge(mRootDir, mDirA.getName(), LockMode.READ);
+    mLockList.lockInode(mDirA, LockMode.READ);
+    mLockList.unlockLastInode();
+    assertEquals(Arrays.asList(mRootDir), mLockList.getLockedInodes());
+    assertEquals(LockMode.READ, mLockList.getLockMode());
+    checkOnlyNodesReadLocked(mRootDir);
+    checkOnlyNodesWriteLocked();
+    checkOnlyIncomingEdgesReadLocked(mRootDir, mDirA);
+    checkOnlyIncomingEdgesWriteLocked();
+}

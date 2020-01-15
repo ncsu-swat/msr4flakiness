@@ -1,0 +1,15 @@
+@Test
+public void removeBlockTellsWorkersToRemoveTheBlock() throws Exception {
+    // Create a worker with a block.
+    long worker1 = mBlockMaster.getWorkerId(NET_ADDRESS_1);
+    long blockId = 1L;
+    mBlockMaster.workerRegister(worker1, Arrays.asList("MEM"), ImmutableMap.of("MEM", 100L), ImmutableMap.of("MEM", 0L), NO_BLOCKS_ON_LOCATION, NO_LOST_STORAGE, RegisterWorkerPOptions.getDefaultInstance());
+    mBlockMaster.commitBlock(worker1, 50L, "MEM", "MEM", blockId, 20L);
+    // Remove the block
+    mBlockMaster.removeBlocks(Arrays.asList(1L), /*delete=*/
+    false);
+    // Check that the worker heartbeat tells the worker to remove the block.
+    Map<String, Long> memUsage = ImmutableMap.of("MEM", 0L);
+    alluxio.grpc.Command heartBeat = mBlockMaster.workerHeartbeat(worker1, null, memUsage, NO_BLOCKS, NO_BLOCKS_ON_LOCATION, NO_LOST_STORAGE, mMetrics);
+    assertEquals(ImmutableList.of(1L), heartBeat.getDataList());
+}

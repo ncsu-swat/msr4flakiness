@@ -1,0 +1,15 @@
+@Test
+public void unlockOnlyExtension() {
+    mBase.lockRootEdge(LockMode.READ);
+    mBase.lockInode(mRootDir, LockMode.READ);
+    mBase.lockEdge(mRootDir, mDirA.getName(), LockMode.READ);
+    mComposite = new CompositeInodeLockList(mBase);
+    mComposite.lockInode(mDirA, LockMode.READ);
+    mComposite.lockEdge(mDirA, mDirB.getName(), LockMode.READ);
+    mComposite.lockInode(mDirB, LockMode.WRITE);
+    mComposite.close();
+    checkOnlyNodesReadLocked(mRootDir);
+    checkOnlyNodesWriteLocked();
+    checkOnlyIncomingEdgesReadLocked(mRootDir, mDirA);
+    checkOnlyIncomingEdgesWriteLocked();
+}

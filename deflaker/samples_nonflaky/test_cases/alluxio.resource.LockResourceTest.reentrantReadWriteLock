@@ -1,0 +1,26 @@
+/**
+ * Tests {@link LockResource} with {@link ReentrantReadWriteLock}.
+ */
+@Test
+public void reentrantReadWriteLock() {
+    ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+    try (LockResource r1 = new LockResource(lock.readLock())) {
+        try (LockResource r2 = new LockResource(lock.readLock())) {
+            assertEquals(lock.getReadHoldCount(), 2);
+            assertTrue(lock.readLock().tryLock());
+            lock.readLock().unlock();
+        }
+    }
+    assertEquals(lock.getReadHoldCount(), 0);
+    try (LockResource r1 = new LockResource(lock.writeLock())) {
+        try (LockResource r2 = new LockResource(lock.readLock())) {
+            assertTrue(lock.isWriteLockedByCurrentThread());
+            assertEquals(lock.getReadHoldCount(), 1);
+        }
+    }
+    assertFalse(lock.isWriteLockedByCurrentThread());
+    assertEquals(lock.getReadHoldCount(), 0);
+    try (LockResource r = new LockResource(lock.readLock())) {
+        assertFalse(lock.writeLock().tryLock());
+    }
+}

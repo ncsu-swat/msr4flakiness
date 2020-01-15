@@ -1,0 +1,13 @@
+@Test
+public void bottomTierWriteWithEviction() throws Exception {
+    // Free space in third tier will be low watermark + data reserved in the first two tiers
+    // This is because we evict in anticipation of data coming from the first and second tiers
+    long reservedTier1 = Math.round(CAPACITY_BYTES * (1 - LOW_WATERMARK));
+    long reservedTier2 = Math.round(CAPACITY_BYTES * (1 - LOW_WATERMARK));
+    long unreservedTier3 = Math.round(CAPACITY_BYTES * LOW_WATERMARK) - reservedTier1 - reservedTier2;
+    for (int i = 0; i < FILES_PER_TIER; i++) {
+        writeFileAndCheckUsage(2, 0, 0, (i + 1) * FILE_SIZE);
+    }
+    HeartbeatScheduler.schedule(HeartbeatContext.WORKER_SPACE_RESERVER);
+    writeFileAndCheckUsage(2, 0, 0, unreservedTier3 + FILE_SIZE);
+}

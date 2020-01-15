@@ -1,0 +1,10 @@
+@Test
+public void chmod() throws IOException, AlluxioException {
+    AlluxioURI uri = new AlluxioURI(FILE_PATH + "_chmod");
+    try {
+        mFileSystem.setAttribute(uri, SetAttributePOptions.newBuilder().setMode(new Mode((short) 0555).toProto()).build());
+        Assert.fail("chomd should not succeed under a readonly mount.");
+    } catch (AccessControlException e) {
+        Assert.assertThat(e.getMessage(), containsString(ExceptionMessage.MOUNT_READONLY.getMessage(uri, MOUNT_PATH)));
+    }
+}

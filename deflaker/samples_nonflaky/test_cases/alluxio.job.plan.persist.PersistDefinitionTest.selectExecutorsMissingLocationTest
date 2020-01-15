@@ -1,0 +1,16 @@
+@Test
+public void selectExecutorsMissingLocationTest() throws Exception {
+    AlluxioURI uri = new AlluxioURI("/test");
+    PersistConfig config = new PersistConfig(uri.getPath(), -1, true, "");
+    long blockId = 1;
+    BlockInfo blockInfo = new BlockInfo().setBlockId(blockId);
+    FileBlockInfo fileBlockInfo = new FileBlockInfo().setBlockInfo(blockInfo);
+    FileInfo testFileInfo = new FileInfo();
+    testFileInfo.setFileBlockInfos(Lists.newArrayList(fileBlockInfo));
+    Mockito.when(mMockFileSystem.getStatus(uri)).thenReturn(new URIStatus(testFileInfo));
+    try {
+        new PersistDefinition().selectExecutors(config, Lists.newArrayList(new WorkerInfo()), new SelectExecutorsContext(1, mJobServerContext));
+    } catch (Exception e) {
+        Assert.assertEquals("Block " + blockId + " does not exist", e.getMessage());
+    }
+}

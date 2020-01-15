@@ -1,0 +1,14 @@
+@Test
+public void transferFullBlock() throws Exception {
+    mReader = UnderFileSystemBlockReader.create(mUnderFileSystemBlockMeta, 0, mAlluxioBlockStore, mUfsManager, mUfsInstreamManager);
+    ByteBuf buf = PooledByteBufAllocator.DEFAULT.buffer((int) TEST_BLOCK_SIZE * 2, (int) TEST_BLOCK_SIZE * 2);
+    try {
+        while (buf.writableBytes() > 0 && mReader.transferTo(buf) != -1) {
+        }
+        Assert.assertTrue(BufferUtils.equalIncreasingByteBuffer(0, (int) TEST_BLOCK_SIZE, buf.nioBuffer()));
+        mReader.close();
+    } finally {
+        buf.release();
+    }
+    checkTempBlock(0, TEST_BLOCK_SIZE);
+}

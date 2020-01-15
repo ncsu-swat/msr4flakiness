@@ -1,0 +1,20 @@
+@Test
+public void deleteDirectoryRecursive() throws Exception {
+    AlluxioURI dir = new AlluxioURI("/testFolder");
+    mFsMaster.createDirectory(dir, CreateDirectoryContext.defaults());
+    FileSystem fs = sLocalAlluxioClusterResource.get().getClient();
+    for (int i = 0; i < 3; i++) {
+        FileSystemTestUtils.createByteFile(fs, PathUtils.concatPath(dir, "file" + i), 100, CreateFilePOptions.newBuilder().setWriteType(WritePType.MUST_CACHE).build());
+    }
+    fs.delete(dir, DeletePOptions.newBuilder().setRecursive(true).build());
+    assertFalse(fs.exists(dir));
+    // Make sure that the blocks are cleaned up
+    BlockMasterClient blockClient = BlockMasterClient.Factory.create(MasterClientContext.newBuilder(ClientContext.create(ServerConfiguration.global())).build());
+    CommonUtils.waitFor("data to be deleted", () -> {
+        try {
+            return blockClient.getUsedBytes() == 0;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }, WaitForOptions.defaults().setTimeoutMs(10 * Constants.SECOND_MS));
+}

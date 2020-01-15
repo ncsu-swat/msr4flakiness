@@ -1,0 +1,58 @@
+@Test
+public void waitCompletedTest2() throws IOException, AlluxioException, InterruptedException {
+    final String uniqPath = PathUtils.uniqPath();
+    // random value chosen through a fair dice roll :P
+    final int numWrites = 4;
+    final AlluxioURI uri = new AlluxioURI(uniqPath);
+    final Runnable writer = new Runnable() {
+
+        @Override
+        public void run() {
+            try {
+                FileOutStream os = sFileSystem.createFile(uri, sWriteBoth);
+                boolean completed = sFileSystem.getStatus(uri).isCompleted();
+                assertFalse(completed);
+                // four writes that will take > 600ms due to the sleeps
+                for (int i = 0; i < numWrites; i++) {
+                    os.write(42);
+                    CommonUtils.sleepMs(200);
+                }
+                os.close();
+                completed = sFileSystem.getStatus(uri).isCompleted();
+                assertTrue(completed);
+            } catch (Exception e) {
+                Assert.fail(e.getMessage());
+            }
+        }
+    };
+    final Runnable waiter = new Runnable() {
+
+        @Override
+        public void run() {
+            try {
+                // set the slow default polling period to a more sensible value, in order
+                // to speed up the tests artificial waiting times
+                String original = ServerConfiguration.get(PropertyKey.USER_FILE_WAITCOMPLETED_POLL_MS);
+                ServerConfiguration.set(PropertyKey.USER_FILE_WAITCOMPLETED_POLL_MS, "100");
+                try {
+                    // The write will take at most 600ms I am waiting for at most 400ms - epsilon.
+                    boolean completed = FileSystemUtils.waitCompleted(sFileSystem, uri, 300, TimeUnit.MILLISECONDS);
+                    assertFalse(completed);
+                    completed = sFileSystem.getStatus(uri).isCompleted();
+                    assertFalse(completed);
+                } finally {
+                    ServerConfiguration.set(PropertyKey.USER_FILE_WAITCOMPLETED_POLL_MS, original);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                Assert.fail(e.getMessage());
+            }
+        }
+    };
+    final Thread waitingThread = new Thread(waiter);
+    waitingThread.start();
+    final Thread writingThread = new Thread(writer);
+    writingThread.start();
+    waitingThread.join();
+    writingThread.join();
+}

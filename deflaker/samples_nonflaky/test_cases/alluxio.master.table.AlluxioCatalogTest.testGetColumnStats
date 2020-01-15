@@ -1,0 +1,22 @@
+@Test
+public void testGetColumnStats() throws Exception {
+    Schema s = schemaFromColNames("c1", "c2", "c3");
+    // setup
+    // Why does this API seem so counter intuitive?
+    UdbTable tbl = createMockUdbTable("test", s);
+    Database db = createMockDatabase("noop", "test", Collections.emptyList());
+    db.addTable(tbl.getName(), Table.create(db, tbl));
+    addDbToCatalog(db);
+    // basic, filter on each col
+    assertEquals(1, mCatalog.getTableColumnStatistics("test", "test", Lists.newArrayList("c1")).size());
+    assertEquals(1, mCatalog.getTableColumnStatistics("test", "test", Lists.newArrayList("c2")).size());
+    assertEquals(1, mCatalog.getTableColumnStatistics("test", "test", Lists.newArrayList("c3")).size());
+    // try two
+    assertEquals(2, mCatalog.getTableColumnStatistics("test", "test", Lists.newArrayList("c1", "c2")).size());
+    // flip order
+    assertEquals(2, mCatalog.getTableColumnStatistics("test", "test", Lists.newArrayList("c2", "c1")).size());
+    // non existing
+    assertEquals(0, mCatalog.getTableColumnStatistics("test", "test", Lists.newArrayList("doesnotexist")).size());
+    // empty
+    assertEquals(0, mCatalog.getTableColumnStatistics("test", "test", Lists.newArrayList()).size());
+}

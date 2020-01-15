@@ -1,0 +1,15 @@
+@Test
+public void gcsGetPermission() throws Exception {
+    Assume.assumeTrue(UnderFileSystemUtils.isGcs(sUfs));
+    ServerConfiguration.unset(PropertyKey.UNDERFS_GCS_OWNER_ID_TO_USERNAME_MAPPING);
+    Path fileA = new Path("/gcsGetPermissionFile");
+    create(sTFS, fileA);
+    Assert.assertTrue(sUfs.isFile(PathUtils.concatPath(sUfsRoot, fileA)));
+    // Without providing "alluxio.underfs.gcs.owner.id.to.username.mapping", the default
+    // display name of the GCS owner account is empty. The owner will be the GCS account id, which
+    // is not empty.
+    UfsStatus ufsStatus = sUfs.getFileStatus(PathUtils.concatPath(sUfsRoot, fileA));
+    Assert.assertNotEquals("", ufsStatus.getOwner());
+    Assert.assertNotEquals("", ufsStatus.getGroup());
+    Assert.assertEquals((short) 0700, ufsStatus.getMode());
+}

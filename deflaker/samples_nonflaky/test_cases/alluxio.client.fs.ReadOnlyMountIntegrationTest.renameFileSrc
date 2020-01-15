@@ -1,0 +1,18 @@
+@Test
+public void renameFileSrc() throws IOException, AlluxioException {
+    AlluxioURI srcUri = new AlluxioURI(FILE_PATH);
+    AlluxioURI dstUri = new AlluxioURI("/tmp");
+    try {
+        mFileSystem.rename(srcUri, dstUri);
+        Assert.fail("rename should not succeed under a readonly mount.");
+    } catch (AccessControlException e) {
+        Assert.assertThat(e.getMessage(), containsString(ExceptionMessage.MOUNT_READONLY.getMessage(srcUri, MOUNT_PATH)));
+    }
+    srcUri = new AlluxioURI(SUB_FILE_PATH);
+    try {
+        mFileSystem.rename(srcUri, dstUri);
+        Assert.fail("rename should not succeed under a readonly mount.");
+    } catch (AccessControlException e) {
+        Assert.assertThat(e.getMessage(), containsString(ExceptionMessage.MOUNT_READONLY.getMessage(srcUri, MOUNT_PATH)));
+    }
+}

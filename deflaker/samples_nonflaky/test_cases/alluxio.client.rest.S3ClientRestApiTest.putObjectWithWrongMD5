@@ -1,0 +1,15 @@
+@Test
+public void putObjectWithWrongMD5() throws Exception {
+    final String bucket = "bucket";
+    createBucketRestCall(bucket);
+    final String objectKey = bucket + AlluxioURI.SEPARATOR + "object.txt";
+    String objectContent = "hello world";
+    try {
+        String wrongMD5 = BaseEncoding.base64().encode(objectContent.getBytes());
+        createObjectRestCall(objectKey, objectContent.getBytes(), wrongMD5, NO_PARAMS);
+    } catch (AssertionError e) {
+        // expected
+        return;
+    }
+    Assert.fail("create object with wrong Content-MD5 should fail");
+}

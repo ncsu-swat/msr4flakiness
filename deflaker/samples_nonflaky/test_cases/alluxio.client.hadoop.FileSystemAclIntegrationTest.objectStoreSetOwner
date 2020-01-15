@@ -1,0 +1,13 @@
+@Test
+public void objectStoreSetOwner() throws Exception {
+    Assume.assumeTrue(sUfs.isObjectStorage());
+    Path fileA = new Path("/objectfileA");
+    final String newOwner = "new-user1";
+    final String newGroup = "new-group1";
+    create(sTFS, fileA);
+    // Set owner to Alluxio files that are persisted in UFS will NOT propagate to underlying object.
+    sTFS.setOwner(fileA, newOwner, newGroup);
+    UfsStatus ufsStatus = sUfs.getFileStatus(PathUtils.concatPath(sUfsRoot, fileA));
+    Assert.assertNotEquals("", ufsStatus.getOwner());
+    Assert.assertNotEquals("", ufsStatus.getGroup());
+}

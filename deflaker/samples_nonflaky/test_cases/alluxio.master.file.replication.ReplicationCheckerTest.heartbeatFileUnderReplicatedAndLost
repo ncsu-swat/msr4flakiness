@@ -1,0 +1,14 @@
+@Test
+public void heartbeatFileUnderReplicatedAndLost() throws Exception {
+    mFileContext.getOptions().setReplicationMin(2);
+    long blockId = createBlockHelper(TEST_FILE_1, mFileContext, "");
+    // Create a worker.
+    long workerId = mBlockMaster.getWorkerId(new WorkerNetAddress().setHost("localhost").setRpcPort(80).setDataPort(81).setWebPort(82));
+    mBlockMaster.workerRegister(workerId, Collections.singletonList("MEM"), ImmutableMap.of("MEM", 100L), ImmutableMap.of("MEM", 0L), NO_BLOCKS_ON_LOCATION, NO_LOST_STORAGE, RegisterWorkerPOptions.getDefaultInstance());
+    mBlockMaster.commitBlock(workerId, 50L, "MEM", "MEM", blockId, 20L);
+    // Indicate that blockId is removed on the worker.
+    mBlockMaster.workerHeartbeat(workerId, null, ImmutableMap.of("MEM", 0L), ImmutableList.of(blockId), NO_BLOCKS_ON_LOCATION, NO_LOST_STORAGE, NO_METRICS);
+    mReplicationChecker.heartbeat();
+    Assert.assertEquals(EMPTY, mMockReplicationHandler.getEvictRequests());
+    Assert.assertEquals(EMPTY, mMockReplicationHandler.getReplicateRequests());
+}

@@ -1,0 +1,20 @@
+@Test
+public void testNoParticipant() throws Exception {
+    // Create zk inquire client.
+    MasterInquireClient zkInquirer = ZkMasterInquireClient.getClient(mZkServer.getConnectString(), ELECTION_PATH, LEADER_PATH, INQUIRE_RETRY_COUNT, ZOOKEEPER_AUTH_ENABLED);
+    // Create curator client for manipulating the leader path.
+    CuratorFramework client = CuratorFrameworkFactory.newClient(mZkServer.getConnectString(), new ExponentialBackoffRetry(Constants.SECOND_MS, INQUIRE_RETRY_COUNT));
+    // Create the leader path with no participants.
+    client.start();
+    client.create().forPath(LEADER_PATH);
+    client.close();
+    // Query should fail with no leader under path.
+    boolean queryFailed = false;
+    try {
+        zkInquirer.getPrimaryRpcAddress();
+    } catch (UnavailableException e) {
+        // Expected.
+        queryFailed = true;
+    }
+    Assert.assertTrue("Master query should have been failed.", queryFailed);
+}

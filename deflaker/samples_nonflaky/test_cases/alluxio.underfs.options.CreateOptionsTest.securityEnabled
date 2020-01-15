@@ -1,0 +1,18 @@
+/**
+ * Tests for building an {@link CreateOptions} with a security enabled
+ * configuration.
+ */
+@Test
+public void securityEnabled() throws IOException {
+    mConfiguration.set(PropertyKey.SECURITY_AUTHENTICATION_TYPE, AuthType.SIMPLE.getAuthName());
+    mConfiguration.set(PropertyKey.SECURITY_LOGIN_USERNAME, "foo");
+    // Use IdentityUserGroupMapping to map user "foo" to group "foo".
+    mConfiguration.set(PropertyKey.SECURITY_GROUP_MAPPING_CLASS, IdentityUserGroupsMapping.class.getName());
+    CreateOptions options = CreateOptions.defaults(mConfiguration);
+    assertFalse(options.getCreateParent());
+    assertFalse(options.isEnsureAtomic());
+    assertNull(options.getOwner());
+    assertNull(options.getGroup());
+    String umask = mConfiguration.get(PropertyKey.SECURITY_AUTHORIZATION_PERMISSION_UMASK);
+    assertEquals(ModeUtils.applyFileUMask(Mode.defaults(), umask), options.getMode());
+}

@@ -1,0 +1,35 @@
+@Test
+public void smallWatermarkValues() throws Exception {
+    BlockWorker blockWorker = mock(BlockWorker.class);
+    BlockStoreMeta storeMeta = mock(BlockStoreMeta.class);
+    when(blockWorker.getStoreMeta()).thenReturn(storeMeta);
+    Map<String, Long> capacityBytesOnTiers = ImmutableMap.of("MEM", 100L, "SSD", 200L, "HDD", 1000L);
+    Map<String, Long> usedCapacityBytesOnTiers = ImmutableMap.of("MEM", 100L, "SSD", 100L, "HDD", 0L);
+    when(storeMeta.getCapacityBytesOnTiers()).thenReturn(capacityBytesOnTiers);
+    when(storeMeta.getUsedBytesOnTiers()).thenReturn(usedCapacityBytesOnTiers);
+    String tmpFolderPath = mTempFolder.newFolder().getAbsolutePath();
+    // Create two tiers named "MEM", "SSD" and "HDD" with aliases 0, 1 and 2.
+    TieredBlockStoreTestUtils.setupConfWithMultiTier(tmpFolderPath, new int[] { 0, 1, 2 }, new String[] { "MEM", "SSD", "HDD" }, new String[][] { new String[] { "/a" }, new String[] { "/b" }, new String[] { "/c" } }, new long[][] { new long[] { 0 }, new long[] { 0 }, new long[] { 0 } }, new String[][] { new String[] { "MEM" }, new String[] { "SSD" }, new String[] { "HDD" } }, "/");
+    try (Closeable c = new ConfigurationRule(new HashMap<PropertyKey, String>() {
+
+        {
+            put(PropertyKey.WORKER_TIERED_STORE_LEVEL0_HIGH_WATERMARK_RATIO, "0.4");
+            put(PropertyKey.WORKER_TIERED_STORE_LEVEL0_LOW_WATERMARK_RATIO, "0.3");
+            put(PropertyKey.WORKER_TIERED_STORE_LEVEL1_HIGH_WATERMARK_RATIO, "0.3");
+            put(PropertyKey.WORKER_TIERED_STORE_LEVEL1_LOW_WATERMARK_RATIO, "0.2");
+            put(PropertyKey.WORKER_TIERED_STORE_LEVEL2_HIGH_WATERMARK_RATIO, "0.2");
+            put(PropertyKey.WORKER_TIERED_STORE_LEVEL2_LOW_WATERMARK_RATIO, "0.1");
+        }
+    }, ServerConfiguration.global()).toResource()) {
+        SpaceReserver spaceReserver = new SpaceReserver(blockWorker);
+        mExecutorService.submit(new HeartbeatThread(HeartbeatContext.WORKER_SPACE_RESERVER, spaceReserver, 0, ServerConfiguration.global(), mUserState));
+        // Run the space reserver once.
+        HeartbeatScheduler.execute(HeartbeatContext.WORKER_SPACE_RESERVER);
+        // 1000 * 0.1 + 200 = 300
+        verify(blockWorker, never()).freeSpace(Matchers.eq(Sessions.MIGRATE_DATA_SESSION_ID), Matchers.anyLong(), Matchers.eq("HDD"));
+        // 200 * 0.8 + 100 * 0.7 = 230 -> 200
+        verify(blockWorker).freeSpace(Sessions.MIGRATE_DATA_SESSION_ID, 200L, "SSD");
+        // 100 * 0.7 = 70
+        verify(blockWorker).freeSpace(Sessions.MIGRATE_DATA_SESSION_ID, 70L, "MEM");
+    }
+}

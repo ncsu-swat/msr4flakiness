@@ -1,0 +1,23 @@
+/**
+ * Tests that an exception is thrown if the timestamps overflow and the method
+ * terminate before 5 seconds.
+ */
+@Test
+public void TimestampOverflow() {
+    Callable<Resource> task = () -> {
+        TestPool pool = new TestPool(DynamicResourcePool.Options.defaultOptions().setMaxCapacity(1));
+        pool.acquire(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+        return pool.acquire(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+    };
+    ExecutorService executor = Executors.newFixedThreadPool(1);
+    Future<Resource> future = executor.submit(task);
+    boolean timeout = false;
+    try {
+        future.get(5000, TimeUnit.MILLISECONDS);
+    } catch (Exception ex) {
+        timeout = true;
+    }
+    assertTrue(timeout);
+    assertFalse(future.isDone());
+    future.cancel(true);
+}

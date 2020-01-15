@@ -1,0 +1,62 @@
+/**
+ * Tests the {@link BlockMetadataManager#cleanupSessionTempBlocks(long, List)} method.
+ */
+@Test
+public void cleanupSession() throws Exception {
+    StorageDir dir = mMetaManager.getTier("MEM").getDir(0);
+    final long tempBlockId1 = 1;
+    final long tempBlockId2 = 2;
+    final long tempBlockId3 = 3;
+    final long sessionId1 = 100;
+    final long sessionId2 = 200;
+    TempBlockMeta tempBlockMeta1 = new TempBlockMeta(sessionId1, tempBlockId1, TEST_BLOCK_SIZE, dir);
+    TempBlockMeta tempBlockMeta2 = new TempBlockMeta(sessionId1, tempBlockId2, TEST_BLOCK_SIZE, dir);
+    TempBlockMeta tempBlockMeta3 = new TempBlockMeta(sessionId2, tempBlockId3, TEST_BLOCK_SIZE, dir);
+    BlockMeta blockMeta = new BlockMeta(TEST_BLOCK_ID, TEST_BLOCK_SIZE, dir);
+    dir.addTempBlockMeta(tempBlockMeta1);
+    dir.addTempBlockMeta(tempBlockMeta2);
+    dir.addTempBlockMeta(tempBlockMeta3);
+    dir.addBlockMeta(blockMeta);
+    // Get temp blocks for sessionId1, expect to get tempBlock1 and tempBlock2
+    List<TempBlockMeta> toRemove = mMetaManager.getSessionTempBlocks(sessionId1);
+    List<Long> toRemoveBlockIds = new ArrayList<>(toRemove.size());
+    for (TempBlockMeta tempBlockMeta : toRemove) {
+        toRemoveBlockIds.add(tempBlockMeta.getBlockId());
+    }
+    assertEquals(Sets.newHashSet(tempBlockMeta1, tempBlockMeta2), new HashSet<>(toRemove));
+    assertTrue(dir.hasTempBlockMeta(tempBlockId1));
+    assertTrue(dir.hasTempBlockMeta(tempBlockId2));
+    // Clean up sessionId1, expect tempBlock1 and tempBlock2 to be removed.
+    mMetaManager.cleanupSessionTempBlocks(sessionId1, toRemoveBlockIds);
+    assertFalse(dir.hasTempBlockMeta(tempBlockId1));
+    assertFalse(dir.hasTempBlockMeta(tempBlockId2));
+    assertTrue(dir.hasTempBlockMeta(tempBlockId3));
+    assertTrue(dir.hasBlockMeta(TEST_BLOCK_ID));
+    // Get temp blocks for sessionId1 again, expect to get nothing
+    toRemove = mMetaManager.getSessionTempBlocks(sessionId1);
+    toRemoveBlockIds = new ArrayList<>(toRemove.size());
+    for (TempBlockMeta tempBlockMeta : toRemove) {
+        toRemoveBlockIds.add(tempBlockMeta.getBlockId());
+    }
+    assertTrue(toRemove.isEmpty());
+    // Clean up sessionId1 again, expect nothing to happen
+    mMetaManager.cleanupSessionTempBlocks(sessionId1, toRemoveBlockIds);
+    assertFalse(dir.hasTempBlockMeta(tempBlockId1));
+    assertFalse(dir.hasTempBlockMeta(tempBlockId2));
+    assertTrue(dir.hasTempBlockMeta(tempBlockId3));
+    assertTrue(dir.hasBlockMeta(TEST_BLOCK_ID));
+    // Get temp blocks for sessionId2, expect to get tempBlock3
+    toRemove = mMetaManager.getSessionTempBlocks(sessionId2);
+    toRemoveBlockIds = new ArrayList<>(toRemove.size());
+    for (TempBlockMeta tempBlockMeta : toRemove) {
+        toRemoveBlockIds.add(tempBlockMeta.getBlockId());
+    }
+    assertEquals(Sets.newHashSet(tempBlockMeta3), new HashSet<>(toRemove));
+    assertTrue(dir.hasTempBlockMeta(tempBlockId3));
+    // Clean up sessionId2, expect tempBlock3 to be removed
+    mMetaManager.cleanupSessionTempBlocks(sessionId2, toRemoveBlockIds);
+    assertFalse(dir.hasTempBlockMeta(tempBlockId1));
+    assertFalse(dir.hasTempBlockMeta(tempBlockId2));
+    assertFalse(dir.hasTempBlockMeta(tempBlockId3));
+    assertTrue(dir.hasBlockMeta(TEST_BLOCK_ID));
+}

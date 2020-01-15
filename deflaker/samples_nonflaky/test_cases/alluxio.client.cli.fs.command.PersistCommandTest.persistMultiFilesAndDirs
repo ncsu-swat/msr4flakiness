@@ -1,0 +1,22 @@
+/**
+ * Tests persisting files and directories together in one persist command.
+ */
+@Test
+public void persistMultiFilesAndDirs() throws Exception {
+    ServerConfiguration.set(PropertyKey.USER_FILE_WRITE_TYPE_DEFAULT, "MUST_CACHE");
+    String testDir = FileSystemShellUtilsTest.resetFileHierarchy(mFileSystem);
+    assertFalse(mFileSystem.getStatus(new AlluxioURI(testDir)).isPersisted());
+    assertFalse(mFileSystem.getStatus(new AlluxioURI(testDir + "/foo")).isPersisted());
+    assertFalse(mFileSystem.getStatus(new AlluxioURI(testDir + "/foo/foobar2")).isPersisted());
+    assertFalse(mFileSystem.getStatus(new AlluxioURI(testDir + "/bar")).isPersisted());
+    int ret = mFsShell.run("persist", testDir + "/foo/foobar1", testDir + "/foobar4", testDir + "/bar", testDir + "/bar/foobar3");
+    Assert.assertEquals(0, ret);
+    assertTrue(mFileSystem.getStatus(new AlluxioURI(testDir)).isPersisted());
+    assertTrue(mFileSystem.getStatus(new AlluxioURI(testDir + "/foo")).isPersisted());
+    assertFalse(mFileSystem.getStatus(new AlluxioURI(testDir + "/foo/foobar2")).isPersisted());
+    assertTrue(mFileSystem.getStatus(new AlluxioURI(testDir + "/bar")).isPersisted());
+    checkFilePersisted(new AlluxioURI(testDir + "/foo/foobar1"), 10);
+    checkFilePersisted(new AlluxioURI(testDir + "/bar/foobar3"), 30);
+    checkFilePersisted(new AlluxioURI(testDir + "/foobar4"), 40);
+    ServerConfiguration.reset();
+}

@@ -1,0 +1,18 @@
+@Test
+public void lockSimple() {
+    mLockList.lockRootEdge(LockMode.READ);
+    mLockList.lockInode(mRootDir, LockMode.READ);
+    mLockList.lockEdge(mRootDir, mDirA.getName(), LockMode.READ);
+    mLockList.lockInode(mDirA, LockMode.READ);
+    assertEquals(mLockList.getLockMode(), LockMode.READ);
+    assertTrue(mLockList.endsInInode());
+    assertEquals(2, mLockList.numInodes());
+    assertEquals(Arrays.asList(mRootDir, mDirA), mLockList.getLockedInodes());
+    mLockList.lockEdge(mDirA, mDirB.getName(), LockMode.WRITE);
+    assertEquals(mLockList.getLockMode(), LockMode.WRITE);
+    assertFalse(mLockList.endsInInode());
+    checkOnlyNodesReadLocked(mRootDir, mDirA);
+    checkOnlyNodesWriteLocked();
+    checkOnlyIncomingEdgesReadLocked(mRootDir, mDirA);
+    checkOnlyIncomingEdgesWriteLocked(mDirB);
+}

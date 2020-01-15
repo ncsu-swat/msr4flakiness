@@ -1,0 +1,12 @@
+@Test
+public void notEnoughWorkersForReplication() throws Exception {
+    createFileWithNoLocations(TEST_URI, 1);
+    // set replication to 5
+    LoadConfig config = new LoadConfig(TEST_URI, 5);
+    try {
+        new LoadDefinition().selectExecutors(config, JOB_WORKERS, new SelectExecutorsContext(1, mJobServerContext));
+        Assert.fail();
+    } catch (Exception e) {
+        Assert.assertThat(e.getMessage(), CoreMatchers.containsString("Failed to find enough block workers to replicate to. Needed 5 but only found 4."));
+    }
+}

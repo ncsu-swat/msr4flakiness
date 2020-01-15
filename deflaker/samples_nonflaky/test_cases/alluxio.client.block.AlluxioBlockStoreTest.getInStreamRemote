@@ -1,0 +1,13 @@
+@Test
+public void getInStreamRemote() throws Exception {
+    WorkerNetAddress remote1 = new WorkerNetAddress().setHost("remote1");
+    WorkerNetAddress remote2 = new WorkerNetAddress().setHost("remote2");
+    BlockInfo info = new BlockInfo().setBlockId(BLOCK_ID).setLocations(Arrays.asList(new BlockLocation().setWorkerAddress(remote1), new BlockLocation().setWorkerAddress(remote2)));
+    when(mMasterClient.getBlockInfo(BLOCK_ID)).thenReturn(info);
+    // We should sometimes get remote1 and sometimes get remote2.
+    Set<WorkerNetAddress> results = new HashSet<>();
+    for (int i = 0; i < 40; i++) {
+        results.add(mBlockStore.getInStream(BLOCK_ID, new InStreamOptions(new URIStatus(new FileInfo().setBlockIds(Lists.newArrayList(BLOCK_ID))), sConf)).getAddress());
+    }
+    assertEquals(Sets.newHashSet(remote1, remote2), results);
+}

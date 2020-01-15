@@ -1,0 +1,11 @@
+/**
+ * Tests ls command with an invalid sort option.
+ */
+@Test
+@LocalAlluxioClusterResource.Config(confParams = { PropertyKey.Name.SECURITY_AUTHORIZATION_PERMISSION_ENABLED, "false", PropertyKey.Name.SECURITY_AUTHENTICATION_TYPE, "NOSASL" })
+public void lsWithInvalidSortOption() throws IOException, AlluxioException {
+    FileSystemTestUtils.createByteFile(mFileSystem, "/testRoot/testFileA", WritePType.MUST_CACHE, 50, 50);
+    mFsShell.run("ls", "--sort", "unknownfield", "/testRoot");
+    String expected = "Invalid sort option `unknownfield` for --sort\n";
+    assertEquals(expected, mOutput.toString());
+}

@@ -1,0 +1,36 @@
+/**
+ * Tests the check consistency shell command correctly identifies inconsistent files in a subtree.
+ */
+@Test
+public void inconsistent() throws Exception {
+    FileSystemTestUtils.createByteFile(mFileSystem, "/testRoot/testFileA", WritePType.CACHE_THROUGH, 10);
+    FileSystemTestUtils.createByteFile(mFileSystem, "/testRoot/testDir/testFileB", WritePType.CACHE_THROUGH, 20);
+    String ufsPath = mFileSystem.getStatus(new AlluxioURI("/testRoot/testDir")).getUfsPath();
+    UnderFileSystem ufs = UnderFileSystem.Factory.create(ufsPath, ServerConfiguration.global());
+    ufs.deleteDirectory(ufsPath, DeleteOptions.defaults().setRecursive(true));
+    mFsShell.run("checkConsistency", "/testRoot");
+    StringBuilder expected = new StringBuilder();
+    expected.append("The following files are inconsistent:\n");
+    expected.append("/testRoot/testDir\n");
+    expected.append("/testRoot/testDir/testFileB\n");
+    assertEquals(expected.toString(), mOutput.toString());
+    mOutput.reset();
+    mFsShell.run("checkConsistency", "-r", "/testRoot");
+    String res = mOutput.toString();
+    assertTrue(res.contains("/testRoot" + " has: " + "2 inconsistent files.") && res.contains("repairing path: " + "/testRoot/testDir\n") && res.contains("repairing path: " + "/testRoot/testDir/testFileB\n"));
+    assertFalse(mFileSystem.exists(new AlluxioURI("/testRoot/testDir")));
+    assertFalse(mFileSystem.exists(new AlluxioURI("/testRoot/testDir/testFileB")));
+    FileSystemTestUtils.createByteFile(mFileSystem, "/testRoot/testDir/testFileB", WritePType.CACHE_THROUGH, 20);
+    ufsPath = mFileSystem.getStatus(new AlluxioURI("/testRoot/testDir/testFileB")).getUfsPath();
+    ufs.deleteFile(ufsPath);
+    OutputStream outputStream = ufs.create(ufsPath);
+    byte[] bytes = { 1, 2, 3 };
+    outputStream.write(bytes);
+    outputStream.close();
+    mOutput.reset();
+    mFsShell.run("checkConsistency", "-r", "/testRoot");
+    res = mOutput.toString();
+    assertTrue(res.contains("/testRoot" + " has: " + "1 inconsistent files.") && res.contains("repairing path: " + "/testRoot/testDir/testFileB\n"));
+    assertTrue(mFileSystem.exists(new AlluxioURI("/testRoot/testDir/testFileB"), ExistsPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.ALWAYS).build()));
+    assertEquals(3, mFileSystem.getStatus(new AlluxioURI("/testRoot/testDir/testFileB")).getLength());
+}

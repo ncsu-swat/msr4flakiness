@@ -1,0 +1,20 @@
+/**
+ * Dummy unit test, actually the case of move block meta to same dir should never happen.
+ */
+@Test
+public void moveBlockMetaSameDir() throws Exception {
+    // create and add two temp block metas with same tier and dir to the meta manager
+    StorageDir dir = mMetaManager.getTier("MEM").getDir(0);
+    TempBlockMeta tempBlockMeta1 = new TempBlockMeta(TEST_SESSION_ID, TEST_TEMP_BLOCK_ID, TEST_BLOCK_SIZE, dir);
+    TempBlockMeta tempBlockMeta2 = new TempBlockMeta(TEST_SESSION_ID, TEST_TEMP_BLOCK_ID2, TEST_BLOCK_SIZE, dir);
+    mMetaManager.addTempBlockMeta(tempBlockMeta1);
+    mMetaManager.addTempBlockMeta(tempBlockMeta2);
+    // commit the first temp block meta
+    mMetaManager.commitTempBlockMeta(tempBlockMeta1);
+    BlockMeta blockMeta = mMetaManager.getBlockMeta(TEST_TEMP_BLOCK_ID);
+    mMetaManager.moveBlockMeta(blockMeta, tempBlockMeta2);
+    // test to make sure that the dst tempBlockMeta has been removed from the dir
+    mThrown.expect(BlockDoesNotExistException.class);
+    mThrown.expectMessage(ExceptionMessage.TEMP_BLOCK_META_NOT_FOUND.getMessage(TEST_TEMP_BLOCK_ID2));
+    mMetaManager.getTempBlockMeta(TEST_TEMP_BLOCK_ID2);
+}

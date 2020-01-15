@@ -1,0 +1,21 @@
+/**
+ * Tests the logic that the recently used resource is preferred.
+ */
+@Test
+public void acquireRentlyUsed() throws Exception {
+    ManualClock manualClock = new ManualClock();
+    TestPool pool = new TestPool(DynamicResourcePool.Options.defaultOptions(), manualClock);
+    List<Resource> resourceList = new ArrayList<>();
+    resourceList.add(pool.acquire());
+    resourceList.add(pool.acquire());
+    resourceList.add(pool.acquire());
+    pool.release(resourceList.get(2));
+    pool.release(resourceList.get(0));
+    manualClock.addTimeMs(1500);
+    pool.release(resourceList.get(1));
+    for (int i = 0; i < 10; i++) {
+        Resource resource = pool.acquire();
+        assertEquals(1, resource.mInteger.intValue());
+        pool.release(resource);
+    }
+}

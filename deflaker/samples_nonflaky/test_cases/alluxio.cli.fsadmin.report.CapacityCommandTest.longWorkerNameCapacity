@@ -1,0 +1,17 @@
+@Test
+public void longWorkerNameCapacity() throws IOException {
+    List<WorkerInfo> longWorkerNameInfoList = prepareLongWorkerNameInfoList();
+    Mockito.when(mBlockMasterClient.getWorkerReport(Mockito.any())).thenReturn(longWorkerNameInfoList);
+    try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        PrintStream printStream = new PrintStream(outputStream, true, "utf-8")) {
+        CapacityCommand capacityCommand = new CapacityCommand(mBlockMasterClient, printStream);
+        capacityCommand.generateCapacityReport(GetWorkerReportOptions.defaults());
+        String output = new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
+        List<String> testRst = Arrays.asList(output.split("\n"));
+        // CHECKSTYLE.OFF: LineLengthExceed - Much more readable
+        List<String> expectedOutput = Arrays.asList("Capacity information for all workers: ", "    Total Capacity: 3051.76MB", "        Tier: MEM  Size: 1144.41MB", "        Tier: SSD  Size: 572.20MB", "        Tier: HDD  Size: 190.73MB", "    Used Capacity: 1049.04MB", "        Tier: MEM  Size: 305.18MB", "        Tier: SSD  Size: 28.61MB", "        Tier: HDD  Size: 190.73MB", "    Used Percentage: 34%", "    Free Percentage: 66%", "", "Worker Name                 Last Heartbeat   Storage       Total            MEM           SSD           HDD           ", "org.apache.hdp1             681              capacity      1907.35MB        572.20MB      572.20MB      -             ", "                                             used          95.37MB (5%)     19.07MB       28.61MB       -             ", "org.alluxio.long.host1      6211             capacity      1144.41MB        572.20MB      -             190.73MB      ", "                                             used          953.67MB (83%)   286.10MB      -             190.73MB      ");
+        // CHECKSTYLE.ON: LineLengthExceed
+        List<String> testOutput = Arrays.asList(output.split("\n"));
+        Assert.assertThat(testOutput, IsIterableContainingInOrder.contains(expectedOutput.toArray()));
+    }
+}

@@ -1,0 +1,24 @@
+/**
+ * Tests that await is blocked when state is not 0.
+ */
+@Test
+public void await() throws Exception {
+    Assert.assertEquals(0, mLatch.getState());
+    mLatch.inc();
+    Assert.assertEquals(1, mLatch.getState());
+    mLatch.inc();
+    Assert.assertEquals(2, mLatch.getState());
+    BlockingThread await = new BlockingThread(mLatch::await);
+    await.start();
+    Assert.assertEquals(STILL_BLOCKED, await.getBlockedTimeMillis());
+    Thread.sleep(SLEEP_MILLIS);
+    mLatch.dec();
+    Assert.assertEquals(1, mLatch.getState());
+    Assert.assertEquals(STILL_BLOCKED, await.getBlockedTimeMillis());
+    Thread.sleep(SLEEP_MILLIS);
+    mLatch.dec();
+    Assert.assertEquals(0, mLatch.getState());
+    await.join();
+    Assert.assertTrue(String.format("BlockedTimeMillis: %s", await.getBlockedTimeMillis()), await.getBlockedTimeMillis() >= 2 * SLEEP_MILLIS);
+    Assert.assertEquals(-1, mLatch.getState());
+}

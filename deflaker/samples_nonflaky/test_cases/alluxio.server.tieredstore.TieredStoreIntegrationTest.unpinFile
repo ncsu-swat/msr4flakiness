@@ -1,0 +1,28 @@
+/**
+ * Tests that pinning a file and then unpinning.
+ */
+@Test
+public void unpinFile() throws Exception {
+    // Create a file that fills the entire Alluxio store
+    AlluxioURI file1 = new AlluxioURI("/test1");
+    FileSystemTestUtils.createByteFile(mFileSystem, file1, WritePType.MUST_CACHE, MEM_CAPACITY_BYTES);
+    HeartbeatScheduler.execute(HeartbeatContext.WORKER_BLOCK_SYNC);
+    // Pin the file
+    mFileSystem.setAttribute(file1, mSetPinned);
+    HeartbeatScheduler.execute(HeartbeatContext.WORKER_PIN_LIST_SYNC);
+    // Confirm the pin with master
+    Assert.assertTrue(mFileSystem.getStatus(file1).isPinned());
+    // Unpin the file
+    mFileSystem.setAttribute(file1, mSetUnpinned);
+    HeartbeatScheduler.execute(HeartbeatContext.WORKER_PIN_LIST_SYNC);
+    // Confirm the unpin
+    Assert.assertFalse(mFileSystem.getStatus(file1).isPinned());
+    // Try to create a file that cannot be stored unless the previous file is evicted, this
+    // should succeed
+    AlluxioURI file2 = new AlluxioURI("/test2");
+    FileSystemTestUtils.createByteFile(mFileSystem, file2, WritePType.MUST_CACHE, MEM_CAPACITY_BYTES);
+    HeartbeatScheduler.execute(HeartbeatContext.WORKER_BLOCK_SYNC);
+    // File 2 should be in memory and File 1 should be evicted
+    Assert.assertEquals(0, mFileSystem.getStatus(file1).getInAlluxioPercentage());
+    Assert.assertEquals(100, mFileSystem.getStatus(file2).getInAlluxioPercentage());
+}

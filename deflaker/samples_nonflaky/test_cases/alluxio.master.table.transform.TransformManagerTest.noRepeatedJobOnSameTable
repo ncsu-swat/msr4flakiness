@@ -1,0 +1,12 @@
+/**
+ * A job with the same definition as the last transformation on the table is a repeated job,
+ * a repeated job should not be executed.
+ */
+@Test
+public void noRepeatedJobOnSameTable() throws Exception {
+    long jobId = transform(TABLE1, DEFINITION1);
+    mockJobStatus(jobId, Status.COMPLETED, null);
+    heartbeat();
+    expectException(IOException.class, ExceptionMessage.TABLE_ALREADY_TRANSFORMED.getMessage(DB, TABLE1, DEFINITION1));
+    transform(TABLE1, DEFINITION1);
+}

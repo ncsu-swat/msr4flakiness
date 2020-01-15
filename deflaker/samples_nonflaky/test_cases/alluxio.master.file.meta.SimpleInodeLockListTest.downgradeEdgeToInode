@@ -1,0 +1,15 @@
+@Test
+public void downgradeEdgeToInode() {
+    mLockList.lockRootEdge(LockMode.WRITE);
+    mLockList.downgradeEdgeToInode(mRootDir, LockMode.READ);
+    assertEquals(Arrays.asList(mRootDir), mLockList.getLockedInodes());
+    assertEquals(LockMode.READ, mLockList.getLockMode());
+    mLockList.lockEdge(mRootDir, mDirA.getName(), LockMode.WRITE);
+    mLockList.downgradeEdgeToInode(mDirA, LockMode.WRITE);
+    assertEquals(Arrays.asList(mRootDir, mDirA), mLockList.getLockedInodes());
+    assertEquals(LockMode.WRITE, mLockList.getLockMode());
+    checkOnlyNodesReadLocked(mRootDir);
+    checkOnlyNodesWriteLocked(mDirA);
+    checkOnlyIncomingEdgesReadLocked(mRootDir, mDirA);
+    checkOnlyIncomingEdgesWriteLocked();
+}

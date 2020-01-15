@@ -1,0 +1,16 @@
+@Test
+public void addNextSecondToLastInode() throws Exception {
+    mPath = create("/a/miss1/miss2", LockPattern.WRITE_EDGE);
+    assertFalse(mPath.fullPathExists());
+    InodeFile firstMissingInode = inodeFile(10, mDirA.getId(), "miss1");
+    mInodeStore.addChild(mDirA.getId(), firstMissingInode);
+    mPath.addNextInode(firstMissingInode);
+    assertFalse(mPath.fullPathExists());
+    assertEquals(Arrays.asList(mRootDir, mDirA, firstMissingInode), mPath.getInodeList());
+    checkOnlyNodesReadLocked(mRootDir, mDirA);
+    checkOnlyNodesWriteLocked();
+    checkOnlyIncomingEdgesReadLocked(mRootDir, mDirA, firstMissingInode);
+    checkOnlyIncomingEdgesWriteLocked();
+    // Write lock should be pushed forward when adding a non-final inode.
+    checkIncomingEdgeWriteLocked(firstMissingInode.getId(), "miss2");
+}

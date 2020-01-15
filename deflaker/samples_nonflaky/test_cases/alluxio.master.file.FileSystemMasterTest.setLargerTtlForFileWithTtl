@@ -1,0 +1,14 @@
+/**
+ * Tests that a file has not been deleted after the TTL has been reset to a valid value.
+ */
+@Test
+public void setLargerTtlForFileWithTtl() throws Exception {
+    mFileSystemMaster.createDirectory(NESTED_URI, CreateDirectoryContext.mergeFrom(CreateDirectoryPOptions.newBuilder().setRecursive(true)));
+    CreateFileContext context = CreateFileContext.mergeFrom(CreateFilePOptions.newBuilder().setCommonOptions(FileSystemMasterCommonPOptions.newBuilder().setTtl(0)).setBlockSizeBytes(Constants.KB).setRecursive(true));
+    long fileId = mFileSystemMaster.createFile(NESTED_FILE_URI, context).getFileId();
+    assertEquals(fileId, mFileSystemMaster.getFileInfo(NESTED_FILE_URI, GET_STATUS_CONTEXT).getFileId());
+    mFileSystemMaster.setAttribute(NESTED_FILE_URI, SetAttributeContext.mergeFrom(SetAttributePOptions.newBuilder().setCommonOptions(FileSystemMasterCommonPOptions.newBuilder().setTtl(Constants.HOUR_MS))));
+    HeartbeatScheduler.execute(HeartbeatContext.MASTER_TTL_CHECK);
+    // TTL is reset to 1 hour, the file should not be deleted during last TTL check.
+    assertEquals(fileId, mFileSystemMaster.getFileInfo(fileId).getFileId());
+}

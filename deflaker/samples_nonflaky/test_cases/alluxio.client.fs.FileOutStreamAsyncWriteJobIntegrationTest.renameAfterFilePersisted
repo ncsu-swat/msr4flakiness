@@ -1,0 +1,12 @@
+@Test
+public void renameAfterFilePersisted() throws Exception {
+    URIStatus status = createAsyncFile();
+    IntegrationTestUtils.waitForPersist(mLocalAlluxioClusterResource, mUri);
+    AlluxioURI newUri = new AlluxioURI(PathUtils.uniqPath());
+    mFileSystem.createDirectory(newUri.getParent());
+    mFileSystem.rename(mUri, newUri);
+    checkFileInAlluxio(newUri, LEN);
+    checkFileInUnderStorage(newUri, LEN);
+    checkFileNotInAlluxio(mUri);
+    checkFileNotInUnderStorage(status.getUfsPath());
+}

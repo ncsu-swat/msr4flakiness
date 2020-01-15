@@ -1,0 +1,16 @@
+/**
+ * Tests that {@link FileOutStream#cancel()} will cancel and close the underlying out streams, and
+ * delete from the under file system when the delegation flag is set. Also makes sure that
+ * cancel() doesn't persist or complete the file.
+ */
+@Test
+public void cancelWithDelegation() throws Exception {
+    mTestStream.write(BufferUtils.getIncreasingByteArray((int) (BLOCK_LENGTH * 1.5)));
+    mTestStream.cancel();
+    for (long streamIndex = 0; streamIndex < 2; streamIndex++) {
+        assertTrue(mAlluxioOutStreamMap.get(streamIndex).isClosed());
+        assertTrue(mAlluxioOutStreamMap.get(streamIndex).isCanceled());
+    }
+    // Don't complete the file if the stream was canceled
+    verify(mFileSystemMasterClient, times(0)).completeFile(any(AlluxioURI.class), any(CompleteFilePOptions.class));
+}

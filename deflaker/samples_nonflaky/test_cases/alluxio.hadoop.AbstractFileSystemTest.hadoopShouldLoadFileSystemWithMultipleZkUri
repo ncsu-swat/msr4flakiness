@@ -1,0 +1,13 @@
+@Test
+public void hadoopShouldLoadFileSystemWithMultipleZkUri() throws Exception {
+    org.apache.hadoop.conf.Configuration conf = getConf();
+    URI uri = URI.create(Constants.HEADER + "zk@host1:2181,host2:2181,host3:2181/tmp/path.txt");
+    org.apache.hadoop.fs.FileSystem fs = org.apache.hadoop.fs.FileSystem.get(uri, conf);
+    FileSystem hfs = getHadoopFilesystem(fs);
+    assertTrue(hfs.mFileSystem.getConf().getBoolean(PropertyKey.ZOOKEEPER_ENABLED));
+    assertEquals("host1:2181,host2:2181,host3:2181", hfs.mFileSystem.getConf().get(PropertyKey.ZOOKEEPER_ADDRESS));
+    uri = URI.create(Constants.HEADER + "zk@host1:2181;host2:2181;host3:2181/tmp/path.txt");
+    fs = getHadoopFilesystem(org.apache.hadoop.fs.FileSystem.get(uri, conf));
+    assertTrue(hfs.mFileSystem.getConf().getBoolean(PropertyKey.ZOOKEEPER_ENABLED));
+    assertEquals("host1:2181,host2:2181,host3:2181", hfs.mFileSystem.getConf().get(PropertyKey.ZOOKEEPER_ADDRESS));
+}

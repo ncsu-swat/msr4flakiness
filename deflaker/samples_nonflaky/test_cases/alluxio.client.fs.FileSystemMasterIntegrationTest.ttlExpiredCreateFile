@@ -1,0 +1,15 @@
+@Test
+public void ttlExpiredCreateFile() throws Exception {
+    mFsMaster.createDirectory(new AlluxioURI("/testFolder"), CreateDirectoryContext.defaults());
+    long ttl = 1;
+    CreateFileContext context = CreateFileContext.mergeFrom(CreateFilePOptions.newBuilder().setCommonOptions(FileSystemMasterCommonPOptions.newBuilder().setTtl(ttl)));
+    long fileId = mFsMaster.createFile(new AlluxioURI("/testFolder/testFile1"), context).getFileId();
+    FileInfo folderInfo = mFsMaster.getFileInfo(mFsMaster.getFileId(new AlluxioURI("/testFolder/testFile1")));
+    Assert.assertEquals(fileId, folderInfo.getFileId());
+    Assert.assertEquals(ttl, folderInfo.getTtl());
+    // Sleep for the ttl expiration.
+    CommonUtils.sleepMs(2 * TTL_CHECKER_INTERVAL_MS);
+    HeartbeatScheduler.execute(HeartbeatContext.MASTER_TTL_CHECK);
+    mThrown.expect(FileDoesNotExistException.class);
+    mFsMaster.getFileInfo(fileId);
+}

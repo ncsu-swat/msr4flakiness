@@ -1,0 +1,62 @@
+/**
+ * Tests the progression of a successful persist job.
+ */
+@Test
+public void successfulAsyncPersistence() throws Exception {
+    // Create a file and check the internal state.
+    AlluxioURI testFile = createTestFile();
+    FileInfo fileInfo = mFileSystemMaster.getFileInfo(testFile, GET_STATUS_CONTEXT);
+    Assert.assertEquals(PersistenceState.NOT_PERSISTED.toString(), fileInfo.getPersistenceState());
+    // schedule the async persistence, checking the internal state.
+    mFileSystemMaster.scheduleAsyncPersistence(testFile, ScheduleAsyncPersistenceContext.defaults());
+    checkPersistenceRequested(testFile);
+    // Mock the job service interaction.
+    Random random = new Random();
+    long jobId = random.nextLong();
+    Mockito.when(mMockJobMasterClient.run(any(JobConfig.class))).thenReturn(jobId);
+    // Repeatedly execute the persistence checker heartbeat, checking the internal state.
+    {
+        HeartbeatScheduler.execute(HeartbeatContext.MASTER_PERSISTENCE_SCHEDULER);
+        checkPersistenceInProgress(testFile, jobId);
+        HeartbeatScheduler.execute(HeartbeatContext.MASTER_PERSISTENCE_SCHEDULER);
+        checkPersistenceInProgress(testFile, jobId);
+    }
+    // Mock the job service interaction.
+    JobInfo jobInfo = createJobInfo(Status.CREATED);
+    Mockito.when(mMockJobMasterClient.getJobStatus(Mockito.anyLong())).thenReturn(jobInfo);
+    // Repeatedly execute the persistence checker heartbeat, checking the internal state.
+    {
+        HeartbeatScheduler.execute(HeartbeatContext.MASTER_PERSISTENCE_CHECKER);
+        checkPersistenceInProgress(testFile, jobId);
+        HeartbeatScheduler.execute(HeartbeatContext.MASTER_PERSISTENCE_CHECKER);
+        checkPersistenceInProgress(testFile, jobId);
+    }
+    // Mock the job service interaction.
+    jobInfo = createJobInfo(Status.RUNNING);
+    Mockito.when(mMockJobMasterClient.getJobStatus(Mockito.anyLong())).thenReturn(jobInfo);
+    // Repeatedly execute the persistence checker heartbeat, checking the internal state.
+    {
+        HeartbeatScheduler.execute(HeartbeatContext.MASTER_PERSISTENCE_CHECKER);
+        checkPersistenceInProgress(testFile, jobId);
+        HeartbeatScheduler.execute(HeartbeatContext.MASTER_PERSISTENCE_CHECKER);
+        checkPersistenceInProgress(testFile, jobId);
+    }
+    // Mock the job service interaction.
+    jobInfo = createJobInfo(Status.COMPLETED);
+    Mockito.when(mMockJobMasterClient.getJobStatus(Mockito.anyLong())).thenReturn(jobInfo);
+    {
+        // Create the temporary UFS file.
+        fileInfo = mFileSystemMaster.getFileInfo(testFile, GET_STATUS_CONTEXT);
+        Map<Long, PersistJob> persistJobs = getPersistJobs();
+        PersistJob job = persistJobs.get(fileInfo.getFileId());
+        UnderFileSystem ufs = UnderFileSystem.Factory.create(job.getTempUfsPath().toString(), UnderFileSystemConfiguration.defaults(ServerConfiguration.global()));
+        UnderFileSystemUtils.touch(ufs, job.getTempUfsPath());
+    }
+    // Repeatedly execute the persistence checker heartbeat, checking the internal state.
+    {
+        HeartbeatScheduler.execute(HeartbeatContext.MASTER_PERSISTENCE_CHECKER);
+        waitUntilPersisted(testFile);
+        HeartbeatScheduler.execute(HeartbeatContext.MASTER_PERSISTENCE_CHECKER);
+        waitUntilPersisted(testFile);
+    }
+}

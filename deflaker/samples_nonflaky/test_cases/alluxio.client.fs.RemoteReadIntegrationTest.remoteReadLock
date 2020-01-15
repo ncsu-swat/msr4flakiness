@@ -1,0 +1,40 @@
+/**
+ * Tests remote reads lock blocks correctly.
+ */
+@Test
+public void remoteReadLock() throws Exception {
+    HeartbeatScheduler.await(HeartbeatContext.WORKER_BLOCK_SYNC, 10, TimeUnit.SECONDS);
+    String uniqPath = PathUtils.uniqPath();
+    for (int k = MIN_LEN + DELTA; k <= MAX_LEN; k += DELTA) {
+        AlluxioURI uri = new AlluxioURI(uniqPath + "/file_" + k);
+        FileSystemTestUtils.createByteFile(mFileSystem, uri, mWriteAlluxio, k);
+        HeartbeatScheduler.execute(HeartbeatContext.WORKER_BLOCK_SYNC);
+        URIStatus status = mFileSystem.getStatus(uri);
+        InStreamOptions options = new InStreamOptions(status, ServerConfiguration.global());
+        long blockId = status.getBlockIds().get(0);
+        BlockInfo info = AlluxioBlockStore.create(FileSystemContext.create(ServerConfiguration.global())).getInfo(blockId);
+        WorkerNetAddress workerAddr = info.getLocations().get(0).getWorkerAddress();
+        BlockInStream is = BlockInStream.create(mFsContext, options.getBlockInfo(blockId), workerAddr, BlockInStreamSource.REMOTE, options);
+        Assert.assertEquals(0, is.read());
+        mFileSystem.delete(uri);
+        HeartbeatScheduler.execute(HeartbeatContext.WORKER_BLOCK_SYNC);
+        // The file has been deleted.
+        Assert.assertFalse(mFileSystem.exists(uri));
+        // Look! We can still read the deleted file since we have a lock!
+        byte[] ret = new byte[k / 2];
+        Assert.assertTrue(is.read(ret, 0, k / 2) > 0);
+        is.close();
+        Assert.assertFalse(mFileSystem.exists(uri));
+        // Try to create an in stream again, and it should fail.
+        BlockInStream is2 = null;
+        try {
+            is2 = BlockInStream.create(mFsContext, options.getBlockInfo(blockId), workerAddr, BlockInStreamSource.REMOTE, options);
+        } catch (NotFoundException e) {
+        // Expected since the file has been deleted.
+        } finally {
+            if (is2 != null) {
+                is2.close();
+            }
+        }
+    }
+}

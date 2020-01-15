@@ -1,0 +1,18 @@
+/**
+ * Checks receive after response arrives.
+ */
+@Test
+public void receiveAfterResponseArrives() throws Exception {
+    WriteResponse response = WriteResponse.newBuilder().build();
+    EXECUTOR.submit(() -> {
+        try {
+            // push response after a short period of time
+            Thread.sleep(SHORT_TIMEOUT);
+            mResponseObserver.onNext(response);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    });
+    WriteResponse actualResponse = mStream.receive(TIMEOUT);
+    assertEquals(response, actualResponse);
+}

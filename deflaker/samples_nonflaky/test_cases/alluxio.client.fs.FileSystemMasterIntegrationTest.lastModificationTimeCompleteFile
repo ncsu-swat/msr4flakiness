@@ -1,0 +1,9 @@
+@Test
+public void lastModificationTimeCompleteFile() throws Exception {
+    long fileId = mFsMaster.createFile(new AlluxioURI("/testFile"), CreateFileContext.defaults()).getFileId();
+    long opTimeMs = TEST_TIME_MS;
+    mFsMaster.completeFile(new AlluxioURI("/testFile"), CompleteFileContext.mergeFrom(CompleteFilePOptions.newBuilder().setUfsLength(0)).setOperationTimeMs(opTimeMs));
+    FileInfo fileInfo = mFsMaster.getFileInfo(fileId);
+    Assert.assertEquals(opTimeMs, fileInfo.getLastModificationTimeMs());
+    Assert.assertEquals(opTimeMs, fileInfo.getLastAccessTimeMs());
+}

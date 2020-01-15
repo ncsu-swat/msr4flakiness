@@ -1,0 +1,18 @@
+/**
+ * Tests the {@link FileSystemMaster#delete(AlluxioURI, DeleteContext)} method with a
+ * non-empty directory.
+ */
+@Test
+public void deleteNonemptyDirectory() throws Exception {
+    createFileWithSingleBlock(NESTED_FILE_URI);
+    String dirName = mFileSystemMaster.getFileInfo(NESTED_URI, GET_STATUS_CONTEXT).getName();
+    try {
+        mFileSystemMaster.delete(NESTED_URI, DeleteContext.defaults());
+        fail("Deleting a non-empty directory without setting recursive should fail");
+    } catch (DirectoryNotEmptyException e) {
+        String expectedMessage = ExceptionMessage.DELETE_NONEMPTY_DIRECTORY_NONRECURSIVE.getMessage(dirName);
+        assertEquals(expectedMessage, e.getMessage());
+    }
+    // Now delete with recursive set to true.
+    mFileSystemMaster.delete(NESTED_URI, DeleteContext.mergeFrom(DeletePOptions.newBuilder().setRecursive(true)));
+}

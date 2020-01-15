@@ -1,0 +1,21 @@
+@Test
+public void copyFromLocalDir() throws IOException, AlluxioException {
+    // Copy a directory from local to Alluxio filesystem, which the destination uri was not created
+    // before.
+    File srcOuterDir = new File(mLocalAlluxioCluster.getAlluxioHome() + "/outerDir");
+    File srcInnerDir = new File(mLocalAlluxioCluster.getAlluxioHome() + "/outerDir/innerDir");
+    File emptyDir = new File(mLocalAlluxioCluster.getAlluxioHome() + "/outerDir/emptyDir");
+    srcOuterDir.mkdir();
+    srcInnerDir.mkdir();
+    emptyDir.mkdir();
+    generateFileContent("/outerDir/srcFile1", BufferUtils.getIncreasingByteArray(10));
+    generateFileContent("/outerDir/innerDir/srcFile2", BufferUtils.getIncreasingByteArray(10));
+    int ret = mFsShell.run("copyFromLocal", srcOuterDir.getPath() + "/", "/dstDir");
+    Assert.assertEquals(0, ret);
+    AlluxioURI dstURI1 = new AlluxioURI("/dstDir/srcFile1");
+    AlluxioURI dstURI2 = new AlluxioURI("/dstDir/innerDir/srcFile2");
+    AlluxioURI dstURI3 = new AlluxioURI("/dstDir/emptyDir");
+    Assert.assertNotNull(mFileSystem.getStatus(dstURI1));
+    Assert.assertNotNull(mFileSystem.getStatus(dstURI2));
+    Assert.assertNotNull(mFileSystem.getStatus(dstURI3));
+}

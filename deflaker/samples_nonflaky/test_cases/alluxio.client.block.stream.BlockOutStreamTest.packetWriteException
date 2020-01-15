@@ -1,0 +1,14 @@
+@Test
+public void packetWriteException() throws Exception {
+    DataWriter writer = new FailingTestDataWriter(ByteBuffer.allocate(CHUNK_SIZE));
+    BlockOutStream bos = new BlockOutStream(writer, CHUNK_SIZE, new WorkerNetAddress());
+    try {
+        bos.write(new byte[CHUNK_SIZE]);
+        Assert.fail("Expected write to throw an exception.");
+    } catch (IOException e) {
+    // Exception expected, continue.
+    }
+    // After an exception, we should still be able to cancel the stream.
+    // Test succeeds if we do not throw an exception in cancel.
+    bos.cancel();
+}

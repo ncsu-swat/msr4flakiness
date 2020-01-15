@@ -1,0 +1,21 @@
+/**
+ * Tests {@link FileInStream#seek(long)} when at the end of a file at the block boundary.
+ */
+@Test
+public void eofSeek() throws Exception {
+    String uniqPath = PathUtils.uniqPath();
+    int length = BLOCK_SIZE * 3;
+    for (CreateFilePOptions op : getOptionSet()) {
+        String filename = uniqPath + "/file_" + op.hashCode();
+        AlluxioURI uri = new AlluxioURI(filename);
+        FileSystemTestUtils.createByteFile(mFileSystem, filename, length, op);
+        FileInStream is = mFileSystem.openFile(uri, FileSystemTestUtils.toOpenFileOptions(op));
+        byte[] data = new byte[length];
+        is.read(data, 0, length);
+        Assert.assertTrue(BufferUtils.equalIncreasingByteArray(length, data));
+        is.seek(0);
+        is.read(data, 0, length);
+        Assert.assertTrue(BufferUtils.equalIncreasingByteArray(length, data));
+        is.close();
+    }
+}

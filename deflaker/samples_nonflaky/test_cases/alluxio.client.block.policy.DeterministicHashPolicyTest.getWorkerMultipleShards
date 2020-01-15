@@ -1,0 +1,15 @@
+@Test
+public void getWorkerMultipleShards() {
+    sConf.set(PropertyKey.USER_UFS_BLOCK_READ_LOCATION_POLICY_DETERMINISTIC_HASH_SHARDS, 2);
+    DeterministicHashPolicy policy2 = (DeterministicHashPolicy) BlockLocationPolicy.Factory.create(DeterministicHashPolicy.class.getCanonicalName(), sConf);
+    Set<String> addresses1 = new HashSet<>();
+    Set<String> addresses2 = new HashSet<>();
+    for (int i = 0; i < 100; i++) {
+        addresses1.add(policy2.getWorker(GetWorkerOptions.defaults().setBlockWorkerInfos(mWorkerInfos).setBlockInfo(new BlockInfo().setBlockId(1).setLength(2 * (long) Constants.GB))).getHost());
+        addresses2.add(policy2.getWorker(GetWorkerOptions.defaults().setBlockWorkerInfos(mWorkerInfos).setBlockInfo(new BlockInfo().setBlockId(1).setLength(2 * (long) Constants.GB))).getHost());
+    }
+    // With sufficient traffic, 2 (= #shards) workers should be picked to serve the block.
+    assertEquals(2, addresses1.size());
+    assertEquals(2, addresses2.size());
+    assertEquals(addresses1, addresses2);
+}

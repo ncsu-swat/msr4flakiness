@@ -1,0 +1,16 @@
+@Test
+public void statTest() throws Exception {
+    String pathStr = "/pathStr";
+    long jobId = runPersistJob(pathStr);
+    waitForJobToFinish(jobId);
+    mJobShell.run("stat", "-v", Long.toString(jobId));
+    String[] output = mOutput.toString().split("\n");
+    assertEquals(String.format("ID: %s", jobId), output[0]);
+    assertEquals(String.format("Name: Persist"), output[1]);
+    assertTrue(output[2].contains("Description: PersistConfig"));
+    assertTrue(output[2].contains(pathStr));
+    assertEquals("Status: COMPLETED", output[3]);
+    assertEquals("Task 0", output[4]);
+    assertTrue(output[5].contains("\tWorker: "));
+    assertEquals("\tStatus: COMPLETED", output[6]);
+}

@@ -1,0 +1,17 @@
+/**
+ * The checkpoint thread replays all the logs before shutting down.
+ */
+@Test
+public void checkpointAfterShutdown() throws Exception {
+    ServerConfiguration.set(PropertyKey.MASTER_JOURNAL_CHECKPOINT_PERIOD_ENTRIES, "2");
+    buildCompletedLog(0, 10);
+    buildIncompleteLog(10, 15);
+    MockMaster mockMaster = new MockMaster();
+    UfsJournalCheckpointThread checkpointThread = new UfsJournalCheckpointThread(mockMaster, mJournal, Collections::emptySet);
+    checkpointThread.start();
+    checkpointThread.awaitTermination(true);
+    // Make sure all the journal entries have been processed. Note that it is not necessary that
+    // the they are checkpointed.
+    Iterator<Journal.JournalEntry> it = mockMaster.getJournalEntryIterator();
+    Assert.assertEquals(10, Iterators.size(it));
+}

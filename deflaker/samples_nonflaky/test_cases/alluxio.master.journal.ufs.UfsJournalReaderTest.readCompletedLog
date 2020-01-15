@@ -1,0 +1,22 @@
+/**
+ * Reads completed logs.
+ */
+@Test
+public void readCompletedLog() throws Exception {
+    long fileSize = 10;
+    long endSN = 10 * fileSize;
+    for (long i = 0; i < endSN / fileSize; i++) {
+        buildCompletedLog(i * fileSize, i * fileSize + fileSize);
+    }
+    try (JournalReader reader = mJournal.getReader(true)) {
+        int sn = 0;
+        while (reader.advance() != State.DONE) {
+            assertEquals(sn, reader.getEntry().getSequenceNumber());
+            sn++;
+        }
+        assertEquals(endSN, sn);
+        assertEquals(sn, reader.getNextSequenceNumber());
+        // Further advances should return State.DONE
+        assertEquals(State.DONE, reader.advance());
+    }
+}

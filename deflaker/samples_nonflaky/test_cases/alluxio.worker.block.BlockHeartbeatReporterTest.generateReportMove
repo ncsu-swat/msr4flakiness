@@ -1,0 +1,27 @@
+/**
+ * Tests the {@link BlockHeartbeatReporter#generateReport()} method to correctly generate a report
+ * after moving block.
+ */
+@Test
+public void generateReportMove() {
+    Long block1 = 1L;
+    Long block2 = 2L;
+    Long block3 = 3L;
+    moveBlock(block1, MEM_LOC);
+    moveBlock(block2, SSD_LOC);
+    moveBlock(block3, HDD_LOC);
+    BlockHeartbeatReport report = mReporter.generateReport();
+    Map<BlockStoreLocation, List<Long>> addedBlocks = report.getAddedBlocks();
+    // Block1 moved to memory
+    List<Long> addedBlocksMem = addedBlocks.get(MEM_LOC);
+    assertEquals(1, addedBlocksMem.size());
+    assertEquals(block1, addedBlocksMem.get(0));
+    // Block2 moved to ssd
+    List<Long> addedBlocksSsd = addedBlocks.get(SSD_LOC);
+    assertEquals(1, addedBlocksSsd.size());
+    assertEquals(block2, addedBlocksSsd.get(0));
+    // Block3 moved to hdd
+    List<Long> addedBlocksHdd = addedBlocks.get(HDD_LOC);
+    assertEquals(1, addedBlocksHdd.size());
+    assertEquals(block3, addedBlocksHdd.get(0));
+}

@@ -1,0 +1,12 @@
+@Test
+public void cacheGetChildrenInodeLookups() {
+    List<Inode> children = new ArrayList<>();
+    for (int id = 100; id < 110; id++) {
+        MutableInodeFile child = MutableInodeFile.create(id, TEST_INODE_ID, "child" + id, 0, CreateFileContext.defaults());
+        children.add(Inode.wrap(child));
+        mStore.writeNewInode(child);
+        mStore.addChild(TEST_INODE_ID, child);
+    }
+    assertEquals(10, Iterables.size(mStore.getChildren(TEST_INODE_DIR)));
+    verifyNoBackingStoreReads();
+}

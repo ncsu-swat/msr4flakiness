@@ -1,0 +1,17 @@
+@Test
+public void getConfiguration() throws Exception {
+    String home = "home";
+    String rawConfDir = String.format("${%s}/conf", PropertyKey.Name.HOME);
+    String resolvedConfDir = String.format("%s/conf", home);
+    ServerConfiguration.set(PropertyKey.HOME, home);
+    ServerConfiguration.set(PropertyKey.CONF_DIR, rawConfDir);
+    // with out any query parameter, configuration values are resolved.
+    checkConfiguration(PropertyKey.CONF_DIR, resolvedConfDir, NO_PARAMS);
+    // with QUERY_RAW_CONFIGURATION=false, configuration values are resolved.
+    Map<String, String> params = new HashMap<>();
+    params.put(AlluxioMasterRestServiceHandler.QUERY_RAW_CONFIGURATION, "false");
+    checkConfiguration(PropertyKey.CONF_DIR, resolvedConfDir, params);
+    // with QUERY_RAW_CONFIGURATION=true, configuration values are raw.
+    params.put(AlluxioMasterRestServiceHandler.QUERY_RAW_CONFIGURATION, "true");
+    checkConfiguration(PropertyKey.CONF_DIR, rawConfDir, params);
+}

@@ -1,0 +1,13 @@
+@Test(timeout = 1000 * 60)
+public void noFallback() throws Exception {
+    Future<WriteSummary> expected;
+    Future<WriteSummary> actualLocal;
+    long blockSize = CHUNK_SIZE * 1024 + CHUNK_SIZE / 3;
+    try (DataWriter writer = create(blockSize, blockSize)) {
+        expected = writeData(writer, blockSize);
+        actualLocal = getLocalWrite(mBuffer);
+        expected.get();
+    }
+    assertEquals(expected.get().getBytes(), actualLocal.get().getBytes());
+    assertEquals(expected.get().getChecksum(), actualLocal.get().getChecksum());
+}

@@ -1,0 +1,15 @@
+/**
+ * Ensures an exception is thrown when an invalid scheme is passed.
+ */
+@Test
+public void uriCheckBadScheme() throws Exception {
+    mConf.set(PropertyKey.MASTER_HOSTNAME, "localhost");
+    mConf.set(PropertyKey.MASTER_RPC_PORT, "19998");
+    AlluxioURI uri = new AlluxioURI("hdfs://localhost:19998/root");
+    try {
+        mFileSystem.createDirectory(uri);
+        fail("Should have failed on bad host and port");
+    } catch (IllegalArgumentException e) {
+        assertThat(e.getMessage(), containsString("Scheme hdfs:// in AlluxioURI is invalid"));
+    }
+}

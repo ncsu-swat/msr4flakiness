@@ -1,0 +1,44 @@
+@Test
+public void freeAndDeleteIntegration() throws Exception {
+    HeartbeatScheduler.await(HeartbeatContext.WORKER_BLOCK_SYNC, 5, TimeUnit.SECONDS);
+    HeartbeatScheduler.await(HeartbeatContext.MASTER_LOST_FILES_DETECTION, 5, TimeUnit.SECONDS);
+    AlluxioURI filePath = new AlluxioURI(PathUtils.uniqPath());
+    FileOutStream os = mFileSystem.createFile(filePath, mWriteBoth);
+    os.write((byte) 0);
+    os.write((byte) 1);
+    os.close();
+    URIStatus status = mFileSystem.getStatus(filePath);
+    assertEquals(PersistenceState.PERSISTED.toString(), status.getPersistenceState());
+    final Long blockId = status.getBlockIds().get(0);
+    BlockMaster bm = mLocalAlluxioClusterResource.get().getLocalAlluxioMaster().getMasterProcess().getMaster(BlockMaster.class);
+    BlockInfo blockInfo = bm.getBlockInfo(blockId);
+    assertEquals(2, blockInfo.getLength());
+    assertFalse(blockInfo.getLocations().isEmpty());
+    final BlockWorker bw = mLocalAlluxioClusterResource.get().getWorkerProcess().getWorker(BlockWorker.class);
+    assertTrue(bw.hasBlockMeta(blockId));
+    assertTrue(bm.getLostBlocks().isEmpty());
+    mFileSystem.free(filePath);
+    IntegrationTestUtils.waitForBlocksToBeFreed(bw, blockId);
+    status = mFileSystem.getStatus(filePath);
+    // Verify block metadata in master is still present after block freed.
+    assertEquals(1, status.getBlockIds().size());
+    blockInfo = bm.getBlockInfo(status.getBlockIds().get(0));
+    assertEquals(2, blockInfo.getLength());
+    // Verify the block has been removed from all workers.
+    assertTrue(blockInfo.getLocations().isEmpty());
+    assertFalse(bw.hasBlockMeta(blockId));
+    // Verify the removed block is added to LostBlocks list.
+    assertTrue(bm.getLostBlocks().contains(blockInfo.getBlockId()));
+    mFileSystem.delete(filePath);
+    try {
+        // File is immediately gone after delete.
+        mFileSystem.getStatus(filePath);
+        Assert.fail(String.format("Expected file %s being deleted but it was not.", filePath));
+    } catch (FileDoesNotExistException e) {
+    // expected
+    }
+    // Execute the lost files detection.
+    HeartbeatScheduler.execute(HeartbeatContext.MASTER_LOST_FILES_DETECTION);
+    // Verify the blocks are not in mLostBlocks.
+    assertTrue(bm.getLostBlocks().isEmpty());
+}

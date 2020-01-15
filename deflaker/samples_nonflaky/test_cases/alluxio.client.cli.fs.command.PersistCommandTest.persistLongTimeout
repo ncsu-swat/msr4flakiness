@@ -1,0 +1,11 @@
+@Test
+public void persistLongTimeout() throws Exception {
+    int fileSize = 100;
+    List<AlluxioURI> files = createUnpersistedFiles("/testPersistTimeout", fileSize, 2);
+    int ret = mFsShell.run("persist", "--timeout", String.valueOf(60 * 1000), "/*");
+    assertEquals("shell should not report error", 0, ret);
+    assertFalse("Should not have logged timeout", mLogRule.wasLogged("Timed out waiting for file to be persisted:"));
+    for (AlluxioURI file : files) {
+        checkFilePersisted(file, fileSize);
+    }
+}

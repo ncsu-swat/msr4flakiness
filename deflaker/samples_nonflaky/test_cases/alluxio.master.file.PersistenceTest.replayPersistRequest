@@ -1,0 +1,17 @@
+/**
+ * Tests that persist file requests are not forgotten across restarts.
+ */
+@Test
+public void replayPersistRequest() throws Exception {
+    // Create a file and check the internal state.
+    AlluxioURI testFile = createTestFile();
+    FileInfo fileInfo = mFileSystemMaster.getFileInfo(testFile, GET_STATUS_CONTEXT);
+    Assert.assertEquals(PersistenceState.NOT_PERSISTED.toString(), fileInfo.getPersistenceState());
+    // schedule the async persistence, checking the internal state.
+    mFileSystemMaster.scheduleAsyncPersistence(testFile, ScheduleAsyncPersistenceContext.defaults());
+    checkPersistenceRequested(testFile);
+    // Simulate restart.
+    stopServices();
+    startServices();
+    checkPersistenceRequested(testFile);
+}

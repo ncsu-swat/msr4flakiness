@@ -1,0 +1,20 @@
+/**
+ * Tests that pinning a file prevents it from being evicted.
+ */
+@Test
+public void pinFile() throws Exception {
+    // Create a file that fills the entire Alluxio store
+    AlluxioURI file = new AlluxioURI("/test1");
+    // Half of mem capacity to avoid triggering async eviction
+    FileSystemTestUtils.createByteFile(mFileSystem, file, WritePType.MUST_CACHE, MEM_CAPACITY_BYTES / 2);
+    HeartbeatScheduler.execute(HeartbeatContext.WORKER_BLOCK_SYNC);
+    // Pin the file
+    mFileSystem.setAttribute(file, mSetPinned);
+    HeartbeatScheduler.execute(HeartbeatContext.WORKER_PIN_LIST_SYNC);
+    // Confirm the pin with master
+    Assert.assertTrue(mFileSystem.getStatus(file).isPinned());
+    // Try to create a file that cannot be stored unless the previous file is evicted, expect an
+    // exception since worker cannot serve the request
+    mThrown.expect(Exception.class);
+    FileSystemTestUtils.createByteFile(mFileSystem, "/test2", WritePType.MUST_CACHE, MEM_CAPACITY_BYTES);
+}

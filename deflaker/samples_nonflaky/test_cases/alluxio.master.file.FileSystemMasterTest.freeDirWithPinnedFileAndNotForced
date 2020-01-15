@@ -1,0 +1,14 @@
+/**
+ * Tests the {@link FileSystemMaster#free} method with a directory with a file pinned when
+ * forced flag is false.
+ */
+@Test
+public void freeDirWithPinnedFileAndNotForced() throws Exception {
+    mNestedFileContext.setWriteType(WriteType.CACHE_THROUGH);
+    createFileWithSingleBlock(NESTED_FILE_URI);
+    mFileSystemMaster.setAttribute(NESTED_FILE_URI, SetAttributeContext.mergeFrom(SetAttributePOptions.newBuilder().setPinned(true)));
+    mThrown.expect(UnexpectedAlluxioException.class);
+    mThrown.expectMessage(ExceptionMessage.CANNOT_FREE_PINNED_FILE.getMessage(NESTED_FILE_URI.getPath()));
+    // cannot free the parent dir of a pinned file without "forced"
+    mFileSystemMaster.free(NESTED_FILE_URI.getParent(), FreeContext.mergeFrom(FreePOptions.newBuilder().setForced(false).setRecursive(true)));
+}

@@ -1,0 +1,15 @@
+@Test
+@LocalAlluxioClusterResource.Config(confParams = { PropertyKey.Name.USER_FILE_PERSIST_ON_RENAME, "true" })
+public void asyncWriteRenameWithNoAutoPersist() throws Exception {
+    AlluxioURI srcPath = new AlluxioURI(PathUtils.uniqPath());
+    AlluxioURI dstPath = new AlluxioURI(PathUtils.uniqPath());
+    createTwoBytesFile(srcPath, Constants.NO_AUTO_PERSIST);
+    CommonUtils.sleepMs(1);
+    // check the file is completed but not persisted
+    URIStatus srcStatus = mFileSystem.getStatus(srcPath);
+    assertEquals(PersistenceState.TO_BE_PERSISTED.toString(), srcStatus.getPersistenceState());
+    Assert.assertTrue(srcStatus.isCompleted());
+    mFileSystem.rename(srcPath, dstPath);
+    CommonUtils.sleepMs(1);
+    checkPersistStateAndWaitForPersist(dstPath, 2);
+}

@@ -1,0 +1,15 @@
+/**
+ * Tests cancel.
+ */
+@Test
+public void cancel() throws Exception {
+    long endSN = 0x20;
+    UfsJournalCheckpointWriter writer = mJournal.getCheckpointWriter(endSN);
+    for (int i = 0; i < 5; i++) {
+        newEntry(i).writeDelimitedTo(writer);
+    }
+    writer.cancel();
+    UfsJournalSnapshot snapshot = UfsJournalSnapshot.getSnapshot(mJournal);
+    Assert.assertTrue(snapshot.getCheckpoints().isEmpty());
+    Assert.assertTrue(snapshot.getTemporaryCheckpoints().isEmpty());
+}

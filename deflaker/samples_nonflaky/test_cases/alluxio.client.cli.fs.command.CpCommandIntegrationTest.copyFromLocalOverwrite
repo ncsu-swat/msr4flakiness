@@ -1,0 +1,21 @@
+@Test
+public void copyFromLocalOverwrite() throws Exception {
+    // This tests makes sure copyFromLocal will not overwrite an existing Alluxio file
+    final int LEN1 = 10;
+    final int LEN2 = 20;
+    File testFile1 = generateFileContent("/testFile1", BufferUtils.getIncreasingByteArray(LEN1));
+    File testFile2 = generateFileContent("/testFile2", BufferUtils.getIncreasingByteArray(LEN2));
+    AlluxioURI alluxioFilePath = new AlluxioURI("/testFile");
+    // Write the first file
+    String[] cmd1 = { "cp", "file://" + testFile1.getPath(), alluxioFilePath.getPath() };
+    mFsShell.run(cmd1);
+    Assert.assertEquals(getCommandOutput(cmd1), mOutput.toString());
+    mOutput.reset();
+    Assert.assertTrue(BufferUtils.equalIncreasingByteArray(LEN1, readContent(alluxioFilePath, LEN1)));
+    // Write the second file to the same location, which should cause an exception
+    String[] cmd2 = { "cp", "file://" + testFile2.getPath(), alluxioFilePath.getPath() };
+    Assert.assertEquals(-1, mFsShell.run(cmd2));
+    Assert.assertThat(mOutput.toString(), containsString(alluxioFilePath.getPath() + " already exists"));
+    // Make sure the original file is intact
+    Assert.assertTrue(BufferUtils.equalIncreasingByteArray(LEN1, readContent(alluxioFilePath, LEN1)));
+}

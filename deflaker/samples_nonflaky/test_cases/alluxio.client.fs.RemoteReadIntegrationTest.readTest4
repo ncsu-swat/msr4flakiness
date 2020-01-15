@@ -1,0 +1,31 @@
+/**
+ * Tests the single byte read API from a remote location when the data is in an Alluxio worker.
+ */
+@Test
+public void readTest4() throws Exception {
+    String uniqPath = PathUtils.uniqPath();
+    for (int k = MIN_LEN + DELTA; k <= MAX_LEN; k += DELTA) {
+        AlluxioURI uri = new AlluxioURI(uniqPath + "/file_" + k);
+        FileSystemTestUtils.createByteFile(mFileSystem, uri, mWriteAlluxio, k);
+        URIStatus status = mFileSystem.getStatus(uri);
+        InStreamOptions options = new InStreamOptions(status, ServerConfiguration.global());
+        long blockId = status.getBlockIds().get(0);
+        AlluxioBlockStore blockStore = AlluxioBlockStore.create(FileSystemContext.create(ServerConfiguration.global()));
+        BlockInfo info = blockStore.getInfo(blockId);
+        WorkerNetAddress workerAddr = info.getLocations().get(0).getWorkerAddress();
+        BlockInStream is = BlockInStream.create(mFsContext, options.getBlockInfo(blockId), workerAddr, BlockInStreamSource.REMOTE, options);
+        byte[] ret = new byte[k];
+        int value = is.read();
+        int cnt = 0;
+        while (value != -1) {
+            Assert.assertTrue(value >= 0);
+            Assert.assertTrue(value < 256);
+            ret[cnt++] = (byte) value;
+            value = is.read();
+        }
+        Assert.assertEquals(cnt, k);
+        Assert.assertTrue(BufferUtils.equalIncreasingByteArray(k, ret));
+        is.close();
+        Assert.assertTrue(mFileSystem.getStatus(uri).getInAlluxioPercentage() == 100);
+    }
+}

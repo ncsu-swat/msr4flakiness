@@ -1,0 +1,12 @@
+/**
+ * Tests the {@link FileSystemMaster#free} method with a directory but recursive to false.
+ */
+@Test
+public void freeDirNonRecursive() throws Exception {
+    mNestedFileContext.setWriteType(WriteType.CACHE_THROUGH);
+    createFileWithSingleBlock(NESTED_FILE_URI);
+    mThrown.expect(UnexpectedAlluxioException.class);
+    mThrown.expectMessage(ExceptionMessage.CANNOT_FREE_NON_EMPTY_DIR.getMessage(NESTED_URI));
+    // cannot free directory with recursive argument to false
+    mFileSystemMaster.free(NESTED_FILE_URI.getParent(), FreeContext.mergeFrom(FreePOptions.newBuilder().setRecursive(false)));
+}

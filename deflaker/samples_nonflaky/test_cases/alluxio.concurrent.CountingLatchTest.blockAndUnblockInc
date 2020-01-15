@@ -1,0 +1,23 @@
+/**
+ * Tests that inc is blocked when await returns,
+ * and inc is unblocked when release returns.
+ */
+@Test
+public void blockAndUnblockInc() throws Exception {
+    Assert.assertEquals(0, mLatch.getState());
+    mLatch.await();
+    Assert.assertEquals(-1, mLatch.getState());
+    BlockingThread inc = new BlockingThread(() -> {
+        try {
+            mLatch.inc();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    });
+    inc.start();
+    Thread.sleep(SLEEP_MILLIS);
+    mLatch.release();
+    inc.join();
+    Assert.assertTrue(String.format("BlockedTimeMillis: %s", inc.getBlockedTimeMillis()), inc.getBlockedTimeMillis() >= SLEEP_MILLIS);
+    Assert.assertEquals(1, mLatch.getState());
+}

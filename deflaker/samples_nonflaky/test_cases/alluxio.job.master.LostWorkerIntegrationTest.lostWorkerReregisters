@@ -1,0 +1,11 @@
+@Test
+public void lostWorkerReregisters() throws Exception {
+    final Long initialId = JobWorkerIdRegistry.getWorkerId();
+    // Sleep so that the master thinks the worker has gone too long without a heartbeat.
+    CommonUtils.sleepMs(WORKER_HEARTBEAT_TIMEOUT_MS + 1);
+    HeartbeatScheduler.execute(HeartbeatContext.JOB_MASTER_LOST_WORKER_DETECTION);
+    assertTrue(mLocalAlluxioJobCluster.getMaster().getJobMaster().getWorkerInfoList().isEmpty());
+    // Reregister the worker.
+    HeartbeatScheduler.execute(HeartbeatContext.JOB_WORKER_COMMAND_HANDLING);
+    CommonUtils.waitFor("worker to reregister", () -> !mLocalAlluxioJobCluster.getMaster().getJobMaster().getWorkerInfoList().isEmpty() && JobWorkerIdRegistry.getWorkerId() != initialId, WaitForOptions.defaults().setTimeoutMs(10 * Constants.SECOND_MS));
+}

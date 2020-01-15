@@ -1,0 +1,17 @@
+/**
+ * Tests that deleting a file from a folder updates the folder's last modification time.
+ */
+@Test
+public void lastModificationTimeDelete() throws Exception {
+    mFsMaster.createDirectory(new AlluxioURI("/testFolder"), CreateDirectoryContext.defaults());
+    mFsMaster.createFile(new AlluxioURI("/testFolder/testFile"), CreateFileContext.defaults());
+    long folderId = mFsMaster.getFileId(new AlluxioURI("/testFolder"));
+    long modificationTimeBeforeDelete = mFsMaster.getFileInfo(folderId).getLastModificationTimeMs();
+    long accessTimeBeforeDelete = mFsMaster.getFileInfo(folderId).getLastAccessTimeMs();
+    CommonUtils.sleepMs(2);
+    mFsMaster.delete(new AlluxioURI("/testFolder/testFile"), DeleteContext.mergeFrom(DeletePOptions.newBuilder().setRecursive(true)));
+    long modificationTimeAfterDelete = mFsMaster.getFileInfo(folderId).getLastModificationTimeMs();
+    long accessTimeAfterDelete = mFsMaster.getFileInfo(folderId).getLastAccessTimeMs();
+    Assert.assertTrue(modificationTimeBeforeDelete < modificationTimeAfterDelete);
+    Assert.assertTrue(accessTimeBeforeDelete < accessTimeAfterDelete);
+}

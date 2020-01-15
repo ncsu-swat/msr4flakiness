@@ -1,0 +1,23 @@
+@Test
+public void mountUnmount() throws Exception {
+    AlluxioURI ufsMount = new AlluxioURI(mTestFolder.newFolder().getAbsolutePath());
+    mFileSystemMaster.createDirectory(new AlluxioURI("/mnt/"), CreateDirectoryContext.defaults());
+    // Alluxio mount point should not exist before mounting.
+    try {
+        mFileSystemMaster.getFileInfo(new AlluxioURI("/mnt/local"), GET_STATUS_CONTEXT);
+        fail("getFileInfo() for a non-existent URI (before mounting) should fail.");
+    } catch (FileDoesNotExistException e) {
+    // Expected case.
+    }
+    mFileSystemMaster.mount(new AlluxioURI("/mnt/local"), ufsMount, MountContext.defaults());
+    // Alluxio mount point should exist after mounting.
+    assertNotNull(mFileSystemMaster.getFileInfo(new AlluxioURI("/mnt/local"), GET_STATUS_CONTEXT));
+    mFileSystemMaster.unmount(new AlluxioURI("/mnt/local"));
+    // Alluxio mount point should not exist after unmounting.
+    try {
+        mFileSystemMaster.getFileInfo(new AlluxioURI("/mnt/local"), GET_STATUS_CONTEXT);
+        fail("getFileInfo() for a non-existent URI (after mounting) should fail.");
+    } catch (FileDoesNotExistException e) {
+    // Expected case.
+    }
+}

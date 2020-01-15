@@ -1,0 +1,16 @@
+@Test
+public void mountAfterMasterRestart() throws Exception {
+    mLocalAlluxioCluster.stopFS();
+    try (FsMasterResource masterResource = MasterTestUtils.createLeaderFileSystemMasterFromJournal()) {
+        FileSystemMaster fsMaster = masterResource.getRegistry().get(FileSystemMaster.class);
+        Map<String, MountPointInfo> mountTable = fsMaster.getMountTable();
+        Assert.assertTrue(mountTable.containsKey(MOUNT_POINT1));
+        Assert.assertTrue(mountTable.containsKey(MOUNT_POINT2));
+        MountPointInfo mountPointInfo1 = mountTable.get(MOUNT_POINT1);
+        MountPointInfo mountPointInfo2 = mountTable.get(MOUNT_POINT2);
+        Assert.assertEquals(mUfsUri1, mountPointInfo1.getUfsUri());
+        Assert.assertEquals(mUfsUri2, mountPointInfo2.getUfsUri());
+        Assert.assertEquals(UFS_CONF1, mountPointInfo1.getProperties());
+        Assert.assertEquals(UFS_CONF2, mountPointInfo2.getProperties());
+    }
+}

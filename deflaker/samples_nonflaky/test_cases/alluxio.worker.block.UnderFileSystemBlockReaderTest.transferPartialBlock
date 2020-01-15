@@ -1,0 +1,15 @@
+@Test
+public void transferPartialBlock() throws Exception {
+    mReader = UnderFileSystemBlockReader.create(mUnderFileSystemBlockMeta, 0, mAlluxioBlockStore, mUfsManager, mUfsInstreamManager);
+    ByteBuf buf = PooledByteBufAllocator.DEFAULT.buffer((int) TEST_BLOCK_SIZE / 2, (int) TEST_BLOCK_SIZE / 2);
+    try {
+        while (buf.writableBytes() > 0 && mReader.transferTo(buf) != -1) {
+        }
+        Assert.assertTrue(BufferUtils.equalIncreasingByteBuffer(0, (int) TEST_BLOCK_SIZE / 2, buf.nioBuffer()));
+        mReader.close();
+    } finally {
+        buf.release();
+    }
+    // partial block should not be cached
+    Assert.assertNull(mAlluxioBlockStore.getTempBlockMeta(SESSION_ID, BLOCK_ID));
+}

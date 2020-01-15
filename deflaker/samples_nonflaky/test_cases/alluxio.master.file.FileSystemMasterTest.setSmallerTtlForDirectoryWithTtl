@@ -1,0 +1,16 @@
+/**
+ * Tests that an exception is thrown when trying to get information about a Directory after
+ * it has been deleted after the TTL has been set to 0.
+ */
+@Test
+public void setSmallerTtlForDirectoryWithTtl() throws Exception {
+    CreateDirectoryContext directoryContext = CreateDirectoryContext.mergeFrom(CreateDirectoryPOptions.newBuilder().setCommonOptions(FileSystemMasterCommonPOptions.newBuilder().setTtl(Constants.HOUR_MS)).setRecursive(true));
+    mFileSystemMaster.createDirectory(NESTED_URI, directoryContext);
+    HeartbeatScheduler.execute(HeartbeatContext.MASTER_TTL_CHECK);
+    assertTrue(mFileSystemMaster.getFileInfo(NESTED_URI, GET_STATUS_CONTEXT).getName() != null);
+    mFileSystemMaster.setAttribute(NESTED_URI, SetAttributeContext.mergeFrom(SetAttributePOptions.newBuilder().setCommonOptions(FileSystemMasterCommonPOptions.newBuilder().setTtl(0))));
+    HeartbeatScheduler.execute(HeartbeatContext.MASTER_TTL_CHECK);
+    // TTL is reset to 0, the file should have been deleted during last TTL check.
+    mThrown.expect(FileDoesNotExistException.class);
+    mFileSystemMaster.getFileInfo(NESTED_URI, GET_STATUS_CONTEXT);
+}

@@ -1,0 +1,13 @@
+/**
+ * Tests that another worker is picked in case the local host does not have enough capacity.
+ */
+@Test
+public void getOthersWhenNotEnoughCapacityOnLocal() {
+    String localhostName = NetworkAddressUtils.getLocalHostName(sResolutionTimeout);
+    LocalFirstPolicy policy = new LocalFirstPolicy(sConf);
+    List<BlockWorkerInfo> workers = new ArrayList<>();
+    workers.add(worker(Constants.GB, "worker1", ""));
+    workers.add(worker(Constants.MB, localhostName, ""));
+    GetWorkerOptions options = GetWorkerOptions.defaults().setBlockWorkerInfos(workers).setBlockInfo(new BlockInfo().setLength(Constants.GB));
+    assertEquals("worker1", policy.getWorker(options).getHost());
+}

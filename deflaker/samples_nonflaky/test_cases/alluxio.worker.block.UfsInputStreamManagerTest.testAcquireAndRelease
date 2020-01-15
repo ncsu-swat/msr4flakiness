@@ -1,0 +1,17 @@
+/**
+ * Test that verifies a released input stream can be reused for the next acquisition.
+ */
+@Test
+public void testAcquireAndRelease() throws Exception {
+    SeekableUnderFileInputStream mockedStrem = mock(SeekableUnderFileInputStream.class);
+    when(mUfs.openExistingFile(eq(FILE_NAME), any(OpenOptions.class))).thenReturn(mockedStrem).thenThrow(new IllegalStateException("Should only be called once"));
+    // acquire a stream
+    InputStream instream1 = mManager.acquire(mUfs, FILE_NAME, FILE_ID, OpenOptions.defaults().setOffset(2));
+    // release
+    mManager.release(instream1);
+    // acquire a stream again
+    InputStream instream2 = mManager.acquire(mUfs, FILE_NAME, FILE_ID, OpenOptions.defaults().setOffset(4));
+    Assert.assertEquals(instream1, instream2);
+    // ensure the second time the released instream is the same one but repositioned
+    verify(mockedStrem).seek(4);
+}

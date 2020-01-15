@@ -1,0 +1,15 @@
+@Test
+public void copyAfterWorkersNotAvailable() throws Exception {
+    FileSystemShellUtilsTest.resetFileHierarchy(mFileSystem);
+    File testFile = new File(mLocalAlluxioCluster.getAlluxioHome() + "/testFile");
+    testFile.createNewFile();
+    FileOutputStream fos = new FileOutputStream(testFile);
+    byte[] toWrite = BufferUtils.getIncreasingByteArray(100);
+    fos.write(toWrite);
+    fos.close();
+    mFsShell.run("copyFromLocal", testFile.getPath(), "/");
+    Assert.assertTrue(mFileSystem.exists(new AlluxioURI("/testFile")));
+    mLocalAlluxioCluster.stopWorkers();
+    mFsShell.run("cp", "/testFile", "/testFile2");
+    Assert.assertFalse(mFileSystem.exists(new AlluxioURI("/testFile2")));
+}

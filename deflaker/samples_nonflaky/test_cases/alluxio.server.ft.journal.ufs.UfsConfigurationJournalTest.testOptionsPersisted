@@ -1,0 +1,23 @@
+@Test
+public void testOptionsPersisted() throws Exception {
+    // Set ufs specific options and other mount flags
+    AlluxioURI mountPoint = new AlluxioURI("/mnt");
+    ImmutableMap<String, String> options = ImmutableMap.of("k1", "v1", "k2", "v2");
+    mFs.mount(mountPoint, new AlluxioURI(LOCAL_UFS_PATH), MountPOptions.newBuilder().putAllProperties(options).setReadOnly(true).setShared(true).build());
+    // Get mount id
+    MountTable mountTable = Whitebox.getInternalState(mLocalAlluxioClusterResource.get().getLocalAlluxioMaster().getMasterProcess().getMaster(FileSystemMaster.class), "mMountTable");
+    long mountId = mountTable.resolve(mountPoint).getMountId();
+    // Restart masters
+    mLocalAlluxioClusterResource.get().restartMasters();
+    // Checks all options and flags are persisted after restart
+    UfsManager ufsManager = Whitebox.getInternalState(mLocalAlluxioClusterResource.get().getLocalAlluxioMaster().getMasterProcess().getMaster(FileSystemMaster.class), "mUfsManager");
+    try (CloseableResource<UnderFileSystem> resource = ufsManager.get(mountId).acquireUfsResource()) {
+        UnderFileSystemConfiguration ufsConf = Whitebox.getInternalState(resource.get(), "mConf");
+        assertEquals(ufsConf.getMountSpecificConf().size(), options.size());
+        for (Map.Entry<String, String> entry : options.entrySet()) {
+            assertEquals(entry.getValue(), ufsConf.getMountSpecificConf().get(entry.getKey()));
+        }
+        assertTrue(ufsConf.isReadOnly());
+        assertTrue(ufsConf.isShared());
+    }
+}

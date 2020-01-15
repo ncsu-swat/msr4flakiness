@@ -1,0 +1,26 @@
+@Test
+public void mountNestedWithUpdatedOptions() throws Exception {
+    MountPOptions options3 = MountPOptions.newBuilder().putAllProperties(UFS_CONF3).build();
+    mFileSystem.mount(mMountPoint3, new AlluxioURI(mUfsUri3), options3);
+    MountPOptions options4 = MountPOptions.newBuilder().putAllProperties(UFS_CONF4).build();
+    mFileSystem.mount(mMountPoint4, new AlluxioURI(mUfsUri4), options4);
+    Map<String, MountPointInfo> mountTable = mFileSystem.getMountTable();
+    Assert.assertTrue(mountTable.containsKey(MOUNT_POINT3));
+    MountPointInfo mountPointInfo3 = mountTable.get(MOUNT_POINT3);
+    Assert.assertEquals(mUfsUri3, mountPointInfo3.getUfsUri());
+    Assert.assertEquals(UFS_CONF3.size(), mountPointInfo3.getProperties().size());
+    Assert.assertTrue(mountPointInfo3.getProperties().containsKey(PropertyKey.Name.S3A_ACCESS_KEY));
+    Assert.assertNotEquals(UFS_CONF3.get(PropertyKey.Name.S3A_ACCESS_KEY), mountPointInfo3.getProperties().get(PropertyKey.Name.S3A_ACCESS_KEY));
+    Assert.assertTrue(mountTable.containsKey(MOUNT_POINT4_NESTED));
+    MountPointInfo mountPointInfo4 = mountTable.get(MOUNT_POINT4_NESTED);
+    Assert.assertEquals(mUfsUri4, mountPointInfo4.getUfsUri());
+    Assert.assertEquals(UFS_CONF4.size(), mountPointInfo3.getProperties().size());
+    Assert.assertEquals(UFS_CONF4, mountPointInfo4.getProperties());
+    MountPOptions options5 = MountPOptions.newBuilder().putAllProperties(UFS_CONF2).build();
+    UnderFileSystemFactoryRegistry.register(new ConfExpectingUnderFileSystemFactory("ufs3", UFS_CONF2));
+    mFileSystem.updateMount(mMountPoint3, options5);
+    mountTable = mFileSystem.getMountTable();
+    Assert.assertTrue(mountTable.containsKey(MOUNT_POINT3));
+    MountPointInfo mountPointInfo5 = mountTable.get(MOUNT_POINT3);
+    Assert.assertEquals(UFS_CONF2, mountPointInfo5.getProperties());
+}

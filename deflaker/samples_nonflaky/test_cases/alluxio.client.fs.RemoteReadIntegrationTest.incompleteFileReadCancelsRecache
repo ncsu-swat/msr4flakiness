@@ -1,0 +1,16 @@
+/**
+ * Tests that not reading a file the whole way through then closing it will cause it to not
+ * recache.
+ */
+@Test
+public void incompleteFileReadCancelsRecache() throws Exception {
+    String uniqPath = PathUtils.uniqPath();
+    AlluxioURI uri = new AlluxioURI(uniqPath);
+    FileSystemTestUtils.createByteFile(mFileSystem, uri, mWriteUnderStore, 2);
+    FileInStream is = mFileSystem.openFile(uri, mReadNoCache);
+    Assert.assertEquals(0, is.read());
+    is.close();
+    Assert.assertFalse(mFileSystem.getStatus(uri).getInAlluxioPercentage() == 100);
+    is = mFileSystem.openFile(uri, mReadNoCache);
+    is.close();
+}

@@ -1,0 +1,15 @@
+/**
+ * Writes a file with unknown length.
+ */
+@Test(timeout = 1000 * 60)
+public void writeFileUnknownLength() throws Exception {
+    long checksumActual;
+    Future<Long> checksumExpected;
+    long length = CHUNK_SIZE * 1024;
+    try (DataWriter writer = create(Long.MAX_VALUE)) {
+        checksumExpected = writeFile(writer, length, 10, length / 3);
+        checksumExpected.get();
+        checksumActual = verifyWriteRequests(mClient, 10, length / 3);
+    }
+    assertEquals(checksumExpected.get().longValue(), checksumActual);
+}

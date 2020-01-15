@@ -1,0 +1,17 @@
+/**
+ * Tests that the {@link AbstractFileSystem#listStatus(Path)} method uses
+ * {@link URIStatus#getLastModificationTimeMs()} correctly.
+ */
+@Test
+public void listStatus() throws Exception {
+    FileInfo fileInfo1 = new FileInfo().setLastModificationTimeMs(111L).setLastAccessTimeMs(123L).setFolder(false).setOwner("user1").setGroup("group1").setMode(00755);
+    FileInfo fileInfo2 = new FileInfo().setLastModificationTimeMs(222L).setLastAccessTimeMs(234L).setFolder(true).setOwner("user2").setGroup("group2").setMode(00644);
+    Path path = new Path("/dir");
+    alluxio.client.file.FileSystem alluxioFs = mock(alluxio.client.file.FileSystem.class);
+    when(alluxioFs.listStatus(new AlluxioURI(HadoopUtils.getPathWithoutScheme(path)))).thenReturn(Lists.newArrayList(new URIStatus(fileInfo1), new URIStatus(fileInfo2)));
+    FileSystem alluxioHadoopFs = new FileSystem(alluxioFs);
+    FileStatus[] fileStatuses = alluxioHadoopFs.listStatus(path);
+    assertFileInfoEqualsFileStatus(fileInfo1, fileStatuses[0]);
+    assertFileInfoEqualsFileStatus(fileInfo2, fileStatuses[1]);
+    alluxioHadoopFs.close();
+}

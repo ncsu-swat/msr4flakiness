@@ -1,0 +1,14 @@
+@Test
+public void allTierWriteWithEviction() throws Exception {
+    // All tiers have data so the evictor will evict till low watermark for all tiers
+    long unreservedTier1 = Math.round(CAPACITY_BYTES * LOW_WATERMARK);
+    long unreservedTier2 = Math.round(CAPACITY_BYTES * LOW_WATERMARK);
+    long unreservedTier3 = Math.round(CAPACITY_BYTES * LOW_WATERMARK);
+    for (int i = 0; i < FILES_PER_TIER; i++) {
+        writeFileAndCheckUsage(0, (i + 1) * FILE_SIZE, i * FILE_SIZE, i * FILE_SIZE);
+        writeFileAndCheckUsage(1, (i + 1) * FILE_SIZE, (i + 1) * FILE_SIZE, i * FILE_SIZE);
+        writeFileAndCheckUsage(2, (i + 1) * FILE_SIZE, (i + 1) * FILE_SIZE, (i + 1) * FILE_SIZE);
+    }
+    HeartbeatScheduler.schedule(HeartbeatContext.WORKER_SPACE_RESERVER);
+    writeFileAndCheckUsage(0, unreservedTier1 + FILE_SIZE, unreservedTier2, unreservedTier3);
+}

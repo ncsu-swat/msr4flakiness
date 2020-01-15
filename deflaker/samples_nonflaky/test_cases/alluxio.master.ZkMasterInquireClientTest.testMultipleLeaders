@@ -1,0 +1,17 @@
+@Test
+public void testMultipleLeaders() throws Exception {
+    // Create zk inquire client.
+    MasterInquireClient zkInquirer = ZkMasterInquireClient.getClient(mZkServer.getConnectString(), ELECTION_PATH, LEADER_PATH, INQUIRE_RETRY_COUNT, ZOOKEEPER_AUTH_ENABLED);
+    // Create curator client for manipulating the leader path.
+    CuratorFramework client = CuratorFrameworkFactory.newClient(mZkServer.getConnectString(), new ExponentialBackoffRetry(Constants.SECOND_MS, INQUIRE_RETRY_COUNT));
+    // Create the leader path with multiple participants.
+    InetSocketAddress localLeader1 = InetSocketAddress.createUnresolved(LOOPBACK_IP, 12345);
+    InetSocketAddress localLeader2 = InetSocketAddress.createUnresolved(LOOPBACK_IP, 54321);
+    client.start();
+    client.create().forPath(LEADER_PATH);
+    client.create().forPath(PathUtils.concatPath(LEADER_PATH, localLeader1));
+    client.create().forPath(PathUtils.concatPath(LEADER_PATH, localLeader2));
+    client.close();
+    // Verify that the latest written value is fetched.
+    Assert.assertEquals(localLeader2, zkInquirer.getPrimaryRpcAddress());
+}

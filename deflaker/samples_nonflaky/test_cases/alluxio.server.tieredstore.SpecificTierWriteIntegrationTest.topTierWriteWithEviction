@@ -1,0 +1,10 @@
+@Test
+public void topTierWriteWithEviction() throws Exception {
+    // Free space in first tier is based off the low watermark after async eviction
+    long unreservedTier1 = Math.round(CAPACITY_BYTES * LOW_WATERMARK);
+    for (int i = 0; i < FILES_PER_TIER; i++) {
+        writeFileAndCheckUsage(0, (i + 1) * FILE_SIZE, 0, 0);
+    }
+    HeartbeatScheduler.schedule(HeartbeatContext.WORKER_SPACE_RESERVER);
+    writeFileAndCheckUsage(0, FILE_SIZE + unreservedTier1, CAPACITY_BYTES - unreservedTier1, 0);
+}

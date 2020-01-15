@@ -1,0 +1,15 @@
+/**
+ * Tests the {@link GroupMappingService#getGroups(String)} method.
+ */
+@Test
+public void group() throws Throwable {
+    String userName = "alluxio-user1";
+    InstancedConfiguration conf = new InstancedConfiguration(ConfigurationUtils.defaults());
+    try (Closeable mConfigurationRule = new ConfigurationRule(PropertyKey.SECURITY_GROUP_MAPPING_CLASS, IdentityUserGroupsMapping.class.getName(), conf).toResource()) {
+        GroupMappingService groups = GroupMappingService.Factory.get(conf);
+        assertNotNull(groups);
+        assertNotNull(groups.getGroups(userName));
+        assertEquals(groups.getGroups(userName).size(), 1);
+        assertEquals(groups.getGroups(userName).get(0), userName);
+    }
+}

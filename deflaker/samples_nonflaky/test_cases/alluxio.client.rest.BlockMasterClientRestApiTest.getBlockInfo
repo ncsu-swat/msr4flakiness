@@ -1,0 +1,20 @@
+@Test
+public void getBlockInfo() throws Exception {
+    long sessionId = 1;
+    long blockId = 2;
+    String tierAlias = "MEM";
+    long initialBytes = 3;
+    BlockWorker blockWorker = sResource.get().getWorkerProcess().getWorker(BlockWorker.class);
+    String file = blockWorker.createBlock(sessionId, blockId, tierAlias, "", initialBytes);
+    FileOutputStream outStream = new FileOutputStream(file);
+    outStream.write("abc".getBytes());
+    outStream.close();
+    blockWorker.commitBlock(sessionId, blockId, false);
+    Map<String, String> params = new HashMap<>();
+    params.put("blockId", Long.toString(blockId));
+    String response = new TestCase(mHostname, mPort, getEndpoint(BlockMasterClientRestServiceHandler.GET_BLOCK_INFO), params, HttpMethod.GET, null).call();
+    BlockInfo blockInfo = new ObjectMapper().readValue(response, BlockInfo.class);
+    assertEquals(blockId, blockInfo.getBlockId());
+    assertEquals(initialBytes, blockInfo.getLength());
+    assertEquals("MEM", Iterables.getOnlyElement(blockInfo.getLocations()).getTierAlias());
+}

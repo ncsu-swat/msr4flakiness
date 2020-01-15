@@ -1,0 +1,19 @@
+@Test
+public void getInStreamLocal() throws Exception {
+    WorkerNetAddress remote = new WorkerNetAddress().setHost("remote");
+    WorkerNetAddress local = new WorkerNetAddress().setHost(WORKER_HOSTNAME_LOCAL);
+    // Mock away gRPC usage.
+    OpenLocalBlockResponse response = OpenLocalBlockResponse.newBuilder().setPath("/tmp").build();
+    when(mWorkerClient.openLocalBlock(any(StreamObserver.class))).thenAnswer(invocation -> {
+        mResponseObserver = invocation.getArgumentAt(0, StreamObserver.class);
+        return mStreamObserver;
+    });
+    doAnswer(invocation -> {
+        mResponseObserver.onNext(response);
+        mResponseObserver.onCompleted();
+        return null;
+    }).when(mStreamObserver).onNext(any(OpenLocalBlockRequest.class));
+    BlockInfo info = new BlockInfo().setBlockId(BLOCK_ID).setLocations(Arrays.asList(new BlockLocation().setWorkerAddress(remote), new BlockLocation().setWorkerAddress(local)));
+    when(mMasterClient.getBlockInfo(BLOCK_ID)).thenReturn(info);
+    assertEquals(local, mBlockStore.getInStream(BLOCK_ID, new InStreamOptions(new URIStatus(new FileInfo().setBlockIds(Lists.newArrayList(BLOCK_ID))), sConf)).getAddress());
+}

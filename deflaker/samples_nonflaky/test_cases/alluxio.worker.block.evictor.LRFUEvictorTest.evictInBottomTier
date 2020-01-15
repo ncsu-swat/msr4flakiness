@@ -1,0 +1,49 @@
+/**
+ * Tests that the eviction in the bottom tier works.
+ */
+@Test
+public void evictInBottomTier() throws Exception {
+    int bottomTierOrdinal = TieredBlockStoreTestUtils.TIER_ORDINAL[TieredBlockStoreTestUtils.TIER_ORDINAL.length - 1];
+    Map<Long, Double> blockIdToCRF = new HashMap<>();
+    // capacity increases with index
+    long[] bottomTierDirCapacity = TieredBlockStoreTestUtils.TIER_CAPACITY_BYTES[bottomTierOrdinal];
+    int nDir = bottomTierDirCapacity.length;
+    // fill in dirs from larger to smaller capacity with blockId equal to BLOCK_ID plus dir index
+    for (int i = 0; i < nDir; i++) {
+        cache(SESSION_ID, BLOCK_ID + i, bottomTierDirCapacity[i], bottomTierOrdinal, i);
+        // update CRF of blocks when blocks are committed
+        blockIdToCRF.put(BLOCK_ID + i, calculateAccessWeight(nDir - 1 - i));
+    }
+    // access blocks in the order: 10, 10, 11, 10, 11, 12. Update CRF of all blocks
+    // during each access
+    for (int i = 0; i < nDir; i++) {
+        for (int j = 0; j <= i; j++) {
+            access(BLOCK_ID + j);
+            for (int k = 0; k < nDir; k++) {
+                if (k == j) {
+                    blockIdToCRF.put(BLOCK_ID + k, blockIdToCRF.get(BLOCK_ID + k) * calculateAccessWeight(1L) + 1.0);
+                } else {
+                    blockIdToCRF.put(BLOCK_ID + k, blockIdToCRF.get(BLOCK_ID + k) * calculateAccessWeight(1L));
+                }
+            }
+        }
+    }
+    // sort blocks in ascending order of CRF
+    List<Entry<Long, Double>> blockCRF = getSortedCRF(blockIdToCRF);
+    BlockStoreLocation anyDirInBottomTier = BlockStoreLocation.anyDirInTier(TieredBlockStoreTestUtils.TIER_ALIAS[bottomTierOrdinal]);
+    // request smallest capacity and update access time on the evicted block for nDir times, the dir
+    // to evict blocks from should be in the same order as sorted blockCRF
+    for (int i = 0; i < nDir; i++) {
+        EvictionPlan plan = mEvictor.freeSpaceWithView(bottomTierDirCapacity[0], anyDirInBottomTier, mMetadataView);
+        assertNotNull(plan);
+        assertTrue(plan.toMove().isEmpty());
+        assertEquals(1, plan.toEvict().size());
+        long toEvictBlockId = plan.toEvict().get(0).getFirst();
+        long objectBlockId = blockCRF.get(i).getKey();
+        assertEquals(objectBlockId + " " + toEvictBlockId, objectBlockId, toEvictBlockId);
+        // update CRF of the chosen block in case that it is chosen again
+        for (int j = 0; j < nDir; j++) {
+            access(toEvictBlockId);
+        }
+    }
+}

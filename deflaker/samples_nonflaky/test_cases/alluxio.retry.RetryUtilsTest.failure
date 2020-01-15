@@ -1,0 +1,14 @@
+@Test
+public void failure() throws IOException {
+    AtomicInteger count = new AtomicInteger(0);
+    try {
+        RetryUtils.retry("failure test", () -> {
+            count.incrementAndGet();
+            throw new IOException(Integer.toString(count.get()));
+        }, new CountingRetry(10));
+        fail("Expected an exception to be thrown");
+    } catch (IOException e) {
+        assertEquals("11", e.getMessage());
+    }
+    assertEquals(11, count.get());
+}

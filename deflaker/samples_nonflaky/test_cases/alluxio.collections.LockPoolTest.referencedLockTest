@@ -1,0 +1,14 @@
+@Test(timeout = 1000)
+public void referencedLockTest() {
+    LockResource lock0 = mPool.get(0, LockMode.READ);
+    LockResource lock1 = mPool.get(50, LockMode.READ);
+    LockResource lock2 = mPool.get(100, LockMode.READ);
+    for (int j = 0; j < 10; j++) {
+        for (int i = 0; i < 100; i++) {
+            mPool.get(i, LockMode.READ).close();
+        }
+    }
+    assertTrue(lock0.hasSameLock(mPool.get(0, LockMode.READ)));
+    assertTrue(lock1.hasSameLock(mPool.get(50, LockMode.READ)));
+    assertTrue(lock2.hasSameLock(mPool.get(100, LockMode.READ)));
+}

@@ -1,0 +1,27 @@
+/**
+ * Tests the {@link BlockMetadataEvictorView#getBlockMeta(long)}  method.
+ */
+@Test
+public void getBlockMeta() throws Exception {
+    StorageDir dir = mMetaManager.getTiers().get(TEST_TIER_ORDINAL).getDir(TEST_DIR);
+    // Add one block to test dir, expect block meta found
+    BlockMeta blockMeta = new BlockMeta(TEST_BLOCK_ID, TEST_BLOCK_SIZE, dir);
+    dir.addBlockMeta(blockMeta);
+    assertEquals(blockMeta, mMetadataView.getBlockMeta(TEST_BLOCK_ID));
+    assertTrue(mMetadataView.isBlockEvictable(TEST_BLOCK_ID));
+    // Lock this block, expect null result
+    when(mMetadataView.isBlockPinned(TEST_BLOCK_ID)).thenReturn(false);
+    when(mMetadataView.isBlockLocked(TEST_BLOCK_ID)).thenReturn(true);
+    assertNull(mMetadataView.getBlockMeta(TEST_BLOCK_ID));
+    assertFalse(mMetadataView.isBlockEvictable(TEST_BLOCK_ID));
+    // Pin this block, expect null result
+    when(mMetadataView.isBlockPinned(TEST_BLOCK_ID)).thenReturn(true);
+    when(mMetadataView.isBlockLocked(TEST_BLOCK_ID)).thenReturn(false);
+    assertNull(mMetadataView.getBlockMeta(TEST_BLOCK_ID));
+    assertFalse(mMetadataView.isBlockEvictable(TEST_BLOCK_ID));
+    // No Pin or lock on this block, expect block meta found
+    when(mMetadataView.isBlockPinned(TEST_BLOCK_ID)).thenReturn(false);
+    when(mMetadataView.isBlockLocked(TEST_BLOCK_ID)).thenReturn(false);
+    assertEquals(blockMeta, mMetadataView.getBlockMeta(TEST_BLOCK_ID));
+    assertTrue(mMetadataView.isBlockEvictable(TEST_BLOCK_ID));
+}

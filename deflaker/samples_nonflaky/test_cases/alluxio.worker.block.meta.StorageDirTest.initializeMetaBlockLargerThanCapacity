@@ -1,0 +1,18 @@
+/**
+ * Tests that an exception is thrown when trying to initialize a block that is larger than the
+ * capacity.
+ */
+@Test
+public void initializeMetaBlockLargerThanCapacity() throws Exception {
+    File testDir = mFolder.newFolder();
+    newBlockFile(testDir, String.valueOf(TEST_BLOCK_ID), Ints.checkedCast(TEST_DIR_CAPACITY + 1));
+    String alias = "MEM";
+    mThrown.expect(WorkerOutOfSpaceException.class);
+    mThrown.expectMessage(ExceptionMessage.NO_SPACE_FOR_BLOCK_META.getMessage(TEST_BLOCK_ID, TEST_DIR_CAPACITY + 1, TEST_DIR_CAPACITY, alias));
+    mDir = newStorageDir(testDir);
+    assertMetadataEmpty(mDir, TEST_DIR_CAPACITY);
+    // assert file not deleted
+    File[] files = testDir.listFiles();
+    Assert.assertNotNull(files);
+    assertEquals(1, files.length);
+}

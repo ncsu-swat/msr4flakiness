@@ -1,0 +1,27 @@
+@Test
+public void writeEvents() throws Exception {
+    createFile("/file");
+    assertNotEquals(INVALID_ID, findFile("file"));
+    createFile("/for_nested_file/nested_file");
+    assertNotEquals(INVALID_ID, findDir("for_nested_file"));
+    assertNotEquals(INVALID_ID, findFile("nested_file"));
+    createDir("/dir");
+    assertNotEquals(INVALID_ID, findDir("dir"));
+    createDir("/for_nested_dir/nested_dir");
+    assertNotEquals(INVALID_ID, findDir("for_nested_dir"));
+    assertNotEquals(INVALID_ID, findDir("nested_dir"));
+    createFile("/rename_src");
+    mFileSystemMaster.rename(new AlluxioURI("/rename_src"), new AlluxioURI("/rename_dst"), RenameContext.defaults());
+    assertNotEquals(INVALID_ID, findFile("rename_src"));
+    assertNotEquals(INVALID_ID, findRename("rename_dst"));
+    createFile("/deleted_file");
+    mFileSystemMaster.delete(new AlluxioURI("/deleted_file"), DeleteContext.defaults());
+    final long deleteId = findFile("deleted_file");
+    assertNotEquals(INVALID_ID, deleteId);
+    assertNotEquals(INVALID_ID, findDelete(deleteId));
+    createFile("/deleted_dir/file1");
+    mFileSystemMaster.delete(new AlluxioURI("/deleted_dir"), DeleteContext.create(DeletePOptions.newBuilder().setRecursive(true)));
+    final long deleteId1 = findFile("file1");
+    assertNotEquals(INVALID_ID, deleteId1);
+    assertNotEquals(INVALID_ID, findDelete(deleteId1));
+}

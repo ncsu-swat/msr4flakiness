@@ -1,0 +1,19 @@
+/**
+ * Tests that inc can be interrupted.
+ */
+@Test
+public void interruptInc() throws Exception {
+    mLatch.await();
+    Thread inc = new Thread(() -> {
+        try {
+            mLatch.inc();
+        } catch (InterruptedException e) {
+        // Expected.
+        }
+    });
+    inc.start();
+    inc.join(SLEEP_MILLIS);
+    Assert.assertEquals(Thread.State.WAITING, inc.getState());
+    inc.interrupt();
+    inc.join();
+}

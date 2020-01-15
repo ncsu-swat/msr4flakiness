@@ -1,0 +1,20 @@
+/**
+ * Tests that if an exception is thrown by the underlying out stream, and the user is using
+ * {@link UnderStorageType#NO_PERSIST} for their under storage type, the correct exception
+ * message will be thrown.
+ */
+@Test
+public void cacheWriteExceptionNonSyncPersist() throws IOException {
+    OutStreamOptions options = OutStreamOptions.defaults(mClientContext).setBlockSizeBytes(BLOCK_LENGTH).setWriteType(WriteType.MUST_CACHE);
+    BlockOutStream stream = mock(BlockOutStream.class);
+    when(mBlockStore.getOutStream(anyInt(), anyLong(), any(OutStreamOptions.class))).thenReturn(stream);
+    mTestStream = createTestStream(FILE_NAME, options);
+    when(stream.remaining()).thenReturn(BLOCK_LENGTH);
+    doThrow(new IOException("test error")).when(stream).write((byte) 7);
+    try {
+        mTestStream.write(7);
+        fail("the test should fail");
+    } catch (IOException e) {
+        assertEquals(ExceptionMessage.FAILED_CACHE.getMessage("test error"), e.getMessage());
+    }
+}

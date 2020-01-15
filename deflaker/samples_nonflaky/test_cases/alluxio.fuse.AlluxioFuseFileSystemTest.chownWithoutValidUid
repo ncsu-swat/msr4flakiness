@@ -1,0 +1,14 @@
+@Test
+public void chownWithoutValidUid() throws Exception {
+    String userName = System.getProperty("user.name");
+    long uid = AlluxioFuseFileSystem.ID_NOT_SET_VALUE;
+    long gid = AlluxioFuseUtils.getGid(userName);
+    mFuseFs.chown("/foo/bar", uid, gid);
+    String groupName = AlluxioFuseUtils.getGroupName(userName);
+    AlluxioURI expectedPath = BASE_EXPECTED_URI.join("/foo/bar");
+    SetAttributePOptions options = SetAttributePOptions.newBuilder().setGroup(groupName).build();
+    verify(mFileSystem).setAttribute(expectedPath, options);
+    uid = AlluxioFuseFileSystem.ID_NOT_SET_VALUE_UNSIGNED;
+    mFuseFs.chown("/foo/bar", uid, gid);
+    verify(mFileSystem, times(2)).setAttribute(expectedPath, options);
+}

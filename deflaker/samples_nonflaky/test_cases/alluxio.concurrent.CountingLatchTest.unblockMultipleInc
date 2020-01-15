@@ -1,0 +1,30 @@
+/**
+ * Tests that multiple blocked inc can be unblocked when release returns.
+ */
+@Test
+public void unblockMultipleInc() throws Exception {
+    Assert.assertEquals(0, mLatch.getState());
+    mLatch.await();
+    Assert.assertEquals(-1, mLatch.getState());
+    List<BlockingThread> incThreads = new ArrayList<>();
+    final int numThreads = 10;
+    for (int i = 0; i < numThreads; i++) {
+        incThreads.add(new BlockingThread(() -> {
+            try {
+                mLatch.inc();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }));
+    }
+    for (BlockingThread t : incThreads) {
+        t.start();
+    }
+    Thread.sleep(SLEEP_MILLIS);
+    mLatch.release();
+    for (BlockingThread t : incThreads) {
+        t.join();
+        Assert.assertTrue(String.format("BlockedTimeMillis: %s", t.getBlockedTimeMillis()), t.getBlockedTimeMillis() >= SLEEP_MILLIS);
+    }
+    Assert.assertEquals(numThreads, mLatch.getState());
+}

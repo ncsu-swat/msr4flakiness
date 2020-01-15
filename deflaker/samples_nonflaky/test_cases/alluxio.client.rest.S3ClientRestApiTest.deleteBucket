@@ -1,0 +1,17 @@
+@Test
+public void deleteBucket() throws Exception {
+    final String bucket = "bucket-to-delete";
+    createBucketRestCall(bucket);
+    // Verify the directory is created for the new bucket.
+    AlluxioURI uri = new AlluxioURI(AlluxioURI.SEPARATOR + bucket);
+    Assert.assertTrue(mFileSystemMaster.listStatus(uri, ListStatusContext.defaults()).isEmpty());
+    HttpURLConnection connection = deleteBucketRestCall(bucket);
+    Assert.assertEquals(Response.Status.NO_CONTENT.getStatusCode(), connection.getResponseCode());
+    try {
+        mFileSystemMaster.getFileInfo(uri, GET_STATUS_CONTEXT);
+    } catch (FileDoesNotExistException e) {
+        // expected
+        return;
+    }
+    Assert.fail("bucket should have been removed");
+}

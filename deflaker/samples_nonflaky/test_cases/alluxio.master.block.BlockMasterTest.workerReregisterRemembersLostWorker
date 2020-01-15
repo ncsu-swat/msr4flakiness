@@ -1,0 +1,16 @@
+@Test
+public void workerReregisterRemembersLostWorker() throws Exception {
+    // Register a worker.
+    long worker1 = mBlockMaster.getWorkerId(NET_ADDRESS_1);
+    mBlockMaster.workerRegister(worker1, ImmutableList.of("MEM"), ImmutableMap.of("MEM", 100L), ImmutableMap.of("MEM", 10L), NO_BLOCKS_ON_LOCATION, NO_LOST_STORAGE, RegisterWorkerPOptions.getDefaultInstance());
+    // Advance the block master's clock by an hour so that the worker appears lost.
+    mClock.setTimeMs(System.currentTimeMillis() + Constants.HOUR_MS);
+    // Run the lost worker detector.
+    HeartbeatScheduler.execute(HeartbeatContext.MASTER_LOST_WORKER_DETECTION);
+    // Reregister the worker using its original worker id.
+    mBlockMaster.getWorkerId(NET_ADDRESS_1);
+    mBlockMaster.workerRegister(worker1, ImmutableList.of("MEM"), ImmutableMap.of("MEM", 100L), ImmutableMap.of("MEM", 10L), NO_BLOCKS_ON_LOCATION, NO_LOST_STORAGE, RegisterWorkerPOptions.getDefaultInstance());
+    // Check that there are no longer any lost workers and there is a live worker.
+    assertEquals(1, mBlockMaster.getWorkerCount());
+    assertEquals(0, mBlockMaster.getLostWorkersInfoList().size());
+}

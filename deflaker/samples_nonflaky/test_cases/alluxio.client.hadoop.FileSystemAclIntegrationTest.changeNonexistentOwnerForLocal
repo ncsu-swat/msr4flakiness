@@ -1,0 +1,26 @@
+/**
+ * Test for {@link FileSystem#setOwner(Path, String, String)} with local UFS. It will test only
+ * changing the owner of file using TFS and propagate the change to UFS. Since the arbitrary
+ * owner does not exist in the local UFS, the operation would fail.
+ */
+@Test
+public void changeNonexistentOwnerForLocal() throws Exception {
+    // Skip non-local UFSs.
+    Assume.assumeTrue(UnderFileSystemUtils.isLocal(sUfs));
+    Path fileA = new Path("/chownfileA-local");
+    final String nonexistentOwner = "nonexistent-user1";
+    final String nonexistentGroup = "nonexistent-group1";
+    create(sTFS, fileA);
+    FileStatus fs = sTFS.getFileStatus(fileA);
+    String defaultOwner = fs.getOwner();
+    String defaultGroup = fs.getGroup();
+    Assert.assertEquals(defaultOwner, sUfs.getFileStatus(PathUtils.concatPath(sUfsRoot, fileA)).getOwner());
+    // Group can different because local FS user to group mapping can be different from that
+    // in Alluxio.
+    Assert.assertNotEquals(defaultOwner, nonexistentOwner);
+    Assert.assertNotEquals(defaultGroup, nonexistentGroup);
+    // Expect a IOException for not able to setOwner for UFS with invalid owner name.
+    mThrown.expect(IOException.class);
+    mThrown.expectMessage("Could not setOwner for UFS file");
+    sTFS.setOwner(fileA, nonexistentOwner, null);
+}

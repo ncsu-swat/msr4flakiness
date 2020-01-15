@@ -1,0 +1,19 @@
+/**
+ * This test ensures the local UFS module correctly accepts paths that begin with / or file://.
+ */
+@Test
+public void factory() {
+    AlluxioConfiguration conf = new InstancedConfiguration(ConfigurationUtils.defaults());
+    UnderFileSystemFactory factory = UnderFileSystemFactoryRegistry.find("/local/test/path", conf);
+    UnderFileSystemFactory factory2 = UnderFileSystemFactoryRegistry.find("file://local/test/path", conf);
+    UnderFileSystemFactory factory3 = UnderFileSystemFactoryRegistry.find("hdfs://test-bucket/path", conf);
+    UnderFileSystemFactory factory4 = UnderFileSystemFactoryRegistry.find("R:\\ramfs\\", conf);
+    UnderFileSystemFactory factory5 = UnderFileSystemFactoryRegistry.find("file://R:/famfs", conf);
+    UnderFileSystemFactory factory6 = UnderFileSystemFactoryRegistry.find("R:/ramfs/", conf);
+    Assert.assertNotNull("A UnderFileSystemFactory should exist for local paths when using this module", factory);
+    Assert.assertNotNull("A UnderFileSystemFactory should exist for local paths when using this module", factory2);
+    Assert.assertNull("A UnderFileSystemFactory should not exist for non local paths when using this module", factory3);
+    Assert.assertNotNull("A UnderFileSystemFactory should exist for local paths when using this module", factory4);
+    Assert.assertNotNull("A UnderFileSystemFactory should exist for local paths when using this module", factory5);
+    Assert.assertNotNull("A UnderFileSystemFactory should exist for local paths when using this module", factory6);
+}

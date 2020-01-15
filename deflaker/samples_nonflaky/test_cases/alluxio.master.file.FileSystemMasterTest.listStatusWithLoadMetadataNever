@@ -1,0 +1,21 @@
+@Test
+public void listStatusWithLoadMetadataNever() throws Exception {
+    AlluxioURI ufsMount = new AlluxioURI(mTestFolder.newFolder().getAbsolutePath());
+    mFileSystemMaster.createDirectory(new AlluxioURI("/mnt/"), CreateDirectoryContext.defaults());
+    // Create ufs file.
+    Files.createDirectory(Paths.get(ufsMount.join("dir1").getPath()));
+    Files.createFile(Paths.get(ufsMount.join("dir1").join("file1").getPath()));
+    Files.createFile(Paths.get(ufsMount.join("dir1").join("file2").getPath()));
+    mFileSystemMaster.mount(new AlluxioURI("/mnt/local"), ufsMount, MountContext.defaults());
+    // 3 directories exist.
+    assertEquals(3, countPaths());
+    // getFileId should load metadata automatically.
+    AlluxioURI uri = new AlluxioURI("/mnt/local/dir1");
+    try {
+        mFileSystemMaster.listStatus(uri, ListStatusContext.mergeFrom(ListStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.NEVER)));
+        fail("Exception expected");
+    } catch (FileDoesNotExistException e) {
+    // Expected case.
+    }
+    assertEquals(3, countPaths());
+}

@@ -1,0 +1,23 @@
+/**
+ * Checks waitForComplete succeed after onCompleted is triggered on response stream.
+ */
+@Test
+public void waitForComplete() throws Exception {
+    WriteResponse[] responses = Stream.generate(() -> WriteResponse.newBuilder().build()).limit(BUFFER_SIZE * 2).toArray(WriteResponse[]::new);
+    EXECUTOR.submit(() -> {
+        for (WriteResponse response : responses) {
+            mResponseObserver.onNext(response);
+        }
+        try {
+            Thread.sleep(SHORT_TIMEOUT);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        mResponseObserver.onCompleted();
+    });
+    WriteResponse actualResponse = mStream.receive(TIMEOUT);
+    assertEquals(responses[0], actualResponse);
+    mStream.waitForComplete(TIMEOUT);
+    actualResponse = mStream.receive(TIMEOUT);
+    assertEquals(null, actualResponse);
+}

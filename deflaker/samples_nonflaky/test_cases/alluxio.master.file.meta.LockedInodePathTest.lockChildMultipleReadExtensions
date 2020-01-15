@@ -1,0 +1,20 @@
+@Test
+public void lockChildMultipleReadExtensions() throws Exception {
+    mPath = create("/a", LockPattern.READ);
+    LockedInodePath childPath1 = mPath.lockChild(mDirB, LockPattern.READ);
+    LockedInodePath childPath2 = childPath1.lockChild(mFileC, LockPattern.READ);
+    checkOnlyNodesReadLocked(mRootDir, mDirA, mDirB, mFileC);
+    checkOnlyNodesWriteLocked();
+    checkOnlyIncomingEdgesReadLocked(mRootDir, mDirA, mDirB, mFileC);
+    checkOnlyIncomingEdgesWriteLocked();
+    childPath2.close();
+    checkOnlyNodesReadLocked(mRootDir, mDirA, mDirB);
+    checkOnlyNodesWriteLocked();
+    checkOnlyIncomingEdgesReadLocked(mRootDir, mDirA, mDirB);
+    checkOnlyIncomingEdgesWriteLocked();
+    childPath1.close();
+    checkOnlyNodesReadLocked(mRootDir, mDirA);
+    checkOnlyNodesWriteLocked();
+    checkOnlyIncomingEdgesReadLocked(mRootDir, mDirA);
+    checkOnlyIncomingEdgesWriteLocked();
+}

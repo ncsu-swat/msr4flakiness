@@ -1,0 +1,14 @@
+@Test
+public void freeWildCard() throws IOException, AlluxioException {
+    String testDir = FileSystemShellUtilsTest.resetFileHierarchy(mFileSystem, WritePType.CACHE_THROUGH);
+    int ret = mFsShell.run("free", testDir + "/foo/*");
+    assertEquals(0, ret);
+    assertFalse(isInMemoryTest(testDir + "/foo/foobar1"));
+    assertFalse(isInMemoryTest(testDir + "/foo/foobar2"));
+    assertTrue(isInMemoryTest(testDir + "/bar/foobar3"));
+    assertTrue(isInMemoryTest(testDir + "/foobar4"));
+    ret = mFsShell.run("free", testDir + "/*/");
+    assertEquals(0, ret);
+    assertFalse(isInMemoryTest(testDir + "/bar/foobar3"));
+    assertFalse(isInMemoryTest(testDir + "/foobar4"));
+}

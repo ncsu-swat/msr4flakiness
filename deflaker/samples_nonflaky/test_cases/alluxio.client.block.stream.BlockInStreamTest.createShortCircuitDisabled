@@ -1,0 +1,10 @@
+@Test
+public void createShortCircuitDisabled() throws Exception {
+    try (Closeable c = new ConfigurationRule(PropertyKey.USER_SHORT_CIRCUIT_ENABLED, "false", mConf).toResource()) {
+        WorkerNetAddress dataSource = new WorkerNetAddress();
+        when(mMockContext.getClientContext()).thenReturn(ClientContext.create(mConf));
+        BlockInStream.BlockInStreamSource dataSourceType = BlockInStream.BlockInStreamSource.LOCAL;
+        BlockInStream stream = BlockInStream.create(mMockContext, mInfo, dataSource, dataSourceType, mOptions);
+        assertFalse(stream.isShortCircuit());
+    }
+}

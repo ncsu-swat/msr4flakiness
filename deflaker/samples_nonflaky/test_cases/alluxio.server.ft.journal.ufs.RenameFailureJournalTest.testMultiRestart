@@ -1,0 +1,16 @@
+@Test
+public void testMultiRestart() throws Exception {
+    List<AlluxioURI> paths = new ArrayList<>();
+    for (int i = 0; i < 3; i++) {
+        AlluxioURI path = new AlluxioURI("/path" + i);
+        paths.add(path);
+        mFs.createDirectory(path);
+        CommonUtils.sleepMs(10);
+    }
+    for (int i = 0; i < 3; i++) {
+        mLocalAlluxioClusterResource.get().restartMasters();
+        for (AlluxioURI path : paths) {
+            assertTrue(mFs.exists(path));
+        }
+    }
+}

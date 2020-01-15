@@ -1,0 +1,17 @@
+@Test
+public void zkFileSystemCacheTest() {
+    Map<String, String> sysProps = new HashMap<>();
+    sysProps.put(PropertyKey.ZOOKEEPER_ENABLED.getName(), Boolean.toString(true));
+    sysProps.put(PropertyKey.ZOOKEEPER_ADDRESS.getName(), "zk@192.168.0.5");
+    sysProps.put(PropertyKey.ZOOKEEPER_ELECTION_PATH.getName(), "/alluxio/leader");
+    try (Closeable p = new SystemPropertyRule(sysProps).toResource()) {
+        ConfigurationUtils.reloadProperties();
+        InstancedConfiguration conf = new InstancedConfiguration(ConfigurationUtils.defaults());
+        MasterInquireClient.ConnectDetails connectDetails = MasterInquireClient.Factory.getConnectDetails(conf);
+        // Make sure we have a Zookeeper authority
+        assertTrue(connectDetails.toAuthority() instanceof ZookeeperAuthority);
+        fileSystemCacheTest();
+    } catch (IOException e) {
+        fail("Unable to set system properties");
+    }
+}

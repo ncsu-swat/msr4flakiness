@@ -1,0 +1,20 @@
+/**
+ * Tests that non-local workers are randomly selected.
+ */
+@Test
+public void getOthersRandomly() {
+    LocalFirstPolicy policy = new LocalFirstPolicy(sConf);
+    List<BlockWorkerInfo> workers = new ArrayList<>();
+    workers.add(worker(Constants.GB, "worker1", ""));
+    workers.add(worker(Constants.GB, "worker2", ""));
+    boolean success = false;
+    GetWorkerOptions options = GetWorkerOptions.defaults().setBlockWorkerInfos(workers).setBlockInfo(new BlockInfo().setLength(Constants.MB));
+    for (int i = 0; i < 100; i++) {
+        String host = policy.getWorker(options).getHost();
+        if (!host.equals(policy.getWorker(options).getHost())) {
+            success = true;
+            break;
+        }
+    }
+    assertTrue(success);
+}

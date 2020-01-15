@@ -1,0 +1,36 @@
+@Test
+public void gainPrimacyDuringCatchup() throws Exception {
+    // Create a counting master implementation that counts how many journal entries it processed.
+    CountingDummyFileSystemMaster countingMaster = new CountingDummyFileSystemMaster();
+    mFollowerJournalSystem.createJournal(countingMaster);
+    // Using a large entry count for catching transition while in-progress.
+    final int entryCount = 100000;
+    // Suspend follower journal system.
+    mFollowerJournalSystem.suspend();
+    // Catch up follower journal to a large index to be able to transition while in progress.
+    final long catchupIndex = entryCount - 5;
+    Map<String, Long> backupSequences = new HashMap<>();
+    backupSequences.put("FileSystemMaster", catchupIndex);
+    CatchupFuture catchupFuture = mFollowerJournalSystem.catchup(backupSequences);
+    // Create entries in parallel on the leader journal context.
+    // These will be replicated to follower journal context.
+    ForkJoinPool.commonPool().submit(() -> {
+        try (JournalContext journalContext = mLeaderJournalSystem.createJournal(new NoopMaster()).createJournalContext()) {
+            for (int i = 0; i < entryCount; i++) {
+                journalContext.append(alluxio.proto.journal.Journal.JournalEntry.newBuilder().setInodeLastModificationTime(File.InodeLastModificationTimeEntry.newBuilder().setId(i).build()).build());
+            }
+        } catch (Exception e) {
+            Assert.fail(String.format("Failed while writing entries: %s", e.toString()));
+        }
+    });
+    // Wait until advancing starts.
+    CommonUtils.waitFor("Advancing to start.", () -> countingMaster.getApplyCount() > 0);
+    // Gain primacy in follower journal and validate it catches up.
+    mFollowerJournalSystem.gainPrimacy();
+    // Can't use countingMaster because Raft stops applying entries for primary journals.
+    // Using JournalSystem#getCurrentSequences() API instead.
+    CommonUtils.waitFor("full state acquired after resume", () -> mFollowerJournalSystem.getCurrentSequenceNumbers().values().stream().distinct().collect(Collectors.toList()).get(0) == entryCount - 1);
+    // Resuming should fail after becoming primary.
+    mThrown.expect(IllegalStateException.class);
+    mFollowerJournalSystem.resume();
+}

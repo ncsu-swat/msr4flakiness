@@ -1,0 +1,21 @@
+@Test
+public void copyFromLocalLarge() throws Exception {
+    File testFile = new File(mLocalAlluxioCluster.getAlluxioHome() + "/testFile");
+    testFile.createNewFile();
+    FileOutputStream fos = new FileOutputStream(testFile);
+    byte[] toWrite = BufferUtils.getIncreasingByteArray(SIZE_BYTES);
+    fos.write(toWrite);
+    fos.close();
+    String[] cmd = new String[] { "cp", "file://" + testFile.getAbsolutePath(), "/testFile" };
+    mFsShell.run(cmd);
+    Assert.assertEquals(getCommandOutput(cmd), mOutput.toString());
+    AlluxioURI uri = new AlluxioURI("/testFile");
+    URIStatus status = mFileSystem.getStatus(uri);
+    Assert.assertNotNull(status);
+    Assert.assertEquals(SIZE_BYTES, status.getLength());
+    try (FileInStream tfis = mFileSystem.openFile(uri, OpenFilePOptions.newBuilder().setReadType(ReadPType.NO_CACHE).build())) {
+        byte[] read = new byte[SIZE_BYTES];
+        tfis.read(read);
+        Assert.assertTrue(BufferUtils.equalIncreasingByteArray(SIZE_BYTES, read));
+    }
+}

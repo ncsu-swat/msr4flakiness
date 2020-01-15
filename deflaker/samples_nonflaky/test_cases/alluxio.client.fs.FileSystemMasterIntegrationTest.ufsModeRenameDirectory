@@ -1,0 +1,15 @@
+@Test
+public void ufsModeRenameDirectory() throws Exception {
+    AlluxioURI alluxioDirectory = new AlluxioURI("/in_ufs_dir");
+    mFsMaster.createDirectory(alluxioDirectory, CreateDirectoryContext.defaults().setWriteType(WriteType.CACHE_THROUGH));
+    AlluxioURI alluxioFile = new AlluxioURI("/in_ufs_dir/in_ufs_file");
+    mFsMaster.createFile(alluxioFile, CreateFileContext.defaults().setWriteType(WriteType.CACHE_THROUGH));
+    mFsMaster.updateUfsMode(new AlluxioURI(mFsMaster.getUfsAddress()), UfsMode.READ_ONLY);
+    mThrown.expect(AccessControlException.class);
+    mFsMaster.rename(alluxioDirectory, new AlluxioURI("/in_ufs_dst"), RenameContext.defaults());
+    // Check Alluxio entries exist after failed rename
+    long dirId = mFsMaster.getFileId(alluxioDirectory);
+    Assert.assertNotEquals(-1, dirId);
+    long fileId = mFsMaster.getFileId(alluxioFile);
+    Assert.assertNotEquals(-1, fileId);
+}

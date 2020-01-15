@@ -1,0 +1,20 @@
+@Test
+public void heartbeatFileWithinRange() throws Exception {
+    mFileContext.getOptions().setReplicationMin(1).setReplicationMax(3);
+    long blockId = createBlockHelper(TEST_FILE_1, mFileContext, "");
+    // One replica, meeting replication min
+    addBlockLocationHelper(blockId, 1);
+    mReplicationChecker.heartbeat();
+    Assert.assertEquals(EMPTY, mMockReplicationHandler.getEvictRequests());
+    Assert.assertEquals(EMPTY, mMockReplicationHandler.getReplicateRequests());
+    // Two replicas, good
+    heartbeatToAddLocationHelper(blockId, createWorkerHelper(1));
+    mReplicationChecker.heartbeat();
+    Assert.assertEquals(EMPTY, mMockReplicationHandler.getEvictRequests());
+    Assert.assertEquals(EMPTY, mMockReplicationHandler.getReplicateRequests());
+    // Three replicas, meeting replication max, still good
+    heartbeatToAddLocationHelper(blockId, createWorkerHelper(2));
+    mReplicationChecker.heartbeat();
+    Assert.assertEquals(EMPTY, mMockReplicationHandler.getEvictRequests());
+    Assert.assertEquals(EMPTY, mMockReplicationHandler.getReplicateRequests());
+}

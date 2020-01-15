@@ -1,0 +1,16 @@
+/**
+ * Ensures that an exception is propagated successfully when renaming a file.
+ */
+@Test
+public void renameException() throws Exception {
+    AlluxioURI src = new AlluxioURI("/file");
+    AlluxioURI dst = new AlluxioURI("/file2");
+    RenamePOptions renameOptions = RenamePOptions.getDefaultInstance();
+    doThrow(EXCEPTION).when(mFileSystemMasterClient).rename(src, dst, FileSystemOptions.renameDefaults(mConf).toBuilder().mergeFrom(renameOptions).build());
+    try {
+        mFileSystem.rename(src, dst, renameOptions);
+        fail(SHOULD_HAVE_PROPAGATED_MESSAGE);
+    } catch (Exception e) {
+        assertSame(EXCEPTION, e);
+    }
+}

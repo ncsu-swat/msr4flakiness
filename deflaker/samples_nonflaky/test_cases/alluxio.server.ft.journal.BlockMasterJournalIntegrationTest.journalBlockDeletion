@@ -1,0 +1,27 @@
+@Test
+public void journalBlockDeletion() throws Exception {
+    FileSystem fs = mCluster.getClient();
+    BlockMaster blockMaster = mCluster.getLocalAlluxioMaster().getMasterProcess().getMaster(BlockMaster.class);
+    AlluxioURI file = new AlluxioURI("/test");
+    FileSystemTestUtils.createByteFile(fs, file, WritePType.MUST_CACHE, 10);
+    URIStatus status = fs.getStatus(file);
+    Long blockId = status.getBlockIds().get(0);
+    assertNotNull(blockMaster.getBlockInfo(blockId));
+    fs.delete(file);
+    WorkerNetAddress workerAddress = mCluster.getWorkerAddress();
+    try {
+        blockMaster.getBlockInfo(blockId);
+        fail("Expected the block to be deleted");
+    } catch (BlockInfoException e) {
+    // expected
+    }
+    mCluster.stopMasters();
+    mCluster.startMasters();
+    AlluxioMasterProcess masterProcess = mCluster.getLocalAlluxioMaster().getMasterProcess();
+    try {
+        masterProcess.getMaster(BlockMaster.class).getBlockInfo(blockId);
+        fail("Expected the block to be deleted after restart");
+    } catch (BlockInfoException e) {
+    // expected
+    }
+}

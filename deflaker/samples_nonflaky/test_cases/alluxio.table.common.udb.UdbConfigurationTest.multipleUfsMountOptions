@@ -1,0 +1,10 @@
+@Test
+public void multipleUfsMountOptions() {
+    Map<String, String> opts = new ImmutableMap.Builder<String, String>().put("my.special.key", "myspecialvalue").put(ConfigurationUtils.MOUNT_PREFIX + "{ufs://a.a}.key1", "v1").put(ConfigurationUtils.MOUNT_PREFIX + "{ufs://a.a}.key2", "v2").put(ConfigurationUtils.MOUNT_PREFIX + "{ufs://b.b}.key2", "v3").put(ConfigurationUtils.MOUNT_PREFIX + "{file}.key2", "v4").build();
+    UdbConfiguration conf = new UdbConfiguration(opts);
+    assertEquals(3, Whitebox.<Map<String, String>>getInternalState(conf, "mMountOptions").size());
+    assertEquals(0, conf.getMountOption("").size());
+    assertEquals(1, conf.getMountOption("ufs://b.b").size());
+    assertEquals(2, conf.getMountOption("ufs://a.a").size());
+    assertEquals(1, conf.getMountOption("file").size());
+}

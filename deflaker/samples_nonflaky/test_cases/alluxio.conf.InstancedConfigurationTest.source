@@ -1,0 +1,24 @@
+@Test
+public void source() throws Exception {
+    Properties siteProps = new Properties();
+    File propsFile = mFolder.newFile(Constants.SITE_PROPERTIES);
+    siteProps.setProperty(PropertyKey.MASTER_HOSTNAME.toString(), "host-1");
+    siteProps.setProperty(PropertyKey.MASTER_WEB_PORT.toString(), "1234");
+    siteProps.store(new FileOutputStream(propsFile), "tmp site properties file");
+    Map<String, String> sysProps = new HashMap<>();
+    sysProps.put(PropertyKey.LOGS_DIR.toString(), "/tmp/logs1");
+    sysProps.put(PropertyKey.MASTER_WEB_PORT.toString(), "4321");
+    sysProps.put(PropertyKey.SITE_CONF_DIR.toString(), mFolder.getRoot().getAbsolutePath());
+    sysProps.put(PropertyKey.TEST_MODE.toString(), "false");
+    try (Closeable p = new SystemPropertyRule(sysProps).toResource()) {
+        resetConf();
+        // set only in site prop
+        assertEquals(Source.Type.SITE_PROPERTY, mConfiguration.getSource(PropertyKey.MASTER_HOSTNAME).getType());
+        // set both in site and system prop
+        assertEquals(Source.SYSTEM_PROPERTY, mConfiguration.getSource(PropertyKey.MASTER_WEB_PORT));
+        // set only in system prop
+        assertEquals(Source.SYSTEM_PROPERTY, mConfiguration.getSource(PropertyKey.LOGS_DIR));
+        // set neither in system prop
+        assertEquals(Source.DEFAULT, mConfiguration.getSource(PropertyKey.MASTER_RPC_PORT));
+    }
+}

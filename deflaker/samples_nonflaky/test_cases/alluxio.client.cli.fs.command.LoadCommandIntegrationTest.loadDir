@@ -1,0 +1,17 @@
+@Test
+public void loadDir() throws IOException, AlluxioException {
+    FileSystemTestUtils.createByteFile(mFileSystem, "/testRoot/testFileA", WritePType.THROUGH, 10);
+    FileSystemTestUtils.createByteFile(mFileSystem, "/testRoot/testFileB", WritePType.MUST_CACHE, 10);
+    AlluxioURI uriA = new AlluxioURI("/testRoot/testFileA");
+    AlluxioURI uriB = new AlluxioURI("/testRoot/testFileB");
+    URIStatus statusA = mFileSystem.getStatus(uriA);
+    URIStatus statusB = mFileSystem.getStatus(uriB);
+    assertFalse(statusA.getInAlluxioPercentage() == 100);
+    assertTrue(statusB.getInAlluxioPercentage() == 100);
+    // Testing loading of a directory
+    mFsShell.run("load", "/testRoot");
+    statusA = mFileSystem.getStatus(uriA);
+    statusB = mFileSystem.getStatus(uriB);
+    assertTrue(statusA.getInAlluxioPercentage() == 100);
+    assertTrue(statusB.getInAlluxioPercentage() == 100);
+}

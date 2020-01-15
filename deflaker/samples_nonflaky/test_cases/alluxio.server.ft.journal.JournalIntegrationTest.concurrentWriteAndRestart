@@ -1,0 +1,21 @@
+@Test
+public void concurrentWriteAndRestart() throws Exception {
+    final FileToucher toucher = new FileToucher();
+    Thread t = new Thread(toucher);
+    t.start();
+    try {
+        CommonUtils.waitFor("20 files to be created", () -> toucher.getFilesTouched() >= 20, WaitForOptions.defaults().setTimeoutMs(5 * Constants.SECOND_MS));
+        mCluster.restartMasters();
+    } catch (Exception e) {
+        // If an exception occurred, throw it instead of the timeout exception
+        checkException();
+        throw e;
+    } finally {
+        t.interrupt();
+    }
+    t.join();
+    checkException();
+    int numFiles = mCluster.getClient().listStatus(new AlluxioURI("/")).size();
+    // There may be one extra file if the client was interrupted during the last RPC.
+    assertTrue(numFiles == toucher.getFilesTouched() || numFiles == toucher.getFilesTouched() + 1);
+}

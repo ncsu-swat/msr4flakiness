@@ -1,0 +1,21 @@
+@Test
+public void journalSync() throws Exception {
+    mClusterResource.start();
+    LocalAlluxioCluster mCluster = mClusterResource.get();
+    TableMaster tableMaster = mCluster.getLocalAlluxioMaster().getMasterProcess().getMaster(TableMaster.class);
+    tableMaster.attachDatabase(TestUdbFactory.TYPE, "connect", DB_NAME, DB_NAME, Collections.emptyMap());
+    checkTable(tableMaster, DB_NAME, 1, 2);
+    // Update Udb, the table should stay the same, until we sync
+    TestDatabase.genTable(2, 3);
+    checkTable(tableMaster, DB_NAME, 1, 2);
+    assertEquals(TestDatabase.getTableName(0), tableMaster.getAllTables(DB_NAME).get(0));
+    assertEquals(1, tableMaster.getAllTables(DB_NAME).size());
+    assertEquals(2, tableMaster.getTable(DB_NAME, TestDatabase.getTableName(0)).getPartitions().size());
+    tableMaster.syncDatabase(DB_NAME);
+    checkTable(tableMaster, DB_NAME, 2, 3);
+    mCluster.stopMasters();
+    mCluster.startMasters();
+    TableMaster tableMasterRestart = mCluster.getLocalAlluxioMaster().getMasterProcess().getMaster(TableMaster.class);
+    tableMasterRestart.syncDatabase(DB_NAME);
+    checkTable(tableMasterRestart, DB_NAME, 2, 3);
+}

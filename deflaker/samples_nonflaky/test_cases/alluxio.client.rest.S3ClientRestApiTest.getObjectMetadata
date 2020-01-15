@@ -1,0 +1,15 @@
+@Test
+public void getObjectMetadata() throws Exception {
+    final String bucket = "bucket";
+    createBucketRestCall(bucket);
+    final String objectKey = bucket + AlluxioURI.SEPARATOR + "object.txt";
+    final byte[] objectContent = CommonUtils.randomAlphaNumString(10).getBytes();
+    createObjectRestCall(objectKey, objectContent, null, NO_PARAMS);
+    HttpURLConnection connection = getObjectMetadataRestCall(objectKey);
+    URIStatus status = mFileSystem.getStatus(new AlluxioURI(AlluxioURI.SEPARATOR + objectKey));
+    // remove the milliseconds from the last modification time because the accuracy of HTTP dates
+    // is up to seconds.
+    long lastModified = status.getLastModificationTimeMs() / 1000 * 1000;
+    Assert.assertEquals(lastModified, connection.getLastModified());
+    Assert.assertEquals(String.valueOf(status.getLength()), connection.getHeaderField(S3Constants.S3_CONTENT_LENGTH_HEADER));
+}

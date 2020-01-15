@@ -1,0 +1,14 @@
+/**
+ * Tests that the original TTL is removed after setting it to {@link Constants#NO_TTL} for a file.
+ */
+@Test
+public void setNoTtlForFileWithTtl() throws Exception {
+    mFileSystemMaster.createDirectory(NESTED_URI, CreateDirectoryContext.mergeFrom(CreateDirectoryPOptions.newBuilder().setRecursive(true)));
+    CreateFileContext context = CreateFileContext.mergeFrom(CreateFilePOptions.newBuilder().setCommonOptions(FileSystemMasterCommonPOptions.newBuilder().setTtl(0)).setBlockSizeBytes(Constants.KB).setRecursive(true));
+    long fileId = mFileSystemMaster.createFile(NESTED_FILE_URI, context).getFileId();
+    // After setting TTL to NO_TTL, the original TTL will be removed, and the file will not be
+    // deleted during next TTL check.
+    mFileSystemMaster.setAttribute(NESTED_FILE_URI, SetAttributeContext.mergeFrom(SetAttributePOptions.newBuilder().setCommonOptions(FileSystemMasterCommonPOptions.newBuilder().setTtl(Constants.NO_TTL))));
+    HeartbeatScheduler.execute(HeartbeatContext.MASTER_TTL_CHECK);
+    assertEquals(fileId, mFileSystemMaster.getFileInfo(fileId).getFileId());
+}

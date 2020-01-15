@@ -1,0 +1,10 @@
+@Test
+public void heartbeatFileOverReplicatedBy1() throws Exception {
+    mFileContext.getOptions().setReplicationMax(1);
+    long blockId = createBlockHelper(TEST_FILE_1, mFileContext, "");
+    addBlockLocationHelper(blockId, 2);
+    mReplicationChecker.heartbeat();
+    Map<Long, Integer> expected = ImmutableMap.of(blockId, 1);
+    Assert.assertEquals(expected, mMockReplicationHandler.getEvictRequests());
+    Assert.assertEquals(EMPTY, mMockReplicationHandler.getReplicateRequests());
+}

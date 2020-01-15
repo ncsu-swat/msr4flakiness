@@ -1,0 +1,21 @@
+@Test(timeout = 300000)
+@LocalAlluxioClusterResource.Config(confParams = { PropertyKey.Name.USER_RPC_RETRY_MAX_DURATION, "10s" })
+public void masterUnavailable() throws Exception {
+    mLocalAlluxioClusterResource.get().getLocalAlluxioMaster().stop();
+    Thread thread = new Thread(new Runnable() {
+
+        @Override
+        public void run() {
+            try {
+                Thread.sleep(3000);
+                mLocalAlluxioClusterResource.get().getLocalAlluxioMaster().start();
+            } catch (InterruptedException e) {
+                throw Throwables.propagate(e);
+            }
+        }
+    });
+    thread.start();
+    FileSystem fileSystem = mLocalAlluxioClusterResource.get().getClient();
+    fileSystem.listStatus(new AlluxioURI("/"));
+    thread.join();
+}

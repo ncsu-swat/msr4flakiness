@@ -1,0 +1,24 @@
+/**
+ * Tests that when await is blocked, further inc will not be blocked.
+ * If the assumption is wrong, this test will be blocked and timed out.
+ */
+@Test
+public void blockedAwait() throws Exception {
+    Assert.assertEquals(0, mLatch.getState());
+    mLatch.inc();
+    Assert.assertEquals(1, mLatch.getState());
+    BlockingThread await = new BlockingThread(mLatch::await);
+    await.start();
+    int incAfterAwait = 10;
+    for (int i = 0; i < incAfterAwait; i++) {
+        mLatch.inc();
+        Assert.assertEquals(i + 2, mLatch.getState());
+    }
+    for (int i = 0; i < incAfterAwait; i++) {
+        mLatch.dec();
+        Assert.assertEquals(incAfterAwait - i, mLatch.getState());
+    }
+    mLatch.dec();
+    await.join();
+    Assert.assertEquals(-1, mLatch.getState());
+}

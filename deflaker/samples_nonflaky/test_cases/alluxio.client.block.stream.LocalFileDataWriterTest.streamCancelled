@@ -1,0 +1,12 @@
+@Test
+public void streamCancelled() throws Exception {
+    LocalFileDataWriter writer = LocalFileDataWriter.create(mContext, mAddress, BLOCK_ID, OutStreamOptions.defaults(mClientContext));
+    // Cancel stream before cancelling the writer
+    PowerMockito.when(mStream.isCanceled()).thenReturn(true);
+    PowerMockito.when(mStream.isClosed()).thenReturn(true);
+    PowerMockito.when(mStream.isOpen()).thenReturn(true);
+    writer.cancel();
+    // Verify there are no open files
+    LocalFileBlockWriter blockWriter = Whitebox.getInternalState(writer, "mWriter");
+    Assert.assertTrue(Whitebox.getInternalState(blockWriter, "mClosed"));
+}

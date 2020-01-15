@@ -1,0 +1,11 @@
+@Test
+public void listEmptyBucket() throws Exception {
+    final String bucket = "empty-bucket-to-list";
+    createBucketRestCall(bucket);
+    AlluxioURI uri = new AlluxioURI(AlluxioURI.SEPARATOR + bucket + AlluxioURI.SEPARATOR);
+    // Verify the directory is created for the new bucket.
+    Assert.assertTrue(mFileSystemMaster.listStatus(uri, ListStatusContext.defaults()).isEmpty());
+    List<URIStatus> listStatusResult = new ArrayList<>();
+    ListBucketResult expected = new ListBucketResult(AlluxioURI.SEPARATOR + bucket, listStatusResult, ListBucketOptions.defaults());
+    new TestCase(mHostname, mPort, S3_SERVICE_PREFIX + AlluxioURI.SEPARATOR + bucket, NO_PARAMS, HttpMethod.GET, expected, TestCaseOptions.defaults().setContentType(TestCaseOptions.XML_CONTENT_TYPE)).run();
+}

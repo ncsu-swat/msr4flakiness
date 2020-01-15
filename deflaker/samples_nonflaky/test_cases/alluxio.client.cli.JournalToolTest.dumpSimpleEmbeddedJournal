@@ -1,0 +1,12 @@
+@Test
+@LocalAlluxioClusterResource.Config(confParams = { PropertyKey.Name.MASTER_JOURNAL_TYPE, "EMBEDDED" })
+public void dumpSimpleEmbeddedJournal() throws Throwable {
+    // Create a test directory to trigger journaling.
+    mFs.createDirectory(new AlluxioURI("/test"));
+    // Run journal tool.
+    String masterJournalPath = mLocalAlluxioClusterResource.get().getLocalAlluxioMaster().getJournalFolder();
+    JournalTool.main(new String[] { "-inputDir", masterJournalPath, "-outputDir", mDumpDir.getAbsolutePath() });
+    // Verify that a non-zero dump file exists.
+    assertThat(mOutput.toString(), containsString(mDumpDir.getAbsolutePath()));
+    assertNonemptyFileExists(PathUtils.concatPath(mDumpDir, "edits.txt"));
+}

@@ -1,0 +1,11 @@
+@Test
+public void restoreInvalidJournalEntryCheckpoint() throws IOException {
+    Journaled journaled = new TestJournaled(0);
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    // Checkpoint version doesn't match Constants.JOURNAL_ENTRY_CHECKPOINT_VERSION.
+    CheckpointOutputStream cos = new CheckpointOutputStream(baos, CheckpointType.COMPOUND);
+    cos.flush();
+    mThrown.expect(IllegalStateException.class);
+    mThrown.expectMessage("Unrecognized checkpoint type");
+    JournalUtils.restoreJournalEntryCheckpoint(new CheckpointInputStream(new ByteArrayInputStream(baos.toByteArray())), journaled);
+}

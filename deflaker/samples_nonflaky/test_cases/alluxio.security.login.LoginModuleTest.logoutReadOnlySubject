@@ -1,0 +1,23 @@
+/**
+ * This test verifies that logging out a read only subject should fail.
+ */
+@Test
+public void logoutReadOnlySubject() throws Exception {
+    String clazzName = LoginModuleConfigurationUtils.OS_PRINCIPAL_CLASS_NAME;
+    @SuppressWarnings("unchecked")
+    Class<? extends Principal> clazz = (Class<? extends Principal>) ClassLoader.getSystemClassLoader().loadClass(clazzName);
+    Subject subject = new Subject();
+    // login, add OS user into subject, and add corresponding Alluxio user into subject
+    LoginContext loginContext = new LoginContext("simple", subject, null, new LoginModuleConfiguration());
+    loginContext.login();
+    // verify whether OS user and Alluxio user is added.
+    assertFalse(subject.getPrincipals(clazz).isEmpty());
+    assertFalse(subject.getPrincipals(User.class).isEmpty());
+    // logout read only subject should fail.
+    subject.setReadOnly();
+    mThrown.expect(LoginException.class);
+    mThrown.expectMessage("logout Failed: Subject is Readonly");
+    loginContext.logout();
+    assertFalse(subject.getPrincipals(clazz).isEmpty());
+    assertFalse(subject.getPrincipals(User.class).isEmpty());
+}

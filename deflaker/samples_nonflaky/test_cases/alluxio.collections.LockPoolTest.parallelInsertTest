@@ -1,0 +1,28 @@
+@Test(timeout = 1000)
+public void parallelInsertTest() throws Exception {
+    // Fills in the pool.
+    Thread t1 = getKeys(0, HIGH_WATERMARK);
+    Thread t2 = getKeys(0, HIGH_WATERMARK);
+    t1.join();
+    t2.join();
+    assertEquals(HIGH_WATERMARK, mPool.size());
+    for (int key = 0; key < HIGH_WATERMARK; key++) {
+        assertTrue(mPool.containsKey(key));
+    }
+    // Evicts the old locks until size goes below low watermark.
+    Thread t3 = getKeys(HIGH_WATERMARK, HIGH_WATERMARK + 1);
+    t3.join();
+    CommonUtils.waitFor("Pool size to go below low watermark", () -> mPool.size() <= LOW_WATERMARK);
+    assertEquals(LOW_WATERMARK, mPool.size());
+    // Fills in the pool again.
+    int newStartKey = HIGH_WATERMARK;
+    int newEndKey = newStartKey + HIGH_WATERMARK - LOW_WATERMARK;
+    Thread t4 = getKeys(newStartKey, newEndKey);
+    Thread t5 = getKeys(newStartKey, newEndKey);
+    t4.join();
+    t5.join();
+    assertEquals(HIGH_WATERMARK, mPool.size());
+    for (int key = newStartKey; key < newEndKey; key++) {
+        assertTrue(Integer.toString(key), mPool.containsKey(key));
+    }
+}

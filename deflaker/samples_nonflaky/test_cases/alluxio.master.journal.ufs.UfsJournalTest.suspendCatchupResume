@@ -1,0 +1,39 @@
+@Test
+public void suspendCatchupResume() throws Exception {
+    mJournal.start();
+    mJournal.gainPrimacy();
+    // Create a counting master implementation that counts how many journal entries it processed.
+    CountingNoopMaster countingMaster = new CountingNoopMaster();
+    // Find journal base path for secondary journal to consume the same journal files.
+    String parentPath = new File(mJournal.getLocation().getPath()).getParent();
+    UfsJournal secondaryJournal = new UfsJournal(new URI(parentPath), countingMaster, 0, Collections::emptySet);
+    secondaryJournal.start();
+    // Bring current next sequence to 3.
+    // seq-0
+    mJournal.write(Journal.JournalEntry.getDefaultInstance());
+    // seq-1
+    mJournal.write(Journal.JournalEntry.getDefaultInstance());
+    // seq-2
+    mJournal.write(Journal.JournalEntry.getDefaultInstance());
+    mJournal.flush();
+    // Secondary still hasn't seen the updates since the current journal file is not complete.
+    secondaryJournal.suspend();
+    // Write more entries while secondary is at backup mode.
+    // seq-3
+    mJournal.write(Journal.JournalEntry.getDefaultInstance());
+    // seq-4
+    mJournal.write(Journal.JournalEntry.getDefaultInstance());
+    mJournal.flush();
+    // Resume until sequence-1.
+    secondaryJournal.catchup(1).waitTermination();
+    // Entries still reside in an incomplete journal file.
+    // After backup, we should have read only up to sequence-1.
+    Assert.assertEquals(2, countingMaster.getApplyCount());
+    // Initiate primary journal shutdown.
+    // Current journal file will be completed and secondary should still be suspended.
+    mJournal.close();
+    Assert.assertEquals(2, countingMaster.getApplyCount());
+    // secondary should apply new entries after resumed.
+    secondaryJournal.resume();
+    CommonUtils.waitFor("catching up to current state", () -> countingMaster.getApplyCount() == 5);
+}

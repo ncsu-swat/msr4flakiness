@@ -1,0 +1,12 @@
+/**
+ * Tests that block locks are not returned to the pool when they are still in use.
+ */
+@Test(timeout = 10000)
+public void dontReuseLock() throws Exception {
+    setMaxLocks(1);
+    final BlockLockManager manager = new BlockLockManager();
+    long lockId1 = manager.lockBlock(TEST_SESSION_ID, 1, BlockLockType.READ);
+    manager.lockBlock(TEST_SESSION_ID, 1, BlockLockType.READ);
+    assertTrue(manager.unlockBlockNoException(lockId1));
+    lockExpectingHang(manager, 2);
+}

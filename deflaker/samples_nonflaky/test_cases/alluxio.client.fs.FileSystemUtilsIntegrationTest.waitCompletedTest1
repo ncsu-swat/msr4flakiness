@@ -1,0 +1,48 @@
+@Test
+public void waitCompletedTest1() throws IOException, AlluxioException, InterruptedException {
+    final String uniqPath = PathUtils.uniqPath();
+    // random value chosen through a fair dice roll :P
+    final int numWrites = 4;
+    final AlluxioURI uri = new AlluxioURI(uniqPath);
+    final Runnable writer = new Runnable() {
+
+        @Override
+        public void run() {
+            try {
+                FileOutStream os = sFileSystem.createFile(uri, sWriteBoth);
+                boolean completed = sFileSystem.getStatus(uri).isCompleted();
+                assertFalse(completed);
+                for (int i = 0; i < numWrites; i++) {
+                    os.write(42);
+                    CommonUtils.sleepMs(200);
+                }
+                os.close();
+                completed = sFileSystem.getStatus(uri).isCompleted();
+                assertTrue(completed);
+            } catch (Exception e) {
+                Assert.fail(e.getMessage());
+            }
+        }
+    };
+    final Runnable waiter = new Runnable() {
+
+        @Override
+        public void run() {
+            try {
+                boolean completed = FileSystemUtils.waitCompleted(sFileSystem, uri);
+                assertTrue(completed);
+                completed = sFileSystem.getStatus(uri).isCompleted();
+                assertTrue(completed);
+            } catch (Exception e) {
+                e.printStackTrace();
+                Assert.fail(e.getMessage());
+            }
+        }
+    };
+    final Thread waitingThread = new Thread(waiter);
+    waitingThread.start();
+    final Thread writingThread = new Thread(writer);
+    writingThread.start();
+    waitingThread.join();
+    writingThread.join();
+}

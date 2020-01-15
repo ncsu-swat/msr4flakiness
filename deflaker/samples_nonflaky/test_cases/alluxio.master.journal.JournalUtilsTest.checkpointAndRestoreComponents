@@ -1,0 +1,12 @@
+@Test
+public void checkpointAndRestoreComponents() throws Exception {
+    List<TestJournaled> components = new ArrayList<>();
+    for (int i = 0; i < 5; i++) {
+        components.add(new TestJournaled(i));
+    }
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    JournalUtils.writeToCheckpoint(baos, components);
+    components.forEach(c -> assertEquals(0, c.getNumEntriesProcessed()));
+    JournalUtils.restoreFromCheckpoint(new CheckpointInputStream(new ByteArrayInputStream(baos.toByteArray())), components);
+    components.forEach(c -> assertEquals(1, c.getNumEntriesProcessed()));
+}

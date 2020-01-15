@@ -1,0 +1,17 @@
+@Test(timeout = 1000 * 60)
+public void fallbackOnLastChunk() throws Exception {
+    Future<WriteSummary> expected;
+    Future<WriteSummary> actualLocal;
+    Future<WriteSummary> actualUfs;
+    long blockSize = CHUNK_SIZE * 1024 + CHUNK_SIZE / 3;
+    try (DataWriter writer = create(blockSize, CHUNK_SIZE * 1024)) {
+        expected = writeData(writer, blockSize);
+        expected.get();
+        actualLocal = getLocalWrite(mBuffer);
+        actualUfs = getUfsWrite(mClient);
+    }
+    assertEquals(blockSize, expected.get().getBytes());
+    assertEquals(CHUNK_SIZE * 1024, actualLocal.get().getBytes());
+    assertEquals(blockSize - CHUNK_SIZE * 1024, actualUfs.get().getBytes());
+    assertEquals(expected.get().getChecksum(), actualLocal.get().getChecksum() + actualUfs.get().getChecksum());
+}

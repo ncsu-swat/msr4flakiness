@@ -1,0 +1,17 @@
+@Test
+public void setAttributeAfterFilePersisted() throws Exception {
+    createAsyncFile();
+    IntegrationTestUtils.waitForPersist(mLocalAlluxioClusterResource, mUri);
+    mFileSystem.setAttribute(mUri, TEST_OPTIONS);
+    checkFileInAlluxio(mUri, LEN);
+    checkFileInUnderStorage(mUri, LEN);
+    URIStatus status = mFileSystem.getStatus(mUri);
+    String ufsPath = status.getUfsPath();
+    UnderFileSystem ufs = UnderFileSystem.Factory.create(ufsPath, ServerConfiguration.global());
+    Assert.assertEquals(ModeUtils.protoToShort(TEST_OPTIONS.getMode()), status.getMode());
+    Assert.assertEquals(COMMON_OPTIONS.getTtl(), status.getTtl());
+    Assert.assertEquals(COMMON_OPTIONS.getTtlAction(), status.getTtlAction());
+    // Skip checking mode for object stores
+    Assume.assumeFalse(ufs.isObjectStorage());
+    Assert.assertEquals(ModeUtils.protoToShort(TEST_OPTIONS.getMode()), ufs.getFileStatus(ufsPath).getMode());
+}

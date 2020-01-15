@@ -1,0 +1,21 @@
+/**
+ * Tests that an exception is thrown in the
+ * {@link BlockMetadataManager#moveBlockMeta(BlockMeta, TempBlockMeta)} method when the worker is
+ * out of space.
+ */
+@Test
+public void moveBlockMetaOutOfSpaceException() throws Exception {
+    // Create a committed block under dir2 with larger size than the capacity of dir1,
+    // so that WorkerOutOfSpaceException should be thrown when move this block to dir1.
+    StorageDir dir1 = mMetaManager.getTier("HDD").getDir(0);
+    StorageDir dir2 = mMetaManager.getTier("HDD").getDir(1);
+    long maxHddDir1Capacity = TIER_CAPACITY_BYTES[1][0];
+    long blockMetaSize = maxHddDir1Capacity + 1;
+    BlockMeta blockMeta = new BlockMeta(TEST_BLOCK_ID, blockMetaSize, dir2);
+    TempBlockMeta tempBlockMeta2 = new TempBlockMeta(TEST_SESSION_ID, TEST_TEMP_BLOCK_ID2, TEST_BLOCK_SIZE, dir1);
+    mMetaManager.addTempBlockMeta(tempBlockMeta2);
+    dir2.addBlockMeta(blockMeta);
+    mThrown.expect(WorkerOutOfSpaceException.class);
+    mThrown.expectMessage(ExceptionMessage.NO_SPACE_FOR_BLOCK_META.getMessage(TEST_BLOCK_ID, blockMetaSize, maxHddDir1Capacity, TIER_ALIAS[1]));
+    mMetaManager.moveBlockMeta(blockMeta, tempBlockMeta2);
+}

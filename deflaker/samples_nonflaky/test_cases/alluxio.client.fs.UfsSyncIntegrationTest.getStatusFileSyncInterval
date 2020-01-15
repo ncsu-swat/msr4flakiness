@@ -1,0 +1,18 @@
+@Test
+public void getStatusFileSyncInterval() throws Exception {
+    GetStatusPOptions options = GetStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.NEVER).setCommonOptions(PSYNC_INTERVAL).build();
+    long startMs = System.currentTimeMillis();
+    URIStatus status = mFileSystem.getStatus(new AlluxioURI(alluxioPath(EXISTING_FILE)), options);
+    long startLength = status.getLength();
+    int sizeFactor = 10;
+    while (true) {
+        writeUfsFile(ufsPath(EXISTING_FILE), sizeFactor);
+        status = mFileSystem.getStatus(new AlluxioURI(alluxioPath(EXISTING_FILE)), options);
+        if (status.getLength() != startLength) {
+            break;
+        }
+        sizeFactor++;
+    }
+    long endMs = System.currentTimeMillis();
+    Assert.assertTrue((endMs - startMs) >= INTERVAL_MS);
+}

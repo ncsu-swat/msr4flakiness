@@ -1,0 +1,52 @@
+@Test
+public void replayEvents() throws Exception {
+    // start standby masters
+    TestJournalSink standbySink = new TestJournalSink(new LinkedBlockingQueue<>());
+    startMasters(new MasterRegistry(), JournalTestUtils.createJournalSystem(mJournalFolder), standbySink, false);
+    int nextCreateId1 = 1;
+    int nextCreateId2 = 1;
+    int nextRenameId = 1;
+    int nextDeleteId = 1;
+    int completed = 0;
+    while (completed < 5000) {
+        switch(ThreadLocalRandom.current().nextInt(4)) {
+            case 0:
+                createFile("/file_for_rename" + nextCreateId1++);
+                completed++;
+                break;
+            case 1:
+                createFile("/file_for_delete" + nextCreateId2++);
+                completed++;
+                break;
+            case 2:
+                if (nextRenameId < nextCreateId1) {
+                    mFileSystemMaster.rename(new AlluxioURI("/file_for_rename" + nextRenameId), new AlluxioURI("/renamed" + nextRenameId), RenameContext.defaults());
+                    nextRenameId++;
+                    completed++;
+                }
+                break;
+            case 3:
+                if (nextDeleteId < nextCreateId2) {
+                    mFileSystemMaster.delete(new AlluxioURI("/file_for_delete" + nextDeleteId), DeleteContext.create(DeletePOptions.newBuilder().setRecursive(true)));
+                    nextDeleteId++;
+                    completed++;
+                }
+                break;
+            default:
+        }
+    }
+    // Stop and restart the default masters
+    stopMasters(mRegistry, mJournalSystem);
+    mJournalSystem.removeJournalSink(mRegistry.get(FileSystemMaster.class), mJournalSink);
+    TestJournalSink restartSink = new TestJournalSink(new LinkedBlockingQueue<>());
+    startMasters(mRegistry, mJournalSystem, restartSink, true);
+    CommonUtils.waitFor("leader receives all entries", () -> mJournalSink.getEntries().size() == restartSink.getEntries().size(), WaitForOptions.defaults().setTimeoutMs(5000));
+    CommonUtils.waitFor("standby receives all entries", () -> mJournalSink.getEntries().size() == standbySink.getEntries().size(), WaitForOptions.defaults().setTimeoutMs(5000));
+    // Need to strip out the sequence number because
+    List<JournalEntry> masterEntries = stripSeqNo(mJournalSink.getEntries());
+    List<JournalEntry> restartEntries = stripSeqNo(restartSink.getEntries());
+    List<JournalEntry> standbyEntries = stripSeqNo(standbySink.getEntries());
+    assertFalse(masterEntries.isEmpty());
+    assertEquals("leader restart failed to see all entries", masterEntries, restartEntries);
+    assertEquals("standby failed to see all entries", masterEntries, standbyEntries);
+}

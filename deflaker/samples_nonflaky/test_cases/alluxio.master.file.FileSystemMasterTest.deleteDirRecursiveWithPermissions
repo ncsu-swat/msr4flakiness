@@ -1,0 +1,12 @@
+@Test
+public void deleteDirRecursiveWithPermissions() throws Exception {
+    // userA has permissions to delete directory and nested file
+    createFileWithSingleBlock(NESTED_FILE_URI);
+    mFileSystemMaster.setAttribute(NESTED_URI, SetAttributeContext.mergeFrom(SetAttributePOptions.newBuilder().setMode(new Mode((short) 0777).toProto())));
+    mFileSystemMaster.setAttribute(NESTED_FILE_URI, SetAttributeContext.mergeFrom(SetAttributePOptions.newBuilder().setMode(new Mode((short) 0777).toProto())));
+    try (AuthenticatedClientUserResource userA = new AuthenticatedClientUserResource("userA", ServerConfiguration.global())) {
+        mFileSystemMaster.delete(NESTED_URI, DeleteContext.mergeFrom(DeletePOptions.newBuilder().setRecursive(true)));
+    }
+    assertEquals(IdUtils.INVALID_FILE_ID, mFileSystemMaster.getFileId(NESTED_URI));
+    assertEquals(IdUtils.INVALID_FILE_ID, mFileSystemMaster.getFileId(NESTED_FILE_URI));
+}

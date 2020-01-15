@@ -1,0 +1,18 @@
+@Test
+public void testTtl() throws Exception {
+    // Test that ttls are still applied after restart.
+    AlluxioURI file = new AlluxioURI("/file");
+    mCluster.getClient().createFile(file).close();
+    int ttl = 5 * Constants.SECOND_MS;
+    mCluster.getClient().setAttribute(file, SetAttributePOptions.newBuilder().setCommonOptions(FileSystemMasterCommonPOptions.newBuilder().setTtl(ttl).setTtlAction(TtlAction.DELETE)).build());
+    triggerAndWaitForCheckpoint();
+    mCluster.restartMasters();
+    FileSystem client = mCluster.getClient();
+    CommonUtils.waitFor("file to be deleted", () -> {
+        try {
+            return !client.exists(file);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }, WaitForOptions.defaults().setTimeoutMs(30 * Constants.SECOND_MS));
+}

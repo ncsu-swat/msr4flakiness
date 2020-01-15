@@ -1,0 +1,14 @@
+@Test
+public void downgradeLastEdge() {
+    mLockList.lockRootEdge(LockMode.WRITE);
+    mLockList.downgradeLastEdge();
+    assertEquals(LockMode.READ, mLockList.getLockMode());
+    mLockList.lockInode(mRootDir, LockMode.READ);
+    mLockList.lockEdge(mRootDir, mDirA.getName(), LockMode.WRITE);
+    mLockList.downgradeLastEdge();
+    assertEquals(LockMode.READ, mLockList.getLockMode());
+    checkOnlyNodesReadLocked(mRootDir);
+    checkOnlyNodesWriteLocked();
+    checkOnlyIncomingEdgesReadLocked(mRootDir, mDirA);
+    checkOnlyIncomingEdgesWriteLocked();
+}

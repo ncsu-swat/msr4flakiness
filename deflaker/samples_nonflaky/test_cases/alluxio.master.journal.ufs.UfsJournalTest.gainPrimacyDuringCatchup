@@ -1,0 +1,27 @@
+@Test
+public void gainPrimacyDuringCatchup() throws Exception {
+    mJournal.start();
+    mJournal.gainPrimacy();
+    // Create a counting master implementation that counts how many journal entries it processed.
+    CountingNoopMaster countingMaster = new SleepingCountingMaster(50);
+    // Find journal base path for secondary journal to consume the same journal files.
+    String parentPath = new File(mJournal.getLocation().getPath()).getParent();
+    UfsJournal secondaryJournal = new UfsJournal(new URI(parentPath), countingMaster, 0, Collections::emptySet);
+    secondaryJournal.start();
+    // Suspend secondary journal.
+    secondaryJournal.suspend();
+    // Write many entries to guarantee that advancing will be in progress
+    // when gainPrimacy() is called.
+    int entryCount = 10;
+    for (int i = 0; i < entryCount; i++) {
+        mJournal.write(Journal.JournalEntry.getDefaultInstance());
+    }
+    mJournal.flush();
+    // Validate secondary didn't apply any entries yet.
+    Assert.assertEquals(0, countingMaster.getApplyCount());
+    // Initiate catching up.
+    secondaryJournal.catchup(entryCount - 2);
+    // Gain primacy.
+    secondaryJournal.gainPrimacy();
+    CommonUtils.waitFor("catching up to current state", () -> countingMaster.getApplyCount() == entryCount);
+}

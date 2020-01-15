@@ -1,0 +1,44 @@
+/**
+ * Test {@code BlockLocation[] getFileBlockLocations(FileStatus file, long start, long len)}.
+ * Test the different situations of different start and len.
+ */
+@Test
+public void basicBlockLocation() throws Exception {
+    FileStatus fStatus = sTFS.getFileStatus(new Path("/testFile1"));
+    // block0.offset = start < start+len < block1.offset
+    long start = 0;
+    long len = BLOCK_SIZE - 1;
+    Assert.assertEquals(1, sTFS.getFileBlockLocations(fStatus, start, len).length);
+    // block0.offset < start < start+len < block1.offset
+    start = 1;
+    len = BLOCK_SIZE - 2;
+    Assert.assertEquals(1, sTFS.getFileBlockLocations(fStatus, start, len).length);
+    // block0.offset < start = start+len < block1.offset
+    start = 1;
+    len = 0;
+    Assert.assertEquals(1, sTFS.getFileBlockLocations(fStatus, start, len).length);
+    // block0.offset = start < start+len = block1.offset
+    start = 0;
+    len = BLOCK_SIZE;
+    Assert.assertEquals(2, sTFS.getFileBlockLocations(fStatus, start, len).length);
+    // block0.offset = start < block1.offset < start+len < block2.offset
+    start = 0;
+    len = BLOCK_SIZE + 1;
+    Assert.assertEquals(2, sTFS.getFileBlockLocations(fStatus, start, len).length);
+    // block0.offset < start < block1.offset < start+len < block2.offset
+    start = 1;
+    len = BLOCK_SIZE;
+    Assert.assertEquals(2, sTFS.getFileBlockLocations(fStatus, start, len).length);
+    // block0.offset = start < start+len = block2.offset
+    start = 0;
+    len = BLOCK_SIZE * 2;
+    Assert.assertEquals(3, sTFS.getFileBlockLocations(fStatus, start, len).length);
+    // block0.offset = start < start+len = file.len
+    start = 0;
+    len = FILE_LEN;
+    Assert.assertEquals(3, sTFS.getFileBlockLocations(fStatus, start, len).length);
+    // file.len < start < start+len
+    start = FILE_LEN + 1;
+    len = 1;
+    Assert.assertEquals(0, sTFS.getFileBlockLocations(fStatus, start, len).length);
+}

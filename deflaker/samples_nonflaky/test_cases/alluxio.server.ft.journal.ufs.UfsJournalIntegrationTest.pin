@@ -1,0 +1,24 @@
+/**
+ * Tests journalling of inodes being pinned.
+ */
+@Test
+public void pin() throws Exception {
+    SetAttributePOptions setPinned = SetAttributePOptions.newBuilder().setPinned(true).build();
+    SetAttributePOptions setUnpinned = SetAttributePOptions.newBuilder().setPinned(false).build();
+    AlluxioURI dirUri = new AlluxioURI("/myFolder");
+    mFileSystem.createDirectory(dirUri);
+    mFileSystem.setAttribute(dirUri, setPinned);
+    AlluxioURI file0Path = new AlluxioURI("/myFolder/file0");
+    CreateFilePOptions op = CreateFilePOptions.newBuilder().setBlockSizeBytes(64).build();
+    mFileSystem.createFile(file0Path, op).close();
+    mFileSystem.setAttribute(file0Path, setUnpinned);
+    AlluxioURI file1Path = new AlluxioURI("/myFolder/file1");
+    mFileSystem.createFile(file1Path, op).close();
+    URIStatus directoryStatus = mFileSystem.getStatus(dirUri);
+    URIStatus file0Status = mFileSystem.getStatus(file0Path);
+    URIStatus file1Status = mFileSystem.getStatus(file1Path);
+    mLocalAlluxioCluster.stopFS();
+    pinTestUtil(directoryStatus, file0Status, file1Status);
+    deleteFsMasterJournalLogs();
+    pinTestUtil(directoryStatus, file0Status, file1Status);
+}

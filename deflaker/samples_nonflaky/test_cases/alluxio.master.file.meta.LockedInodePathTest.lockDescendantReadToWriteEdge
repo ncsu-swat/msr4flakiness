@@ -1,0 +1,16 @@
+@Test
+public void lockDescendantReadToWriteEdge() throws Exception {
+    mPath = create("/", LockPattern.READ);
+    LockedInodePath childPath = mPath.lockDescendant(new AlluxioURI("/a/b/c"), LockPattern.WRITE_EDGE);
+    assertTrue(childPath.fullPathExists());
+    assertEquals(Arrays.asList(mRootDir, mDirA, mDirB, mFileC), childPath.getInodeList());
+    checkOnlyNodesReadLocked(mRootDir, mDirA, mDirB);
+    checkOnlyNodesWriteLocked(mFileC);
+    checkOnlyIncomingEdgesReadLocked(mRootDir, mDirA, mDirB);
+    checkOnlyIncomingEdgesWriteLocked(mFileC);
+    childPath.close();
+    checkOnlyNodesReadLocked(mRootDir);
+    checkOnlyNodesWriteLocked();
+    checkOnlyIncomingEdgesReadLocked(mRootDir);
+    checkOnlyIncomingEdgesWriteLocked();
+}

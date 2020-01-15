@@ -1,0 +1,13 @@
+@Test
+public void putBucketUnderMountPoint() throws Exception {
+    final String mountPoint = "s3";
+    final String bucketName = "bucket";
+    final String s3Path = mountPoint + BUCKET_SEPARATOR + bucketName;
+    AlluxioURI mountPointPath = new AlluxioURI(AlluxioURI.SEPARATOR + mountPoint);
+    mFileSystemMaster.mount(mountPointPath, new AlluxioURI(mFolder.newFolder().getAbsolutePath()), MountContext.defaults());
+    // Create a new bucket under an existing mount point.
+    createBucketRestCall(s3Path);
+    // Verify the directory is created for the new bucket, under the mount point.
+    AlluxioURI uri = new AlluxioURI(AlluxioURI.SEPARATOR + mountPoint + AlluxioURI.SEPARATOR + bucketName);
+    Assert.assertTrue(mFileSystemMaster.listStatus(uri, ListStatusContext.defaults()).isEmpty());
+}

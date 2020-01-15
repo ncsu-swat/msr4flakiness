@@ -1,0 +1,16 @@
+/**
+ * Tests that an exception is thrown if the resource pool is used more than its size can take.
+ */
+@Test
+public void resourcePoolBlocking() throws InterruptedException {
+    mThrown.expect(RuntimeException.class);
+    final int POOL_SIZE = 2;
+    @SuppressWarnings("unchecked")
+    ConcurrentLinkedQueue<Integer> queue = mock(ConcurrentLinkedQueue.class);
+    TestResourcePool testPool = new TestResourcePool(POOL_SIZE, queue);
+    when(queue.isEmpty()).thenReturn(true);
+    when(queue.poll()).thenThrow(new InterruptedException());
+    for (int i = 0; i < POOL_SIZE + 1; i++) {
+        testPool.acquire();
+    }
+}

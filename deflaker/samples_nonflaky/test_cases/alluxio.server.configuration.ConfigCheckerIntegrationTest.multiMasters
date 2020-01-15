@@ -1,0 +1,12 @@
+@Test
+public void multiMasters() throws Exception {
+    PropertyKey key = PropertyKey.MASTER_JOURNAL_FLUSH_TIMEOUT_MS;
+    Map<Integer, Map<PropertyKey, String>> masterProperties = generatePropertyWithDifferentValues(TEST_NUM_MASTERS, key);
+    mCluster = MultiProcessCluster.newBuilder(PortCoordination.CONFIG_CHECKER_MULTI_MASTERS).setClusterName("ConfigCheckerMultiMastersTest").setNumMasters(TEST_NUM_MASTERS).setNumWorkers(0).setMasterProperties(masterProperties).build();
+    mCluster.start();
+    ConfigCheckReport report = getReport();
+    // When using embedded journal, the journal paths are different
+    assertEquals(mCluster.getDeployMode().equals(DeployMode.ZOOKEEPER_HA) ? ConfigStatus.WARN : ConfigStatus.FAILED, report.getConfigStatus());
+    assertThat(report.getConfigWarns().toString(), CoreMatchers.containsString(key.getName()));
+    mCluster.notifySuccess();
+}

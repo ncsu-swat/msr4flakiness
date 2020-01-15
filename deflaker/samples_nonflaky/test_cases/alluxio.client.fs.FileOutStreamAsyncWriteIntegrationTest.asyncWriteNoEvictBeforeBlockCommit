@@ -1,0 +1,17 @@
+@Test
+@LocalAlluxioClusterResource.Config(confParams = { PropertyKey.Name.USER_FILE_PERSISTENCE_INITIAL_WAIT_TIME, "-1", PropertyKey.Name.USER_FILE_WRITE_TYPE_DEFAULT, "ASYNC_THROUGH", PropertyKey.Name.WORKER_MEMORY_SIZE, TINY_WORKER_MEM, PropertyKey.Name.USER_BLOCK_SIZE_BYTES_DEFAULT, TINY_BLOCK_SIZE, PropertyKey.Name.USER_FILE_BUFFER_BYTES, TINY_BLOCK_SIZE, PropertyKey.Name.WORKER_TIERED_STORE_RESERVER_INTERVAL_MS, "10sec", "alluxio.worker.tieredstore.level0.watermark.high.ratio", "0.5", "alluxio.worker.tieredstore.level0.watermark.low.ratio", "0.25" })
+public void asyncWriteNoEvictBeforeBlockCommit() throws Exception {
+    long writeSize = FormatUtils.parseSpaceSize(TINY_WORKER_MEM) - FormatUtils.parseSpaceSize(TINY_BLOCK_SIZE);
+    FileSystem fs = mLocalAlluxioClusterResource.get().getClient();
+    AlluxioURI p1 = new AlluxioURI("/p1");
+    FileOutStream fos = fs.createFile(p1, CreateFilePOptions.newBuilder().setWriteType(WritePType.ASYNC_THROUGH).setPersistenceWaitTime(-1).build());
+    byte[] arr = new byte[(int) writeSize];
+    Arrays.fill(arr, (byte) 0x7a);
+    fos.write(arr);
+    assertEquals(writeSize + FormatUtils.parseSpaceSize(TINY_BLOCK_SIZE), getClusterCapacity());
+    // subtract block size since the last block hasn't been committed yet
+    assertEquals(writeSize, getUsedWorkerSpace());
+    fos.close();
+    FileSystemUtils.persistAndWait(fs, p1, 0);
+    assertTrue(getUsedWorkerSpace() < writeSize);
+}

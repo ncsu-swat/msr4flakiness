@@ -1,0 +1,60 @@
+/**
+ * Test the number of read/write operations.
+ */
+@Test
+public void readWriteOperationsStatistics() throws Exception {
+    int exceptedReadOps = sStatistics.getReadOps();
+    int exceptedWriteOps = sStatistics.getWriteOps();
+    // Call all the overridden methods and check the statistics.
+    sTFS.create(new Path("/testFile-create")).close();
+    exceptedWriteOps++;
+    Assert.assertEquals(exceptedReadOps, sStatistics.getReadOps());
+    Assert.assertEquals(exceptedWriteOps, sStatistics.getWriteOps());
+    sTFS.delete(new Path("/testFile-create"), true);
+    exceptedWriteOps++;
+    Assert.assertEquals(exceptedReadOps, sStatistics.getReadOps());
+    Assert.assertEquals(exceptedWriteOps, sStatistics.getWriteOps());
+    // Due to Hadoop 1 support we stick with the deprecated version. If we drop support for it
+    // FileSystem.getDefaultBlockSize(new Path("/testFile-create")) will be the new one.
+    sTFS.getDefaultBlockSize();
+    Assert.assertEquals(exceptedReadOps, sStatistics.getReadOps());
+    Assert.assertEquals(exceptedWriteOps, sStatistics.getWriteOps());
+    // Due to Hadoop 1 support we stick with the deprecated version. If we drop support for it
+    // FileSystem.geDefaultReplication(new Path("/testFile-create")) will be the new one.
+    sTFS.getDefaultReplication();
+    Assert.assertEquals(exceptedReadOps, sStatistics.getReadOps());
+    Assert.assertEquals(exceptedWriteOps, sStatistics.getWriteOps());
+    FileStatus fStatus = sTFS.getFileStatus(new Path("/testFile-read"));
+    exceptedReadOps++;
+    Assert.assertEquals(exceptedReadOps, sStatistics.getReadOps());
+    Assert.assertEquals(exceptedWriteOps, sStatistics.getWriteOps());
+    sTFS.getFileBlockLocations(fStatus, 0, FILE_LEN);
+    exceptedReadOps++;
+    Assert.assertEquals(exceptedReadOps, sStatistics.getReadOps());
+    Assert.assertEquals(exceptedWriteOps, sStatistics.getWriteOps());
+    sTFS.getUri();
+    Assert.assertEquals(exceptedReadOps, sStatistics.getReadOps());
+    Assert.assertEquals(exceptedWriteOps, sStatistics.getWriteOps());
+    sTFS.getWorkingDirectory();
+    Assert.assertEquals(exceptedReadOps, sStatistics.getReadOps());
+    Assert.assertEquals(exceptedWriteOps, sStatistics.getWriteOps());
+    sTFS.listStatus(new Path("/"));
+    exceptedReadOps++;
+    Assert.assertEquals(exceptedReadOps, sStatistics.getReadOps());
+    Assert.assertEquals(exceptedWriteOps, sStatistics.getWriteOps());
+    sTFS.mkdirs(new Path("/testDir"));
+    exceptedWriteOps++;
+    Assert.assertEquals(exceptedReadOps, sStatistics.getReadOps());
+    Assert.assertEquals(exceptedWriteOps, sStatistics.getWriteOps());
+    sTFS.open(new Path("/testFile-read")).close();
+    exceptedReadOps++;
+    Assert.assertEquals(exceptedReadOps, sStatistics.getReadOps());
+    Assert.assertEquals(exceptedWriteOps, sStatistics.getWriteOps());
+    sTFS.rename(new Path("/testDir"), new Path("/testDir-rename"));
+    exceptedWriteOps++;
+    Assert.assertEquals(exceptedReadOps, sStatistics.getReadOps());
+    Assert.assertEquals(exceptedWriteOps, sStatistics.getWriteOps());
+    sTFS.setWorkingDirectory(new Path("/testDir-rename"));
+    Assert.assertEquals(exceptedReadOps, sStatistics.getReadOps());
+    Assert.assertEquals(exceptedWriteOps, sStatistics.getWriteOps());
+}

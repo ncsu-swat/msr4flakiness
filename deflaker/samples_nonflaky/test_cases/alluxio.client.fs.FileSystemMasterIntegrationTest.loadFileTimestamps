@@ -1,0 +1,21 @@
+/**
+ * Tests loading ufs last modified time for files.
+ */
+@Test
+public void loadFileTimestamps() throws Exception {
+    String name = "f1";
+    String ufs = ServerConfiguration.get(PropertyKey.MASTER_MOUNT_TABLE_ROOT_UFS);
+    String ufsPath = Paths.get(ufs, name).toString();
+    FileUtils.createFile(ufsPath);
+    File file = new File(ufsPath);
+    long actualTime = file.lastModified();
+    Thread.sleep(100);
+    AlluxioURI path = new AlluxioURI("/" + name);
+    long fileId = mFsMaster.getFileId(path);
+    FileInfo fileInfo = mFsMaster.getFileInfo(fileId);
+    long alluxioTime = fileInfo.getLastModificationTimeMs();
+    Assert.assertEquals(name, fileInfo.getName());
+    Assert.assertFalse(fileInfo.isFolder());
+    Assert.assertTrue(fileInfo.isPersisted());
+    Assert.assertEquals(actualTime, alluxioTime);
+}

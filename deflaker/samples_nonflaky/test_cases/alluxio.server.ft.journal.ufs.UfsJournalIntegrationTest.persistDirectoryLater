@@ -1,0 +1,24 @@
+/**
+ * Tests journalling of creating directories with MUST_CACHE, then creating the same directories
+ * again with CACHE_THROUGH and AllowExists=true.
+ */
+@Test
+public void persistDirectoryLater() throws Exception {
+    String[] directories = new String[] { "/d11", "/d11/d21", "/d11/d22", "/d12", "/d12/d21", "/d12/d22" };
+    CreateDirectoryPOptions options = CreateDirectoryPOptions.newBuilder().setRecursive(true).setWriteType(WritePType.MUST_CACHE).build();
+    for (String directory : directories) {
+        mFileSystem.createDirectory(new AlluxioURI(directory), options);
+    }
+    options = options.toBuilder().setWriteType(WritePType.CACHE_THROUGH).setAllowExists(true).build();
+    for (String directory : directories) {
+        mFileSystem.createDirectory(new AlluxioURI(directory), options);
+    }
+    Map<String, URIStatus> directoryStatuses = new HashMap<>();
+    for (String directory : directories) {
+        directoryStatuses.put(directory, mFileSystem.getStatus(new AlluxioURI(directory)));
+    }
+    mLocalAlluxioCluster.stopFS();
+    persistDirectoryLaterTestUtil(directoryStatuses);
+    deleteFsMasterJournalLogs();
+    persistDirectoryLaterTestUtil(directoryStatuses);
+}

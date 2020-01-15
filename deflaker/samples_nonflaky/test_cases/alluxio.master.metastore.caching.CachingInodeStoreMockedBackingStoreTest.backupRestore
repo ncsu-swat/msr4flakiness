@@ -1,0 +1,12 @@
+@Test
+public void backupRestore() throws Exception {
+    MutableInodeDirectory child = createInodeDir(10, 0);
+    mStore.writeNewInode(child);
+    mStore.addChild(0, child);
+    mStore.writeInode(MutableInodeDirectory.create(1, 1, "blah", CreateDirectoryContext.defaults()));
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    mStore.writeToCheckpoint(baos);
+    mStore.restoreFromCheckpoint(new CheckpointInputStream(new ByteArrayInputStream(baos.toByteArray())));
+    assertEquals(child.getName(), mStore.get(child.getId()).get().getName());
+    assertEquals(child.getId(), mStore.getChild(0L, child.getName()).get().getId());
+}

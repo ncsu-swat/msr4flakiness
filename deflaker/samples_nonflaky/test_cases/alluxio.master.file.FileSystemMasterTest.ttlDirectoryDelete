@@ -1,0 +1,15 @@
+/**
+ * Tests that an exception is in the
+ * {@literal FileSystemMaster#createDirectory(AlluxioURI, CreateDirectoryOptions)}
+ * with a TTL set in the {@link CreateDirectoryContext} after the TTL check was done once.
+ */
+@Test
+public void ttlDirectoryDelete() throws Exception {
+    CreateDirectoryContext context = CreateDirectoryContext.mergeFrom(CreateDirectoryPOptions.newBuilder().setRecursive(true).setCommonOptions(FileSystemMasterCommonPOptions.newBuilder().setTtl(0)));
+    long dirId = mFileSystemMaster.createDirectory(NESTED_DIR_URI, context);
+    FileInfo fileInfo = mFileSystemMaster.getFileInfo(dirId);
+    assertEquals(fileInfo.getFileId(), dirId);
+    HeartbeatScheduler.execute(HeartbeatContext.MASTER_TTL_CHECK);
+    mThrown.expect(FileDoesNotExistException.class);
+    mFileSystemMaster.getFileInfo(dirId);
+}

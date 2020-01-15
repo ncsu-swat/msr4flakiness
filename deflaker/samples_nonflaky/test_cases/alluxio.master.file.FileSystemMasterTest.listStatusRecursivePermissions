@@ -1,0 +1,22 @@
+@Test
+public void listStatusRecursivePermissions() throws Exception {
+    final int files = 10;
+    List<FileInfo> infos;
+    List<String> filenames;
+    // Test files in root directory.
+    for (int i = 0; i < files; i++) {
+        createFileWithSingleBlock(ROOT_URI.join("file" + String.format("%05d", i)));
+    }
+    // Test files in nested directory.
+    for (int i = 0; i < files; i++) {
+        createFileWithSingleBlock(NESTED_URI.join("file" + String.format("%05d", i)));
+    }
+    // Test with permissions
+    mFileSystemMaster.setAttribute(NESTED_URI, SetAttributeContext.mergeFrom(SetAttributePOptions.newBuilder().setMode(new Mode((short) 0400).toProto()).setRecursive(true)));
+    try (Closeable r = new AuthenticatedUserRule("test_user1", ServerConfiguration.global()).toResource()) {
+        // Test recursive listStatus
+        infos = mFileSystemMaster.listStatus(ROOT_URI, ListStatusContext.mergeFrom(ListStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.ALWAYS).setRecursive(true)));
+        // 10 files in each directory, 1 level of directories
+        assertEquals(files + 1, infos.size());
+    }
+}

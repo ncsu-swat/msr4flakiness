@@ -1,0 +1,17 @@
+@Test
+public void getInStreamUfs() throws Exception {
+    WorkerNetAddress worker1 = new WorkerNetAddress().setHost("worker1");
+    WorkerNetAddress worker2 = new WorkerNetAddress().setHost("worker2");
+    BlockInfo info = new BlockInfo().setBlockId(0);
+    URIStatus dummyStatus = new URIStatus(new FileInfo().setPersisted(true).setBlockIds(Collections.singletonList(0L)).setFileBlockInfos(Collections.singletonList(new FileBlockInfo().setBlockInfo(info))));
+    sConf.set(PropertyKey.USER_UFS_BLOCK_READ_LOCATION_POLICY, MockBlockLocationPolicy.class.getTypeName());
+    OpenFilePOptions readOptions = OpenFilePOptions.newBuilder().build();
+    InStreamOptions options = new InStreamOptions(dummyStatus, readOptions, sConf);
+    ((MockBlockLocationPolicy) options.getUfsReadLocationPolicy()).setHosts(Arrays.asList(worker1, worker2));
+    when(mMasterClient.getBlockInfo(BLOCK_ID)).thenReturn(new BlockInfo());
+    when(mMasterClient.getWorkerInfoList()).thenReturn(Arrays.asList(new WorkerInfo().setAddress(worker1), new WorkerInfo().setAddress(worker2)));
+    // Location policy chooses worker1 first.
+    assertEquals(worker1, mBlockStore.getInStream(BLOCK_ID, options).getAddress());
+    // Location policy chooses worker2 second.
+    assertEquals(worker2, mBlockStore.getInStream(BLOCK_ID, options).getAddress());
+}

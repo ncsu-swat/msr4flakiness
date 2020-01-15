@@ -1,0 +1,17 @@
+/**
+ * Tests that an exception is thrown when trying to get information about a file after it
+ * has been deleted after the TTL has been set to 0.
+ */
+@Test
+public void setSmallerTtlForFileWithTtl() throws Exception {
+    CreateFileContext context = CreateFileContext.mergeFrom(CreateFilePOptions.newBuilder().setCommonOptions(FileSystemMasterCommonPOptions.newBuilder().setTtl(Constants.HOUR_MS)).setBlockSizeBytes(Constants.KB).setRecursive(true));
+    long fileId = mFileSystemMaster.createFile(NESTED_FILE_URI, context).getFileId();
+    HeartbeatScheduler.execute(HeartbeatContext.MASTER_TTL_CHECK);
+    // Since TTL is 1 hour, the file won't be deleted during last TTL check.
+    assertEquals(fileId, mFileSystemMaster.getFileInfo(NESTED_FILE_URI, GET_STATUS_CONTEXT).getFileId());
+    mFileSystemMaster.setAttribute(NESTED_FILE_URI, SetAttributeContext.mergeFrom(SetAttributePOptions.newBuilder().setCommonOptions(FileSystemMasterCommonPOptions.newBuilder().setTtl(0))));
+    HeartbeatScheduler.execute(HeartbeatContext.MASTER_TTL_CHECK);
+    // TTL is reset to 0, the file should have been deleted during last TTL check.
+    mThrown.expect(FileDoesNotExistException.class);
+    mFileSystemMaster.getFileInfo(fileId);
+}

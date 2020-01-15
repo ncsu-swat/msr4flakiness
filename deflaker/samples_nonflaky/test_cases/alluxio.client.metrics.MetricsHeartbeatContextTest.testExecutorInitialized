@@ -1,0 +1,27 @@
+@Test
+public void testExecutorInitialized() {
+    InstancedConfiguration conf = ConfigurationTestUtils.defaults();
+    conf.set(PropertyKey.USER_RPC_RETRY_MAX_DURATION, "1s");
+    ClientContext ctx = ClientContext.create(conf);
+    MasterInquireClient client = MasterInquireClient.Factory.create(ctx.getClusterConf(), ctx.getUserState());
+    // Add and delete a single context, make sure it is non null after adding, and then null after
+    // removing
+    MetricsHeartbeatContext.addHeartbeat(ctx, client);
+    assertNotNull(getInternalExecutor());
+    MetricsHeartbeatContext.removeHeartbeat(ctx);
+    assertNull(getInternalExecutor());
+    // Add a few, then remove and check for the state in between
+    MetricsHeartbeatContext.addHeartbeat(ctx, client);
+    MetricsHeartbeatContext.addHeartbeat(ctx, client);
+    MetricsHeartbeatContext.addHeartbeat(ctx, client);
+    MetricsHeartbeatContext.addHeartbeat(ctx, client);
+    assertNotNull(getInternalExecutor());
+    MetricsHeartbeatContext.removeHeartbeat(ctx);
+    assertNotNull(getInternalExecutor());
+    MetricsHeartbeatContext.removeHeartbeat(ctx);
+    assertNotNull(getInternalExecutor());
+    MetricsHeartbeatContext.removeHeartbeat(ctx);
+    assertNotNull(getInternalExecutor());
+    MetricsHeartbeatContext.removeHeartbeat(ctx);
+    assertNull(getInternalExecutor());
+}

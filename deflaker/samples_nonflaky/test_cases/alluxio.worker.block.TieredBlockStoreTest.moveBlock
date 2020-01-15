@@ -1,0 +1,33 @@
+/**
+ * Tests the {@link TieredBlockStore#moveBlock(long, long, BlockStoreLocation)} method.
+ */
+@Test
+public void moveBlock() throws Exception {
+    TieredBlockStoreTestUtils.cache(SESSION_ID1, BLOCK_ID1, BLOCK_SIZE, mTestDir1, mMetaManager, mEvictor);
+    mBlockStore.moveBlock(SESSION_ID1, BLOCK_ID1, mTestDir2.toBlockStoreLocation());
+    assertFalse(mTestDir1.hasBlockMeta(BLOCK_ID1));
+    assertTrue(mTestDir2.hasBlockMeta(BLOCK_ID1));
+    assertTrue(mBlockStore.hasBlockMeta(BLOCK_ID1));
+    assertFalse(FileUtils.exists(BlockMeta.commitPath(mTestDir1, BLOCK_ID1)));
+    assertTrue(FileUtils.exists(BlockMeta.commitPath(mTestDir2, BLOCK_ID1)));
+    // Move block from the specific Dir
+    TieredBlockStoreTestUtils.cache(SESSION_ID2, BLOCK_ID2, BLOCK_SIZE, mTestDir1, mMetaManager, mEvictor);
+    // Move block from wrong Dir
+    mThrown.expect(BlockDoesNotExistException.class);
+    mThrown.expectMessage(ExceptionMessage.BLOCK_NOT_FOUND_AT_LOCATION.getMessage(BLOCK_ID2, mTestDir2.toBlockStoreLocation()));
+    mBlockStore.moveBlock(SESSION_ID2, BLOCK_ID2, mTestDir2.toBlockStoreLocation(), mTestDir3.toBlockStoreLocation());
+    // Move block from right Dir
+    mBlockStore.moveBlock(SESSION_ID2, BLOCK_ID2, mTestDir1.toBlockStoreLocation(), mTestDir3.toBlockStoreLocation());
+    assertFalse(mTestDir1.hasBlockMeta(BLOCK_ID2));
+    assertTrue(mTestDir3.hasBlockMeta(BLOCK_ID2));
+    assertTrue(mBlockStore.hasBlockMeta(BLOCK_ID2));
+    assertFalse(FileUtils.exists(BlockMeta.commitPath(mTestDir1, BLOCK_ID2)));
+    assertTrue(FileUtils.exists(BlockMeta.commitPath(mTestDir3, BLOCK_ID2)));
+    // Move block from the specific tier
+    mBlockStore.moveBlock(SESSION_ID2, BLOCK_ID2, BlockStoreLocation.anyDirInTier(mTestDir1.getParentTier().getTierAlias()), mTestDir3.toBlockStoreLocation());
+    assertFalse(mTestDir1.hasBlockMeta(BLOCK_ID2));
+    assertTrue(mTestDir3.hasBlockMeta(BLOCK_ID2));
+    assertTrue(mBlockStore.hasBlockMeta(BLOCK_ID2));
+    assertFalse(FileUtils.exists(BlockMeta.commitPath(mTestDir1, BLOCK_ID2)));
+    assertTrue(FileUtils.exists(BlockMeta.commitPath(mTestDir3, BLOCK_ID2)));
+}

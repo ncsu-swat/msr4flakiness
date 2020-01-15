@@ -1,0 +1,35 @@
+/**
+ * Tests concurrent acquisitions with expiration do not hit deadlock.
+ */
+@Test
+public void testConcurrencyWithExpiration() throws Exception {
+    try (Closeable r = new ConfigurationRule(new HashMap<PropertyKey, String>() {
+
+        {
+            put(PropertyKey.WORKER_UFS_INSTREAM_CACHE_EXPIRARTION_TIME, "20");
+        }
+    }, ServerConfiguration.global()).toResource()) {
+        mManager = new UfsInputStreamManager();
+        List<Thread> threads = new ArrayList<>();
+        int numCheckOutPerThread = 4;
+        for (int i = 0; i < mNumOfInputStreams / numCheckOutPerThread; i++) {
+            Runnable runnable = () -> {
+                for (int j = 0; j < numCheckOutPerThread; j++) {
+                    InputStream instream;
+                    try {
+                        instream = mManager.acquire(mUfs, FILE_NAME, FILE_ID, OpenOptions.defaults().setOffset(j));
+                        mManager.release(instream);
+                        Thread.sleep(200);
+                    } catch (Exception e) {
+                        // the input streams created should not be more than mNumOfInputStreams
+                        Assert.fail("input stream check in and out failed." + e);
+                    }
+                }
+            };
+            threads.add(new Thread(runnable));
+        }
+        ConcurrencyUtils.assertConcurrent(threads, 30);
+        // ensure at least one expired in stream is closed
+        verify(mSeekableInStreams[0], timeout(2000)).close();
+    }
+}

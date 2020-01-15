@@ -1,0 +1,20 @@
+@Test
+public void getInodePathByPath() throws Exception {
+    try (LockedInodePath rootPath = mTree.lockFullInodePath(new AlluxioURI("/"), LockPattern.READ)) {
+        assertTrue(mTree.isRootId(rootPath.getInode().getId()));
+    }
+    // Create a nested file.
+    createPath(mTree, NESTED_FILE_URI, sNestedFileContext);
+    AlluxioURI uri = new AlluxioURI("/nested");
+    try (LockedInodePath inodePath = mTree.lockFullInodePath(uri, LockPattern.READ)) {
+        assertEquals(uri.getName(), inodePath.getInode().getName());
+    }
+    uri = NESTED_URI;
+    try (LockedInodePath inodePath = mTree.lockFullInodePath(uri, LockPattern.READ)) {
+        assertEquals(uri.getName(), inodePath.getInode().getName());
+    }
+    uri = NESTED_FILE_URI;
+    try (LockedInodePath inodePath = mTree.lockFullInodePath(uri, LockPattern.READ)) {
+        assertEquals(uri.getName(), inodePath.getInode().getName());
+    }
+}

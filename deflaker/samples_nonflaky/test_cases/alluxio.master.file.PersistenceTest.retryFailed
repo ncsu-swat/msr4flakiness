@@ -1,0 +1,44 @@
+/**
+ * Tests that a failed persist job is retried multiple times.
+ */
+@Test
+public void retryFailed() throws Exception {
+    // Create a file and check the internal state.
+    AlluxioURI testFile = createTestFile();
+    FileInfo fileInfo = mFileSystemMaster.getFileInfo(testFile, GET_STATUS_CONTEXT);
+    Assert.assertEquals(PersistenceState.NOT_PERSISTED.toString(), fileInfo.getPersistenceState());
+    // schedule the async persistence, checking the internal state.
+    mFileSystemMaster.scheduleAsyncPersistence(testFile, ScheduleAsyncPersistenceContext.defaults());
+    checkPersistenceRequested(testFile);
+    // Mock the job service interaction.
+    Random random = new Random();
+    long jobId = random.nextLong();
+    Mockito.when(mMockJobMasterClient.run(any(JobConfig.class))).thenReturn(jobId);
+    // Repeatedly execute the persistence checker heartbeat, checking the internal state.
+    {
+        HeartbeatScheduler.execute(HeartbeatContext.MASTER_PERSISTENCE_SCHEDULER);
+        checkPersistenceInProgress(testFile, jobId);
+        HeartbeatScheduler.execute(HeartbeatContext.MASTER_PERSISTENCE_SCHEDULER);
+        checkPersistenceInProgress(testFile, jobId);
+    }
+    // Mock the job service interaction.
+    JobInfo jobInfo = createJobInfo(Status.FAILED);
+    Mockito.when(mMockJobMasterClient.getJobStatus(Mockito.anyLong())).thenReturn(jobInfo);
+    // Repeatedly execute the persistence checker and scheduler heartbeats, checking the internal
+    // state. After the internal timeout associated with the operation expires, check the operation
+    // has been cancelled.
+    while (true) {
+        HeartbeatScheduler.execute(HeartbeatContext.MASTER_PERSISTENCE_CHECKER);
+        checkPersistenceRequested(testFile);
+        HeartbeatScheduler.execute(HeartbeatContext.MASTER_PERSISTENCE_SCHEDULER);
+        if (getPersistJobs().size() != 0) {
+            checkPersistenceInProgress(testFile, jobId);
+        } else {
+            checkEmpty();
+            break;
+        }
+        CommonUtils.sleepMs(100);
+    }
+    fileInfo = mFileSystemMaster.getFileInfo(testFile, GET_STATUS_CONTEXT);
+    Assert.assertEquals(PersistenceState.NOT_PERSISTED.toString(), fileInfo.getPersistenceState());
+}

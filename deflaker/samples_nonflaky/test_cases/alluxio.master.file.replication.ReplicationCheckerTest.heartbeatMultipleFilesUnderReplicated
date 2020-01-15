@@ -1,0 +1,11 @@
+@Test
+public void heartbeatMultipleFilesUnderReplicated() throws Exception {
+    mFileContext.getOptions().setReplicationMin(1);
+    long blockId1 = createBlockHelper(TEST_FILE_1, mFileContext, "");
+    mFileContext.getOptions().setReplicationMin(2);
+    long blockId2 = createBlockHelper(TEST_FILE_2, mFileContext, "");
+    mReplicationChecker.heartbeat();
+    Map<Long, Integer> expected = ImmutableMap.of(blockId1, 1, blockId2, 2);
+    Assert.assertEquals(EMPTY, mMockReplicationHandler.getEvictRequests());
+    Assert.assertEquals(expected, mMockReplicationHandler.getReplicateRequests());
+}

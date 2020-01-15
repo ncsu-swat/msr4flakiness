@@ -1,0 +1,13 @@
+/**
+ * Tests that an exception is thrown when trying to validate a lock of a block via
+ * {@link BlockLockManager#validateLock(long, long, long)} with an incorrect block ID.
+ */
+@Test
+public void validateLockIdWithWrongBlockId() throws Exception {
+    long lockId = mLockManager.lockBlock(TEST_SESSION_ID, TEST_BLOCK_ID, BlockLockType.READ);
+    long wrongBlockId = TEST_BLOCK_ID + 1;
+    mThrown.expect(InvalidWorkerStateException.class);
+    mThrown.expectMessage(ExceptionMessage.LOCK_ID_FOR_DIFFERENT_BLOCK.getMessage(lockId, TEST_BLOCK_ID, wrongBlockId));
+    // Validate an existing lockId with wrong block id, expect to see IOException
+    mLockManager.validateLock(TEST_SESSION_ID, wrongBlockId, lockId);
+}

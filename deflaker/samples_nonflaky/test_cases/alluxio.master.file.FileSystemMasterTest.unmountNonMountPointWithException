@@ -1,0 +1,13 @@
+/**
+ * Tests unmount operation failed when unmounting non-mount point.
+ */
+@Test
+public void unmountNonMountPointWithException() throws Exception {
+    AlluxioURI alluxioURI = new AlluxioURI("/hello");
+    AlluxioURI ufsURI = createTempUfsDir("ufs/hello");
+    mFileSystemMaster.mount(alluxioURI, ufsURI, MountContext.defaults());
+    AlluxioURI dirURI = alluxioURI.join("dir");
+    mFileSystemMaster.createDirectory(dirURI, CreateDirectoryContext.defaults().setWriteType(WriteType.MUST_CACHE));
+    mThrown.expect(InvalidPathException.class);
+    mFileSystemMaster.unmount(dirURI);
+}

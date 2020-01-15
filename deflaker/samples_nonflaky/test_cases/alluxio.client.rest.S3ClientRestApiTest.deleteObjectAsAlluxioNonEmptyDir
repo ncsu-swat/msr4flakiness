@@ -1,0 +1,18 @@
+@Test
+public void deleteObjectAsAlluxioNonEmptyDir() throws Exception {
+    final String bucketName = "bucket-with-non-empty-dir-to-delete";
+    createBucketRestCall(bucketName);
+    String objectName = "non-empty-dir/";
+    AlluxioURI bucketUri = new AlluxioURI(AlluxioURI.SEPARATOR + bucketName);
+    AlluxioURI dirUri = new AlluxioURI(bucketUri.getPath() + AlluxioURI.SEPARATOR + objectName);
+    mFileSystemMaster.createDirectory(dirUri, CreateDirectoryContext.defaults());
+    mFileSystemMaster.createFile(new AlluxioURI(dirUri.getPath() + "/file"), CreateFileContext.defaults());
+    Assert.assertFalse(mFileSystemMaster.listStatus(dirUri, ListStatusContext.defaults()).isEmpty());
+    try {
+        deleteObjectRestCall(bucketName + AlluxioURI.SEPARATOR + objectName);
+    } catch (AssertionError e) {
+        // expected
+        return;
+    }
+    Assert.fail("delete non-empty directory as an object should fail");
+}

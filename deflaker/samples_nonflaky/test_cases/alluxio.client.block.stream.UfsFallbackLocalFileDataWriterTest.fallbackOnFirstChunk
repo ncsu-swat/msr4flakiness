@@ -1,0 +1,19 @@
+@Ignore("Flaky test")
+@Test(timeout = 1000 * 60)
+public void fallbackOnFirstChunk() throws Exception {
+    Future<WriteSummary> expected;
+    Future<WriteSummary> actualLocal;
+    Future<WriteSummary> actualUfs;
+    long blockSize = CHUNK_SIZE * 1024 + CHUNK_SIZE / 3;
+    try (DataWriter writer = create(blockSize, 1)) {
+        expected = writeData(writer, blockSize);
+        actualLocal = getLocalWrite(mBuffer);
+        actualUfs = getUfsWrite(mClient);
+        expected.get();
+    }
+    assertEquals(blockSize, expected.get().getBytes());
+    assertEquals(0, actualLocal.get().getBytes());
+    assertEquals(blockSize, actualUfs.get().getBytes());
+    assertEquals(expected.get().getBytes(), actualUfs.get().getBytes());
+    assertEquals(expected.get().getChecksum(), actualUfs.get().getChecksum());
+}

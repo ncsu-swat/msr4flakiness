@@ -1,0 +1,11 @@
+/**
+ * Tests the {@link FileSystemMaster#free} method with a directory with a file non-persisted.
+ */
+@Test
+public void freeDirWithNonPersistedFile() throws Exception {
+    createFileWithSingleBlock(NESTED_FILE_URI);
+    mThrown.expect(UnexpectedAlluxioException.class);
+    mThrown.expectMessage(ExceptionMessage.CANNOT_FREE_NON_PERSISTED_FILE.getMessage(NESTED_FILE_URI.getPath()));
+    // cannot free the parent dir of a non-persisted file
+    mFileSystemMaster.free(NESTED_FILE_URI.getParent(), FreeContext.mergeFrom(FreePOptions.newBuilder().setForced(false).setRecursive(true)));
+}

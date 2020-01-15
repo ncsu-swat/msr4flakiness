@@ -1,0 +1,28 @@
+/**
+ * Tests the {@link FormatUtils#formatTimeTakenMs(long, String)} method.
+ */
+@Test
+public void formatTimeTakenMs() {
+    class TestCase {
+
+        Pattern mExpected;
+
+        String mInputMessage;
+
+        public TestCase(String expectedRE, String inputMessage) {
+            mExpected = Pattern.compile(expectedRE);
+            mInputMessage = inputMessage;
+        }
+    }
+    List<TestCase> testCases = new ArrayList<>();
+    testCases.add(new TestCase("^Task A took (.*) ms.$", "Task A"));
+    testCases.add(new TestCase("^Task B took (.*) ms.$", "Task B"));
+    long delta = 100;
+    for (TestCase testCase : testCases) {
+        String result = FormatUtils.formatTimeTakenMs(CommonUtils.getCurrentMs() - delta, testCase.mInputMessage);
+        Matcher match = testCase.mExpected.matcher(result);
+        assertTrue(match.matches());
+        assertTrue(delta <= Long.parseLong(match.group(1)));
+        assertTrue(Long.parseLong(match.group(1)) <= 2 * delta);
+    }
+}

@@ -1,0 +1,27 @@
+@Test
+public void recoverMissingJournalFiles() throws Exception {
+    long startSN = 0x10;
+    UfsJournalLogWriter writer = new UfsJournalLogWriter(mJournal, startSN);
+    // Create a file
+    long nextSN = writeJournalEntries(writer, startSN, 5);
+    writer.close();
+    // Flush some entries to the next file
+    writer = new UfsJournalLogWriter(mJournal, nextSN);
+    nextSN = writeJournalEntries(writer, nextSN, 5);
+    writer.flush();
+    // Put the stream into a bad state
+    nextSN = writeJournalEntries(writer, nextSN, 5);
+    DataOutputStream badOut = createMockDataOutputStream(writer);
+    Mockito.doThrow(new IOException(INJECTED_IO_ERROR_MESSAGE)).when(badOut).flush();
+    tryFlushAndExpectToFail(writer);
+    // Delete the current log
+    UfsJournalSnapshot snapshot = UfsJournalSnapshot.getSnapshot(mJournal);
+    UfsJournalFile journalFile = snapshot.getCurrentLog(mJournal);
+    File file = new File(journalFile.getLocation().toString());
+    file.delete();
+    // Recover should fail since we deleted the current log
+    mThrown.expect(RuntimeException.class);
+    mThrown.expectMessage(ExceptionMessage.JOURNAL_ENTRY_MISSING.getMessageWithUrl(RuntimeConstants.ALLUXIO_DEBUG_DOCS_URL, 0x15, 0x1A));
+    writer.write(newEntry(nextSN));
+    writer.close();
+}

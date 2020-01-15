@@ -1,0 +1,13 @@
+/**
+ * Tests {@link FileSystemMaster#free} on pinned file when forced flag is false.
+ */
+@Test
+public void freePinnedFileWithoutForce() throws Exception {
+    mNestedFileContext.setWriteType(WriteType.CACHE_THROUGH);
+    createFileWithSingleBlock(NESTED_FILE_URI);
+    mFileSystemMaster.setAttribute(NESTED_FILE_URI, SetAttributeContext.mergeFrom(SetAttributePOptions.newBuilder().setPinned(true)));
+    mThrown.expect(UnexpectedAlluxioException.class);
+    mThrown.expectMessage(ExceptionMessage.CANNOT_FREE_PINNED_FILE.getMessage(NESTED_FILE_URI.getPath()));
+    // cannot free a pinned file without "forced"
+    mFileSystemMaster.free(NESTED_FILE_URI, FreeContext.defaults());
+}

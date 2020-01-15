@@ -1,0 +1,9 @@
+@Test
+public void ufsModeCreateDirectory() throws Exception {
+    mFsMaster.updateUfsMode(new AlluxioURI(mFsMaster.getUfsAddress()), UfsMode.READ_ONLY);
+    // Alluxio only should not be affected
+    mFsMaster.createDirectory(new AlluxioURI("/in_alluxio"), CreateDirectoryContext.defaults().setWriteType(WriteType.MUST_CACHE));
+    // Ufs file creation should throw an exception
+    mThrown.expect(AccessControlException.class);
+    mFsMaster.createDirectory(new AlluxioURI("/in_ufs"), CreateDirectoryContext.defaults().setWriteType(WriteType.CACHE_THROUGH));
+}

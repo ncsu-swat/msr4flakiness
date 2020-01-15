@@ -1,0 +1,25 @@
+/**
+ * Tests the
+ * {@link UnderFileSystemFactoryRegistry#find(String, alluxio.conf.AlluxioConfiguration)}
+ * method when using an external factory.
+ */
+@Test
+public void externalFactory() {
+    // As we are going to use some Maven trickery to re-use the test cases as is in the external
+    // modules this test needs to assume that only the core implementations are present as otherwise
+    // when we try and run it in the external modules it will fail
+    // In core there is only one under file system implementation, if there are any more we aren't
+    // running in core
+    Assume.assumeTrue(UnderFileSystemFactoryRegistry.available().size() == 1);
+    // Requires additional modules
+    UnderFileSystemFactory factory = UnderFileSystemFactoryRegistry.find("hdfs://localhost/test/path", mConfiguration);
+    assertNull("No UnderFileSystemFactory should exist for HDFS paths as it requires a separate module", factory);
+    factory = UnderFileSystemFactoryRegistry.find("oss://localhost/test/path", mConfiguration);
+    assertNull("No UnderFileSystemFactory should exist for OSS paths as it requires a separate module", factory);
+    factory = UnderFileSystemFactoryRegistry.find("s3://localhost/test/path", mConfiguration);
+    assertNull("No UnderFileSystemFactory should exist for S3 paths as it requires a separate module", factory);
+    factory = UnderFileSystemFactoryRegistry.find("s3a://localhost/test/path", mConfiguration);
+    assertNull("No UnderFileSystemFactory should exist for S3 paths as it requires a separate module", factory);
+    factory = UnderFileSystemFactoryRegistry.find("glusterfs://localhost/test/path", mConfiguration);
+    assertNull("No UnderFileSystemFactory should exist for Gluster FS paths as it requires" + " a separate module", factory);
+}

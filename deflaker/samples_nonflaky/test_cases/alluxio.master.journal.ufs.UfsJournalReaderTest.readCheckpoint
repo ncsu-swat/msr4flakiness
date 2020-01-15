@@ -1,0 +1,26 @@
+/**
+ * Reads checkpoint.
+ */
+@Test
+public void readCheckpoint() throws Exception {
+    long endSN = CHECKPOINT_SIZE;
+    byte[] checkpointBytes = buildCheckpoint(endSN);
+    try (JournalReader reader = mJournal.getReader(true)) {
+        State state;
+        boolean foundCheckpoint = false;
+        while ((state = reader.advance()) != State.DONE) {
+            switch(state) {
+                case CHECKPOINT:
+                    foundCheckpoint = true;
+                    assertArrayEquals(checkpointBytes, IOUtils.toByteArray(reader.getCheckpoint()));
+                    break;
+                case LOG:
+                case DONE:
+                default:
+                    throw new IllegalStateException("Unexpected state: " + state);
+            }
+        }
+        assertTrue(foundCheckpoint);
+        assertEquals(endSN, reader.getNextSequenceNumber());
+    }
+}

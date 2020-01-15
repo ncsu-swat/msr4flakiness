@@ -1,0 +1,17 @@
+/**
+ * Tests {@link alluxio.client.block.LocalBlockInStream#seek(long)}. Validate the expected
+ * exception for seeking a position that is past buffer limit.
+ */
+@Test
+public void seekExceptionTest2() throws Exception {
+    mThrown.expect(IllegalArgumentException.class);
+    mThrown.expectMessage(String.format(PreconditionMessage.ERR_SEEK_PAST_END_OF_FILE.toString(), 1));
+    for (int k = MIN_LEN; k <= MAX_LEN; k += DELTA) {
+        for (CreateFilePOptions op : getOptionSet()) {
+            AlluxioURI uri = new AlluxioURI(sTestPath + "/file_" + k + "_" + op.hashCode());
+            try (FileInStream is = sFileSystem.openFile(uri, sReadNoCache)) {
+                is.seek(k + 1);
+            }
+        }
+    }
+}

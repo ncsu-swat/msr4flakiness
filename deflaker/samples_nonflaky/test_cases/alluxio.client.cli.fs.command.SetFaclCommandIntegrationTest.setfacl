@@ -1,0 +1,23 @@
+/**
+ * Tests setfacl command.
+ */
+@Test
+@LocalAlluxioClusterResource.Config(confParams = { PropertyKey.Name.SECURITY_AUTHORIZATION_PERMISSION_ENABLED, "true", PropertyKey.Name.SECURITY_AUTHENTICATION_TYPE, "SIMPLE", PropertyKey.Name.SECURITY_GROUP_MAPPING_CLASS, "alluxio.security.group.provider.IdentityUserGroupsMapping", PropertyKey.Name.SECURITY_AUTHORIZATION_PERMISSION_SUPERGROUP, "test_user_setfacl" })
+public void setfacl() throws Exception {
+    String testOwner = "test_user_setfacl";
+    String expected = "";
+    URIStatus[] files = createFiles(testOwner);
+    mFsShell.run("setfacl", "-m", "user:testuser:rwx", "/testRoot/testFileA");
+    mFsShell.run("getfacl", "/testRoot/testFileA");
+    List<String> stringEntries = new ArrayList<>(FACL_STRING_ENTRIES);
+    stringEntries.add("user:testuser:rwx");
+    stringEntries.add("mask::rwx");
+    expected += getFaclResultStr(testOwner, testOwner, "/testRoot/testFileA", stringEntries);
+    Assert.assertEquals(expected, mOutput.toString());
+    mFsShell.run("setfacl", "-m", "user::rwx", "/testRoot/testFileC");
+    mFsShell.run("getfacl", "/testRoot/testFileC");
+    stringEntries = new ArrayList<>(FACL_STRING_ENTRIES);
+    stringEntries.set(0, "user::rwx");
+    expected += getFaclResultStr(testOwner, testOwner, "/testRoot/testFileC", stringEntries);
+    Assert.assertEquals(expected, mOutput.toString());
+}

@@ -1,0 +1,13 @@
+@Test
+public void initializeWithZookeeperSystemProperties() throws Exception {
+    HashMap<String, String> sysProps = new HashMap<>();
+    sysProps.put(PropertyKey.ZOOKEEPER_ENABLED.getName(), "true");
+    sysProps.put(PropertyKey.ZOOKEEPER_ADDRESS.getName(), "zkHost:2181");
+    try (Closeable p = new SystemPropertyRule(sysProps).toResource()) {
+        ConfigurationUtils.reloadProperties();
+        URI uri = URI.create("alluxio:///");
+        FileSystem fs = getHadoopFilesystem(org.apache.hadoop.fs.FileSystem.get(uri, getConf()));
+        assertTrue(fs.mFileSystem.getConf().getBoolean(PropertyKey.ZOOKEEPER_ENABLED));
+        assertEquals("zkHost:2181", fs.mFileSystem.getConf().get(PropertyKey.ZOOKEEPER_ADDRESS));
+    }
+}

@@ -1,0 +1,18 @@
+@Test
+public void lockChildWriteInodeToWriteEdge() throws Exception {
+    mPath = create("/a", LockPattern.WRITE_INODE);
+    LockedInodePath childPath = mPath.lockChild(mDirB, LockPattern.WRITE_EDGE);
+    assertEquals(Arrays.asList(mRootDir, mDirA, mDirB), childPath.getInodeList());
+    assertEquals(LockPattern.WRITE_EDGE, childPath.getLockPattern());
+    assertTrue(childPath.fullPathExists());
+    assertEquals(mDirB, childPath.getInode());
+    checkOnlyNodesReadLocked(mRootDir);
+    checkOnlyNodesWriteLocked(mDirA, mDirB);
+    checkOnlyIncomingEdgesReadLocked(mRootDir, mDirA);
+    checkOnlyIncomingEdgesWriteLocked(mDirB);
+    childPath.close();
+    checkOnlyNodesReadLocked(mRootDir);
+    checkOnlyNodesWriteLocked(mDirA);
+    checkOnlyIncomingEdgesReadLocked(mRootDir, mDirA);
+    checkOnlyIncomingEdgesWriteLocked();
+}

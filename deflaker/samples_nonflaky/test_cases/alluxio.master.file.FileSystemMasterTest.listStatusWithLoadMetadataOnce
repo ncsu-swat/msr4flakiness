@@ -1,0 +1,25 @@
+@Test
+public void listStatusWithLoadMetadataOnce() throws Exception {
+    AlluxioURI ufsMount = new AlluxioURI(mTestFolder.newFolder().getAbsolutePath());
+    mFileSystemMaster.createDirectory(new AlluxioURI("/mnt/"), CreateDirectoryContext.defaults());
+    // Create ufs file.
+    Files.createDirectory(Paths.get(ufsMount.join("dir1").getPath()));
+    Files.createFile(Paths.get(ufsMount.join("dir1").join("file1").getPath()));
+    Files.createFile(Paths.get(ufsMount.join("dir1").join("file2").getPath()));
+    mFileSystemMaster.mount(new AlluxioURI("/mnt/local"), ufsMount, MountContext.defaults());
+    // 3 directories exist.
+    assertEquals(3, countPaths());
+    // getFileId should load metadata automatically.
+    AlluxioURI uri = new AlluxioURI("/mnt/local/dir1");
+    List<FileInfo> fileInfoList = mFileSystemMaster.listStatus(uri, ListStatusContext.defaults());
+    Set<String> paths = new HashSet<>();
+    for (FileInfo fileInfo : fileInfoList) {
+        paths.add(fileInfo.getPath());
+    }
+    assertEquals(2, paths.size());
+    assertTrue(paths.contains("/mnt/local/dir1/file1"));
+    assertTrue(paths.contains("/mnt/local/dir1/file2"));
+    // listStatus should have loaded another 3 files (dir1, dir1/file1, dir1/file2), so now 6
+    // paths exist.
+    assertEquals(6, countPaths());
+}

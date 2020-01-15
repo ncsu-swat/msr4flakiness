@@ -1,0 +1,17 @@
+/**
+ * Checks receive fails immediately upon error even if buffer is full.
+ */
+@Test
+public void receiveErrorWhenBufferFull() throws Exception {
+    mThrown.expect(UnauthenticatedException.class);
+    mThrown.expectMessage(containsString(TEST_MESSAGE));
+    WriteResponse[] responses = Stream.generate(() -> WriteResponse.newBuilder().build()).limit(BUFFER_SIZE).toArray(WriteResponse[]::new);
+    for (WriteResponse response : responses) {
+        mResponseObserver.onNext(response);
+    }
+    mResponseObserver.onError(Status.UNAUTHENTICATED.asRuntimeException());
+    for (WriteResponse response : responses) {
+        WriteResponse actualResponse = mStream.receive(TIMEOUT);
+        assertEquals(response, actualResponse);
+    }
+}

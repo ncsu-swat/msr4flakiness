@@ -1,0 +1,13 @@
+/**
+ * Tests that setting the ufs fingerprint persists across restarts.
+ */
+@Test
+public void setUfsFingerprintReplay() throws Exception {
+    String fingerprint = "FINGERPRINT";
+    createFileWithSingleBlock(NESTED_FILE_URI);
+    ((DefaultFileSystemMaster) mFileSystemMaster).setAttribute(NESTED_FILE_URI, SetAttributeContext.defaults().setUfsFingerprint(fingerprint));
+    // Simulate restart.
+    stopServices();
+    startServices();
+    assertEquals(fingerprint, mFileSystemMaster.getFileInfo(NESTED_FILE_URI, GetStatusContext.defaults()).getUfsFingerprint());
+}

@@ -1,0 +1,31 @@
+@Test
+public void edgeIndexTest() throws Exception {
+    // Run many concurrent operations, then check that the edge cache's indices are accurate.
+    long endTimeMs = System.currentTimeMillis() + 200;
+    ThreadLocalRandom random = ThreadLocalRandom.current();
+    List<MutableInodeDirectory> dirs = new ArrayList<>();
+    for (int i = 1; i < 5; i++) {
+        MutableInodeDirectory dir = createInodeDir(i, 0);
+        dirs.add(dir);
+        mStore.addChild(TEST_INODE_ID, dir);
+    }
+    AtomicInteger operations = new AtomicInteger(0);
+    ExecutorService executor = Executors.newFixedThreadPool(10);
+    int numThreads = 10;
+    executor.invokeAll(Collections.nCopies(numThreads, () -> {
+        while (operations.get() < 10_000 || System.currentTimeMillis() < endTimeMs) {
+            // Sometimes add, sometimes delete.
+            if (random.nextBoolean()) {
+                MutableInodeDirectory dir = createInodeDir(random.nextLong(10, 15), random.nextLong(1, 5));
+                mStore.addChild(dir.getParentId(), dir);
+            } else {
+                mStore.removeChild(dirs.get(random.nextInt(dirs.size())).getId(), Long.toString(random.nextLong(10, 15)));
+            }
+            operations.incrementAndGet();
+            assertTrue(mStore.mEdgeCache.mMap.size() <= CACHE_SIZE + numThreads);
+        }
+        return null;
+    }));
+    alluxio.util.CommonUtils.waitFor("eviction thread to finish", () -> mStore.mEdgeCache.mEvictionThread.mIsSleeping);
+    mStore.mEdgeCache.verifyIndices();
+}

@@ -1,0 +1,10 @@
+@Test
+public void chgrp() throws IOException, AlluxioException {
+    AlluxioURI uri = new AlluxioURI(FILE_PATH + "_chgrp");
+    try {
+        mFileSystem.setAttribute(uri, SetAttributePOptions.newBuilder().setGroup("foo").build());
+        Assert.fail("chgrp should not succeed under a readonly mount.");
+    } catch (AccessControlException e) {
+        Assert.assertThat(e.getMessage(), containsString(ExceptionMessage.MOUNT_READONLY.getMessage(uri, MOUNT_PATH)));
+    }
+}

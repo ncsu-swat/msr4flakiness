@@ -1,0 +1,34 @@
+@Test
+public void getattrWhenWriting() throws Exception {
+    String path = "/foo/bar";
+    AlluxioURI expectedPath = BASE_EXPECTED_URI.join(path);
+    FileOutStream fos = mock(FileOutStream.class);
+    when(mFileSystem.createFile(expectedPath)).thenReturn(fos);
+    mFuseFs.create(path, 0, mFileInfo);
+    // Prepare file status
+    FileInfo info = new FileInfo();
+    info.setLength(0);
+    info.setCompleted(false);
+    URIStatus status = new URIStatus(info);
+    when(mFileSystem.exists(any(AlluxioURI.class))).thenReturn(true);
+    when(mFileSystem.getStatus(any(AlluxioURI.class))).thenReturn(status);
+    FileStat stat = new FileStat(Runtime.getSystemRuntime());
+    // getattr() will not be blocked when writing
+    mFuseFs.getattr(path, stat);
+    // If getattr() is blocking, it will continuously get status of the file
+    verify(mFileSystem, atMost(300)).getStatus(expectedPath);
+    assertEquals(0, stat.st_size.longValue());
+    mFuseFs.release(path, mFileInfo);
+    // getattr() will be blocked waiting for the file to be completed
+    // If release() is called (returned) but does not finished
+    Thread t = new Thread(() -> mFuseFs.getattr(path, stat));
+    t.start();
+    Thread.sleep(1000);
+    verify(mFileSystem, atLeast(10)).getStatus(expectedPath);
+    assertEquals(0, stat.st_size.longValue());
+    info.setCompleted(true);
+    info.setLength(1000);
+    t.join();
+    // getattr() completed and set the file size
+    assertEquals(1000, stat.st_size.longValue());
+}

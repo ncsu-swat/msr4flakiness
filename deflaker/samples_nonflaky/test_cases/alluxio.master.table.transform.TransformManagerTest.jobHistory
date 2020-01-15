@@ -1,0 +1,44 @@
+/**
+ * 1. when neither table master nor job master restarts, job status and partition locations are
+ * updated correctly;
+ * 2. when table master restarts, since information of the previous running jobs are
+ * journaled, once the jobs finish, their status and partition locations are updated.
+ * But the history of finished jobs (either succeeded or failed) is lost because the history is
+ * not journaled.
+ */
+@Test
+public void jobHistory() throws Exception {
+    assertTrue(mTableMaster.getAllTransformJobInfo().isEmpty());
+    // Starts 3 jobs.
+    long jobId1 = transform(TABLE1, DEFINITION1);
+    long jobId2 = transform(TABLE2, DEFINITION2);
+    long jobId3 = transform(TABLE3, DEFINITION1);
+    // Verifies that all jobs are running.
+    assertEquals(3, mTableMaster.getAllTransformJobInfo().size());
+    checkTransformJobInfo(mTableMaster.getTransformJobInfo(jobId1), TABLE1, DEFINITION1, jobId1, Status.RUNNING, null);
+    checkTransformJobInfo(mTableMaster.getTransformJobInfo(jobId2), TABLE2, DEFINITION2, jobId2, Status.RUNNING, null);
+    checkTransformJobInfo(mTableMaster.getTransformJobInfo(jobId3), TABLE3, DEFINITION1, jobId3, Status.RUNNING, null);
+    // Updates job status in heartbeat.
+    mockJobStatus(jobId1, Status.COMPLETED, null);
+    mockJobStatus(jobId2, Status.FAILED, "error");
+    mockJobStatus(jobId3, Status.RUNNING, null);
+    heartbeat();
+    // Verifies that job status has been updated by the heartbeat.
+    assertEquals(3, mTableMaster.getAllTransformJobInfo().size());
+    TransformJobInfo job1Info = mTableMaster.getTransformJobInfo(jobId1);
+    checkTransformJobInfo(job1Info, TABLE1, DEFINITION1, jobId1, Status.COMPLETED, null);
+    checkTransformJobInfo(mTableMaster.getTransformJobInfo(jobId2), TABLE2, DEFINITION2, jobId2, Status.FAILED, "error");
+    checkTransformJobInfo(mTableMaster.getTransformJobInfo(jobId3), TABLE3, DEFINITION1, jobId3, Status.RUNNING, null);
+    restart();
+    // Checks that the layout for job1 is the transformed layout.
+    checkLayout(job1Info, TABLE1);
+    // Restarting table master will lose history for finished jobs,
+    // but history for running jobs are journaled and replayed.
+    assertEquals(1, mTableMaster.getAllTransformJobInfo().size());
+    checkTransformJobInfo(mTableMaster.getTransformJobInfo(jobId3), TABLE3, DEFINITION1, jobId3, Status.RUNNING, null);
+    // Now completes job 3.
+    mockJobStatus(jobId3, Status.COMPLETED, null);
+    heartbeat();
+    assertEquals(1, mTableMaster.getAllTransformJobInfo().size());
+    checkTransformJobInfo(mTableMaster.getTransformJobInfo(jobId3), TABLE3, DEFINITION1, jobId3, Status.COMPLETED, null);
+}

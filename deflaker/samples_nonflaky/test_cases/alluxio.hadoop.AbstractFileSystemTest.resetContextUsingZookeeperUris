@@ -1,0 +1,16 @@
+@Test
+public void resetContextUsingZookeeperUris() throws Exception {
+    // Change to signle zookeeper uri
+    URI uri = URI.create(Constants.HEADER + "zk@zkHost:2181/");
+    FileSystem fs = getHadoopFilesystem(org.apache.hadoop.fs.FileSystem.get(uri, getConf()));
+    assertTrue(fs.mFileSystem.getConf().getBoolean(PropertyKey.ZOOKEEPER_ENABLED));
+    assertEquals("zkHost:2181", fs.mFileSystem.getConf().get(PropertyKey.ZOOKEEPER_ADDRESS));
+    uri = URI.create(Constants.HEADER + "zk@host1:2181,host2:2181,host3:2181/tmp/path.txt");
+    fs = getHadoopFilesystem(org.apache.hadoop.fs.FileSystem.get(uri, getConf()));
+    assertTrue(fs.mFileSystem.getConf().getBoolean(PropertyKey.ZOOKEEPER_ENABLED));
+    assertEquals("host1:2181,host2:2181,host3:2181", fs.mFileSystem.getConf().get(PropertyKey.ZOOKEEPER_ADDRESS));
+    uri = URI.create(Constants.HEADER + "zk@host1:2181;host2:2181;host3:2181/tmp/path.txt");
+    fs = getHadoopFilesystem(org.apache.hadoop.fs.FileSystem.get(uri, getConf()));
+    assertTrue(fs.mFileSystem.getConf().getBoolean(PropertyKey.ZOOKEEPER_ENABLED));
+    assertEquals("host1:2181,host2:2181,host3:2181", fs.mFileSystem.getConf().get(PropertyKey.ZOOKEEPER_ADDRESS));
+}

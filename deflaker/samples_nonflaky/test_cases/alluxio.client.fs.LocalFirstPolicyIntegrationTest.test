@@ -1,0 +1,39 @@
+@Test
+public void test() throws Exception {
+    AlluxioMasterProcess master = AlluxioMasterProcess.Factory.create();
+    WorkerProcess worker1 = AlluxioWorkerProcess.Factory.create(TieredIdentityFactory.fromString("node=node1,rack=rack1", ServerConfiguration.global()));
+    WorkerProcess worker2 = AlluxioWorkerProcess.Factory.create(TieredIdentityFactory.fromString("node=node2,rack=rack2", ServerConfiguration.global()));
+    runProcess(mExecutor, master);
+    runProcess(mExecutor, worker1);
+    runProcess(mExecutor, worker2);
+    TestUtils.waitForReady(master);
+    TestUtils.waitForReady(worker1);
+    TestUtils.waitForReady(worker2);
+    FileSystem fs = FileSystem.Factory.create(ServerConfiguration.global());
+    // Write to the worker in node1
+    {
+        Whitebox.setInternalState(TieredIdentityFactory.class, "sInstance", TieredIdentityFactory.fromString("node=node1,rack=rack1", ServerConfiguration.global()));
+        try {
+            FileSystemTestUtils.createByteFile(fs, "/file1", WritePType.MUST_CACHE, 100);
+        } finally {
+            Whitebox.setInternalState(TieredIdentityFactory.class, "sInstance", (Object) null);
+        }
+        BlockWorker blockWorker1 = worker1.getWorker(BlockWorker.class);
+        BlockWorker blockWorker2 = worker2.getWorker(BlockWorker.class);
+        assertEquals(100, blockWorker1.getBlockStore().getBlockStoreMeta().getUsedBytes());
+        assertEquals(0, blockWorker2.getBlockStore().getBlockStoreMeta().getUsedBytes());
+    }
+    // Write to the worker in rack2
+    {
+        Whitebox.setInternalState(TieredIdentityFactory.class, "sInstance", TieredIdentityFactory.fromString("node=node3,rack=rack2", ServerConfiguration.global()));
+        try {
+            FileSystemTestUtils.createByteFile(fs, "/file2", WritePType.MUST_CACHE, 10);
+        } finally {
+            Whitebox.setInternalState(TieredIdentityFactory.class, "sInstance", (Object) null);
+        }
+        BlockWorker blockWorker1 = worker1.getWorker(BlockWorker.class);
+        BlockWorker blockWorker2 = worker2.getWorker(BlockWorker.class);
+        assertEquals(100, blockWorker1.getBlockStore().getBlockStoreMeta().getUsedBytes());
+        assertEquals(10, blockWorker2.getBlockStore().getBlockStoreMeta().getUsedBytes());
+    }
+}

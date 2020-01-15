@@ -1,0 +1,26 @@
+/**
+ * Reads logs created while reading the journal.
+ */
+@Test
+public void readNewLogs() throws Exception {
+    long endSN = 10;
+    buildCompletedLog(0, endSN);
+    try (JournalReader reader = mJournal.getReader(true)) {
+        int sn = 0;
+        while (reader.advance() != State.DONE) {
+            assertEquals(sn, reader.getEntry().getSequenceNumber());
+            sn++;
+        }
+        assertEquals(endSN, sn);
+        assertEquals(sn, reader.getNextSequenceNumber());
+        // Write another two logs.
+        buildCompletedLog(endSN, endSN * 2);
+        buildIncompleteLog(endSN * 2, endSN * 2 + 1);
+        while (reader.advance() != State.DONE) {
+            assertEquals(sn, reader.getEntry().getSequenceNumber());
+            sn++;
+        }
+        assertEquals(endSN * 2 + 1, sn);
+        assertEquals(sn, reader.getNextSequenceNumber());
+    }
+}

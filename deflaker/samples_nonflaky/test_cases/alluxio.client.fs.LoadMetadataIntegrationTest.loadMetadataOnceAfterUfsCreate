@@ -1,0 +1,14 @@
+@Test
+public void loadMetadataOnceAfterUfsCreate() throws Exception {
+    GetStatusPOptions options = GetStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.ONCE).build();
+    // dirB does not exist yet
+    checkGetStatus("/mnt/dir1/dirA/dirB/file", options, false, true);
+    // create dirB in UFS
+    Assert.assertTrue(new File(mLocalUfsPath + "/dir1/dirA/dirB").mkdirs());
+    // 'ONCE' still should not load the metadata
+    checkGetStatus("/mnt/dir1/dirA/dirB/file", options, false, false);
+    // load metadata for dirB with 'ALWAYS'
+    checkGetStatus("/mnt/dir1/dirA/dirB", GetStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.ALWAYS).build(), true, true);
+    // 'ONCE' should now load the metadata
+    checkGetStatus("/mnt/dir1/dirA/dirB/file", options, false, true);
+}

@@ -1,0 +1,20 @@
+/**
+ * Acquire without capacity.
+ */
+@Test
+public void acquireWithoutCapacity() throws Exception {
+    TestPool pool = new TestPool(DynamicResourcePool.Options.defaultOptions().setMaxCapacity(1));
+    List<Resource> resourceList = new ArrayList<>();
+    boolean timeout = false;
+    try {
+        Resource resource = pool.acquire();
+        resourceList.add(resource);
+        assertEquals(0, resource.mInteger.intValue());
+        resource = pool.acquire(1, TimeUnit.SECONDS);
+        resourceList.add(resource);
+    } catch (TimeoutException e) {
+        timeout = true;
+    }
+    assertEquals(1, resourceList.size());
+    assertTrue(timeout);
+}

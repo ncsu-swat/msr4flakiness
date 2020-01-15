@@ -1,0 +1,12 @@
+@Test
+public void setAclWithoutOwner() throws Exception {
+    createFileWithSingleBlock(NESTED_FILE_URI);
+    mFileSystemMaster.setAttribute(NESTED_URI, SetAttributeContext.mergeFrom(SetAttributePOptions.newBuilder().setMode(new Mode((short) 0777).toProto())));
+    Set<String> entries = Sets.newHashSet(mFileSystemMaster.getFileInfo(NESTED_FILE_URI, GET_STATUS_CONTEXT).convertAclToStringEntries());
+    assertEquals(3, entries.size());
+    try (AuthenticatedClientUserResource userA = new AuthenticatedClientUserResource("userA", ServerConfiguration.global())) {
+        Set<String> newEntries = Sets.newHashSet("user::rwx", "group::rwx", "other::rwx");
+        mThrown.expect(AccessControlException.class);
+        mFileSystemMaster.setAcl(NESTED_FILE_URI, SetAclAction.REPLACE, newEntries.stream().map(AclEntry::fromCliString).collect(Collectors.toList()), SetAclContext.defaults());
+    }
+}

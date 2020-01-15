@@ -1,0 +1,15 @@
+@Test
+public void getFileInfoWithLoadMetadata() throws Exception {
+    AlluxioURI ufsMount = new AlluxioURI(mTestFolder.newFolder().getAbsolutePath());
+    mFileSystemMaster.createDirectory(new AlluxioURI("/mnt/"), CreateDirectoryContext.defaults());
+    // Create ufs file.
+    Files.createFile(Paths.get(ufsMount.join("file").getPath()));
+    mFileSystemMaster.mount(new AlluxioURI("/mnt/local"), ufsMount, MountContext.defaults());
+    // 3 directories exist.
+    assertEquals(3, countPaths());
+    // getFileInfo should load metadata automatically.
+    AlluxioURI uri = new AlluxioURI("/mnt/local/file");
+    assertEquals(uri.getPath(), mFileSystemMaster.getFileInfo(uri, GET_STATUS_CONTEXT).getPath());
+    // getFileInfo should have loaded another file, so now 4 paths exist.
+    assertEquals(4, countPaths());
+}

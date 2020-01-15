@@ -1,0 +1,12 @@
+@Test
+public void eviction() {
+    for (int id = 100; id < 100 + CACHE_SIZE * 2; id++) {
+        MutableInodeFile child = MutableInodeFile.create(id, TEST_INODE_ID, "child" + id, 0, CreateFileContext.defaults());
+        mStore.writeNewInode(child);
+        mStore.addChild(TEST_INODE_ID, child);
+    }
+    for (int id = 100; id < 100 + CACHE_SIZE * 2; id++) {
+        assertTrue(mStore.getChild(TEST_INODE_DIR, "child" + id).isPresent());
+    }
+    verify(mBackingStore, Mockito.atLeastOnce()).getMutable(anyLong(), any(ReadOption.class));
+}

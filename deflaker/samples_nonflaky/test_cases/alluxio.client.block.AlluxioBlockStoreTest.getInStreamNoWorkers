@@ -1,0 +1,10 @@
+@Test
+public void getInStreamNoWorkers() throws Exception {
+    URIStatus dummyStatus = new URIStatus(new FileInfo().setPersisted(true).setBlockIds(Collections.singletonList(0L)));
+    InStreamOptions options = new InStreamOptions(dummyStatus, FileSystemOptions.openFileDefaults(sConf), sConf);
+    when(mMasterClient.getBlockInfo(BLOCK_ID)).thenReturn(new BlockInfo());
+    when(mMasterClient.getWorkerInfoList()).thenReturn(Collections.emptyList());
+    mException.expect(UnavailableException.class);
+    mException.expectMessage(ExceptionMessage.NO_WORKER_AVAILABLE.getMessage());
+    mBlockStore.getInStream(BLOCK_ID, options).getAddress();
+}

@@ -1,0 +1,18 @@
+@Test
+public void renameBeforeJobScheduled() throws Exception {
+    PersistenceTestUtils.pauseScheduler(mLocalAlluxioClusterResource);
+    URIStatus status = createAsyncFile();
+    AlluxioURI newUri = new AlluxioURI(PathUtils.uniqPath());
+    mFileSystem.createDirectory(newUri.getParent());
+    mFileSystem.rename(mUri, newUri);
+    checkFileInAlluxio(newUri, LEN);
+    checkFileNotInAlluxio(mUri);
+    checkFileNotInUnderStorage(status.getUfsPath());
+    checkFileNotInUnderStorage(mFileSystem.getStatus(newUri).getUfsPath());
+    PersistenceTestUtils.resumeScheduler(mLocalAlluxioClusterResource);
+    IntegrationTestUtils.waitForPersist(mLocalAlluxioClusterResource, newUri);
+    checkFileInAlluxio(newUri, LEN);
+    checkFileInUnderStorage(newUri, LEN);
+    checkFileNotInAlluxio(mUri);
+    checkFileNotInUnderStorage(status.getUfsPath());
+}

@@ -1,0 +1,12 @@
+@Test
+public void getBlockInfo() throws IOException, AlluxioException {
+    FileSystem fileSystem = mLocalAlluxioCluster.getClient();
+    fileSystem.createDirectory(new AlluxioURI("/foo"));
+    FileSystemTestUtils.createByteFile(fileSystem, "/foo/foobar1", WritePType.MUST_CACHE, 10);
+    long blockId = fileSystem.listStatus(new AlluxioURI("/foo/foobar1")).get(0).getBlockIds().get(0);
+    int ret = mFsAdminShell.run("getBlockInfo", String.valueOf(blockId));
+    Assert.assertEquals(0, ret);
+    String output = mOutput.toString();
+    Assert.assertThat(output, containsString("BlockInfo{id=" + blockId + ", length=10, locations=[BlockLocation{workerId="));
+    Assert.assertThat(output, containsString("This block belongs to file {id=" + BlockId.getFileId(blockId) + ", path=/foo/foobar1}"));
+}

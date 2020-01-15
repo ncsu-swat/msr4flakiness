@@ -1,0 +1,15 @@
+@Test
+public void ufsDeleteSync() throws Exception {
+    FileSystemTestUtils.loadFile(mFileSystem, alluxioPath(EXISTING_FILE));
+    new File(ufsPath(EXISTING_FILE)).delete();
+    assertFalse(mFileSystem.exists(new AlluxioURI(alluxioPath(EXISTING_FILE)), ExistsPOptions.newBuilder().setCommonOptions(PSYNC_ALWAYS).build()));
+    mFileSystem.free(new AlluxioURI("/"), FreePOptions.newBuilder().setRecursive(true).build());
+    BlockMasterClient blockClient = BlockMasterClient.Factory.create(MasterClientContext.newBuilder(ClientContext.create(ServerConfiguration.global())).build());
+    CommonUtils.waitFor("data to be freed", () -> {
+        try {
+            return blockClient.getUsedBytes() == 0;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    });
+}

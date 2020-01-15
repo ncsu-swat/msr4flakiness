@@ -1,0 +1,13 @@
+@Test
+public void getConfigurationWebPort() throws Exception {
+    try (MetaMasterConfigClient client = new RetryHandlingMetaMasterConfigClient(MasterClientContext.newBuilder(ClientContext.create(ServerConfiguration.global())).build())) {
+        List<Property> configList = client.getConfiguration(GetConfigurationPOptions.newBuilder().setIgnorePathConf(true).build()).getClusterConf();
+        int configWebPort = -1;
+        for (Property info : configList) {
+            if (info.getName().equals("alluxio.master.web.port")) {
+                configWebPort = Integer.valueOf(info.getValue());
+            }
+        }
+        assertEquals(mWebPort, configWebPort);
+    }
+}

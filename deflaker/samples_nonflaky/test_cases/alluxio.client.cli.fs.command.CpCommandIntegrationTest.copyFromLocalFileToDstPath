@@ -1,0 +1,15 @@
+@Test
+public void copyFromLocalFileToDstPath() throws Exception {
+    String dataString = "copyFromLocalFileToDstPathTest";
+    byte[] data = dataString.getBytes();
+    File localDir = new File(mLocalAlluxioCluster.getAlluxioHome() + "/localDir");
+    localDir.mkdir();
+    File localFile = generateFileContent("/localDir/testFile", data);
+    mFsShell.run("mkdir", "/dstDir");
+    mFsShell.run("cp", "file://" + localFile.getPath(), "/dstDir");
+    AlluxioURI uri = new AlluxioURI("/dstDir/testFile");
+    URIStatus status = mFileSystem.getStatus(uri);
+    Assert.assertNotNull(status);
+    byte[] read = readContent(uri, data.length);
+    Assert.assertEquals(new String(read), dataString);
+}

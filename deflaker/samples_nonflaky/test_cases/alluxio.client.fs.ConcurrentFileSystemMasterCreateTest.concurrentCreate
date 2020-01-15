@@ -1,0 +1,18 @@
+/**
+ * Tests concurrent create of files. Files are created under one shared directory but different
+ * sub-directories.
+ */
+@Test
+public void concurrentCreate() throws Exception {
+    final int numThreads = CONCURRENCY_FACTOR;
+    // 7 nested components to create (2 seconds each).
+    final long limitMs = 14 * SLEEP_MS * CONCURRENCY_FACTOR / 2;
+    AlluxioURI[] paths = new AlluxioURI[numThreads];
+    for (int i = 0; i < numThreads; i++) {
+        paths[i] = new AlluxioURI("/existing/path/dir/shared_dir/t_" + i + "/sub_dir1/sub_dir2/file" + i);
+    }
+    List<Throwable> errors = ConcurrentFileSystemMasterUtils.unaryOperation(mFileSystem, ConcurrentFileSystemMasterUtils.UnaryOperation.CREATE, paths, limitMs);
+    if (!errors.isEmpty()) {
+        Assert.fail("Encountered " + errors.size() + " errors, the first one is " + errors.get(0));
+    }
+}

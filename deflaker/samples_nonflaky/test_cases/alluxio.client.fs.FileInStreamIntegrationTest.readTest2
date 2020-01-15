@@ -1,0 +1,23 @@
+/**
+ * Tests {@link FileInStream#read(byte[])}.
+ */
+@Test
+@LocalAlluxioClusterResource.Config(confParams = { PropertyKey.Name.USER_NETWORK_READER_CHUNK_SIZE_BYTES, "64KB" })
+public void readTest2() throws Exception {
+    for (int k = MIN_LEN; k <= MAX_LEN; k += DELTA) {
+        for (CreateFilePOptions op : getOptionSet()) {
+            String filename = mTestPath + "/file_" + k + "_" + op.hashCode();
+            AlluxioURI uri = new AlluxioURI(filename);
+            FileInStream is = mFileSystem.openFile(uri, FileSystemTestUtils.toOpenFileOptions(op));
+            byte[] ret = new byte[k];
+            Assert.assertEquals(k, is.read(ret));
+            Assert.assertTrue(BufferUtils.equalIncreasingByteArray(k, ret));
+            is.close();
+            is = mFileSystem.openFile(uri, FileSystemTestUtils.toOpenFileOptions(op));
+            ret = new byte[k];
+            Assert.assertEquals(k, is.read(ret));
+            Assert.assertTrue(BufferUtils.equalIncreasingByteArray(k, ret));
+            is.close();
+        }
+    }
+}

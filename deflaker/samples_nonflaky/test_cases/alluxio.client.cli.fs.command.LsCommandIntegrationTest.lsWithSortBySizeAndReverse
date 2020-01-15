@@ -1,0 +1,12 @@
+/**
+ * Tests ls command with sort by size and reverse order option.
+ */
+@Test
+@LocalAlluxioClusterResource.Config(confParams = { PropertyKey.Name.SECURITY_AUTHORIZATION_PERMISSION_ENABLED, "false", PropertyKey.Name.SECURITY_AUTHENTICATION_TYPE, "NOSASL" })
+public void lsWithSortBySizeAndReverse() throws IOException, AlluxioException {
+    FileSystemTestUtils.createByteFile(mFileSystem, "/testRoot/testFileA", WritePType.MUST_CACHE, 50, 50);
+    FileSystemTestUtils.createByteFile(mFileSystem, "/testRoot/testFileZ", WritePType.MUST_CACHE, 10, 10);
+    FileSystemTestUtils.createByteFile(mFileSystem, "/testRoot/testLongFile", WritePType.MUST_CACHE, 100, 100);
+    mFsShell.run("ls", "--sort", "size", "-r", "/testRoot");
+    checkOutput("            100   NOT_PERSISTED .+ .+ 100% /testRoot/testLongFile", "             50   NOT_PERSISTED .+ .+ 100% /testRoot/testFileA", "             10   NOT_PERSISTED .+ .+ 100% /testRoot/testFileZ");
+}

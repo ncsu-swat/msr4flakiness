@@ -1,0 +1,17 @@
+/**
+ * Tests the {@link FileSystemMaster#free} method with a directory with a file pinned when
+ * forced flag is true.
+ */
+@Test
+public void freeDirWithPinnedFileAndForced() throws Exception {
+    mNestedFileContext.setWriteType(WriteType.CACHE_THROUGH);
+    long blockId = createFileWithSingleBlock(NESTED_FILE_URI);
+    mFileSystemMaster.setAttribute(NESTED_FILE_URI, SetAttributeContext.mergeFrom(SetAttributePOptions.newBuilder().setPinned(true)));
+    // free the parent dir of a pinned file with "forced"
+    mFileSystemMaster.free(NESTED_FILE_URI.getParent(), FreeContext.mergeFrom(FreePOptions.newBuilder().setForced(true).setRecursive(true)));
+    // Update the heartbeat of removedBlockId received from worker 1.
+    Command heartbeat = mBlockMaster.workerHeartbeat(mWorkerId1, null, ImmutableMap.of("MEM", (long) Constants.KB), ImmutableList.of(blockId), ImmutableMap.of(), ImmutableMap.of(), mMetrics);
+    // Verify the muted Free command on worker1.
+    assertEquals(Command.newBuilder().setCommandType(CommandType.Nothing).build(), heartbeat);
+    assertEquals(0, mBlockMaster.getBlockInfo(blockId).getLocations().size());
+}

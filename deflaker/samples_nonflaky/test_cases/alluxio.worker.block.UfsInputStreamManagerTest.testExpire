@@ -1,0 +1,22 @@
+/**
+ * Tests the input stream is closed after the resource is expired.
+ */
+@Test
+public void testExpire() throws Exception {
+    try (Closeable r = new ConfigurationRule(new HashMap<PropertyKey, String>() {
+
+        {
+            put(PropertyKey.WORKER_UFS_INSTREAM_CACHE_EXPIRARTION_TIME, "2");
+        }
+    }, ServerConfiguration.global()).toResource()) {
+        mManager = new UfsInputStreamManager();
+        // check out a stream
+        InputStream instream = mManager.acquire(mUfs, FILE_NAME, FILE_ID, OpenOptions.defaults().setOffset(2));
+        // check in back
+        mManager.release(instream);
+        Thread.sleep(10);
+        // check out another stream should trigger the timeout
+        mManager.acquire(mUfs, FILE_NAME, FILE_ID, OpenOptions.defaults().setOffset(4));
+        verify(mSeekableInStreams[0], timeout(2000).times(1)).close();
+    }
+}

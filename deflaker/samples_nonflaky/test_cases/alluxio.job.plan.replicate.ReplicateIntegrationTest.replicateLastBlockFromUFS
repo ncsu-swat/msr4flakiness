@@ -1,0 +1,15 @@
+@Test
+@LocalAlluxioClusterResource.Config(confParams = { PropertyKey.Name.JOB_MASTER_JOB_CAPACITY, "1", PropertyKey.Name.JOB_MASTER_FINISHED_JOB_RETENTION_TIME, "0" })
+public void replicateLastBlockFromUFS() throws Exception {
+    // run the replicate job for mBlockId2
+    // hack - use a plan tracker with capacity of 1
+    PlanTracker planTracker = new PlanTracker(1, 0, -1, mock(WorkflowTracker.class));
+    Whitebox.setInternalState(mJobMaster, "mPlanTracker", planTracker);
+    waitForJobToFinish(mJobMaster.run(new ReplicateConfig(TEST_URI, mBlockId2, 1)));
+    BlockInfo blockInfo1 = AdjustJobTestUtils.getBlock(mBlockId1, mFsContext);
+    BlockInfo blockInfo2 = AdjustJobTestUtils.getBlock(mBlockId2, mFsContext);
+    Assert.assertEquals(0, blockInfo1.getLocations().size());
+    Assert.assertEquals(1, blockInfo2.getLocations().size());
+    Assert.assertEquals(TEST_BLOCK_SIZE, blockInfo1.getLength());
+    Assert.assertEquals(1, blockInfo2.getLength());
+}

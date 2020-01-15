@@ -1,0 +1,34 @@
+/**
+ * Tests the batch read API with offset and length from a remote location when the data is only in
+ * the underlying storage.
+ */
+@Test
+public void readTest3() throws Exception {
+    String uniqPath = PathUtils.uniqPath();
+    for (int k = MIN_LEN; k <= MAX_LEN; k += DELTA) {
+        AlluxioURI uri = new AlluxioURI(uniqPath + "/file_" + k);
+        FileSystemTestUtils.createByteFile(mFileSystem, uri, mWriteUnderStore, k);
+        FileInStream is = mFileSystem.openFile(uri, mReadNoCache);
+        byte[] ret = new byte[k / 2];
+        Assert.assertEquals(k / 2, is.read(ret, 0, k / 2));
+        Assert.assertTrue(BufferUtils.equalIncreasingByteArray(k / 2, ret));
+        is.close();
+        if (k == 0) {
+            Assert.assertTrue(mFileSystem.getStatus(uri).getInAlluxioPercentage() == 100);
+        } else {
+            Assert.assertFalse(mFileSystem.getStatus(uri).getInAlluxioPercentage() == 100);
+        }
+        is = mFileSystem.openFile(uri, mReadCache);
+        ret = new byte[k];
+        Assert.assertEquals(k, is.read(ret, 0, k));
+        Assert.assertTrue(BufferUtils.equalIncreasingByteArray(k, ret));
+        is.close();
+        Assert.assertTrue(mFileSystem.getStatus(uri).getInAlluxioPercentage() == 100);
+        is = mFileSystem.openFile(uri, mReadCache);
+        ret = new byte[k];
+        Assert.assertEquals(k, is.read(ret));
+        Assert.assertTrue(BufferUtils.equalIncreasingByteArray(k, ret));
+        is.close();
+        Assert.assertTrue(mFileSystem.getStatus(uri).getInAlluxioPercentage() == 100);
+    }
+}

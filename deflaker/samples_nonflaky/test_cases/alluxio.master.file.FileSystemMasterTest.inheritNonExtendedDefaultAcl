@@ -1,0 +1,14 @@
+@Test
+public void inheritNonExtendedDefaultAcl() throws Exception {
+    AlluxioURI dir = new AlluxioURI("/dir");
+    mFileSystemMaster.createDirectory(dir, CreateDirectoryContext.defaults());
+    String aclString = "default:user::-w-";
+    mFileSystemMaster.setAcl(dir, SetAclAction.MODIFY, Arrays.asList(AclEntry.fromCliString(aclString)), SetAclContext.defaults());
+    AlluxioURI inner = new AlluxioURI("/dir/inner");
+    mFileSystemMaster.createDirectory(inner, CreateDirectoryContext.defaults());
+    FileInfo fileInfo = mFileSystemMaster.getFileInfo(inner, GetStatusContext.defaults());
+    List<String> accessEntries = fileInfo.getAcl().toStringEntries();
+    assertTrue(accessEntries.toString(), accessEntries.contains("user::-w-"));
+    List<String> defaultEntries = fileInfo.getDefaultAcl().toStringEntries();
+    assertTrue(defaultEntries.toString(), defaultEntries.contains(aclString));
+}

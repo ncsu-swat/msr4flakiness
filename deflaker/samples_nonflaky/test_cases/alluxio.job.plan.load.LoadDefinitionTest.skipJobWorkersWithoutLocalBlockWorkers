@@ -1,0 +1,10 @@
+@Test
+public void skipJobWorkersWithoutLocalBlockWorkers() throws Exception {
+    List<BlockWorkerInfo> blockWorkers = Arrays.asList(new BlockWorkerInfo(new WorkerNetAddress().setHost("host0"), 0, 0));
+    Mockito.when(mMockBlockStore.getAllWorkers()).thenReturn(blockWorkers);
+    createFileWithNoLocations(TEST_URI, 10);
+    LoadConfig config = new LoadConfig(TEST_URI, 1);
+    Set<Pair<WorkerInfo, ArrayList<LoadTask>>> assignments = new LoadDefinition().selectExecutors(config, JOB_WORKERS, new SelectExecutorsContext(1, mJobServerContext));
+    Assert.assertEquals(10, assignments.size());
+    Assert.assertEquals(1, assignments.iterator().next().getSecond().size());
+}

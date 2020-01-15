@@ -1,0 +1,15 @@
+@Test
+public void listStatus() throws Exception {
+    CreateFileContext options = CreateFileContext.mergeFrom(CreateFilePOptions.newBuilder().setBlockSizeBytes(64));
+    for (int i = 0; i < 10; i++) {
+        mFsMaster.createDirectory(new AlluxioURI("/i" + i), CreateDirectoryContext.defaults());
+        for (int j = 0; j < 10; j++) {
+            mFsMaster.createFile(new AlluxioURI("/i" + i + "/j" + j), options);
+        }
+    }
+    Assert.assertEquals(1, mFsMaster.listStatus(new AlluxioURI("/i0/j0"), ListStatusContext.defaults()).size());
+    for (int i = 0; i < 10; i++) {
+        Assert.assertEquals(10, mFsMaster.listStatus(new AlluxioURI("/i" + i), ListStatusContext.defaults()).size());
+    }
+    Assert.assertEquals(10, mFsMaster.listStatus(new AlluxioURI("/"), ListStatusContext.defaults()).size());
+}

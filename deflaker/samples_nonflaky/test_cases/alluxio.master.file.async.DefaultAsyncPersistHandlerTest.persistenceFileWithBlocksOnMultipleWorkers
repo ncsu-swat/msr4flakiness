@@ -1,0 +1,20 @@
+/**
+ * Tests the persistence of file with block on multiple workers.
+ */
+@Test
+public void persistenceFileWithBlocksOnMultipleWorkers() throws Exception {
+    DefaultAsyncPersistHandler handler = new DefaultAsyncPersistHandler(new FileSystemMasterView(mFileSystemMaster));
+    AlluxioURI path = new AlluxioURI("/test");
+    List<FileBlockInfo> blockInfoList = new ArrayList<>();
+    BlockLocation location1 = new BlockLocation().setWorkerId(1);
+    blockInfoList.add(new FileBlockInfo().setBlockInfo(new BlockInfo().setLocations(Lists.newArrayList(location1))));
+    BlockLocation location2 = new BlockLocation().setWorkerId(2);
+    blockInfoList.add(new FileBlockInfo().setBlockInfo(new BlockInfo().setLocations(Lists.newArrayList(location2))));
+    long fileId = 2;
+    when(mFileSystemMaster.getFileId(path)).thenReturn(fileId);
+    when(mFileSystemMaster.getFileInfo(fileId)).thenReturn(new FileInfo().setLength(1).setCompleted(true));
+    when(mFileSystemMaster.getFileBlockInfoList(path)).thenReturn(blockInfoList);
+    // no persist scheduled on any worker
+    assertEquals(0, handler.pollFilesToPersist(1).size());
+    assertEquals(0, handler.pollFilesToPersist(2).size());
+}

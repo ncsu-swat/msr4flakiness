@@ -1,0 +1,24 @@
+@Test
+public void lockBlockTest1() throws Exception {
+    String uniqPath = PathUtils.uniqPath();
+    int numOfFiles = 5;
+    int fileSize = WORKER_UNRESERVED_BYTES / numOfFiles;
+    List<AlluxioURI> files = new ArrayList<>();
+    for (int k = 0; k < numOfFiles; k++) {
+        FileSystemTestUtils.createByteFile(mFileSystem, uniqPath + k, fileSize, mWriteBoth);
+        files.add(new AlluxioURI(uniqPath + k));
+    }
+    for (int k = 0; k < numOfFiles; k++) {
+        Assert.assertEquals(100, mFileSystem.getStatus(files.get(k)).getInAlluxioPercentage());
+    }
+    FileSystemTestUtils.createByteFile(mFileSystem, uniqPath + numOfFiles, fileSize, mWriteBoth);
+    files.add(new AlluxioURI(uniqPath + numOfFiles));
+    HeartbeatScheduler.execute(HeartbeatContext.WORKER_BLOCK_SYNC);
+    int numFilesCached = 0;
+    for (int k = 0; k <= numOfFiles; k++) {
+        if (mFileSystem.getStatus(files.get(k)).getInAlluxioPercentage() == 100) {
+            numFilesCached++;
+        }
+    }
+    Assert.assertEquals(numOfFiles, numFilesCached);
+}

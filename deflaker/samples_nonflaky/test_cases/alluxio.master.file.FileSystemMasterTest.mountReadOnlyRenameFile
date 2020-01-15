@@ -1,0 +1,14 @@
+/**
+ * Tests a readOnly mount for the rename op.
+ */
+@Test
+public void mountReadOnlyRenameFile() throws Exception {
+    AlluxioURI alluxioURI = new AlluxioURI("/hello");
+    AlluxioURI ufsURI = createTempUfsDir("ufs/hello");
+    createTempUfsFile("ufs/hello/file1");
+    mFileSystemMaster.mount(alluxioURI, ufsURI, MountContext.mergeFrom(MountPOptions.newBuilder().setReadOnly(true)));
+    mThrown.expect(AccessControlException.class);
+    AlluxioURI src = new AlluxioURI("/hello/file1");
+    AlluxioURI dst = new AlluxioURI("/hello/file2");
+    mFileSystemMaster.rename(src, dst, RenameContext.defaults());
+}

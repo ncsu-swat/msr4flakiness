@@ -1,0 +1,50 @@
+@Test
+public void add() throws Exception {
+    try (FileSystemAdminShell shell = new FileSystemAdminShell(ServerConfiguration.global())) {
+        int ret = shell.run("pathConf", "list");
+        Assert.assertEquals(0, ret);
+        String output = mOutput.toString();
+        Assert.assertEquals("", output);
+        ret = shell.run("pathConf", "show", PATH1);
+        Assert.assertEquals(0, ret);
+        output = mOutput.toString();
+        Assert.assertEquals("", output);
+        mOutput.reset();
+        ret = shell.run("pathConf", "show", PATH2);
+        Assert.assertEquals(0, ret);
+        output = mOutput.toString();
+        Assert.assertEquals("", output);
+        mOutput.reset();
+        ret = shell.run("pathConf", "add", "--property", READ_TYPE_NO_CACHE, "--property", WRITE_TYPE_CACHE_THROUGH, PATH1);
+        Assert.assertEquals(0, ret);
+        output = mOutput.toString();
+        Assert.assertEquals("", output);
+        mOutput.reset();
+        ret = shell.run("pathConf", "list");
+        Assert.assertEquals(0, ret);
+        output = mOutput.toString();
+        Assert.assertEquals(PATH1 + "\n", output);
+        mOutput.reset();
+        ret = shell.run("pathConf", "add", "--property", WRITE_TYPE_THROUGH, PATH2);
+        Assert.assertEquals(0, ret);
+        output = mOutput.toString();
+        Assert.assertEquals("", output);
+        mOutput.reset();
+        ret = shell.run("pathConf", "list");
+        Assert.assertEquals(0, ret);
+        output = mOutput.toString();
+        Assert.assertEquals(PATH1 + "\n" + PATH2 + "\n", output);
+        mOutput.reset();
+        ret = shell.run("pathConf", "show", PATH1);
+        Assert.assertEquals(0, ret);
+        String expected = READ_TYPE_NO_CACHE + "\n" + WRITE_TYPE_CACHE_THROUGH + "\n";
+        output = mOutput.toString();
+        Assert.assertEquals(expected, output);
+        mOutput.reset();
+        ret = shell.run("pathConf", "show", PATH2);
+        Assert.assertEquals(0, ret);
+        expected = WRITE_TYPE_THROUGH + "\n";
+        output = mOutput.toString();
+        Assert.assertEquals(expected, output);
+    }
+}

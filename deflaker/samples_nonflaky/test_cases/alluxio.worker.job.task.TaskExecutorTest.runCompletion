@@ -1,0 +1,18 @@
+@Test
+public void runCompletion() throws Exception {
+    long jobId = 1;
+    long taskId = 2;
+    JobConfig jobConfig = mock(JobConfig.class);
+    Serializable taskArgs = Lists.newArrayList(1);
+    RunTaskContext context = mock(RunTaskContext.class);
+    Integer taskResult = 1;
+    @SuppressWarnings("unchecked")
+    PlanDefinition<JobConfig, Serializable, Serializable> planDefinition = mock(PlanDefinition.class);
+    when(mRegistry.getJobDefinition(any(JobConfig.class))).thenReturn(planDefinition);
+    when(planDefinition.runTask(any(JobConfig.class), eq(taskArgs), any(RunTaskContext.class))).thenReturn(taskResult);
+    RunTaskCommand command = RunTaskCommand.newBuilder().setJobConfig(ByteString.copyFrom(SerializationUtils.serialize(jobConfig))).setTaskArgs(ByteString.copyFrom(SerializationUtils.serialize(taskArgs))).build();
+    TaskExecutor executor = new TaskExecutor(jobId, taskId, command, context, mTaskExecutorManager);
+    executor.run();
+    verify(planDefinition).runTask(any(JobConfig.class), eq(taskArgs), eq(context));
+    verify(mTaskExecutorManager).notifyTaskCompletion(jobId, taskId, taskResult);
+}

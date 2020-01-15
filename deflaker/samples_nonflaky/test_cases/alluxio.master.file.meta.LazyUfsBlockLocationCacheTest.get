@@ -1,0 +1,18 @@
+@Test
+public void get() throws Exception {
+    final long blockId = IdUtils.getRandomNonNegativeLong();
+    final AlluxioURI fileUri = new AlluxioURI("/mnt/file");
+    final String localFilePath = new AlluxioURI(mLocalUfsPath).join("file").getPath();
+    mLocalUfs.create(localFilePath);
+    final List<String> ufsLocations = mLocalUfs.getFileLocations(localFilePath);
+    for (String location : ufsLocations) {
+        System.out.println(location);
+    }
+    Assert.assertNull(mUfsBlockLocationCache.get(blockId));
+    List<String> locations = mUfsBlockLocationCache.get(blockId, fileUri, 0);
+    Assert.assertArrayEquals(ufsLocations.toArray(), locations.toArray());
+    locations = mUfsBlockLocationCache.get(blockId);
+    Assert.assertArrayEquals(ufsLocations.toArray(), locations.toArray());
+    mUfsBlockLocationCache.invalidate(blockId);
+    Assert.assertNull(mUfsBlockLocationCache.get(blockId));
+}

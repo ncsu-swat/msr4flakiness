@@ -1,0 +1,19 @@
+/**
+ * Tests {@link alluxio.client.block.LocalBlockInStream#seek(long)}.
+ */
+@Test
+public void seek() throws Exception {
+    for (int k = MIN_LEN + DELTA; k <= MAX_LEN; k += DELTA) {
+        for (CreateFilePOptions op : getOptionSet()) {
+            AlluxioURI uri = new AlluxioURI(sTestPath + "/file_" + k + "_" + op.hashCode());
+            FileInStream is = sFileSystem.openFile(uri, sReadNoCache);
+            is.seek(k / 3);
+            Assert.assertEquals(k / 3, is.read());
+            is.seek(k / 2);
+            Assert.assertEquals(k / 2, is.read());
+            is.seek(k / 4);
+            Assert.assertEquals(k / 4, is.read());
+            is.close();
+        }
+    }
+}

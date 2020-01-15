@@ -1,0 +1,54 @@
+/**
+ * More complicated graph to test topological sort. Other functionalities such as add
+ * are tested indirectly also.
+ */
+@Test
+public void topologicalSort() {
+    // Construct a graph.
+    // 1->2, 3->2, 4->2, 5->1, 6
+    List<Integer> parents = new ArrayList<>();
+    mGraph.add(5, parents);
+    parents.add(5);
+    mGraph.add(1, parents);
+    parents.clear();
+    mGraph.add(3, parents);
+    mGraph.add(4, parents);
+    parents.add(1);
+    parents.add(3);
+    parents.add(4);
+    mGraph.add(2, parents);
+    parents.clear();
+    mGraph.add(6, parents);
+    // Sort the whole graph.
+    Set<Integer> toSort = new HashSet<>();
+    for (int i = 1; i <= 6; i++) {
+        toSort.add(i);
+    }
+    List<Integer> result;
+    Set<Integer> seen = new HashSet<>();
+    result = mGraph.sortTopologically(toSort);
+    for (Integer i : result) {
+        if (i == 1) {
+            assertTrue(seen.contains(5));
+        } else if (i == 2) {
+            assertTrue(seen.contains(1));
+            assertTrue(seen.contains(3));
+            assertTrue(seen.contains(4));
+        }
+        seen.add(i);
+    }
+    assertEquals(6, seen.size());
+    // Sort part of the graph.
+    toSort.clear();
+    toSort.add(1);
+    toSort.add(2);
+    seen.clear();
+    result = mGraph.sortTopologically(toSort);
+    for (Integer i : result) {
+        if (i == 2) {
+            assertTrue(seen.contains(1));
+        }
+        seen.add(i);
+    }
+    assertEquals(2, seen.size());
+}

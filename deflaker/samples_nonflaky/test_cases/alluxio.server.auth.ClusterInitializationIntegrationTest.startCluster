@@ -1,0 +1,12 @@
+/**
+ * When a user starts a new cluster, an empty root dir is created and owned by the user.
+ */
+@Test
+@LocalAlluxioClusterResource.Config(confParams = { PropertyKey.Name.SECURITY_LOGIN_USERNAME, SUPER_USER })
+public void startCluster() throws Exception {
+    FileSystem fs = mLocalAlluxioClusterResource.get().getClient();
+    URIStatus status = fs.getStatus(ROOT);
+    assertEquals(SUPER_USER, status.getOwner());
+    assertEquals(0755, status.getMode());
+    assertEquals(0, fs.listStatus(new AlluxioURI("/")).size());
+}

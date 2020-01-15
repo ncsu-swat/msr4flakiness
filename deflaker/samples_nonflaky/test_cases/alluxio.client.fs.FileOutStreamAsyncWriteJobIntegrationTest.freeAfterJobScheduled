@@ -1,0 +1,23 @@
+@Test
+public void freeAfterJobScheduled() throws Exception {
+    PersistenceTestUtils.pauseChecker(mLocalAlluxioClusterResource);
+    URIStatus status = createAsyncFile();
+    PersistenceTestUtils.waitForJobScheduled(mLocalAlluxioClusterResource, status.getFileId());
+    try {
+        mFileSystem.free(mUri);
+        Assert.fail("Expect free to fail before file is persisted");
+    } catch (AlluxioException e) {
+    // Expected
+    }
+    IntegrationTestUtils.waitForBlocksToBeFreed(mLocalAlluxioClusterResource.get().getWorkerProcess().getWorker(BlockWorker.class));
+    status = mFileSystem.getStatus(mUri);
+    // free for non-persisted file is no-op
+    Assert.assertEquals(100, status.getInMemoryPercentage());
+    PersistenceTestUtils.resumeChecker(mLocalAlluxioClusterResource);
+    IntegrationTestUtils.waitForPersist(mLocalAlluxioClusterResource, mUri);
+    checkFileInAlluxio(mUri, LEN);
+    checkFileInUnderStorage(mUri, LEN);
+    status = mFileSystem.getStatus(mUri);
+    // free for non-persisted file is no-op
+    Assert.assertEquals(100, status.getInMemoryPercentage());
+}

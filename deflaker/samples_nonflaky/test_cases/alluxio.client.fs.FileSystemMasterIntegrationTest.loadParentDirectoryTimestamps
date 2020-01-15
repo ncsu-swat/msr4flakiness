@@ -1,0 +1,28 @@
+/**
+ * Tests loading ufs last modified time for parent directories.
+ */
+@Test
+public void loadParentDirectoryTimestamps() throws Exception {
+    String parentName = "d1";
+    String childName = "d2";
+    String ufs = ServerConfiguration.get(PropertyKey.MASTER_MOUNT_TABLE_ROOT_UFS);
+    String parentUfsPath = Paths.get(ufs, parentName).toString();
+    FileUtils.createDir(parentUfsPath);
+    File file = new File(parentUfsPath);
+    long actualTime = file.lastModified();
+    Thread.sleep(100);
+    AlluxioURI parentPath = new AlluxioURI("/" + parentName);
+    AlluxioURI path = new AlluxioURI("/" + Paths.get(parentName, childName));
+    mFsMaster.createDirectory(path, CreateDirectoryContext.mergeFrom(CreateDirectoryPOptions.newBuilder().setRecursive(true).setMode(new Mode((short) 0700).toProto())).setWriteType(WriteType.CACHE_THROUGH));
+    long fileId = mFsMaster.getFileId(path);
+    // calls getFileInfo on child to load metadata of parent
+    mFsMaster.getFileInfo(fileId);
+    long parentId = mFsMaster.getFileId(parentPath);
+    FileInfo parentInfo = mFsMaster.getFileInfo(parentId);
+    long alluxioTime = parentInfo.getLastModificationTimeMs();
+    Assert.assertEquals(parentName, parentInfo.getName());
+    Assert.assertTrue(parentInfo.isFolder());
+    Assert.assertTrue(parentInfo.isPersisted());
+    Assert.assertEquals(actualTime, alluxioTime);
+    Assert.assertTrue(FileUtils.exists(parentUfsPath));
+}

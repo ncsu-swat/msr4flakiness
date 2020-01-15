@@ -1,0 +1,17 @@
+@Test
+public void scheduleAtFixedRate() throws Exception {
+    CountTask task = new CountTask();
+    ControllableScheduler scheduler = new ControllableScheduler();
+    int delayDays = 5;
+    int periodDays = 10;
+    scheduler.scheduleAtFixedRate(task, delayDays, periodDays, TimeUnit.DAYS);
+    scheduler.jumpAndExecute(3 * 24, TimeUnit.HOURS);
+    assertEquals(0, task.runTimes());
+    scheduler.jumpAndExecute(2 * 24 * 60, TimeUnit.MINUTES);
+    assertEquals(1, task.runTimes());
+    Random random = new Random();
+    int daysToJump = random.nextInt(1000000000);
+    scheduler.jumpAndExecute(daysToJump, TimeUnit.DAYS);
+    assertEquals(daysToJump / periodDays + 1, task.runTimes());
+    assertTrue(scheduler.schedulerIsIdle());
+}

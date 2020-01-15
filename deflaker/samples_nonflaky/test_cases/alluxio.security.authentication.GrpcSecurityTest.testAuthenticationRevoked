@@ -1,0 +1,23 @@
+@Test
+public void testAuthenticationRevoked() throws Exception {
+    mConfiguration.set(PropertyKey.SECURITY_AUTHENTICATION_TYPE, AuthType.SIMPLE.getAuthName());
+    mConfiguration.set(PropertyKey.AUTHENTICATION_INACTIVE_CHANNEL_REAUTHENTICATE_PERIOD, "250ms");
+    GrpcServer server = createServer(AuthType.SIMPLE);
+    try {
+        server.start();
+        UserState us = UserState.Factory.create(mConfiguration);
+        GrpcChannel channel = GrpcChannelBuilder.newBuilder(getServerConnectAddress(server), mConfiguration).setSubject(us.getSubject()).build();
+        Assert.assertTrue(channel.isHealthy());
+        /*
+       * Sleeping will ensure that authentication sessions for the channel will expire on the
+       * server. This should have propagated back to the client and its health status should reflect
+       * that.
+       *
+       * Sleep more than authentication revocation timeout.
+       */
+        Thread.sleep(500);
+        Assert.assertFalse(channel.isHealthy());
+    } finally {
+        server.shutdown();
+    }
+}

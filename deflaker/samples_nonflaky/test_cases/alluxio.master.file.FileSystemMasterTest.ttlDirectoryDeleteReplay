@@ -1,0 +1,16 @@
+/**
+ * Tests that TTL delete of a directory is not forgotten across restarts.
+ */
+@Test
+public void ttlDirectoryDeleteReplay() throws Exception {
+    CreateDirectoryContext context = CreateDirectoryContext.mergeFrom(CreateDirectoryPOptions.newBuilder().setRecursive(true).setCommonOptions(FileSystemMasterCommonPOptions.newBuilder().setTtl(0)));
+    long dirId = mFileSystemMaster.createDirectory(NESTED_DIR_URI, context);
+    // Simulate restart.
+    stopServices();
+    startServices();
+    FileInfo fileInfo = mFileSystemMaster.getFileInfo(dirId);
+    assertEquals(fileInfo.getFileId(), dirId);
+    HeartbeatScheduler.execute(HeartbeatContext.MASTER_TTL_CHECK);
+    mThrown.expect(FileDoesNotExistException.class);
+    mFileSystemMaster.getFileInfo(dirId);
+}

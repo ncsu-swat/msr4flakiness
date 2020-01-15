@@ -1,0 +1,16 @@
+@Test
+public void runFailure() throws Exception {
+    long jobId = 1;
+    long taskId = 2;
+    JobConfig jobConfig = mock(JobConfig.class);
+    Serializable taskArgs = Lists.newArrayList(1);
+    RunTaskContext context = mock(RunTaskContext.class);
+    @SuppressWarnings("unchecked")
+    PlanDefinition<JobConfig, Serializable, Serializable> planDefinition = mock(PlanDefinition.class);
+    when(mRegistry.getJobDefinition(jobConfig)).thenReturn(planDefinition);
+    doThrow(new UnsupportedOperationException("failure")).when(planDefinition).runTask(jobConfig, taskArgs, context);
+    RunTaskCommand command = RunTaskCommand.newBuilder().setJobConfig(ByteString.copyFrom(SerializationUtils.serialize(jobConfig))).setTaskArgs(ByteString.copyFrom(SerializationUtils.serialize(taskArgs))).build();
+    TaskExecutor executor = new TaskExecutor(jobId, taskId, command, context, mTaskExecutorManager);
+    executor.run();
+    verify(mTaskExecutorManager).notifyTaskFailure(eq(jobId), eq(taskId), anyString());
+}

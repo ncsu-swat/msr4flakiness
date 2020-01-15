@@ -1,0 +1,16 @@
+/**
+ * Tests that no allocation happens when the RAM, SSD and HDD size is more than the default one.
+ */
+@Test
+public void shouldNotAllocate() throws Exception {
+    for (String strategyName : mStrategies) {
+        ServerConfiguration.set(PropertyKey.WORKER_ALLOCATOR_CLASS, strategyName);
+        resetManagerView();
+        Allocator allocator = Allocator.Factory.create(getMetadataEvictorView());
+        assertTempBlockMeta(allocator, mAnyDirInTierLoc1, DEFAULT_RAM_SIZE + 1, false);
+        assertTempBlockMeta(allocator, mAnyDirInTierLoc2, DEFAULT_SSD_SIZE + 1, false);
+        assertTempBlockMeta(allocator, mAnyDirInTierLoc3, DEFAULT_HDD_SIZE + 1, false);
+        assertTempBlockMeta(allocator, mAnyTierLoc, DEFAULT_HDD_SIZE + 1, false);
+        assertTempBlockMeta(allocator, mAnyTierLoc, DEFAULT_SSD_SIZE + 1, true);
+    }
+}

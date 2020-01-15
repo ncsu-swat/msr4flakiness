@@ -1,0 +1,16 @@
+@Test
+@LocalAlluxioClusterResource.Config(confParams = { PropertyKey.Name.SECURITY_AUTHENTICATION_TYPE, "SIMPLE", PropertyKey.Name.SECURITY_AUTHORIZATION_PERMISSION_ENABLED, "true", PropertyKey.Name.SECURITY_GROUP_MAPPING_CLASS, FakeUserGroupsMapping.FULL_CLASS_NAME })
+public void setAcl() throws Exception {
+    AlluxioURI filePath = new AlluxioURI("/file");
+    String user = "alluxio";
+    ServerConfiguration.set(PropertyKey.SECURITY_LOGIN_USERNAME, user);
+    CreateFilePOptions op = CreateFilePOptions.newBuilder().setBlockSizeBytes(64).build();
+    mFileSystem.createFile(filePath, op).close();
+    // TODO(chaomin): also setOwner and setGroup once there's a way to fake the owner/group in UFS.
+    mFileSystem.setAttribute(filePath, SetAttributePOptions.newBuilder().setMode(new Mode((short) 0400).toProto()).setRecursive(false).build());
+    URIStatus status = mFileSystem.getStatus(filePath);
+    mLocalAlluxioCluster.stopFS();
+    aclTestUtil(status, user);
+    deleteFsMasterJournalLogs();
+    aclTestUtil(status, user);
+}

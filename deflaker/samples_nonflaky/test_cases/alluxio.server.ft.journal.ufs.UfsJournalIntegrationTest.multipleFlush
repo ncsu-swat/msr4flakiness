@@ -1,0 +1,22 @@
+/**
+ * Tests flushing the journal multiple times, without writing any data.
+ */
+@Test
+@LocalAlluxioClusterResource.Config(confParams = { PropertyKey.Name.MASTER_JOURNAL_LOG_SIZE_BYTES_MAX, "0" })
+public void multipleFlush() throws Exception {
+    String journalFolder = mLocalAlluxioCluster.getLocalAlluxioMaster().getJournalFolder();
+    mLocalAlluxioCluster.stop();
+    UfsJournal journal = new UfsJournal(new URI(PathUtils.concatPath(journalFolder, Constants.FILE_SYSTEM_MASTER_NAME)), new NoopMaster(), 0, Collections::emptySet);
+    journal.start();
+    journal.gainPrimacy();
+    UfsStatus[] paths = UnderFileSystem.Factory.create(journalFolder, ServerConfiguration.global()).listStatus(journal.getLogDir().toString());
+    int expectedSize = paths == null ? 0 : paths.length;
+    journal.flush();
+    journal.flush();
+    journal.flush();
+    journal.close();
+    paths = UnderFileSystem.Factory.create(journalFolder, ServerConfiguration.global()).listStatus(journal.getLogDir().toString());
+    int actualSize = paths == null ? 0 : paths.length;
+    // No new files are created.
+    Assert.assertEquals(expectedSize, actualSize);
+}

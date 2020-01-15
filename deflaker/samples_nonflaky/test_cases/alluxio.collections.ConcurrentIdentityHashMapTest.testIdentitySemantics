@@ -1,0 +1,32 @@
+@Test
+public void testIdentitySemantics() {
+    String k = new String("test");
+    String k2 = new String("test");
+    assertNull(mMap.put(k, "true"));
+    assertNull(mMap.put(k2, "false"));
+    assertFalse(mMap.isEmpty());
+    assertEquals(2, mMap.size());
+    assertTrue(mMap.containsKey(k));
+    assertTrue(mMap.containsKey(k2));
+    assertEquals(2, mMap.entrySet().size());
+    for (Map.Entry e : mMap.entrySet()) {
+        if (e.getKey() == k) {
+            assertEquals("true", e.getValue());
+        } else if (e.getKey() == k2) {
+            assertEquals("false", e.getValue());
+        } else {
+            fail("Should not have reached this condition");
+        }
+    }
+    // Don't remove, because it doesn't have the correct obj ref
+    assertNull(mMap.remove("test"));
+    assertEquals(2, mMap.size());
+    // remove with correct identity ref
+    assertEquals("true", mMap.remove(k));
+    assertEquals(1, mMap.size());
+    // Remove twice should not work
+    assertNull(mMap.remove(k));
+    assertEquals("false", mMap.remove(k2));
+    // remove with correct identity ref
+    assertEquals(0, mMap.size());
+}

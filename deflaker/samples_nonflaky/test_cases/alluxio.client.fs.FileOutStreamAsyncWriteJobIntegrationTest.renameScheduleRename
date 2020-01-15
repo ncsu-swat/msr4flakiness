@@ -1,0 +1,34 @@
+@Test
+public void renameScheduleRename() throws Exception {
+    PersistenceTestUtils.pauseScheduler(mLocalAlluxioClusterResource);
+    PersistenceTestUtils.pauseChecker(mLocalAlluxioClusterResource);
+    URIStatus status = createAsyncFile();
+    String ufsPath = status.getUfsPath();
+    AlluxioURI newUri1 = new AlluxioURI(PathUtils.uniqPath());
+    mFileSystem.createDirectory(newUri1.getParent());
+    mFileSystem.rename(mUri, newUri1);
+    String ufsPath1 = mFileSystem.getStatus(newUri1).getUfsPath();
+    checkFileNotInAlluxio(mUri);
+    checkFileNotInUnderStorage(ufsPath);
+    checkFileInAlluxio(newUri1, LEN);
+    checkFileNotInUnderStorage(ufsPath1);
+    PersistenceTestUtils.resumeScheduler(mLocalAlluxioClusterResource);
+    PersistenceTestUtils.waitForJobScheduled(mLocalAlluxioClusterResource, status.getFileId());
+    AlluxioURI newUri2 = new AlluxioURI(PathUtils.uniqPath());
+    mFileSystem.rename(newUri1, newUri2);
+    String ufsPath2 = mFileSystem.getStatus(newUri2).getUfsPath();
+    checkFileNotInAlluxio(mUri);
+    checkFileNotInUnderStorage(ufsPath);
+    checkFileNotInAlluxio(newUri1);
+    checkFileNotInUnderStorage(ufsPath1);
+    checkFileInAlluxio(newUri2, LEN);
+    checkFileNotInUnderStorage(ufsPath2);
+    PersistenceTestUtils.resumeChecker(mLocalAlluxioClusterResource);
+    IntegrationTestUtils.waitForPersist(mLocalAlluxioClusterResource, newUri2);
+    checkFileNotInAlluxio(mUri);
+    checkFileNotInUnderStorage(ufsPath);
+    checkFileNotInAlluxio(newUri1);
+    checkFileNotInUnderStorage(ufsPath1);
+    checkFileInAlluxio(newUri2, LEN);
+    checkFileInUnderStorage(newUri2, LEN);
+}

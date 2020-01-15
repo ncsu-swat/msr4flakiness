@@ -1,0 +1,29 @@
+@Test
+public void readWrite() throws Exception {
+    final File file = mTempFolder.newFile("test.parquet");
+    Files.delete(file.toPath());
+    final int numRows = 10;
+    TableSchema schema = new ParquetSchema(SCHEMA);
+    TableRow row = new ParquetRow(RECORD);
+    AlluxioURI uri = new AlluxioURI("file:///" + file.getPath());
+    try (TableWriter writer = TableWriter.create(schema, uri)) {
+        for (int r = 0; r < numRows; r++) {
+            writer.write(row);
+        }
+    }
+    List<TableRow> rows = Lists.newArrayList();
+    uri = new AlluxioURI("file:///" + file.getPath());
+    try (TableReader reader = TableReader.create(uri, mPartitionInfo)) {
+        assertEquals(schema, reader.getSchema());
+        for (TableRow r = reader.read(); r != null; r = reader.read()) {
+            rows.add(r);
+        }
+    }
+    assertEquals(numRows, rows.size());
+    for (TableRow r : rows) {
+        assertEquals(row, r);
+        for (int i = 0; i < COLUMNS.length; i++) {
+            assertEquals(VALUES[i], r.getColumn(COLUMNS[i]));
+        }
+    }
+}

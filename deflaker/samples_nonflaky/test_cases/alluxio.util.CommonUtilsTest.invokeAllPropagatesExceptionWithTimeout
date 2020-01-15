@@ -1,0 +1,29 @@
+/**
+ * Tests that when one task throws an exception and other tasks time out, the exception is
+ * propagated.
+ */
+@Test
+public void invokeAllPropagatesExceptionWithTimeout() throws Exception {
+    int numTasks = 5;
+    final AtomicInteger id = new AtomicInteger();
+    List<Callable<Void>> tasks = new ArrayList<>();
+    final Exception testException = new Exception("test message");
+    for (int i = 0; i < numTasks; i++) {
+        tasks.add(() -> {
+            int myId = id.incrementAndGet();
+            // The 3rd task throws an exception, other tasks sleep.
+            if (myId == 3) {
+                throw testException;
+            } else {
+                Thread.sleep(10 * Constants.SECOND_MS);
+            }
+            return null;
+        });
+    }
+    try {
+        CommonUtils.invokeAll(tasks, 500);
+        fail("Expected an exception to be thrown");
+    } catch (ExecutionException e) {
+        assertSame(testException, e.getCause());
+    }
+}

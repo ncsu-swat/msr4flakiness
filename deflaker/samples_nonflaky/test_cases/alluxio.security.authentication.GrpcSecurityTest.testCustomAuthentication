@@ -1,0 +1,13 @@
+@Test
+public void testCustomAuthentication() throws Exception {
+    mConfiguration.set(PropertyKey.SECURITY_AUTHENTICATION_TYPE, AuthType.CUSTOM.getAuthName());
+    mConfiguration.set(PropertyKey.SECURITY_AUTHENTICATION_CUSTOM_PROVIDER_CLASS, ExactlyMatchAuthenticationProvider.class.getName());
+    GrpcServer server = createServer(AuthType.CUSTOM);
+    try {
+        server.start();
+        GrpcChannelBuilder channelBuilder = GrpcChannelBuilder.newBuilder(getServerConnectAddress(server), mConfiguration);
+        channelBuilder.setCredentials(ExactlyMatchAuthenticationProvider.USERNAME, ExactlyMatchAuthenticationProvider.PASSWORD, null).build();
+    } finally {
+        server.shutdown();
+    }
+}

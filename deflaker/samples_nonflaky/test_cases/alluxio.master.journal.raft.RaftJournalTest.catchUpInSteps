@@ -1,0 +1,33 @@
+// Raft journal receives leader knowledge in chunks.
+// So advancing should take into account seeing partial knowledge.
+@Test
+public void catchUpInSteps() throws Exception {
+    // Create a counting master implementation that counts how many journal entries it processed.
+    CountingDummyFileSystemMaster countingMaster = new CountingDummyFileSystemMaster();
+    mFollowerJournalSystem.createJournal(countingMaster);
+    // Suspend follower journal system.
+    mFollowerJournalSystem.suspend();
+    final int entryBatchCount = 5;
+    // Create batch of entries on the leader journal context.
+    try (JournalContext journalContext = mLeaderJournalSystem.createJournal(new NoopMaster()).createJournalContext()) {
+        for (int i = 0; i < entryBatchCount; i++) {
+            journalContext.append(alluxio.proto.journal.Journal.JournalEntry.newBuilder().setInodeLastModificationTime(File.InodeLastModificationTimeEntry.newBuilder().setId(i).build()).build());
+        }
+    }
+    // Catch up follower journal system to target-index:(fileCount * 2) - 1.
+    Map<String, Long> backupSequences = new HashMap<>();
+    backupSequences.put("FileSystemMaster", (long) (entryBatchCount * 2) - 1);
+    CatchupFuture catchupFuture = mFollowerJournalSystem.catchup(backupSequences);
+    // Create next batch of entries on the leader journal context.
+    try (JournalContext journalContext = mLeaderJournalSystem.createJournal(new NoopMaster()).createJournalContext()) {
+        for (int i = 0; i < entryBatchCount; i++) {
+            journalContext.append(alluxio.proto.journal.Journal.JournalEntry.newBuilder().setInodeLastModificationTime(File.InodeLastModificationTimeEntry.newBuilder().setId(i).build()).build());
+        }
+    }
+    // Wait for sequence to be caught up.
+    catchupFuture.waitTermination();
+    Assert.assertEquals(entryBatchCount * 2, countingMaster.getApplyCount());
+    // Catchup on the already met sequence.
+    mFollowerJournalSystem.catchup(backupSequences);
+    Assert.assertEquals(entryBatchCount * 2, countingMaster.getApplyCount());
+}

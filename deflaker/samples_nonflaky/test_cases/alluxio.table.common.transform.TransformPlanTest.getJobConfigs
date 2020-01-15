@@ -1,0 +1,17 @@
+@Test
+public void getJobConfigs() {
+    HiveLayout from = TableTestUtils.createLayout("/from");
+    HiveLayout to = TableTestUtils.createLayout("/to");
+    TransformDefinition definition = TransformDefinition.parse("write(hive).option(hive.num.files, 12)");
+    TransformPlan plan = new TransformPlan(from, to, definition);
+    assertEquals(from, plan.getBaseLayout());
+    assertEquals(to, plan.getTransformedLayout());
+    ArrayList<JobConfig> jobs = plan.getJobConfigs();
+    assertEquals(1, jobs.size());
+    assertEquals(CompactConfig.class, jobs.get(0).getClass());
+    CompactConfig compact = (CompactConfig) jobs.get(0);
+    assertEquals("hive", compact.getDatabaseType());
+    assertEquals("/from", compact.getInput());
+    assertEquals("/to", compact.getOutput());
+    assertEquals(12, compact.getNumFiles());
+}

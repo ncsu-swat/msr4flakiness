@@ -1,0 +1,21 @@
+/**
+ * Tests concurrent renames within the root do not block on each other.
+ */
+@Test
+public void rootConcurrentRename() throws Exception {
+    final int numThreads = CONCURRENCY_FACTOR;
+    AlluxioURI[] srcs = new AlluxioURI[numThreads];
+    AlluxioURI[] dsts = new AlluxioURI[numThreads];
+    for (int i = 0; i < numThreads; i++) {
+        srcs[i] = new AlluxioURI("/file" + i);
+        mFileSystem.createFile(srcs[i], sCreatePersistedFileOptions).close();
+        dsts[i] = new AlluxioURI("/renamed" + i);
+    }
+    assertErrorsSizeEquals(concurrentRename(srcs, dsts), 0);
+    List<URIStatus> files = mFileSystem.listStatus(new AlluxioURI("/"));
+    Collections.sort(files, new ConcurrentFileSystemMasterUtils.IntegerSuffixedPathComparator());
+    for (int i = 0; i < numThreads; i++) {
+        Assert.assertEquals(dsts[i].getName(), files.get(i).getName());
+    }
+    Assert.assertEquals(numThreads, files.size());
+}

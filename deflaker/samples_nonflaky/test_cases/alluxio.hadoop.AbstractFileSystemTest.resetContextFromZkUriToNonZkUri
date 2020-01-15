@@ -1,0 +1,14 @@
+@Test
+public void resetContextFromZkUriToNonZkUri() throws Exception {
+    org.apache.hadoop.conf.Configuration conf = getConf();
+    URI uri = URI.create(Constants.HEADER + "zk@zkHost:2181/tmp/path.txt");
+    FileSystem fs = getHadoopFilesystem(org.apache.hadoop.fs.FileSystem.get(uri, conf));
+    assertTrue(fs.mFileSystem.getConf().getBoolean(PropertyKey.ZOOKEEPER_ENABLED));
+    assertEquals("zkHost:2181", fs.mFileSystem.getConf().get(PropertyKey.ZOOKEEPER_ADDRESS));
+    URI otherUri = URI.create(Constants.HEADER + "alluxioHost:19998/tmp/path.txt");
+    fs = getHadoopFilesystem(org.apache.hadoop.fs.FileSystem.get(otherUri, conf));
+    assertEquals("alluxioHost", fs.mFileSystem.getConf().get(PropertyKey.MASTER_HOSTNAME));
+    assertEquals("19998", fs.mFileSystem.getConf().get(PropertyKey.MASTER_RPC_PORT));
+    assertFalse(fs.mFileSystem.getConf().getBoolean(PropertyKey.ZOOKEEPER_ENABLED));
+    assertFalse(fs.mFileSystem.getConf().isSet(PropertyKey.ZOOKEEPER_ADDRESS));
+}

@@ -1,0 +1,15 @@
+@Test
+public void registry() {
+    List<TestServer> masters = ImmutableList.of(new ServerC(), new ServerB(), new ServerA());
+    List<TestServer[]> permutations = new ArrayList<>();
+    computePermutations(masters.toArray(new TestServer[masters.size()]), 0, permutations);
+    // Make sure that the registry orders the masters independently of the order in which they
+    // are registered.
+    for (TestServer[] permutation : permutations) {
+        Registry<TestServer, Void> registry = new Registry<>();
+        for (TestServer server : permutation) {
+            registry.add(server.getClass(), server);
+        }
+        Assert.assertEquals(masters, registry.getServers());
+    }
+}

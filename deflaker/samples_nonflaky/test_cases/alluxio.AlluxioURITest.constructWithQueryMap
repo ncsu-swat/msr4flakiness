@@ -1,0 +1,19 @@
+/**
+ * Tests the {@link AlluxioURI#AlluxioURI(String, Authority, String, Map)} constructor to build an
+ * URI from its different components with a query map.
+ */
+@Test
+public void constructWithQueryMap() {
+    String scheme = "alluxio";
+    String authority = "host:1234";
+    String path = "/a";
+    Map<String, String> queryMap = new HashMap<>();
+    queryMap.put("key", "123");
+    queryMap.put(" k2 ", " v2 ");
+    queryMap.put(" key: !*'();:@&=+$,/?#[]\"% ", " !*'();:@&=+$,/?#[]\"% ");
+    queryMap.put(" key: %26 %3D %20 %25 %2B ", " %26 %3D %20 %25 %2B ");
+    AlluxioURI uri1 = new AlluxioURI(scheme, Authority.fromString(authority), path, queryMap);
+    AlluxioURI uri2 = new AlluxioURI(uri1.toString());
+    assertEquals(queryMap, uri1.getQueryMap());
+    assertEquals(uri1.getQueryMap(), uri2.getQueryMap());
+}

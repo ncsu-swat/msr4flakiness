@@ -1,0 +1,22 @@
+/**
+ * Read large file remotely. Make sure the test does not timeout.
+ */
+@Test(timeout = 30000)
+@LocalAlluxioClusterResource.Config(confParams = { PropertyKey.Name.USER_SHORT_CIRCUIT_ENABLED, "false", PropertyKey.Name.USER_BLOCK_SIZE_BYTES_DEFAULT, "16MB", PropertyKey.Name.USER_NETWORK_READER_CHUNK_SIZE_BYTES, "64KB", PropertyKey.Name.WORKER_MEMORY_SIZE, "1GB" })
+public void remoteReadLargeFile() throws Exception {
+    // write a file outside of Alluxio
+    AlluxioURI filePath = new AlluxioURI(mTestPath + "/test");
+    try (FileOutStream os = mFileSystem.createFile(filePath, CreateFilePOptions.newBuilder().setBlockSizeBytes(16 * Constants.MB).setWriteType(WritePType.THROUGH).build())) {
+        // Write a smaller byte array 10 times to avoid demanding 500mb of contiguous memory.
+        byte[] bytes = BufferUtils.getIncreasingByteArray(50 * Constants.MB);
+        for (int i = 0; i < 10; i++) {
+            os.write(bytes);
+        }
+    }
+    OpenFilePOptions options = OpenFilePOptions.newBuilder().setReadType(ReadPType.CACHE_PROMOTE).build();
+    try (FileInStream in = mFileSystem.openFile(filePath, options)) {
+        byte[] buf = new byte[8 * Constants.MB];
+        while (in.read(buf) != -1) {
+        }
+    }
+}

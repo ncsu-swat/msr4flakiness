@@ -1,0 +1,25 @@
+@Test
+public void recordMultipleTimeSeries() {
+    TimeSeriesStore store = new TimeSeriesStore();
+    String metric1 = "test_metric_1";
+    String metric2 = "test_metric_2";
+    double value1 = 10;
+    double value2 = 20;
+    store.record(metric1, value1);
+    store.record(metric2, value2);
+    TimeSeries ts1 = null;
+    TimeSeries ts2 = null;
+    for (TimeSeries ts : store.getTimeSeries()) {
+        if (ts.getName().equals(metric1)) {
+            ts1 = ts;
+        } else if (ts.getName().equals(metric2)) {
+            ts2 = ts;
+        } else {
+            Assert.fail("Invalid Timeseries " + ts.getName());
+        }
+    }
+    assertNotNull(ts1);
+    assertNotNull(ts2);
+    assertEquals(value1, ts1.getDataPoints().get(0).getValue(), 0);
+    assertEquals(value2, ts2.getDataPoints().get(0).getValue(), 0);
+}

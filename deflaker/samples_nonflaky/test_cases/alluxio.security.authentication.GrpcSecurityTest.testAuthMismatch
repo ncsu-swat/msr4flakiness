@@ -1,0 +1,13 @@
+@Test
+public void testAuthMismatch() throws Exception {
+    GrpcServer server = createServer(AuthType.NOSASL);
+    try {
+        server.start();
+        mConfiguration.set(PropertyKey.SECURITY_AUTHENTICATION_TYPE, AuthType.SIMPLE);
+        GrpcChannelBuilder channelBuilder = GrpcChannelBuilder.newBuilder(getServerConnectAddress(server), mConfiguration);
+        mThrown.expect(UnauthenticatedException.class);
+        channelBuilder.build();
+    } finally {
+        server.shutdown();
+    }
+}

@@ -1,0 +1,17 @@
+@Test
+public void missingLastWriteLock() throws Exception {
+    mPath = create("/a/b/missing", LockPattern.WRITE_INODE);
+    assertFalse(mPath.fullPathExists());
+    assertNull(mPath.getInodeOrNull());
+    assertEquals(mDirB, mPath.getLastExistingInode());
+    assertEquals(mDirB, mPath.getParentInodeDirectory());
+    assertEquals(mDirB, mPath.getParentInodeOrNull());
+    assertEquals(mDirB, mPath.getAncestorInode());
+    assertEquals(Arrays.asList(mRootDir, mDirA, mDirB), mPath.getInodeList());
+    assertEquals(3, mPath.getExistingInodeCount());
+    checkOnlyNodesReadLocked(mRootDir, mDirA, mDirB);
+    checkOnlyNodesWriteLocked();
+    checkOnlyIncomingEdgesReadLocked(mRootDir, mDirA, mDirB);
+    checkIncomingEdgeReadLocked(mDirB.getId(), "missing");
+    checkOnlyIncomingEdgesWriteLocked();
+}

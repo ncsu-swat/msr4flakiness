@@ -1,0 +1,13 @@
+@Test
+public void listingCacheBigDirEviction() throws Exception {
+    MutableInodeDirectory bigDir = createInodeDir(1, 0);
+    long dirSize = CACHE_SIZE;
+    for (int i = 10; i < 10 + dirSize; i++) {
+        mStore.addChild(bigDir.getId(), createInodeDir(i, bigDir.getId()));
+    }
+    // Cache the large directory
+    assertEquals(dirSize, Iterables.size(mStore.getChildIds(bigDir.getId())));
+    // Perform another operation to trigger eviction
+    mStore.addChild(bigDir.getId(), createInodeDir(10000, bigDir.getId()));
+    assertFalse(mStore.mListingCache.getCachedChildIds(TEST_INODE_ID).isPresent());
+}

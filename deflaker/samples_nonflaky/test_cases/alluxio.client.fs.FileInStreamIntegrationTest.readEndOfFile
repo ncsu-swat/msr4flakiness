@@ -1,0 +1,21 @@
+/**
+ * Tests {@link FileInStream#read(byte[], int, int)} for end of file.
+ */
+@Test
+public void readEndOfFile() throws Exception {
+    for (int k = MIN_LEN; k <= MAX_LEN; k += DELTA) {
+        for (CreateFilePOptions op : getOptionSet()) {
+            String filename = mTestPath + "/file_" + k + "_" + op.hashCode();
+            AlluxioURI uri = new AlluxioURI(filename);
+            try (FileInStream is = mFileSystem.openFile(uri, FileSystemTestUtils.toOpenFileOptions(op))) {
+                byte[] ret = new byte[k / 2];
+                int readBytes = is.read(ret, 0, k / 2);
+                while (readBytes != -1) {
+                    readBytes = is.read(ret);
+                    Assert.assertTrue(0 != readBytes);
+                }
+                Assert.assertEquals(-1, readBytes);
+            }
+        }
+    }
+}

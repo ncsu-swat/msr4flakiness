@@ -1,0 +1,39 @@
+@Test
+public void deleteIfTrue() {
+    TrieNode node = new TrieNode();
+    TrieNode a = node.insert("/a");
+    TrieNode b = node.insert("/a/b");
+    TrieNode f = node.insert("/a/e/f");
+    TrieNode d = node.insert("/c/d");
+    TrieNode g = node.insert("/c/g");
+    TrieNode h = node.insert("/u/h");
+    Assert.assertTrue(node.search("/a/b").contains(b));
+    TrieNode b2 = node.deleteIf("/a/b", n -> {
+        Assert.assertEquals(b, n);
+        return true;
+    });
+    Assert.assertEquals(b, b2);
+    Assert.assertFalse(node.search("/a/b").contains(b));
+    Assert.assertTrue(node.search("/a").contains(a));
+    TrieNode a2 = node.deleteIf("/a", n -> {
+        Assert.assertEquals(a, n);
+        return true;
+    });
+    Assert.assertEquals(a, a2);
+    Assert.assertFalse(node.search("/a").contains(a));
+    Assert.assertTrue(node.search("/a/e/f").contains(f));
+    TrieNode c2 = node.deleteIf("/c", n -> true);
+    Assert.assertNull(c2);
+    Assert.assertTrue(node.search("/c/d").contains(d));
+    Assert.assertTrue(node.search("/c/g").contains(g));
+    TrieNode h2 = node.deleteIf("/u/h", n -> {
+        Assert.assertEquals(h, n);
+        return true;
+    });
+    Assert.assertEquals(h, h2);
+    TrieNode nil = node.deleteIf("/n", n -> {
+        Assert.fail();
+        return true;
+    });
+    Assert.assertNull(nil);
+}

@@ -1,0 +1,32 @@
+/**
+ * Tests that a canceled persist job is not retried.
+ */
+@Test
+public void noRetryCanceled() throws Exception {
+    // Create a file and check the internal state.
+    AlluxioURI testFile = createTestFile();
+    FileInfo fileInfo = mFileSystemMaster.getFileInfo(testFile, GET_STATUS_CONTEXT);
+    Assert.assertEquals(PersistenceState.NOT_PERSISTED.toString(), fileInfo.getPersistenceState());
+    // schedule the async persistence, checking the internal state.
+    mFileSystemMaster.scheduleAsyncPersistence(testFile, ScheduleAsyncPersistenceContext.defaults());
+    checkPersistenceRequested(testFile);
+    // Mock the job service interaction.
+    Random random = new Random();
+    long jobId = random.nextLong();
+    Mockito.when(mMockJobMasterClient.run(any(JobConfig.class))).thenReturn(jobId);
+    // Repeatedly execute the persistence checker heartbeat, checking the internal state.
+    {
+        HeartbeatScheduler.execute(HeartbeatContext.MASTER_PERSISTENCE_SCHEDULER);
+        checkPersistenceInProgress(testFile, jobId);
+        HeartbeatScheduler.execute(HeartbeatContext.MASTER_PERSISTENCE_SCHEDULER);
+        checkPersistenceInProgress(testFile, jobId);
+    }
+    // Mock the job service interaction.
+    JobInfo jobInfo = createJobInfo(Status.CANCELED);
+    Mockito.when(mMockJobMasterClient.getJobStatus(Mockito.anyLong())).thenReturn(jobInfo);
+    // Execute the persistence checker heartbeat, checking the internal state.
+    {
+        HeartbeatScheduler.execute(HeartbeatContext.MASTER_PERSISTENCE_CHECKER);
+        checkEmpty();
+    }
+}

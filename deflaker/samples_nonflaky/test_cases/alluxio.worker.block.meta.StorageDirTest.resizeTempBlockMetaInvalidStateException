@@ -1,0 +1,17 @@
+/**
+ * Tests that an {@link InvalidWorkerStateException} is thrown when trying to shrink a block via
+ * the {@link StorageDir#resizeTempBlockMeta(TempBlockMeta, long)} method.
+ */
+@Test
+public void resizeTempBlockMetaInvalidStateException() throws Exception {
+    mDir.addTempBlockMeta(mTempBlockMeta);
+    final long newSize = TEST_TEMP_BLOCK_SIZE - 10;
+    try {
+        mDir.resizeTempBlockMeta(mTempBlockMeta, newSize);
+        Assert.fail("Should throw an Exception when newSize is smaller than oldSize");
+    } catch (Exception e) {
+        assertTrue(e instanceof InvalidWorkerStateException);
+        Assert.assertThat(e.getMessage(), CoreMatchers.equalTo("Shrinking block, not supported!"));
+        assertEquals(TEST_TEMP_BLOCK_SIZE, mTempBlockMeta.getBlockSize());
+    }
+}

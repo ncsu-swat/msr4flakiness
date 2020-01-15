@@ -1,0 +1,10 @@
+@Test
+public void ttlCreateFile() throws Exception {
+    mFsMaster.createDirectory(new AlluxioURI("/testFolder"), CreateDirectoryContext.defaults());
+    long ttl = 100;
+    CreateFileContext context = CreateFileContext.mergeFrom(CreateFilePOptions.newBuilder().setCommonOptions(FileSystemMasterCommonPOptions.newBuilder().setTtl(ttl).setTtlAction(alluxio.grpc.TtlAction.FREE)));
+    mFsMaster.createFile(new AlluxioURI("/testFolder/testFile"), context);
+    FileInfo folderInfo = mFsMaster.getFileInfo(mFsMaster.getFileId(new AlluxioURI("/testFolder/testFile")));
+    Assert.assertEquals(ttl, folderInfo.getTtl());
+    Assert.assertEquals(TtlAction.FREE, folderInfo.getTtlAction());
+}

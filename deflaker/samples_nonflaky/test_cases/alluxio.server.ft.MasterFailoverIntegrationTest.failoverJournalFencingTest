@@ -1,0 +1,23 @@
+@Test
+public void failoverJournalFencingTest() throws Exception {
+    // This test verifies that when a master fails over due to Zookeeper disconnection, outstanding
+    // threads on the master are not allowed to write to the journal.
+    AlluxioURI dir = new AlluxioURI("/dir");
+    mFileSystem.createDirectory(dir);
+    DeleteThread deleteThread = new DeleteThread(dir);
+    deleteThread.start();
+    // Give the delete thread a chance to start.
+    Thread.sleep(500);
+    mMultiMasterLocalAlluxioCluster.stopZk();
+    // Give master a chance to notice that ZK is dead and trigger failover.
+    Thread.sleep(5000);
+    mMultiMasterLocalAlluxioCluster.restartZk();
+    deleteThread.join();
+    // After failing on the original master, the delete should be retried on the new master.
+    assertFalse(mFileSystem.exists(dir));
+    // Restart to make sure the journal is consistent (we didn't write two delete entries for /dir).
+    mMultiMasterLocalAlluxioCluster.restartMasters();
+    // need new client after restart
+    mFileSystem = mMultiMasterLocalAlluxioCluster.getClient();
+    assertEquals(0, mFileSystem.listStatus(new AlluxioURI("/")).size());
+}

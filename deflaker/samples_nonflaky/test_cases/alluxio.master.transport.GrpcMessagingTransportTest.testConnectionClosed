@@ -1,0 +1,20 @@
+@Test
+public void testConnectionClosed() throws Exception {
+    // Catalyst thread context for managing client/server.
+    ThreadContext connectionContext = createSingleThreadContext("ClientServerCtx");
+    // Create and bind transport server.
+    Address address = bindServer(connectionContext, mTransport.server(), new CopycatTransportTestListener());
+    // Open a client connection to server.
+    Connection clientConnection = connectClient(connectionContext, mTransport.client(), address);
+    // Close connection.
+    clientConnection.close().get();
+    // Sent request over connection. Assert request can't be sent over closed connection.
+    boolean failed = false;
+    try {
+        sendRequest(clientConnection, new DummyRequest("dummy")).get();
+    } catch (ExecutionException e) {
+        Assert.assertTrue(e.getCause() instanceof IllegalStateException);
+        failed = true;
+    }
+    Assert.assertTrue(failed);
+}

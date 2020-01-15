@@ -1,0 +1,18 @@
+@Test
+public void nestedTest() throws Exception {
+    CompositeConfig config = new CompositeConfig(Lists.newArrayList(new CompositeConfig(Lists.newArrayList(new SleepJobConfig(2), new SleepJobConfig(3)), false), new SleepJobConfig(1)), true);
+    long jobId = mJobMaster.run(config);
+    waitForJobToFinish(jobId);
+    JobInfo status = mJobMaster.getStatus(jobId);
+    assertEquals(Status.COMPLETED, status.getStatus());
+    List<JobInfo> children = status.getChildren();
+    assertEquals(2, children.size());
+    JobInfo child0 = children.get(0);
+    assertEquals(child0, mJobMaster.getStatus(children.get(0).getId()));
+    assertEquals(Status.COMPLETED, child0.getStatus());
+    assertEquals(2, child0.getChildren().size());
+    JobInfo child1 = children.get(1);
+    assertEquals(child1, mJobMaster.getStatus(children.get(1).getId()));
+    assertEquals(Status.COMPLETED, child1.getStatus());
+    assertEquals(1, child1.getChildren().size());
+}

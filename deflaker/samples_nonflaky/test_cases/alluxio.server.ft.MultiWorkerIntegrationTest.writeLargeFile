@@ -1,0 +1,14 @@
+@Test
+@LocalAlluxioClusterResource.Config(confParams = { PropertyKey.Name.USER_BLOCK_WRITE_LOCATION_POLICY, "alluxio.client.block.policy.RoundRobinPolicy", // don't let the reserver run, because the test writes 100% of the capacity.
+PropertyKey.Name.WORKER_TIERED_STORE_RESERVER_INTERVAL_MS, "1h" })
+public void writeLargeFile() throws Exception {
+    int fileSize = NUM_WORKERS * WORKER_MEMORY_SIZE_BYTES;
+    AlluxioURI file = new AlluxioURI("/test");
+    FileSystem fs = mResource.get().getClient();
+    FileSystemTestUtils.createByteFile(fs, file.getPath(), fileSize, CreateFilePOptions.newBuilder().setWriteType(WritePType.MUST_CACHE).build());
+    URIStatus status = fs.getStatus(file);
+    assertEquals(100, status.getInAlluxioPercentage());
+    try (FileInStream inStream = fs.openFile(file)) {
+        assertEquals(fileSize, IOUtils.toByteArray(inStream).length);
+    }
+}

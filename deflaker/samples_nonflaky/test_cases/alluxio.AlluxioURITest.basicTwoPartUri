@@ -1,0 +1,23 @@
+@Test
+public void basicTwoPartUri() {
+    AlluxioURI uri = new AlluxioURI("scheme:part2://localhost:8000/xy z/a b c");
+    assertEquals(uri, new AlluxioURI("scheme:part2//localhost:8000/xy z/a b c"));
+    assertEquals("scheme:part2", uri.getScheme());
+    assertTrue(uri.hasAuthority());
+    assertEquals("localhost:8000", uri.getAuthority().toString());
+    assertTrue(uri.getAuthority() instanceof SingleMasterAuthority);
+    SingleMasterAuthority authority = (SingleMasterAuthority) uri.getAuthority();
+    assertEquals("localhost", authority.getHost());
+    assertEquals(8000, authority.getPort());
+    assertEquals(2, uri.getDepth());
+    assertEquals("a b c", uri.getName());
+    assertEquals("scheme:part2://localhost:8000/xy z", uri.getParent().toString());
+    assertEquals("scheme:part2://localhost:8000/", uri.getParent().getParent().toString());
+    assertEquals("/xy z/a b c", uri.getPath());
+    assertTrue(uri.hasScheme());
+    assertTrue(uri.isAbsolute());
+    assertTrue(uri.isPathAbsolute());
+    assertEquals("scheme:part2://localhost:8000/xy z/a b c/d", uri.join("/d").toString());
+    assertEquals("scheme:part2://localhost:8000/xy z/a b c/d", uri.join(new AlluxioURI("/d")).toString());
+    assertEquals("scheme:part2://localhost:8000/xy z/a b c", uri.toString());
+}

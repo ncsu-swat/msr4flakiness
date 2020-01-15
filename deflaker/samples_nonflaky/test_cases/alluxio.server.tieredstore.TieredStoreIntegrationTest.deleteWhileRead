@@ -1,0 +1,34 @@
+/**
+ * Tests that deletes go through despite failing initially due to concurrent read.
+ */
+@Test
+public void deleteWhileRead() throws Exception {
+    // Small enough not to trigger async eviction
+    int fileSize = MEM_CAPACITY_BYTES / 2;
+    HeartbeatScheduler.await(HeartbeatContext.WORKER_BLOCK_SYNC, 10, TimeUnit.SECONDS);
+    AlluxioURI file = new AlluxioURI("/test1");
+    FileSystemTestUtils.createByteFile(mFileSystem, file, WritePType.MUST_CACHE, fileSize);
+    HeartbeatScheduler.execute(HeartbeatContext.WORKER_BLOCK_SYNC);
+    Assert.assertEquals(100, mFileSystem.getStatus(file).getInAlluxioPercentage());
+    // Open the file
+    OpenFilePOptions options = OpenFilePOptions.newBuilder().setReadType(ReadPType.CACHE).build();
+    FileInStream in = mFileSystem.openFile(file, options);
+    Assert.assertEquals(0, in.read());
+    // Delete the file
+    mFileSystem.delete(file);
+    HeartbeatScheduler.execute(HeartbeatContext.WORKER_BLOCK_SYNC);
+    // After the delete, the master should no longer serve the file
+    Assert.assertFalse(mFileSystem.exists(file));
+    // However, the previous read should still be able to read it as the data still exists
+    byte[] res = new byte[fileSize];
+    Assert.assertEquals(fileSize - 1, in.read(res, 1, fileSize - 1));
+    res[0] = 0;
+    Assert.assertTrue(BufferUtils.equalIncreasingByteArray(fileSize, res));
+    in.close();
+    HeartbeatScheduler.execute(HeartbeatContext.WORKER_BLOCK_SYNC);
+    // After the file is closed, the master's delete should go through and new files can be created
+    AlluxioURI newFile = new AlluxioURI("/test2");
+    FileSystemTestUtils.createByteFile(mFileSystem, newFile, WritePType.MUST_CACHE, MEM_CAPACITY_BYTES);
+    HeartbeatScheduler.execute(HeartbeatContext.WORKER_BLOCK_SYNC);
+    Assert.assertEquals(100, mFileSystem.getStatus(newFile).getInAlluxioPercentage());
+}

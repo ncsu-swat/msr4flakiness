@@ -1,0 +1,15 @@
+@Test
+public void putBucketUnderNestedMountPoint() throws Exception {
+    final String mountPointParent = "mounts";
+    final String mountPointName = "s3";
+    final String bucketName = "bucket";
+    final String s3Path = mountPointParent + BUCKET_SEPARATOR + mountPointName + BUCKET_SEPARATOR + bucketName;
+    mFileSystemMaster.createDirectory(new AlluxioURI(AlluxioURI.SEPARATOR + mountPointParent), CreateDirectoryContext.defaults());
+    AlluxioURI mountPointPath = new AlluxioURI(AlluxioURI.SEPARATOR + mountPointParent + AlluxioURI.SEPARATOR + mountPointName);
+    mFileSystemMaster.mount(mountPointPath, new AlluxioURI(mFolder.newFolder().getAbsolutePath()), MountContext.defaults());
+    // Create a new bucket under an existing nested mount point.
+    createBucketRestCall(s3Path);
+    // Verify the directory is created for the new bucket, under the mount point.
+    AlluxioURI uri = new AlluxioURI(AlluxioURI.SEPARATOR + mountPointParent + AlluxioURI.SEPARATOR + mountPointName + AlluxioURI.SEPARATOR + bucketName);
+    Assert.assertTrue(mFileSystemMaster.listStatus(uri, ListStatusContext.defaults()).isEmpty());
+}

@@ -1,0 +1,26 @@
+/**
+ * Tests check of readonly mount points.
+ */
+@Test
+public void readOnlyMount() throws Exception {
+    MountPOptions options = MountContext.mergeFrom(MountPOptions.newBuilder().setReadOnly(true)).getOptions().build();
+    String mountPath = "/mnt/foo";
+    AlluxioURI alluxioUri = new AlluxioURI("alluxio://localhost:1234" + mountPath);
+    mMountTable.add(NoopJournalContext.INSTANCE, alluxioUri, new AlluxioURI("hdfs://localhost:5678/foo"), 2L, options);
+    try {
+        mMountTable.checkUnderWritableMountPoint(alluxioUri);
+        Assert.fail("Readonly mount point should not be writable.");
+    } catch (AccessControlException e) {
+        // Exception expected
+        Assert.assertEquals(ExceptionMessage.MOUNT_READONLY.getMessage(alluxioUri, mountPath), e.getMessage());
+    }
+    try {
+        String path = mountPath + "/sub/directory";
+        alluxioUri = new AlluxioURI("alluxio://localhost:1234" + path);
+        mMountTable.checkUnderWritableMountPoint(alluxioUri);
+        Assert.fail("Readonly mount point should not be writable.");
+    } catch (AccessControlException e) {
+        // Exception expected
+        Assert.assertEquals(ExceptionMessage.MOUNT_READONLY.getMessage(alluxioUri, mountPath), e.getMessage());
+    }
+}

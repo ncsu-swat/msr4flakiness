@@ -1,0 +1,23 @@
+@Test
+public void copyFromLocal() throws IOException, AlluxioException {
+    File testDir = new File(mLocalAlluxioCluster.getAlluxioHome() + "/testDir");
+    testDir.mkdir();
+    File testDirInner = new File(mLocalAlluxioCluster.getAlluxioHome() + "/testDir/testDirInner");
+    testDirInner.mkdir();
+    File testFile = generateFileContent("/testDir/testFile", BufferUtils.getIncreasingByteArray(10));
+    generateFileContent("/testDir/testDirInner/testFile2", BufferUtils.getIncreasingByteArray(10, 20));
+    mFsShell.run("copyFromLocal", testFile.getParent(), "/testDir");
+    Assert.assertThat(mOutput.toString(), containsString(getCommandOutput(new String[] { "copyFromLocal", testFile.getParent(), "/testDir" })));
+    AlluxioURI uri1 = new AlluxioURI("/testDir/testFile");
+    AlluxioURI uri2 = new AlluxioURI("/testDir/testDirInner/testFile2");
+    URIStatus status1 = mFileSystem.getStatus(uri1);
+    URIStatus status2 = mFileSystem.getStatus(uri2);
+    Assert.assertNotNull(status1);
+    Assert.assertNotNull(status2);
+    Assert.assertEquals(10, status1.getLength());
+    Assert.assertEquals(20, status2.getLength());
+    byte[] read = readContent(uri1, 10);
+    Assert.assertTrue(BufferUtils.equalIncreasingByteArray(10, read));
+    read = readContent(uri2, 20);
+    Assert.assertTrue(BufferUtils.equalIncreasingByteArray(10, 20, read));
+}

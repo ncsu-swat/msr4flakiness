@@ -1,0 +1,23 @@
+/**
+ * Tests that reading a file consisting of more than one block from the underfs works.
+ */
+@Test
+public void readMultiBlockFile() throws Exception {
+    String uniqPath = PathUtils.uniqPath();
+    int blockSizeByte = 10;
+    int numBlocks = 10;
+    AlluxioURI uri = new AlluxioURI(uniqPath);
+    FileOutStream os = mFileSystem.createFile(uri, mWriteUnderStore);
+    for (int i = 0; i < numBlocks; i++) {
+        for (int j = 0; j < blockSizeByte; j++) {
+            os.write((byte) (i * blockSizeByte + j));
+        }
+    }
+    os.close();
+    FileInStream is = mFileSystem.openFile(uri, mReadCache);
+    for (int i = 0; i < blockSizeByte * numBlocks; i++) {
+        Assert.assertEquals((byte) i, is.read());
+    }
+    is.close();
+    IntegrationTestUtils.waitForFileCached(mFileSystem, uri, 1000);
+}

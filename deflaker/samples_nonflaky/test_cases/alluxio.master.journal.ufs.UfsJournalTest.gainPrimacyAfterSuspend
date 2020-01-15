@@ -1,0 +1,27 @@
+@Test
+public void gainPrimacyAfterSuspend() throws Exception {
+    mJournal.start();
+    mJournal.gainPrimacy();
+    // Create a counting master implementation that counts how many journal entries it processed.
+    CountingNoopMaster countingMaster = new CountingNoopMaster();
+    // Find journal base path for secondary journal to consume the same journal files.
+    String parentPath = new File(mJournal.getLocation().getPath()).getParent();
+    UfsJournal secondaryJournal = new UfsJournal(new URI(parentPath), countingMaster, 0, Collections::emptySet);
+    secondaryJournal.start();
+    // Suspend secondary journal
+    secondaryJournal.suspend();
+    // Write entries
+    int entryCount = 10;
+    for (int i = 0; i < entryCount; i++) {
+        mJournal.write(Journal.JournalEntry.getDefaultInstance());
+    }
+    mJournal.flush();
+    // Validate secondary didn't apply any entries yet.
+    Assert.assertEquals(0, countingMaster.getApplyCount());
+    // Gain primacy.
+    secondaryJournal.gainPrimacy();
+    CommonUtils.waitFor("catching up to current state", () -> countingMaster.getApplyCount() == entryCount);
+    // Resume should fail after becoming primary.
+    mThrown.expect(IllegalStateException.class);
+    secondaryJournal.resume();
+}

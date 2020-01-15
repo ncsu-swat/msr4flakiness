@@ -1,0 +1,11 @@
+@Test
+public void lastModificationTimeRename() throws Exception {
+    AlluxioURI srcPath = new AlluxioURI("/testFolder/testFile1");
+    AlluxioURI dstPath = new AlluxioURI("/testFolder/testFile2");
+    mFsMaster.createDirectory(new AlluxioURI("/testFolder"), CreateDirectoryContext.defaults());
+    mFsMaster.createFile(srcPath, CreateFileContext.defaults());
+    mFsMaster.rename(srcPath, dstPath, RenameContext.defaults().setOperationTimeMs(TEST_TIME_MS));
+    FileInfo folderInfo = mFsMaster.getFileInfo(mFsMaster.getFileId(new AlluxioURI("/testFolder")));
+    Assert.assertEquals(TEST_TIME_MS, folderInfo.getLastModificationTimeMs());
+    Assert.assertEquals(TEST_TIME_MS, folderInfo.getLastAccessTimeMs());
+}

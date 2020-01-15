@@ -1,0 +1,11 @@
+@Test
+@Config(confParams = { Name.MASTER_BACKUP_DIRECTORY, "${alluxio.work.dir}/backups" })
+public void defaultDirectory() throws IOException {
+    Path dir = Paths.get(ServerConfiguration.get(PropertyKey.MASTER_BACKUP_DIRECTORY));
+    Files.createDirectories(dir);
+    assertEquals(0, Files.list(dir).count());
+    int errCode = mFsAdminShell.run("backup");
+    assertEquals("", mErrOutput.toString());
+    assertEquals(0, errCode);
+    assertEquals(1, Files.list(dir).count());
+}

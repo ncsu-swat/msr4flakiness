@@ -1,0 +1,12 @@
+/**
+ * Tests a readOnly mount for the create file op.
+ */
+@Test
+public void mountReadOnlyCreateFile() throws Exception {
+    AlluxioURI alluxioURI = new AlluxioURI("/hello");
+    AlluxioURI ufsURI = createTempUfsDir("ufs/hello");
+    mFileSystemMaster.mount(alluxioURI, ufsURI, MountContext.mergeFrom(MountPOptions.newBuilder().setReadOnly(true)));
+    mThrown.expect(AccessControlException.class);
+    AlluxioURI path = new AlluxioURI("/hello/file1");
+    mFileSystemMaster.createFile(path, CreateFileContext.defaults());
+}

@@ -1,0 +1,25 @@
+@Test(timeout = 10000)
+public void lastModifiedLocalFileSync() throws Exception {
+    int sizefactor = 10;
+    GetStatusPOptions options = GetStatusPOptions.newBuilder().setLoadMetadataType(LoadMetadataPType.NEVER).setCommonOptions(PSYNC_ALWAYS).build();
+    writeUfsFile(ufsPath(EXISTING_FILE), sizefactor);
+    URIStatus status = mFileSystem.getStatus(new AlluxioURI(alluxioPath(EXISTING_FILE)), options);
+    String startFingerprint = status.getUfsFingerprint();
+    long startLength = status.getLength();
+    long modTime = new File(ufsPath(EXISTING_FILE)).lastModified();
+    long newModTime = modTime;
+    while (newModTime == modTime) {
+        // Sleep for a bit for a different last mod time.
+        // This could be flaky, so
+        long delay = 100;
+        CommonUtils.sleepMs(delay);
+        // Write the same file, but with a different last mod time.
+        writeUfsFile(ufsPath(EXISTING_FILE), sizefactor);
+        newModTime = new File(ufsPath(EXISTING_FILE)).lastModified();
+    }
+    status = mFileSystem.getStatus(new AlluxioURI(alluxioPath(EXISTING_FILE)), options);
+    // Verify the sizes are the same, but the fingerprints are different.
+    // Will only work with local ufs, since local ufs uses the last mod time for the content hash.
+    Assert.assertTrue(status.getLength() == startLength);
+    Assert.assertNotEquals(startFingerprint, status.getUfsFingerprint());
+}

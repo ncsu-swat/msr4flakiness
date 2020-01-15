@@ -1,0 +1,17 @@
+/**
+ * Tests completed edit log deletion.
+ */
+@Test
+public void completedEditLogDeletion() throws Exception {
+    for (int i = 0; i < 124; i++) {
+        mFileSystem.createFile(new AlluxioURI("/a" + i), CreateFilePOptions.newBuilder().setBlockSizeBytes((i + 10) / 10 * 64).build()).close();
+    }
+    mLocalAlluxioCluster.stopFS();
+    String journalFolder = PathUtils.concatPath(mLocalAlluxioCluster.getLocalAlluxioMaster().getJournalFolder(), Constants.FILE_SYSTEM_MASTER_NAME);
+    UfsJournal journal = new UfsJournal(new URI(journalFolder), new NoopMaster(), 0, Collections::emptySet);
+    URI completedLocation = journal.getLogDir();
+    Assert.assertTrue(UnderFileSystem.Factory.create(completedLocation.toString(), UnderFileSystemConfiguration.defaults(ServerConfiguration.global())).listStatus(completedLocation.toString()).length > 1);
+    multiEditLogTestUtil();
+    Assert.assertTrue(UnderFileSystem.Factory.create(completedLocation.toString(), UnderFileSystemConfiguration.defaults(ServerConfiguration.global())).listStatus(completedLocation.toString()).length > 1);
+    multiEditLogTestUtil();
+}
