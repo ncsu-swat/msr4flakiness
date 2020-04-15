@@ -1,6 +1,6 @@
 Overleaf ~> https://www.overleaf.com/project/5e068c606dd7730001dc6a93
 
-The README.md under the <b>weka directory</b> provides instructions on how to construct the classification models for flaky tests
+## The README.md file under the <b>weka directory</b> provides instructions on how to construct the classification models for flaky tests
 
 Data set Directories:
 
